@@ -7,28 +7,10 @@ from pathlib import Path
 import yaml
 
 
-# ── Paths ────────────────────────────────────────────────────────────
-
-def concepts_dir() -> Path:
-    return Path("concepts")
-
-
-def counters_dir() -> Path:
-    d = concepts_dir() / ".counters"
-    d.mkdir(parents=True, exist_ok=True)
-    return d
-
-
-def claims_dir() -> Path:
-    return Path("claims")
-
-
-
 # ── Counter management ───────────────────────────────────────────────
 
-def _scan_max_concept_id() -> int:
+def _scan_max_concept_id(cdir: Path) -> int:
     """Scan existing concepts to find the highest numeric ID in use."""
-    cdir = concepts_dir()
     if not cdir.exists():
         return 0
     max_id = 0
@@ -47,26 +29,27 @@ def _scan_max_concept_id() -> int:
     return max_id
 
 
-def read_counter(domain: str) -> int:
-    # Global counter — domain parameter kept for backward compatibility
-    p = counters_dir() / "global.next"
+def read_counter(counters: Path) -> int:
+    """Read the global concept counter from the given counters directory."""
+    p = counters / "global.next"
     if p.exists():
         return int(p.read_text().strip())
     # Migrate: if no global counter, scan existing IDs for the true max
-    return _scan_max_concept_id() + 1
+    return _scan_max_concept_id(counters.parent) + 1
 
 
-def write_counter(domain: str, value: int) -> None:
-    # Global counter — domain parameter kept for backward compatibility
-    p = counters_dir() / "global.next"
+def write_counter(counters: Path, value: int) -> None:
+    """Write the global concept counter to the given counters directory."""
+    counters.mkdir(parents=True, exist_ok=True)
+    p = counters / "global.next"
     p.write_text(f"{value}\n")
 
 
-def next_id(domain: str) -> tuple[str, int]:
+def next_id(counters: Path) -> tuple[str, int]:
     """Return (concept_id, next_counter) and increment the counter file."""
-    n = read_counter(domain)
+    n = read_counter(counters)
     cid = f"concept{n}"
-    write_counter(domain, n + 1)
+    write_counter(counters, n + 1)
     return cid, n
 
 
@@ -88,9 +71,8 @@ def write_concept_file(path: Path, data: dict) -> None:
 _ID_RE = re.compile(r'^concept\d+$')
 
 
-def find_concept(id_or_name: str) -> Path | None:
+def find_concept(id_or_name: str, cdir: Path) -> Path | None:
     """Find a concept file by ID or canonical_name. Returns filepath or None."""
-    cdir = concepts_dir()
     if not cdir.exists():
         return None
 
@@ -109,9 +91,8 @@ def find_concept(id_or_name: str) -> Path | None:
     return None
 
 
-def load_all_concepts_by_id() -> dict[str, dict]:
+def load_all_concepts_by_id(cdir: Path) -> dict[str, dict]:
     """Load all concepts keyed by ID."""
-    cdir = concepts_dir()
     if not cdir.exists():
         return {}
     result: dict[str, dict] = {}
