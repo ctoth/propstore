@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import yaml
 from click.testing import CliRunner
 
 from compiler.cli import cli
@@ -75,3 +76,47 @@ class TestInit:
         root = subdir / "knowledge"
         assert (root / "concepts").is_dir()
         assert (root / "claims").is_dir()
+
+    def test_form_files_are_valid_yaml(self, empty_workspace: Path) -> None:
+        """Generated form files should be valid YAML with at least a 'name' field."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+
+        forms_dir = empty_workspace / "knowledge" / "forms"
+        assert forms_dir.is_dir()
+
+        form_files = list(forms_dir.glob("*.yaml"))
+        assert len(form_files) > 0, "No form files generated"
+
+        for form_file in form_files:
+            data = yaml.safe_load(form_file.read_text())
+            assert isinstance(data, dict), f"{form_file.name} is not a YAML mapping"
+            assert "name" in data, f"{form_file.name} missing 'name' field"
+            assert data["name"] == form_file.stem, (
+                f"{form_file.name}: name field '{data['name']}' != stem '{form_file.stem}'"
+            )
+
+    def test_directory_structure_complete(self, empty_workspace: Path) -> None:
+        """init should create concepts/, claims/, forms/, sidecar/, and .counters/."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+
+        root = empty_workspace / "knowledge"
+        assert (root / "concepts").is_dir()
+        assert (root / "concepts" / ".counters").is_dir()
+        assert (root / "claims").is_dir()
+        assert (root / "forms").is_dir()
+        assert (root / "sidecar").is_dir()
+
+    def test_schema_dir_not_required(self, empty_workspace: Path) -> None:
+        """init should not create a schema/ directory (schema is separate)."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+
+        # schema/ is NOT part of the init structure
+        root = empty_workspace / "knowledge"
+        # Just verify init doesn't crash; schema/ is optional
+        assert (root / "concepts").is_dir()

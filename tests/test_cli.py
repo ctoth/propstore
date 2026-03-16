@@ -498,3 +498,243 @@ class TestImportPapers:
         imported = yaml.safe_load((workspace / "claims" / "Smith_2024_TestPaper.yaml").read_text())
         assert imported["source"]["paper"] == "Smith_2024_TestPaper"
         assert imported["claims"][0]["id"] == "claim1"
+
+    def test_import_papers_no_papers_dir(self, workspace: Path) -> None:
+        """import-papers with nonexistent papers root should fail (Click path validation)."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "import-papers",
+            "--papers-root", str(workspace / "nonexistent"),
+        ])
+        assert result.exit_code != 0
+
+    def test_import_papers_no_yaml_files(self, workspace: Path) -> None:
+        """import-papers with empty papers root should report no files found."""
+        papers_root = workspace / "empty-papers"
+        papers_root.mkdir()
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "import-papers",
+            "--papers-root", str(papers_root),
+        ])
+        assert result.exit_code == 0
+        assert "No claims.yaml" in result.output
+
+    def test_import_papers_correct_claim_file_content(self, workspace: Path) -> None:
+        """Imported claim file should have correct source.paper and all claims preserved."""
+        papers_root = workspace / "plugin-papers"
+        paper_dir = papers_root / "Author_2025_Title"
+        paper_dir.mkdir(parents=True)
+        (paper_dir / "claims.yaml").write_text(yaml.dump({
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 100.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "ignored", "page": 2},
+                },
+                {
+                    "id": "claim2",
+                    "type": "observation",
+                    "statement": "F0 varies",
+                    "concepts": ["concept1"],
+                    "provenance": {"paper": "ignored", "page": 3},
+                },
+            ]
+        }, default_flow_style=False, sort_keys=False))
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "import-papers",
+            "--papers-root", str(papers_root),
+        ])
+        assert result.exit_code == 0, result.output
+
+        imported = yaml.safe_load((workspace / "claims" / "Author_2025_Title.yaml").read_text())
+        assert imported["source"]["paper"] == "Author_2025_Title"
+        assert len(imported["claims"]) == 2
+        assert imported["claims"][0]["id"] == "claim1"
+        assert imported["claims"][1]["id"] == "claim2"
+
+
+# ── build (extended) ────────────────────────────────────────────────
+
+class TestBuildExtended:
+    def test_sidecar_contains_expected_tables(self, workspace: Path) -> None:
+        """Built sidecar should contain concept, alias, relationship, concept_fts tables."""
+        runner = CliRunner()
+        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        assert result.exit_code == 0, result.output
+
+        conn = sqlite3.connect(sidecar)
+        tables = {row[0] for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()}
+        conn.close()
+
+        assert "concept" in tables
+        assert "alias" in tables
+        assert "relationship" in tables
+        assert "concept_fts" in tables
+
+    def test_sidecar_contains_concept_data(self, workspace: Path) -> None:
+        """Built sidecar should have correct concept names and IDs."""
+        runner = CliRunner()
+        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        assert result.exit_code == 0, result.output
+
+        conn = sqlite3.connect(sidecar)
+        rows = conn.execute(
+            "SELECT id, canonical_name FROM concept ORDER BY id"
+        ).fetchall()
+        conn.close()
+
+        ids = [r[0] for r in rows]
+        names = [r[1] for r in rows]
+        assert "concept1" in ids
+        assert "concept2" in ids
+        assert "fundamental_frequency" in names
+        assert "task" in names
+
+    def test_sidecar_contains_aliases(self, workspace: Path) -> None:
+        """Built sidecar should include alias data from concepts."""
+        runner = CliRunner()
+        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        assert result.exit_code == 0, result.output
+
+        conn = sqlite3.connect(sidecar)
+        aliases = conn.execute("SELECT alias_name FROM alias").fetchall()
+        conn.close()
+
+        alias_names = [r[0] for r in aliases]
+        assert "F0" in alias_names
+
+    def test_build_with_claims(self, workspace: Path) -> None:
+        """Build with claim files should create claim table with data."""
+        claims_dir = workspace / "claims"
+        _write_claim_file(claims_dir, "paper.yaml", {
+            "source": {"paper": "paper"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 200.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "paper", "page": 1},
+                }
+            ],
+        })
+
+        runner = CliRunner()
+        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        assert result.exit_code == 0, result.output
+
+        conn = sqlite3.connect(sidecar)
+        count = conn.execute("SELECT count(*) FROM claim").fetchone()[0]
+        conn.close()
+        assert count == 1
+
+    def test_build_force_rebuilds(self, workspace: Path) -> None:
+        """--force should trigger rebuild even when content hasn't changed."""
+        runner = CliRunner()
+        sidecar = workspace / "sidecar" / "propstore.sqlite"
+
+        # First build
+        result1 = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        assert result1.exit_code == 0, result1.output
+        assert "rebuilt" in result1.output
+
+        # Second build without force — should be unchanged
+        result2 = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        assert result2.exit_code == 0, result2.output
+        assert "unchanged" in result2.output
+
+        # Third build with --force — should rebuild
+        result3 = runner.invoke(cli, ["build", "--force", "-o", str(sidecar)])
+        assert result3.exit_code == 0, result3.output
+        assert "rebuilt" in result3.output
+
+    def test_build_skip_on_unchanged_content(self, workspace: Path) -> None:
+        """Building twice without changes should skip on the second run."""
+        runner = CliRunner()
+        sidecar = workspace / "sidecar" / "propstore.sqlite"
+
+        result1 = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        assert result1.exit_code == 0
+        assert "rebuilt" in result1.output
+
+        result2 = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        assert result2.exit_code == 0
+        assert "unchanged" in result2.output
+
+
+# ── export-aliases ──────────────────────────────────────────────────
+
+class TestExportAliases:
+    def test_export_aliases_json(self, workspace: Path) -> None:
+        """export-aliases --format json should produce valid JSON with alias data."""
+        import json as _json
+        runner = CliRunner()
+        result = runner.invoke(cli, ["export-aliases", "--format", "json"])
+        assert result.exit_code == 0, result.output
+
+        data = _json.loads(result.output)
+        assert isinstance(data, dict)
+        assert "F0" in data
+        assert data["F0"]["id"] == "concept1"
+        assert data["F0"]["name"] == "fundamental_frequency"
+
+    def test_export_aliases_text(self, workspace: Path) -> None:
+        """export-aliases in text mode should show alias -> concept mappings."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["export-aliases"])
+        assert result.exit_code == 0, result.output
+        assert "F0" in result.output
+        assert "concept1" in result.output
+
+
+# ── concept search ──────────────────────────────────────────────────
+
+class TestConceptSearch:
+    def test_search_by_name_yaml_fallback(self, workspace: Path) -> None:
+        """concept search should find concepts by name via YAML grep fallback."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["concept", "search", "fundamental"])
+        assert result.exit_code == 0, result.output
+        assert "concept1" in result.output
+        assert "fundamental_frequency" in result.output
+
+    def test_search_by_definition_yaml_fallback(self, workspace: Path) -> None:
+        """concept search should find concepts by definition text."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["concept", "search", "definition"])
+        assert result.exit_code == 0, result.output
+        # Both concepts have "Test definition for X" in their definition
+        assert "concept1" in result.output
+
+    def test_search_no_matches(self, workspace: Path) -> None:
+        """concept search with no matches should report no matches."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["concept", "search", "zzz_nonexistent_zzz"])
+        assert result.exit_code == 0
+        assert "No matches" in result.output
+
+    def test_search_uses_fts_when_sidecar_exists(self, workspace: Path) -> None:
+        """concept search should use FTS when sidecar is available."""
+        runner = CliRunner()
+        # Build sidecar first
+        build_result = runner.invoke(cli, ["build"])
+        assert build_result.exit_code == 0, build_result.output
+
+        # Search using FTS
+        result = runner.invoke(cli, ["concept", "search", "fundamental"])
+        assert result.exit_code == 0, result.output
+        assert "concept1" in result.output
+        assert "fundamental_frequency" in result.output
