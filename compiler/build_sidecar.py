@@ -16,13 +16,12 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-import sys
 from pathlib import Path
 from typing import Sequence
 
 from compiler.parameterization_groups import build_groups
 from compiler.form_utils import kind_value_from_form_name, load_form
-from compiler.validate import LoadedConcept, load_concepts
+from compiler.validate import LoadedConcept
 from compiler.validate_claims import LoadedClaimFile
 
 
@@ -185,6 +184,7 @@ def _create_tables(conn: sqlite3.Connection):
             type TEXT NOT NULL,
             target_id TEXT NOT NULL,
             conditions_cel TEXT,
+            note TEXT,
             FOREIGN KEY (source_id) REFERENCES concept(id),
             FOREIGN KEY (target_id) REFERENCES concept(id)
         );
@@ -273,9 +273,10 @@ def _populate_relationships(conn: sqlite3.Connection, concepts: list[LoadedConce
         for rel in d.get("relationships", []) or []:
             conditions = rel.get("conditions", []) or []
             conn.execute(
-                "INSERT INTO relationship (source_id, type, target_id, conditions_cel) VALUES (?, ?, ?, ?)",
+                "INSERT INTO relationship (source_id, type, target_id, conditions_cel, note) VALUES (?, ?, ?, ?, ?)",
                 (source_id, rel.get("type"), rel.get("target"),
-                 json.dumps(conditions) if conditions else None),
+                 json.dumps(conditions) if conditions else None,
+                 rel.get("note")),
             )
 
 
@@ -587,36 +588,3 @@ def _build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[Loade
             )
 
 
-def main():
-    """CLI entry point."""
-    import argparse
-    parser = argparse.ArgumentParser(description="Build propstore SQLite sidecar")
-    parser.add_argument("concept_dir", nargs="?", default="concepts",
-                        help="Path to concepts directory")
-    parser.add_argument("-o", "--output", default="sidecar/propstore.sqlite",
-                        help="Output SQLite file path")
-    parser.add_argument("--force", action="store_true",
-                        help="Force rebuild even if unchanged")
-    args = parser.parse_args()
-
-    concept_dir = Path(args.concept_dir)
-    if not concept_dir.exists():
-        print(f"ERROR: Concept directory '{concept_dir}' does not exist")
-        sys.exit(1)
-
-    concepts = load_concepts(concept_dir)
-    if not concepts:
-        print("No concept files found.")
-        sys.exit(0)
-
-    sidecar_path = Path(args.output)
-    rebuilt = build_sidecar(concepts, sidecar_path, force=args.force)
-
-    if rebuilt:
-        print(f"Sidecar built: {sidecar_path} ({len(concepts)} concepts)")
-    else:
-        print(f"Sidecar unchanged: {sidecar_path}")
-
-
-if __name__ == "__main__":
-    main()
