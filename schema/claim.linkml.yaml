@@ -130,7 +130,8 @@ classes:
 
       id:
         description: >
-          Stable identifier. Format: claim_NNNN (zero-padded to 4 digits).
+          Stable identifier. Format: claim + sequential integer
+          (e.g., claim1, claim12, claim103).
         range: string
         required: true
 
