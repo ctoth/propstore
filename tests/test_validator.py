@@ -539,7 +539,7 @@ class TestRelationshipTypeValidation:
 
         for i, rel_type in enumerate(valid_types):
             name = f"concept_{rel_type}"
-            cid = f"speech_{1001 + i:04d}"
+            cid = f"concept{1001 + i}"
             rel = {"type": rel_type, "target": "concept1"}
             if rel_type == "contested_definition":
                 rel["note"] = "Different theoretical framework"

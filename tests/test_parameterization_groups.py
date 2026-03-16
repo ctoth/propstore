@@ -25,48 +25,48 @@ class TestBuildGroups:
         """5 concepts all connected via parameterizations form 1 group."""
         # Chain: a->b->c, a->d->e (all connected through a)
         concepts = [
-            _concept("s_0001"),
-            _concept("s_0002", param_inputs=["s_0001"]),
-            _concept("s_0003", param_inputs=["s_0002"]),
-            _concept("s_0004", param_inputs=["s_0001"]),
-            _concept("s_0005", param_inputs=["s_0004"]),
+            _concept("concept1"),
+            _concept("concept2", param_inputs=["concept1"]),
+            _concept("concept3", param_inputs=["concept2"]),
+            _concept("concept4", param_inputs=["concept1"]),
+            _concept("concept5", param_inputs=["concept4"]),
         ]
         groups = build_groups(concepts)
         assert len(groups) == 1
-        assert groups[0] == {"s_0001", "s_0002", "s_0003", "s_0004", "s_0005"}
+        assert groups[0] == {"concept1", "concept2", "concept3", "concept4", "concept5"}
 
     def test_two_disconnected_clusters(self):
         """Two disconnected clusters produce 2 groups."""
         concepts = [
-            _concept("s_0001"),
-            _concept("s_0002", param_inputs=["s_0001"]),
+            _concept("concept1"),
+            _concept("concept2", param_inputs=["concept1"]),
             # Disconnected cluster
-            _concept("s_0003"),
-            _concept("s_0004", param_inputs=["s_0003"]),
+            _concept("concept3"),
+            _concept("concept4", param_inputs=["concept3"]),
         ]
         groups = build_groups(concepts)
         assert len(groups) == 2
         group_sets = [frozenset(g) for g in groups]
-        assert frozenset({"s_0001", "s_0002"}) in group_sets
-        assert frozenset({"s_0003", "s_0004"}) in group_sets
+        assert frozenset({"concept1", "concept2"}) in group_sets
+        assert frozenset({"concept3", "concept4"}) in group_sets
 
     def test_single_concept_no_parameterizations(self):
         """A single concept with no parameterizations is a group of 1."""
-        concepts = [_concept("s_0001")]
+        concepts = [_concept("concept1")]
         groups = build_groups(concepts)
         assert len(groups) == 1
-        assert groups[0] == {"s_0001"}
+        assert groups[0] == {"concept1"}
 
     def test_linear_chain(self):
         """Linear chain A->B->C forms 1 group containing all three."""
         concepts = [
-            _concept("s_0001"),
-            _concept("s_0002", param_inputs=["s_0001"]),
-            _concept("s_0003", param_inputs=["s_0002"]),
+            _concept("concept1"),
+            _concept("concept2", param_inputs=["concept1"]),
+            _concept("concept3", param_inputs=["concept2"]),
         ]
         groups = build_groups(concepts)
         assert len(groups) == 1
-        assert groups[0] == {"s_0001", "s_0002", "s_0003"}
+        assert groups[0] == {"concept1", "concept2", "concept3"}
 
     def test_empty_input(self):
         """No concepts produces no groups."""
@@ -76,10 +76,10 @@ class TestBuildGroups:
     def test_multiple_inputs_per_parameterization(self):
         """A concept with multiple inputs connects all of them."""
         concepts = [
-            _concept("s_0001"),
-            _concept("s_0002"),
-            _concept("s_0003", param_inputs=["s_0001", "s_0002"]),
+            _concept("concept1"),
+            _concept("concept2"),
+            _concept("concept3", param_inputs=["concept1", "concept2"]),
         ]
         groups = build_groups(concepts)
         assert len(groups) == 1
-        assert groups[0] == {"s_0001", "s_0002", "s_0003"}
+        assert groups[0] == {"concept1", "concept2", "concept3"}

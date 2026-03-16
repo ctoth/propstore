@@ -12,7 +12,7 @@ claims/*.yaml              ├──▶  compiler  ──▶  sidecar/propstore.
 schema/ (LinkML + JSON)  ──┘      (pks)          (FTS5, conflict table, ...)
 ```
 
-- **Concepts** are true-named quantities, categories, booleans, or structural types. Each gets a stable ID (`speech_0012`), a canonical name, and a kind that determines what operations are legal in CEL condition expressions.
+- **Concepts** are true-named quantities, categories, booleans, or structural types. Each gets a stable ID (`concept12`), a canonical name, and a kind that determines what operations are legal in CEL condition expressions.
 - **Claims** bind to concept IDs with provenance, values, units, and CEL conditions that scope when the claim holds. Five claim types: **parameter** (numeric value binding), **equation** (math relationship with variable bindings), **observation** (qualitative), **model** (multi-equation framework), and **measurement** (perceptual/behavioral — JND, threshold, rating).
 - **Conflicts** are data, not errors. When two claims for the same concept disagree, the compiler classifies the pair as CONFLICT (same scope), OVERLAP (partial scope overlap), or PHI_NODE (different scope — not actually a conflict).
 - **Parameterization groups** — connected-component analysis over concepts linked by algebraic/functional relationships. Each group is a "parameter space" of related quantities.
@@ -55,17 +55,17 @@ pks concept show subglottal_pressure    # accepts ID or canonical_name
 pks concept search "vocal fold"
 
 # Mutate (all support --dry-run)
-pks concept alias speech_0012 --name Ps --source Sundberg_1993
-pks concept rename speech_0012 --name new_name
-pks concept deprecate speech_0012 --replaced-by speech_0001
-pks concept link speech_0001 broader speech_0004 [--source Paper_2020] [--note "..."]
+pks concept alias concept12 --name Ps --source Sundberg_1993
+pks concept rename concept12 --name new_name
+pks concept deprecate concept12 --replaced-by concept1
+pks concept link concept1 broader concept4 [--source Paper_2020] [--note "..."]
 ```
 
 ### Claims
 
 ```bash
 pks claim validate [--dir claims/]
-pks claim conflicts [--concept speech_0001] [--class CONFLICT|OVERLAP|PARAM_CONFLICT]
+pks claim conflicts [--concept concept1] [--class CONFLICT|OVERLAP|PARAM_CONFLICT]
 ```
 
 ### Compiler

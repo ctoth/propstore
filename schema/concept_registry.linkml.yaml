@@ -80,8 +80,8 @@ classes:
 
       id:
         description: >
-          Stable identifier. Format: domain prefix + sequential integer.
-          Examples: speech_0012, narr_0001.
+          Stable identifier. Format: concept + sequential integer.
+          Examples: concept12, concept101.
         range: string
         required: true
 

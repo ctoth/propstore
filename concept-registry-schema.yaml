@@ -124,10 +124,10 @@ classes:
 
       id:
         description: >
-          Stable identifier. Format: domain prefix + sequential integer.
-          Examples: speech_0012, narr_0001. The prefix is a short domain
-          tag, not a full namespace — keeps IDs readable in YAML.
-          MUST be unique across all domains in the store.
+          Stable identifier. Format: concept + sequential integer.
+          Examples: concept12, concept101. The ID is local to the store,
+          not a full namespace — keeps IDs readable in YAML.
+          MUST be unique across the store.
           MUST NOT be reused after deprecation.
         range: string
         required: true
@@ -179,10 +179,9 @@ classes:
 
       domain:
         description: >
-          Short domain tag. Derived from the prefix of the concept ID
-          (speech_0012 → speech). Present in the file for readability
-          but the compiler treats the ID prefix as authoritative. If
-          domain and ID prefix disagree, that's a compiler error.
+          Short domain tag. Present in the file for readability
+          and coarse filtering. It is descriptive metadata, not an
+          encoding of the concept ID itself.
           NOT a semantic field — don't agonize over whether
           "fundamental frequency" is speech or acoustics or physics.
           It's whatever prefix you assigned. Use broader/narrower edges
@@ -955,12 +954,12 @@ classes:
 #   whole point of the "proposed" state.
 #
 # NAMESPACE:
-#   IDs use domain prefix + underscore + zero-padded integer.
+#   IDs use concept + integer.
 #   Counter file per domain: concepts/.counters/speech.next = 87
-#   New concept in speech domain gets speech_0087, counter increments.
-#   Prefix is 2-8 lowercase chars matching the domain field.
-#   Cross-domain concepts pick origin domain. exact_match edges
-#   create the cross-links.
+#   New concept in speech domain gets concept87, counter increments.
+#   Domain remains a separate field for readability and grouping.
+#   Cross-domain concepts pick an origin domain in metadata; exact_match
+#   edges create the cross-links.
 #
 # FILE LAYOUT:
 #   concepts/

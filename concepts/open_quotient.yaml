@@ -41,7 +41,6 @@ parameterization_relationships:
   - formula: "OQe = (1 + Rk) / (2 * Rg) + Ra"
     sympy: "Eq(OQe, (1 + Rk) / (2 * Rg) + Ra)"
     inputs:
-      - concept6   # open_quotient
       - concept7   # speed_quotient (via Rk)
       - concept12   # glottal_formant_frequency (via Rg)
       - concept10   # return_phase_time_constant (via Ra)

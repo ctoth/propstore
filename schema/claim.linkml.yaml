@@ -165,7 +165,7 @@ classes:
 
       concept:
         description: >
-          Concept ID this parameter claim binds to (e.g., speech_0012).
+          Concept ID this parameter claim binds to (e.g., concept12).
           Required for parameter claims.
         range: string
 
@@ -212,7 +212,7 @@ classes:
 
       target_concept:
         description: >
-          Concept ID this measurement is about (e.g., speech_0002).
+          Concept ID this measurement is about (e.g., concept2).
           Required for measurement claims.
         range: string
 

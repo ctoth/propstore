@@ -7,7 +7,7 @@ claims:
   - id: claim1
     type: parameter
     concept: concept1
-    value: [200.0]
+    value: 200.0
     unit: Hz
     conditions:
       - "task == 'speech'"
@@ -18,7 +18,7 @@ claims:
   - id: claim2
     type: parameter
     concept: concept1
-    value: [350.0]
+    value: 350.0
     unit: Hz
     conditions:
       - "task == 'speech'"
@@ -31,7 +31,7 @@ claims:
   - id: claim3
     type: parameter
     concept: concept1
-    value: [180.0]
+    value: 180.0
     unit: Hz
     conditions:
       - "task == 'singing'"
@@ -43,7 +43,7 @@ claims:
   - id: claim4
     type: parameter
     concept: concept2
-    value: [800.0]
+    value: 800.0
     unit: Pa
     conditions:
       - "task == 'speech'"

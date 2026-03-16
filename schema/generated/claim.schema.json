@@ -5,7 +5,7 @@
             "description": "A single propositional claim extracted from a paper. All claims have an id, type, provenance, and optional conditions and stances. Type-specific fields (concept/value/unit for parameter, expression/sympy for equation, etc.) are all present on this class; the validator enforces which are required per claim type.",
             "properties": {
                 "concept": {
-                    "description": "Concept ID this parameter claim binds to (e.g., speech_0012). Required for parameter claims.\n",
+                    "description": "Concept ID this parameter claim binds to (e.g., concept12). Required for parameter claims.\n",
                     "type": [
                         "string",
                         "null"
@@ -141,7 +141,7 @@
                     ]
                 },
                 "target_concept": {
-                    "description": "Concept ID this measurement is about (e.g., speech_0002). Required for measurement claims.\n",
+                    "description": "Concept ID this measurement is about (e.g., concept2). Required for measurement claims.\n",
                     "type": [
                         "string",
                         "null"

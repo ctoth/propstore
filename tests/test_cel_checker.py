@@ -31,30 +31,30 @@ def registry():
         # Quantities
         "fundamental_frequency": ConceptInfo("concept1", "fundamental_frequency", KindType.QUANTITY),
         "subglottal_pressure": ConceptInfo("concept12", "subglottal_pressure", KindType.QUANTITY),
-        "speaking_rate": ConceptInfo("speech_0020", "speaking_rate", KindType.QUANTITY),
+        "speaking_rate": ConceptInfo("concept20", "speaking_rate", KindType.QUANTITY),
         "F0": ConceptInfo("concept1b", "F0", KindType.QUANTITY),
         "F1": ConceptInfo("concept2", "F1", KindType.QUANTITY),
         # Category
         "task": ConceptInfo(
-            "speech_0030", "task", KindType.CATEGORY,
+            "concept30", "task", KindType.CATEGORY,
             category_values=["speech", "singing", "whisper"],
             category_extensible=True,
         ),
         "population": ConceptInfo(
-            "speech_0031", "population", KindType.CATEGORY,
+            "concept31", "population", KindType.CATEGORY,
             category_values=["adult", "child", "elderly"],
             category_extensible=True,
         ),
         "vowel_type": ConceptInfo(
-            "speech_0032", "vowel_type", KindType.CATEGORY,
+            "concept32", "vowel_type", KindType.CATEGORY,
             category_values=["front", "back", "central"],
             category_extensible=False,
         ),
         # Boolean
-        "phonation_present": ConceptInfo("speech_0040", "phonation_present", KindType.BOOLEAN),
+        "phonation_present": ConceptInfo("concept40", "phonation_present", KindType.BOOLEAN),
         # Structural
         "focalization": ConceptInfo("concept101", "focalization", KindType.STRUCTURAL),
-        "coarticulation": ConceptInfo("speech_0050", "coarticulation", KindType.STRUCTURAL),
+        "coarticulation": ConceptInfo("concept50", "coarticulation", KindType.STRUCTURAL),
     }
 
 
@@ -402,7 +402,7 @@ def test_structural_always_errors(val):
     """Structural concept in any expression always produces an error."""
     assume(val not in ("true", "false", "in"))
     registry = {
-        "struct_concept": ConceptInfo("test_0001", "struct_concept", KindType.STRUCTURAL),
+        "struct_concept": ConceptInfo("concept999", "struct_concept", KindType.STRUCTURAL),
     }
     expr = f"struct_concept == '{val}'"
     errors = check_cel_expression(expr, registry)

@@ -133,10 +133,10 @@ Claims bind to concept IDs, not to paper-local variable names.
 
 ```
 concepts/
-  subglottal_pressure.yaml     # concept_0012
-  fundamental_frequency.yaml   # concept_0001
-  return_phase_ratio.yaml      # concept_0089
-  open_quotient.yaml           # concept_0034
+  subglottal_pressure.yaml     # concept12
+  fundamental_frequency.yaml   # concept1
+  return_phase_ratio.yaml      # concept89
+  open_quotient.yaml           # concept34
   ...
 ```
 
@@ -144,7 +144,7 @@ Each concept file:
 
 ```yaml
 # concepts/subglottal_pressure.yaml
-id: concept_0012
+id: concept12
 status: accepted  # proposed | accepted | deprecated
 canonical_name: subglottal_pressure
 definition: >
@@ -165,11 +165,11 @@ domain: speech_physiology
 
 relationships:
   - type: component_of
-    target: concept_0045  # transglottal_pressure
+    target: concept45  # transglottal_pressure
   - type: drives
-    target: concept_0003  # voicing_amplitude
+    target: concept3  # voicing_amplitude
   - type: related
-    target: concept_0078  # intraoral_pressure
+    target: concept78  # intraoral_pressure
 ```
 
 ### The Form System — Dimensional Type Signatures
@@ -305,7 +305,7 @@ This is a genuine gap in the literature. The concept registry fills it:
 
 ```yaml
 # concepts/return_phase_ratio.yaml
-id: concept_0089
+id: concept89
 canonical_name: return_phase_ratio
 aliases:
   - { name: "ra", source: Gobl_1988 }
@@ -314,14 +314,14 @@ aliases:
 parameterization_relationships:
   - formula: "gobl_ra = fant_Ra / T0"
     sympy: "Eq(gobl_ra, fant_Ra / T0)"
-    inputs: [concept_0089_gobl, concept_0089_fant, concept_0001]
+    inputs: [concept89_gobl, concept89_fant, concept1]
     source: Gobl_1988
     note: "Gobl normalizes by fundamental period"
     bidirectional: true
 
   - formula: "ra = ta / T0"
     sympy: "Eq(ra, ta / T0)"
-    inputs: [concept_0089, concept_0091, concept_0001]
+    inputs: [concept89, concept91, concept1]
     source: Fant_1985_LFModelGlottalFlow
     note: "Definition in terms of return phase time constant"
     bidirectional: true
@@ -331,19 +331,19 @@ And for the non-trivial cases:
 
 ```yaml
 # concepts/open_quotient.yaml
-id: concept_0034
+id: concept34
 canonical_name: open_quotient
 
 parameterization_relationships:
   - formula: "OQ + CQ = 1"
     sympy: "Eq(OQ + CQ, 1)"
-    inputs: [concept_0034, concept_0035]
+    inputs: [concept34, concept35]
     bidirectional: true
     source: multiple
 
   - formula: "OQ = 1 / (2 * Rg * (1 + Rk))"
     sympy: "Eq(OQ, 1 / (2 * Rg * (1 + Rk)))"
-    inputs: [concept_0034, concept_0036, concept_0037]
+    inputs: [concept34, concept36, concept37]
     source: Fant_1995
     bidirectional: false  # regression-derived, not exact
     note: "Approximate; assumes symmetric opening phase"
@@ -416,7 +416,7 @@ The dominant form. Each row in Gobl's Table III is one of these.
 ```yaml
 - id: claim_0042
   type: parameter
-  concept: concept_0089  # return_phase_ratio
+  concept: concept89  # return_phase_ratio
   value: [2, 3]
   unit: "%"
   conditions:
@@ -438,8 +438,8 @@ Explicit mathematical relationships with fit statistics.
   expression: "log(Ps) = 1.00 + 0.88 * log(F0)"
   sympy: "Eq(log(Ps), 1.00 + 0.88 * log(F0))"
   variables:
-    Ps: { concept: concept_0012, role: dependent }
-    F0: { concept: concept_0001, role: independent }
+    Ps: { concept: concept12, role: dependent }
+    F0: { concept: concept1, role: independent }
   fit:
     r: 0.965
     r_sd: 0.04
@@ -464,7 +464,7 @@ For claims that resist parameterization.
   statement: >
     Pulse shape becomes more symmetrical as F0 approaches F1,
     with skewing asymptotically approaching 0.6 when F1/F0 > 3.
-  concepts: [concept_0001, concept_0022, concept_0048]
+  concepts: [concept1, concept22, concept48]
   conditions:
     domain: singing
     range: "F1/F0 ratio < 3"
@@ -487,10 +487,10 @@ For multi-equation frameworks like Broad & Clermont's transition model.
     - "g_VC(t') = kappa'_C * (T_V - L'_C) * exp(-beta'_C * t')"
     - "F_CVC(t) = f_CV(t) + T_V + g_VC(t)"
   parameters:
-    L_C: { concept: concept_0150, note: "consonant locus" }
-    T_V: { concept: concept_0151, note: "vowel target" }
-    beta_C: { concept: concept_0152, note: "reciprocal time constant" }
-    kappa_C: { concept: concept_0153, note: "exponential scale factor" }
+    L_C: { concept: concept150, note: "consonant locus" }
+    T_V: { concept: concept151, note: "vowel target" }
+    beta_C: { concept: concept152, note: "reciprocal time constant" }
+    kappa_C: { concept: concept153, note: "exponential scale factor" }
   parameter_values_source:
     paper: Broad_Clermont_1987
     table: "VI"
@@ -724,8 +724,7 @@ Claude Code) with:
 - [ ] SymPy vs MathML for parameterization relationship formulas
 - [ ] How to bootstrap the concept registry from 370 existing notes.md files —
       bulk extraction pass or incremental as papers are re-processed?
-- [ ] Concept ID namespace: local integers (concept_0012) or something more
-      semantic (speech:subglottal_pressure)?
+- [x] Concept ID namespace: local integers (`conceptN`).
 - [ ] When does a concept alias become a distinct concept? The "lung pressure"
       problem — Lieberman means something slightly different, is that an alias
       with a note or a separate concept with an `approximation_of` edge?
