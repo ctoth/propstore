@@ -1,6 +1,7 @@
 """pks concept — subcommands for managing concepts."""
 from __future__ import annotations
 
+import sqlite3
 from copy import deepcopy
 import subprocess
 import sys
@@ -435,7 +436,6 @@ def search(query: str) -> None:
     sidecar = Path("sidecar/propstore.sqlite")
 
     if sidecar.exists():
-        import sqlite3
         conn = sqlite3.connect(sidecar)
         rows = conn.execute(
             "SELECT concept_id, canonical_name, definition "
