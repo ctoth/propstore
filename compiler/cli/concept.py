@@ -14,14 +14,13 @@ import yaml
 from compiler.cli.helpers import (
     EXIT_ERROR,
     EXIT_VALIDATION,
-    claims_dir,
-    concepts_dir,
     find_concept,
     load_concept_file,
     read_counter,
     write_counter,
     write_concept_file,
 )
+from compiler.cli.repository import Repository
 from compiler.validate import LoadedConcept, load_concepts, validate_concepts
 from compiler.validate_claims import load_claim_files, validate_claims
 
@@ -126,7 +125,9 @@ def _rewrite_claim_conditions(claim_file_data: dict, old_name: str, new_name: st
 @click.option("--form", "form_name", default=None,
               help="Form name (references forms/<name>.yaml, prompted if omitted)")
 @click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
+@click.pass_obj
 def add(
+    obj: dict,
     domain: str,
     name: str,
     definition: str | None,
@@ -134,23 +135,23 @@ def add(
     dry_run: bool,
 ) -> None:
     """Add a new concept to the registry."""
+    repo: Repository = obj["repo"]
     # Prompt for missing fields
     if definition is None:
         definition = click.prompt("Definition")
     if form_name is None:
         # List available forms
-        forms_dir = Path("forms")
-        if forms_dir.exists():
-            available = sorted(f.stem for f in forms_dir.iterdir() if f.suffix == ".yaml")
+        if repo.forms_dir.exists():
+            available = sorted(f.stem for f in repo.forms_dir.iterdir() if f.suffix == ".yaml")
             click.echo(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")
 
-    filepath = concepts_dir() / f"{name}.yaml"
+    filepath = repo.concepts_dir / f"{name}.yaml"
     if filepath.exists():
         click.echo(f"ERROR: Concept file '{filepath}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
-    next_counter = read_counter(domain)
+    next_counter = read_counter(repo.counters_dir)
     cid = f"concept{next_counter}"
 
     data = {
@@ -168,11 +169,11 @@ def add(
         click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
         return
 
-    concepts_dir().mkdir(parents=True, exist_ok=True)
-    concepts = load_concepts(concepts_dir())
+    repo.concepts_dir.mkdir(parents=True, exist_ok=True)
+    concepts = load_concepts(repo.concepts_dir)
     concepts.append(LoadedConcept(filename=name, filepath=filepath, data=data))
 
-    result = validate_concepts(concepts)
+    result = validate_concepts(concepts, repo=repo)
     if not result.ok:
         for e in result.errors:
             click.echo(f"ERROR: {e}", err=True)
@@ -183,7 +184,7 @@ def add(
         click.echo(f"WARNING: {w}", err=True)
 
     write_concept_file(filepath, data)
-    write_counter(domain, next_counter + 1)
+    write_counter(repo.counters_dir, next_counter + 1)
     click.echo(f"Created {filepath} with ID {cid}")
 
 
@@ -195,9 +196,11 @@ def add(
 @click.option("--source", required=True, help="Source paper or 'common'")
 @click.option("--note", default=None, help="Optional note")
 @click.option("--dry-run", is_flag=True)
-def alias(concept_id: str, name: str, source: str, note: str | None, dry_run: bool) -> None:
+@click.pass_obj
+def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, dry_run: bool) -> None:
     """Add an alias to a concept."""
-    filepath = find_concept(concept_id)
+    repo: Repository = obj["repo"]
+    filepath = find_concept(concept_id, repo.concepts_dir)
     if filepath is None:
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
@@ -205,7 +208,7 @@ def alias(concept_id: str, name: str, source: str, note: str | None, dry_run: bo
     data = load_concept_file(filepath)
 
     # Warn if alias matches another concept's canonical_name
-    cdir = concepts_dir()
+    cdir = repo.concepts_dir
     for entry in sorted(cdir.iterdir()):
         if entry.is_file() and entry.suffix == ".yaml" and entry != filepath:
             other = load_concept_file(entry)
@@ -237,9 +240,11 @@ def alias(concept_id: str, name: str, source: str, note: str | None, dry_run: bo
 @click.argument("concept_id")
 @click.option("--name", required=True, help="New canonical name")
 @click.option("--dry-run", is_flag=True)
-def rename(concept_id: str, name: str, dry_run: bool) -> None:
+@click.pass_obj
+def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     """Rename a concept (updates canonical_name and filename)."""
-    filepath = find_concept(concept_id)
+    repo: Repository = obj["repo"]
+    filepath = find_concept(concept_id, repo.concepts_dir)
     if filepath is None:
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
@@ -259,7 +264,7 @@ def rename(concept_id: str, name: str, dry_run: bool) -> None:
         click.echo(f"  {filepath} -> {new_path}")
         return
 
-    loaded_concepts = load_concepts(concepts_dir())
+    loaded_concepts = load_concepts(repo.concepts_dir)
     updated_concepts = []
     changed_concept_paths: set[Path] = set()
     for concept_record in loaded_concepts:
@@ -278,14 +283,18 @@ def rename(concept_id: str, name: str, dry_run: bool) -> None:
             )
         )
 
-    concept_validation = validate_concepts(updated_concepts, claims_dir() if claims_dir().exists() else None)
+    concept_validation = validate_concepts(
+        updated_concepts,
+        claims_dir=repo.claims_dir if repo.claims_dir.exists() else None,
+        repo=repo,
+    )
     if not concept_validation.ok:
         for e in concept_validation.errors:
             click.echo(f"ERROR: {e}", err=True)
         click.echo("Rename validation failed. No changes written.", err=True)
         sys.exit(EXIT_VALIDATION)
 
-    claim_files = load_claim_files(claims_dir()) if claims_dir().exists() else []
+    claim_files = load_claim_files(repo.claims_dir) if repo.claims_dir.exists() else []
     updated_claim_files = []
     changed_claim_paths: set[Path] = set()
     if claim_files:
@@ -347,15 +356,17 @@ def rename(concept_id: str, name: str, dry_run: bool) -> None:
 @click.argument("concept_id")
 @click.option("--replaced-by", required=True, help="Replacement concept ID")
 @click.option("--dry-run", is_flag=True)
-def deprecate(concept_id: str, replaced_by: str, dry_run: bool) -> None:
+@click.pass_obj
+def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> None:
     """Deprecate a concept with a replacement."""
-    filepath = find_concept(concept_id)
+    repo: Repository = obj["repo"]
+    filepath = find_concept(concept_id, repo.concepts_dir)
     if filepath is None:
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
     # Validate replacement target
-    replacement_path = find_concept(replaced_by)
+    replacement_path = find_concept(replaced_by, repo.concepts_dir)
     if replacement_path is None:
         click.echo(f"ERROR: Replacement concept '{replaced_by}' not found", err=True)
         sys.exit(EXIT_ERROR)
@@ -390,7 +401,9 @@ def deprecate(concept_id: str, replaced_by: str, dry_run: bool) -> None:
 @click.option("--note", default=None)
 @click.option("--conditions", default=None, help="Comma-separated CEL expressions")
 @click.option("--dry-run", is_flag=True)
+@click.pass_obj
 def link(
+    obj: dict,
     source_id: str,
     rel_type: str,
     target_id: str,
@@ -400,12 +413,13 @@ def link(
     dry_run: bool,
 ) -> None:
     """Add a relationship between concepts."""
-    filepath = find_concept(source_id)
+    repo: Repository = obj["repo"]
+    filepath = find_concept(source_id, repo.concepts_dir)
     if filepath is None:
         click.echo(f"ERROR: Source concept '{source_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
-    if find_concept(target_id) is None:
+    if find_concept(target_id, repo.concepts_dir) is None:
         click.echo(f"ERROR: Target concept '{target_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
@@ -436,9 +450,11 @@ def link(
 
 @concept.command()
 @click.argument("query")
-def search(query: str) -> None:
+@click.pass_obj
+def search(obj: dict, query: str) -> None:
     """Search concepts by name, definition, or alias."""
-    sidecar = Path("sidecar/propstore.sqlite")
+    repo: Repository = obj["repo"]
+    sidecar = repo.sidecar_path
 
     if sidecar.exists():
         conn = sqlite3.connect(sidecar)
@@ -458,7 +474,7 @@ def search(query: str) -> None:
 
     # Fallback: grep over YAML files
     query_lower = query.lower()
-    cdir = concepts_dir()
+    cdir = repo.concepts_dir
     if not cdir.exists():
         click.echo("No concepts directory found.")
         return
@@ -487,9 +503,11 @@ def search(query: str) -> None:
 @concept.command("list")
 @click.option("--domain", default=None, help="Filter by domain")
 @click.option("--status", default=None, help="Filter by status")
-def list_concepts(domain: str | None, status: str | None) -> None:
+@click.pass_obj
+def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
     """List concepts, optionally filtered."""
-    cdir = concepts_dir()
+    repo: Repository = obj["repo"]
+    cdir = repo.concepts_dir
     if not cdir.exists():
         click.echo("No concepts directory found.")
         return
@@ -512,9 +530,11 @@ def list_concepts(domain: str | None, status: str | None) -> None:
 
 @concept.command()
 @click.argument("concept_id_or_name")
-def show(concept_id_or_name: str) -> None:
+@click.pass_obj
+def show(obj: dict, concept_id_or_name: str) -> None:
     """Show full concept YAML."""
-    filepath = find_concept(concept_id_or_name)
+    repo: Repository = obj["repo"]
+    filepath = find_concept(concept_id_or_name, repo.concepts_dir)
     if filepath is None:
         click.echo(f"ERROR: Concept '{concept_id_or_name}' not found", err=True)
         sys.exit(EXIT_ERROR)
