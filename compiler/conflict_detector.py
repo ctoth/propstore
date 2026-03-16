@@ -787,48 +787,28 @@ def _detect_param_conflicts(
                 continue
 
             # Compare derived value with direct claims for this concept
+            derived_claim = {"value": derived_value}
             direct_claims = all_param_claims.get(concept_id, [])
             for direct_claim in direct_claims:
-                # Try named field first
-                interval = _extract_interval(direct_claim)
-                if interval is not None:
-                    center, lo, hi = interval
-                    if abs(hi - lo) < DEFAULT_TOLERANCE:
-                        # Point value
-                        if not _intervals_compatible(
-                            (derived_value, derived_value, derived_value),
-                            (center, center, center),
-                        ):
-                            chain_parts = [f"{inp_id}={input_values[inp_id]}" for inp_id in inputs]
-                            chain = f"{sympy_expr_str} with {', '.join(chain_parts)} => {derived_value}"
+                if _values_compatible(
+                    direct_claim.get("value", []),
+                    [derived_value],
+                    claim_a=direct_claim,
+                    claim_b=derived_claim,
+                ):
+                    continue
 
-                            records.append(ConflictRecord(
-                                concept_id=concept_id,
-                                claim_a_id=direct_claim["id"],
-                                claim_b_id="+".join(input_claim_ids[inp] for inp in inputs),
-                                warning_class=ConflictClass.PARAM_CONFLICT,
-                                conditions_a=sorted(direct_claim.get("conditions") or []),
-                                conditions_b=[],
-                                value_a=_value_str(direct_claim.get("value", []), claim=direct_claim),
-                                value_b=str(derived_value),
-                                derivation_chain=chain,
-                            ))
-                else:
-                    # Legacy fallback
-                    direct_vals = _parse_numeric_values(direct_claim.get("value", []))
-                    if len(direct_vals) == 1:
-                        if not _values_compatible([derived_value], [direct_vals[0]]):
-                            chain_parts = [f"{inp_id}={input_values[inp_id]}" for inp_id in inputs]
-                            chain = f"{sympy_expr_str} with {', '.join(chain_parts)} => {derived_value}"
+                chain_parts = [f"{inp_id}={input_values[inp_id]}" for inp_id in inputs]
+                chain = f"{sympy_expr_str} with {', '.join(chain_parts)} => {derived_value}"
 
-                            records.append(ConflictRecord(
-                                concept_id=concept_id,
-                                claim_a_id=direct_claim["id"],
-                                claim_b_id="+".join(input_claim_ids[inp] for inp in inputs),
-                                warning_class=ConflictClass.PARAM_CONFLICT,
-                                conditions_a=sorted(direct_claim.get("conditions") or []),
-                                conditions_b=[],
-                                value_a=_value_str(direct_claim.get("value", []), claim=direct_claim),
-                                value_b=str(derived_value),
-                                derivation_chain=chain,
-                            ))
+                records.append(ConflictRecord(
+                    concept_id=concept_id,
+                    claim_a_id=direct_claim["id"],
+                    claim_b_id="+".join(input_claim_ids[inp] for inp in inputs),
+                    warning_class=ConflictClass.PARAM_CONFLICT,
+                    conditions_a=sorted(direct_claim.get("conditions") or []),
+                    conditions_b=[],
+                    value_a=_value_str(direct_claim.get("value", []), claim=direct_claim),
+                    value_b=str(derived_value),
+                    derivation_chain=chain,
+                ))
