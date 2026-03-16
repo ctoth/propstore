@@ -92,9 +92,9 @@ def build_sidecar(
 
     if claim_files is not None:
         _create_claim_tables(conn)
-        _populate_claims(conn, claim_files)
         if concept_registry is None:
             concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+        _populate_claims(conn, claim_files, concept_registry)
         _populate_conflicts(conn, claim_files, concept_registry)
         _build_claim_fts_index(conn, claim_files)
 
@@ -308,6 +308,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
             measure TEXT,
             listener_population TEXT,
             methodology TEXT,
+            description TEXT,
             source_paper TEXT NOT NULL,
             provenance_page INTEGER NOT NULL,
             provenance_json TEXT
@@ -341,8 +342,9 @@ def _create_claim_tables(conn: sqlite3.Connection):
     """)
 
 
-def _populate_claims(conn: sqlite3.Connection, claim_files: list):
+def _populate_claims(conn: sqlite3.Connection, claim_files: list, concept_registry: dict | None = None):
     from compiler.validate_claims import LoadedClaimFile
+    from compiler.description_generator import generate_description
 
     for cf in claim_files:
         source_paper = cf.data.get("source", {}).get("paper", cf.filename)
@@ -422,18 +424,22 @@ def _populate_claims(conn: sqlite3.Connection, claim_files: list):
                     from compiler.sympy_generator import generate_sympy
                     sympy_generated = generate_sympy(expression)
 
+            # Auto-generate description
+            description = generate_description(claim, concept_registry or {})
+
             conn.execute(
                 "INSERT INTO claim (id, type, concept_id, value, lower_bound, "
                 "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
                 "conditions_cel, statement, expression, sympy_generated, name, "
                 "target_concept, measure, listener_population, methodology, "
-                "source_paper, provenance_page, provenance_json) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "description, source_paper, provenance_page, provenance_json) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (cid, ctype, concept_id, value, lower_bound,
                  upper_bound, uncertainty, uncertainty_type, sample_size, unit,
                  json.dumps(conditions) if conditions else None,
                  statement, expression, sympy_generated, name,
                  target_concept, measure, listener_population, methodology,
+                 description,
                  prov.get("paper", source_paper),
                  prov.get("page", 0),
                  json.dumps(prov)),
