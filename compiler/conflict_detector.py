@@ -17,6 +17,7 @@ import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
+import functools
 import re
 
 from compiler.validate_claims import LoadedClaimFile
@@ -664,13 +665,16 @@ def detect_conflicts(
         if len(equation_claims) < 2:
             continue
 
+        # Pre-compute canonical forms to avoid redundant SymPy parsing
+        canonicals = [_canonicalize_equation(c) for c in equation_claims]
+
         for i in range(len(equation_claims)):
             for j in range(i + 1, len(equation_claims)):
                 claim_a = equation_claims[i]
                 claim_b = equation_claims[j]
 
-                canonical_a = _canonicalize_equation(claim_a)
-                canonical_b = _canonicalize_equation(claim_b)
+                canonical_a = canonicals[i]
+                canonical_b = canonicals[j]
                 if canonical_a is None or canonical_b is None or canonical_a == canonical_b:
                     continue
 
@@ -714,6 +718,11 @@ def _detect_param_conflicts(
         from sympy.parsing.sympy_parser import parse_expr as _parse_expr
     except ImportError:
         return  # SymPy not available, skip param conflict detection
+
+    @functools.lru_cache(maxsize=128)
+    def _cached_parse(expr_str: str, input_ids: tuple[str, ...]):
+        symbols = {inp_id: _Symbol(inp_id) for inp_id in input_ids}
+        return _parse_expr(expr_str, local_dict=symbols)
 
     # Rebuild by_concept from all claim files if needed (may already have it)
     all_param_claims = by_concept
@@ -773,10 +782,8 @@ def _detect_param_conflicts(
 
             # Evaluate the SymPy expression
             try:
-                # Create symbols for each input concept ID
-                symbols = {inp_id: _Symbol(inp_id) for inp_id in inputs}
                 assert isinstance(sympy_expr_str, str)
-                expr = _parse_expr(sympy_expr_str, local_dict=symbols)
+                expr = _cached_parse(sympy_expr_str, tuple(inputs))
                 derived_value = float(expr.subs(input_values))
             except Exception:
                 # SymPy can't simplify -> warn, don't error
