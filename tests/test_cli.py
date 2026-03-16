@@ -5,7 +5,6 @@ Each test gets a fresh concepts directory with known state.
 """
 from __future__ import annotations
 
-import json
 import sqlite3
 from pathlib import Path
 
@@ -53,19 +52,6 @@ def _write_counter(concepts_dir: Path, domain: str, value: int) -> None:
 def _read_counter(concepts_dir: Path, domain: str) -> int:
     return int((concepts_dir / ".counters" / f"{domain}.next").read_text().strip())
 
-
-def _write_claim_file(claims_dir: Path, filename: str, claims: list[dict],
-                      source_paper: str = "test_paper") -> Path:
-    """Write a claim YAML file."""
-    claims_dir.mkdir(parents=True, exist_ok=True)
-    data = {
-        "source": {"paper": source_paper},
-        "claims": claims,
-    }
-    p = claims_dir / f"{filename}.yaml"
-    with open(p, "w") as f:
-        yaml.dump(data, f, default_flow_style=False, sort_keys=False)
-    return p
 
 
 @pytest.fixture()
