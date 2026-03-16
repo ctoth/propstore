@@ -487,7 +487,7 @@ class TestCanonicalClaim:
                     "id": "claim1",
                     "type": "parameter",
                     "concept": "concept1",
-                    "value": [200.0],
+                    "value": 200.0,
                     "unit": "Hz",
                     "provenance": {"paper": "test_paper", "page": 1},
                 },
@@ -567,3 +567,176 @@ class TestRelationshipTypeValidation:
         result = validate_concepts(concepts)
         # No errors about relationship type
         assert not any("relationship type" in e.lower() for e in result.errors)
+
+
+# ── Form parameter validation ────────────────────────────────────────
+
+class TestFormParameterValidation:
+    def test_level_concept_with_construction_param_warns(self, concept_dir):
+        """Concept with form=level and form_parameters={construction: ...} → warning."""
+        # Write a proper level form definition
+        forms_dir = concept_dir.parent / "forms"
+        (forms_dir / "level.yaml").write_text(yaml.dump({
+            "name": "level",
+            "parameters": {"scale": "dB", "reference": None},
+        }, default_flow_style=False))
+
+        c = make_quantity_concept("concept1", "test_level", form="level",
+                                  form_parameters={"construction": "some value"})
+        write_concept(concept_dir, "test_level.yaml", c)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert not result.errors, f"Unexpected errors: {result.errors}"
+        assert any("construction" in w and "level" in w for w in result.warnings)
+
+    def test_duration_ratio_concept_with_reference_param_warns(self, concept_dir):
+        """Concept with form=duration_ratio and form_parameters={reference: ...} → warning."""
+        forms_dir = concept_dir.parent / "forms"
+        (forms_dir / "duration_ratio.yaml").write_text(yaml.dump({
+            "name": "duration_ratio",
+            "base": "ratio",
+            "parameters": {"numerator": "duration", "denominator": "duration"},
+        }, default_flow_style=False))
+
+        c = make_quantity_concept("concept1", "test_ratio", form="duration_ratio",
+                                  form_parameters={"reference": "H2 amplitude"})
+        write_concept(concept_dir, "test_ratio.yaml", c)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert not result.errors, f"Unexpected errors: {result.errors}"
+        assert any("reference" in w and "duration_ratio" in w for w in result.warnings)
+
+    def test_category_concept_without_values_errors(self, concept_dir):
+        """Concept with form=category and no form_parameters → error."""
+        c = {
+            "id": "concept1",
+            "canonical_name": "test_cat",
+            "status": "accepted",
+            "definition": "A category concept.",
+            "form": "category",
+        }
+        write_concept(concept_dir, "test_cat.yaml", c)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert any("values" in e.lower() and "category" in e.lower() for e in result.errors)
+
+    def test_category_concept_with_values_validates(self, concept_dir):
+        """Concept with form=category and form_parameters={values: [...]} → no error."""
+        c = make_category_concept("concept1", "test_cat", ["a", "b", "c"])
+        write_concept(concept_dir, "test_cat.yaml", c)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert not result.errors, f"Unexpected errors: {result.errors}"
+
+    def test_concept_form_parameters_match_form_definition(self, concept_dir):
+        """Concept with form=level and form_parameters={reference: ...} → validates."""
+        forms_dir = concept_dir.parent / "forms"
+        (forms_dir / "level.yaml").write_text(yaml.dump({
+            "name": "level",
+            "parameters": {"scale": "dB", "reference": None},
+        }, default_flow_style=False))
+
+        c = make_quantity_concept("concept1", "test_level", form="level",
+                                  form_parameters={"reference": "H2 amplitude"})
+        write_concept(concept_dir, "test_level.yaml", c)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert not result.errors, f"Unexpected errors: {result.errors}"
+
+
+# ── Parameterization form compatibility ──────────────────────────────
+
+class TestParameterizationFormCompatibility:
+    def test_same_form_inputs_different_form_output_warns(self, concept_dir):
+        """Output form=frequency, inputs both form=time → warning."""
+        forms_dir = concept_dir.parent / "forms"
+        (forms_dir / "time.yaml").write_text(yaml.dump({
+            "name": "time", "unit_symbol": "s",
+        }, default_flow_style=False))
+
+        c1 = make_quantity_concept("concept1", "input_a", form="time")
+        c2 = make_quantity_concept("concept2", "input_b", form="time")
+        c3 = make_quantity_concept("concept3", "output_c", form="frequency",
+                                   parameterization_relationships=[{
+                                       "formula": "c = a + b",
+                                       "inputs": ["concept1", "concept2"],
+                                       "exactness": "exact",
+                                       "source": "Test_2024",
+                                       "bidirectional": True,
+                                   }])
+        write_concept(concept_dir, "input_a.yaml", c1)
+        write_concept(concept_dir, "input_b.yaml", c2)
+        write_concept(concept_dir, "output_c.yaml", c3)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert not result.errors, f"Unexpected errors: {result.errors}"
+        assert any("form" in w.lower() and "time" in w.lower() for w in result.warnings)
+
+    def test_mixed_form_inputs_dimensionless_output_no_warning(self, concept_dir):
+        """Output form=dimensionless_compound, mixed input forms → no warning."""
+        forms_dir = concept_dir.parent / "forms"
+        (forms_dir / "time.yaml").write_text(yaml.dump({
+            "name": "time", "unit_symbol": "s",
+        }, default_flow_style=False))
+
+        c1 = make_quantity_concept("concept1", "input_a", form="frequency")
+        c2 = make_quantity_concept("concept2", "input_b", form="time")
+        c3 = make_quantity_concept("concept3", "output_c", form="dimensionless_compound",
+                                   parameterization_relationships=[{
+                                       "formula": "c = a * b",
+                                       "inputs": ["concept1", "concept2"],
+                                       "exactness": "exact",
+                                       "source": "Test_2024",
+                                       "bidirectional": True,
+                                   }])
+        write_concept(concept_dir, "input_a.yaml", c1)
+        write_concept(concept_dir, "input_b.yaml", c2)
+        write_concept(concept_dir, "output_c.yaml", c3)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert not result.errors, f"Unexpected errors: {result.errors}"
+        assert not any("form" in w.lower() and "mixed" in w.lower() for w in result.warnings)
+
+    def test_quantity_inputs_quantity_output_no_warning_when_forms_consistent(self, concept_dir):
+        """Inputs form=time, output form=frequency → no warning (plausible)."""
+        forms_dir = concept_dir.parent / "forms"
+        (forms_dir / "time.yaml").write_text(yaml.dump({
+            "name": "time", "unit_symbol": "s",
+        }, default_flow_style=False))
+
+        c1 = make_quantity_concept("concept1", "input_a", form="time")
+        c2 = make_quantity_concept("concept2", "output_b", form="frequency",
+                                   parameterization_relationships=[{
+                                       "formula": "b = 1 / a",
+                                       "inputs": ["concept1"],
+                                       "exactness": "exact",
+                                       "source": "Test_2024",
+                                       "bidirectional": True,
+                                   }])
+        write_concept(concept_dir, "input_a.yaml", c1)
+        write_concept(concept_dir, "output_b.yaml", c2)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert not result.errors, f"Unexpected errors: {result.errors}"
+        # Single input with different form from output is plausible (not all same form)
+        assert not any("all inputs share form" in w.lower() for w in result.warnings)
+
+    def test_all_inputs_same_form_as_output_no_warning(self, concept_dir):
+        """Inputs and output all form=duration_ratio → no warning."""
+        c1 = make_quantity_concept("concept1", "input_a", form="duration_ratio")
+        c2 = make_quantity_concept("concept2", "input_b", form="duration_ratio")
+        c3 = make_quantity_concept("concept3", "output_c", form="duration_ratio",
+                                   parameterization_relationships=[{
+                                       "formula": "c = 1 - a - b",
+                                       "inputs": ["concept1", "concept2"],
+                                       "exactness": "exact",
+                                       "source": "Test_2024",
+                                       "bidirectional": True,
+                                   }])
+        write_concept(concept_dir, "input_a.yaml", c1)
+        write_concept(concept_dir, "input_b.yaml", c2)
+        write_concept(concept_dir, "output_c.yaml", c3)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert not result.errors, f"Unexpected errors: {result.errors}"
+        assert not any("form" in w.lower() and "mismatch" in w.lower() for w in result.warnings)

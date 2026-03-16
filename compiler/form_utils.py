@@ -2,12 +2,92 @@
 from __future__ import annotations
 
 import datetime
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from compiler.cel_checker import KindType
+
+
+# ── Dimensionless unit markers ────────────────────────────────────────
+DIMENSIONLESS_UNITS = frozenset({
+    "ratio", "dimensionless", "%", "fraction", "",
+})
+
+LEVEL_UNITS = frozenset({
+    "dB", "dB SPL", "dB HL", "dB SL",
+})
+
+
+@dataclass
+class FormDefinition:
+    """Structured representation of a loaded form YAML file."""
+    name: str
+    kind: KindType
+    unit_symbol: str | None = None
+    allowed_units: set[str] = field(default_factory=set)
+    is_dimensionless: bool = False
+    parameters: dict = field(default_factory=dict)
+
+
+def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
+    """Load a single form definition and return a FormDefinition, or None."""
+    if not isinstance(form_name, str) or not form_name:
+        return None
+    form_path = forms_dir / f"{form_name}.yaml"
+    if not form_path.exists():
+        return None
+    with open(form_path) as f:
+        data = yaml.safe_load(f)
+    if not isinstance(data, dict):
+        return None
+
+    kind = kind_type_from_form_name(form_name)
+    if kind is None:
+        kind = KindType.QUANTITY
+
+    unit_symbol = data.get("unit_symbol")
+    if unit_symbol is not None and not isinstance(unit_symbol, str):
+        unit_symbol = None
+    # Treat explicit null as None
+    if unit_symbol is None or unit_symbol == "":
+        unit_symbol = None
+
+    allowed = allowed_units_from_form_definition(data)
+
+    parameters = data.get("parameters", {}) or {}
+
+    # Determine dimensionless: ratio forms, level, dimensionless_compound
+    is_dimensionless = (
+        data.get("base") == "ratio"
+        or form_name in ("level", "dimensionless_compound")
+        or (unit_symbol is None and kind == KindType.QUANTITY
+            and form_name not in ("structural",))
+    )
+
+    return FormDefinition(
+        name=form_name,
+        kind=kind,
+        unit_symbol=unit_symbol,
+        allowed_units=allowed,
+        is_dimensionless=is_dimensionless,
+        parameters=parameters,
+    )
+
+
+def load_all_forms(forms_dir: Path) -> dict[str, FormDefinition]:
+    """Load all form YAML files and return a registry keyed by form name."""
+    registry: dict[str, FormDefinition] = {}
+    if not forms_dir.exists():
+        return registry
+    for entry in sorted(forms_dir.iterdir()):
+        if entry.is_file() and entry.suffix == ".yaml":
+            fd = load_form(forms_dir, entry.stem)
+            if fd is not None:
+                registry[fd.name] = fd
+    return registry
 
 
 def json_safe(obj: Any) -> Any:

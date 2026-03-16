@@ -23,7 +23,7 @@ from compiler.cel_checker import (
     KindType,
     check_cel_expression,
 )
-from compiler.form_utils import json_safe, kind_type_from_form_name
+from compiler.form_utils import json_safe, kind_type_from_form_name, load_form, FormDefinition
 
 
 @dataclass
@@ -173,6 +173,30 @@ def validate_concepts(
         if form_params is not None and not isinstance(form_params, dict):
             result.errors.append(f"{c.filename}: 'form_parameters' must be a mapping")
 
+        # ── Form-aware parameter validation ──────────────────────
+        if isinstance(form, str) and form:
+            forms_dir = c.filepath.parent.parent / "forms"
+            form_def = load_form(forms_dir, form)
+            if form_def is not None:
+                # Category concepts must have values in form_parameters
+                if form == "category":
+                    fp = form_params if isinstance(form_params, dict) else {}
+                    if not isinstance(fp.get("values"), list):
+                        result.errors.append(
+                            f"{c.filename}: category concept must have "
+                            f"form_parameters with a 'values' list")
+
+                # Check form_parameters keys against form's declared parameters
+                if form_def.parameters and isinstance(form_params, dict):
+                    declared_keys = set(form_def.parameters.keys())
+                    provided_keys = set(form_params.keys())
+                    unexpected = provided_keys - declared_keys
+                    for key in sorted(unexpected):
+                        result.warnings.append(
+                            f"{c.filename}: form_parameter '{key}' is not "
+                            f"declared in form '{form}' "
+                            f"(expected: {sorted(declared_keys)})")
+
         # Validate range if present
         range_val = data.get("range")
         if range_val is not None:
@@ -276,6 +300,35 @@ def validate_concepts(
                         result.errors.append(
                             f"{c.filename}: parameterization input '{input_id}' "
                             f"must be quantity kind (is {input_kind.value})")
+
+            # ── Form compatibility heuristics ────────────────────
+            forms_dir = c.filepath.parent.parent / "forms"
+            output_form_def = load_form(forms_dir, data.get("form"))
+            if output_form_def is not None and len(inputs) >= 2:
+                input_form_names: list[str] = []
+                for inp_id in inputs:
+                    inp_c = id_to_concept.get(inp_id)
+                    if inp_c is not None:
+                        inp_fd = load_form(forms_dir, inp_c.data.get("form"))
+                        if inp_fd is not None:
+                            input_form_names.append(inp_fd.name)
+                if len(input_form_names) == len(inputs) and input_form_names:
+                    unique_input_forms = set(input_form_names)
+                    # All inputs same form but output different → warn
+                    if (len(unique_input_forms) == 1
+                            and input_form_names[0] != output_form_def.name):
+                        result.warnings.append(
+                            f"{c.filename}: all inputs share form '{input_form_names[0]}' "
+                            f"but output has form '{output_form_def.name}' — "
+                            f"possible dimensional mismatch")
+                    # Mixed input forms but output is not dimensionless → warn
+                    elif (len(unique_input_forms) > 1
+                          and not output_form_def.is_dimensionless):
+                        result.warnings.append(
+                            f"{c.filename}: inputs have mixed forms "
+                            f"{sorted(unique_input_forms)} but output form "
+                            f"'{output_form_def.name}' is not dimensionless — "
+                            f"possible dimensional mismatch")
 
             # conditional exactness must have conditions
             if param.get("exactness") == "conditional":
