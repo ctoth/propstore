@@ -6,7 +6,7 @@ that lack explicit statement fields.
 
 import pytest
 
-from compiler.description_generator import generate_description, _summarize_conditions
+from compiler.description_generator import generate_description, _format_conditions_prose
 
 
 # ── Concept registry fixture ─────────────────────────────────────────
@@ -192,21 +192,21 @@ def test_parameter_value_and_range(concept_registry):
 # ── Test: Condition summarizer ────────────────────────────────────────
 
 def test_summarize_voice_quality():
-    assert _summarize_conditions(["voice_quality_type == 'modal'"]) == "modal voice"
+    assert _format_conditions_prose(["voice_quality_type == 'modal'"]) == "modal voice"
 
 
 def test_summarize_speaker_sex():
-    assert _summarize_conditions(["speaker_sex == 'male'"]) == "male speakers"
+    assert _format_conditions_prose(["speaker_sex == 'male'"]) == "male speakers"
 
 
 def test_summarize_complex_condition():
     # Complex conditions pass through as-is
-    result = _summarize_conditions(["F0 > 200 && F0 < 400"])
+    result = _format_conditions_prose(["F0 > 200 && F0 < 400"])
     assert result == "F0 > 200 && F0 < 400"
 
 
 def test_summarize_multiple():
-    result = _summarize_conditions([
+    result = _format_conditions_prose([
         "voice_quality_type == 'breathy'",
         "speaker_sex == 'female'",
     ])
@@ -214,5 +214,5 @@ def test_summarize_multiple():
 
 
 def test_summarize_double_quoted_equality():
-    result = _summarize_conditions(['task == "speech"'])
+    result = _format_conditions_prose(['task == "speech"'])
     assert result == "speech"

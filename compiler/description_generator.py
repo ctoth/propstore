@@ -89,7 +89,7 @@ def _describe_parameter(claim: dict, concept_registry: dict) -> str:
     # Append condition summary
     conditions = claim.get("conditions")
     if conditions:
-        summary = _summarize_conditions(conditions)
+        summary = _format_conditions_prose(conditions)
         if summary:
             val_str = f"{val_str} ({summary})"
 
@@ -125,7 +125,7 @@ def _describe_measurement(claim: dict, concept_registry: dict) -> str:
 
     conditions = claim.get("conditions")
     if conditions:
-        summary = _summarize_conditions(conditions)
+        summary = _format_conditions_prose(conditions)
         if summary:
             val_str = f"{val_str} ({summary})"
 
@@ -152,7 +152,7 @@ _CONDITION_LABELS = {
 }
 
 
-def _summarize_conditions(conditions: list[str]) -> str:
+def _format_conditions_prose(conditions: list[str]) -> str:
     """Convert CEL conditions to readable text.
 
     Simple equality conditions (``concept == 'value'``) are mapped to
