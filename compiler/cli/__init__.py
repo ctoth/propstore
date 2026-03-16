@@ -10,7 +10,7 @@ import click
 
 from compiler.cli.concept import concept
 from compiler.cli.claim import claim
-from compiler.cli.compiler_cmds import validate, build, query, export_aliases
+from compiler.cli.compiler_cmds import validate, build, query, export_aliases, import_papers
 from compiler.cli.init import init
 
 
@@ -29,4 +29,5 @@ cli.add_command(validate)
 cli.add_command(build)
 cli.add_command(query)
 cli.add_command(export_aliases)
+cli.add_command(import_papers)
 cli.add_command(init)

@@ -467,3 +467,32 @@ class TestWorkflow:
         assert query_result.exit_code == 0, query_result.output
         assert "canonical_name" in query_result.output
         assert "test_pressure" in query_result.output
+
+
+class TestImportPapers:
+    def test_imports_claims_from_papers_root(self, workspace: Path) -> None:
+        papers_root = workspace / "plugin-papers"
+        paper_dir = papers_root / "Smith_2024_TestPaper"
+        paper_dir.mkdir(parents=True)
+        (paper_dir / "claims.yaml").write_text(yaml.dump({
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 200.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "ignored_here", "page": 1},
+                }
+            ]
+        }, default_flow_style=False, sort_keys=False))
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "import-papers",
+            "--papers-root", str(papers_root),
+        ])
+        assert result.exit_code == 0, result.output
+        imported = yaml.safe_load((workspace / "claims" / "Smith_2024_TestPaper.yaml").read_text())
+        assert imported["source"]["paper"] == "Smith_2024_TestPaper"
+        assert imported["claims"][0]["id"] == "claim1"

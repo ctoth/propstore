@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import click
+import yaml
 
 from compiler.cli.helpers import EXIT_OK, EXIT_VALIDATION, claims_dir, concepts_dir
 
@@ -201,3 +202,54 @@ def export_aliases(fmt: str) -> None:
     else:
         for alias_name, info in sorted(aliases.items()):
             click.echo(f"{alias_name} -> {info['id']} ({info['name']})")
+
+
+@click.command("import-papers")
+@click.option(
+    "--papers-root",
+    required=True,
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    help="Path to research-papers-plugin papers/ directory",
+)
+@click.option(
+    "--output-dir",
+    default="claims",
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Directory to write imported claim files into",
+)
+@click.option("--dry-run", is_flag=True, help="Report what would be imported without writing")
+def import_papers(papers_root: Path, output_dir: Path, dry_run: bool) -> None:
+    """Import paper-local claims.yaml files from a papers/ corpus."""
+    paper_dirs = sorted(entry for entry in papers_root.iterdir() if entry.is_dir())
+    imports: list[tuple[Path, Path]] = []
+    for paper_dir in paper_dirs:
+        source_path = paper_dir / "claims.yaml"
+        if not source_path.exists():
+            continue
+        imports.append((source_path, output_dir / f"{paper_dir.name}.yaml"))
+
+    if not imports:
+        click.echo(f"No claims.yaml files found under {papers_root}")
+        return
+
+    if dry_run:
+        for source_path, destination_path in imports:
+            click.echo(f"Would import {source_path} -> {destination_path}")
+        click.echo(f"Would import {len(imports)} paper claim file(s)")
+        return
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for source_path, destination_path in imports:
+        with open(source_path) as f:
+            data = yaml.safe_load(f) or {}
+        if not isinstance(data, dict):
+            raise click.ClickException(f"{source_path} is not a YAML mapping")
+        source = data.get("source")
+        if not isinstance(source, dict):
+            source = {}
+            data["source"] = source
+        source["paper"] = source_path.parent.name
+        with open(destination_path, "w") as f:
+            yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+    click.echo(f"Imported {len(imports)} paper claim file(s) into {output_dir}")
