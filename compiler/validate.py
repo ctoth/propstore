@@ -58,7 +58,7 @@ def load_concepts(concept_dir: Path) -> list[LoadedConcept]:
     return concepts
 
 
-def _get_kind_type_from_form(concept_data: dict, forms_dir: Path | None = None) -> KindType | None:
+def _get_kind_type_from_form(concept_data: dict) -> KindType | None:
     """Derive the KindType from a concept's form field.
 
     Maps form names to KindType:
