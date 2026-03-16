@@ -1,0 +1,51 @@
+id: speech_0006
+canonical_name: open_quotient
+status: accepted
+definition: >
+  Ratio of the open phase duration to the fundamental period.
+  Measures how long the glottis remains open during each vibratory cycle.
+  Two definitions exist: OQe = (Te + Ta)/T0 (Fant) and OQi = Te/T0 (Klatt).
+definition_source: Fant_1997_VoiceSourceConnectedSpeech
+domain: speech
+created_date: '2026-03-15'
+
+form: duration_ratio
+range: [0.2, 1.0]
+
+aliases:
+  - name: OQ
+    source: common
+  - name: Oq
+    source: Henrich_2001_SpectralOqAsymmetry
+  - name: OQe
+    source: Fant_1997_VoiceSourceConnectedSpeech
+    note: "Extended definition including return phase: (Te+Ta)/T0"
+  - name: OQi
+    source: Klatt_1990_VoiceQualityVariations
+    note: "Klatt definition: Te/T0, excluding return phase"
+  - name: Ro
+    source: vanDinther_2001_PerceptualGlottalPulse
+    note: "Normalized R-parameter form: Te/T0"
+
+relationships:
+  - type: broader
+    target: speech_0004   # voice_source
+  - type: related
+    target: speech_0015   # contact_quotient
+    note: "CQ + OQ approximately equals 1 in modal phonation"
+  - type: related
+    target: speech_0016   # h1_h2_difference
+    note: "H1-H2 depends on OQ but also on asymmetry coefficient"
+
+parameterization_relationships:
+  - formula: "OQe = (1 + Rk) / (2 * Rg) + Ra"
+    sympy: "Eq(OQe, (1 + Rk) / (2 * Rg) + Ra)"
+    inputs:
+      - speech_0006   # open_quotient
+      - speech_0007   # speed_quotient (via Rk)
+      - speech_0012   # glottal_formant_frequency (via Rg)
+      - speech_0010   # return_phase_time_constant (via Ra)
+    exactness: exact
+    source: Fant_1997_VoiceSourceConnectedSpeech
+    bidirectional: false
+    note: "Rk = 1/SQ, Rg = Fg/F0, Ra = Ta/T0"

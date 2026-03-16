@@ -1,0 +1,11 @@
+id: speech_0016
+canonical_name: h1_h2_difference
+status: proposed
+definition: Amplitude difference between the first and second harmonics of the voice
+  source spectrum (H1-H2), measured in dB. Corrected versions (H1*-H2*) remove vocal
+  tract influence. Correlates with open quotient and voice quality.
+domain: speech
+created_date: '2026-03-15'
+form: level
+form_parameters:
+  reference: "H2 amplitude (relative difference between first two harmonics)"

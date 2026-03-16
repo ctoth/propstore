@@ -8,12 +8,8 @@ definition_source: Titze_1994_PrinciplesVoiceProduction
 domain: speech
 created_date: 2026-03-15
 
-kind:
-  quantity:
-    unit: Hz
-    qudt_uri: qudt:HZ
-    dimension: frequency
-    range: [50, 1000]
+form: frequency
+range: [50, 1000]
 
 aliases:
   - name: F0

@@ -8,19 +8,8 @@ definition_source: Titze_1994_PrinciplesVoiceProduction
 domain: speech
 created_date: 2026-03-15
 
-kind:
-  quantity:
-    unit: Pa
-    qudt_uri: qudt:PA
-    dimension: pressure
-    range: [0, 5000]
-    common_alternatives:
-      - unit: cmH2O
-        type: multiplicative
-        multiplier: 98.0665
-      - unit: hPa
-        type: multiplicative
-        multiplier: 100.0
+form: pressure
+range: [0, 5000]
 
 aliases:
   - name: Ps

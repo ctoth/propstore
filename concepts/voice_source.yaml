@@ -8,11 +8,7 @@ definition: >
 domain: speech
 created_date: 2026-03-15
 
-kind:
-  structural:
-    note: >
-      Parent concept for voice source parameters.
-      Cannot be measured directly — child concepts are the measurables.
+form: structural
 
 relationships:
   - type: narrower

@@ -1,0 +1,8 @@
+id: speech_0008
+canonical_name: asymmetry_coefficient
+status: proposed
+definition: Ratio of the opening phase duration to the total open phase duration (alpha_m
+  = Tp/Te). Controls the bandwidth of the glottal formant.
+domain: speech
+created_date: '2026-03-15'
+form: duration_ratio

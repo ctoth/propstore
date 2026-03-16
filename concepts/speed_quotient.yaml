@@ -1,0 +1,8 @@
+id: speech_0007
+canonical_name: speed_quotient
+status: proposed
+definition: Ratio of the opening phase duration to the closing phase duration of the
+  glottal cycle. Higher values indicate more abrupt closure.
+domain: speech
+created_date: '2026-03-15'
+form: duration_ratio

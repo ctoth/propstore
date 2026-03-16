@@ -1,7 +1,7 @@
 id: https://propstore.local/schema/concept-registry
 name: concept_registry
 title: Propositional Knowledge Store — Concept Registry
-version: 0.1.0
+version: 0.2.0
 
 prefixes:
   linkml: https://w3id.org/linkml/
@@ -131,12 +131,25 @@ classes:
         multivalued: true
         inlined_as_list: true
 
-      kind:
+      form:
         description: >
-          The concept's type signature. Exactly one variant must be populated.
-        range: ConceptKind
-        inlined: true
+          Reference to a form definition in forms/. The concept's
+          dimensional type signature.
+        range: string
         required: true
+
+      form_parameters:
+        description: >
+          Overrides for form-level parameters (e.g. dB reference,
+          compound construction).
+        range: FormParameters
+        inlined: true
+
+      range:
+        description: >
+          Valid value range [min, max]. Moved from the old QuantityKind.
+        range: float
+        multivalued: true
 
       relationships:
         description: "Typed edges to other concepts"
@@ -170,68 +183,23 @@ classes:
         range: string
 
 
-  ConceptKind:
+  FormParameters:
     description: >
-      The concept's type signature. Exactly one of quantity, category,
-      boolean, structural must be populated.
+      Per-concept overrides for form-level parameters. Used when a form
+      defines parameterized slots (e.g. dB reference for level forms,
+      construction formula for dimensionless compounds).
     attributes:
-      quantity:
-        range: QuantityKind
-        inlined: true
-      category:
-        range: CategoryKind
-        inlined: true
-      boolean:
-        range: BooleanKind
-        inlined: true
-      structural:
-        range: StructuralKind
-        inlined: true
-
-
-  QuantityKind:
-    description: "Type signature for numeric concepts"
-    attributes:
-      unit:
+      reference:
+        description: >
+          For level-form concepts, the reference quantity for the dB scale.
         range: string
-        required: true
-      qudt_uri:
-        range: uri
-      dimension:
+      construction:
+        description: >
+          For dimensionless_compound concepts, the formula that constructs
+          the compound quantity.
         range: string
-      range:
-        range: float
-        multivalued: true
-      common_alternatives:
-        range: UnitConversion
-        multivalued: true
-        inlined_as_list: true
-
-
-  CategoryKind:
-    description: "Type signature for enumerated/categorical concepts"
-    attributes:
-      values:
-        range: string
-        multivalued: true
-        required: true
-      extensible:
-        range: boolean
-
-
-  BooleanKind:
-    description: Type signature for boolean concepts.
-    attributes:
-      default:
-        range: boolean
-
-
-  StructuralKind:
-    description: >
-      Type signature for concepts that are node types, not variables.
-      Cannot appear in CEL condition expressions.
-    attributes:
       note:
+        description: Free-text note about the form parameterization.
         range: string
 
 

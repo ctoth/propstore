@@ -1,0 +1,11 @@
+id: speech_0018
+canonical_name: normalized_amplitude_quotient
+status: proposed
+definition: 'Ratio of the peak glottal flow amplitude to the product of excitation
+  strength and fundamental period: NAQ = Av/(E*T0). Captures combined effects of open
+  quotient and asymmetry on voice quality.'
+domain: speech
+created_date: '2026-03-15'
+form: dimensionless_compound
+form_parameters:
+  construction: "NAQ = Av / (E * T0)"

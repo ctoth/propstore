@@ -1,0 +1,11 @@
+id: speech_0013
+canonical_name: rd_parameter
+status: proposed
+definition: Unified waveshape descriptor for the LF glottal source model that predicts
+  default values for Ra, Rk, and Rg from a single number. Rd = (Uo/Ee) * (F0/110).
+  Low Rd (~0.3) = pressed/tense; high Rd (~2.7) = breathy/relaxed.
+domain: speech
+created_date: '2026-03-15'
+form: dimensionless_compound
+form_parameters:
+  construction: "Rd = (Uo/Ee) * (F0/110)"

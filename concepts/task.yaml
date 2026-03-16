@@ -7,12 +7,6 @@ definition: >
 domain: speech
 created_date: 2026-03-15
 
-kind:
-  category:
-    values:
-      - speech
-      - singing
-      - whisper
-      - reading
-      - spontaneous
-    extensible: true
+form: category
+form_parameters:
+  note: "values: speech, singing, whisper, reading, spontaneous; extensible: true"
