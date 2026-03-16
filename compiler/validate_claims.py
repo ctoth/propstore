@@ -202,6 +202,9 @@ def validate_claims(
                 _validate_model(claim, cid, cf.filename, concept_registry, result)
             elif ctype == "measurement":
                 _validate_measurement(claim, cid, cf.filename, concept_registry, result)
+            else:
+                result.errors.append(
+                    f"{cf.filename}: claim '{cid}' has unrecognized type '{ctype}'")
 
     return result
 
