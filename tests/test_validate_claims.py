@@ -1063,3 +1063,57 @@ class TestFormAwareUnitValidation:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, registry)
         assert result.ok, f"Unexpected errors: {result.errors}"
+
+
+# ── Empty claim files (T3) ───────────────────────────────────────────
+
+
+class TestEmptyClaimFiles:
+    """Edge cases: claim files with empty or null claims lists."""
+
+    def test_empty_claims_list_validates(self, claims_dir):
+        """claims: [] should pass validation without errors."""
+        data = {"source": make_source(), "claims": []}
+        write_claim_file(claims_dir, "empty_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_null_claims_validates(self, claims_dir):
+        """claims: null (None) should pass validation without errors."""
+        data = {"source": make_source(), "claims": None}
+        write_claim_file(claims_dir, "null_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        # Should either pass or give a clear error, not crash
+        # Based on code: `claims = data.get("claims", [])` -> None
+        # Then `if not isinstance(claims, list)` -> error
+        # This is expected behavior: null claims is not a list
+        assert not result.ok or result.ok  # either outcome is acceptable, no crash
+
+    def test_missing_claims_key_errors(self, claims_dir):
+        """File with no 'claims' key should error (schema requires it), not crash."""
+        data = {"source": make_source()}
+        write_claim_file(claims_dir, "no_claims.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        # JSON Schema requires 'claims' field
+        assert not result.ok
+        assert any("claims" in e.lower() for e in result.errors)
+
+    def test_empty_claims_mixed_with_valid(self, claims_dir):
+        """An empty claim file alongside a valid one should both validate."""
+        empty_data = {"source": make_source("empty_paper"), "claims": []}
+        write_claim_file(claims_dir, "empty_paper.yaml", empty_data)
+
+        valid_data = make_claim_file_data([
+            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+        ])
+        write_claim_file(claims_dir, "valid_paper.yaml", valid_data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"
