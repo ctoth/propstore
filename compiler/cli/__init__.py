@@ -11,6 +11,7 @@ import click
 from compiler.cli.concept import concept
 from compiler.cli.claim import claim
 from compiler.cli.compiler_cmds import validate, build, query, export_aliases, import_papers
+from compiler.cli.form import form
 from compiler.cli.init import init
 
 
@@ -25,6 +26,7 @@ def cli(directory: str | None) -> None:
 
 cli.add_command(concept)
 cli.add_command(claim)
+cli.add_command(form)
 cli.add_command(validate)
 cli.add_command(build)
 cli.add_command(query)
