@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -465,58 +464,3 @@ def build_concept_registry(concepts_dir: Path) -> dict[str, dict]:
     return registry
 
 
-def main():
-    """CLI entry point: validate claim files."""
-    import argparse
-    parser = argparse.ArgumentParser(description="Validate propstore claim files")
-    parser.add_argument("claims_dir", nargs="?", default="claims",
-                        help="Path to claims directory")
-    parser.add_argument("--concepts-dir", default="concepts",
-                        help="Path to concepts directory (for reference checking)")
-    args = parser.parse_args()
-
-    claims_dir = Path(args.claims_dir)
-    if not claims_dir.exists():
-        print(f"ERROR: Claims directory '{claims_dir}' does not exist")
-        sys.exit(1)
-
-    concepts_dir = Path(args.concepts_dir)
-    if not concepts_dir.exists():
-        print(f"ERROR: Concepts directory '{concepts_dir}' does not exist")
-        sys.exit(1)
-
-    claim_files = load_claim_files(claims_dir)
-    if not claim_files:
-        print("No claim files found.")
-        sys.exit(0)
-
-    concept_registry = build_concept_registry(concepts_dir)
-
-    # JSON Schema validation
-    schema_path = Path(__file__).parent.parent / "schema" / "generated" / "claim.schema.json"
-    if schema_path.exists():
-        with open(schema_path) as f:
-            json_schema = json.load(f)
-        for cf in claim_files:
-            try:
-                jsonschema.validate(json_safe(cf.data), json_schema)
-            except jsonschema.ValidationError as e:
-                print(f"JSON Schema ERROR in {cf.filename}: {e.message}")
-
-    result = validate_claims(claim_files, concept_registry)
-
-    for w in result.warnings:
-        print(f"WARNING: {w}")
-    for e in result.errors:
-        print(f"ERROR: {e}")
-
-    if result.ok:
-        print(f"\nValidation passed: {len(claim_files)} claim file(s), {len(result.warnings)} warning(s)")
-    else:
-        print(f"\nValidation FAILED: {len(result.errors)} error(s), {len(result.warnings)} warning(s)")
-
-    sys.exit(0 if result.ok else 1)
-
-
-if __name__ == "__main__":
-    main()
