@@ -47,7 +47,7 @@ If the target directory already contains `concepts/`, prints "Already initialize
 ```bash
 # Add a new concept (status=proposed, ID auto-assigned from counter)
 pks concept add --domain speech --name subglottal_pressure \
-    --definition "Air pressure below the glottis" --kind quantity --unit Pa
+    --definition "Air pressure below the glottis" --form pressure
 
 # List, show, search
 pks concept list [--domain speech] [--status accepted]
@@ -74,8 +74,33 @@ pks claim conflicts [--concept concept1] [--class CONFLICT|OVERLAP|PARAM_CONFLIC
 pks validate          # validate all concepts + claims, CEL type-checking
 pks build             # validate → build sidecar → conflict detection → summary
 pks query "SELECT * FROM concept WHERE kind_type = 'quantity'"
+pks import-papers --papers-root ../research-papers-plugin/papers
 pks export-aliases --format json
 ```
+
+### research-papers-plugin handoff
+
+`propstore` now owns the machine-readable import step from
+`../research-papers-plugin`, but the plugin still has to emit the paper-local
+claim artifact.
+
+Expected plugin-side artifact per paper:
+
+```text
+../research-papers-plugin/papers/<PaperDir>/claims.yaml
+```
+
+Import/build flow from this repository:
+
+```bash
+pks import-papers --papers-root ../research-papers-plugin/papers
+pks validate
+pks build
+```
+
+The importer copies each `papers/<PaperDir>/claims.yaml` into `claims/<PaperDir>.yaml`
+and normalizes `source.paper` to the paper directory name so the sidecar and
+the paper corpus use the same paper identity.
 
 ### Exit codes
 
@@ -104,7 +129,9 @@ Key invariant: **the compiler never produces output from an invalid state.** If 
 uv run pytest tests/ -v
 ```
 
-253 tests covering the validator, CEL type-checker, conflict detector, sidecar builder, CLI, SymPy generator, description generator, and parameterization groups.
+The test suite covers the validator, CEL type-checker, conflict detector,
+sidecar builder, CLI, SymPy generator, description generator, and
+parameterization groups.
 
 ## File layout
 

@@ -3,6 +3,10 @@
 This plan covers the full review set. Larger items are still sequenced in phases,
 but nothing from the written review is being treated as intentionally out of scope.
 
+Status: completed in this repository. The remaining integration work is in
+`../research-papers-plugin`, which still needs to emit `papers/*/claims.yaml`
+for the import contract implemented here.
+
 ## Goals
 
 1. Make the documented CLI workflow actually work on a fresh project.
