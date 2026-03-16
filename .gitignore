@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.hypothesis/
+sidecar/*.sqlite
+sidecar/*.hash
+*.log
+schema/generated/
+uv.lock
+prompts/
+reports/
+notes.md
+prompt.md
+cli-prompt.md
+main.py

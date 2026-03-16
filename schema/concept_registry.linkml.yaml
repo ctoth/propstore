@@ -1,0 +1,304 @@
+id: https://propstore.local/schema/concept-registry
+name: concept_registry
+title: Propositional Knowledge Store — Concept Registry
+version: 0.1.0
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  propstore: https://propstore.local/schema/
+  skos: http://www.w3.org/2004/02/skos/core#
+  qudt: http://qudt.org/vocab/unit/
+  prov: http://www.w3.org/ns/prov#
+
+imports:
+  - linkml:types
+
+default_range: string
+
+
+enums:
+
+  ConceptStatus:
+    description: >
+      Lifecycle state. Concepts are born proposed, reviewed to accepted,
+      and never deleted — only deprecated with a successor link.
+    permissible_values:
+      proposed:
+        description: Extracted by LLM or noted by human. Not yet reviewed.
+      accepted:
+        description: Reviewed and confirmed as a distinct, well-defined concept.
+      deprecated:
+        description: Superseded or found to be a duplicate. MUST have replaced_by.
+
+  RelationshipType:
+    permissible_values:
+      broader:
+        description: "Target is a more general concept (SKOS broader)"
+      narrower:
+        description: "Target is a more specific concept (SKOS narrower)"
+      related:
+        description: "Associative, non-hierarchical (SKOS related)"
+      component_of:
+        description: "This concept is a part/component of the target"
+      derived_from:
+        description: "This concept is computable/derivable from the target"
+      contested_definition:
+        description: >
+          Same term, genuinely different meaning across traditions.
+          Both concepts retain first-class status. The edge documents
+          the dispute, not a resolution. MUST have a note.
+
+  FormulaExactness:
+    description: >
+      Whether a parameterization relationship is definitional or empirical.
+    permissible_values:
+      exact:
+        description: "Algebraic identity, holds by definition"
+      approximate:
+        description: "Empirical regression or simplifying assumption"
+      conditional:
+        description: >
+          Exact under stated conditions, approximate otherwise.
+          MUST have conditions field populated.
+
+  UnitConversionType:
+    permissible_values:
+      multiplicative:
+        description: "target = source * multiplier"
+      affine:
+        description: "target = source * multiplier + offset"
+
+
+classes:
+
+  Concept:
+    description: >
+      A true-named quantity, phenomenon, or structural category.
+      One YAML file per concept. Filename matches canonical_name.
+    tree_root: true
+    attributes:
+
+      id:
+        description: >
+          Stable identifier. Format: domain prefix + sequential integer.
+          Examples: speech_0012, narr_0001.
+        range: string
+        required: true
+
+      canonical_name:
+        description: >
+          The preferred human-readable name. Lowercase, underscored.
+          Filename MUST match this.
+        range: string
+        required: true
+
+      status:
+        range: ConceptStatus
+        required: true
+
+      definition:
+        description: >
+          One to three sentences. What IS this thing, precisely enough
+          to distinguish it from near-neighbors.
+        range: string
+        required: true
+
+      definition_source:
+        description: Paper directory name where the definition is drawn from.
+        range: string
+
+      domain:
+        description: >
+          Short domain tag. Derived from the prefix of the concept ID.
+        range: string
+
+      created_date:
+        description: ISO 8601 date when the concept was first added.
+        range: date
+
+      last_modified:
+        description: ISO 8601 date of last substantive edit.
+        range: date
+
+      replaced_by:
+        description: >
+          Concept ID of the successor. REQUIRED when status=deprecated.
+        range: string
+
+      aliases:
+        description: "All known names for this concept across the literature"
+        range: Alias
+        multivalued: true
+        inlined_as_list: true
+
+      kind:
+        description: >
+          The concept's type signature. Exactly one variant must be populated.
+        range: ConceptKind
+        inlined: true
+        required: true
+
+      relationships:
+        description: "Typed edges to other concepts"
+        range: ConceptRelationship
+        multivalued: true
+        inlined_as_list: true
+
+      parameterization_relationships:
+        description: >
+          Algebraic/functional relationships to other parameterizations
+          of the same phenomenon.
+        range: ParameterizationRelationship
+        multivalued: true
+        inlined_as_list: true
+
+      notes:
+        description: Free-text notes.
+        range: string
+
+
+  Alias:
+    description: A name used for this concept in a specific paper or tradition.
+    attributes:
+      name:
+        range: string
+        required: true
+      source:
+        range: string
+        required: true
+      note:
+        range: string
+
+
+  ConceptKind:
+    description: >
+      The concept's type signature. Exactly one of quantity, category,
+      boolean, structural must be populated.
+    attributes:
+      quantity:
+        range: QuantityKind
+        inlined: true
+      category:
+        range: CategoryKind
+        inlined: true
+      boolean:
+        range: BooleanKind
+        inlined: true
+      structural:
+        range: StructuralKind
+        inlined: true
+
+
+  QuantityKind:
+    description: "Type signature for numeric concepts"
+    attributes:
+      unit:
+        range: string
+        required: true
+      qudt_uri:
+        range: uri
+      dimension:
+        range: string
+      range:
+        range: float
+        multivalued: true
+      common_alternatives:
+        range: UnitConversion
+        multivalued: true
+        inlined_as_list: true
+
+
+  CategoryKind:
+    description: "Type signature for enumerated/categorical concepts"
+    attributes:
+      values:
+        range: string
+        multivalued: true
+        required: true
+      extensible:
+        range: boolean
+
+
+  BooleanKind:
+    description: Type signature for boolean concepts.
+    attributes:
+      default:
+        range: boolean
+
+
+  StructuralKind:
+    description: >
+      Type signature for concepts that are node types, not variables.
+      Cannot appear in CEL condition expressions.
+    attributes:
+      note:
+        range: string
+
+
+  UnitConversion:
+    description: Conversion from an alternative unit to the concept's primary unit.
+    attributes:
+      unit:
+        range: string
+        required: true
+      type:
+        range: UnitConversionType
+        required: true
+      multiplier:
+        range: float
+        required: true
+      offset:
+        range: float
+
+
+  ConceptRelationship:
+    description: A typed, sourced edge to another concept.
+    attributes:
+      type:
+        range: RelationshipType
+        required: true
+      target:
+        description: "Concept ID of the related concept"
+        range: string
+        required: true
+      source:
+        range: string
+      note:
+        range: string
+      conditions:
+        description: CEL expressions defining when this relationship holds.
+        range: string
+        multivalued: true
+
+
+  ParameterizationRelationship:
+    description: >
+      An algebraic or functional relationship between different
+      parameterizations of the same underlying phenomenon.
+    attributes:
+      formula:
+        range: string
+        required: true
+      sympy:
+        range: string
+      inputs:
+        description: Concept IDs of all quantities appearing in the formula.
+        range: string
+        multivalued: true
+        required: true
+      exactness:
+        range: FormulaExactness
+        required: true
+      conditions:
+        range: string
+        multivalued: true
+      source:
+        range: string
+        required: true
+      bidirectional:
+        range: boolean
+        required: true
+      fit_statistics:
+        range: string
+      note:
+        range: string

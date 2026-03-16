@@ -1,0 +1,29 @@
+id: speech_0001
+canonical_name: fundamental_frequency
+status: accepted
+definition: >
+  The rate of vocal fold vibration during phonation,
+  perceived as pitch. Measured in Hertz.
+definition_source: Titze_1994_PrinciplesVoiceProduction
+domain: speech
+created_date: 2026-03-15
+
+kind:
+  quantity:
+    unit: Hz
+    qudt_uri: qudt:HZ
+    dimension: frequency
+    range: [50, 1000]
+
+aliases:
+  - name: F0
+    source: common
+  - name: f0
+    source: common
+  - name: pitch
+    source: common
+    note: "Perceptual correlate, not identical to F0"
+
+relationships:
+  - type: broader
+    target: speech_0004

@@ -1,0 +1,34 @@
+id: speech_0002
+canonical_name: subglottal_pressure
+status: accepted
+definition: >
+  Air pressure below the glottis during phonation,
+  measured or estimated at the tracheal level.
+definition_source: Titze_1994_PrinciplesVoiceProduction
+domain: speech
+created_date: 2026-03-15
+
+kind:
+  quantity:
+    unit: Pa
+    qudt_uri: qudt:PA
+    dimension: pressure
+    range: [0, 5000]
+    common_alternatives:
+      - unit: cmH2O
+        type: multiplicative
+        multiplier: 98.0665
+      - unit: hPa
+        type: multiplicative
+        multiplier: 100.0
+
+aliases:
+  - name: Ps
+    source: Sundberg_1993
+  - name: P_sub
+    source: Holmberg_1988
+  - name: P_s
+    source: Titze_1994
+  - name: lung pressure
+    source: Lieberman_1967
+    note: "approximate; includes tracheal losses"

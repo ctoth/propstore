@@ -1,0 +1,15 @@
+id: narr_0001
+canonical_name: focalization
+status: accepted
+definition: >
+  The narrative technique of restricting the point of view through
+  which story events are presented. Contested between Genette's
+  and Bal's definitions.
+domain: narr
+created_date: 2026-03-15
+
+kind:
+  structural:
+    note: >
+      Structural concept with sub-types. The term itself is
+      contested across traditions — see contested_definition edge.

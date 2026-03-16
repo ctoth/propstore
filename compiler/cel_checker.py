@@ -1,0 +1,550 @@
+"""CEL condition expression type-checker for the propstore concept registry.
+
+Parses a subset of CEL sufficient for the condition expressions used in
+concept relationships and parameterization relationships. Type-checks
+every name reference against the concept registry's kind system.
+
+The expressions are simple: comparisons, arithmetic, &&, ||, in-lists.
+We parse a sufficient subset rather than implementing full CEL.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any
+
+
+class KindType(Enum):
+    QUANTITY = "quantity"
+    CATEGORY = "category"
+    BOOLEAN = "boolean"
+    STRUCTURAL = "structural"
+
+
+@dataclass
+class ConceptInfo:
+    """Minimal concept info needed for type-checking."""
+    id: str
+    canonical_name: str
+    kind: KindType
+    # For category kinds: the valid value set
+    category_values: list[str] = field(default_factory=list)
+    category_extensible: bool = True
+
+
+@dataclass
+class CelError:
+    expression: str
+    message: str
+    is_warning: bool = False
+
+    def __str__(self) -> str:
+        prefix = "WARNING" if self.is_warning else "ERROR"
+        return f"{prefix}: {self.message} in expression: {self.expression}"
+
+
+# ── Tokenizer ────────────────────────────────────────────────────────
+
+class TokenType(Enum):
+    NAME = "NAME"
+    INT_LIT = "INT_LIT"
+    FLOAT_LIT = "FLOAT_LIT"
+    STRING_LIT = "STRING_LIT"
+    BOOL_LIT = "BOOL_LIT"
+    OP = "OP"          # +, -, *, /, ==, !=, <, >, <=, >=, &&, ||, !
+    LPAREN = "LPAREN"
+    RPAREN = "RPAREN"
+    LBRACKET = "LBRACKET"
+    RBRACKET = "RBRACKET"
+    COMMA = "COMMA"
+    IN = "IN"
+    QUESTION = "QUESTION"
+    COLON = "COLON"
+    EOF = "EOF"
+
+
+@dataclass
+class Token:
+    type: TokenType
+    value: Any
+    pos: int
+
+
+_TOKEN_PATTERNS = [
+    (r'\s+', None),  # skip whitespace
+    (r'&&', TokenType.OP),
+    (r'\|\|', TokenType.OP),
+    (r'==', TokenType.OP),
+    (r'!=', TokenType.OP),
+    (r'<=', TokenType.OP),
+    (r'>=', TokenType.OP),
+    (r'<', TokenType.OP),
+    (r'>', TokenType.OP),
+    (r'[+\-*/]', TokenType.OP),
+    (r'!', TokenType.OP),
+    (r'\(', TokenType.LPAREN),
+    (r'\)', TokenType.RPAREN),
+    (r'\[', TokenType.LBRACKET),
+    (r'\]', TokenType.RBRACKET),
+    (r',', TokenType.COMMA),
+    (r'\?', TokenType.QUESTION),
+    (r':', TokenType.COLON),
+    (r'"(?:[^"\\]|\\.)*"', TokenType.STRING_LIT),
+    (r"'(?:[^'\\]|\\.)*'", TokenType.STRING_LIT),
+    (r'\d+\.\d*|\.\d+', TokenType.FLOAT_LIT),
+    (r'\d+', TokenType.INT_LIT),
+    (r'[a-zA-Z_][a-zA-Z0-9_]*', TokenType.NAME),
+]
+
+_COMPILED_PATTERNS = [(re.compile(p), t) for p, t in _TOKEN_PATTERNS]
+
+
+def tokenize(expr: str) -> list[Token]:
+    tokens: list[Token] = []
+    pos = 0
+    while pos < len(expr):
+        matched = False
+        for pattern, token_type in _COMPILED_PATTERNS:
+            m = pattern.match(expr, pos)
+            if m:
+                if token_type is not None:
+                    val = m.group()
+                    if token_type == TokenType.NAME:
+                        if val == "true" or val == "false":
+                            token_type = TokenType.BOOL_LIT
+                            val = val == "true"
+                        elif val == "in":
+                            token_type = TokenType.IN
+                    elif token_type == TokenType.STRING_LIT:
+                        val = val[1:-1]  # strip quotes
+                    elif token_type == TokenType.INT_LIT:
+                        val = int(val)
+                    elif token_type == TokenType.FLOAT_LIT:
+                        val = float(val)
+                    tokens.append(Token(token_type, val, pos))
+                pos = m.end()
+                matched = True
+                break
+        if not matched:
+            raise ValueError(f"Unexpected character at position {pos}: {expr[pos:]!r}")
+    tokens.append(Token(TokenType.EOF, None, pos))
+    return tokens
+
+
+# ── Parser → AST ─────────────────────────────────────────────────────
+# Recursive descent. Produces a simple AST for type-checking.
+
+class ASTNode:
+    pass
+
+
+@dataclass
+class NameNode(ASTNode):
+    name: str
+
+
+@dataclass
+class LiteralNode(ASTNode):
+    value: Any
+    lit_type: str  # "int", "float", "string", "bool"
+
+
+@dataclass
+class BinaryOpNode(ASTNode):
+    op: str
+    left: ASTNode
+    right: ASTNode
+
+
+@dataclass
+class UnaryOpNode(ASTNode):
+    op: str
+    operand: ASTNode
+
+
+@dataclass
+class InNode(ASTNode):
+    """name in [list]"""
+    expr: ASTNode
+    values: list[ASTNode]
+
+
+@dataclass
+class TernaryNode(ASTNode):
+    condition: ASTNode
+    true_branch: ASTNode
+    false_branch: ASTNode
+
+
+class Parser:
+    def __init__(self, tokens: list[Token]):
+        self.tokens = tokens
+        self.pos = 0
+
+    def peek(self) -> Token:
+        return self.tokens[self.pos]
+
+    def advance(self) -> Token:
+        t = self.tokens[self.pos]
+        self.pos += 1
+        return t
+
+    def expect(self, token_type: TokenType) -> Token:
+        t = self.advance()
+        if t.type != token_type:
+            raise ValueError(f"Expected {token_type}, got {t.type} ({t.value!r})")
+        return t
+
+    def parse(self) -> ASTNode:
+        node = self.parse_ternary()
+        if self.peek().type != TokenType.EOF:
+            raise ValueError(f"Unexpected token after expression: {self.peek().value!r}")
+        return node
+
+    def parse_ternary(self) -> ASTNode:
+        node = self.parse_or()
+        if self.peek().type == TokenType.QUESTION:
+            self.advance()
+            true_branch = self.parse_ternary()
+            self.expect(TokenType.COLON)
+            false_branch = self.parse_ternary()
+            return TernaryNode(node, true_branch, false_branch)
+        return node
+
+    def parse_or(self) -> ASTNode:
+        left = self.parse_and()
+        while self.peek().type == TokenType.OP and self.peek().value == "||":
+            self.advance()
+            right = self.parse_and()
+            left = BinaryOpNode("||", left, right)
+        return left
+
+    def parse_and(self) -> ASTNode:
+        left = self.parse_comparison()
+        while self.peek().type == TokenType.OP and self.peek().value == "&&":
+            self.advance()
+            right = self.parse_comparison()
+            left = BinaryOpNode("&&", left, right)
+        return left
+
+    def parse_comparison(self) -> ASTNode:
+        left = self.parse_additive()
+        if self.peek().type == TokenType.OP and self.peek().value in ("==", "!=", "<", ">", "<=", ">="):
+            op = self.advance().value
+            right = self.parse_additive()
+            return BinaryOpNode(op, left, right)
+        if self.peek().type == TokenType.IN:
+            self.advance()
+            self.expect(TokenType.LBRACKET)
+            values = []
+            if self.peek().type != TokenType.RBRACKET:
+                values.append(self.parse_primary())
+                while self.peek().type == TokenType.COMMA:
+                    self.advance()
+                    values.append(self.parse_primary())
+            self.expect(TokenType.RBRACKET)
+            return InNode(left, values)
+        return left
+
+    def parse_additive(self) -> ASTNode:
+        left = self.parse_multiplicative()
+        while self.peek().type == TokenType.OP and self.peek().value in ("+", "-"):
+            op = self.advance().value
+            right = self.parse_multiplicative()
+            left = BinaryOpNode(op, left, right)
+        return left
+
+    def parse_multiplicative(self) -> ASTNode:
+        left = self.parse_unary()
+        while self.peek().type == TokenType.OP and self.peek().value in ("*", "/"):
+            op = self.advance().value
+            right = self.parse_unary()
+            left = BinaryOpNode(op, left, right)
+        return left
+
+    def parse_unary(self) -> ASTNode:
+        if self.peek().type == TokenType.OP and self.peek().value == "!":
+            self.advance()
+            operand = self.parse_unary()
+            return UnaryOpNode("!", operand)
+        if self.peek().type == TokenType.OP and self.peek().value == "-":
+            self.advance()
+            operand = self.parse_unary()
+            return UnaryOpNode("-", operand)
+        return self.parse_primary()
+
+    def parse_primary(self) -> ASTNode:
+        t = self.peek()
+        if t.type == TokenType.NAME:
+            self.advance()
+            return NameNode(t.value)
+        if t.type == TokenType.INT_LIT:
+            self.advance()
+            return LiteralNode(t.value, "int")
+        if t.type == TokenType.FLOAT_LIT:
+            self.advance()
+            return LiteralNode(t.value, "float")
+        if t.type == TokenType.STRING_LIT:
+            self.advance()
+            return LiteralNode(t.value, "string")
+        if t.type == TokenType.BOOL_LIT:
+            self.advance()
+            return LiteralNode(t.value, "bool")
+        if t.type == TokenType.LPAREN:
+            self.advance()
+            node = self.parse_ternary()
+            self.expect(TokenType.RPAREN)
+            return node
+        raise ValueError(f"Unexpected token: {t.type} ({t.value!r}) at position {t.pos}")
+
+
+def parse_cel(expr: str) -> ASTNode:
+    tokens = tokenize(expr)
+    parser = Parser(tokens)
+    return parser.parse()
+
+
+# ── Type Checker ─────────────────────────────────────────────────────
+
+# Type results from sub-expressions
+class ExprType(Enum):
+    NUMERIC = "numeric"
+    STRING = "string"
+    BOOLEAN = "boolean"
+    UNKNOWN = "unknown"  # for mixed/error cases
+
+
+ARITHMETIC_OPS = {"+", "-", "*", "/"}
+ORDERING_OPS = {"<", ">", "<=", ">="}
+EQUALITY_OPS = {"==", "!="}
+LOGICAL_OPS = {"&&", "||"}
+
+
+def check_cel_expression(
+    expr: str,
+    registry: dict[str, ConceptInfo],
+) -> list[CelError]:
+    """Type-check a CEL expression against the concept registry.
+
+    Args:
+        expr: CEL expression string
+        registry: mapping from canonical_name to ConceptInfo
+
+    Returns:
+        List of errors/warnings. Empty list means the expression is valid.
+    """
+    errors: list[CelError] = []
+
+    try:
+        ast = parse_cel(expr)
+    except ValueError as e:
+        errors.append(CelError(expr, f"Parse error: {e}"))
+        return errors
+
+    _check_node(ast, expr, registry, errors)
+    return errors
+
+
+def _resolve_type(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> ExprType:
+    """Determine the type of an AST node and accumulate errors."""
+    if isinstance(node, LiteralNode):
+        if node.lit_type in ("int", "float"):
+            return ExprType.NUMERIC
+        if node.lit_type == "string":
+            return ExprType.STRING
+        if node.lit_type == "bool":
+            return ExprType.BOOLEAN
+        return ExprType.UNKNOWN
+
+    if isinstance(node, NameNode):
+        info = registry.get(node.name)
+        if info is None:
+            errors.append(CelError(expr, f"Undefined concept: '{node.name}'"))
+            return ExprType.UNKNOWN
+        if info.kind == KindType.STRUCTURAL:
+            errors.append(CelError(expr, f"Structural concept '{node.name}' cannot appear in CEL expressions"))
+            return ExprType.UNKNOWN
+        if info.kind == KindType.QUANTITY:
+            return ExprType.NUMERIC
+        if info.kind == KindType.CATEGORY:
+            return ExprType.STRING
+        if info.kind == KindType.BOOLEAN:
+            return ExprType.BOOLEAN
+        return ExprType.UNKNOWN
+
+    if isinstance(node, UnaryOpNode):
+        if node.op == "!":
+            inner = _resolve_type(node.operand, expr, registry, errors)
+            if inner == ExprType.NUMERIC:
+                errors.append(CelError(expr, "Cannot negate a numeric expression with '!'"))
+            return ExprType.BOOLEAN
+        if node.op == "-":
+            inner = _resolve_type(node.operand, expr, registry, errors)
+            if inner == ExprType.STRING:
+                errors.append(CelError(expr, "Cannot negate a string expression"))
+            if inner == ExprType.BOOLEAN:
+                errors.append(CelError(expr, "Cannot negate a boolean expression with unary minus"))
+            return ExprType.NUMERIC
+
+    if isinstance(node, BinaryOpNode):
+        return _check_binary(node, expr, registry, errors)
+
+    if isinstance(node, InNode):
+        return _check_in(node, expr, registry, errors)
+
+    if isinstance(node, TernaryNode):
+        _check_node(node.condition, expr, registry, errors)
+        t1 = _resolve_type(node.true_branch, expr, registry, errors)
+        _resolve_type(node.false_branch, expr, registry, errors)
+        return t1
+
+    return ExprType.UNKNOWN
+
+
+def _check_binary(node: BinaryOpNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> ExprType:
+    left_type = _resolve_type(node.left, expr, registry, errors)
+    right_type = _resolve_type(node.right, expr, registry, errors)
+
+    if node.op in LOGICAL_OPS:
+        # Both sides should be boolean-compatible
+        return ExprType.BOOLEAN
+
+    if node.op in ARITHMETIC_OPS:
+        # Check that neither side is category or boolean concept used in arithmetic
+        _check_no_category_arithmetic(node.left, expr, registry, errors)
+        _check_no_category_arithmetic(node.right, expr, registry, errors)
+        _check_no_boolean_arithmetic(node.left, expr, registry, errors)
+        _check_no_boolean_arithmetic(node.right, expr, registry, errors)
+        return ExprType.NUMERIC
+
+    if node.op in ORDERING_OPS:
+        # Category and boolean concepts cannot be ordered
+        _check_no_category_ordering(node.left, expr, registry, errors)
+        _check_no_category_ordering(node.right, expr, registry, errors)
+        _check_no_boolean_ordering(node.left, expr, registry, errors)
+        _check_no_boolean_ordering(node.right, expr, registry, errors)
+        # Quantity compared to string literal → error
+        _check_type_mismatch(node.left, right_type, expr, registry, errors)
+        _check_type_mismatch(node.right, left_type, expr, registry, errors)
+        return ExprType.BOOLEAN
+
+    if node.op in EQUALITY_OPS:
+        # Check type mismatches between concepts and literals
+        _check_type_mismatch(node.left, right_type, expr, registry, errors)
+        _check_type_mismatch(node.right, left_type, expr, registry, errors)
+        # Check category value sets
+        _check_category_value(node.left, node.right, expr, registry, errors)
+        _check_category_value(node.right, node.left, expr, registry, errors)
+        return ExprType.BOOLEAN
+
+    return ExprType.UNKNOWN
+
+
+def _check_in(node: InNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> ExprType:
+    """Type-check 'x in [a, b, c]'."""
+    _resolve_type(node.expr, expr, registry, errors)
+
+    # Check if the LHS is a category concept — validate values against value set
+    if isinstance(node.expr, NameNode):
+        info = registry.get(node.expr.name)
+        if info and info.kind == KindType.CATEGORY:
+            for val_node in node.values:
+                if isinstance(val_node, LiteralNode) and val_node.lit_type == "string":
+                    if val_node.value not in info.category_values:
+                        if info.category_extensible:
+                            errors.append(CelError(
+                                expr,
+                                f"Value '{val_node.value}' not in value set for category concept '{node.expr.name}' (extensible, may be valid)",
+                                is_warning=True,
+                            ))
+                        else:
+                            errors.append(CelError(
+                                expr,
+                                f"Value '{val_node.value}' not in value set for category concept '{node.expr.name}'",
+                            ))
+        if info and info.kind == KindType.BOOLEAN:
+            errors.append(CelError(expr, f"Boolean concept '{node.expr.name}' cannot be used with 'in' operator"))
+        if info and info.kind == KindType.QUANTITY:
+            # quantity in [...] is ok for numeric lists
+            for val_node in node.values:
+                if isinstance(val_node, LiteralNode) and val_node.lit_type == "string":
+                    errors.append(CelError(expr, f"String literal in 'in' list for quantity concept '{node.expr.name}'"))
+
+    return ExprType.BOOLEAN
+
+
+def _check_node(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
+    """Top-level check — just resolves type and accumulates errors."""
+    _resolve_type(node, expr, registry, errors)
+
+
+def _check_no_category_arithmetic(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
+    if isinstance(node, NameNode):
+        info = registry.get(node.name)
+        if info and info.kind == KindType.CATEGORY:
+            errors.append(CelError(expr, f"Category concept '{node.name}' cannot appear in arithmetic"))
+
+
+def _check_no_boolean_arithmetic(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
+    if isinstance(node, NameNode):
+        info = registry.get(node.name)
+        if info and info.kind == KindType.BOOLEAN:
+            errors.append(CelError(expr, f"Boolean concept '{node.name}' cannot appear in arithmetic"))
+
+
+def _check_no_category_ordering(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
+    if isinstance(node, NameNode):
+        info = registry.get(node.name)
+        if info and info.kind == KindType.CATEGORY:
+            errors.append(CelError(expr, f"Category concept '{node.name}' cannot appear in ordering comparison"))
+
+
+def _check_no_boolean_ordering(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
+    if isinstance(node, NameNode):
+        info = registry.get(node.name)
+        if info and info.kind == KindType.BOOLEAN:
+            errors.append(CelError(expr, f"Boolean concept '{node.name}' cannot appear in ordering comparison"))
+
+
+def _check_type_mismatch(concept_node: ASTNode, other_type: ExprType, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
+    """Check that a concept isn't being compared to a mismatched literal type."""
+    if not isinstance(concept_node, NameNode):
+        return
+    info = registry.get(concept_node.name)
+    if info is None:
+        return
+
+    if info.kind == KindType.QUANTITY and other_type == ExprType.STRING:
+        errors.append(CelError(expr, f"Quantity concept '{concept_node.name}' compared to string literal"))
+    elif info.kind == KindType.CATEGORY and other_type == ExprType.NUMERIC:
+        errors.append(CelError(expr, f"Category concept '{concept_node.name}' compared to numeric literal"))
+    elif info.kind == KindType.BOOLEAN and other_type == ExprType.STRING:
+        errors.append(CelError(expr, f"Boolean concept '{concept_node.name}' compared to string literal"))
+    elif info.kind == KindType.BOOLEAN and other_type == ExprType.NUMERIC:
+        errors.append(CelError(expr, f"Boolean concept '{concept_node.name}' compared to numeric literal"))
+
+
+def _check_category_value(concept_node: ASTNode, value_node: ASTNode, expr: str, registry: dict[str, ConceptInfo], errors: list[CelError]) -> None:
+    """If concept_node is a category and value_node is a string literal, check the value set."""
+    if not isinstance(concept_node, NameNode) or not isinstance(value_node, LiteralNode):
+        return
+    if value_node.lit_type != "string":
+        return
+    info = registry.get(concept_node.name)
+    if info is None or info.kind != KindType.CATEGORY:
+        return
+
+    if value_node.value not in info.category_values:
+        if info.category_extensible:
+            errors.append(CelError(
+                expr,
+                f"Value '{value_node.value}' not in value set for category concept '{concept_node.name}' (extensible, may be valid)",
+                is_warning=True,
+            ))
+        else:
+            errors.append(CelError(
+                expr,
+                f"Value '{value_node.value}' not in value set for category concept '{concept_node.name}'",
+            ))
