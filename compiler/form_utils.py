@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import datetime
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import jsonschema
 import yaml
 
 from compiler.cel_checker import KindType
@@ -69,13 +71,18 @@ def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
 
     parameters = data.get("parameters", {}) or {}
 
-    # Determine dimensionless: ratio forms, level, dimensionless_compound
-    is_dimensionless = (
-        data.get("base") == "ratio"
-        or form_name in ("level", "dimensionless_compound")
-        or (unit_symbol is None and kind == KindType.QUANTITY
-            and form_name not in ("structural",))
-    )
+    # Read explicit dimensionless field; fall back to heuristic for
+    # form files that haven't been updated yet.
+    _explicit = data.get("dimensionless")
+    if isinstance(_explicit, bool):
+        is_dimensionless = _explicit
+    else:
+        is_dimensionless = (
+            data.get("base") == "ratio"
+            or form_name in ("level", "dimensionless_compound")
+            or (unit_symbol is None and kind == KindType.QUANTITY
+                and form_name not in ("structural",))
+        )
 
     result = FormDefinition(
         name=form_name,
@@ -164,3 +171,53 @@ def allowed_units_from_form_definition(form_definition: dict[str, Any]) -> set[s
             allowed.add(unit)
 
     return allowed
+
+
+# ── Form file schema validation ──────────────────────────────────────
+
+_FORM_SCHEMA_PATH = Path(__file__).parent.parent / "schema" / "generated" / "form.schema.json"
+
+_form_schema_cache: dict | None = None
+
+
+def _load_form_schema() -> dict:
+    """Load the form JSON Schema, caching the result."""
+    global _form_schema_cache
+    if _form_schema_cache is None:
+        with open(_FORM_SCHEMA_PATH) as f:
+            _form_schema_cache = json.load(f)
+    return _form_schema_cache
+
+
+def validate_form_files(forms_dir: Path) -> list[str]:
+    """Validate all form YAML files against the form JSON Schema.
+
+    Returns a list of error strings (empty means all valid).
+    """
+    errors: list[str] = []
+    if not forms_dir.exists():
+        return errors
+
+    schema = _load_form_schema()
+
+    for entry in sorted(forms_dir.iterdir()):
+        if not entry.is_file() or entry.suffix != ".yaml":
+            continue
+        with open(entry) as f:
+            data = yaml.safe_load(f)
+        if not isinstance(data, dict):
+            errors.append(f"{entry.stem}: form file is not a YAML mapping")
+            continue
+        try:
+            jsonschema.validate(data, schema)
+        except jsonschema.ValidationError as e:
+            errors.append(f"{entry.stem}: {e.message}")
+
+        # Cross-check: name field must match filename
+        name = data.get("name")
+        if name != entry.stem:
+            errors.append(
+                f"{entry.stem}: 'name' field ('{name}') does not match "
+                f"filename '{entry.stem}'")
+
+    return errors

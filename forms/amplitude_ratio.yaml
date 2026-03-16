@@ -1,4 +1,5 @@
 name: amplitude_ratio
+dimensionless: true
 base: ratio
 parameters:
   numerator: amplitude

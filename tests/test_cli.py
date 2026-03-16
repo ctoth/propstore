@@ -72,12 +72,14 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     # Create form definition files
     forms_dir = tmp_path / "forms"
     forms_dir.mkdir()
+    _dimensionless_forms = {"duration_ratio", "amplitude_ratio", "level", "dimensionless_compound"}
     for form_name in ("frequency", "category", "boolean", "structural",
                       "duration_ratio", "pressure", "level", "time",
                       "flow", "flow_derivative", "amplitude_ratio",
                       "dimensionless_compound"):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name}, default_flow_style=False))
+            yaml.dump({"name": form_name, "dimensionless": form_name in _dimensionless_forms},
+                      default_flow_style=False))
 
     # Write two concepts
     _write_concept(concepts, "fundamental_frequency", _make_concept(
