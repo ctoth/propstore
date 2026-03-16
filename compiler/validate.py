@@ -261,6 +261,11 @@ def validate_concepts(
         for param in data.get("parameterization_relationships", []) or []:
             inputs = param.get("inputs", [])
             for input_id in inputs:
+                if input_id == cid:
+                    result.errors.append(
+                        f"{c.filename}: parameterization input '{input_id}' "
+                        f"cannot reference the concept being defined")
+                    continue
                 if input_id not in all_ids:
                     result.errors.append(
                         f"{c.filename}: parameterization input '{input_id}' not found in registry")

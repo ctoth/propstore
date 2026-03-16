@@ -1,6 +1,7 @@
 """pks concept — subcommands for managing concepts."""
 from __future__ import annotations
 
+from copy import deepcopy
 import subprocess
 import sys
 from datetime import date
@@ -12,13 +13,16 @@ import yaml
 from compiler.cli.helpers import (
     EXIT_ERROR,
     EXIT_VALIDATION,
+    claims_dir,
     concepts_dir,
     find_concept,
     load_concept_file,
-    next_id,
+    read_counter,
+    write_counter,
     write_concept_file,
 )
-from compiler.validate import load_concepts, validate_concepts
+from compiler.validate import LoadedConcept, load_concepts, validate_concepts
+from compiler.validate_claims import load_claim_files, validate_claims
 
 RELATIONSHIP_TYPES = (
     "broader", "narrower", "related",
@@ -29,6 +33,87 @@ RELATIONSHIP_TYPES = (
 @click.group()
 def concept() -> None:
     """Manage concepts in the registry."""
+
+
+def _rename_cel_identifier(expression: str, old_name: str, new_name: str) -> str:
+    """Rename a CEL identifier without touching quoted string literals."""
+    result: list[str] = []
+    quote: str | None = None
+    i = 0
+    while i < len(expression):
+        ch = expression[i]
+        if quote is not None:
+            result.append(ch)
+            if ch == quote and (i == 0 or expression[i - 1] != "\\"):
+                quote = None
+            i += 1
+            continue
+
+        if ch in ("'", '"'):
+            quote = ch
+            result.append(ch)
+            i += 1
+            continue
+
+        if ch.isalpha() or ch == "_":
+            j = i + 1
+            while j < len(expression) and (expression[j].isalnum() or expression[j] == "_"):
+                j += 1
+            token = expression[i:j]
+            result.append(new_name if token == old_name else token)
+            i = j
+            continue
+
+        result.append(ch)
+        i += 1
+
+    return "".join(result)
+
+
+def _rewrite_condition_list(
+    conditions: object,
+    old_name: str,
+    new_name: str,
+) -> tuple[object, bool]:
+    if not isinstance(conditions, list):
+        return conditions, False
+    changed = False
+    rewritten: list[object] = []
+    for condition in conditions:
+        if isinstance(condition, str):
+            new_condition = _rename_cel_identifier(condition, old_name, new_name)
+            changed = changed or new_condition != condition
+            rewritten.append(new_condition)
+        else:
+            rewritten.append(condition)
+    return rewritten, changed
+
+
+def _rewrite_concept_conditions(data: dict, old_name: str, new_name: str) -> bool:
+    changed = False
+    for rel in data.get("relationships", []) or []:
+        rewritten, rel_changed = _rewrite_condition_list(rel.get("conditions"), old_name, new_name)
+        if rel_changed:
+            rel["conditions"] = rewritten
+            changed = True
+    for param in data.get("parameterization_relationships", []) or []:
+        rewritten, param_changed = _rewrite_condition_list(param.get("conditions"), old_name, new_name)
+        if param_changed:
+            param["conditions"] = rewritten
+            changed = True
+    return changed
+
+
+def _rewrite_claim_conditions(claim_file_data: dict, old_name: str, new_name: str) -> bool:
+    changed = False
+    for claim in claim_file_data.get("claims", []) or []:
+        if not isinstance(claim, dict):
+            continue
+        rewritten, claim_changed = _rewrite_condition_list(claim.get("conditions"), old_name, new_name)
+        if claim_changed:
+            claim["conditions"] = rewritten
+            changed = True
+    return changed
 
 
 # ── concept add ──────────────────────────────────────────────────────
@@ -59,8 +144,13 @@ def add(
             click.echo(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")
 
-    cid, counter = next_id(domain)
     filepath = concepts_dir() / f"{name}.yaml"
+    if filepath.exists():
+        click.echo(f"ERROR: Concept file '{filepath}' already exists", err=True)
+        sys.exit(EXIT_ERROR)
+
+    next_counter = read_counter(domain)
+    cid = f"concept{next_counter}"
 
     data = {
         "id": cid,
@@ -77,17 +167,12 @@ def add(
         click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
         return
 
-    # Validate before writing
-    # Temporarily write, validate, roll back on failure
     concepts_dir().mkdir(parents=True, exist_ok=True)
-    write_concept_file(filepath, data)
+    concepts = load_concepts(concepts_dir())
+    concepts.append(LoadedConcept(filename=name, filepath=filepath, data=data))
 
-    result = validate_concepts(load_concepts(concepts_dir()))
+    result = validate_concepts(concepts)
     if not result.ok:
-        filepath.unlink()
-        # Roll back the counter
-        from compiler.cli.helpers import write_counter
-        write_counter(domain, counter)
         for e in result.errors:
             click.echo(f"ERROR: {e}", err=True)
         click.echo("Validation failed. No changes written.", err=True)
@@ -96,6 +181,8 @@ def add(
     for w in result.warnings:
         click.echo(f"WARNING: {w}", err=True)
 
+    write_concept_file(filepath, data)
+    write_counter(domain, next_counter + 1)
     click.echo(f"Created {filepath} with ID {cid}")
 
 
@@ -159,15 +246,80 @@ def rename(concept_id: str, name: str, dry_run: bool) -> None:
     data = load_concept_file(filepath)
     old_name = data.get("canonical_name", filepath.stem)
     new_path = filepath.parent / f"{name}.yaml"
+    if old_name == name:
+        click.echo(f"No change: concept already named '{name}'")
+        return
+    if new_path.exists():
+        click.echo(f"ERROR: Concept file '{new_path}' already exists", err=True)
+        sys.exit(EXIT_ERROR)
 
     if dry_run:
         click.echo(f"Would rename: {old_name} -> {name}")
         click.echo(f"  {filepath} -> {new_path}")
         return
 
-    data["canonical_name"] = name
-    data["last_modified"] = str(date.today())
-    write_concept_file(filepath, data)
+    loaded_concepts = load_concepts(concepts_dir())
+    updated_concepts = []
+    changed_concept_paths: set[Path] = set()
+    for concept_record in loaded_concepts:
+        concept_data = deepcopy(concept_record.data)
+        if concept_record.filepath == filepath:
+            concept_data["canonical_name"] = name
+            concept_data["last_modified"] = str(date.today())
+            changed_concept_paths.add(concept_record.filepath)
+        if _rewrite_concept_conditions(concept_data, old_name, name):
+            changed_concept_paths.add(concept_record.filepath)
+        updated_concepts.append(
+            type(concept_record)(
+                filename=name if concept_record.filepath == filepath else concept_record.filename,
+                filepath=new_path if concept_record.filepath == filepath else concept_record.filepath,
+                data=concept_data,
+            )
+        )
+
+    concept_validation = validate_concepts(updated_concepts, claims_dir() if claims_dir().exists() else None)
+    if not concept_validation.ok:
+        for e in concept_validation.errors:
+            click.echo(f"ERROR: {e}", err=True)
+        click.echo("Rename validation failed. No changes written.", err=True)
+        sys.exit(EXIT_VALIDATION)
+
+    claim_files = load_claim_files(claims_dir()) if claims_dir().exists() else []
+    updated_claim_files = []
+    changed_claim_paths: set[Path] = set()
+    if claim_files:
+        for claim_file in claim_files:
+            claim_data = deepcopy(claim_file.data)
+            if _rewrite_claim_conditions(claim_data, old_name, name):
+                changed_claim_paths.add(claim_file.filepath)
+            updated_claim_files.append(type(claim_file)(
+                filename=claim_file.filename,
+                filepath=claim_file.filepath,
+                data=claim_data,
+            ))
+        concept_registry = {
+            concept_record.data["id"]: deepcopy(concept_record.data)
+            for concept_record in updated_concepts
+            if concept_record.data.get("id")
+        }
+        claim_validation = validate_claims(updated_claim_files, concept_registry)
+        if not claim_validation.ok:
+            for e in claim_validation.errors:
+                click.echo(f"ERROR: {e}", err=True)
+            click.echo("Rename validation failed. No changes written.", err=True)
+            sys.exit(EXIT_VALIDATION)
+
+    for concept_record in updated_concepts:
+        target_path = concept_record.filepath
+        if target_path == new_path:
+            write_concept_file(filepath, concept_record.data)
+        elif concept_record.filepath in changed_concept_paths:
+            write_concept_file(target_path, concept_record.data)
+
+    for claim_file in updated_claim_files:
+        if claim_file.filepath in changed_claim_paths:
+            with open(claim_file.filepath, "w") as f:
+                yaml.dump(claim_file.data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
     # Try git mv, fall back to plain rename
     try:

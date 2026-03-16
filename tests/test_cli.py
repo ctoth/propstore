@@ -53,6 +53,13 @@ def _read_counter(concepts_dir: Path, domain: str) -> int:
     return int((concepts_dir / ".counters" / f"{domain}.next").read_text().strip())
 
 
+def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
+    claims_dir.mkdir(parents=True, exist_ok=True)
+    path = claims_dir / filename
+    path.write_text(yaml.dump(data, default_flow_style=False, sort_keys=False))
+    return path
+
+
 
 @pytest.fixture()
 def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
@@ -193,6 +200,19 @@ class TestConceptAdd:
         assert "Would create" in result.output
         assert not (workspace / "concepts" / "ghost.yaml").exists()
 
+    def test_validation_failure_does_not_advance_counter(self, workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "speech",
+            "--name", "bad_pressure",
+            "--definition", "d",
+            "--form", "missing_form",
+        ])
+        assert result.exit_code != 0
+        assert not (workspace / "concepts" / "bad_pressure.yaml").exists()
+        assert _read_counter(workspace / "concepts", "speech") == 3
+
 
 # ── concept alias ────────────────────────────────────────────────────
 
@@ -242,6 +262,47 @@ class TestConceptRename:
         data = yaml.safe_load(new_path.read_text())
         assert data["canonical_name"] == "vocal_task"
         assert data["id"] == "concept2"  # ID unchanged
+
+    def test_updates_cel_references_in_concepts_and_claims(self, workspace: Path) -> None:
+        concept_path = workspace / "concepts" / "fundamental_frequency.yaml"
+        concept_data = yaml.safe_load(concept_path.read_text())
+        concept_data["relationships"] = [
+            {"type": "related", "target": "concept2", "conditions": ["task == 'speech'"]}
+        ]
+        concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
+
+        claims_dir = workspace / "claims"
+        _write_claim_file(
+            claims_dir,
+            "paper.yaml",
+            {
+                "source": {"paper": "paper"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 200.0,
+                        "unit": "Hz",
+                        "conditions": ["task == 'speech'"],
+                        "provenance": {"paper": "paper", "page": 1},
+                    }
+                ],
+            },
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "rename", "concept2",
+            "--name", "vocal_task",
+        ])
+        assert result.exit_code == 0, result.output
+
+        renamed_concept = yaml.safe_load((workspace / "concepts" / "fundamental_frequency.yaml").read_text())
+        assert renamed_concept["relationships"][0]["conditions"] == ["vocal_task == 'speech'"]
+
+        claim_data = yaml.safe_load((workspace / "claims" / "paper.yaml").read_text())
+        assert claim_data["claims"][0]["conditions"] == ["vocal_task == 'speech'"]
 
 
 # ── concept deprecate ────────────────────────────────────────────────
@@ -360,3 +421,49 @@ class TestBuild:
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
         assert result.exit_code != 0
         assert not sidecar.exists()
+
+
+class TestQuery:
+    def test_query_returns_rows(self, workspace: Path) -> None:
+        runner = CliRunner()
+        build_result = runner.invoke(cli, ["build"])
+        assert build_result.exit_code == 0, build_result.output
+
+        query_result = runner.invoke(cli, ["query", "SELECT count(*) AS n FROM concept"])
+        assert query_result.exit_code == 0, query_result.output
+        assert "n" in query_result.output
+        assert "2" in query_result.output
+
+
+class TestWorkflow:
+    def test_init_add_build_query_workflow(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        runner = CliRunner()
+
+        init_result = runner.invoke(cli, ["init"])
+        assert init_result.exit_code == 0, init_result.output
+
+        project_root = tmp_path / "knowledge"
+        add_result = runner.invoke(
+            cli,
+            [
+                "-C", str(project_root),
+                "concept", "add",
+                "--domain", "speech",
+                "--name", "test_pressure",
+                "--definition", "A test concept",
+                "--form", "pressure",
+            ],
+        )
+        assert add_result.exit_code == 0, add_result.output
+
+        build_result = runner.invoke(cli, ["-C", str(project_root), "build"])
+        assert build_result.exit_code == 0, build_result.output
+
+        query_result = runner.invoke(
+            cli,
+            ["-C", str(project_root), "query", "SELECT canonical_name FROM concept ORDER BY canonical_name"],
+        )
+        assert query_result.exit_code == 0, query_result.output
+        assert "canonical_name" in query_result.output
+        assert "test_pressure" in query_result.output

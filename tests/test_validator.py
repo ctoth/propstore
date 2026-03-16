@@ -299,6 +299,23 @@ class TestParameterizationInputs:
         result = validate_concepts(concepts)
         assert any("quantity" in e.lower() for e in result.errors)
 
+    def test_self_referential_input_error(self, concept_dir):
+        c = make_quantity_concept(
+            "concept1",
+            "self_defined",
+            parameterization_relationships=[{
+                "formula": "x = x + y",
+                "inputs": ["concept1"],
+                "exactness": "exact",
+                "source": "Test_2024",
+                "bidirectional": False,
+            }],
+        )
+        write_concept(concept_dir, "self_defined.yaml", c)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert any("cannot reference the concept being defined" in e for e in result.errors)
+
     def test_conditional_exactness_without_conditions_error(self, concept_dir):
         c1 = make_quantity_concept("concept1", "concept_a")
         c2 = make_quantity_concept("concept2", "concept_b",
