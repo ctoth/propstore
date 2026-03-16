@@ -1,0 +1,439 @@
+{
+    "$defs": {
+        "Claim": {
+            "additionalProperties": false,
+            "description": "A single propositional claim extracted from a paper. All claims have an id, type, provenance, and optional conditions and stances. Type-specific fields (concept/value/unit for parameter, expression/sympy for equation, etc.) are all present on this class; the validator enforces which are required per claim type.",
+            "properties": {
+                "concept": {
+                    "description": "Concept ID this parameter claim binds to (e.g., speech_0012). Required for parameter claims.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "concepts": {
+                    "description": "List of concept IDs relevant to this observation. Required for observation claims.\n",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "conditions": {
+                    "description": "CEL expressions defining when this claim holds. Each string is a CEL expression (e.g., \"context == 'vowels'\"). The conflict detector compares sorted CEL expression lists.\n",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "equations": {
+                    "description": "List of equation strings that make up this model. Required for model claims.\n",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "expression": {
+                    "description": "Human-readable equation string. Required for equation claims.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "fit": {
+                    "anyOf": [
+                        {
+                            "$ref": "#/$defs/FitStatistics"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "description": "Fit statistics for equation claims."
+                },
+                "id": {
+                    "description": "Stable identifier. Format: claim_NNNN (zero-padded to 4 digits).\n",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Name of the model (e.g., \"Exponential transition model (Model IVb)\"). Required for model claims.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "parameters": {
+                    "description": "Parameter bindings for this model, mapping names to concept IDs. Required for model claims.\n",
+                    "items": {
+                        "$ref": "#/$defs/ParameterBinding"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "provenance": {
+                    "$ref": "#/$defs/Provenance",
+                    "description": "Where in the paper this claim was found."
+                },
+                "stances": {
+                    "description": "Epistemic relations to other claims. Populated during reconciliation, not during initial extraction.\n",
+                    "items": {
+                        "$ref": "#/$defs/Stance"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "statement": {
+                    "description": "Prose description of the observation. Required for observation claims.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "sympy": {
+                    "description": "SymPy-parseable equation string. Required for equation claims.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "type": {
+                    "$ref": "#/$defs/ClaimType",
+                    "description": "The claim type: parameter, equation, observation, or model."
+                },
+                "unit": {
+                    "description": "Unit of measurement. Should match the concept's primary unit or a declared alternative. Required for parameter claims.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "value": {
+                    "description": "Numeric value. Scalar (single float) or range ([min, max]). Required for parameter claims.\n",
+                    "items": {
+                        "type": "number"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "variables": {
+                    "description": "Variable bindings mapping symbols to concept IDs. Required for equation claims.\n",
+                    "items": {
+                        "$ref": "#/$defs/VariableBinding"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id",
+                "type",
+                "provenance"
+            ],
+            "title": "Claim",
+            "type": "object"
+        },
+        "ClaimFile": {
+            "additionalProperties": false,
+            "description": "Top-level container for claims extracted from a single paper. One YAML file per paper at claims/<paper_dir_name>.yaml.",
+            "properties": {
+                "claims": {
+                    "description": "List of propositional claims extracted from the paper.",
+                    "items": {
+                        "$ref": "#/$defs/Claim"
+                    },
+                    "type": "array"
+                },
+                "source": {
+                    "$ref": "#/$defs/ClaimSource",
+                    "description": "Extraction provenance for this claim file."
+                }
+            },
+            "required": [
+                "source",
+                "claims"
+            ],
+            "title": "ClaimFile",
+            "type": "object"
+        },
+        "ClaimSource": {
+            "additionalProperties": false,
+            "description": "Metadata about how claims were extracted from the source paper.",
+            "properties": {
+                "extraction_date": {
+                    "description": "ISO 8601 date when extraction was performed.",
+                    "format": "date",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "extraction_model": {
+                    "description": "LLM model used for extraction (e.g., claude-opus-4-20250514).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "extraction_prompt_hash": {
+                    "description": "Hash of the extraction prompt for reproducibility.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "paper": {
+                    "description": "Paper directory name (e.g., Gobl_1988).",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "paper"
+            ],
+            "title": "ClaimSource",
+            "type": "object"
+        },
+        "ClaimType": {
+            "description": "The type of propositional claim extracted from a paper.",
+            "enum": [
+                "parameter",
+                "equation",
+                "observation",
+                "model"
+            ],
+            "title": "ClaimType",
+            "type": "string"
+        },
+        "FitStatistics": {
+            "additionalProperties": false,
+            "description": "Statistical fit measures for an empirical equation.",
+            "properties": {
+                "r": {
+                    "description": "Correlation coefficient.",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "r_sd": {
+                    "description": "Standard deviation of correlation coefficient.",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "slope": {
+                    "description": "Regression slope.",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "slope_sd": {
+                    "description": "Standard deviation of slope.",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                }
+            },
+            "title": "FitStatistics",
+            "type": "object"
+        },
+        "ParameterBinding": {
+            "additionalProperties": false,
+            "description": "Maps a parameter name in a model to a concept in the registry.",
+            "properties": {
+                "concept": {
+                    "description": "Concept ID this parameter refers to.",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Parameter name as it appears in the model equations.",
+                    "type": "string"
+                },
+                "note": {
+                    "description": "Description of what this parameter represents.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "name",
+                "concept"
+            ],
+            "title": "ParameterBinding",
+            "type": "object"
+        },
+        "Provenance": {
+            "additionalProperties": false,
+            "description": "Where in the source paper a claim was found. Paper and page are required; other fields are optional.",
+            "properties": {
+                "figure": {
+                    "description": "Figure identifier (e.g., 'Fig. 6').",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "page": {
+                    "description": "Page number in the paper.",
+                    "type": "integer"
+                },
+                "paper": {
+                    "description": "Paper directory name.",
+                    "type": "string"
+                },
+                "quote_fragment": {
+                    "description": "Brief quote from the paper supporting this claim.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "section": {
+                    "description": "Section name or number.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "table": {
+                    "description": "Table identifier (e.g., 'III', 'Table 2').",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "paper",
+                "page"
+            ],
+            "title": "Provenance",
+            "type": "object"
+        },
+        "Stance": {
+            "additionalProperties": false,
+            "description": "An epistemic relation between two claims, expressing support, contradiction, supersession, or mechanistic explanation.",
+            "properties": {
+                "conditions_differ": {
+                    "description": "Note about how conditions differ between claims.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "note": {
+                    "description": "Free-text note about this stance relation.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "strength": {
+                    "description": "Qualitative strength (e.g., strong, moderate, weak).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "target": {
+                    "description": "Claim ID of the related claim.",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/$defs/StanceType",
+                    "description": "The stance relation type."
+                }
+            },
+            "required": [
+                "type",
+                "target"
+            ],
+            "title": "Stance",
+            "type": "object"
+        },
+        "StanceType": {
+            "description": "The type of epistemic relation between two claims. Populated during reconciliation, not extraction.",
+            "enum": [
+                "supported_by",
+                "contradicted_by",
+                "superseded_by",
+                "mechanism_for"
+            ],
+            "title": "StanceType",
+            "type": "string"
+        },
+        "VariableBinding": {
+            "additionalProperties": false,
+            "description": "Maps a symbol in an equation to a concept in the registry.",
+            "properties": {
+                "concept": {
+                    "description": "Concept ID the symbol refers to.",
+                    "type": "string"
+                },
+                "role": {
+                    "description": "Role of this variable (e.g., dependent, independent).",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "symbol": {
+                    "description": "The variable symbol as it appears in the equation.",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "symbol",
+                "concept"
+            ],
+            "title": "VariableBinding",
+            "type": "object"
+        }
+    },
+    "$id": "https://propstore.local/schema/claim",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "additionalProperties": true,
+    "description": "Top-level container for claims extracted from a single paper. One YAML file per paper at claims/<paper_dir_name>.yaml.",
+    "metamodel_version": "1.7.0",
+    "properties": {
+        "claims": {
+            "description": "List of propositional claims extracted from the paper.",
+            "items": {
+                "$ref": "#/$defs/Claim"
+            },
+            "type": "array"
+        },
+        "source": {
+            "$ref": "#/$defs/ClaimSource",
+            "description": "Extraction provenance for this claim file."
+        }
+    },
+    "required": [
+        "source",
+        "claims"
+    ],
+    "title": "claim",
+    "type": "object",
+    "version": "0.1.0"
+}
+

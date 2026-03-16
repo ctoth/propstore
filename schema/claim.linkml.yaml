@@ -1,0 +1,317 @@
+id: https://propstore.local/schema/claim
+name: claim
+title: Propositional Knowledge Store — Claim Schema
+version: 0.1.0
+
+prefixes:
+  linkml: https://w3id.org/linkml/
+  propstore: https://propstore.local/schema/
+
+imports:
+  - linkml:types
+
+default_range: string
+
+
+enums:
+
+  ClaimType:
+    description: >
+      The type of propositional claim extracted from a paper.
+    permissible_values:
+      parameter:
+        description: "A numeric value binding for a concept under stated conditions."
+      equation:
+        description: "An explicit mathematical relationship with variable bindings."
+      observation:
+        description: "A qualitative claim that resists parameterization."
+      model:
+        description: "A parameterized equation system (multi-equation framework)."
+
+  StanceType:
+    description: >
+      The type of epistemic relation between two claims.
+      Populated during reconciliation, not extraction.
+    permissible_values:
+      supported_by:
+        description: "Target claim provides supporting evidence."
+      contradicted_by:
+        description: "Target claim contradicts this claim."
+      superseded_by:
+        description: "Target claim supersedes this claim (later, better methodology)."
+      mechanism_for:
+        description: "This claim provides a mechanistic explanation for the target."
+
+
+classes:
+
+  ClaimFile:
+    description: >
+      Top-level container for claims extracted from a single paper.
+      One YAML file per paper at claims/<paper_dir_name>.yaml.
+    tree_root: true
+    attributes:
+
+      source:
+        description: "Extraction provenance for this claim file."
+        range: ClaimSource
+        inlined: true
+        required: true
+
+      claims:
+        description: "List of propositional claims extracted from the paper."
+        range: Claim
+        multivalued: true
+        inlined_as_list: true
+        required: true
+
+
+  ClaimSource:
+    description: >
+      Metadata about how claims were extracted from the source paper.
+    attributes:
+      paper:
+        description: "Paper directory name (e.g., Gobl_1988)."
+        range: string
+        required: true
+      extraction_model:
+        description: "LLM model used for extraction (e.g., claude-opus-4-20250514)."
+        range: string
+      extraction_date:
+        description: "ISO 8601 date when extraction was performed."
+        range: date
+      extraction_prompt_hash:
+        description: "Hash of the extraction prompt for reproducibility."
+        range: string
+
+
+  Claim:
+    description: >
+      A single propositional claim extracted from a paper. All claims
+      have an id, type, provenance, and optional conditions and stances.
+      Type-specific fields (concept/value/unit for parameter, expression/sympy
+      for equation, etc.) are all present on this class; the validator
+      enforces which are required per claim type.
+    attributes:
+
+      id:
+        description: >
+          Stable identifier. Format: claim_NNNN (zero-padded to 4 digits).
+        range: string
+        required: true
+
+      type:
+        description: "The claim type: parameter, equation, observation, or model."
+        range: ClaimType
+        required: true
+
+      conditions:
+        description: >
+          CEL expressions defining when this claim holds.
+          Each string is a CEL expression (e.g., "context == 'vowels'").
+          The conflict detector compares sorted CEL expression lists.
+        range: string
+        multivalued: true
+
+      provenance:
+        description: "Where in the paper this claim was found."
+        range: Provenance
+        inlined: true
+        required: true
+
+      stances:
+        description: >
+          Epistemic relations to other claims. Populated during
+          reconciliation, not during initial extraction.
+        range: Stance
+        multivalued: true
+        inlined_as_list: true
+
+      # --- parameter fields ---
+
+      concept:
+        description: >
+          Concept ID this parameter claim binds to (e.g., speech_0012).
+          Required for parameter claims.
+        range: string
+
+      value:
+        description: >
+          Numeric value. Scalar (single float) or range ([min, max]).
+          Required for parameter claims.
+        range: float
+        multivalued: true
+
+      unit:
+        description: >
+          Unit of measurement. Should match the concept's primary unit
+          or a declared alternative. Required for parameter claims.
+        range: string
+
+      # --- equation fields ---
+
+      expression:
+        description: >
+          Human-readable equation string.
+          Required for equation claims.
+        range: string
+
+      sympy:
+        description: >
+          SymPy-parseable equation string.
+          Required for equation claims.
+        range: string
+
+      variables:
+        description: >
+          Variable bindings mapping symbols to concept IDs.
+          Required for equation claims.
+        range: VariableBinding
+        multivalued: true
+        inlined_as_list: true
+
+      fit:
+        description: "Fit statistics for equation claims."
+        range: FitStatistics
+        inlined: true
+
+      # --- observation fields ---
+
+      statement:
+        description: >
+          Prose description of the observation.
+          Required for observation claims.
+        range: string
+
+      concepts:
+        description: >
+          List of concept IDs relevant to this observation.
+          Required for observation claims.
+        range: string
+        multivalued: true
+
+      # --- model fields ---
+
+      name:
+        description: >
+          Name of the model (e.g., "Exponential transition model (Model IVb)").
+          Required for model claims.
+        range: string
+
+      equations:
+        description: >
+          List of equation strings that make up this model.
+          Required for model claims.
+        range: string
+        multivalued: true
+
+      parameters:
+        description: >
+          Parameter bindings for this model, mapping names to concept IDs.
+          Required for model claims.
+        range: ParameterBinding
+        multivalued: true
+        inlined_as_list: true
+
+
+  Provenance:
+    description: >
+      Where in the source paper a claim was found.
+      Paper and page are required; other fields are optional.
+    attributes:
+      paper:
+        description: "Paper directory name."
+        range: string
+        required: true
+      page:
+        description: "Page number in the paper."
+        range: integer
+        required: true
+      table:
+        description: "Table identifier (e.g., 'III', 'Table 2')."
+        range: string
+      figure:
+        description: "Figure identifier (e.g., 'Fig. 6')."
+        range: string
+      section:
+        description: "Section name or number."
+        range: string
+      quote_fragment:
+        description: "Brief quote from the paper supporting this claim."
+        range: string
+
+
+  Stance:
+    description: >
+      An epistemic relation between two claims, expressing support,
+      contradiction, supersession, or mechanistic explanation.
+    attributes:
+      type:
+        description: "The stance relation type."
+        range: StanceType
+        required: true
+      target:
+        description: "Claim ID of the related claim."
+        range: string
+        required: true
+      strength:
+        description: "Qualitative strength (e.g., strong, moderate, weak)."
+        range: string
+      conditions_differ:
+        description: "Note about how conditions differ between claims."
+        range: string
+      note:
+        description: "Free-text note about this stance relation."
+        range: string
+
+
+  VariableBinding:
+    description: >
+      Maps a symbol in an equation to a concept in the registry.
+    attributes:
+      symbol:
+        description: "The variable symbol as it appears in the equation."
+        range: string
+        required: true
+      concept:
+        description: "Concept ID the symbol refers to."
+        range: string
+        required: true
+      role:
+        description: "Role of this variable (e.g., dependent, independent)."
+        range: string
+
+
+  FitStatistics:
+    description: >
+      Statistical fit measures for an empirical equation.
+    attributes:
+      r:
+        description: "Correlation coefficient."
+        range: float
+      r_sd:
+        description: "Standard deviation of correlation coefficient."
+        range: float
+      slope:
+        description: "Regression slope."
+        range: float
+      slope_sd:
+        description: "Standard deviation of slope."
+        range: float
+
+
+  ParameterBinding:
+    description: >
+      Maps a parameter name in a model to a concept in the registry.
+    attributes:
+      name:
+        description: "Parameter name as it appears in the model equations."
+        range: string
+        required: true
+      concept:
+        description: "Concept ID this parameter refers to."
+        range: string
+        required: true
+      note:
+        description: "Description of what this parameter represents."
+        range: string
