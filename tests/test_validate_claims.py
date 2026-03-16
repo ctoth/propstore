@@ -44,7 +44,7 @@ def make_parameter_claim(id, concept, value, unit, page=1, **kwargs):
         "id": id,
         "type": "parameter",
         "concept": concept,
-        "value": value if isinstance(value, list) else [value],
+        "value": value,
         "unit": unit,
         "provenance": {"paper": "test_paper", "page": page},
     }
@@ -134,7 +134,7 @@ def make_claim_file_data(claims, paper="test_paper"):
 
 class TestValidClaims:
     def test_valid_parameter_claim(self, claims_dir):
-        claim = make_parameter_claim("claim_0001", "speech_0001", [440.0], "Hz")
+        claim = make_parameter_claim("claim_0001", "speech_0001", 440.0, "Hz")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
@@ -190,7 +190,7 @@ class TestValidClaims:
 
     def test_multiple_valid_claims(self, claims_dir):
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", [440.0], "Hz"),
+            make_parameter_claim("claim_0001", "speech_0001", 440.0, "Hz"),
             make_observation_claim(
                 "claim_0002",
                 "F0 varies with pressure",
@@ -219,10 +219,10 @@ class TestValidClaims:
 class TestClaimIdErrors:
     def test_duplicate_claim_id_error(self, claims_dir):
         data1 = make_claim_file_data([
-            make_parameter_claim("claim_0001", "speech_0001", [440.0], "Hz"),
+            make_parameter_claim("claim_0001", "speech_0001", 440.0, "Hz"),
         ], paper="paper_a")
         data2 = make_claim_file_data([
-            make_parameter_claim("claim_0001", "speech_0002", [100.0], "Pa"),
+            make_parameter_claim("claim_0001", "speech_0002", 100.0, "Pa"),
         ], paper="paper_b")
         write_claim_file(claims_dir, "paper_a.yaml", data1)
         write_claim_file(claims_dir, "paper_b.yaml", data2)
@@ -233,7 +233,7 @@ class TestClaimIdErrors:
         assert any("duplicate" in e.lower() for e in result.errors)
 
     def test_invalid_claim_id_format(self, claims_dir):
-        claim = make_parameter_claim("bad_id", "speech_0001", [440.0], "Hz")
+        claim = make_parameter_claim("bad_id", "speech_0001", 440.0, "Hz")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
@@ -248,7 +248,7 @@ class TestClaimIdErrors:
 
 class TestConceptReferenceErrors:
     def test_nonexistent_concept_parameter_error(self, claims_dir):
-        claim = make_parameter_claim("claim_0001", "speech_9999", [440.0], "Hz")
+        claim = make_parameter_claim("claim_0001", "speech_9999", 440.0, "Hz")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
@@ -315,7 +315,7 @@ class TestProvenanceErrors:
             "id": "claim_0001",
             "type": "parameter",
             "concept": "speech_0001",
-            "value": [440.0],
+            "value": 440.0,
             "unit": "Hz",
         }
         data = make_claim_file_data([claim])
@@ -331,7 +331,7 @@ class TestProvenanceErrors:
             "id": "claim_0001",
             "type": "parameter",
             "concept": "speech_0001",
-            "value": [440.0],
+            "value": 440.0,
             "unit": "Hz",
             "provenance": {"paper": "test_paper"},
         }
@@ -369,7 +369,7 @@ class TestParameterClaimErrors:
             "id": "claim_0001",
             "type": "parameter",
             "concept": "speech_0001",
-            "value": [440.0],
+            "value": 440.0,
             "provenance": {"paper": "test_paper", "page": 1},
         }
         data = make_claim_file_data([claim])
@@ -384,7 +384,7 @@ class TestParameterClaimErrors:
         claim = {
             "id": "claim_0001",
             "type": "parameter",
-            "value": [440.0],
+            "value": 440.0,
             "unit": "Hz",
             "provenance": {"paper": "test_paper", "page": 1},
         }
@@ -537,7 +537,7 @@ class TestCelErrors:
         }
 
         claim = make_parameter_claim(
-            "claim_0001", "speech_0001", [440.0], "Hz",
+            "claim_0001", "speech_0001", 440.0, "Hz",
             conditions=["focalization == 'internal'"],
         )
         data = make_claim_file_data([claim])
@@ -551,7 +551,7 @@ class TestCelErrors:
     def test_cel_undefined_concept_in_conditions(self, claims_dir):
         """CEL referencing undefined concept should produce an error."""
         claim = make_parameter_claim(
-            "claim_0001", "speech_0001", [440.0], "Hz",
+            "claim_0001", "speech_0001", 440.0, "Hz",
             conditions=["nonexistent_concept > 5"],
         )
         data = make_claim_file_data([claim])
@@ -583,7 +583,7 @@ def test_valid_claims_always_pass(claim_id_num, value, page):
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = pathlib.Path(tmpdir)
         claim_id = f"claim_{claim_id_num:04d}"
-        claim = make_parameter_claim(claim_id, "speech_0001", [value], "Hz", page=page)
+        claim = make_parameter_claim(claim_id, "speech_0001", value, "Hz", page=page)
         data = make_claim_file_data([claim])
 
         path = tmp_path / "test_paper.yaml"
