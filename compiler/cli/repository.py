@@ -1,0 +1,77 @@
+"""Repository — locates and provides paths within a propstore knowledge/ directory."""
+from __future__ import annotations
+
+from pathlib import Path
+
+
+class RepositoryNotFound(Exception):
+    """Raised when no knowledge/ directory can be found."""
+
+
+class Repository:
+    """A propstore knowledge repository rooted at a ``knowledge/`` directory.
+
+    All path resolution for concepts, claims, forms, sidecar, and counters
+    goes through this object.
+    """
+
+    def __init__(self, root: Path) -> None:
+        self._root = root
+
+    @property
+    def root(self) -> Path:
+        return self._root
+
+    @property
+    def concepts_dir(self) -> Path:
+        return self._root / "concepts"
+
+    @property
+    def claims_dir(self) -> Path:
+        return self._root / "claims"
+
+    @property
+    def forms_dir(self) -> Path:
+        return self._root / "forms"
+
+    @property
+    def sidecar_dir(self) -> Path:
+        return self._root / "sidecar"
+
+    @property
+    def sidecar_path(self) -> Path:
+        return self._root / "sidecar" / "propstore.sqlite"
+
+    @property
+    def counters_dir(self) -> Path:
+        return self._root / "concepts" / ".counters"
+
+    @classmethod
+    def find(cls, start: Path | None = None) -> Repository:
+        """Walk up from *start* (default: cwd) looking for a ``knowledge/`` directory."""
+        current = (start or Path.cwd()).resolve()
+        # If start itself is a knowledge/ dir (e.g. -C pointed directly at it)
+        if current.name == "knowledge" and (current / "concepts").is_dir():
+            return cls(current)
+        # Walk up
+        for ancestor in [current, *current.parents]:
+            candidate = ancestor / "knowledge"
+            if candidate.is_dir() and (candidate / "concepts").is_dir():
+                return cls(candidate)
+        raise RepositoryNotFound(
+            f"No knowledge/ directory found (searched from {current}). "
+            f"Run 'pks init' to create one."
+        )
+
+    @classmethod
+    def init(cls, root: Path) -> Repository:
+        """Create the directory structure and return a Repository."""
+        dirs = [
+            root / "concepts" / ".counters",
+            root / "claims",
+            root / "forms",
+            root / "sidecar",
+        ]
+        for d in dirs:
+            d.mkdir(parents=True, exist_ok=True)
+        return cls(root)
