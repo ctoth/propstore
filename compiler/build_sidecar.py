@@ -427,6 +427,7 @@ def _populate_claims(
     from compiler.description_generator import generate_description
 
     claim_seq = 0
+    deferred_stances: list[tuple] = []
     for cf in claim_files:
         source_paper = cf.data.get("source", {}).get("paper", cf.filename)
         for claim in cf.data.get("claims", []):
@@ -535,18 +536,20 @@ def _populate_claims(
                 stance_type = stance.get("type")
                 if not target_claim_id or not stance_type:
                     continue
-                conn.execute(
-                    "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
-                    "conditions_differ, note) VALUES (?, ?, ?, ?, ?, ?)",
-                    (
-                        cid,
-                        target_claim_id,
-                        stance_type,
-                        stance.get("strength"),
-                        stance.get("conditions_differ"),
-                        stance.get("note"),
-                    ),
-                )
+                deferred_stances.append((
+                    cid, target_claim_id, stance_type,
+                    stance.get("strength"),
+                    stance.get("conditions_differ"),
+                    stance.get("note"),
+                ))
+
+    # Insert stances after all claims are in, so target_claim_id FKs resolve
+    for stance_row in deferred_stances:
+        conn.execute(
+            "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
+            "conditions_differ, note) VALUES (?, ?, ?, ?, ?, ?)",
+            stance_row,
+        )
 
 
 def _populate_conflicts(
