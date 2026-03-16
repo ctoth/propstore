@@ -11,14 +11,11 @@ import yaml
 
 from compiler.cli.helpers import (
     EXIT_ERROR,
-    EXIT_OK,
     EXIT_VALIDATION,
     concepts_dir,
     find_concept,
-    load_all_concepts_by_id,
     load_concept_file,
     next_id,
-    validate_concept_data,
     write_concept_file,
 )
 from compiler.validate import load_concepts, validate_concepts
