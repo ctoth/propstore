@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import sympy
+from sympy import SympifyError
+from sympy.parsing.sympy_parser import parse_expr
 
 
 # Symbols that SymPy recognizes as constants — don't warn about these
@@ -43,9 +44,9 @@ def generate_sympy_with_error(expression: str | None) -> SympyGenerationResult:
         return SympyGenerationResult(None, "expression has no right-hand side")
 
     try:
-        result = sympy.sympify(text)
+        result = parse_expr(text)
         return SympyGenerationResult(str(result), None)
-    except (sympy.SympifyError, SyntaxError, TypeError, ValueError) as exc:
+    except (SympifyError, SyntaxError, TypeError, ValueError) as exc:
         return SympyGenerationResult(None, str(exc))
 
 
@@ -88,8 +89,8 @@ def check_symbols(
         return []
 
     try:
-        expr = sympy.sympify(text)
-    except (sympy.SympifyError, SyntaxError, TypeError, ValueError):
+        expr = parse_expr(text)
+    except (SympifyError, SyntaxError, TypeError, ValueError):
         return []
 
     free = {str(s) for s in expr.free_symbols}
