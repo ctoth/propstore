@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Sequence
 
 from compiler.parameterization_groups import build_groups
-from compiler.form_utils import kind_value_from_form_name
+from compiler.form_utils import kind_value_from_form_name, load_form
 from compiler.validate import LoadedConcept, load_concepts
 from compiler.validate_claims import LoadedClaimFile
 
@@ -161,6 +161,8 @@ def _create_tables(conn: sqlite3.Connection):
             form_parameters TEXT,
             range_min REAL,
             range_max REAL,
+            is_dimensionless INTEGER NOT NULL DEFAULT 0,
+            unit_symbol TEXT,
             created_date TEXT,
             last_modified TEXT
         );
@@ -227,14 +229,22 @@ def _populate_concepts(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
 
         content_hash = _concept_content_hash(d)
 
+        # Load form definition for is_dimensionless and unit_symbol
+        forms_dir = c.filepath.parent.parent / "forms"
+        form_def = load_form(forms_dir, d.get("form"))
+        is_dimensionless = 1 if (form_def is not None and form_def.is_dimensionless) else 0
+        unit_symbol = form_def.unit_symbol if form_def is not None else None
+
         conn.execute(
             "INSERT INTO concept (id, content_hash, seq, canonical_name, status, domain, definition, "
             "kind_type, form, form_parameters, range_min, range_max, "
+            "is_dimensionless, unit_symbol, "
             "created_date, last_modified) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (d.get("id"), content_hash, seq, d.get("canonical_name"), d.get("status"),
              d.get("domain"), d.get("definition"), kind_value_from_form_name(d.get("form")),
              d.get("form", ""), form_params_json, range_min, range_max,
+             is_dimensionless, unit_symbol,
              created, modified),
         )
 
@@ -438,19 +448,11 @@ def _populate_claims(
 
             if ctype == "parameter":
                 concept_id = claim.get("concept")
-                # Named value fields
                 raw_value = claim.get("value")
-                if isinstance(raw_value, list):
-                    # Legacy format: [x] or [x, y]
-                    if len(raw_value) == 1:
-                        value = float(raw_value[0])
-                    elif len(raw_value) >= 2:
-                        lower_bound = float(min(raw_value))
-                        upper_bound = float(max(raw_value))
-                elif raw_value is not None:
+                if raw_value is not None:
                     value = float(raw_value)
-                lower_bound = claim.get("lower_bound", lower_bound)
-                upper_bound = claim.get("upper_bound", upper_bound)
+                lower_bound = claim.get("lower_bound")
+                upper_bound = claim.get("upper_bound")
                 uncertainty = claim.get("uncertainty")
                 uncertainty_type = claim.get("uncertainty_type")
                 sample_size = claim.get("sample_size")

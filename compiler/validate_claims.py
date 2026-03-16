@@ -25,9 +25,13 @@ from compiler.cel_checker import (
     check_cel_expression,
 )
 from compiler.form_utils import (
+    DIMENSIONLESS_UNITS,
+    LEVEL_UNITS,
+    FormDefinition,
     allowed_units_from_form_definition,
     json_safe,
     kind_type_from_form_name,
+    load_form,
     load_form_definition,
 )
 
@@ -273,11 +277,44 @@ def _validate_parameter(
     if not unit:
         result.errors.append(f"{filename}: parameter claim '{cid}' missing 'unit'")
     elif concept_data is not None:
-        allowed_units = concept_data.get("_allowed_units") or []
-        if allowed_units and unit not in allowed_units:
+        form_def: FormDefinition | None = concept_data.get("_form_definition")
+        if form_def is not None:
+            _validate_unit_against_form(unit, form_def, cid, concept or "", filename, result)
+        else:
+            # Legacy fallback: use _allowed_units if set
+            allowed_units = concept_data.get("_allowed_units") or []
+            if allowed_units and unit not in allowed_units:
+                result.errors.append(
+                    f"{filename}: parameter claim '{cid}' unit '{unit}' does not match "
+                    f"concept '{concept}' allowed units {sorted(allowed_units)}")
+
+
+def _validate_unit_against_form(
+    unit: str, form_def: FormDefinition, cid: str, concept: str,
+    filename: str, result: ValidationResult,
+) -> None:
+    """Check a claim unit against the concept's form definition."""
+    if form_def.allowed_units:
+        # Physical form with declared units
+        if unit not in form_def.allowed_units:
             result.errors.append(
                 f"{filename}: parameter claim '{cid}' unit '{unit}' does not match "
-                f"concept '{concept}' allowed units {sorted(allowed_units)}")
+                f"concept '{concept}' allowed units {sorted(form_def.allowed_units)}")
+    elif form_def.is_dimensionless:
+        # Dimensionless form — check for level vs general dimensionless
+        if form_def.name == "level":
+            if unit not in LEVEL_UNITS and unit not in DIMENSIONLESS_UNITS:
+                result.errors.append(
+                    f"{filename}: parameter claim '{cid}' unit '{unit}' is not valid "
+                    f"for level form on concept '{concept}' "
+                    f"(expected dB variant or dimensionless)")
+        else:
+            # General dimensionless (ratio, dimensionless_compound, etc.)
+            if unit not in DIMENSIONLESS_UNITS:
+                result.errors.append(
+                    f"{filename}: parameter claim '{cid}' unit '{unit}' is not valid "
+                    f"for dimensionless form '{form_def.name}' on concept '{concept}' "
+                    f"(expected dimensionless unit like ratio, %, fraction)")
 
 
 def _validate_equation(
@@ -457,10 +494,18 @@ def build_concept_registry(concepts_dir: Path) -> dict[str, dict]:
         if not cid:
             continue
         enriched = dict(concept.data)
-        form_definition = load_form_definition(forms_dir, enriched.get("form"))
-        allowed_units = sorted(allowed_units_from_form_definition(form_definition))
-        if allowed_units:
-            enriched["_allowed_units"] = allowed_units
+        # Load structured form definition
+        form_def = load_form(forms_dir, enriched.get("form"))
+        if form_def is not None:
+            enriched["_form_definition"] = form_def
+            if form_def.allowed_units:
+                enriched["_allowed_units"] = sorted(form_def.allowed_units)
+        else:
+            # Fallback to legacy dict-based loading
+            form_definition = load_form_definition(forms_dir, enriched.get("form"))
+            allowed_units = sorted(allowed_units_from_form_definition(form_definition))
+            if allowed_units:
+                enriched["_allowed_units"] = allowed_units
         registry[cid] = enriched
     return registry
 
