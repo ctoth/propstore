@@ -9,11 +9,13 @@ from pathlib import Path
 import click
 import yaml
 
-from compiler.cli.helpers import EXIT_OK, EXIT_VALIDATION, claims_dir, concepts_dir
+from compiler.cli.helpers import EXIT_OK, EXIT_VALIDATION
+from compiler.cli.repository import Repository
 
 
 @click.command()
-def validate() -> None:
+@click.pass_obj
+def validate(obj: dict) -> None:
     """Validate all concepts and claims. Runs CEL type-checking."""
     from compiler.validate import load_concepts, validate_concepts
     from compiler.validate_claims import (
@@ -22,7 +24,8 @@ def validate() -> None:
         validate_claims,
     )
 
-    cpd = concepts_dir()
+    repo: Repository = obj["repo"]
+    cpd = repo.concepts_dir
     if not cpd.exists():
         click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
         sys.exit(1)
@@ -35,12 +38,11 @@ def validate() -> None:
     # Validate form schema files
     from compiler.form_utils import validate_form_files
 
-    forms_dir = cpd.parent / "forms"
-    form_errors = validate_form_files(forms_dir)
+    form_errors = validate_form_files(repo.forms_dir)
     for e in form_errors:
         click.echo(f"ERROR (form): {e}", err=True)
 
-    concept_result = validate_concepts(concepts)
+    concept_result = validate_concepts(concepts, repo=repo)
 
     for w in concept_result.warnings:
         click.echo(f"WARNING: {w}", err=True)
@@ -50,12 +52,12 @@ def validate() -> None:
     # Claims (if directory exists)
     claim_error_count = 0
     claim_file_count = 0
-    cd = claims_dir()
+    cd = repo.claims_dir
     if cd.exists():
         files = load_claim_files(cd)
         claim_file_count = len(files)
         if files:
-            registry = build_concept_registry(cpd)
+            registry = build_concept_registry(repo)
             claim_result = validate_claims(files, registry)
             for w in claim_result.warnings:
                 click.echo(f"WARNING: {w}", err=True)
@@ -75,9 +77,10 @@ def validate() -> None:
 
 
 @click.command()
-@click.option("-o", "--output", default="sidecar/propstore.sqlite", help="Output path")
+@click.option("-o", "--output", default=None, help="Output path")
 @click.option("--force", is_flag=True, help="Force rebuild")
-def build(output: str, force: bool) -> None:
+@click.pass_obj
+def build(obj: dict, output: str | None, force: bool) -> None:
     """Validate everything, build sidecar, run conflict detection."""
     from compiler.build_sidecar import build_sidecar
     from compiler.conflict_detector import detect_conflicts
@@ -88,7 +91,8 @@ def build(output: str, force: bool) -> None:
         validate_claims,
     )
 
-    cpd = concepts_dir()
+    repo: Repository = obj["repo"]
+    cpd = repo.concepts_dir
     if not cpd.exists():
         click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
         sys.exit(1)
@@ -101,8 +105,7 @@ def build(output: str, force: bool) -> None:
     # Step 0: Validate form schema files
     from compiler.form_utils import validate_form_files
 
-    forms_dir = cpd.parent / "forms"
-    form_errors = validate_form_files(forms_dir)
+    form_errors = validate_form_files(repo.forms_dir)
     if form_errors:
         for e in form_errors:
             click.echo(f"ERROR (form): {e}", err=True)
@@ -110,7 +113,7 @@ def build(output: str, force: bool) -> None:
         sys.exit(EXIT_VALIDATION)
 
     # Step 1: Validate concepts
-    concept_result = validate_concepts(concepts)
+    concept_result = validate_concepts(concepts, repo=repo)
     if not concept_result.ok:
         for e in concept_result.errors:
             click.echo(f"ERROR: {e}", err=True)
@@ -120,11 +123,11 @@ def build(output: str, force: bool) -> None:
     # Step 2: Validate claims (if any)
     claim_files = None
     concept_registry = None
-    cd = claims_dir()
+    cd = repo.claims_dir
     if cd.exists():
         files = load_claim_files(cd)
         if files:
-            concept_registry = build_concept_registry(cpd)
+            concept_registry = build_concept_registry(repo)
             claim_result = validate_claims(files, concept_registry)
             if not claim_result.ok:
                 for e in claim_result.errors:
@@ -134,11 +137,12 @@ def build(output: str, force: bool) -> None:
             claim_files = files
 
     # Step 3: Build sidecar
-    sidecar_path = Path(output)
+    sidecar_path = Path(output) if output else repo.sidecar_path
     rebuilt = build_sidecar(
         concepts, sidecar_path, force=force,
         claim_files=claim_files,
         concept_registry=concept_registry,
+        repo=repo,
     )
 
     # Step 4: Conflict detection summary
@@ -165,9 +169,11 @@ def build(output: str, force: bool) -> None:
 
 @click.command()
 @click.argument("sql")
-def query(sql: str) -> None:
+@click.pass_obj
+def query(obj: dict, sql: str) -> None:
     """Run raw SQL against the sidecar SQLite."""
-    sidecar = Path("sidecar/propstore.sqlite")
+    repo: Repository = obj["repo"]
+    sidecar = repo.sidecar_path
     if not sidecar.exists():
         click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
         sys.exit(1)
@@ -195,9 +201,11 @@ def query(sql: str) -> None:
 @click.command("export-aliases")
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text",
               help="Output format")
-def export_aliases(fmt: str) -> None:
+@click.pass_obj
+def export_aliases(obj: dict, fmt: str) -> None:
     """Export the alias lookup table."""
-    all_concepts = concepts_dir()
+    repo: Repository = obj["repo"]
+    all_concepts = repo.concepts_dir
     if not all_concepts.exists():
         click.echo("ERROR: No concepts directory.", err=True)
         sys.exit(1)
@@ -232,13 +240,17 @@ def export_aliases(fmt: str) -> None:
 )
 @click.option(
     "--output-dir",
-    default="claims",
+    default=None,
     type=click.Path(file_okay=False, path_type=Path),
     help="Directory to write imported claim files into",
 )
 @click.option("--dry-run", is_flag=True, help="Report what would be imported without writing")
-def import_papers(papers_root: Path, output_dir: Path, dry_run: bool) -> None:
+@click.pass_obj
+def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run: bool) -> None:
     """Import paper-local claims.yaml files from a papers/ corpus."""
+    repo: Repository = obj["repo"]
+    if output_dir is None:
+        output_dir = repo.claims_dir
     paper_dirs = sorted(entry for entry in papers_root.iterdir() if entry.is_dir())
     imports: list[tuple[Path, Path]] = []
     for paper_dir in paper_dirs:
