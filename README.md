@@ -13,8 +13,10 @@ schema/ (LinkML + JSON)  ──┘      (pks)          (FTS5, conflict table, ..
 ```
 
 - **Concepts** are true-named quantities, categories, booleans, or structural types. Each gets a stable ID (`speech_0012`), a canonical name, and a kind that determines what operations are legal in CEL condition expressions.
-- **Claims** bind to concept IDs with provenance, values, units, and CEL conditions that scope when the claim holds.
+- **Claims** bind to concept IDs with provenance, values, units, and CEL conditions that scope when the claim holds. Five claim types: **parameter** (numeric value binding), **equation** (math relationship with variable bindings), **observation** (qualitative), **model** (multi-equation framework), and **measurement** (perceptual/behavioral — JND, threshold, rating).
 - **Conflicts** are data, not errors. When two claims for the same concept disagree, the compiler classifies the pair as CONFLICT (same scope), OVERLAP (partial scope overlap), or PHI_NODE (different scope — not actually a conflict).
+- **Parameterization groups** — connected-component analysis over concepts linked by algebraic/functional relationships. Each group is a "parameter space" of related quantities.
+- **Auto-generation** — the compiler generates SymPy expressions from human-readable equation strings, and produces human-readable descriptions for claims that lack an explicit statement.
 
 ## Install
 
@@ -102,7 +104,7 @@ Key invariant: **the compiler never produces output from an invalid state.** If 
 uv run pytest tests/ -v
 ```
 
-185 tests covering the validator, CEL type-checker, conflict detector, sidecar builder, and CLI.
+253 tests covering the validator, CEL type-checker, conflict detector, sidecar builder, CLI, SymPy generator, description generator, and parameterization groups.
 
 ## File layout
 
@@ -121,6 +123,9 @@ compiler/
   validate_claims.py         # claim validator
   conflict_detector.py       # conflict classification
   build_sidecar.py           # SQLite builder
+  sympy_generator.py         # SymPy expression auto-generation
+  description_generator.py   # human-readable claim descriptions
+  parameterization_groups.py # connected-component group analysis
   cli/                       # Click CLI
     __init__.py              # main group
     concept.py               # concept subcommands
