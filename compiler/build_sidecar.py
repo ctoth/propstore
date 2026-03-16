@@ -19,6 +19,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
+from compiler.parameterization_groups import build_groups
 from compiler.validate import LoadedConcept, load_concepts
 
 
@@ -86,6 +87,7 @@ def build_sidecar(
     _populate_aliases(conn, concepts)
     _populate_relationships(conn, concepts)
     _populate_parameterizations(conn, concepts)
+    _populate_parameterization_groups(conn, concepts)
     _build_fts_index(conn, concepts)
 
     if claim_files is not None:
@@ -146,10 +148,17 @@ def _create_tables(conn: sqlite3.Connection):
             conditions_cel TEXT
         );
 
+        CREATE TABLE parameterization_group (
+            concept_id TEXT NOT NULL,
+            group_id INTEGER NOT NULL,
+            FOREIGN KEY (concept_id) REFERENCES concept(id)
+        );
+
         CREATE INDEX idx_alias_name ON alias(alias_name);
         CREATE INDEX idx_alias_concept ON alias(concept_id);
         CREATE INDEX idx_rel_source ON relationship(source_id);
         CREATE INDEX idx_rel_target ON relationship(target_id);
+        CREATE INDEX idx_param_group ON parameterization_group(group_id);
     """)
 
 
@@ -223,6 +232,18 @@ def _populate_parameterizations(conn: sqlite3.Connection, concepts: list[LoadedC
                 (json.dumps(inputs), param.get("formula"), param.get("sympy"),
                  param.get("exactness"),
                  json.dumps(conditions) if conditions else None),
+            )
+
+
+def _populate_parameterization_groups(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
+    """Build connected-component groups and write to parameterization_group table."""
+    concept_dicts = [c.data for c in concepts]
+    groups = build_groups(concept_dicts)
+    for group_id, group_members in enumerate(sorted(groups, key=lambda g: min(g))):
+        for concept_id in sorted(group_members):
+            conn.execute(
+                "INSERT INTO parameterization_group (concept_id, group_id) VALUES (?, ?)",
+                (concept_id, group_id),
             )
 
 

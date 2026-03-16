@@ -622,6 +622,14 @@ classes:
           Only meaningful when exactness is 'approximate'.
         range: string
 
+      canonical_claim:
+        description: >
+          Reference to a claim ID that provides the canonical value for
+          this parameterization relationship. Optional. When present,
+          the compiler validates that the referenced claim exists in
+          the claim files.
+        range: string
+
       note:
         range: string
 

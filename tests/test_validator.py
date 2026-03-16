@@ -453,3 +453,100 @@ class TestWarnings:
         result = validate_concepts(concepts)
         assert not result.errors
         assert any("sympy" in w.lower() for w in result.warnings)
+
+
+# ── Canonical claim validation ──────────────────────────────────────
+
+class TestCanonicalClaim:
+    def test_valid_canonical_claim(self, concept_dir):
+        """Parameterization with canonical_claim pointing to existing claim validates."""
+        # Write a claim file so the validator can find claim_0001
+        claims_dir = concept_dir.parent / "claims"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = {
+            "source": {"paper": "test_paper"},
+            "claims": [
+                {
+                    "id": "claim_0001",
+                    "type": "parameter",
+                    "concept": "speech_0001",
+                    "value": [200.0],
+                    "unit": "Hz",
+                    "provenance": {"paper": "test_paper", "page": 1},
+                },
+            ],
+        }
+        (claims_dir / "test_paper.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False))
+
+        c1 = make_quantity_concept("speech_0001", "concept_a")
+        c2 = make_quantity_concept("speech_0002", "concept_b",
+                                   parameterization_relationships=[{
+                                       "formula": "b = a * 2",
+                                       "inputs": ["speech_0001"],
+                                       "exactness": "exact",
+                                       "source": "Test_2024",
+                                       "bidirectional": True,
+                                       "canonical_claim": "claim_0001",
+                                   }])
+        write_concept(concept_dir, "concept_a.yaml", c1)
+        write_concept(concept_dir, "concept_b.yaml", c2)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts, claims_dir=claims_dir)
+        assert not any("canonical_claim" in e.lower() for e in result.errors)
+
+    def test_canonical_claim_nonexistent(self, concept_dir):
+        """canonical_claim pointing to nonexistent claim produces validation error."""
+        c1 = make_quantity_concept("speech_0001", "concept_a")
+        c2 = make_quantity_concept("speech_0002", "concept_b",
+                                   parameterization_relationships=[{
+                                       "formula": "b = a * 2",
+                                       "inputs": ["speech_0001"],
+                                       "exactness": "exact",
+                                       "source": "Test_2024",
+                                       "bidirectional": True,
+                                       "canonical_claim": "claim_9999",
+                                   }])
+        write_concept(concept_dir, "concept_a.yaml", c1)
+        write_concept(concept_dir, "concept_b.yaml", c2)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert any("canonical_claim" in e.lower() and "claim_9999" in e
+                    for e in result.errors)
+
+
+# ── Relationship type validation ────────────────────────────────────
+
+class TestRelationshipTypeValidation:
+    def test_invalid_relationship_type_error(self, concept_dir):
+        """Relationship type 'derives' should produce validation error (must be 'derived_from')."""
+        c1 = make_quantity_concept("speech_0001", "concept_a")
+        c2 = make_quantity_concept("speech_0002", "concept_b",
+                                   relationships=[{"type": "derives", "target": "speech_0001"}])
+        write_concept(concept_dir, "concept_a.yaml", c1)
+        write_concept(concept_dir, "concept_b.yaml", c2)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert any("relationship type" in e.lower() or "derives" in e.lower()
+                    for e in result.errors)
+
+    def test_all_valid_relationship_types(self, concept_dir):
+        """All valid RelationshipType values should validate without errors."""
+        valid_types = ["broader", "narrower", "related", "component_of",
+                       "derived_from", "contested_definition"]
+        c1 = make_quantity_concept("speech_0001", "concept_a")
+        write_concept(concept_dir, "concept_a.yaml", c1)
+
+        for i, rel_type in enumerate(valid_types):
+            name = f"concept_{rel_type}"
+            cid = f"speech_{1001 + i:04d}"
+            rel = {"type": rel_type, "target": "speech_0001"}
+            if rel_type == "contested_definition":
+                rel["note"] = "Different theoretical framework"
+            c = make_quantity_concept(cid, name, relationships=[rel])
+            write_concept(concept_dir, f"{name}.yaml", c)
+
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        # No errors about relationship type
+        assert not any("relationship type" in e.lower() for e in result.errors)

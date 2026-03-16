@@ -626,3 +626,42 @@ class TestClaimFTS:
         ids = [r[0] for r in rows]
         assert "claim_0003" in ids
         conn.close()
+
+
+# ── Parameterization group table ────────────────────────────────────
+
+class TestParameterizationGroupTable:
+    def test_parameterization_group_table_exists(self, concept_dir, sidecar_path):
+        """parameterization_group table created during build."""
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='parameterization_group'")
+        assert cursor.fetchone() is not None
+        conn.close()
+
+    def test_parameterization_groups_reflect_components(self, concept_dir, sidecar_path):
+        """Groups reflect connected components from parameterizations."""
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+
+        # Concepts with parameterization links should share a group
+        rows = conn.execute(
+            "SELECT concept_id, group_id FROM parameterization_group"
+        ).fetchall()
+        by_group = {}
+        for cid, gid in rows:
+            by_group.setdefault(gid, set()).add(cid)
+
+        # speech_0005 (return_phase_ratio) has parameterization with inputs [speech_0005, speech_0001]
+        # So speech_0001 and speech_0005 should be in the same group
+        found = False
+        for gid, members in by_group.items():
+            if "speech_0001" in members and "speech_0005" in members:
+                found = True
+                break
+        assert found, f"speech_0001 and speech_0005 should be in the same parameterization group. Groups: {by_group}"
+
+        conn.close()

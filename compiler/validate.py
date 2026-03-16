@@ -116,11 +116,49 @@ def _build_cel_registry(concepts: list[LoadedConcept]) -> dict[str, ConceptInfo]
     return registry
 
 
-def validate_concepts(concepts: list[LoadedConcept]) -> ValidationResult:
-    """Run all compiler contract validation checks."""
+VALID_RELATIONSHIP_TYPES = frozenset([
+    "broader", "narrower", "related", "component_of",
+    "derived_from", "contested_definition",
+])
+
+
+def _load_all_claim_ids(claims_dir: Path) -> set[str]:
+    """Load all claim IDs from claim YAML files in the given directory."""
+    claim_ids: set[str] = set()
+    if not claims_dir.exists():
+        return claim_ids
+    for entry in sorted(claims_dir.iterdir()):
+        if entry.is_file() and entry.suffix == ".yaml":
+            with open(entry) as f:
+                data = yaml.safe_load(f)
+            if data and isinstance(data.get("claims"), list):
+                for claim in data["claims"]:
+                    cid = claim.get("id")
+                    if cid:
+                        claim_ids.add(cid)
+    return claim_ids
+
+
+def validate_concepts(
+    concepts: list[LoadedConcept],
+    claims_dir: Path | None = None,
+) -> ValidationResult:
+    """Run all compiler contract validation checks.
+
+    Args:
+        concepts: Loaded concept data from YAML files.
+        claims_dir: Optional path to claims directory. When provided,
+            canonical_claim references on parameterizations are validated
+            against the claim IDs found in claim files.
+    """
     result = ValidationResult()
     id_to_concept: dict[str, LoadedConcept] = {}
     cel_registry = _build_cel_registry(concepts)
+
+    # Load claim IDs for canonical_claim validation
+    all_claim_ids: set[str] = set()
+    if claims_dir is not None:
+        all_claim_ids = _load_all_claim_ids(claims_dir)
 
     for c in concepts:
         data = c.data
@@ -219,6 +257,14 @@ def validate_concepts(concepts: list[LoadedConcept]) -> ValidationResult:
         # ── Relationship targets exist ──────────────────────────
         for rel in data.get("relationships", []) or []:
             target = rel.get("target")
+
+            # Validate relationship type
+            rel_type = rel.get("type")
+            if rel_type and rel_type not in VALID_RELATIONSHIP_TYPES:
+                result.errors.append(
+                    f"{c.filename}: invalid relationship type '{rel_type}'. "
+                    f"Valid types: {', '.join(sorted(VALID_RELATIONSHIP_TYPES))}")
+
             if target and target not in all_ids:
                 result.errors.append(
                     f"{c.filename}: relationship target '{target}' not found in registry")
@@ -268,6 +314,19 @@ def validate_concepts(concepts: list[LoadedConcept]) -> ValidationResult:
                         result.warnings.append(f"{c.filename}: CEL warning: {ce.message}")
                     else:
                         result.errors.append(f"{c.filename}: CEL error: {ce.message}")
+
+            # canonical_claim must reference an existing claim
+            canonical_claim = param.get("canonical_claim")
+            if canonical_claim:
+                if claims_dir is None:
+                    # No claims_dir provided — can't validate, emit error
+                    result.errors.append(
+                        f"{c.filename}: canonical_claim '{canonical_claim}' "
+                        f"cannot be validated (no claims directory provided)")
+                elif canonical_claim not in all_claim_ids:
+                    result.errors.append(
+                        f"{c.filename}: canonical_claim '{canonical_claim}' "
+                        f"not found in claim files")
 
             # Warning: missing sympy
             if not param.get("sympy"):
