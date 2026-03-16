@@ -918,9 +918,10 @@ class TestFormAwareUnitValidation:
 
     def _make_registry_with_forms(self, tmp_path):
         """Build a concept registry with form definitions available on disk."""
+        knowledge = tmp_path / "knowledge"
         # Create forms directory with real form definitions
-        forms_dir = tmp_path / "forms"
-        forms_dir.mkdir(exist_ok=True)
+        forms_dir = knowledge / "forms"
+        forms_dir.mkdir(parents=True, exist_ok=True)
 
         import yaml as _yaml
         _yaml.dump({"name": "frequency", "unit_symbol": "Hz"},
@@ -937,7 +938,7 @@ class TestFormAwareUnitValidation:
                     (forms_dir / "category.yaml").open("w"))
 
         # Create concepts directory
-        concepts_dir = tmp_path / "concepts"
+        concepts_dir = knowledge / "concepts"
         concepts_dir.mkdir(exist_ok=True)
 
         # Write concept files
@@ -957,8 +958,10 @@ class TestFormAwareUnitValidation:
             (concepts_dir / f"{cdata['canonical_name']}.yaml").write_text(
                 _yaml.dump(cdata, default_flow_style=False))
 
+        from compiler.cli.repository import Repository
         from compiler.validate_claims import build_concept_registry
-        return build_concept_registry(concepts_dir)
+        repo = Repository(knowledge)
+        return build_concept_registry(repo)
 
     def test_parameter_claim_hz_on_frequency_concept_validates(self, claims_dir, tmp_path):
         registry = self._make_registry_with_forms(tmp_path)
