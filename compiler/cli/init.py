@@ -6,6 +6,8 @@ from pathlib import Path
 
 import click
 
+from compiler.cli.repository import Repository
+
 
 _FALLBACK_FORMS = (
     "amplitude_ratio",
@@ -36,32 +38,28 @@ def _seed_forms(forms_dir: Path) -> None:
 
 @click.command()
 @click.argument("directory", default="knowledge")
-def init(directory: str) -> None:
+@click.pass_obj
+def init(obj: dict, directory: str) -> None:
     """Initialize a new propstore project directory.
 
     Creates the standard directory structure (concepts/, claims/, sidecar/)
     needed for pks to operate. If no DIRECTORY argument is given, creates
     a ``knowledge/`` directory in the current working directory.
     """
-    root = Path(directory)
+    start = (obj or {}).get("start")
+    if start is not None:
+        root = start / directory
+    else:
+        root = Path(directory)
 
     # Already initialized?
     if (root / "concepts").is_dir():
         click.echo(f"Already initialized: {root}")
         return
 
-    # Create the directory structure
-    dirs = [
-        root / "concepts" / ".counters",
-        root / "claims",
-        root / "forms",
-        root / "sidecar",
-    ]
+    repo = Repository.init(root)
 
-    for d in dirs:
-        d.mkdir(parents=True, exist_ok=True)
-
-    _seed_forms(root / "forms")
+    _seed_forms(repo.forms_dir)
 
     click.echo(f"Initialized propstore project at {root}/")
     click.echo(f"  {root / 'concepts/'}")
