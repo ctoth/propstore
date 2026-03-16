@@ -281,6 +281,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
             conditions_cel TEXT,
             statement TEXT,
             expression TEXT,
+            sympy_generated TEXT,
             name TEXT,
             source_paper TEXT NOT NULL,
             provenance_page INTEGER NOT NULL,
@@ -367,16 +368,26 @@ def _populate_claims(conn: sqlite3.Connection, claim_files: list):
             elif ctype == "model":
                 name = claim.get("name")
 
+            # For equation claims, resolve sympy: explicit > auto-generated
+            sympy_generated = None
+            if ctype == "equation":
+                explicit_sympy = claim.get("sympy")
+                if explicit_sympy:
+                    sympy_generated = explicit_sympy
+                elif expression:
+                    from compiler.sympy_generator import generate_sympy
+                    sympy_generated = generate_sympy(expression)
+
             conn.execute(
                 "INSERT INTO claim (id, type, concept_id, value, lower_bound, "
                 "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
-                "conditions_cel, statement, expression, name, "
+                "conditions_cel, statement, expression, sympy_generated, name, "
                 "source_paper, provenance_page, provenance_json) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (cid, ctype, concept_id, value, lower_bound,
                  upper_bound, uncertainty, uncertainty_type, sample_size, unit,
                  json.dumps(conditions) if conditions else None,
-                 statement, expression, name,
+                 statement, expression, sympy_generated, name,
                  prov.get("paper", source_paper),
                  prov.get("page", 0),
                  json.dumps(prov)),

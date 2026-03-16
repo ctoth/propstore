@@ -296,6 +296,22 @@ def _validate_equation(
     if not expression:
         result.errors.append(f"{filename}: equation claim '{cid}' missing 'expression'")
 
+    # Validate explicit sympy field if provided; warn if auto-generation fails when absent
+    from compiler.sympy_generator import generate_sympy
+    sympy_field = claim.get("sympy")
+    if sympy_field:
+        # Use generate_sympy for validation — it handles = and ^ preprocessing
+        if generate_sympy(sympy_field) is None:
+            result.errors.append(
+                f"{filename}: equation claim '{cid}' has invalid 'sympy' field: "
+                f"cannot parse '{sympy_field}'")
+    elif expression:
+        generated = generate_sympy(expression)
+        if generated is None:
+            result.warnings.append(
+                f"{filename}: equation claim '{cid}' could not auto-generate sympy "
+                f"from expression '{expression}'")
+
     variables = claim.get("variables")
     if not variables or not isinstance(variables, list) or len(variables) == 0:
         result.errors.append(f"{filename}: equation claim '{cid}' missing 'variables' (at least one required)")
