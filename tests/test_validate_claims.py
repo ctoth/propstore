@@ -18,7 +18,6 @@ import yaml
 from compiler.validate_claims import (
     load_claim_files,
     validate_claims,
-    LoadedClaimFile,
 )
 
 
