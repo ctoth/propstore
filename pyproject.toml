@@ -4,11 +4,22 @@ version = "0.1.0"
 description = "Propositional knowledge store compiler"
 requires-python = ">=3.13"
 dependencies = [
+    "click>=8.0",
     "linkml>=1.8",
     "pyyaml>=6.0",
     "jsonschema>=4.0",
     "sympy>=1.14.0",
 ]
+
+[project.scripts]
+pks = "compiler.cli:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["compiler"]
 
 [dependency-groups]
 dev = [
