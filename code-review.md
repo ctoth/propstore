@@ -296,20 +296,58 @@ when grepping the codebase.
 
 ### Issues
 
-### D1. No schema for form YAML files
+### D1. Three divergent schema representations with no version lineage
+
+The repo contains three schema files that have drifted apart:
+- `concept-registry-schema.yaml` (v0.1.0) uses a `kind` tagged-union system
+  (`QuantityKind`, `CategoryKind`, etc.) that **no longer exists** in data.
+- `schema/concept_registry.linkml.yaml` (v0.2.0) replaced `kind` with `form`.
+- Actual concept YAML files use the v0.2.0 schema.
+
+The root-level schema is stale and misleading. Either delete it or clearly
+mark it as superseded.
+
+### D2. No schema for form YAML files
 
 Form definitions (`forms/*.yaml`) are loaded and validated entirely in Python
-code. There's no JSON Schema or LinkML schema governing their structure. A
-malformed form file would produce cryptic Python errors rather than clear
-validation messages.
+code. There's no JSON Schema or LinkML schema governing their structure. The
+11 form files have inconsistent structure (some have `qudt`, some `base`,
+some `parameters`, some `note`). A malformed form file would produce cryptic
+Python errors rather than clear validation messages.
 
-### D2. Counter files are a concurrency hazard
+### D3. Claim type discrimination not enforced by JSON Schema
+
+The generated JSON Schema (`schema/generated/claim.schema.json`) only
+requires `id`, `type`, and `provenance`. A claim with `type: parameter` but
+no `concept`, `value`, or `unit` passes schema validation. There are no
+`if/then` or `oneOf` constructs for discriminated union enforcement.
+
+### D4. `additionalProperties` contradiction in claim schema
+
+The root-level JSON Schema object has `additionalProperties: true` while the
+inner `ClaimFile` `$defs` version has `additionalProperties: false`. The
+top-level validation is more permissive than intended.
+
+### D5. Claim ID format mismatch between schema and data
+
+The LinkML schema specifies `claim_NNNN` (underscore, zero-padded). Actual
+data uses `claim1`, `claim2` (no underscore, no padding). The validator
+enforces `^claim\d+$`, which matches neither format spec.
+
+### D6. `FormParameters` in LinkML doesn't declare `values`/`extensible`
+
+`task.yaml` uses `form_parameters: { values: [...], extensible: true }` but
+the `FormParameters` class in the LinkML schema only has `reference`,
+`construction`, and `note`. The `values` and `extensible` fields are
+undeclared and would fail `additionalProperties: false` validation.
+
+### D7. Counter files are a concurrency hazard
 
 `read_counter()` / `write_counter()` (`cli/helpers.py:38-47`) perform
 non-atomic read-then-write operations. Concurrent `pks concept add` calls
 could assign duplicate IDs. Consider file locking or atomic write patterns.
 
-### D3. `is_dimensionless` heuristic is fragile
+### D8. `is_dimensionless` heuristic is fragile
 
 **Location:** `form_utils.py:63-68`
 
@@ -317,7 +355,7 @@ The logic `unit_symbol is None and kind == QUANTITY` classifies any quantity
 form without a unit symbol as dimensionless. A form where the unit symbol is
 simply missing from the YAML file would be misclassified.
 
-### D4. The `task` concept uses unstructured category values
+### D9. The `task` concept uses unstructured category values
 
 `concepts/task.yaml` stores category metadata as a note string instead of
 structured `values` and `extensible` fields in `form_parameters`. This means
@@ -443,11 +481,11 @@ The codebase handles security well for a local CLI tool:
 | High | 5 |
 | Medium | 6 |
 | Low | 7 |
-| Data model | 4 |
+| Data model | 9 |
 | Test gaps | 6 |
 | Performance | 4 |
 | Security | 0 |
-| **Total** | **33** |
+| **Total** | **38** |
 
 The codebase is well-engineered for its problem domain. The validation logic
 is thorough, the CLI is well-organized with dry-run support, and the SQLite
