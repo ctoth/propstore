@@ -116,6 +116,8 @@ def _load_all_claim_ids(claims_dir: Path) -> set[str]:
 def validate_concepts(
     concepts: list[LoadedConcept],
     claims_dir: Path | None = None,
+    *,
+    repo: object | None = None,
 ) -> ValidationResult:
     """Run all compiler contract validation checks.
 
@@ -124,10 +126,17 @@ def validate_concepts(
         claims_dir: Optional path to claims directory. When provided,
             canonical_claim references on parameterizations are validated
             against the claim IDs found in claim files.
+        repo: A Repository object. When provided, forms_dir is resolved
+            from repo instead of inferred from concept file paths.
     """
     result = ValidationResult()
     id_to_concept: dict[str, LoadedConcept] = {}
     cel_registry = _build_cel_registry(concepts)
+
+    def _forms_dir(c: LoadedConcept) -> Path:
+        if repo is not None:
+            return repo.forms_dir  # type: ignore[union-attr]
+        return c.filepath.parent.parent / "forms"
 
     # Load claim IDs for canonical_claim validation
     all_claim_ids: set[str] = set()
@@ -159,7 +168,7 @@ def validate_concepts(
             result.errors.append(f"{c.filename}: 'form' must be a string")
         else:
             # Check that a matching form file exists
-            forms_dir = c.filepath.parent.parent / "forms"
+            forms_dir = _forms_dir(c)
             form_file = forms_dir / f"{form}.yaml"
             if not form_file.exists():
                 result.errors.append(
@@ -172,7 +181,7 @@ def validate_concepts(
 
         # ── Form-aware parameter validation ──────────────────────
         if isinstance(form, str) and form:
-            forms_dir = c.filepath.parent.parent / "forms"
+            forms_dir = _forms_dir(c)
             form_def = load_form(forms_dir, form)
             if form_def is not None:
                 # Category concepts must have values in form_parameters
@@ -299,7 +308,7 @@ def validate_concepts(
                             f"must be quantity kind (is {input_kind.value})")
 
             # ── Form compatibility heuristics ────────────────────
-            forms_dir = c.filepath.parent.parent / "forms"
+            forms_dir = _forms_dir(c)
             output_form_def = load_form(forms_dir, data.get("form"))
             if output_form_def is not None and len(inputs) >= 2:
                 input_form_names: list[str] = []
