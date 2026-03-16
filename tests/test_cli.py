@@ -97,6 +97,36 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return tmp_path
 
 
+class TestInit:
+    def test_creates_forms_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        runner = CliRunner()
+
+        result = runner.invoke(cli, ["init"])
+        assert result.exit_code == 0, result.output
+        assert (tmp_path / "knowledge" / "forms").is_dir()
+        assert (tmp_path / "knowledge" / "forms" / "pressure.yaml").exists()
+
+    def test_fresh_project_can_add_concept(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        runner = CliRunner()
+
+        init_result = runner.invoke(cli, ["init"])
+        assert init_result.exit_code == 0, init_result.output
+
+        add_result = runner.invoke(cli, [
+            "-C", str(tmp_path / "knowledge"),
+            "concept", "add",
+            "--domain", "speech",
+            "--name", "test_pressure",
+            "--definition", "A test concept",
+            "--form", "pressure",
+        ])
+        assert add_result.exit_code == 0, add_result.output
+        assert "Created" in add_result.output
+        assert (tmp_path / "knowledge" / "concepts" / "test_pressure.yaml").exists()
+
+
 # ── concept add ──────────────────────────────────────────────────────
 
 class TestConceptAdd:
@@ -119,6 +149,21 @@ class TestConceptAdd:
         assert data["canonical_name"] == "test_pressure"
         assert data["status"] == "proposed"
         assert data["form"] == "pressure"
+
+    def test_created_concept_can_be_shown_by_id(self, workspace: Path) -> None:
+        runner = CliRunner()
+        add_result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "speech",
+            "--name", "test_pressure",
+            "--definition", "A test concept",
+            "--form", "pressure",
+        ])
+        assert add_result.exit_code == 0, add_result.output
+
+        show_result = runner.invoke(cli, ["concept", "show", "concept3"])
+        assert show_result.exit_code == 0, show_result.output
+        assert "canonical_name: test_pressure" in show_result.output
 
     def test_increments_counter(self, workspace: Path) -> None:
         runner = CliRunner()

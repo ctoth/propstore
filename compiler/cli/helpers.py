@@ -101,7 +101,7 @@ def validate_concept_data(data: dict, filename: str) -> ValidationResult:
 
 # ── Lookup helpers ───────────────────────────────────────────────────
 
-_ID_RE = re.compile(r'^concept\d+$')
+_ID_RE = re.compile(r'^(?:concept\d+|[a-z]+_\d{4,})$')
 
 
 def find_concept(id_or_name: str) -> Path | None:
