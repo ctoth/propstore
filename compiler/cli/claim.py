@@ -6,7 +6,8 @@ from pathlib import Path
 
 import click
 
-from compiler.cli.helpers import EXIT_ERROR, EXIT_OK, EXIT_VALIDATION, claims_dir, concepts_dir
+from compiler.cli.helpers import EXIT_ERROR, EXIT_OK, EXIT_VALIDATION
+from compiler.cli.repository import Repository
 
 
 @click.group()
@@ -17,7 +18,8 @@ def claim() -> None:
 @claim.command()
 @click.option("--dir", "claims_path", default=None, help="Claims directory")
 @click.option("--concepts-dir", "concepts_path", default=None, help="Concepts directory")
-def validate(claims_path: str | None, concepts_path: str | None) -> None:
+@click.pass_obj
+def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
     from compiler.validate_claims import (
         build_concept_registry,
@@ -25,8 +27,9 @@ def validate(claims_path: str | None, concepts_path: str | None) -> None:
         validate_claims,
     )
 
-    cd = Path(claims_path) if claims_path else claims_dir()
-    cpd = Path(concepts_path) if concepts_path else concepts_dir()
+    repo: Repository = obj["repo"]
+    cd = Path(claims_path) if claims_path else repo.claims_dir
+    cpd = Path(concepts_path) if concepts_path else repo.concepts_dir
 
     if not cd.exists():
         click.echo(f"ERROR: Claims directory '{cd}' does not exist", err=True)
@@ -40,7 +43,7 @@ def validate(claims_path: str | None, concepts_path: str | None) -> None:
         click.echo("No claim files found.")
         return
 
-    registry = build_concept_registry(cpd)
+    registry = build_concept_registry(repo)
     result = validate_claims(files, registry)
 
     for w in result.warnings:
@@ -60,13 +63,15 @@ def validate(claims_path: str | None, concepts_path: str | None) -> None:
 @click.option("--class", "warning_class", default=None,
               type=click.Choice(["CONFLICT", "OVERLAP", "PARAM_CONFLICT"]),
               help="Filter by warning class")
-def conflicts(concept: str | None, warning_class: str | None) -> None:
+@click.pass_obj
+def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None:
     """Detect and report claim conflicts."""
     from compiler.conflict_detector import ConflictClass, detect_conflicts
     from compiler.validate_claims import build_concept_registry, load_claim_files
 
-    cd = claims_dir()
-    cpd = concepts_dir()
+    repo: Repository = obj["repo"]
+    cd = repo.claims_dir
+    cpd = repo.concepts_dir
 
     if not cd.exists():
         click.echo(f"ERROR: Claims directory '{cd}' does not exist", err=True)
@@ -80,7 +85,7 @@ def conflicts(concept: str | None, warning_class: str | None) -> None:
         click.echo("No claim files found.")
         return
 
-    registry = build_concept_registry(cpd)
+    registry = build_concept_registry(repo)
     records = detect_conflicts(files, registry)
 
     # Filter
