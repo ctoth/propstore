@@ -2,16 +2,12 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 import click
 import yaml
 
 from compiler.cli.helpers import EXIT_ERROR
-
-
-def forms_dir() -> Path:
-    return Path("forms")
+from compiler.cli.repository import Repository
 
 
 @click.group()
@@ -22,9 +18,11 @@ def form() -> None:
 # ── form list ────────────────────────────────────────────────────────
 
 @form.command("list")
-def list_forms() -> None:
+@click.pass_obj
+def list_forms(obj: dict) -> None:
     """List all available forms."""
-    fdir = forms_dir()
+    repo: Repository = obj["repo"]
+    fdir = repo.forms_dir
     if not fdir.exists():
         click.echo("No forms directory found.")
         return
@@ -46,9 +44,11 @@ def list_forms() -> None:
 
 @form.command()
 @click.argument("name")
-def show(name: str) -> None:
+@click.pass_obj
+def show(obj: dict, name: str) -> None:
     """Show full form definition YAML."""
-    path = forms_dir() / f"{name}.yaml"
+    repo: Repository = obj["repo"]
+    path = repo.forms_dir / f"{name}.yaml"
     if not path.exists():
         click.echo(f"ERROR: Form '{name}' not found", err=True)
         sys.exit(EXIT_ERROR)
@@ -63,7 +63,9 @@ def show(name: str) -> None:
 @click.option("--qudt", default=None, help="QUDT IRI (e.g. qudt:HZ)")
 @click.option("--base", default=None, help="Base type (e.g. ratio)")
 @click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
+@click.pass_obj
 def add(
+    obj: dict,
     name: str,
     unit_symbol: str | None,
     qudt: str | None,
@@ -71,7 +73,8 @@ def add(
     dry_run: bool,
 ) -> None:
     """Add a new form definition."""
-    fdir = forms_dir()
+    repo: Repository = obj["repo"]
+    fdir = repo.forms_dir
     path = fdir / f"{name}.yaml"
     if path.exists():
         click.echo(f"ERROR: Form '{name}' already exists", err=True)
@@ -102,15 +105,17 @@ def add(
 @click.argument("name")
 @click.option("--force", is_flag=True, help="Remove even if concepts reference this form")
 @click.option("--dry-run", is_flag=True)
-def remove(name: str, force: bool, dry_run: bool) -> None:
+@click.pass_obj
+def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
     """Remove a form definition."""
-    path = forms_dir() / f"{name}.yaml"
+    repo: Repository = obj["repo"]
+    path = repo.forms_dir / f"{name}.yaml"
     if not path.exists():
         click.echo(f"ERROR: Form '{name}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
     # Check for concepts that reference this form
-    concepts_path = Path("concepts")
+    concepts_path = repo.concepts_dir
     referencing: list[str] = []
     if concepts_path.exists():
         for entry in sorted(concepts_path.iterdir()):
@@ -144,13 +149,15 @@ def remove(name: str, force: bool, dry_run: bool) -> None:
 
 @form.command()
 @click.argument("name", required=False)
-def validate(name: str | None) -> None:
+@click.pass_obj
+def validate(obj: dict, name: str | None) -> None:
     """Validate form definitions (one or all).
 
     Checks that every form YAML has a valid name field and that forms
     referenced by concepts actually exist.
     """
-    fdir = forms_dir()
+    repo: Repository = obj["repo"]
+    fdir = repo.forms_dir
     if not fdir.exists():
         click.echo("No forms directory found.")
         return
@@ -181,7 +188,7 @@ def validate(name: str | None) -> None:
         form_names.add(form_name)
 
     # Check that concepts reference existing forms
-    concepts_path = Path("concepts")
+    concepts_path = repo.concepts_dir
     if concepts_path.exists():
         all_forms = {p.stem for p in fdir.iterdir() if p.is_file() and p.suffix == ".yaml"}
         for entry in sorted(concepts_path.iterdir()):
