@@ -16,15 +16,16 @@ from compiler.validate import load_concepts
 @pytest.fixture
 def concept_dir(tmp_path):
     """Create a concepts directory with a few test concepts."""
-    concepts_path = tmp_path / "concepts"
-    concepts_path.mkdir()
+    knowledge = tmp_path / "knowledge"
+    concepts_path = knowledge / "concepts"
+    concepts_path.mkdir(parents=True)
     counters = concepts_path / ".counters"
     counters.mkdir()
     (counters / "speech.next").write_text("5")
     (counters / "narr.next").write_text("2")
 
     # Create form definition files
-    forms_dir = tmp_path / "forms"
+    forms_dir = knowledge / "forms"
     forms_dir.mkdir()
     for form_name in ("frequency", "category", "structural", "duration_ratio", "pressure"):
         (forms_dir / f"{form_name}.yaml").write_text(
@@ -109,6 +110,13 @@ def concept_dir(tmp_path):
     })
 
     return concepts_path
+
+
+@pytest.fixture
+def repo(concept_dir):
+    """Create a Repository pointing at the knowledge/ directory."""
+    from compiler.cli.repository import Repository
+    return Repository(concept_dir.parent)
 
 
 @pytest.fixture
@@ -608,7 +616,7 @@ class TestClaimTable:
         assert "log(Ps)" in row["expression"]
         conn.close()
 
-    def test_equation_claim_preserves_sympy_error(self, concept_dir, sidecar_path):
+    def test_equation_claim_preserves_sympy_error(self, concept_dir, sidecar_path, repo):
         """Equation claims preserve the auto-generation error when sympy cannot be derived."""
         claims_dir = concept_dir / "claims_equation_error"
         claims_dir.mkdir(exist_ok=True)
@@ -635,7 +643,7 @@ class TestClaimTable:
 
         claim_files = load_claim_files(claims_dir)
         concepts = load_concepts(concept_dir)
-        concept_registry = build_concept_registry(concept_dir)
+        concept_registry = build_concept_registry(repo)
         build_sidecar(
             concepts,
             sidecar_path,
@@ -653,7 +661,7 @@ class TestClaimTable:
         assert row["sympy_error"] is not None
         conn.close()
 
-    def test_legacy_list_value_raises(self, concept_dir, sidecar_path):
+    def test_legacy_list_value_raises(self, concept_dir, sidecar_path, repo):
         """Legacy list value format raises TypeError — no silent conversion."""
         claims_dir = concept_dir / "claims_range"
         claims_dir.mkdir(exist_ok=True)
@@ -676,12 +684,12 @@ class TestClaimTable:
 
         claim_files = load_claim_files(claims_dir)
         concepts = load_concepts(concept_dir)
-        concept_registry = build_concept_registry(concept_dir)
+        concept_registry = build_concept_registry(repo)
         with pytest.raises(TypeError):
             build_sidecar(concepts, sidecar_path, force=True,
                           claim_files=claim_files, concept_registry=concept_registry)
 
-    def test_proper_bounds_without_value(self, concept_dir, sidecar_path):
+    def test_proper_bounds_without_value(self, concept_dir, sidecar_path, repo):
         """Proper bounds format (lower_bound + upper_bound, no value) stores correctly."""
         claims_dir = concept_dir / "claims_bounds"
         claims_dir.mkdir(exist_ok=True)
@@ -705,7 +713,7 @@ class TestClaimTable:
 
         claim_files = load_claim_files(claims_dir)
         concepts = load_concepts(concept_dir)
-        concept_registry = build_concept_registry(concept_dir)
+        concept_registry = build_concept_registry(repo)
         build_sidecar(concepts, sidecar_path, force=True,
                       claim_files=claim_files, concept_registry=concept_registry)
 
