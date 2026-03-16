@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from compiler.cli.helpers import EXIT_ERROR, EXIT_OK, EXIT_VALIDATION
+from compiler.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from compiler.cli.repository import Repository
 
 

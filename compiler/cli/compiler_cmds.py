@@ -9,7 +9,7 @@ from pathlib import Path
 import click
 import yaml
 
-from compiler.cli.helpers import EXIT_OK, EXIT_VALIDATION
+from compiler.cli.helpers import EXIT_VALIDATION
 from compiler.cli.repository import Repository
 
 
