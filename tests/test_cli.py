@@ -63,14 +63,15 @@ def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
 
 @pytest.fixture()
 def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Set up a temporary workspace with concepts and counters."""
+    """Set up a temporary workspace with knowledge/ containing concepts, forms, etc."""
     monkeypatch.chdir(tmp_path)
 
-    concepts = tmp_path / "concepts"
-    concepts.mkdir()
+    knowledge = tmp_path / "knowledge"
+    concepts = knowledge / "concepts"
+    concepts.mkdir(parents=True)
 
     # Create form definition files
-    forms_dir = tmp_path / "forms"
+    forms_dir = knowledge / "forms"
     forms_dir.mkdir()
     _dimensionless_forms = {"duration_ratio", "amplitude_ratio", "level", "dimensionless_compound"}
     for form_name in ("frequency", "category", "boolean", "structural",
@@ -151,7 +152,7 @@ class TestConceptAdd:
         assert result.exit_code == 0, result.output
         assert "Created" in result.output
 
-        filepath = workspace / "concepts" / "test_pressure.yaml"
+        filepath = workspace / "knowledge" / "concepts" / "test_pressure.yaml"
         assert filepath.exists()
         data = yaml.safe_load(filepath.read_text())
         assert data["id"] == "concept3"
@@ -181,14 +182,14 @@ class TestConceptAdd:
             "--domain", "speech", "--name", "c1",
             "--definition", "d1", "--form", "boolean",
         ])
-        assert _read_counter(workspace / "concepts", "speech") == 4
+        assert _read_counter(workspace / "knowledge" / "concepts", "speech") == 4
 
         runner.invoke(cli, [
             "concept", "add",
             "--domain", "speech", "--name", "c2",
             "--definition", "d2", "--form", "boolean",
         ])
-        assert _read_counter(workspace / "concepts", "speech") == 5
+        assert _read_counter(workspace / "knowledge" / "concepts", "speech") == 5
 
     def test_dry_run_does_not_write(self, workspace: Path) -> None:
         runner = CliRunner()
@@ -200,7 +201,7 @@ class TestConceptAdd:
         ])
         assert result.exit_code == 0
         assert "Would create" in result.output
-        assert not (workspace / "concepts" / "ghost.yaml").exists()
+        assert not (workspace / "knowledge" / "concepts" / "ghost.yaml").exists()
 
     def test_validation_failure_does_not_advance_counter(self, workspace: Path) -> None:
         runner = CliRunner()
@@ -212,8 +213,8 @@ class TestConceptAdd:
             "--form", "missing_form",
         ])
         assert result.exit_code != 0
-        assert not (workspace / "concepts" / "bad_pressure.yaml").exists()
-        assert _read_counter(workspace / "concepts", "speech") == 3
+        assert not (workspace / "knowledge" / "concepts" / "bad_pressure.yaml").exists()
+        assert _read_counter(workspace / "knowledge" / "concepts", "speech") == 3
 
 
 # ── concept alias ────────────────────────────────────────────────────
@@ -229,7 +230,7 @@ class TestConceptAlias:
         assert "Added alias" in result.output
 
         data = yaml.safe_load(
-            (workspace / "concepts" / "fundamental_frequency.yaml").read_text())
+            (workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text())
         alias_names = [a["name"] for a in data["aliases"]]
         assert "f_zero" in alias_names
 
@@ -256,8 +257,8 @@ class TestConceptRename:
         assert result.exit_code == 0, result.output
         assert "task -> vocal_task" in result.output
 
-        old_path = workspace / "concepts" / "task.yaml"
-        new_path = workspace / "concepts" / "vocal_task.yaml"
+        old_path = workspace / "knowledge" / "concepts" / "task.yaml"
+        new_path = workspace / "knowledge" / "concepts" / "vocal_task.yaml"
         assert not old_path.exists()
         assert new_path.exists()
 
@@ -266,14 +267,14 @@ class TestConceptRename:
         assert data["id"] == "concept2"  # ID unchanged
 
     def test_updates_cel_references_in_concepts_and_claims(self, workspace: Path) -> None:
-        concept_path = workspace / "concepts" / "fundamental_frequency.yaml"
+        concept_path = workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml"
         concept_data = yaml.safe_load(concept_path.read_text())
         concept_data["relationships"] = [
             {"type": "related", "target": "concept2", "conditions": ["task == 'speech'"]}
         ]
         concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
 
-        claims_dir = workspace / "claims"
+        claims_dir = workspace / "knowledge" / "claims"
         _write_claim_file(
             claims_dir,
             "paper.yaml",
@@ -300,10 +301,10 @@ class TestConceptRename:
         ])
         assert result.exit_code == 0, result.output
 
-        renamed_concept = yaml.safe_load((workspace / "concepts" / "fundamental_frequency.yaml").read_text())
+        renamed_concept = yaml.safe_load((workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text())
         assert renamed_concept["relationships"][0]["conditions"] == ["vocal_task == 'speech'"]
 
-        claim_data = yaml.safe_load((workspace / "claims" / "paper.yaml").read_text())
+        claim_data = yaml.safe_load((workspace / "knowledge" / "claims" / "paper.yaml").read_text())
         assert claim_data["claims"][0]["conditions"] == ["vocal_task == 'speech'"]
 
 
@@ -320,7 +321,7 @@ class TestConceptDeprecate:
         assert "Deprecated" in result.output
 
         data = yaml.safe_load(
-            (workspace / "concepts" / "task.yaml").read_text())
+            (workspace / "knowledge" / "concepts" / "task.yaml").read_text())
         assert data["status"] == "deprecated"
         assert data["replaced_by"] == "concept1"
 
@@ -336,10 +337,10 @@ class TestConceptDeprecate:
     def test_rejects_deprecated_replacement(self, workspace: Path) -> None:
         # First deprecate concept2
         data = yaml.safe_load(
-            (workspace / "concepts" / "task.yaml").read_text())
+            (workspace / "knowledge" / "concepts" / "task.yaml").read_text())
         data["status"] = "deprecated"
         data["replaced_by"] = "concept1"
-        with open(workspace / "concepts" / "task.yaml", "w") as f:
+        with open(workspace / "knowledge" / "concepts" / "task.yaml", "w") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
         runner = CliRunner()
@@ -363,7 +364,7 @@ class TestConceptLink:
         assert "Added broader" in result.output
 
         data = yaml.safe_load(
-            (workspace / "concepts" / "fundamental_frequency.yaml").read_text())
+            (workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text())
         rels = data.get("relationships", [])
         assert any(r["type"] == "broader" and r["target"] == "concept2" for r in rels)
 
@@ -379,7 +380,7 @@ class TestValidate:
 
     def test_fails_on_invalid(self, workspace: Path) -> None:
         # Write a broken concept
-        bad = workspace / "concepts" / "broken.yaml"
+        bad = workspace / "knowledge" / "concepts" / "broken.yaml"
         bad.write_text(yaml.dump({
             "id": "concept1",  # duplicate ID
             "canonical_name": "broken",
@@ -398,7 +399,7 @@ class TestValidate:
 class TestBuild:
     def test_produces_sidecar(self, workspace: Path) -> None:
         runner = CliRunner()
-        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
         assert result.exit_code == 0, result.output
         assert sidecar.exists()
@@ -410,7 +411,7 @@ class TestBuild:
         assert count == 2
 
     def test_refuses_on_validation_failure(self, workspace: Path) -> None:
-        bad = workspace / "concepts" / "broken.yaml"
+        bad = workspace / "knowledge" / "concepts" / "broken.yaml"
         bad.write_text(yaml.dump({
             "id": "concept1",  # duplicate
             "canonical_name": "broken",
@@ -419,7 +420,7 @@ class TestBuild:
             "form": "frequency",
         }))
         runner = CliRunner()
-        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
         assert result.exit_code != 0
         assert not sidecar.exists()
@@ -495,7 +496,7 @@ class TestImportPapers:
             "--papers-root", str(papers_root),
         ])
         assert result.exit_code == 0, result.output
-        imported = yaml.safe_load((workspace / "claims" / "Smith_2024_TestPaper.yaml").read_text())
+        imported = yaml.safe_load((workspace / "knowledge" / "claims" / "Smith_2024_TestPaper.yaml").read_text())
         assert imported["source"]["paper"] == "Smith_2024_TestPaper"
         assert imported["claims"][0]["id"] == "claim1"
 
@@ -552,7 +553,7 @@ class TestImportPapers:
         ])
         assert result.exit_code == 0, result.output
 
-        imported = yaml.safe_load((workspace / "claims" / "Author_2025_Title.yaml").read_text())
+        imported = yaml.safe_load((workspace / "knowledge" / "claims" / "Author_2025_Title.yaml").read_text())
         assert imported["source"]["paper"] == "Author_2025_Title"
         assert len(imported["claims"]) == 2
         assert imported["claims"][0]["id"] == "claim1"
@@ -565,7 +566,7 @@ class TestBuildExtended:
     def test_sidecar_contains_expected_tables(self, workspace: Path) -> None:
         """Built sidecar should contain concept, alias, relationship, concept_fts tables."""
         runner = CliRunner()
-        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
         assert result.exit_code == 0, result.output
 
@@ -583,7 +584,7 @@ class TestBuildExtended:
     def test_sidecar_contains_concept_data(self, workspace: Path) -> None:
         """Built sidecar should have correct concept names and IDs."""
         runner = CliRunner()
-        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
         assert result.exit_code == 0, result.output
 
@@ -603,7 +604,7 @@ class TestBuildExtended:
     def test_sidecar_contains_aliases(self, workspace: Path) -> None:
         """Built sidecar should include alias data from concepts."""
         runner = CliRunner()
-        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
         assert result.exit_code == 0, result.output
 
@@ -616,7 +617,7 @@ class TestBuildExtended:
 
     def test_build_with_claims(self, workspace: Path) -> None:
         """Build with claim files should create claim table with data."""
-        claims_dir = workspace / "claims"
+        claims_dir = workspace / "knowledge" / "claims"
         _write_claim_file(claims_dir, "paper.yaml", {
             "source": {"paper": "paper"},
             "claims": [
@@ -632,7 +633,7 @@ class TestBuildExtended:
         })
 
         runner = CliRunner()
-        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
         assert result.exit_code == 0, result.output
 
@@ -644,7 +645,7 @@ class TestBuildExtended:
     def test_build_force_rebuilds(self, workspace: Path) -> None:
         """--force should trigger rebuild even when content hasn't changed."""
         runner = CliRunner()
-        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
 
         # First build
         result1 = runner.invoke(cli, ["build", "-o", str(sidecar)])
@@ -664,7 +665,7 @@ class TestBuildExtended:
     def test_build_skip_on_unchanged_content(self, workspace: Path) -> None:
         """Building twice without changes should skip on the second run."""
         runner = CliRunner()
-        sidecar = workspace / "sidecar" / "propstore.sqlite"
+        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
 
         result1 = runner.invoke(cli, ["build", "-o", str(sidecar)])
         assert result1.exit_code == 0
