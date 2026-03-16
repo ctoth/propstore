@@ -405,7 +405,7 @@ def claim_files(concept_dir):
                 "id": "claim1",
                 "type": "parameter",
                 "concept": "concept1",
-                "value": [200.0],
+                "value": 200.0,
                 "unit": "Hz",
                 "conditions": ["task == 'speech'"],
                 "provenance": {"paper": "test_paper_alpha", "page": 5},
@@ -414,7 +414,7 @@ def claim_files(concept_dir):
                 "id": "claim2",
                 "type": "parameter",
                 "concept": "concept1",
-                "value": [350.0],
+                "value": 350.0,
                 "unit": "Hz",
                 "conditions": ["task == 'speech'"],
                 "stances": [
@@ -431,7 +431,7 @@ def claim_files(concept_dir):
                 "id": "claim3",
                 "type": "parameter",
                 "concept": "concept1",
-                "value": [180.0],
+                "value": 180.0,
                 "unit": "Hz",
                 "conditions": ["task == 'singing'"],
                 "provenance": {"paper": "test_paper_alpha", "page": 12},
@@ -440,7 +440,7 @@ def claim_files(concept_dir):
                 "id": "claim4",
                 "type": "parameter",
                 "concept": "concept2",
-                "value": [800.0],
+                "value": 800.0,
                 "unit": "Pa",
                 "conditions": ["task == 'speech'"],
                 "provenance": {"paper": "test_paper_alpha", "page": 15},
@@ -462,7 +462,7 @@ def claim_files(concept_dir):
                 "id": "claim6",
                 "type": "parameter",
                 "concept": "concept2",
-                "value": [800.0],
+                "value": 800.0,
                 "unit": "Pa",
                 "conditions": ["task == 'speech'"],
                 "provenance": {"paper": "test_paper_beta", "page": 3},
@@ -471,7 +471,7 @@ def claim_files(concept_dir):
                 "id": "claim7",
                 "type": "parameter",
                 "concept": "concept1",
-                "value": [250.0],
+                "value": 250.0,
                 "unit": "Hz",
                 "conditions": ["task == 'speech'", "fundamental_frequency > 100"],
                 "provenance": {"paper": "test_paper_beta", "page": 7},
@@ -493,7 +493,7 @@ def claim_files(concept_dir):
                 "id": "claim9",
                 "type": "parameter",
                 "concept": "concept1",
-                "value": [220.0],
+                "value": 220.0,
                 "unit": "Hz",
                 "conditions": ["task == 'whisper'"],
                 "provenance": {"paper": "test_paper_beta", "page": 22},
@@ -653,8 +653,8 @@ class TestClaimTable:
         assert row["sympy_error"] is not None
         conn.close()
 
-    def test_legacy_range_does_not_store_midpoint_scalar(self, concept_dir, sidecar_path):
-        """Legacy list ranges preserve bounds without inventing a midpoint scalar."""
+    def test_legacy_list_value_raises(self, concept_dir, sidecar_path):
+        """Legacy list value format raises TypeError — no silent conversion."""
         claims_dir = concept_dir / "claims_range"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
@@ -671,6 +671,35 @@ class TestClaimTable:
             ],
         }
         (claims_dir / "range_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
+
+        from compiler.validate_claims import load_claim_files, build_concept_registry
+
+        claim_files = load_claim_files(claims_dir)
+        concepts = load_concepts(concept_dir)
+        concept_registry = build_concept_registry(concept_dir)
+        with pytest.raises(TypeError):
+            build_sidecar(concepts, sidecar_path, force=True,
+                          claim_files=claim_files, concept_registry=concept_registry)
+
+    def test_proper_bounds_without_value(self, concept_dir, sidecar_path):
+        """Proper bounds format (lower_bound + upper_bound, no value) stores correctly."""
+        claims_dir = concept_dir / "claims_bounds"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = {
+            "source": {"paper": "bounds_paper"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "lower_bound": 100.0,
+                    "upper_bound": 300.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "bounds_paper", "page": 1},
+                },
+            ],
+        }
+        (claims_dir / "bounds_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
 
         from compiler.validate_claims import load_claim_files, build_concept_registry
 
@@ -843,4 +872,81 @@ class TestParameterizationGroupTable:
                 break
         assert found, f"concept1 and concept5 should be in the same parameterization group. Groups: {by_group}"
 
+        conn.close()
+
+
+# ── Concept form metadata ────────────────────────────────────────────
+
+class TestConceptFormMetadata:
+    def _setup_forms(self, concept_dir):
+        """Write real form definitions for the test concepts."""
+        forms_dir = concept_dir.parent / "forms"
+        forms_dir.mkdir(exist_ok=True)
+        yaml.dump({"name": "frequency", "unit_symbol": "Hz"},
+                  (forms_dir / "frequency.yaml").open("w"))
+        yaml.dump({"name": "pressure", "unit_symbol": "Pa",
+                   "common_alternatives": [{"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}]},
+                  (forms_dir / "pressure.yaml").open("w"))
+        yaml.dump({"name": "category", "parameters": {"values": [], "extensible": False}},
+                  (forms_dir / "category.yaml").open("w"))
+        yaml.dump({"name": "structural", "note": "Non-measurable organizing concepts."},
+                  (forms_dir / "structural.yaml").open("w"))
+        yaml.dump({"name": "duration_ratio", "base": "ratio",
+                   "parameters": {"numerator": "duration", "denominator": "duration"}},
+                  (forms_dir / "duration_ratio.yaml").open("w"))
+
+    def test_concept_has_is_dimensionless_column(self, concept_dir, sidecar_path):
+        self._setup_forms(concept_dir)
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM concept WHERE id='concept1'").fetchone()
+        assert "is_dimensionless" in row.keys()
+        conn.close()
+
+    def test_frequency_concept_not_dimensionless(self, concept_dir, sidecar_path):
+        self._setup_forms(concept_dir)
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        row = conn.execute("SELECT is_dimensionless FROM concept WHERE id='concept1'").fetchone()
+        assert row[0] == 0
+        conn.close()
+
+    def test_ratio_concept_is_dimensionless(self, concept_dir, sidecar_path):
+        self._setup_forms(concept_dir)
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        row = conn.execute("SELECT is_dimensionless FROM concept WHERE id='concept5'").fetchone()
+        assert row[0] == 1
+        conn.close()
+
+    def test_concept_has_unit_symbol_column(self, concept_dir, sidecar_path):
+        self._setup_forms(concept_dir)
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM concept WHERE id='concept1'").fetchone()
+        assert "unit_symbol" in row.keys()
+        conn.close()
+
+    def test_frequency_concept_unit_symbol(self, concept_dir, sidecar_path):
+        self._setup_forms(concept_dir)
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        row = conn.execute("SELECT unit_symbol FROM concept WHERE id='concept1'").fetchone()
+        assert row[0] == "Hz"
+        conn.close()
+
+    def test_ratio_concept_unit_symbol_null(self, concept_dir, sidecar_path):
+        self._setup_forms(concept_dir)
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        row = conn.execute("SELECT unit_symbol FROM concept WHERE id='concept5'").fetchone()
+        assert row[0] is None
         conn.close()

@@ -908,3 +908,158 @@ class TestMeasurementClaimValidation:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert result.ok, f"Unexpected errors for measure={measure}: {result.errors}"
+
+
+# ── Form-aware unit validation ───────────────────────────────────────
+
+
+class TestFormAwareUnitValidation:
+    """Tests for form-definition-based unit validation on claims."""
+
+    def _make_registry_with_forms(self, tmp_path):
+        """Build a concept registry with form definitions available on disk."""
+        # Create forms directory with real form definitions
+        forms_dir = tmp_path / "forms"
+        forms_dir.mkdir(exist_ok=True)
+
+        import yaml as _yaml
+        _yaml.dump({"name": "frequency", "unit_symbol": "Hz"},
+                    (forms_dir / "frequency.yaml").open("w"))
+        _yaml.dump({"name": "pressure", "unit_symbol": "Pa",
+                     "common_alternatives": [{"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}]},
+                    (forms_dir / "pressure.yaml").open("w"))
+        _yaml.dump({"name": "duration_ratio", "base": "ratio",
+                     "parameters": {"numerator": "duration", "denominator": "duration"}},
+                    (forms_dir / "duration_ratio.yaml").open("w"))
+        _yaml.dump({"name": "level", "parameters": {"scale": "dB", "reference": None}},
+                    (forms_dir / "level.yaml").open("w"))
+        _yaml.dump({"name": "category", "parameters": {"values": [], "extensible": False}},
+                    (forms_dir / "category.yaml").open("w"))
+
+        # Create concepts directory
+        concepts_dir = tmp_path / "concepts"
+        concepts_dir.mkdir(exist_ok=True)
+
+        # Write concept files
+        for cdata in [
+            {"id": "concept1", "canonical_name": "fundamental_frequency",
+             "form": "frequency", "status": "accepted", "definition": "F0"},
+            {"id": "concept2", "canonical_name": "subglottal_pressure",
+             "form": "pressure", "status": "accepted", "definition": "Ps"},
+            {"id": "concept3", "canonical_name": "task",
+             "form": "category", "status": "accepted", "definition": "Task type",
+             "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True}},
+            {"id": "concept4", "canonical_name": "open_quotient",
+             "form": "duration_ratio", "status": "accepted", "definition": "OQ"},
+            {"id": "concept5", "canonical_name": "h1_h2_difference",
+             "form": "level", "status": "accepted", "definition": "H1-H2"},
+        ]:
+            (concepts_dir / f"{cdata['canonical_name']}.yaml").write_text(
+                _yaml.dump(cdata, default_flow_style=False))
+
+        from compiler.validate_claims import build_concept_registry
+        return build_concept_registry(concepts_dir)
+
+    def test_parameter_claim_hz_on_frequency_concept_validates(self, claims_dir, tmp_path):
+        registry = self._make_registry_with_forms(tmp_path)
+        claim = make_parameter_claim("claim1", "concept1", 440.0, "Hz")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_parameter_claim_pa_on_frequency_concept_errors(self, claims_dir, tmp_path):
+        registry = self._make_registry_with_forms(tmp_path)
+        claim = make_parameter_claim("claim1", "concept1", 440.0, "Pa")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert not result.ok
+        assert any("unit" in e.lower() and "Pa" in e for e in result.errors)
+
+    def test_parameter_claim_ratio_on_duration_ratio_concept_validates(self, claims_dir, tmp_path):
+        registry = self._make_registry_with_forms(tmp_path)
+        claim = make_parameter_claim("claim1", "concept4", 0.7, "ratio")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_parameter_claim_percent_on_duration_ratio_concept_validates(self, claims_dir, tmp_path):
+        registry = self._make_registry_with_forms(tmp_path)
+        claim = make_parameter_claim("claim1", "concept4", 70.0, "%")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_parameter_claim_hz_on_duration_ratio_concept_errors(self, claims_dir, tmp_path):
+        registry = self._make_registry_with_forms(tmp_path)
+        claim = make_parameter_claim("claim1", "concept4", 440.0, "Hz")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert not result.ok
+        assert any("unit" in e.lower() and "Hz" in e for e in result.errors)
+
+    def test_parameter_claim_db_on_level_concept_validates(self, claims_dir, tmp_path):
+        registry = self._make_registry_with_forms(tmp_path)
+        claim = make_parameter_claim("claim1", "concept5", -3.5, "dB")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_parameter_claim_hz_on_level_concept_errors(self, claims_dir, tmp_path):
+        registry = self._make_registry_with_forms(tmp_path)
+        claim = make_parameter_claim("claim1", "concept5", 440.0, "Hz")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert not result.ok
+        assert any("unit" in e.lower() and "Hz" in e for e in result.errors)
+
+    def test_parameter_claim_cmh2o_on_pressure_concept_validates(self, claims_dir, tmp_path):
+        registry = self._make_registry_with_forms(tmp_path)
+        claim = make_parameter_claim("claim1", "concept2", 5.0, "cmH2O")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_measurement_claim_unit_not_checked_against_form(self, claims_dir, tmp_path):
+        """Measurement claims skip form-based unit checking."""
+        registry = self._make_registry_with_forms(tmp_path)
+        claim = {
+            "id": "claim1",
+            "type": "measurement",
+            "target_concept": "concept2",
+            "measure": "jnd_absolute",
+            "value": 0.14,
+            "unit": "ratio",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_parameter_claim_on_concept_without_form_definition_skips_check(self, claims_dir):
+        """If form definition can't be loaded, skip unit check gracefully."""
+        registry = make_concept_registry()
+        # No _allowed_units set, and no form definition on disk
+        claim = make_parameter_claim("claim1", "concept1", 440.0, "anything")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert result.ok, f"Unexpected errors: {result.errors}"
