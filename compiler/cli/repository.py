@@ -48,12 +48,18 @@ class Repository:
 
     @classmethod
     def find(cls, start: Path | None = None) -> Repository:
-        """Walk up from *start* (default: cwd) looking for a ``knowledge/`` directory."""
+        """Walk up from *start* (default: cwd) looking for a ``knowledge/`` directory.
+
+        Also recognises *start* itself as a repository root if it contains
+        a ``concepts/`` subdirectory (e.g. ``pks -C path/to/knowledge``
+        or when cwd is already inside the knowledge tree).
+        """
         current = (start or Path.cwd()).resolve()
-        # If start itself is a knowledge/ dir (e.g. -C pointed directly at it)
-        if current.name == "knowledge" and (current / "concepts").is_dir():
+        # If start itself has the knowledge structure (e.g. -C pointed at it,
+        # or cwd is already the knowledge dir)
+        if (current / "concepts").is_dir():
             return cls(current)
-        # Walk up
+        # Walk up looking for knowledge/
         for ancestor in [current, *current.parents]:
             candidate = ancestor / "knowledge"
             if candidate.is_dir() and (candidate / "concepts").is_dir():
