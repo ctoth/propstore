@@ -17,6 +17,7 @@ import warnings
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
+import re
 
 from compiler.validate_claims import LoadedClaimFile
 
@@ -45,6 +46,46 @@ class ConflictRecord:
 # ── Value comparison ─────────────────────────────────────────────────
 
 DEFAULT_TOLERANCE = 1e-9
+_NUMERIC_CONDITION_RE = re.compile(
+    r"^\s*(?P<name>\w+)\s*(?P<op><=|>=|==|!=|<|>)\s*(?P<value>-?\d+(?:\.\d+)?)\s*$"
+)
+_STRING_CONDITION_RE = re.compile(
+    r"""^\s*(?P<name>\w+)\s*(?P<op>==|!=)\s*(?P<quote>['"])(?P<value>.+?)(?P=quote)\s*$"""
+)
+_BOOLEAN_CONDITION_RE = re.compile(
+    r"^\s*(?P<name>\w+)\s*(?P<op>==|!=)\s*(?P<value>true|false)\s*$",
+    re.IGNORECASE,
+)
+
+
+@dataclass
+class _NumericConstraint:
+    lower: float | None = None
+    lower_inclusive: bool = False
+    upper: float | None = None
+    upper_inclusive: bool = False
+    equals: float | None = None
+    excluded: set[float] | None = None
+
+    def __post_init__(self) -> None:
+        if self.excluded is None:
+            self.excluded = set()
+
+
+@dataclass
+class _DiscreteConstraint:
+    equals: str | bool | None = None
+    excluded: set[str | bool] | None = None
+
+    def __post_init__(self) -> None:
+        if self.excluded is None:
+            self.excluded = set()
+
+
+@dataclass
+class _ConditionSummary:
+    numeric: dict[str, _NumericConstraint]
+    discrete: dict[str, _DiscreteConstraint]
 
 
 def _parse_numeric_values(value_list: list) -> tuple[float, ...]:
@@ -178,13 +219,23 @@ def _classify_conditions(
 
     Returns CONFLICT, PHI_NODE, or OVERLAP.
     """
-    set_a = set(sorted(conditions_a))
-    set_b = set(sorted(conditions_b))
-
-    if set_a == set_b:
+    normalized_a = sorted(conditions_a)
+    normalized_b = sorted(conditions_b)
+    if normalized_a == normalized_b:
         # Identical conditions (or both empty) -> CONFLICT
         return ConflictClass.CONFLICT
 
+    summary_a = _summarize_conditions(conditions_a)
+    summary_b = _summarize_conditions(conditions_b)
+    if summary_a is not None and summary_b is not None:
+        if summary_a == summary_b:
+            return ConflictClass.CONFLICT
+        if _conditions_disjoint(summary_a, summary_b):
+            return ConflictClass.PHI_NODE
+        return ConflictClass.OVERLAP
+
+    set_a = set(normalized_a)
+    set_b = set(normalized_b)
     intersection = set_a & set_b
     if not intersection:
         # Fully disjoint -> PHI_NODE
@@ -220,6 +271,275 @@ def _collect_parameter_claims(claim_files: list[LoadedClaimFile]) -> dict[str, l
             if claim.get("type") == "parameter" and claim.get("concept"):
                 by_concept[claim["concept"]].append(claim)
     return dict(by_concept)
+
+
+def _collect_equation_claims(
+    claim_files: list[LoadedClaimFile],
+) -> dict[tuple[str, tuple[str, ...]], list[dict]]:
+    """Group equation claims by dependent concept and independent concept set."""
+    by_signature: dict[tuple[str, tuple[str, ...]], list[dict]] = defaultdict(list)
+    for cf in claim_files:
+        for claim in cf.data.get("claims", []):
+            if claim.get("type") != "equation":
+                continue
+            signature = _equation_signature(claim)
+            if signature is None:
+                continue
+            by_signature[signature].append(claim)
+    return dict(by_signature)
+
+
+def _parse_condition_atom(
+    condition: str,
+) -> tuple[str, str, float | str | bool, str] | None:
+    numeric_match = _NUMERIC_CONDITION_RE.match(condition)
+    if numeric_match:
+        return (
+            numeric_match.group("name"),
+            numeric_match.group("op"),
+            float(numeric_match.group("value")),
+            "numeric",
+        )
+
+    string_match = _STRING_CONDITION_RE.match(condition)
+    if string_match:
+        return (
+            string_match.group("name"),
+            string_match.group("op"),
+            string_match.group("value"),
+            "discrete",
+        )
+
+    boolean_match = _BOOLEAN_CONDITION_RE.match(condition)
+    if boolean_match:
+        return (
+            boolean_match.group("name"),
+            boolean_match.group("op"),
+            boolean_match.group("value").lower() == "true",
+            "discrete",
+        )
+
+    return None
+
+
+def _summarize_conditions(conditions: list[str]) -> _ConditionSummary | None:
+    summary = _ConditionSummary(numeric={}, discrete={})
+    for condition in conditions:
+        parsed = _parse_condition_atom(condition)
+        if parsed is None:
+            return None
+        name, op, value, value_kind = parsed
+        if value_kind == "numeric":
+            constraint = summary.numeric.setdefault(name, _NumericConstraint())
+            assert isinstance(value, float)
+            if op == "==":
+                constraint.equals = value
+                constraint.lower = value
+                constraint.upper = value
+                constraint.lower_inclusive = True
+                constraint.upper_inclusive = True
+            elif op == "!=":
+                constraint.excluded.add(value)
+            elif op == ">":
+                if constraint.lower is None or value > constraint.lower or (
+                    value == constraint.lower and constraint.lower_inclusive
+                ):
+                    constraint.lower = value
+                    constraint.lower_inclusive = False
+            elif op == ">=":
+                if constraint.lower is None or value > constraint.lower or (
+                    value == constraint.lower and not constraint.lower_inclusive
+                ):
+                    constraint.lower = value
+                    constraint.lower_inclusive = True
+            elif op == "<":
+                if constraint.upper is None or value < constraint.upper or (
+                    value == constraint.upper and constraint.upper_inclusive
+                ):
+                    constraint.upper = value
+                    constraint.upper_inclusive = False
+            elif op == "<=":
+                if constraint.upper is None or value < constraint.upper or (
+                    value == constraint.upper and not constraint.upper_inclusive
+                ):
+                    constraint.upper = value
+                    constraint.upper_inclusive = True
+        else:
+            constraint = summary.discrete.setdefault(name, _DiscreteConstraint())
+            if op == "==":
+                constraint.equals = value
+            elif op == "!=":
+                constraint.excluded.add(value)
+    return summary
+
+
+def _numeric_constraints_disjoint(
+    left: _NumericConstraint,
+    right: _NumericConstraint,
+) -> bool:
+    if left.equals is not None and right.equals is not None:
+        return left.equals != right.equals
+    if left.equals is not None:
+        return _numeric_value_excluded(left.equals, right)
+    if right.equals is not None:
+        return _numeric_value_excluded(right.equals, left)
+
+    lower, lower_inclusive = _max_lower_bound(left, right)
+    upper, upper_inclusive = _min_upper_bound(left, right)
+    if lower is not None and upper is not None:
+        if lower > upper:
+            return True
+        if lower == upper and not (lower_inclusive and upper_inclusive):
+            return True
+        if lower == upper and (lower in left.excluded or lower in right.excluded):
+            return True
+    return False
+
+
+def _numeric_value_excluded(value: float, constraint: _NumericConstraint) -> bool:
+    if constraint.lower is not None:
+        if value < constraint.lower:
+            return True
+        if value == constraint.lower and not constraint.lower_inclusive:
+            return True
+    if constraint.upper is not None:
+        if value > constraint.upper:
+            return True
+        if value == constraint.upper and not constraint.upper_inclusive:
+            return True
+    return value in constraint.excluded
+
+
+def _max_lower_bound(
+    left: _NumericConstraint,
+    right: _NumericConstraint,
+) -> tuple[float | None, bool]:
+    candidates = []
+    if left.lower is not None:
+        candidates.append((left.lower, left.lower_inclusive))
+    if right.lower is not None:
+        candidates.append((right.lower, right.lower_inclusive))
+    if not candidates:
+        return None, False
+    lower, inclusive = candidates[0]
+    for value, candidate_inclusive in candidates[1:]:
+        if value > lower:
+            lower, inclusive = value, candidate_inclusive
+        elif value == lower:
+            inclusive = inclusive and candidate_inclusive
+    return lower, inclusive
+
+
+def _min_upper_bound(
+    left: _NumericConstraint,
+    right: _NumericConstraint,
+) -> tuple[float | None, bool]:
+    candidates = []
+    if left.upper is not None:
+        candidates.append((left.upper, left.upper_inclusive))
+    if right.upper is not None:
+        candidates.append((right.upper, right.upper_inclusive))
+    if not candidates:
+        return None, False
+    upper, inclusive = candidates[0]
+    for value, candidate_inclusive in candidates[1:]:
+        if value < upper:
+            upper, inclusive = value, candidate_inclusive
+        elif value == upper:
+            inclusive = inclusive and candidate_inclusive
+    return upper, inclusive
+
+
+def _discrete_constraints_disjoint(
+    left: _DiscreteConstraint,
+    right: _DiscreteConstraint,
+) -> bool:
+    if left.equals is not None and right.equals is not None:
+        return left.equals != right.equals
+    if left.equals is not None:
+        return left.equals in right.excluded
+    if right.equals is not None:
+        return right.equals in left.excluded
+    return False
+
+
+def _conditions_disjoint(left: _ConditionSummary, right: _ConditionSummary) -> bool:
+    for name in set(left.numeric) & set(right.numeric):
+        if _numeric_constraints_disjoint(left.numeric[name], right.numeric[name]):
+            return True
+    for name in set(left.discrete) & set(right.discrete):
+        if _discrete_constraints_disjoint(left.discrete[name], right.discrete[name]):
+            return True
+    return False
+
+
+def _equation_signature(claim: dict) -> tuple[str, tuple[str, ...]] | None:
+    variables = claim.get("variables")
+    if not isinstance(variables, list):
+        return None
+
+    dependent_concepts = [
+        var.get("concept")
+        for var in variables
+        if isinstance(var, dict) and var.get("concept") and var.get("role") == "dependent"
+    ]
+    if len(dependent_concepts) != 1:
+        return None
+
+    dependent_concept = dependent_concepts[0]
+    independents = sorted(
+        var.get("concept")
+        for var in variables
+        if isinstance(var, dict)
+        and var.get("concept")
+        and var.get("concept") != dependent_concept
+    )
+    return dependent_concept, tuple(independents)
+
+
+def _canonicalize_equation(claim: dict) -> str | None:
+    try:
+        import sympy
+        from sympy.parsing.sympy_parser import parse_expr
+    except ImportError:
+        return None
+
+    variables = claim.get("variables")
+    if not isinstance(variables, list):
+        return None
+
+    symbol_map = {}
+    for var in variables:
+        if not isinstance(var, dict):
+            continue
+        symbol = var.get("symbol")
+        concept_id = var.get("concept")
+        if isinstance(symbol, str) and symbol and isinstance(concept_id, str) and concept_id:
+            symbol_map[symbol] = sympy.Symbol(concept_id)
+    if not symbol_map:
+        return None
+
+    explicit_sympy = claim.get("sympy")
+    if isinstance(explicit_sympy, str) and explicit_sympy.strip():
+        text = explicit_sympy.strip().replace("^", "**")
+        try:
+            parsed = sympy.sympify(text, locals=symbol_map)
+            if isinstance(parsed, sympy.Equality):
+                return str(sympy.simplify(parsed.lhs - parsed.rhs))
+        except (sympy.SympifyError, SyntaxError, TypeError, ValueError):
+            pass
+
+    expression = claim.get("expression")
+    if not isinstance(expression, str) or "=" not in expression:
+        return None
+
+    lhs_text, rhs_text = expression.replace("^", "**").split("=", 1)
+    try:
+        lhs = parse_expr(lhs_text.strip(), local_dict=symbol_map)
+        rhs = parse_expr(rhs_text.strip(), local_dict=symbol_map)
+    except Exception:
+        return None
+    return str(sympy.simplify(lhs - rhs))
 
 
 def _value_str(value, claim: dict | None = None) -> str:
@@ -330,7 +650,38 @@ def detect_conflicts(
                     value_b=_value_str(None, claim=claim_b),
                 ))
 
-    # Step 4: Parameterization conflict detection
+    # Step 4: Equation claims — compare claims for the same dependent relation
+    by_equation_signature = _collect_equation_claims(claim_files)
+    for (dependent_concept, _independent_concepts), equation_claims in by_equation_signature.items():
+        if len(equation_claims) < 2:
+            continue
+
+        for i in range(len(equation_claims)):
+            for j in range(i + 1, len(equation_claims)):
+                claim_a = equation_claims[i]
+                claim_b = equation_claims[j]
+
+                canonical_a = _canonicalize_equation(claim_a)
+                canonical_b = _canonicalize_equation(claim_b)
+                if canonical_a is None or canonical_b is None or canonical_a == canonical_b:
+                    continue
+
+                conditions_a = sorted(claim_a.get("conditions") or [])
+                conditions_b = sorted(claim_b.get("conditions") or [])
+                warning_class = _classify_conditions(conditions_a, conditions_b)
+
+                records.append(ConflictRecord(
+                    concept_id=dependent_concept,
+                    claim_a_id=claim_a["id"],
+                    claim_b_id=claim_b["id"],
+                    warning_class=warning_class,
+                    conditions_a=conditions_a,
+                    conditions_b=conditions_b,
+                    value_a=claim_a.get("expression") or claim_a.get("sympy") or canonical_a,
+                    value_b=claim_b.get("expression") or claim_b.get("sympy") or canonical_b,
+                ))
+
+    # Step 5: Parameterization conflict detection
     _detect_param_conflicts(records, by_concept, concept_registry, claim_files)
 
     return records

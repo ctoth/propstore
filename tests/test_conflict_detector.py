@@ -513,6 +513,19 @@ def _make_measurement_claim(id, target_concept, measure, value, unit="ratio",
     return c
 
 
+def _make_equation_claim(id, expression, variables, conditions=None, **fields):
+    c = {
+        "id": id,
+        "type": "equation",
+        "expression": expression,
+        "variables": variables,
+        "conditions": conditions or [],
+        "provenance": {"paper": "test", "page": 1},
+    }
+    c.update(fields)
+    return c
+
+
 class TestMeasurementConflicts:
     def test_measurement_vs_parameter_never_compared(self):
         """Measurement claim vs parameter claim for same concept -> NEVER compared."""
@@ -558,3 +571,100 @@ class TestMeasurementConflicts:
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
         assert len(records) == 0
+
+
+class TestSemanticConditionClassification:
+    def test_numeric_subset_conditions_overlap(self):
+        claims = [
+            make_parameter_claim(
+                "claim1",
+                "concept1",
+                200.0,
+                conditions=["fundamental_frequency > 100"],
+            ),
+            make_parameter_claim(
+                "claim2",
+                "concept1",
+                350.0,
+                conditions=["fundamental_frequency > 200"],
+            ),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.OVERLAP
+
+    def test_numeric_disjoint_conditions_phi_node(self):
+        claims = [
+            make_parameter_claim(
+                "claim1",
+                "concept1",
+                200.0,
+                conditions=["fundamental_frequency < 100"],
+            ),
+            make_parameter_claim(
+                "claim2",
+                "concept1",
+                350.0,
+                conditions=["fundamental_frequency > 200"],
+            ),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.PHI_NODE
+
+
+class TestEquationConflicts:
+    def test_equation_conflict_same_relation_detected(self):
+        claims = [
+            _make_equation_claim(
+                "claim1",
+                "log(Ps) = 1.00 + 0.88 * log(F0)",
+                [
+                    {"symbol": "Ps", "concept": "concept2", "role": "dependent"},
+                    {"symbol": "F0", "concept": "concept1", "role": "independent"},
+                ],
+                conditions=["task == 'speech'"],
+            ),
+            _make_equation_claim(
+                "claim2",
+                "log(Ps) = 1.10 + 0.90 * log(F0)",
+                [
+                    {"symbol": "Ps", "concept": "concept2", "role": "dependent"},
+                    {"symbol": "F0", "concept": "concept1", "role": "independent"},
+                ],
+                conditions=["task == 'speech'"],
+            ),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 1
+        assert records[0].concept_id == "concept2"
+        assert records[0].warning_class == ConflictClass.CONFLICT
+
+    def test_equation_conflict_uses_condition_classification(self):
+        claims = [
+            _make_equation_claim(
+                "claim1",
+                "log(Ps) = 1.00 + 0.88 * log(F0)",
+                [
+                    {"symbol": "Ps", "concept": "concept2", "role": "dependent"},
+                    {"symbol": "F0", "concept": "concept1", "role": "independent"},
+                ],
+                conditions=["task == 'speech'"],
+            ),
+            _make_equation_claim(
+                "claim2",
+                "log(Ps) = 1.10 + 0.90 * log(F0)",
+                [
+                    {"symbol": "Ps", "concept": "concept2", "role": "dependent"},
+                    {"symbol": "F0", "concept": "concept1", "role": "independent"},
+                ],
+                conditions=["task == 'singing'"],
+            ),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.PHI_NODE
