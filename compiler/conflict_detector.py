@@ -335,7 +335,9 @@ def _summarize_conditions(conditions: list[str]) -> _ConditionSummary | None:
         name, op, value, value_kind = parsed
         if value_kind == "numeric":
             constraint = summary.numeric.setdefault(name, _NumericConstraint())
-            assert isinstance(value, float)
+            if not isinstance(value, (int, float)):
+                return None
+            value = float(value)
             if op == "==":
                 constraint.equals = value
                 constraint.lower = value
@@ -503,6 +505,8 @@ def _equation_signature(claim: dict) -> tuple[str, tuple[str, ...]] | None:
 
 def _canonicalize_equation(claim: dict) -> str | None:
     try:
+        from tokenize import TokenError
+
         from sympy import Equality, SympifyError, Symbol, simplify
         from sympy.parsing.sympy_parser import parse_expr
     except ImportError:
@@ -541,7 +545,7 @@ def _canonicalize_equation(claim: dict) -> str | None:
     try:
         lhs = parse_expr(lhs_text.strip(), local_dict=symbol_map)
         rhs = parse_expr(rhs_text.strip(), local_dict=symbol_map)
-    except Exception:
+    except (SympifyError, SyntaxError, TypeError, ValueError, AttributeError, TokenError):
         return None
     return str(simplify(lhs - rhs))
 
