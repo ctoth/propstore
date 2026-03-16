@@ -14,17 +14,12 @@ Tests the compiler contract checks that JSON Schema can't express:
 - id prefix matches domain field
 """
 
-import os
-import tempfile
-import shutil
-
 import pytest
 import yaml
 
 from compiler.validate import (
     load_concepts,
     validate_concepts,
-    ValidationResult,
 )
 
 
