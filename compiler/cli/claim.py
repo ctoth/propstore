@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from compiler.cli.helpers import EXIT_OK, EXIT_VALIDATION, claims_dir, concepts_dir
+from compiler.cli.helpers import EXIT_ERROR, EXIT_OK, EXIT_VALIDATION, claims_dir, concepts_dir
 
 
 @click.group()
@@ -30,10 +30,10 @@ def validate(claims_path: str | None, concepts_path: str | None) -> None:
 
     if not cd.exists():
         click.echo(f"ERROR: Claims directory '{cd}' does not exist", err=True)
-        sys.exit(1)
+        sys.exit(EXIT_ERROR)
     if not cpd.exists():
         click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
-        sys.exit(1)
+        sys.exit(EXIT_ERROR)
 
     files = load_claim_files(cd)
     if not files:
@@ -70,10 +70,10 @@ def conflicts(concept: str | None, warning_class: str | None) -> None:
 
     if not cd.exists():
         click.echo(f"ERROR: Claims directory '{cd}' does not exist", err=True)
-        sys.exit(1)
+        sys.exit(EXIT_ERROR)
     if not cpd.exists():
         click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
-        sys.exit(1)
+        sys.exit(EXIT_ERROR)
 
     files = load_claim_files(cd)
     if not files:
