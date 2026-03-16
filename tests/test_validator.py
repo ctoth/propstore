@@ -26,15 +26,16 @@ from compiler.validate import (
 @pytest.fixture
 def concept_dir(tmp_path):
     """Create a temporary concepts directory with form definitions."""
-    concept_path = tmp_path / "concepts"
-    concept_path.mkdir()
+    knowledge = tmp_path / "knowledge"
+    concept_path = knowledge / "concepts"
+    concept_path.mkdir(parents=True)
     counters = concept_path / ".counters"
     counters.mkdir()
     (counters / "speech.next").write_text("100")
     (counters / "narr.next").write_text("10")
 
     # Create form definition files alongside concepts
-    forms_dir = tmp_path / "forms"
+    forms_dir = knowledge / "forms"
     forms_dir.mkdir()
     for form_name in ("frequency", "category", "boolean", "structural",
                       "duration_ratio", "pressure", "level", "time",
