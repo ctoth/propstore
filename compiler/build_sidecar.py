@@ -283,6 +283,10 @@ def _create_claim_tables(conn: sqlite3.Connection):
             expression TEXT,
             sympy_generated TEXT,
             name TEXT,
+            target_concept TEXT,
+            measure TEXT,
+            listener_population TEXT,
+            methodology TEXT,
             source_paper TEXT NOT NULL,
             provenance_page INTEGER NOT NULL,
             provenance_json TEXT
@@ -334,6 +338,10 @@ def _populate_claims(conn: sqlite3.Connection, claim_files: list):
             statement = None
             expression = None
             name = None
+            target_concept = None
+            measure = None
+            listener_population = None
+            methodology = None
 
             lower_bound = None
             upper_bound = None
@@ -361,6 +369,21 @@ def _populate_claims(conn: sqlite3.Connection, claim_files: list):
                 uncertainty_type = claim.get("uncertainty_type")
                 sample_size = claim.get("sample_size")
                 unit = claim.get("unit")
+            elif ctype == "measurement":
+                target_concept = claim.get("target_concept")
+                measure = claim.get("measure")
+                listener_population = claim.get("listener_population")
+                methodology = claim.get("methodology")
+                # Value fields: same structure as parameter
+                raw_value = claim.get("value")
+                if raw_value is not None:
+                    value = float(raw_value)
+                lower_bound = claim.get("lower_bound")
+                upper_bound = claim.get("upper_bound")
+                uncertainty = claim.get("uncertainty")
+                uncertainty_type = claim.get("uncertainty_type")
+                sample_size = claim.get("sample_size")
+                unit = claim.get("unit")
             elif ctype == "observation":
                 statement = claim.get("statement")
             elif ctype == "equation":
@@ -382,12 +405,14 @@ def _populate_claims(conn: sqlite3.Connection, claim_files: list):
                 "INSERT INTO claim (id, type, concept_id, value, lower_bound, "
                 "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
                 "conditions_cel, statement, expression, sympy_generated, name, "
+                "target_concept, measure, listener_population, methodology, "
                 "source_paper, provenance_page, provenance_json) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (cid, ctype, concept_id, value, lower_bound,
                  upper_bound, uncertainty, uncertainty_type, sample_size, unit,
                  json.dumps(conditions) if conditions else None,
                  statement, expression, sympy_generated, name,
+                 target_concept, measure, listener_population, methodology,
                  prov.get("paper", source_paper),
                  prov.get("page", 0),
                  json.dumps(prov)),

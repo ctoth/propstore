@@ -27,6 +27,8 @@ enums:
         description: "A qualitative claim that resists parameterization."
       model:
         description: "A parameterized equation system (multi-equation framework)."
+      measurement:
+        description: "A perceptual or behavioral measurement (JND, threshold, rating) about a concept."
 
   StanceType:
     description: >
@@ -41,6 +43,25 @@ enums:
         description: "Target claim supersedes this claim (later, better methodology)."
       mechanism_for:
         description: "This claim provides a mechanistic explanation for the target."
+
+  MeasureType:
+    description: >
+      The type of perceptual or behavioral measurement.
+    permissible_values:
+      jnd_absolute:
+        description: "Absolute just-noticeable difference."
+      jnd_relative:
+        description: "Relative just-noticeable difference (Weber fraction)."
+      discrimination_threshold:
+        description: "Discrimination threshold between stimuli."
+      preference_rating:
+        description: "Preference rating on a scale."
+      detection_threshold:
+        description: "Detection threshold for a stimulus."
+      correlation:
+        description: "Correlation coefficient between variables."
+      effect_size:
+        description: "Standardized effect size measure."
 
   UncertaintyType:
     description: >
@@ -185,6 +206,33 @@ classes:
         description: >
           Unit of measurement. Should match the concept's primary unit
           or a declared alternative. Required for parameter claims.
+        range: string
+
+      # --- measurement fields ---
+
+      target_concept:
+        description: >
+          Concept ID this measurement is about (e.g., speech_0002).
+          Required for measurement claims.
+        range: string
+
+      measure:
+        description: >
+          Type of measurement (e.g., jnd_absolute, preference_rating).
+          Required for measurement claims.
+        range: MeasureType
+
+      listener_population:
+        description: >
+          Description of the listener population tested
+          (e.g., native_english, hearing_impaired).
+          Optional for measurement claims.
+        range: string
+
+      methodology:
+        description: >
+          Description of the experimental methodology used.
+          Optional for measurement claims.
         range: string
 
       # --- equation fields ---

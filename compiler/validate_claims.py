@@ -215,6 +215,8 @@ def validate_claims(
                 _validate_observation(claim, cid, cf.filename, concept_registry, result)
             elif ctype == "model":
                 _validate_model(claim, cid, cf.filename, concept_registry, result)
+            elif ctype == "measurement":
+                _validate_measurement(claim, cid, cf.filename, concept_registry, result)
 
     return result
 
@@ -367,6 +369,88 @@ def _validate_model(
                     result.errors.append(
                         f"{filename}: model claim '{cid}' parameter references "
                         f"nonexistent concept '{param_concept}'")
+
+
+_VALID_MEASURE_TYPES = {
+    "jnd_absolute", "jnd_relative", "discrimination_threshold",
+    "preference_rating", "detection_threshold", "correlation", "effect_size",
+}
+
+
+def _validate_measurement(
+    claim: dict, cid: str, filename: str,
+    concept_registry: dict[str, dict], result: ValidationResult,
+) -> None:
+    target_concept = claim.get("target_concept")
+    if not target_concept:
+        result.errors.append(f"{filename}: measurement claim '{cid}' missing 'target_concept'")
+    elif target_concept not in concept_registry:
+        result.errors.append(
+            f"{filename}: measurement claim '{cid}' references nonexistent concept '{target_concept}'")
+
+    measure = claim.get("measure")
+    if not measure:
+        result.errors.append(f"{filename}: measurement claim '{cid}' missing 'measure'")
+    elif measure not in _VALID_MEASURE_TYPES:
+        result.errors.append(
+            f"{filename}: measurement claim '{cid}' invalid measure type '{measure}'")
+
+    # Value semantics: same as parameter claims
+    value = claim.get("value")
+    lower_bound = claim.get("lower_bound")
+    upper_bound = claim.get("upper_bound")
+
+    has_value = value is not None
+    has_lower = lower_bound is not None
+    has_upper = upper_bound is not None
+
+    if not has_value and not has_lower and not has_upper:
+        result.errors.append(
+            f"{filename}: measurement claim '{cid}' missing 'value' "
+            f"(must have value or lower_bound+upper_bound)")
+
+    # Bounds must come in pairs
+    if has_lower and not has_upper:
+        result.errors.append(
+            f"{filename}: measurement claim '{cid}' has lower_bound without upper_bound")
+    if has_upper and not has_lower:
+        result.errors.append(
+            f"{filename}: measurement claim '{cid}' has upper_bound without lower_bound")
+
+    # Bound ordering
+    if has_lower and has_upper:
+        try:
+            if float(lower_bound) > float(upper_bound):
+                result.errors.append(
+                    f"{filename}: measurement claim '{cid}' lower_bound > upper_bound")
+        except (TypeError, ValueError):
+            pass
+
+    # Uncertainty must come with type and vice versa
+    uncertainty = claim.get("uncertainty")
+    uncertainty_type = claim.get("uncertainty_type")
+    has_uncertainty = uncertainty is not None
+    has_uncertainty_type = uncertainty_type is not None
+
+    if has_uncertainty_type and not has_uncertainty:
+        result.errors.append(
+            f"{filename}: measurement claim '{cid}' has uncertainty_type without uncertainty")
+    if has_uncertainty and not has_uncertainty_type:
+        result.errors.append(
+            f"{filename}: measurement claim '{cid}' has uncertainty without uncertainty_type")
+
+    # Uncertainty must be non-negative
+    if has_uncertainty:
+        try:
+            if float(uncertainty) < 0:
+                result.errors.append(
+                    f"{filename}: measurement claim '{cid}' uncertainty must be >= 0")
+        except (TypeError, ValueError):
+            pass
+
+    unit = claim.get("unit")
+    if not unit:
+        result.errors.append(f"{filename}: measurement claim '{cid}' missing 'unit'")
 
 
 def build_concept_registry(concepts_dir: Path) -> dict[str, dict]:

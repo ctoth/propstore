@@ -491,3 +491,70 @@ class TestNamedValueConflicts:
         records = detect_conflicts([cf], make_concept_registry())
         assert len(records) == 1
         assert records[0].warning_class == ConflictClass.CONFLICT
+
+
+# ── Measurement claim conflict detection ─────────────────────────────
+
+
+def _make_measurement_claim(id, target_concept, measure, value, unit="ratio",
+                            conditions=None, **fields):
+    """Build a measurement claim dict for testing."""
+    c = {
+        "id": id,
+        "type": "measurement",
+        "target_concept": target_concept,
+        "measure": measure,
+        "value": value,
+        "unit": unit,
+        "conditions": conditions or [],
+        "provenance": {"paper": "test", "page": 1},
+    }
+    c.update(fields)
+    return c
+
+
+class TestMeasurementConflicts:
+    def test_measurement_vs_parameter_never_compared(self):
+        """Measurement claim vs parameter claim for same concept -> NEVER compared."""
+        claims = [
+            make_parameter_claim("claim_0001", "speech_0002", 100.0, unit="Pa"),
+            _make_measurement_claim("claim_0002", "speech_0002", "jnd_absolute", 0.14),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        # No conflicts: different types are grouped separately
+        assert len(records) == 0
+
+    def test_measurement_same_target_measure_different_value_conflict(self):
+        """Two measurements: same target_concept + measure, different value -> CONFLICT."""
+        claims = [
+            _make_measurement_claim("claim_0001", "speech_0002", "jnd_absolute", 0.14),
+            _make_measurement_claim("claim_0002", "speech_0002", "jnd_absolute", 0.25),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.CONFLICT
+
+    def test_measurement_different_listener_population_phi_node(self):
+        """Two measurements: same target + measure, different listener_population -> PHI_NODE."""
+        claims = [
+            _make_measurement_claim("claim_0001", "speech_0002", "jnd_absolute", 0.14,
+                                    listener_population="native_english"),
+            _make_measurement_claim("claim_0002", "speech_0002", "jnd_absolute", 0.25,
+                                    listener_population="native_mandarin"),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.PHI_NODE
+
+    def test_measurement_same_target_measure_same_value_compatible(self):
+        """Two measurements: same target + measure, same value -> COMPATIBLE."""
+        claims = [
+            _make_measurement_claim("claim_0001", "speech_0002", "jnd_absolute", 0.14),
+            _make_measurement_claim("claim_0002", "speech_0002", "jnd_absolute", 0.14),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 0

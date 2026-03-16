@@ -197,6 +197,21 @@ def _classify_conditions(
 # ── Main detector ────────────────────────────────────────────────────
 
 
+def _collect_measurement_claims(
+    claim_files: list[LoadedClaimFile],
+) -> dict[tuple[str, str], list[dict]]:
+    """Group measurement claims by (target_concept, measure) across all claim files."""
+    by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for cf in claim_files:
+        for claim in cf.data.get("claims", []):
+            if (claim.get("type") == "measurement"
+                    and claim.get("target_concept")
+                    and claim.get("measure")):
+                key = (claim["target_concept"], claim["measure"])
+                by_key[key].append(claim)
+    return dict(by_key)
+
+
 def _collect_parameter_claims(claim_files: list[LoadedClaimFile]) -> dict[str, list[dict]]:
     """Group parameter claims by concept_id across all claim files."""
     by_concept: dict[str, list[dict]] = defaultdict(list)
@@ -276,6 +291,43 @@ def detect_conflicts(
                     conditions_b=conditions_b,
                     value_a=_value_str(value_a, claim=claim_a),
                     value_b=_value_str(value_b, claim=claim_b),
+                ))
+
+    # Step 3: Measurement claims — grouped separately by (target_concept, measure)
+    by_measurement = _collect_measurement_claims(claim_files)
+    for key, m_claims in by_measurement.items():
+        if len(m_claims) < 2:
+            continue
+        target_concept, measure = key
+
+        for i in range(len(m_claims)):
+            for j in range(i + 1, len(m_claims)):
+                claim_a = m_claims[i]
+                claim_b = m_claims[j]
+
+                # Check value compatibility using _extract_interval
+                if _values_compatible(None, None, claim_a=claim_a, claim_b=claim_b):
+                    continue  # COMPATIBLE — skip
+
+                # Check listener_population: if different, PHI_NODE
+                pop_a = claim_a.get("listener_population", "")
+                pop_b = claim_b.get("listener_population", "")
+                if pop_a and pop_b and pop_a != pop_b:
+                    warning_class = ConflictClass.PHI_NODE
+                else:
+                    conditions_a = sorted(claim_a.get("conditions") or [])
+                    conditions_b = sorted(claim_b.get("conditions") or [])
+                    warning_class = _classify_conditions(conditions_a, conditions_b)
+
+                records.append(ConflictRecord(
+                    concept_id=target_concept,
+                    claim_a_id=claim_a["id"],
+                    claim_b_id=claim_b["id"],
+                    warning_class=warning_class,
+                    conditions_a=sorted(claim_a.get("conditions") or []),
+                    conditions_b=sorted(claim_b.get("conditions") or []),
+                    value_a=_value_str(None, claim=claim_a),
+                    value_b=_value_str(None, claim=claim_b),
                 ))
 
     # Step 4: Parameterization conflict detection

@@ -765,3 +765,105 @@ class TestNamedValueFields:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert result.ok, f"Unexpected errors: {result.errors}"
+
+
+# ── Measurement claim validation ─────────────────────────────────────
+
+
+class TestMeasurementClaimValidation:
+    def test_valid_measurement_claim(self, claims_dir):
+        """type: measurement with target_concept, measure, value, unit -> validates."""
+        claim = {
+            "id": "claim_0001",
+            "type": "measurement",
+            "target_concept": "speech_0002",
+            "measure": "jnd_absolute",
+            "value": 0.14,
+            "unit": "ratio",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_measurement_missing_target_concept_error(self, claims_dir):
+        """Measurement missing target_concept -> validation error."""
+        claim = {
+            "id": "claim_0001",
+            "type": "measurement",
+            "measure": "jnd_absolute",
+            "value": 0.14,
+            "unit": "ratio",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("target_concept" in e for e in result.errors)
+
+    def test_measurement_missing_measure_error(self, claims_dir):
+        """Measurement missing measure -> validation error."""
+        claim = {
+            "id": "claim_0001",
+            "type": "measurement",
+            "target_concept": "speech_0002",
+            "value": 0.14,
+            "unit": "ratio",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("measure" in e for e in result.errors)
+
+    def test_measurement_with_uncertainty_validates(self, claims_dir):
+        """Measurement with value, uncertainty, uncertainty_type, sample_size -> validates."""
+        claim = {
+            "id": "claim_0001",
+            "type": "measurement",
+            "target_concept": "speech_0002",
+            "measure": "jnd_absolute",
+            "value": 0.14,
+            "uncertainty": 0.03,
+            "uncertainty_type": "sd",
+            "sample_size": 20,
+            "unit": "ratio",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    @pytest.mark.parametrize("measure", [
+        "jnd_absolute", "jnd_relative", "discrimination_threshold",
+        "preference_rating", "detection_threshold",
+    ])
+    def test_valid_measure_types(self, claims_dir, measure):
+        """All valid measure types should validate."""
+        claim = {
+            "id": "claim_0001",
+            "type": "measurement",
+            "target_concept": "speech_0002",
+            "measure": measure,
+            "value": 0.14,
+            "unit": "ratio",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors for measure={measure}: {result.errors}"

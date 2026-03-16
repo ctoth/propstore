@@ -63,6 +63,31 @@
                     "description": "Stable identifier. Format: claim_NNNN (zero-padded to 4 digits).\n",
                     "type": "string"
                 },
+                "listener_population": {
+                    "description": "Description of the listener population tested (e.g., native_english, hearing_impaired). Optional for measurement claims.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "lower_bound": {
+                    "description": "Lower bound of a range estimate. Must appear together with upper_bound.\n",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "measure": {
+                    "$ref": "#/$defs/MeasureType",
+                    "description": "Type of measurement (e.g., jnd_absolute, preference_rating). Required for measurement claims.\n"
+                },
+                "methodology": {
+                    "description": "Description of the experimental methodology used. Optional for measurement claims.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
                 "name": {
                     "description": "Name of the model (e.g., \"Exponential transition model (Model IVb)\"). Required for model claims.\n",
                     "type": [
@@ -83,6 +108,13 @@
                 "provenance": {
                     "$ref": "#/$defs/Provenance",
                     "description": "Where in the paper this claim was found."
+                },
+                "sample_size": {
+                    "description": "Number of observations the parameter estimate is based on.\n",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
                 },
                 "stances": {
                     "description": "Epistemic relations to other claims. Populated during reconciliation, not during initial extraction.\n",
@@ -108,29 +140,32 @@
                         "null"
                     ]
                 },
-                "type": {
-                    "$ref": "#/$defs/ClaimType",
-                    "description": "The claim type: parameter, equation, observation, or model."
-                },
-                "unit": {
-                    "description": "Unit of measurement. Should match the concept's primary unit or a declared alternative. Required for parameter claims.\n",
+                "target_concept": {
+                    "description": "Concept ID this measurement is about (e.g., speech_0002). Required for measurement claims.\n",
                     "type": [
                         "string",
                         "null"
                     ]
                 },
-                "value": {
-                    "description": "Numeric point value. Optional if lower_bound/upper_bound provided. Also accepts legacy array format for backward compatibility.\n",
-                    "anyOf": [
-                        {"type": "number"},
-                        {"type": "array", "items": {"type": "number"}},
-                        {"type": "null"}
-                    ]
+                "type": {
+                    "$ref": "#/$defs/ClaimType",
+                    "description": "The claim type: parameter, equation, observation, or model."
                 },
-                "lower_bound": {
-                    "description": "Lower bound of a range estimate. Must appear together with upper_bound.\n",
+                "uncertainty": {
+                    "description": "Uncertainty measure (e.g., standard deviation). Must appear together with uncertainty_type.\n",
                     "type": [
                         "number",
+                        "null"
+                    ]
+                },
+                "uncertainty_type": {
+                    "$ref": "#/$defs/UncertaintyType",
+                    "description": "Type of uncertainty measure. Must appear together with uncertainty.\n"
+                },
+                "unit": {
+                    "description": "Unit of measurement. Should match the concept's primary unit or a declared alternative. Required for parameter claims.\n",
+                    "type": [
+                        "string",
                         "null"
                     ]
                 },
@@ -141,21 +176,10 @@
                         "null"
                     ]
                 },
-                "uncertainty": {
-                    "description": "Uncertainty measure (e.g., standard deviation). Must appear together with uncertainty_type.\n",
+                "value": {
+                    "description": "Numeric point value. Optional if lower_bound/upper_bound provided. At least one of value or lower_bound+upper_bound must be present for parameter claims.\n",
                     "type": [
                         "number",
-                        "null"
-                    ]
-                },
-                "uncertainty_type": {
-                    "description": "Type of uncertainty measure.\n",
-                    "$ref": "#/$defs/UncertaintyType__nullable"
-                },
-                "sample_size": {
-                    "description": "Number of observations the parameter estimate is based on.\n",
-                    "type": [
-                        "integer",
                         "null"
                     ]
                 },
@@ -244,7 +268,8 @@
                 "parameter",
                 "equation",
                 "observation",
-                "model"
+                "model",
+                "measurement"
             ],
             "title": "ClaimType",
             "type": "string"
@@ -284,6 +309,20 @@
             },
             "title": "FitStatistics",
             "type": "object"
+        },
+        "MeasureType": {
+            "description": "The type of perceptual or behavioral measurement.",
+            "enum": [
+                "jnd_absolute",
+                "jnd_relative",
+                "discrimination_threshold",
+                "preference_rating",
+                "detection_threshold",
+                "correlation",
+                "effect_size"
+            ],
+            "title": "MeasureType",
+            "type": "string"
         },
         "ParameterBinding": {
             "additionalProperties": false,
@@ -422,16 +461,6 @@
             ],
             "title": "UncertaintyType",
             "type": "string"
-        },
-        "UncertaintyType__nullable": {
-            "anyOf": [
-                {
-                    "$ref": "#/$defs/UncertaintyType"
-                },
-                {
-                    "type": "null"
-                }
-            ]
         },
         "VariableBinding": {
             "additionalProperties": false,
