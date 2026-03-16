@@ -60,7 +60,7 @@
                     "description": "Fit statistics for equation claims."
                 },
                 "id": {
-                    "description": "Stable identifier. Format: claim_NNNN (zero-padded to 4 digits).\n",
+                    "description": "Stable identifier. Format: claim + sequential integer (e.g., claim1, claim12, claim103).\n",
                     "type": "string"
                 },
                 "listener_population": {
@@ -492,7 +492,7 @@
     },
     "$id": "https://propstore.local/schema/claim",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "additionalProperties": true,
+    "additionalProperties": false,
     "description": "Top-level container for claims extracted from a single paper. One YAML file per paper at claims/<paper_dir_name>.yaml.",
     "metamodel_version": "1.7.0",
     "properties": {

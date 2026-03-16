@@ -187,7 +187,7 @@ classes:
     description: >
       Per-concept overrides for form-level parameters. Used when a form
       defines parameterized slots (e.g. dB reference for level forms,
-      construction formula for dimensionless compounds).
+      construction formula for dimensionless compounds, category values).
     attributes:
       reference:
         description: >
@@ -198,6 +198,18 @@ classes:
           For dimensionless_compound concepts, the formula that constructs
           the compound quantity.
         range: string
+      values:
+        description: >
+          For category-form concepts, the valid value set. CEL expressions
+          comparing this concept against a string not in this set trigger
+          warnings (if extensible) or errors (if not extensible).
+        range: string
+        multivalued: true
+      extensible:
+        description: >
+          For category-form concepts, whether unrecognized values are
+          warnings (true) or errors (false). Defaults to true.
+        range: boolean
       note:
         description: Free-text note about the form parameterization.
         range: string
