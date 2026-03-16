@@ -348,6 +348,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
             statement TEXT,
             expression TEXT,
             sympy_generated TEXT,
+            sympy_error TEXT,
             name TEXT,
             target_concept TEXT,
             measure TEXT,
@@ -358,6 +359,17 @@ def _create_claim_tables(conn: sqlite3.Connection):
             source_paper TEXT NOT NULL,
             provenance_page INTEGER NOT NULL,
             provenance_json TEXT
+        );
+
+        CREATE TABLE claim_stance (
+            claim_id TEXT NOT NULL,
+            target_claim_id TEXT NOT NULL,
+            stance_type TEXT NOT NULL,
+            strength TEXT,
+            conditions_differ TEXT,
+            note TEXT,
+            FOREIGN KEY (claim_id) REFERENCES claim(id),
+            FOREIGN KEY (target_claim_id) REFERENCES claim(id)
         );
 
         CREATE TABLE conflicts (
@@ -383,6 +395,8 @@ def _create_claim_tables(conn: sqlite3.Connection):
 
         CREATE INDEX idx_claim_concept ON claim(concept_id);
         CREATE INDEX idx_claim_type ON claim(type);
+        CREATE INDEX idx_claim_stance_claim ON claim_stance(claim_id);
+        CREATE INDEX idx_claim_stance_target ON claim_stance(target_claim_id);
         CREATE INDEX idx_conflicts_concept ON conflicts(concept_id);
         CREATE INDEX idx_conflicts_class ON conflicts(warning_class);
     """)
@@ -465,13 +479,16 @@ def _populate_claims(
 
             # For equation claims, resolve sympy: explicit > auto-generated
             sympy_generated = None
+            sympy_error = None
             if ctype == "equation":
                 explicit_sympy = claim.get("sympy")
                 if explicit_sympy:
                     sympy_generated = explicit_sympy
                 elif expression:
-                    from compiler.sympy_generator import generate_sympy
-                    sympy_generated = generate_sympy(expression)
+                    from compiler.sympy_generator import generate_sympy_with_error
+                    sympy_result = generate_sympy_with_error(expression)
+                    sympy_generated = sympy_result.expression
+                    sympy_error = sympy_result.error
 
             # Auto-generate summary label from structured fields
             auto_summary = generate_description(claim, concept_registry or {})
@@ -487,20 +504,40 @@ def _populate_claims(
             conn.execute(
                 "INSERT INTO claim (id, content_hash, seq, type, concept_id, value, lower_bound, "
                 "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
-                "conditions_cel, statement, expression, sympy_generated, name, "
+                "conditions_cel, statement, expression, sympy_generated, sympy_error, name, "
                 "target_concept, measure, listener_population, methodology, "
                 "description, auto_summary, source_paper, provenance_page, provenance_json) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (cid, content_hash, claim_seq, ctype, concept_id, value, lower_bound,
                  upper_bound, uncertainty, uncertainty_type, sample_size, unit,
                  json.dumps(conditions) if conditions else None,
-                 statement, expression, sympy_generated, name,
+                 statement, expression, sympy_generated, sympy_error, name,
                  target_concept, measure, listener_population, methodology,
                  description, auto_summary,
                  prov.get("paper", source_paper),
                  prov.get("page", 0),
                  json.dumps(prov)),
             )
+
+            for stance in claim.get("stances", []) or []:
+                if not isinstance(stance, dict):
+                    continue
+                target_claim_id = stance.get("target")
+                stance_type = stance.get("type")
+                if not target_claim_id or not stance_type:
+                    continue
+                conn.execute(
+                    "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
+                    "conditions_differ, note) VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        cid,
+                        target_claim_id,
+                        stance_type,
+                        stance.get("strength"),
+                        stance.get("conditions_differ"),
+                        stance.get("note"),
+                    ),
+                )
 
 
 def _populate_conflicts(

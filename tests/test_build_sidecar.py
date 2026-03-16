@@ -417,6 +417,14 @@ def claim_files(concept_dir):
                 "value": [350.0],
                 "unit": "Hz",
                 "conditions": ["task == 'speech'"],
+                "stances": [
+                    {
+                        "type": "contradicts",
+                        "target": "claim1",
+                        "strength": "strong",
+                        "note": "same task, conflicting value",
+                    }
+                ],
                 "provenance": {"paper": "test_paper_alpha", "page": 8, "table": "Table 2"},
             },
             {
@@ -600,6 +608,51 @@ class TestClaimTable:
         assert "log(Ps)" in row["expression"]
         conn.close()
 
+    def test_equation_claim_preserves_sympy_error(self, concept_dir, sidecar_path):
+        """Equation claims preserve the auto-generation error when sympy cannot be derived."""
+        claims_dir = concept_dir / "claims_equation_error"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = {
+            "source": {"paper": "equation_error_paper"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "equation",
+                    "expression": "F0 is roughly proportional to Ps",
+                    "variables": [
+                        {"symbol": "F0", "concept": "concept1"},
+                        {"symbol": "Ps", "concept": "concept2"},
+                    ],
+                    "provenance": {"paper": "equation_error_paper", "page": 1},
+                },
+            ],
+        }
+        (claims_dir / "equation_error_paper.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
+
+        from compiler.validate_claims import build_concept_registry, load_claim_files
+
+        claim_files = load_claim_files(claims_dir)
+        concepts = load_concepts(concept_dir)
+        concept_registry = build_concept_registry(concept_dir)
+        build_sidecar(
+            concepts,
+            sidecar_path,
+            force=True,
+            claim_files=claim_files,
+            concept_registry=concept_registry,
+        )
+
+        conn = sqlite3.connect(sidecar_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT sympy_generated, sympy_error FROM claim WHERE id='claim1'"
+        ).fetchone()
+        assert row["sympy_generated"] is None
+        assert row["sympy_error"] is not None
+        conn.close()
+
     def test_legacy_range_does_not_store_midpoint_scalar(self, concept_dir, sidecar_path):
         """Legacy list ranges preserve bounds without inventing a midpoint scalar."""
         claims_dir = concept_dir / "claims_range"
@@ -662,6 +715,30 @@ class TestConflictsTable:
             "SELECT * FROM conflicts WHERE warning_class='CONFLICT'"
         ).fetchall()
         assert len(rows) >= 1
+        conn.close()
+
+
+class TestClaimStanceTable:
+    def test_claim_stance_table_exists(self, sidecar_with_claims):
+        conn = sqlite3.connect(sidecar_with_claims)
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='claim_stance'"
+        )
+        assert cursor.fetchone() is not None
+        conn.close()
+
+    def test_claim_stance_rows_persisted(self, sidecar_with_claims):
+        conn = sqlite3.connect(sidecar_with_claims)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT claim_id, target_claim_id, stance_type, strength, note "
+            "FROM claim_stance WHERE claim_id='claim2'"
+        ).fetchone()
+        assert row["claim_id"] == "claim2"
+        assert row["target_claim_id"] == "claim1"
+        assert row["stance_type"] == "contradicts"
+        assert row["strength"] == "strong"
+        assert "conflicting value" in row["note"]
         conn.close()
 
     def test_conflict_query_by_class(self, sidecar_with_claims):

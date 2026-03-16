@@ -211,3 +211,8 @@ def test_summarize_multiple():
         "speaker_sex == 'female'",
     ])
     assert result == "breathy voice, female speakers"
+
+
+def test_summarize_double_quoted_equality():
+    result = _summarize_conditions(['task == "speech"'])
+    assert result == "speech"

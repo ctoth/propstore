@@ -7,11 +7,46 @@ equation representations for equation claims that only have a human-readable
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import sympy
 
 
 # Symbols that SymPy recognizes as constants — don't warn about these
 _SYMPY_CONSTANTS = {"pi", "E", "I", "oo", "zoo", "nan"}
+
+
+@dataclass(frozen=True)
+class SympyGenerationResult:
+    expression: str | None
+    error: str | None
+
+
+def generate_sympy_with_error(expression: str | None) -> SympyGenerationResult:
+    """Generate a SymPy expression and preserve the failure reason."""
+    if not expression or not isinstance(expression, str):
+        return SympyGenerationResult(None, "missing expression")
+
+    text = expression.strip()
+    if not text:
+        return SympyGenerationResult(None, "empty expression")
+
+    # Preprocess: replace ^ with **
+    text = text.replace("^", "**")
+
+    # If contains =, take the RHS
+    if "=" in text:
+        parts = text.split("=", 1)
+        text = parts[1].strip()
+
+    if not text:
+        return SympyGenerationResult(None, "expression has no right-hand side")
+
+    try:
+        result = sympy.sympify(text)
+        return SympyGenerationResult(str(result), None)
+    except (sympy.SympifyError, SyntaxError, TypeError, ValueError) as exc:
+        return SympyGenerationResult(None, str(exc))
 
 
 def generate_sympy(expression: str | None) -> str | None:
@@ -23,29 +58,7 @@ def generate_sympy(expression: str | None) -> str | None:
     Returns:
         SymPy-parseable string of the RHS, or None if parsing fails.
     """
-    if not expression or not isinstance(expression, str):
-        return None
-
-    text = expression.strip()
-    if not text:
-        return None
-
-    # Preprocess: replace ^ with **
-    text = text.replace("^", "**")
-
-    # If contains =, take the RHS
-    if "=" in text:
-        parts = text.split("=", 1)
-        text = parts[1].strip()
-
-    if not text:
-        return None
-
-    try:
-        result = sympy.sympify(text)
-        return str(result)
-    except (sympy.SympifyError, SyntaxError, TypeError, ValueError):
-        return None
+    return generate_sympy_with_error(expression).expression
 
 
 def check_symbols(

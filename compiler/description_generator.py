@@ -135,7 +135,7 @@ def _describe_measurement(claim: dict, concept_registry: dict) -> str:
 # ── Condition summarization ───────────────────────────────────────────
 
 # Patterns for common CEL equality conditions
-_EQUALITY_RE = re.compile(r"^(\w+)\s*==\s*'([^']+)'$")
+_EQUALITY_RE = re.compile(r"""^(\w+)\s*==\s*(['"])(.+?)\2$""")
 
 # Human-readable labels for known concept names in conditions
 _CONDITION_LABELS = {
@@ -169,7 +169,7 @@ def _summarize_conditions(conditions: list[str]) -> str:
     for cond in conditions:
         m = _EQUALITY_RE.match(cond.strip())
         if m:
-            concept_name, value = m.group(1), m.group(2)
+            concept_name, value = m.group(1), m.group(3)
             labeler = _CONDITION_LABELS.get(concept_name)
             if labeler:
                 parts.append(labeler(value))
