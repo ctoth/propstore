@@ -18,14 +18,17 @@ import json
 import sqlite3
 import sys
 from pathlib import Path
+from typing import Sequence
 
 from compiler.parameterization_groups import build_groups
+from compiler.form_utils import kind_value_from_form_name
 from compiler.validate import LoadedConcept, load_concepts
+from compiler.validate_claims import LoadedClaimFile
 
 
 def _content_hash(
     concepts: list[LoadedConcept],
-    claim_files: list | None = None,
+    claim_files: Sequence[LoadedClaimFile] | None = None,
 ) -> str:
     """Hash all concept and claim file contents to detect changes."""
     h = hashlib.sha256()
@@ -85,21 +88,11 @@ def _claim_content_hash(claim: dict, source_paper: str) -> str:
     return h.hexdigest()[:16]
 
 
-def _get_form_kind(data: dict) -> str:
-    """Derive a kind-type string from the concept's form field."""
-    form = data.get("form", "")
-    if form in ("category", "structural", "boolean"):
-        return form
-    if form:
-        return "quantity"
-    return "unknown"
-
-
 def build_sidecar(
     concepts: list[LoadedConcept],
     sidecar_path: Path,
     force: bool = False,
-    claim_files: list | None = None,
+    claim_files: Sequence[LoadedClaimFile] | None = None,
     concept_registry: dict | None = None,
 ) -> bool:
     """Build the SQLite sidecar from concept data.
@@ -240,7 +233,7 @@ def _populate_concepts(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
             "created_date, last_modified) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (d.get("id"), content_hash, seq, d.get("canonical_name"), d.get("status"),
-             d.get("domain"), d.get("definition"), _get_form_kind(d),
+             d.get("domain"), d.get("definition"), kind_value_from_form_name(d.get("form")),
              d.get("form", ""), form_params_json, range_min, range_max,
              created, modified),
         )
@@ -395,7 +388,11 @@ def _create_claim_tables(conn: sqlite3.Connection):
     """)
 
 
-def _populate_claims(conn: sqlite3.Connection, claim_files: list, concept_registry: dict | None = None):
+def _populate_claims(
+    conn: sqlite3.Connection,
+    claim_files: Sequence[LoadedClaimFile],
+    concept_registry: dict | None = None,
+):
     from compiler.description_generator import generate_description
 
     claim_seq = 0
@@ -436,7 +433,6 @@ def _populate_claims(conn: sqlite3.Connection, claim_files: list, concept_regist
                     elif len(raw_value) >= 2:
                         lower_bound = float(min(raw_value))
                         upper_bound = float(max(raw_value))
-                        value = (lower_bound + upper_bound) / 2
                 elif raw_value is not None:
                     value = float(raw_value)
                 lower_bound = claim.get("lower_bound", lower_bound)
@@ -507,7 +503,11 @@ def _populate_claims(conn: sqlite3.Connection, claim_files: list, concept_regist
             )
 
 
-def _populate_conflicts(conn: sqlite3.Connection, claim_files: list, concept_registry: dict):
+def _populate_conflicts(
+    conn: sqlite3.Connection,
+    claim_files: Sequence[LoadedClaimFile],
+    concept_registry: dict,
+):
     from compiler.conflict_detector import detect_conflicts
 
     records = detect_conflicts(claim_files, concept_registry)
@@ -525,7 +525,7 @@ def _populate_conflicts(conn: sqlite3.Connection, claim_files: list, concept_reg
         )
 
 
-def _build_claim_fts_index(conn: sqlite3.Connection, claim_files: list):
+def _build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[LoadedClaimFile]):
     """Build FTS5 index over claim statements, conditions, and expressions."""
     for cf in claim_files:
         for claim in cf.data.get("claims", []):

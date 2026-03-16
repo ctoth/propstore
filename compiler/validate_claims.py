@@ -14,6 +14,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import jsonschema
 import yaml
@@ -22,6 +23,12 @@ from compiler.cel_checker import (
     ConceptInfo,
     KindType,
     check_cel_expression,
+)
+from compiler.form_utils import (
+    allowed_units_from_form_definition,
+    json_safe,
+    kind_type_from_form_name,
+    load_form_definition,
 )
 
 
@@ -58,32 +65,6 @@ def load_claim_files(claims_dir: Path) -> list[LoadedClaimFile]:
     return files
 
 
-def _json_safe(obj):
-    """Recursively convert date objects to ISO format strings for JSON Schema validation."""
-    import datetime
-    if isinstance(obj, dict):
-        return {k: _json_safe(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_json_safe(v) for v in obj]
-    if isinstance(obj, (datetime.date, datetime.datetime)):
-        return obj.isoformat()
-    return obj
-
-
-def _kind_type_from_form(data: dict) -> KindType | None:
-    """Derive KindType from a concept's form field."""
-    form = data.get("form")
-    if not form or not isinstance(form, str):
-        return None
-    if form == "category":
-        return KindType.CATEGORY
-    if form == "structural":
-        return KindType.STRUCTURAL
-    if form == "boolean":
-        return KindType.BOOLEAN
-    return KindType.QUANTITY
-
-
 def _build_cel_registry_from_concepts(concept_registry: dict[str, dict]) -> dict[str, ConceptInfo]:
     """Build a CEL type-checking registry from concept data dicts.
 
@@ -92,7 +73,7 @@ def _build_cel_registry_from_concepts(concept_registry: dict[str, dict]) -> dict
     registry: dict[str, ConceptInfo] = {}
     for cid, data in concept_registry.items():
         name = data.get("canonical_name", "")
-        kind_type = _kind_type_from_form(data)
+        kind_type = kind_type_from_form_name(data.get("form"))
         if not name or kind_type is None:
             continue
 
@@ -146,7 +127,7 @@ def validate_claims(
         # JSON Schema validation
         if json_schema is not None:
             try:
-                jsonschema.validate(_json_safe(data), json_schema)
+                jsonschema.validate(json_safe(data), json_schema)
             except jsonschema.ValidationError as e:
                 result.errors.append(f"{cf.filename}: JSON Schema error: {e.message}")
 
@@ -225,12 +206,15 @@ def _validate_parameter(
     claim: dict, cid: str, filename: str,
     concept_registry: dict[str, dict], result: ValidationResult,
 ) -> None:
+    concept_data: dict[str, Any] | None = None
     concept = claim.get("concept")
     if not concept:
         result.errors.append(f"{filename}: parameter claim '{cid}' missing 'concept'")
     elif concept not in concept_registry:
         result.errors.append(
             f"{filename}: parameter claim '{cid}' references nonexistent concept '{concept}'")
+    else:
+        concept_data = concept_registry[concept]
 
     # Value semantics: at least one of value or lower_bound+upper_bound must be present
     value = claim.get("value")
@@ -288,6 +272,12 @@ def _validate_parameter(
     unit = claim.get("unit")
     if not unit:
         result.errors.append(f"{filename}: parameter claim '{cid}' missing 'unit'")
+    elif concept_data is not None:
+        allowed_units = concept_data.get("_allowed_units") or []
+        if allowed_units and unit not in allowed_units:
+            result.errors.append(
+                f"{filename}: parameter claim '{cid}' unit '{unit}' does not match "
+                f"concept '{concept}' allowed units {sorted(allowed_units)}")
 
 
 def _validate_equation(
@@ -456,8 +446,20 @@ def _validate_measurement(
 def build_concept_registry(concepts_dir: Path) -> dict[str, dict]:
     """Load concepts and build {concept_id: concept_data} mapping."""
     from compiler.validate import load_concepts
+    forms_dir = concepts_dir.parent / "forms"
     concepts = load_concepts(concepts_dir)
-    return {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+    registry: dict[str, dict] = {}
+    for concept in concepts:
+        cid = concept.data.get("id")
+        if not cid:
+            continue
+        enriched = dict(concept.data)
+        form_definition = load_form_definition(forms_dir, enriched.get("form"))
+        allowed_units = sorted(allowed_units_from_form_definition(form_definition))
+        if allowed_units:
+            enriched["_allowed_units"] = allowed_units
+        registry[cid] = enriched
+    return registry
 
 
 def main():
@@ -494,7 +496,7 @@ def main():
             json_schema = json.load(f)
         for cf in claim_files:
             try:
-                jsonschema.validate(_json_safe(cf.data), json_schema)
+                jsonschema.validate(json_safe(cf.data), json_schema)
             except jsonschema.ValidationError as e:
                 print(f"JSON Schema ERROR in {cf.filename}: {e.message}")
 

@@ -23,6 +23,7 @@ from compiler.cel_checker import (
     KindType,
     check_cel_expression,
 )
+from compiler.form_utils import json_safe, kind_type_from_form_name
 
 
 @dataclass
@@ -58,27 +59,6 @@ def load_concepts(concept_dir: Path) -> list[LoadedConcept]:
     return concepts
 
 
-def _get_kind_type_from_form(concept_data: dict) -> KindType | None:
-    """Derive the KindType from a concept's form field.
-
-    Maps form names to KindType:
-      - 'category' -> CATEGORY
-      - 'structural' -> STRUCTURAL
-      - 'boolean' -> BOOLEAN
-      - everything else -> QUANTITY (measurable forms)
-    """
-    form = concept_data.get("form")
-    if not form or not isinstance(form, str):
-        return None
-    if form == "category":
-        return KindType.CATEGORY
-    if form == "structural":
-        return KindType.STRUCTURAL
-    if form == "boolean":
-        return KindType.BOOLEAN
-    return KindType.QUANTITY
-
-
 _CONCEPT_ID_RE = re.compile(r'^concept\d+$')
 
 
@@ -89,7 +69,7 @@ def _build_cel_registry(concepts: list[LoadedConcept]) -> dict[str, ConceptInfo]
         data = c.data
         cid = data.get("id", "")
         name = data.get("canonical_name", "")
-        kind_type = _get_kind_type_from_form(data)
+        kind_type = kind_type_from_form_name(data.get("form"))
         if not name or kind_type is None:
             continue
 
@@ -286,7 +266,7 @@ def validate_concepts(
                         f"{c.filename}: parameterization input '{input_id}' not found in registry")
                 else:
                     input_concept = id_to_concept[input_id]
-                    input_kind = _get_kind_type_from_form(input_concept.data)
+                    input_kind = kind_type_from_form_name(input_concept.data.get("form"))
                     if input_kind and input_kind != KindType.QUANTITY:
                         result.errors.append(
                             f"{c.filename}: parameterization input '{input_id}' "
@@ -350,18 +330,6 @@ def validate_concepts(
     return result
 
 
-def _json_safe(obj):
-    """Recursively convert date objects to ISO format strings for JSON Schema validation."""
-    import datetime
-    if isinstance(obj, dict):
-        return {k: _json_safe(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_json_safe(v) for v in obj]
-    if isinstance(obj, (datetime.date, datetime.datetime)):
-        return obj.isoformat()
-    return obj
-
-
 def main():
     """CLI entry point: validate concepts directory."""
     import argparse
@@ -388,7 +356,7 @@ def main():
         for c in concepts:
             try:
                 # Convert date objects to ISO strings for JSON Schema validation
-                jsonschema.validate(_json_safe(c.data), json_schema)
+                jsonschema.validate(json_safe(c.data), json_schema)
             except jsonschema.ValidationError as e:
                 print(f"JSON Schema ERROR in {c.filename}: {e.message}")
 

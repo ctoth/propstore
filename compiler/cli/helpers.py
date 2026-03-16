@@ -9,6 +9,7 @@ from pathlib import Path
 import jsonschema
 import yaml
 
+from compiler.form_utils import json_safe
 from compiler.validate import LoadedConcept, ValidationResult, load_concepts, validate_concepts
 
 
@@ -56,18 +57,6 @@ def next_id(domain: str) -> tuple[str, int]:
 
 # ── YAML I/O ─────────────────────────────────────────────────────────
 
-def _json_safe(obj: object) -> object:
-    """Convert date objects for JSON Schema validation."""
-    import datetime
-    if isinstance(obj, dict):
-        return {k: _json_safe(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_json_safe(v) for v in obj]
-    if isinstance(obj, (datetime.date, datetime.datetime)):
-        return obj.isoformat()
-    return obj
-
-
 def load_concept_file(path: Path) -> dict:
     with open(path) as f:
         data = yaml.safe_load(f)
@@ -89,7 +78,7 @@ def validate_concept_data(data: dict, filename: str) -> ValidationResult:
         with open(sp) as f:
             json_schema = json.load(f)
         try:
-            jsonschema.validate(_json_safe(data), json_schema)
+            jsonschema.validate(json_safe(data), json_schema)
         except jsonschema.ValidationError as e:
             result.errors.append(f"{filename}: JSON Schema: {e.message}")
 

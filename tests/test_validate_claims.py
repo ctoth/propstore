@@ -348,6 +348,27 @@ class TestProvenanceErrors:
 
 
 class TestParameterClaimErrors:
+    def test_parameter_unit_mismatch_error(self, claims_dir):
+        claim = {
+            "id": "claim1",
+            "type": "parameter",
+            "concept": "concept1",
+            "value": 440.0,
+            "unit": "Pa",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        registry = make_concept_registry()
+        registry["concept1"]["_allowed_units"] = ["Hz"]
+
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert not result.ok
+        assert any("allowed units" in e.lower() or "does not match" in e.lower()
+                   for e in result.errors)
+
     def test_parameter_missing_value_error(self, claims_dir):
         claim = {
             "id": "claim1",
@@ -771,6 +792,26 @@ class TestNamedValueFields:
 
 
 class TestMeasurementClaimValidation:
+    def test_measurement_unit_not_checked_against_target_concept(self, claims_dir):
+        claim = {
+            "id": "claim1",
+            "type": "measurement",
+            "target_concept": "concept2",
+            "measure": "jnd_absolute",
+            "value": 0.14,
+            "unit": "ratio",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        registry = make_concept_registry()
+        registry["concept2"]["_allowed_units"] = ["Pa"]
+
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, registry)
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
     def test_valid_measurement_claim(self, claims_dir):
         """type: measurement with target_concept, measure, value, unit -> validates."""
         claim = {

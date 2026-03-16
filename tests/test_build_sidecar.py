@@ -600,6 +600,41 @@ class TestClaimTable:
         assert "log(Ps)" in row["expression"]
         conn.close()
 
+    def test_legacy_range_does_not_store_midpoint_scalar(self, concept_dir, sidecar_path):
+        """Legacy list ranges preserve bounds without inventing a midpoint scalar."""
+        claims_dir = concept_dir / "claims_range"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = {
+            "source": {"paper": "range_paper"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": [100.0, 300.0],
+                    "unit": "Hz",
+                    "provenance": {"paper": "range_paper", "page": 1},
+                },
+            ],
+        }
+        (claims_dir / "range_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
+
+        from compiler.validate_claims import load_claim_files, build_concept_registry
+
+        claim_files = load_claim_files(claims_dir)
+        concepts = load_concepts(concept_dir)
+        concept_registry = build_concept_registry(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True,
+                      claim_files=claim_files, concept_registry=concept_registry)
+
+        conn = sqlite3.connect(sidecar_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT value, lower_bound, upper_bound FROM claim WHERE id='claim1'").fetchone()
+        assert row["value"] is None
+        assert row["lower_bound"] == 100.0
+        assert row["upper_bound"] == 300.0
+        conn.close()
+
     def test_no_claim_table_without_claims(self, concept_dir, sidecar_path):
         """claim table NOT created when claim_files is None."""
         concepts = load_concepts(concept_dir)
