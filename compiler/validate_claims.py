@@ -209,6 +209,60 @@ def validate_claims(
     return result
 
 
+def _validate_value_fields(
+    claim: dict, cid: str, filename: str,
+    label: str, result: ValidationResult,
+) -> None:
+    """Validate value, bounds, and uncertainty fields shared by parameter and measurement claims."""
+    value = claim.get("value")
+    lower_bound = claim.get("lower_bound")
+    upper_bound = claim.get("upper_bound")
+
+    has_value = value is not None
+    has_lower = lower_bound is not None
+    has_upper = upper_bound is not None
+
+    if not has_value and not has_lower and not has_upper:
+        result.errors.append(
+            f"{filename}: {label} claim '{cid}' missing 'value' "
+            f"(must have value or lower_bound+upper_bound)")
+
+    if has_lower and not has_upper:
+        result.errors.append(
+            f"{filename}: {label} claim '{cid}' has lower_bound without upper_bound")
+    if has_upper and not has_lower:
+        result.errors.append(
+            f"{filename}: {label} claim '{cid}' has upper_bound without lower_bound")
+
+    if has_lower and has_upper:
+        try:
+            if float(lower_bound) > float(upper_bound):
+                result.errors.append(
+                    f"{filename}: {label} claim '{cid}' lower_bound > upper_bound")
+        except (TypeError, ValueError):
+            pass
+
+    uncertainty = claim.get("uncertainty")
+    uncertainty_type = claim.get("uncertainty_type")
+    has_uncertainty = uncertainty is not None
+    has_uncertainty_type = uncertainty_type is not None
+
+    if has_uncertainty_type and not has_uncertainty:
+        result.errors.append(
+            f"{filename}: {label} claim '{cid}' has uncertainty_type without uncertainty")
+    if has_uncertainty and not has_uncertainty_type:
+        result.errors.append(
+            f"{filename}: {label} claim '{cid}' has uncertainty without uncertainty_type")
+
+    if has_uncertainty:
+        try:
+            if float(uncertainty) < 0:
+                result.errors.append(
+                    f"{filename}: {label} claim '{cid}' uncertainty must be >= 0")
+        except (TypeError, ValueError):
+            pass
+
+
 def _validate_parameter(
     claim: dict, cid: str, filename: str,
     concept_registry: dict[str, dict], result: ValidationResult,
@@ -223,58 +277,7 @@ def _validate_parameter(
     else:
         concept_data = concept_registry[concept]
 
-    # Value semantics: at least one of value or lower_bound+upper_bound must be present
-    value = claim.get("value")
-    lower_bound = claim.get("lower_bound")
-    upper_bound = claim.get("upper_bound")
-
-    has_value = value is not None
-    has_lower = lower_bound is not None
-    has_upper = upper_bound is not None
-
-    if not has_value and not has_lower and not has_upper:
-        result.errors.append(
-            f"{filename}: parameter claim '{cid}' missing 'value' "
-            f"(must have value or lower_bound+upper_bound)")
-
-    # Bounds must come in pairs
-    if has_lower and not has_upper:
-        result.errors.append(
-            f"{filename}: parameter claim '{cid}' has lower_bound without upper_bound")
-    if has_upper and not has_lower:
-        result.errors.append(
-            f"{filename}: parameter claim '{cid}' has upper_bound without lower_bound")
-
-    # Bound ordering
-    if has_lower and has_upper:
-        try:
-            if float(lower_bound) > float(upper_bound):
-                result.errors.append(
-                    f"{filename}: parameter claim '{cid}' lower_bound > upper_bound")
-        except (TypeError, ValueError):
-            pass
-
-    # Uncertainty must come with type and vice versa
-    uncertainty = claim.get("uncertainty")
-    uncertainty_type = claim.get("uncertainty_type")
-    has_uncertainty = uncertainty is not None
-    has_uncertainty_type = uncertainty_type is not None
-
-    if has_uncertainty_type and not has_uncertainty:
-        result.errors.append(
-            f"{filename}: parameter claim '{cid}' has uncertainty_type without uncertainty")
-    if has_uncertainty and not has_uncertainty_type:
-        result.errors.append(
-            f"{filename}: parameter claim '{cid}' has uncertainty without uncertainty_type")
-
-    # Uncertainty must be non-negative
-    if has_uncertainty:
-        try:
-            if float(uncertainty) < 0:
-                result.errors.append(
-                    f"{filename}: parameter claim '{cid}' uncertainty must be >= 0")
-        except (TypeError, ValueError):
-            pass
+    _validate_value_fields(claim, cid, filename, "parameter", result)
 
     unit = claim.get("unit")
     if not unit:
@@ -428,58 +431,7 @@ def _validate_measurement(
         result.errors.append(
             f"{filename}: measurement claim '{cid}' invalid measure type '{measure}'")
 
-    # Value semantics: same as parameter claims
-    value = claim.get("value")
-    lower_bound = claim.get("lower_bound")
-    upper_bound = claim.get("upper_bound")
-
-    has_value = value is not None
-    has_lower = lower_bound is not None
-    has_upper = upper_bound is not None
-
-    if not has_value and not has_lower and not has_upper:
-        result.errors.append(
-            f"{filename}: measurement claim '{cid}' missing 'value' "
-            f"(must have value or lower_bound+upper_bound)")
-
-    # Bounds must come in pairs
-    if has_lower and not has_upper:
-        result.errors.append(
-            f"{filename}: measurement claim '{cid}' has lower_bound without upper_bound")
-    if has_upper and not has_lower:
-        result.errors.append(
-            f"{filename}: measurement claim '{cid}' has upper_bound without lower_bound")
-
-    # Bound ordering
-    if has_lower and has_upper:
-        try:
-            if float(lower_bound) > float(upper_bound):
-                result.errors.append(
-                    f"{filename}: measurement claim '{cid}' lower_bound > upper_bound")
-        except (TypeError, ValueError):
-            pass
-
-    # Uncertainty must come with type and vice versa
-    uncertainty = claim.get("uncertainty")
-    uncertainty_type = claim.get("uncertainty_type")
-    has_uncertainty = uncertainty is not None
-    has_uncertainty_type = uncertainty_type is not None
-
-    if has_uncertainty_type and not has_uncertainty:
-        result.errors.append(
-            f"{filename}: measurement claim '{cid}' has uncertainty_type without uncertainty")
-    if has_uncertainty and not has_uncertainty_type:
-        result.errors.append(
-            f"{filename}: measurement claim '{cid}' has uncertainty without uncertainty_type")
-
-    # Uncertainty must be non-negative
-    if has_uncertainty:
-        try:
-            if float(uncertainty) < 0:
-                result.errors.append(
-                    f"{filename}: measurement claim '{cid}' uncertainty must be >= 0")
-        except (TypeError, ValueError):
-            pass
+    _validate_value_fields(claim, cid, filename, "measurement", result)
 
     unit = claim.get("unit")
     if not unit:
