@@ -152,18 +152,14 @@ definition: >
   measured or estimated at the tracheal level.
 definition_source: Titze_1994_PrinciplesVoiceProduction
 
+form: pressure          # references forms/pressure.yaml
+
 aliases:
   - { name: "Ps",     source: Sundberg_1993 }
   - { name: "P_sub",  source: Holmberg_1988 }
   - { name: "P_s",    source: Titze_1994 }
   - { name: "lung pressure", source: Lieberman_1967,
       note: "approximate; includes tracheal losses" }
-
-unit:
-  qudt: qudt:PA          # QUDT URI for pascals
-  common_alternatives:
-    - { unit: cmH2O, multiplier: 98.0665 }
-    - { unit: hPa,   multiplier: 100.0 }
 
 domain: speech_physiology
 
@@ -175,6 +171,128 @@ relationships:
   - type: related
     target: concept_0078  # intraoral_pressure
 ```
+
+### The Form System — Dimensional Type Signatures
+
+The old `kind` / `unit` approach put a flat string like `unit: ratio` on each concept.
+This tells the compiler nothing — a ratio of durations, a ratio of amplitudes, and an
+empirical dimensionless compound are all "ratio" but they're not interchangeable. QUDT
+handles physical units (Hz, Pa, s) but has no vocabulary for the dimensionless quantities
+that dominate voice source research.
+
+Forms fix this. A **form** is a dimensional type signature, defined once and referenced
+by every concept of that type. The form system replaces `ConceptKind` (the old
+quantity/category/boolean/structural union) and the scattered `unit`/`dimension`/`qudt_uri`
+fields.
+
+```
+forms/
+  duration_ratio.yaml
+  amplitude_ratio.yaml
+  frequency.yaml
+  pressure.yaml
+  time.yaml
+  flow.yaml
+  flow_derivative.yaml
+  level.yaml
+  dimensionless_compound.yaml
+  structural.yaml
+  category.yaml
+```
+
+Each form definition:
+
+```yaml
+# forms/duration_ratio.yaml
+name: duration_ratio
+base: ratio
+parameters:
+  numerator: duration
+  denominator: duration
+# compiler constraint: numerator == denominator → dimensionless
+unit_symbol: null            # no unit symbol; value is a pure number
+qudt: null                   # QUDT doesn't distinguish ratio subtypes
+
+# forms/pressure.yaml
+name: pressure
+unit_symbol: Pa
+qudt: qudt:PA
+common_alternatives:
+  - { unit: cmH2O, type: multiplicative, multiplier: 98.0665 }
+  - { unit: hPa,   type: multiplicative, multiplier: 100.0 }
+
+# forms/frequency.yaml
+name: frequency
+unit_symbol: Hz
+qudt: qudt:HZ
+
+# forms/level.yaml
+name: level
+parameters:
+  scale: dB
+  reference: null            # each concept specifies its reference
+qudt: null                   # dB-re-what is concept-specific
+
+# forms/dimensionless_compound.yaml
+name: dimensionless_compound
+parameters:
+  construction: null         # each concept provides its formula
+qudt: null
+
+# forms/structural.yaml
+name: structural
+note: >
+  Non-measurable organizing concepts. Cannot appear in CEL condition
+  expressions or carry parameter claims.
+
+# forms/category.yaml
+name: category
+parameters:
+  values: []                 # each concept lists its allowed values
+  extensible: false
+```
+
+Concepts reference forms by name, optionally overriding form-level parameters:
+
+```yaml
+# concepts/open_quotient.yaml
+form: duration_ratio
+range: [0.2, 1.0]
+
+# concepts/h1_h2_difference.yaml
+form: level
+form_parameters:
+  reference: second_harmonic_amplitude
+range: [-20, 20]
+
+# concepts/rd_parameter.yaml
+form: dimensionless_compound
+form_parameters:
+  construction: "(Uo/Ee) * (F0/110)"
+range: [0.3, 2.7]
+
+# concepts/focalization.yaml
+form: structural
+```
+
+**What this buys the compiler:**
+
+1. **Claim validation.** A parameter claim binding to `open_quotient` must be
+   compatible with form `duration_ratio`. The compiler rejects a claim that
+   accidentally maps an amplitude ratio value to a duration ratio concept.
+
+2. **Dimensional twins become visible.** All concepts sharing `form: duration_ratio`
+   — OQ, CQ, SQ, asymmetry coefficient — are surfaced as a family. These are
+   exactly the concepts where parameterization relationships live.
+
+3. **Define once, reference everywhere.** No more repeating `unit: ratio,
+   dimension: dimensionless` on every concept. The form carries the semantics.
+   Ten forms cover the entire voice source domain.
+
+4. **QUDT where it works, structure where it doesn't.** Physical forms (pressure,
+   frequency, time) carry QUDT URIs and unit conversions. Dimensionless forms
+   (duration_ratio, amplitude_ratio, level) carry the structural parameters
+   that QUDT can't express. Same system, no special cases.
 
 ### Parameterization Relationships — The Novel Piece
 
@@ -588,7 +706,10 @@ Claude Code) with:
 - [x] Tag ontology → yes, SKOS concept schemes in the sidecar
 - [x] Schema framework → LinkML (YAML source, compiles to JSON Schema + RDF)
 - [x] Can LLMs do concept alignment? → yes, F1 0.83-0.97 in hybrid systems
-- [x] Unit handling → QUDT for units, custom layer for parameterization relationships
+- [x] Unit handling → Form system: dimensional type signatures defined once in `forms/`,
+  referenced by concepts. QUDT for physical forms; structured parameters for dimensionless
+  forms (ratio subtypes, dB references, compound constructions). Replaces the old
+  `ConceptKind` union and scattered unit/dimension/qudt_uri fields.
 
 ### Still Open
 - [ ] Exact LinkML schema definition for claims AND concepts (spike needed)
@@ -612,6 +733,12 @@ Claude Code) with:
       and vice versa — shared namespace or per-domain registries?
 - [ ] Minimum viable concept entry: what fields are actually required vs nice-to-have?
 - [ ] The "sleep on it" principle for solo use: proposed→accepted workflow or overkill?
+- [ ] Form parameter vocabulary: controlled set (compiler validates) or free text
+      (documentation only)? Controlled is more useful but harder to bootstrap.
+- [ ] Do forms live in `forms/*.yaml` as separate files, or as a `forms:` block in the
+      LinkML schema? Separate files are more extensible; schema block is more cohesive.
+- [ ] How does the paper-reader know which form to assign? LLM infers from the parameter
+      table's Units column + context, or human always assigns forms during concept creation?
 
 ## Prior Art References
 
@@ -667,9 +794,12 @@ papers are read. When Genette's "focalization" and Bal's "focalization" turn out
 mean different things, that's a `contested_definition` edge — not a bug, but
 first-class knowledge about the field's own terminology disputes.
 
-The parameterization relationship layer is the novel contribution. physgen does
-dimensional analysis. This does parameterization analysis. Nobody has built the
-maintained system that captures "OQ + CQ = 1" and "OQ ≈ 1/(2·Rg·(1+Rk))" as
-machine-checkable algebraic constraints over a concept space.
+The form system and parameterization layer together are the novel contribution.
+physgen does dimensional analysis over base SI dimensions. Forms extend that to the
+dimensionless quantities that SI collapses to "1" — distinguishing a duration ratio
+from an amplitude ratio from an empirical compound. The parameterization layer then
+captures "OQ + CQ = 1" and "OQ ≈ 1/(2·Rg·(1+Rk))" as machine-checkable algebraic
+constraints between concepts that share a form. Nobody has built the maintained system
+that does both.
 
 Compile harder. Don't leave it to runtime.
