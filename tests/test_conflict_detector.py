@@ -15,7 +15,6 @@ from hypothesis import given, strategies as st, settings
 
 from compiler.conflict_detector import (
     ConflictClass,
-    ConflictRecord,
     detect_conflicts,
 )
 from compiler.validate_claims import LoadedClaimFile
