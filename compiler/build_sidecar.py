@@ -93,6 +93,8 @@ def build_sidecar(
     force: bool = False,
     claim_files: Sequence[LoadedClaimFile] | None = None,
     concept_registry: dict | None = None,
+    *,
+    repo: object | None = None,
 ) -> bool:
     """Build the SQLite sidecar from concept data.
 
@@ -122,7 +124,7 @@ def build_sidecar(
         conn.execute("PRAGMA journal_mode=WAL")
 
         _create_tables(conn)
-        _populate_concepts(conn, concepts)
+        _populate_concepts(conn, concepts, repo=repo)
         _populate_aliases(conn, concepts)
         _populate_relationships(conn, concepts)
         _populate_parameterizations(conn, concepts)
@@ -211,7 +213,12 @@ def _create_tables(conn: sqlite3.Connection):
     """)
 
 
-def _populate_concepts(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
+def _populate_concepts(
+    conn: sqlite3.Connection,
+    concepts: list[LoadedConcept],
+    *,
+    repo: object | None = None,
+):
     for seq, c in enumerate(concepts, 1):
         d = c.data
         created = d.get("created_date")
@@ -236,7 +243,10 @@ def _populate_concepts(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
         content_hash = _concept_content_hash(d)
 
         # Load form definition for is_dimensionless and unit_symbol
-        forms_dir = c.filepath.parent.parent / "forms"
+        if repo is not None:
+            forms_dir = repo.forms_dir  # type: ignore[union-attr]
+        else:
+            forms_dir = c.filepath.parent.parent / "forms"
         form_def = load_form(forms_dir, d.get("form"))
         is_dimensionless = 1 if (form_def is not None and form_def.is_dimensionless) else 0
         unit_symbol = form_def.unit_symbol if form_def is not None else None
