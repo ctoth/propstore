@@ -460,14 +460,14 @@ class TestWarnings:
 class TestCanonicalClaim:
     def test_valid_canonical_claim(self, concept_dir):
         """Parameterization with canonical_claim pointing to existing claim validates."""
-        # Write a claim file so the validator can find claim_0001
+        # Write a claim file so the validator can find claim1
         claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
             "source": {"paper": "test_paper"},
             "claims": [
                 {
-                    "id": "claim_0001",
+                    "id": "claim1",
                     "type": "parameter",
                     "concept": "speech_0001",
                     "value": [200.0],
@@ -487,7 +487,7 @@ class TestCanonicalClaim:
                                        "exactness": "exact",
                                        "source": "Test_2024",
                                        "bidirectional": True,
-                                       "canonical_claim": "claim_0001",
+                                       "canonical_claim": "claim1",
                                    }])
         write_concept(concept_dir, "concept_a.yaml", c1)
         write_concept(concept_dir, "concept_b.yaml", c2)
@@ -505,13 +505,13 @@ class TestCanonicalClaim:
                                        "exactness": "exact",
                                        "source": "Test_2024",
                                        "bidirectional": True,
-                                       "canonical_claim": "claim_9999",
+                                       "canonical_claim": "claim9999",
                                    }])
         write_concept(concept_dir, "concept_a.yaml", c1)
         write_concept(concept_dir, "concept_b.yaml", c2)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
-        assert any("canonical_claim" in e.lower() and "claim_9999" in e
+        assert any("canonical_claim" in e.lower() and "claim9999" in e
                     for e in result.errors)
 
 

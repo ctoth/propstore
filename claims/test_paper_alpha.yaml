@@ -4,7 +4,7 @@ source:
 claims:
   # 1. CONFLICT: two parameter claims, same concept (speech_0001),
   #    SAME conditions, DIFFERENT values
-  - id: claim_0001
+  - id: claim1
     type: parameter
     concept: speech_0001
     value: [200.0]
@@ -15,7 +15,7 @@ claims:
       paper: test_paper_alpha
       page: 5
 
-  - id: claim_0002
+  - id: claim2
     type: parameter
     concept: speech_0001
     value: [350.0]
@@ -28,7 +28,7 @@ claims:
       table: "Table 2"
 
   # 2. PHI-NODE: same concept (speech_0001), DIFFERENT conditions, different values
-  - id: claim_0003
+  - id: claim3
     type: parameter
     concept: speech_0001
     value: [180.0]
@@ -40,7 +40,7 @@ claims:
       page: 12
 
   # 3. COMPATIBLE: same concept (speech_0002), same conditions, SAME value
-  - id: claim_0004
+  - id: claim4
     type: parameter
     concept: speech_0002
     value: [800.0]
@@ -52,7 +52,7 @@ claims:
       page: 15
 
   # 4. An observation claim
-  - id: claim_0005
+  - id: claim5
     type: observation
     statement: >
       Fundamental frequency increases with subglottal pressure

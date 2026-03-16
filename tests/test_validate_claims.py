@@ -134,7 +134,7 @@ def make_claim_file_data(claims, paper="test_paper"):
 
 class TestValidClaims:
     def test_valid_parameter_claim(self, claims_dir):
-        claim = make_parameter_claim("claim_0001", "speech_0001", 440.0, "Hz")
+        claim = make_parameter_claim("claim1", "speech_0001", 440.0, "Hz")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
@@ -144,7 +144,7 @@ class TestValidClaims:
 
     def test_valid_equation_claim(self, claims_dir):
         claim = make_equation_claim(
-            "claim_0001",
+            "claim1",
             "F0 = Ps * k",
             [
                 {"symbol": "F0", "concept": "speech_0001"},
@@ -160,7 +160,7 @@ class TestValidClaims:
 
     def test_valid_observation_claim(self, claims_dir):
         claim = make_observation_claim(
-            "claim_0001",
+            "claim1",
             "Higher subglottal pressure increases F0",
             ["speech_0001", "speech_0002"],
         )
@@ -173,7 +173,7 @@ class TestValidClaims:
 
     def test_valid_model_claim(self, claims_dir):
         claim = make_model_claim(
-            "claim_0001",
+            "claim1",
             "Linear F0 model",
             ["F0 = Ps * k + b"],
             [
@@ -190,14 +190,14 @@ class TestValidClaims:
 
     def test_multiple_valid_claims(self, claims_dir):
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 440.0, "Hz"),
+            make_parameter_claim("claim1", "speech_0001", 440.0, "Hz"),
             make_observation_claim(
-                "claim_0002",
+                "claim2",
                 "F0 varies with pressure",
                 ["speech_0001", "speech_0002"],
             ),
             make_equation_claim(
-                "claim_0003",
+                "claim3",
                 "F0 = Ps * k",
                 [
                     {"symbol": "F0", "concept": "speech_0001"},
@@ -219,10 +219,10 @@ class TestValidClaims:
 class TestClaimIdErrors:
     def test_duplicate_claim_id_error(self, claims_dir):
         data1 = make_claim_file_data([
-            make_parameter_claim("claim_0001", "speech_0001", 440.0, "Hz"),
+            make_parameter_claim("claim1", "speech_0001", 440.0, "Hz"),
         ], paper="paper_a")
         data2 = make_claim_file_data([
-            make_parameter_claim("claim_0001", "speech_0002", 100.0, "Pa"),
+            make_parameter_claim("claim1", "speech_0002", 100.0, "Pa"),
         ], paper="paper_b")
         write_claim_file(claims_dir, "paper_a.yaml", data1)
         write_claim_file(claims_dir, "paper_b.yaml", data2)
@@ -240,7 +240,7 @@ class TestClaimIdErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
-        assert any("format" in e.lower() or "claim_" in e.lower() for e in result.errors)
+        assert any("format" in e.lower() or "claimN" in e.lower() for e in result.errors)
 
 
 # ── Concept reference errors ─────────────────────────────────────────
@@ -248,7 +248,7 @@ class TestClaimIdErrors:
 
 class TestConceptReferenceErrors:
     def test_nonexistent_concept_parameter_error(self, claims_dir):
-        claim = make_parameter_claim("claim_0001", "speech_9999", 440.0, "Hz")
+        claim = make_parameter_claim("claim1", "speech_9999", 440.0, "Hz")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
@@ -259,7 +259,7 @@ class TestConceptReferenceErrors:
 
     def test_nonexistent_concept_equation_error(self, claims_dir):
         claim = make_equation_claim(
-            "claim_0001",
+            "claim1",
             "F0 = X * k",
             [
                 {"symbol": "F0", "concept": "speech_0001"},
@@ -276,7 +276,7 @@ class TestConceptReferenceErrors:
 
     def test_nonexistent_concept_observation_error(self, claims_dir):
         claim = make_observation_claim(
-            "claim_0001",
+            "claim1",
             "Some statement",
             ["speech_0001", "speech_9999"],
         )
@@ -290,7 +290,7 @@ class TestConceptReferenceErrors:
 
     def test_nonexistent_concept_model_error(self, claims_dir):
         claim = make_model_claim(
-            "claim_0001",
+            "claim1",
             "Bad model",
             ["F0 = k * Ps"],
             [
@@ -312,7 +312,7 @@ class TestConceptReferenceErrors:
 class TestProvenanceErrors:
     def test_missing_provenance_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "value": 440.0,
@@ -328,7 +328,7 @@ class TestProvenanceErrors:
 
     def test_missing_provenance_page_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "value": 440.0,
@@ -350,7 +350,7 @@ class TestProvenanceErrors:
 class TestParameterClaimErrors:
     def test_parameter_missing_value_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "unit": "Hz",
@@ -366,7 +366,7 @@ class TestParameterClaimErrors:
 
     def test_parameter_missing_unit_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "value": 440.0,
@@ -382,7 +382,7 @@ class TestParameterClaimErrors:
 
     def test_parameter_missing_concept_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "value": 440.0,
             "unit": "Hz",
@@ -403,7 +403,7 @@ class TestParameterClaimErrors:
 class TestEquationClaimErrors:
     def test_equation_missing_expression_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "equation",
             "variables": [{"symbol": "F0", "concept": "speech_0001"}],
             "provenance": {"paper": "test_paper", "page": 1},
@@ -418,7 +418,7 @@ class TestEquationClaimErrors:
 
     def test_equation_missing_variables_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "equation",
             "expression": "F0 = k * Ps",
             "provenance": {"paper": "test_paper", "page": 1},
@@ -438,7 +438,7 @@ class TestEquationClaimErrors:
 class TestObservationClaimErrors:
     def test_observation_missing_statement_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "observation",
             "concepts": ["speech_0001"],
             "provenance": {"paper": "test_paper", "page": 1},
@@ -453,7 +453,7 @@ class TestObservationClaimErrors:
 
     def test_observation_missing_concepts_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "observation",
             "statement": "Some observation",
             "provenance": {"paper": "test_paper", "page": 1},
@@ -473,7 +473,7 @@ class TestObservationClaimErrors:
 class TestModelClaimErrors:
     def test_model_missing_name_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "model",
             "equations": ["F0 = k * Ps"],
             "parameters": [{"name": "k", "concept": "speech_0001"}],
@@ -489,7 +489,7 @@ class TestModelClaimErrors:
 
     def test_model_missing_equations_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "model",
             "name": "Test model",
             "parameters": [{"name": "k", "concept": "speech_0001"}],
@@ -505,7 +505,7 @@ class TestModelClaimErrors:
 
     def test_model_missing_parameters_error(self, claims_dir):
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "model",
             "name": "Test model",
             "equations": ["F0 = k * Ps"],
@@ -537,7 +537,7 @@ class TestCelErrors:
         }
 
         claim = make_parameter_claim(
-            "claim_0001", "speech_0001", 440.0, "Hz",
+            "claim1", "speech_0001", 440.0, "Hz",
             conditions=["focalization == 'internal'"],
         )
         data = make_claim_file_data([claim])
@@ -551,7 +551,7 @@ class TestCelErrors:
     def test_cel_undefined_concept_in_conditions(self, claims_dir):
         """CEL referencing undefined concept should produce an error."""
         claim = make_parameter_claim(
-            "claim_0001", "speech_0001", 440.0, "Hz",
+            "claim1", "speech_0001", 440.0, "Hz",
             conditions=["nonexistent_concept > 5"],
         )
         data = make_claim_file_data([claim])
@@ -582,7 +582,7 @@ def test_valid_claims_always_pass(claim_id_num, value, page):
     import pathlib
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = pathlib.Path(tmpdir)
-        claim_id = f"claim_{claim_id_num:04d}"
+        claim_id = f"claim{claim_id_num}"
         claim = make_parameter_claim(claim_id, "speech_0001", value, "Hz", page=page)
         data = make_claim_file_data([claim])
 
@@ -603,7 +603,7 @@ class TestNamedValueFields:
     def test_scalar_value_validates(self, claims_dir):
         """value: 0.7 alone validates (scalar float)."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "value": 0.7,
@@ -620,7 +620,7 @@ class TestNamedValueFields:
     def test_value_with_bounds_validates(self, claims_dir):
         """value: 0.7, lower_bound: 0.5, upper_bound: 0.9 validates."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "value": 0.7,
@@ -639,7 +639,7 @@ class TestNamedValueFields:
     def test_value_with_uncertainty_validates(self, claims_dir):
         """value: 0.7, uncertainty: 0.12, uncertainty_type: sd validates."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "value": 0.7,
@@ -658,7 +658,7 @@ class TestNamedValueFields:
     def test_lower_bound_without_upper_bound_error(self, claims_dir):
         """lower_bound: 0.5 without upper_bound -> validation error."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "value": 0.7,
@@ -677,7 +677,7 @@ class TestNamedValueFields:
     def test_upper_bound_without_lower_bound_error(self, claims_dir):
         """upper_bound: 0.9 without lower_bound -> validation error."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "value": 0.7,
@@ -696,7 +696,7 @@ class TestNamedValueFields:
     def test_uncertainty_type_without_uncertainty_error(self, claims_dir):
         """uncertainty_type: sd without uncertainty -> validation error."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "value": 0.7,
@@ -715,7 +715,7 @@ class TestNamedValueFields:
     def test_uncertainty_without_uncertainty_type_error(self, claims_dir):
         """uncertainty: 0.12 without uncertainty_type -> validation error."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "value": 0.7,
@@ -734,7 +734,7 @@ class TestNamedValueFields:
     def test_no_value_no_bounds_error(self, claims_dir):
         """Parameter claim with NO value and NO bounds -> validation error."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "unit": "Hz",
@@ -751,7 +751,7 @@ class TestNamedValueFields:
     def test_range_only_validates(self, claims_dir):
         """lower_bound: 0.5, upper_bound: 0.9 without value -> validates."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "parameter",
             "concept": "speech_0001",
             "lower_bound": 0.5,
@@ -774,7 +774,7 @@ class TestMeasurementClaimValidation:
     def test_valid_measurement_claim(self, claims_dir):
         """type: measurement with target_concept, measure, value, unit -> validates."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "measurement",
             "target_concept": "speech_0002",
             "measure": "jnd_absolute",
@@ -792,7 +792,7 @@ class TestMeasurementClaimValidation:
     def test_measurement_missing_target_concept_error(self, claims_dir):
         """Measurement missing target_concept -> validation error."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "measurement",
             "measure": "jnd_absolute",
             "value": 0.14,
@@ -810,7 +810,7 @@ class TestMeasurementClaimValidation:
     def test_measurement_missing_measure_error(self, claims_dir):
         """Measurement missing measure -> validation error."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "measurement",
             "target_concept": "speech_0002",
             "value": 0.14,
@@ -828,7 +828,7 @@ class TestMeasurementClaimValidation:
     def test_measurement_with_uncertainty_validates(self, claims_dir):
         """Measurement with value, uncertainty, uncertainty_type, sample_size -> validates."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "measurement",
             "target_concept": "speech_0002",
             "measure": "jnd_absolute",
@@ -853,7 +853,7 @@ class TestMeasurementClaimValidation:
     def test_valid_measure_types(self, claims_dir, measure):
         """All valid measure types should validate."""
         claim = {
-            "id": "claim_0001",
+            "id": "claim1",
             "type": "measurement",
             "target_concept": "speech_0002",
             "measure": measure,

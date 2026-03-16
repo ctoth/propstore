@@ -115,7 +115,7 @@ def _build_cel_registry_from_concepts(concept_registry: dict[str, dict]) -> dict
     return registry
 
 
-_CLAIM_ID_RE = re.compile(r'^claim_\d{4,}$')
+_CLAIM_ID_RE = re.compile(r'^claim\d+$')
 
 
 def validate_claims(
@@ -170,7 +170,7 @@ def validate_claims(
             # ── Claim ID format ──────────────────────────────
             if not _CLAIM_ID_RE.match(cid):
                 result.errors.append(
-                    f"{cf.filename}: claim ID '{cid}' does not match required format claim_NNNN")
+                    f"{cf.filename}: claim ID '{cid}' does not match required format claimN (e.g. claim1, claim42)")
 
             # ── Claim ID uniqueness ──────────────────────────
             if cid in seen_ids:

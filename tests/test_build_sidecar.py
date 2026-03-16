@@ -197,6 +197,40 @@ class TestConceptTable:
         assert row[0] == "proposed"
         conn.close()
 
+    def test_concept_has_content_hash(self, concept_dir, sidecar_path):
+        """Concepts have non-empty content_hash."""
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path)
+        conn = sqlite3.connect(sidecar_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT content_hash FROM concept WHERE id='speech_0001'").fetchone()
+        assert row["content_hash"] is not None
+        assert len(row["content_hash"]) == 16
+        conn.close()
+
+    def test_concept_has_seq(self, concept_dir, sidecar_path):
+        """Concepts have sequential numbering."""
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path)
+        conn = sqlite3.connect(sidecar_path)
+        seqs = [r[0] for r in conn.execute("SELECT seq FROM concept ORDER BY seq").fetchall()]
+        assert seqs == list(range(1, len(seqs) + 1))
+        conn.close()
+
+    def test_content_hash_deterministic(self, concept_dir, sidecar_path):
+        """Same content produces same hash across builds."""
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        hash1 = conn.execute("SELECT content_hash FROM concept WHERE id='speech_0001'").fetchone()[0]
+        conn.close()
+
+        build_sidecar(concepts, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        hash2 = conn.execute("SELECT content_hash FROM concept WHERE id='speech_0001'").fetchone()[0]
+        conn.close()
+        assert hash1 == hash2
+
 
 # ── Alias table contents ─────────────────────────────────────────────
 
@@ -368,7 +402,7 @@ def claim_files(concept_dir):
         "source": {"paper": "test_paper_alpha"},
         "claims": [
             {
-                "id": "claim_0001",
+                "id": "claim1",
                 "type": "parameter",
                 "concept": "speech_0001",
                 "value": [200.0],
@@ -377,7 +411,7 @@ def claim_files(concept_dir):
                 "provenance": {"paper": "test_paper_alpha", "page": 5},
             },
             {
-                "id": "claim_0002",
+                "id": "claim2",
                 "type": "parameter",
                 "concept": "speech_0001",
                 "value": [350.0],
@@ -386,7 +420,7 @@ def claim_files(concept_dir):
                 "provenance": {"paper": "test_paper_alpha", "page": 8, "table": "Table 2"},
             },
             {
-                "id": "claim_0003",
+                "id": "claim3",
                 "type": "parameter",
                 "concept": "speech_0001",
                 "value": [180.0],
@@ -395,7 +429,7 @@ def claim_files(concept_dir):
                 "provenance": {"paper": "test_paper_alpha", "page": 12},
             },
             {
-                "id": "claim_0004",
+                "id": "claim4",
                 "type": "parameter",
                 "concept": "speech_0002",
                 "value": [800.0],
@@ -404,7 +438,7 @@ def claim_files(concept_dir):
                 "provenance": {"paper": "test_paper_alpha", "page": 15},
             },
             {
-                "id": "claim_0005",
+                "id": "claim5",
                 "type": "observation",
                 "statement": "Fundamental frequency increases with subglottal pressure in a roughly logarithmic relationship.",
                 "concepts": ["speech_0001", "speech_0002"],
@@ -417,7 +451,7 @@ def claim_files(concept_dir):
         "source": {"paper": "test_paper_beta"},
         "claims": [
             {
-                "id": "claim_0006",
+                "id": "claim6",
                 "type": "parameter",
                 "concept": "speech_0002",
                 "value": [800.0],
@@ -426,7 +460,7 @@ def claim_files(concept_dir):
                 "provenance": {"paper": "test_paper_beta", "page": 3},
             },
             {
-                "id": "claim_0007",
+                "id": "claim7",
                 "type": "parameter",
                 "concept": "speech_0001",
                 "value": [250.0],
@@ -435,7 +469,7 @@ def claim_files(concept_dir):
                 "provenance": {"paper": "test_paper_beta", "page": 7},
             },
             {
-                "id": "claim_0008",
+                "id": "claim8",
                 "type": "equation",
                 "expression": "log(Ps) = 1.00 + 0.88 * log(F0)",
                 "sympy": "Eq(log(Ps), 1.00 + 0.88 * log(F0))",
@@ -448,7 +482,7 @@ def claim_files(concept_dir):
                 "provenance": {"paper": "test_paper_beta", "page": 19, "table": "Table 3"},
             },
             {
-                "id": "claim_0009",
+                "id": "claim9",
                 "type": "parameter",
                 "concept": "speech_0001",
                 "value": [220.0],
@@ -497,12 +531,45 @@ class TestClaimTable:
         """Claim fields populated correctly."""
         conn = sqlite3.connect(sidecar_with_claims)
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM claim WHERE id='claim_0001'").fetchone()
+        row = conn.execute("SELECT * FROM claim WHERE id='claim1'").fetchone()
         assert row["type"] == "parameter"
         assert row["concept_id"] == "speech_0001"
         assert row["unit"] == "Hz"
         assert row["source_paper"] == "test_paper_alpha"
         assert row["provenance_page"] == 5
+        conn.close()
+
+    def test_claim_has_content_hash(self, sidecar_with_claims):
+        """Claims have non-empty content_hash."""
+        conn = sqlite3.connect(sidecar_with_claims)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT content_hash FROM claim WHERE id='claim1'").fetchone()
+        assert row["content_hash"] is not None
+        assert len(row["content_hash"]) == 16
+        conn.close()
+
+    def test_claim_has_seq(self, sidecar_with_claims):
+        """Claims have sequential numbering."""
+        conn = sqlite3.connect(sidecar_with_claims)
+        seqs = [r[0] for r in conn.execute("SELECT seq FROM claim ORDER BY seq").fetchall()]
+        assert seqs == list(range(1, len(seqs) + 1))
+        conn.close()
+
+    def test_claim_has_auto_summary(self, sidecar_with_claims):
+        """Parameter claims get auto_summary from description_generator."""
+        conn = sqlite3.connect(sidecar_with_claims)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT auto_summary FROM claim WHERE id='claim1'").fetchone()
+        assert row["auto_summary"] is not None
+        assert "fundamental_frequency" in row["auto_summary"]
+        conn.close()
+
+    def test_claim_description_from_yaml(self, sidecar_with_claims):
+        """description column is None when not in YAML (LLM-written field)."""
+        conn = sqlite3.connect(sidecar_with_claims)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT description FROM claim WHERE id='claim1'").fetchone()
+        assert row["description"] is None
         conn.close()
 
     def test_parameter_claim_has_concept(self, sidecar_with_claims):
@@ -519,7 +586,7 @@ class TestClaimTable:
         """Observation claim has statement populated."""
         conn = sqlite3.connect(sidecar_with_claims)
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM claim WHERE id='claim_0005'").fetchone()
+        row = conn.execute("SELECT * FROM claim WHERE id='claim5'").fetchone()
         assert row["type"] == "observation"
         assert "logarithmic" in row["statement"]
         conn.close()
@@ -528,7 +595,7 @@ class TestClaimTable:
         """Equation claim has expression populated."""
         conn = sqlite3.connect(sidecar_with_claims)
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM claim WHERE id='claim_0008'").fetchone()
+        row = conn.execute("SELECT * FROM claim WHERE id='claim8'").fetchone()
         assert row["type"] == "equation"
         assert "log(Ps)" in row["expression"]
         conn.close()
@@ -604,7 +671,7 @@ class TestClaimFTS:
             "SELECT claim_id FROM claim_fts WHERE claim_fts MATCH 'logarithmic'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        assert "claim_0005" in ids
+        assert "claim5" in ids
         conn.close()
 
     def test_claim_fts_search_expression(self, sidecar_with_claims):
@@ -614,7 +681,7 @@ class TestClaimFTS:
             "SELECT claim_id FROM claim_fts WHERE claim_fts MATCH 'log'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        assert "claim_0008" in ids
+        assert "claim8" in ids
         conn.close()
 
     def test_claim_fts_search_conditions(self, sidecar_with_claims):
@@ -624,7 +691,7 @@ class TestClaimFTS:
             "SELECT claim_id FROM claim_fts WHERE claim_fts MATCH 'singing'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        assert "claim_0003" in ids
+        assert "claim3" in ids
         conn.close()
 
 

@@ -39,6 +39,52 @@ def _content_hash(
     return h.hexdigest()
 
 
+def _concept_content_hash(data: dict) -> str:
+    """Compute a deterministic content hash for a concept.
+
+    Identity fields: canonical_name, domain, definition.
+    """
+    h = hashlib.sha256()
+    h.update((data.get("canonical_name", "")).encode())
+    h.update((data.get("domain", "")).encode())
+    h.update((data.get("definition", "")).encode())
+    return h.hexdigest()[:16]
+
+
+def _claim_content_hash(claim: dict, source_paper: str) -> str:
+    """Compute a deterministic content hash for a claim.
+
+    Identity fields: type, concept/target_concept, value, conditions (sorted),
+    source paper, expression (for equations), statement (for observations).
+    """
+    h = hashlib.sha256()
+    h.update((claim.get("type", "")).encode())
+    h.update((claim.get("concept", claim.get("target_concept", ""))).encode())
+
+    # Value — normalize to string
+    value = claim.get("value")
+    if value is not None:
+        h.update(str(value).encode())
+    for bound_field in ("lower_bound", "upper_bound"):
+        bv = claim.get(bound_field)
+        if bv is not None:
+            h.update(f"{bound_field}:{bv}".encode())
+
+    # Conditions — sorted for determinism
+    conditions = claim.get("conditions") or []
+    for c in sorted(conditions):
+        h.update(c.encode())
+
+    # Type-specific identity fields
+    h.update((claim.get("expression", "")).encode())
+    h.update((claim.get("statement", "")).encode())
+    h.update((claim.get("name", "")).encode())
+    h.update((claim.get("measure", "")).encode())
+    h.update(source_paper.encode())
+
+    return h.hexdigest()[:16]
+
+
 def _get_form_kind(data: dict) -> str:
     """Derive a kind-type string from the concept's form field."""
     form = data.get("form", "")
@@ -111,6 +157,8 @@ def _create_tables(conn: sqlite3.Connection):
     conn.executescript("""
         CREATE TABLE concept (
             id TEXT PRIMARY KEY,
+            content_hash TEXT NOT NULL,
+            seq INTEGER NOT NULL,
             canonical_name TEXT NOT NULL,
             status TEXT NOT NULL,
             domain TEXT,
@@ -163,7 +211,7 @@ def _create_tables(conn: sqlite3.Connection):
 
 
 def _populate_concepts(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
-    for c in concepts:
+    for seq, c in enumerate(concepts, 1):
         d = c.data
         created = d.get("created_date")
         if created and not isinstance(created, str):
@@ -184,12 +232,14 @@ def _populate_concepts(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
         form_params = d.get("form_parameters")
         form_params_json = json.dumps(form_params) if form_params else None
 
+        content_hash = _concept_content_hash(d)
+
         conn.execute(
-            "INSERT INTO concept (id, canonical_name, status, domain, definition, "
+            "INSERT INTO concept (id, content_hash, seq, canonical_name, status, domain, definition, "
             "kind_type, form, form_parameters, range_min, range_max, "
             "created_date, last_modified) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (d.get("id"), d.get("canonical_name"), d.get("status"),
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (d.get("id"), content_hash, seq, d.get("canonical_name"), d.get("status"),
              d.get("domain"), d.get("definition"), _get_form_kind(d),
              d.get("form", ""), form_params_json, range_min, range_max,
              created, modified),
@@ -290,6 +340,8 @@ def _create_claim_tables(conn: sqlite3.Connection):
     conn.executescript("""
         CREATE TABLE claim (
             id TEXT PRIMARY KEY,
+            content_hash TEXT NOT NULL,
+            seq INTEGER NOT NULL,
             type TEXT NOT NULL,
             concept_id TEXT,
             value REAL,
@@ -309,6 +361,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
             listener_population TEXT,
             methodology TEXT,
             description TEXT,
+            auto_summary TEXT,
             source_paper TEXT NOT NULL,
             provenance_page INTEGER NOT NULL,
             provenance_json TEXT
@@ -343,9 +396,9 @@ def _create_claim_tables(conn: sqlite3.Connection):
 
 
 def _populate_claims(conn: sqlite3.Connection, claim_files: list, concept_registry: dict | None = None):
-    from compiler.validate_claims import LoadedClaimFile
     from compiler.description_generator import generate_description
 
+    claim_seq = 0
     for cf in claim_files:
         source_paper = cf.data.get("source", {}).get("paper", cf.filename)
         for claim in cf.data.get("claims", []):
@@ -424,22 +477,30 @@ def _populate_claims(conn: sqlite3.Connection, claim_files: list, concept_regist
                     from compiler.sympy_generator import generate_sympy
                     sympy_generated = generate_sympy(expression)
 
-            # Auto-generate description
-            description = generate_description(claim, concept_registry or {})
+            # Auto-generate summary label from structured fields
+            auto_summary = generate_description(claim, concept_registry or {})
+
+            # LLM-written description from YAML (if present)
+            description = claim.get("description")
+
+            # Content-addressed hash for dedup and integrity
+            content_hash = _claim_content_hash(claim, source_paper)
+
+            claim_seq += 1
 
             conn.execute(
-                "INSERT INTO claim (id, type, concept_id, value, lower_bound, "
+                "INSERT INTO claim (id, content_hash, seq, type, concept_id, value, lower_bound, "
                 "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
                 "conditions_cel, statement, expression, sympy_generated, name, "
                 "target_concept, measure, listener_population, methodology, "
-                "description, source_paper, provenance_page, provenance_json) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (cid, ctype, concept_id, value, lower_bound,
+                "description, auto_summary, source_paper, provenance_page, provenance_json) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (cid, content_hash, claim_seq, ctype, concept_id, value, lower_bound,
                  upper_bound, uncertainty, uncertainty_type, sample_size, unit,
                  json.dumps(conditions) if conditions else None,
                  statement, expression, sympy_generated, name,
                  target_concept, measure, listener_population, methodology,
-                 description,
+                 description, auto_summary,
                  prov.get("paper", source_paper),
                  prov.get("page", 0),
                  json.dumps(prov)),

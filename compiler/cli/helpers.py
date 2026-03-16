@@ -47,9 +47,13 @@ def write_counter(domain: str, value: int) -> None:
 
 
 def next_id(domain: str) -> tuple[str, int]:
-    """Return (concept_id, next_counter) and increment the counter file."""
+    """Return (concept_id, next_counter) and increment the counter file.
+
+    New format: concept1, concept2, etc. (no zero-padding, no domain prefix).
+    Legacy format (speech_0001) still accepted by validator.
+    """
     n = read_counter(domain)
-    cid = f"{domain}_{n:04d}"
+    cid = f"concept{n}"
     write_counter(domain, n + 1)
     return cid, n
 

@@ -79,8 +79,14 @@ def _get_kind_type_from_form(concept_data: dict) -> KindType | None:
     return KindType.QUANTITY
 
 
+_CONCEPT_ID_RE = re.compile(r'^(?:concept\d+|[a-z]+_\d+)$')
+
+
 def _get_id_prefix(concept_id: str) -> str | None:
-    """Extract domain prefix from concept ID (e.g., 'speech' from 'speech_0012')."""
+    """Extract domain prefix from concept ID (e.g., 'speech' from 'speech_0012').
+
+    Returns None for new-format IDs (concept1, concept42).
+    """
     m = re.match(r'^([a-z]+)_\d+', concept_id)
     return m.group(1) if m else None
 

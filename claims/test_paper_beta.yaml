@@ -2,8 +2,8 @@ source:
   paper: test_paper_beta
 
 claims:
-  # COMPATIBLE with claim_0004 (same concept, same conditions, same value)
-  - id: claim_0006
+  # COMPATIBLE with claim4 (same concept, same conditions, same value)
+  - id: claim6
     type: parameter
     concept: speech_0002
     value: [800.0]
@@ -14,9 +14,9 @@ claims:
       paper: test_paper_beta
       page: 3
 
-  # OVERLAP: same concept as claim_0001 (speech_0001),
+  # OVERLAP: same concept as claim1 (speech_0001),
   # partially overlapping conditions (one shared, one different)
-  - id: claim_0007
+  - id: claim7
     type: parameter
     concept: speech_0001
     value: [250.0]
@@ -29,7 +29,7 @@ claims:
       page: 7
 
   # An equation claim referencing multiple concepts
-  - id: claim_0008
+  - id: claim8
     type: equation
     expression: "log(Ps) = 1.00 + 0.88 * log(F0)"
     sympy: "Eq(log(Ps), 1.00 + 0.88 * log(F0))"
@@ -52,9 +52,9 @@ claims:
       page: 19
       table: "Table 3"
 
-  # Another parameter claim for phi-node with claim_0003
+  # Another parameter claim for phi-node with claim3
   # (both for speech_0001 but different conditions)
-  - id: claim_0009
+  - id: claim9
     type: parameter
     concept: speech_0001
     value: [220.0]

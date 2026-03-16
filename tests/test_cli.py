@@ -115,7 +115,7 @@ class TestConceptAdd:
         filepath = workspace / "concepts" / "test_pressure.yaml"
         assert filepath.exists()
         data = yaml.safe_load(filepath.read_text())
-        assert data["id"] == "speech_0003"
+        assert data["id"] == "concept3"
         assert data["canonical_name"] == "test_pressure"
         assert data["status"] == "proposed"
         assert data["form"] == "pressure"

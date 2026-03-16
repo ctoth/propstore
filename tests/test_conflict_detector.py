@@ -81,8 +81,8 @@ class TestConflictClassification:
     def test_compatible_same_value(self):
         """Two claims, same concept, same value -> COMPATIBLE (not in output)."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0),
-            make_parameter_claim("claim_0002", "speech_0001", 200.0),
+            make_parameter_claim("claim1", "speech_0001", 200.0),
+            make_parameter_claim("claim2", "speech_0001", 200.0),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -92,9 +92,9 @@ class TestConflictClassification:
     def test_compatible_same_value_different_conditions(self):
         """Same value even with different conditions -> COMPATIBLE."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0,
+            make_parameter_claim("claim1", "speech_0001", 200.0,
                                  conditions=["task == 'speech'"]),
-            make_parameter_claim("claim_0002", "speech_0001", 200.0,
+            make_parameter_claim("claim2", "speech_0001", 200.0,
                                  conditions=["task == 'singing'"]),
         ]
         cf = make_claim_file(claims)
@@ -104,9 +104,9 @@ class TestConflictClassification:
     def test_conflict_same_conditions_different_values(self):
         """Same concept, same conditions, different values -> CONFLICT."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0,
+            make_parameter_claim("claim1", "speech_0001", 200.0,
                                  conditions=["task == 'speech'"]),
-            make_parameter_claim("claim_0002", "speech_0001", 350.0,
+            make_parameter_claim("claim2", "speech_0001", 350.0,
                                  conditions=["task == 'speech'"]),
         ]
         cf = make_claim_file(claims)
@@ -117,8 +117,8 @@ class TestConflictClassification:
     def test_conflict_both_unconditional(self):
         """Same concept, both unconditional, different values -> CONFLICT."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0),
-            make_parameter_claim("claim_0002", "speech_0001", 350.0),
+            make_parameter_claim("claim1", "speech_0001", 200.0),
+            make_parameter_claim("claim2", "speech_0001", 350.0),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -128,9 +128,9 @@ class TestConflictClassification:
     def test_phi_node_different_conditions(self):
         """Same concept, different conditions, different values -> PHI_NODE."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0,
+            make_parameter_claim("claim1", "speech_0001", 200.0,
                                  conditions=["task == 'speech'"]),
-            make_parameter_claim("claim_0002", "speech_0001", 350.0,
+            make_parameter_claim("claim2", "speech_0001", 350.0,
                                  conditions=["task == 'singing'"]),
         ]
         cf = make_claim_file(claims)
@@ -141,9 +141,9 @@ class TestConflictClassification:
     def test_phi_node_disjoint_conditions(self):
         """Fully disjoint condition sets -> PHI_NODE."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0,
+            make_parameter_claim("claim1", "speech_0001", 200.0,
                                  conditions=["task == 'speech'", "fundamental_frequency > 100"]),
-            make_parameter_claim("claim_0002", "speech_0001", 350.0,
+            make_parameter_claim("claim2", "speech_0001", 350.0,
                                  conditions=["task == 'singing'", "subglottal_pressure < 500"]),
         ]
         cf = make_claim_file(claims)
@@ -154,9 +154,9 @@ class TestConflictClassification:
     def test_overlap_partial_conditions(self):
         """Partially overlapping conditions -> OVERLAP."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0,
+            make_parameter_claim("claim1", "speech_0001", 200.0,
                                  conditions=["task == 'speech'", "fundamental_frequency > 100"]),
-            make_parameter_claim("claim_0002", "speech_0001", 350.0,
+            make_parameter_claim("claim2", "speech_0001", 350.0,
                                  conditions=["task == 'speech'", "subglottal_pressure < 500"]),
         ]
         cf = make_claim_file(claims)
@@ -167,8 +167,8 @@ class TestConflictClassification:
     def test_no_conflicts_different_concepts(self):
         """Claims for different concepts -> no conflicts."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0),
-            make_parameter_claim("claim_0002", "speech_0002", 350.0),
+            make_parameter_claim("claim1", "speech_0001", 200.0),
+            make_parameter_claim("claim2", "speech_0002", 350.0),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -177,9 +177,9 @@ class TestConflictClassification:
     def test_multiple_claims_pairwise(self):
         """3+ claims for same concept -> all pairs checked."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0),
-            make_parameter_claim("claim_0002", "speech_0001", 350.0),
-            make_parameter_claim("claim_0003", "speech_0001", 500.0),
+            make_parameter_claim("claim1", "speech_0001", 200.0),
+            make_parameter_claim("claim2", "speech_0001", 350.0),
+            make_parameter_claim("claim3", "speech_0001", 500.0),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -196,8 +196,8 @@ class TestValueComparison:
     def test_scalar_equal_within_tolerance(self):
         """200.0 vs 200.0000000001 -> compatible."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0),
-            make_parameter_claim("claim_0002", "speech_0001", 200.0000000001),
+            make_parameter_claim("claim1", "speech_0001", 200.0),
+            make_parameter_claim("claim2", "speech_0001", 200.0000000001),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -206,8 +206,8 @@ class TestValueComparison:
     def test_scalar_different(self):
         """200.0 vs 350.0 -> different."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0),
-            make_parameter_claim("claim_0002", "speech_0001", 350.0),
+            make_parameter_claim("claim1", "speech_0001", 200.0),
+            make_parameter_claim("claim2", "speech_0001", 350.0),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -216,8 +216,8 @@ class TestValueComparison:
     def test_range_overlap(self):
         """[100, 300] vs [200, 400] -> compatible (overlap)."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", [100.0, 300.0]),
-            make_parameter_claim("claim_0002", "speech_0001", [200.0, 400.0]),
+            make_parameter_claim("claim1", "speech_0001", [100.0, 300.0]),
+            make_parameter_claim("claim2", "speech_0001", [200.0, 400.0]),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -226,8 +226,8 @@ class TestValueComparison:
     def test_range_no_overlap(self):
         """[100, 200] vs [300, 400] -> different."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", [100.0, 200.0]),
-            make_parameter_claim("claim_0002", "speech_0001", [300.0, 400.0]),
+            make_parameter_claim("claim1", "speech_0001", [100.0, 200.0]),
+            make_parameter_claim("claim2", "speech_0001", [300.0, 400.0]),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -277,11 +277,11 @@ class TestParameterizationConflict:
         registry = self._make_param_registry()
         claims = [
             # Direct claim: ra = 5%
-            make_parameter_claim("claim_0001", "speech_0010", 5.0, unit="%"),
+            make_parameter_claim("claim1", "speech_0010", 5.0, unit="%"),
             # Inputs: ta = 0.001, T0 = 0.01 => ra = 0.001/0.01 = 0.1 = 10%... wait
             # Let's use simpler numbers: ta=1, T0=10 => ra = 0.1, but claim says 5.0
-            make_parameter_claim("claim_0002", "speech_0011", 1.0, unit="s"),
-            make_parameter_claim("claim_0003", "speech_0012", 10.0, unit="s"),
+            make_parameter_claim("claim2", "speech_0011", 1.0, unit="s"),
+            make_parameter_claim("claim3", "speech_0012", 10.0, unit="s"),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], registry)
@@ -325,9 +325,9 @@ class TestParameterizationConflict:
             },
         }
         claims = [
-            make_parameter_claim("claim_0001", "speech_0010", 5.0, unit="%"),
-            make_parameter_claim("claim_0002", "speech_0011", 1.0, unit="s"),
-            make_parameter_claim("claim_0003", "speech_0012", 10.0, unit="s"),
+            make_parameter_claim("claim1", "speech_0010", 5.0, unit="%"),
+            make_parameter_claim("claim2", "speech_0011", 1.0, unit="s"),
+            make_parameter_claim("claim3", "speech_0012", 10.0, unit="s"),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], registry)
@@ -349,15 +349,15 @@ class TestSymmetry:
         registry = make_concept_registry()
 
         claims_ab = [
-            make_parameter_claim("claim_0001", "speech_0001", val_a),
-            make_parameter_claim("claim_0002", "speech_0001", val_b),
+            make_parameter_claim("claim1", "speech_0001", val_a),
+            make_parameter_claim("claim2", "speech_0001", val_b),
         ]
         cf_ab = make_claim_file(claims_ab)
         records_ab = detect_conflicts([cf_ab], registry)
 
         claims_ba = [
-            make_parameter_claim("claim_0002", "speech_0001", val_b),
-            make_parameter_claim("claim_0001", "speech_0001", val_a),
+            make_parameter_claim("claim2", "speech_0001", val_b),
+            make_parameter_claim("claim1", "speech_0001", val_a),
         ]
         cf_ba = make_claim_file(claims_ba)
         records_ba = detect_conflicts([cf_ba], registry)
@@ -374,8 +374,8 @@ class TestSymmetry:
         """classify(A, A) is always COMPATIBLE."""
         registry = make_concept_registry()
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", val),
-            make_parameter_claim("claim_0002", "speech_0001", val),
+            make_parameter_claim("claim1", "speech_0001", val),
+            make_parameter_claim("claim2", "speech_0001", val),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], registry)
@@ -390,9 +390,9 @@ class TestRecordFields:
     def test_conflict_record_has_correct_fields(self):
         """ConflictRecord should have all expected fields."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0001", 200.0,
+            make_parameter_claim("claim1", "speech_0001", 200.0,
                                  conditions=["task == 'speech'"]),
-            make_parameter_claim("claim_0002", "speech_0001", 350.0,
+            make_parameter_claim("claim2", "speech_0001", 350.0,
                                  conditions=["task == 'speech'"]),
         ]
         cf = make_claim_file(claims)
@@ -400,8 +400,8 @@ class TestRecordFields:
         assert len(records) == 1
         r = records[0]
         assert r.concept_id == "speech_0001"
-        assert r.claim_a_id == "claim_0001"
-        assert r.claim_b_id == "claim_0002"
+        assert r.claim_a_id == "claim1"
+        assert r.claim_b_id == "claim2"
         assert r.warning_class == ConflictClass.CONFLICT
         assert r.conditions_a == ["task == 'speech'"]
         assert r.conditions_b == ["task == 'speech'"]
@@ -410,11 +410,11 @@ class TestRecordFields:
     def test_cross_file_conflicts(self):
         """Conflicts detected across different claim files."""
         cf1 = make_claim_file(
-            [make_parameter_claim("claim_0001", "speech_0001", 200.0)],
+            [make_parameter_claim("claim1", "speech_0001", 200.0)],
             filename="paper_a",
         )
         cf2 = make_claim_file(
-            [make_parameter_claim("claim_0002", "speech_0001", 350.0)],
+            [make_parameter_claim("claim2", "speech_0001", 350.0)],
             filename="paper_b",
         )
         records = detect_conflicts([cf1, cf2], make_concept_registry())
@@ -443,8 +443,8 @@ class TestNamedValueConflicts:
     def test_point_vs_range_compatible(self):
         """value: 0.7 vs lower_bound: 0.5, upper_bound: 0.9 -> COMPATIBLE (0.7 in range)."""
         claims = [
-            _make_named_claim("claim_0001", "speech_0001", value=0.7),
-            _make_named_claim("claim_0002", "speech_0001", lower_bound=0.5, upper_bound=0.9),
+            _make_named_claim("claim1", "speech_0001", value=0.7),
+            _make_named_claim("claim2", "speech_0001", lower_bound=0.5, upper_bound=0.9),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -453,8 +453,8 @@ class TestNamedValueConflicts:
     def test_point_vs_point_conflict(self):
         """value: 0.7 vs value: 0.8 -> CONFLICT (different point values)."""
         claims = [
-            _make_named_claim("claim_0001", "speech_0001", value=0.7),
-            _make_named_claim("claim_0002", "speech_0001", value=0.8),
+            _make_named_claim("claim1", "speech_0001", value=0.7),
+            _make_named_claim("claim2", "speech_0001", value=0.8),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -464,8 +464,8 @@ class TestNamedValueConflicts:
     def test_point_vs_point_compatible(self):
         """value: 0.7 vs value: 0.7 -> COMPATIBLE."""
         claims = [
-            _make_named_claim("claim_0001", "speech_0001", value=0.7),
-            _make_named_claim("claim_0002", "speech_0001", value=0.7),
+            _make_named_claim("claim1", "speech_0001", value=0.7),
+            _make_named_claim("claim2", "speech_0001", value=0.7),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -474,8 +474,8 @@ class TestNamedValueConflicts:
     def test_range_vs_range_compatible_overlap(self):
         """[0.5, 0.9] vs [0.6, 1.0] -> COMPATIBLE (overlap)."""
         claims = [
-            _make_named_claim("claim_0001", "speech_0001", lower_bound=0.5, upper_bound=0.9),
-            _make_named_claim("claim_0002", "speech_0001", lower_bound=0.6, upper_bound=1.0),
+            _make_named_claim("claim1", "speech_0001", lower_bound=0.5, upper_bound=0.9),
+            _make_named_claim("claim2", "speech_0001", lower_bound=0.6, upper_bound=1.0),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -484,8 +484,8 @@ class TestNamedValueConflicts:
     def test_range_vs_range_conflict_no_overlap(self):
         """[0.5, 0.6] vs [0.8, 1.0] -> CONFLICT (no overlap)."""
         claims = [
-            _make_named_claim("claim_0001", "speech_0001", lower_bound=0.5, upper_bound=0.6),
-            _make_named_claim("claim_0002", "speech_0001", lower_bound=0.8, upper_bound=1.0),
+            _make_named_claim("claim1", "speech_0001", lower_bound=0.5, upper_bound=0.6),
+            _make_named_claim("claim2", "speech_0001", lower_bound=0.8, upper_bound=1.0),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -517,8 +517,8 @@ class TestMeasurementConflicts:
     def test_measurement_vs_parameter_never_compared(self):
         """Measurement claim vs parameter claim for same concept -> NEVER compared."""
         claims = [
-            make_parameter_claim("claim_0001", "speech_0002", 100.0, unit="Pa"),
-            _make_measurement_claim("claim_0002", "speech_0002", "jnd_absolute", 0.14),
+            make_parameter_claim("claim1", "speech_0002", 100.0, unit="Pa"),
+            _make_measurement_claim("claim2", "speech_0002", "jnd_absolute", 0.14),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -528,8 +528,8 @@ class TestMeasurementConflicts:
     def test_measurement_same_target_measure_different_value_conflict(self):
         """Two measurements: same target_concept + measure, different value -> CONFLICT."""
         claims = [
-            _make_measurement_claim("claim_0001", "speech_0002", "jnd_absolute", 0.14),
-            _make_measurement_claim("claim_0002", "speech_0002", "jnd_absolute", 0.25),
+            _make_measurement_claim("claim1", "speech_0002", "jnd_absolute", 0.14),
+            _make_measurement_claim("claim2", "speech_0002", "jnd_absolute", 0.25),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
@@ -539,9 +539,9 @@ class TestMeasurementConflicts:
     def test_measurement_different_listener_population_phi_node(self):
         """Two measurements: same target + measure, different listener_population -> PHI_NODE."""
         claims = [
-            _make_measurement_claim("claim_0001", "speech_0002", "jnd_absolute", 0.14,
+            _make_measurement_claim("claim1", "speech_0002", "jnd_absolute", 0.14,
                                     listener_population="native_english"),
-            _make_measurement_claim("claim_0002", "speech_0002", "jnd_absolute", 0.25,
+            _make_measurement_claim("claim2", "speech_0002", "jnd_absolute", 0.25,
                                     listener_population="native_mandarin"),
         ]
         cf = make_claim_file(claims)
@@ -552,8 +552,8 @@ class TestMeasurementConflicts:
     def test_measurement_same_target_measure_same_value_compatible(self):
         """Two measurements: same target + measure, same value -> COMPATIBLE."""
         claims = [
-            _make_measurement_claim("claim_0001", "speech_0002", "jnd_absolute", 0.14),
-            _make_measurement_claim("claim_0002", "speech_0002", "jnd_absolute", 0.14),
+            _make_measurement_claim("claim1", "speech_0002", "jnd_absolute", 0.14),
+            _make_measurement_claim("claim2", "speech_0002", "jnd_absolute", 0.14),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
