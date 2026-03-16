@@ -1,16 +1,10 @@
 """Shared helpers for CLI subcommands."""
 from __future__ import annotations
 
-import json
 import re
-import sys
 from pathlib import Path
 
-import jsonschema
 import yaml
-
-from compiler.form_utils import json_safe
-from compiler.validate import LoadedConcept, ValidationResult, load_concepts, validate_concepts
 
 
 # ── Paths ────────────────────────────────────────────────────────────
@@ -28,9 +22,6 @@ def counters_dir() -> Path:
 def claims_dir() -> Path:
     return Path("claims")
 
-
-def schema_path() -> Path:
-    return Path("schema") / "generated" / "concept_registry.schema.json"
 
 
 # ── Counter management ───────────────────────────────────────────────
@@ -90,26 +81,6 @@ def load_concept_file(path: Path) -> dict:
 def write_concept_file(path: Path, data: dict) -> None:
     with open(path, "w") as f:
         yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
-
-
-def validate_concept_data(data: dict, filename: str) -> ValidationResult:
-    """Validate a single concept dict using both JSON Schema and compiler checks."""
-    result = ValidationResult()
-
-    # JSON Schema
-    sp = schema_path()
-    if sp.exists():
-        with open(sp) as f:
-            json_schema = json.load(f)
-        try:
-            jsonschema.validate(json_safe(data), json_schema)
-        except jsonschema.ValidationError as e:
-            result.errors.append(f"{filename}: JSON Schema: {e.message}")
-
-    # Compiler contract checks need all concepts loaded
-    concepts = load_concepts(concepts_dir())
-    full_result = validate_concepts(concepts)
-    return full_result
 
 
 # ── Lookup helpers ───────────────────────────────────────────────────

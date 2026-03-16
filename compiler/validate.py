@@ -9,13 +9,10 @@ Exits nonzero on any error.
 
 from __future__ import annotations
 
-import json
 import re
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import jsonschema
 import yaml
 
 from compiler.cel_checker import (
@@ -23,7 +20,7 @@ from compiler.cel_checker import (
     KindType,
     check_cel_expression,
 )
-from compiler.form_utils import json_safe, kind_type_from_form_name, load_form, FormDefinition
+from compiler.form_utils import kind_type_from_form_name, load_form
 
 
 @dataclass
@@ -388,50 +385,3 @@ def validate_concepts(
     return result
 
 
-def main():
-    """CLI entry point: validate concepts directory."""
-    import argparse
-    parser = argparse.ArgumentParser(description="Validate propstore concept files")
-    parser.add_argument("concept_dir", nargs="?", default="concepts",
-                        help="Path to concepts directory")
-    args = parser.parse_args()
-
-    concept_dir = Path(args.concept_dir)
-    if not concept_dir.exists():
-        print(f"ERROR: Concept directory '{concept_dir}' does not exist")
-        sys.exit(1)
-
-    concepts = load_concepts(concept_dir)
-    if not concepts:
-        print("No concept files found.")
-        sys.exit(0)
-
-    # Optionally validate against JSON Schema
-    schema_path = Path(__file__).parent.parent / "schema" / "generated" / "concept_registry.schema.json"
-    if schema_path.exists():
-        with open(schema_path) as f:
-            json_schema = json.load(f)
-        for c in concepts:
-            try:
-                # Convert date objects to ISO strings for JSON Schema validation
-                jsonschema.validate(json_safe(c.data), json_schema)
-            except jsonschema.ValidationError as e:
-                print(f"JSON Schema ERROR in {c.filename}: {e.message}")
-
-    result = validate_concepts(concepts)
-
-    for w in result.warnings:
-        print(f"WARNING: {w}")
-    for e in result.errors:
-        print(f"ERROR: {e}")
-
-    if result.ok:
-        print(f"\nValidation passed: {len(concepts)} concept(s), {len(result.warnings)} warning(s)")
-    else:
-        print(f"\nValidation FAILED: {len(result.errors)} error(s), {len(result.warnings)} warning(s)")
-
-    sys.exit(0 if result.ok else 1)
-
-
-if __name__ == "__main__":
-    main()
