@@ -176,6 +176,24 @@ order is per-file). SQLite doesn't enforce foreign keys by default, but if
 **Recommendation:** Either defer stance insertion until all claims are inserted,
 or document that foreign key enforcement is intentionally off.
 
+### H6. `sympy.sympify()` with untrusted input is a code injection risk
+
+**Location:** `sympy_generator.py:46`
+
+`sympy.sympify()` internally uses `eval()`. If claim YAML files contain
+malicious expressions, arbitrary Python code could execute during validation
+or build. While this is a local CLI tool processing local files, it violates
+defense-in-depth. Use `sympy.parsing.sympy_parser.parse_expr()` with
+restricted transformations instead.
+
+### H7. Cross-domain counter collision can produce duplicate concept IDs
+
+**Location:** `cli/helpers.py:38-55`, `cli/concept.py:152-154`
+
+Counters are per-domain (`speech.next`, `narr.next`) but the ID prefix is
+always `concept` regardless of domain. Two domains starting from counter 1
+would both generate `concept1`, causing a duplicate ID error on validation.
+
 ---
 
 ## Medium Priority Issues
@@ -223,7 +241,22 @@ written database file persists.
 
 **Recommendation:** Use `with contextlib.closing(conn)` or `try/finally`.
 
-### M6. Rename operation writes old file, then git-mv's it
+### M6. Unrecognized claim types silently pass validation
+
+**Location:** `validate_claims.py:195-204`
+
+If a claim has a `type` value other than the five recognized types (parameter,
+equation, observation, model, measurement), no error is reported. The claim
+passes validation silently.
+
+### M7. Sidecar `relationship` table drops `note` field
+
+**Location:** `build_sidecar.py:269-273`
+
+The relationship table schema has no `note` column, but relationships can have
+notes. Relationship notes are silently lost during sidecar build.
+
+### M8. Rename operation writes old file, then git-mv's it
 
 **Location:** `cli/concept.py:314-331`
 
@@ -443,16 +476,20 @@ across validation, building, and enrichment passes.
 
 ## Security
 
-The codebase handles security well for a local CLI tool:
+The codebase handles security well for a local CLI tool, with one notable
+exception:
 
 - **`yaml.safe_load()`** used everywhere — no unsafe YAML loading.
 - **Parameterized SQL** queries throughout all SQLite operations.
 - **No shell injection:** `subprocess.run` uses list arguments, not
   `shell=True`.
-- **`pks query` raw SQL** is appropriate for a local dev tool.
+- **`pks query` raw SQL** is appropriate for a local dev tool (though could
+  be opened read-only via `sqlite3.connect("file:...?mode=ro", uri=True)`).
 - **No credential handling or network access** in the compiler.
 
-**No security issues found.**
+**One issue:** `sympy.sympify()` uses `eval()` internally (see H6). While
+the risk is mitigated by this being a local CLI tool processing local files,
+it should be replaced with `parse_expr()` for defense-in-depth.
 
 ---
 
@@ -478,14 +515,14 @@ The codebase handles security well for a local CLI tool:
 | Category | Count |
 |----------|-------|
 | Critical | 1 |
-| High | 5 |
-| Medium | 6 |
+| High | 7 |
+| Medium | 8 |
 | Low | 7 |
 | Data model | 9 |
 | Test gaps | 6 |
 | Performance | 4 |
-| Security | 0 |
-| **Total** | **38** |
+| Security | 1 |
+| **Total** | **43** |
 
 The codebase is well-engineered for its problem domain. The validation logic
 is thorough, the CLI is well-organized with dry-run support, and the SQLite
