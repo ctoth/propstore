@@ -310,10 +310,11 @@ def rename(concept_id: str, name: str, dry_run: bool) -> None:
             click.echo("Rename validation failed. No changes written.", err=True)
             sys.exit(EXIT_VALIDATION)
 
+    # Write the renamed concept to the new path first, then remove old
     for concept_record in updated_concepts:
         target_path = concept_record.filepath
         if target_path == new_path:
-            write_concept_file(filepath, concept_record.data)
+            write_concept_file(new_path, concept_record.data)
         elif concept_record.filepath in changed_concept_paths:
             write_concept_file(target_path, concept_record.data)
 
@@ -322,14 +323,18 @@ def rename(concept_id: str, name: str, dry_run: bool) -> None:
             with open(claim_file.filepath, "w") as f:
                 yaml.dump(claim_file.data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
-    # Try git mv, fall back to plain rename
+    # Remove old file and track with git if available
     try:
         subprocess.run(
-            ["git", "mv", str(filepath), str(new_path)],
+            ["git", "rm", str(filepath)],
+            check=True, capture_output=True,
+        )
+        subprocess.run(
+            ["git", "add", str(new_path)],
             check=True, capture_output=True,
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
-        filepath.rename(new_path)
+        filepath.unlink(missing_ok=True)
 
     click.echo(f"{old_name} -> {name}")
     click.echo(f"  {filepath} -> {new_path}")
