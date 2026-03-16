@@ -1,3 +1,4 @@
 name: frequency
+dimensionless: false
 unit_symbol: Hz
 qudt: qudt:HZ

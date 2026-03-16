@@ -1,4 +1,5 @@
 name: duration_ratio
+dimensionless: true
 base: ratio
 parameters:
   numerator: duration

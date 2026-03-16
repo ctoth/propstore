@@ -32,6 +32,14 @@ def validate() -> None:
         click.echo("No concept files found.")
         return
 
+    # Validate form schema files
+    from compiler.form_utils import validate_form_files
+
+    forms_dir = cpd.parent / "forms"
+    form_errors = validate_form_files(forms_dir)
+    for e in form_errors:
+        click.echo(f"ERROR (form): {e}", err=True)
+
     concept_result = validate_concepts(concepts)
 
     for w in concept_result.warnings:
@@ -55,7 +63,7 @@ def validate() -> None:
                 click.echo(f"ERROR: {e}", err=True)
             claim_error_count = len(claim_result.errors)
 
-    total_errors = len(concept_result.errors) + claim_error_count
+    total_errors = len(concept_result.errors) + claim_error_count + len(form_errors)
 
     if total_errors == 0:
         click.echo(
@@ -89,6 +97,17 @@ def build(output: str, force: bool) -> None:
     if not concepts:
         click.echo("No concept files found.")
         return
+
+    # Step 0: Validate form schema files
+    from compiler.form_utils import validate_form_files
+
+    forms_dir = cpd.parent / "forms"
+    form_errors = validate_form_files(forms_dir)
+    if form_errors:
+        for e in form_errors:
+            click.echo(f"ERROR (form): {e}", err=True)
+        click.echo("Build aborted: form validation failed.", err=True)
+        sys.exit(EXIT_VALIDATION)
 
     # Step 1: Validate concepts
     concept_result = validate_concepts(concepts)

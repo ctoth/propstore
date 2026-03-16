@@ -1,4 +1,5 @@
 name: pressure
+dimensionless: false
 unit_symbol: Pa
 qudt: qudt:PA
 common_alternatives:
