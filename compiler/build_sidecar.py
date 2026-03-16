@@ -271,7 +271,12 @@ def _create_claim_tables(conn: sqlite3.Connection):
             id TEXT PRIMARY KEY,
             type TEXT NOT NULL,
             concept_id TEXT,
-            value TEXT,
+            value REAL,
+            lower_bound REAL,
+            upper_bound REAL,
+            uncertainty REAL,
+            uncertainty_type TEXT,
+            sample_size INTEGER,
             unit TEXT,
             conditions_cel TEXT,
             statement TEXT,
@@ -329,9 +334,31 @@ def _populate_claims(conn: sqlite3.Connection, claim_files: list):
             expression = None
             name = None
 
+            lower_bound = None
+            upper_bound = None
+            uncertainty = None
+            uncertainty_type = None
+            sample_size = None
+
             if ctype == "parameter":
                 concept_id = claim.get("concept")
-                value = json.dumps(claim.get("value"))
+                # Named value fields
+                raw_value = claim.get("value")
+                if isinstance(raw_value, list):
+                    # Legacy format: [x] or [x, y]
+                    if len(raw_value) == 1:
+                        value = float(raw_value[0])
+                    elif len(raw_value) >= 2:
+                        lower_bound = float(min(raw_value))
+                        upper_bound = float(max(raw_value))
+                        value = (lower_bound + upper_bound) / 2
+                elif raw_value is not None:
+                    value = float(raw_value)
+                lower_bound = claim.get("lower_bound", lower_bound)
+                upper_bound = claim.get("upper_bound", upper_bound)
+                uncertainty = claim.get("uncertainty")
+                uncertainty_type = claim.get("uncertainty_type")
+                sample_size = claim.get("sample_size")
                 unit = claim.get("unit")
             elif ctype == "observation":
                 statement = claim.get("statement")
@@ -341,11 +368,13 @@ def _populate_claims(conn: sqlite3.Connection, claim_files: list):
                 name = claim.get("name")
 
             conn.execute(
-                "INSERT INTO claim (id, type, concept_id, value, unit, "
+                "INSERT INTO claim (id, type, concept_id, value, lower_bound, "
+                "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
                 "conditions_cel, statement, expression, name, "
                 "source_paper, provenance_page, provenance_json) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (cid, ctype, concept_id, value, unit,
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (cid, ctype, concept_id, value, lower_bound,
+                 upper_bound, uncertainty, uncertainty_type, sample_size, unit,
                  json.dumps(conditions) if conditions else None,
                  statement, expression, name,
                  prov.get("paper", source_paper),

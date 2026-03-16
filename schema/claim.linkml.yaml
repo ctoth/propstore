@@ -42,6 +42,19 @@ enums:
       mechanism_for:
         description: "This claim provides a mechanistic explanation for the target."
 
+  UncertaintyType:
+    description: >
+      The type of uncertainty measure associated with a parameter claim.
+    permissible_values:
+      sd:
+        description: "Standard deviation."
+      se:
+        description: "Standard error."
+      ci95:
+        description: "95% confidence interval half-width."
+      range:
+        description: "Observed range (min-max distance)."
+
 
 classes:
 
@@ -137,10 +150,36 @@ classes:
 
       value:
         description: >
-          Numeric value. Scalar (single float) or range ([min, max]).
-          Required for parameter claims.
+          Numeric point value. Optional if lower_bound/upper_bound provided.
+          At least one of value or lower_bound+upper_bound must be present
+          for parameter claims.
         range: float
-        multivalued: true
+
+      lower_bound:
+        description: >
+          Lower bound of a range estimate. Must appear together with upper_bound.
+        range: float
+
+      upper_bound:
+        description: >
+          Upper bound of a range estimate. Must appear together with lower_bound.
+        range: float
+
+      uncertainty:
+        description: >
+          Uncertainty measure (e.g., standard deviation). Must appear together
+          with uncertainty_type.
+        range: float
+
+      uncertainty_type:
+        description: >
+          Type of uncertainty measure. Must appear together with uncertainty.
+        range: UncertaintyType
+
+      sample_size:
+        description: >
+          Number of observations the parameter estimate is based on.
+        range: integer
 
       unit:
         description: >

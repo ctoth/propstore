@@ -592,3 +592,176 @@ def test_valid_claims_always_pass(claim_id_num, value, page):
         files = load_claim_files(tmp_path)
         result = validate_claims(files, make_concept_registry())
         assert result.ok, f"Valid claim failed validation: {result.errors}"
+
+
+# ── Named value fields ──────────────────────────────────────────────
+
+
+class TestNamedValueFields:
+    """Tests for named scalar fields (value, lower_bound, upper_bound, uncertainty)."""
+
+    def test_scalar_value_validates(self, claims_dir):
+        """value: 0.7 alone validates (scalar float)."""
+        claim = {
+            "id": "claim_0001",
+            "type": "parameter",
+            "concept": "speech_0001",
+            "value": 0.7,
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_value_with_bounds_validates(self, claims_dir):
+        """value: 0.7, lower_bound: 0.5, upper_bound: 0.9 validates."""
+        claim = {
+            "id": "claim_0001",
+            "type": "parameter",
+            "concept": "speech_0001",
+            "value": 0.7,
+            "lower_bound": 0.5,
+            "upper_bound": 0.9,
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_value_with_uncertainty_validates(self, claims_dir):
+        """value: 0.7, uncertainty: 0.12, uncertainty_type: sd validates."""
+        claim = {
+            "id": "claim_0001",
+            "type": "parameter",
+            "concept": "speech_0001",
+            "value": 0.7,
+            "uncertainty": 0.12,
+            "uncertainty_type": "sd",
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_lower_bound_without_upper_bound_error(self, claims_dir):
+        """lower_bound: 0.5 without upper_bound -> validation error."""
+        claim = {
+            "id": "claim_0001",
+            "type": "parameter",
+            "concept": "speech_0001",
+            "value": 0.7,
+            "lower_bound": 0.5,
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("upper_bound" in e for e in result.errors)
+
+    def test_upper_bound_without_lower_bound_error(self, claims_dir):
+        """upper_bound: 0.9 without lower_bound -> validation error."""
+        claim = {
+            "id": "claim_0001",
+            "type": "parameter",
+            "concept": "speech_0001",
+            "value": 0.7,
+            "upper_bound": 0.9,
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("lower_bound" in e for e in result.errors)
+
+    def test_uncertainty_type_without_uncertainty_error(self, claims_dir):
+        """uncertainty_type: sd without uncertainty -> validation error."""
+        claim = {
+            "id": "claim_0001",
+            "type": "parameter",
+            "concept": "speech_0001",
+            "value": 0.7,
+            "uncertainty_type": "sd",
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("uncertainty" in e for e in result.errors)
+
+    def test_uncertainty_without_uncertainty_type_error(self, claims_dir):
+        """uncertainty: 0.12 without uncertainty_type -> validation error."""
+        claim = {
+            "id": "claim_0001",
+            "type": "parameter",
+            "concept": "speech_0001",
+            "value": 0.7,
+            "uncertainty": 0.12,
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("uncertainty_type" in e for e in result.errors)
+
+    def test_no_value_no_bounds_error(self, claims_dir):
+        """Parameter claim with NO value and NO bounds -> validation error."""
+        claim = {
+            "id": "claim_0001",
+            "type": "parameter",
+            "concept": "speech_0001",
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("value" in e.lower() or "bound" in e.lower() for e in result.errors)
+
+    def test_range_only_validates(self, claims_dir):
+        """lower_bound: 0.5, upper_bound: 0.9 without value -> validates."""
+        claim = {
+            "id": "claim_0001",
+            "type": "parameter",
+            "concept": "speech_0001",
+            "lower_bound": 0.5,
+            "upper_bound": 0.9,
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"

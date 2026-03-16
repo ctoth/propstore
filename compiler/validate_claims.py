@@ -230,9 +230,58 @@ def _validate_parameter(
         result.errors.append(
             f"{filename}: parameter claim '{cid}' references nonexistent concept '{concept}'")
 
+    # Value semantics: at least one of value or lower_bound+upper_bound must be present
     value = claim.get("value")
-    if not value:
-        result.errors.append(f"{filename}: parameter claim '{cid}' missing 'value'")
+    lower_bound = claim.get("lower_bound")
+    upper_bound = claim.get("upper_bound")
+
+    has_value = value is not None
+    has_lower = lower_bound is not None
+    has_upper = upper_bound is not None
+
+    if not has_value and not has_lower and not has_upper:
+        result.errors.append(
+            f"{filename}: parameter claim '{cid}' missing 'value' "
+            f"(must have value or lower_bound+upper_bound)")
+
+    # Bounds must come in pairs
+    if has_lower and not has_upper:
+        result.errors.append(
+            f"{filename}: parameter claim '{cid}' has lower_bound without upper_bound")
+    if has_upper and not has_lower:
+        result.errors.append(
+            f"{filename}: parameter claim '{cid}' has upper_bound without lower_bound")
+
+    # Bound ordering
+    if has_lower and has_upper:
+        try:
+            if float(lower_bound) > float(upper_bound):
+                result.errors.append(
+                    f"{filename}: parameter claim '{cid}' lower_bound > upper_bound")
+        except (TypeError, ValueError):
+            pass
+
+    # Uncertainty must come with type and vice versa
+    uncertainty = claim.get("uncertainty")
+    uncertainty_type = claim.get("uncertainty_type")
+    has_uncertainty = uncertainty is not None
+    has_uncertainty_type = uncertainty_type is not None
+
+    if has_uncertainty_type and not has_uncertainty:
+        result.errors.append(
+            f"{filename}: parameter claim '{cid}' has uncertainty_type without uncertainty")
+    if has_uncertainty and not has_uncertainty_type:
+        result.errors.append(
+            f"{filename}: parameter claim '{cid}' has uncertainty without uncertainty_type")
+
+    # Uncertainty must be non-negative
+    if has_uncertainty:
+        try:
+            if float(uncertainty) < 0:
+                result.errors.append(
+                    f"{filename}: parameter claim '{cid}' uncertainty must be >= 0")
+        except (TypeError, ValueError):
+            pass
 
     unit = claim.get("unit")
     if not unit:

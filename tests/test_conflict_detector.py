@@ -420,3 +420,74 @@ class TestRecordFields:
         records = detect_conflicts([cf1, cf2], make_concept_registry())
         assert len(records) == 1
         assert records[0].warning_class == ConflictClass.CONFLICT
+
+
+# ── Named value field conflict detection ─────────────────────────────
+
+
+def _make_named_claim(id, concept_id, unit="Hz", conditions=None, **fields):
+    """Build a parameter claim with named value fields (value, lower_bound, upper_bound)."""
+    c = {
+        "id": id,
+        "type": "parameter",
+        "concept": concept_id,
+        "unit": unit,
+        "conditions": conditions or [],
+        "provenance": {"paper": "test", "page": 1},
+    }
+    c.update(fields)
+    return c
+
+
+class TestNamedValueConflicts:
+    def test_point_vs_range_compatible(self):
+        """value: 0.7 vs lower_bound: 0.5, upper_bound: 0.9 -> COMPATIBLE (0.7 in range)."""
+        claims = [
+            _make_named_claim("claim_0001", "speech_0001", value=0.7),
+            _make_named_claim("claim_0002", "speech_0001", lower_bound=0.5, upper_bound=0.9),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 0
+
+    def test_point_vs_point_conflict(self):
+        """value: 0.7 vs value: 0.8 -> CONFLICT (different point values)."""
+        claims = [
+            _make_named_claim("claim_0001", "speech_0001", value=0.7),
+            _make_named_claim("claim_0002", "speech_0001", value=0.8),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.CONFLICT
+
+    def test_point_vs_point_compatible(self):
+        """value: 0.7 vs value: 0.7 -> COMPATIBLE."""
+        claims = [
+            _make_named_claim("claim_0001", "speech_0001", value=0.7),
+            _make_named_claim("claim_0002", "speech_0001", value=0.7),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 0
+
+    def test_range_vs_range_compatible_overlap(self):
+        """[0.5, 0.9] vs [0.6, 1.0] -> COMPATIBLE (overlap)."""
+        claims = [
+            _make_named_claim("claim_0001", "speech_0001", lower_bound=0.5, upper_bound=0.9),
+            _make_named_claim("claim_0002", "speech_0001", lower_bound=0.6, upper_bound=1.0),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 0
+
+    def test_range_vs_range_conflict_no_overlap(self):
+        """[0.5, 0.6] vs [0.8, 1.0] -> CONFLICT (no overlap)."""
+        claims = [
+            _make_named_claim("claim_0001", "speech_0001", lower_bound=0.5, upper_bound=0.6),
+            _make_named_claim("claim_0002", "speech_0001", lower_bound=0.8, upper_bound=1.0),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.CONFLICT

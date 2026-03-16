@@ -120,12 +120,42 @@
                     ]
                 },
                 "value": {
-                    "description": "Numeric value. Scalar (single float) or range ([min, max]). Required for parameter claims.\n",
-                    "items": {
-                        "type": "number"
-                    },
+                    "description": "Numeric point value. Optional if lower_bound/upper_bound provided. Also accepts legacy array format for backward compatibility.\n",
+                    "anyOf": [
+                        {"type": "number"},
+                        {"type": "array", "items": {"type": "number"}},
+                        {"type": "null"}
+                    ]
+                },
+                "lower_bound": {
+                    "description": "Lower bound of a range estimate. Must appear together with upper_bound.\n",
                     "type": [
-                        "array",
+                        "number",
+                        "null"
+                    ]
+                },
+                "upper_bound": {
+                    "description": "Upper bound of a range estimate. Must appear together with lower_bound.\n",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "uncertainty": {
+                    "description": "Uncertainty measure (e.g., standard deviation). Must appear together with uncertainty_type.\n",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "uncertainty_type": {
+                    "description": "Type of uncertainty measure.\n",
+                    "$ref": "#/$defs/UncertaintyType__nullable"
+                },
+                "sample_size": {
+                    "description": "Number of observations the parameter estimate is based on.\n",
+                    "type": [
+                        "integer",
                         "null"
                     ]
                 },
@@ -381,6 +411,27 @@
             ],
             "title": "StanceType",
             "type": "string"
+        },
+        "UncertaintyType": {
+            "description": "The type of uncertainty measure associated with a parameter claim.",
+            "enum": [
+                "sd",
+                "se",
+                "ci95",
+                "range"
+            ],
+            "title": "UncertaintyType",
+            "type": "string"
+        },
+        "UncertaintyType__nullable": {
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/UncertaintyType"
+                },
+                {
+                    "type": "null"
+                }
+            ]
         },
         "VariableBinding": {
             "additionalProperties": false,
