@@ -4,6 +4,8 @@ Single entry point. Subcommand groups registered from sibling modules.
 """
 from __future__ import annotations
 
+import os
+
 import click
 
 from compiler.cli.concept import concept
@@ -12,8 +14,12 @@ from compiler.cli.compiler_cmds import validate, build, query, export_aliases
 
 
 @click.group()
-def cli() -> None:
+@click.option("-C", "--directory", default=None, type=click.Path(exists=True),
+              help="Run as if pks was started in this directory.")
+def cli(directory: str | None) -> None:
     """Propositional Knowledge Store CLI."""
+    if directory is not None:
+        os.chdir(directory)
 
 
 cli.add_command(concept)
