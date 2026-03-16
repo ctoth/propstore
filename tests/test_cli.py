@@ -43,14 +43,14 @@ def _write_concept(concepts_dir: Path, name: str, data: dict) -> Path:
 
 
 def _write_counter(concepts_dir: Path, domain: str, value: int) -> None:
-    """Write a counter file."""
+    """Write the global counter file (domain param kept for compat)."""
     counters = concepts_dir / ".counters"
     counters.mkdir(parents=True, exist_ok=True)
-    (counters / f"{domain}.next").write_text(f"{value}\n")
+    (counters / "global.next").write_text(f"{value}\n")
 
 
 def _read_counter(concepts_dir: Path, domain: str) -> int:
-    return int((concepts_dir / ".counters" / f"{domain}.next").read_text().strip())
+    return int((concepts_dir / ".counters" / "global.next").read_text().strip())
 
 
 def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
