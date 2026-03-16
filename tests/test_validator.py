@@ -108,45 +108,45 @@ def make_structural_concept(id, name, status="accepted", **kwargs):
 class TestValidConcepts:
     def test_minimal_quantity(self, concept_dir):
         write_concept(concept_dir, "fundamental_frequency.yaml",
-                      make_quantity_concept("speech_0001", "fundamental_frequency"))
+                      make_quantity_concept("concept1", "fundamental_frequency"))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert not result.errors, f"Unexpected errors: {result.errors}"
 
     def test_minimal_category(self, concept_dir):
         write_concept(concept_dir, "task.yaml",
-                      make_category_concept("speech_0030", "task", ["speech", "singing"]))
+                      make_category_concept("concept30", "task", ["speech", "singing"]))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert not result.errors, f"Unexpected errors: {result.errors}"
 
     def test_minimal_boolean(self, concept_dir):
         write_concept(concept_dir, "phonation_present.yaml",
-                      make_boolean_concept("speech_0040", "phonation_present"))
+                      make_boolean_concept("concept40", "phonation_present"))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert not result.errors, f"Unexpected errors: {result.errors}"
 
     def test_minimal_structural(self, concept_dir):
         write_concept(concept_dir, "focalization.yaml",
-                      make_structural_concept("narr_0001", "focalization"))
+                      make_structural_concept("concept101", "focalization"))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert not result.errors, f"Unexpected errors: {result.errors}"
 
     def test_multiple_valid(self, concept_dir):
         write_concept(concept_dir, "fundamental_frequency.yaml",
-                      make_quantity_concept("speech_0001", "fundamental_frequency"))
+                      make_quantity_concept("concept1", "fundamental_frequency"))
         write_concept(concept_dir, "task.yaml",
-                      make_category_concept("speech_0030", "task", ["speech", "singing"]))
+                      make_category_concept("concept30", "task", ["speech", "singing"]))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert not result.errors
 
     def test_valid_relationship(self, concept_dir):
-        c1 = make_quantity_concept("speech_0001", "fundamental_frequency")
-        c2 = make_quantity_concept("speech_0002", "voicing_amplitude",
-                                   relationships=[{"type": "related", "target": "speech_0001"}])
+        c1 = make_quantity_concept("concept1", "fundamental_frequency")
+        c2 = make_quantity_concept("concept2", "voicing_amplitude",
+                                   relationships=[{"type": "related", "target": "concept1"}])
         write_concept(concept_dir, "fundamental_frequency.yaml", c1)
         write_concept(concept_dir, "voicing_amplitude.yaml", c2)
         concepts = load_concepts(concept_dir)
@@ -154,9 +154,9 @@ class TestValidConcepts:
         assert not result.errors
 
     def test_valid_deprecated_with_replacement(self, concept_dir):
-        c1 = make_quantity_concept("speech_0001", "fundamental_frequency")
-        c2 = make_quantity_concept("speech_0002", "old_freq", status="deprecated",
-                                   replaced_by="speech_0001")
+        c1 = make_quantity_concept("concept1", "fundamental_frequency")
+        c2 = make_quantity_concept("concept2", "old_freq", status="deprecated",
+                                   replaced_by="concept1")
         write_concept(concept_dir, "fundamental_frequency.yaml", c1)
         write_concept(concept_dir, "old_freq.yaml", c2)
         concepts = load_concepts(concept_dir)
@@ -169,9 +169,9 @@ class TestValidConcepts:
 class TestIdUniqueness:
     def test_duplicate_id_error(self, concept_dir):
         write_concept(concept_dir, "concept_a.yaml",
-                      make_quantity_concept("speech_0001", "concept_a"))
+                      make_quantity_concept("concept1", "concept_a"))
         write_concept(concept_dir, "concept_b.yaml",
-                      make_quantity_concept("speech_0001", "concept_b"))
+                      make_quantity_concept("concept1", "concept_b"))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert any("unique" in e.lower() or "duplicate" in e.lower() for e in result.errors)
@@ -182,7 +182,7 @@ class TestIdUniqueness:
 class TestFilenameMatch:
     def test_mismatch_error(self, concept_dir):
         write_concept(concept_dir, "wrong_name.yaml",
-                      make_quantity_concept("speech_0001", "correct_name"))
+                      make_quantity_concept("concept1", "correct_name"))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert any("filename" in e.lower() or "canonical_name" in e.lower() for e in result.errors)
@@ -193,22 +193,22 @@ class TestFilenameMatch:
 class TestDeprecation:
     def test_deprecated_without_replaced_by_error(self, concept_dir):
         write_concept(concept_dir, "old_concept.yaml",
-                      make_quantity_concept("speech_0001", "old_concept", status="deprecated"))
+                      make_quantity_concept("concept1", "old_concept", status="deprecated"))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert any("replaced_by" in e.lower() for e in result.errors)
 
     def test_replaced_by_nonexistent_error(self, concept_dir):
         write_concept(concept_dir, "old_concept.yaml",
-                      make_quantity_concept("speech_0001", "old_concept",
-                                            status="deprecated", replaced_by="speech_9999"))
+                      make_quantity_concept("concept1", "old_concept",
+                                            status="deprecated", replaced_by="concept9999"))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert any("exist" in e.lower() or "not found" in e.lower() for e in result.errors)
 
     def test_replaced_by_deprecated_error(self, concept_dir):
-        c1 = make_quantity_concept("speech_0001", "old_a", status="deprecated", replaced_by="speech_0002")
-        c2 = make_quantity_concept("speech_0002", "old_b", status="deprecated", replaced_by="speech_0001")
+        c1 = make_quantity_concept("concept1", "old_a", status="deprecated", replaced_by="concept2")
+        c2 = make_quantity_concept("concept2", "old_b", status="deprecated", replaced_by="concept1")
         write_concept(concept_dir, "old_a.yaml", c1)
         write_concept(concept_dir, "old_b.yaml", c2)
         concepts = load_concepts(concept_dir)
@@ -216,9 +216,9 @@ class TestDeprecation:
         assert any("deprecated" in e.lower() for e in result.errors)
 
     def test_circular_deprecation_error(self, concept_dir):
-        c1 = make_quantity_concept("speech_0001", "cycle_a", status="deprecated", replaced_by="speech_0002")
-        c2 = make_quantity_concept("speech_0002", "cycle_b", status="deprecated", replaced_by="speech_0003")
-        c3 = make_quantity_concept("speech_0003", "cycle_c", status="deprecated", replaced_by="speech_0001")
+        c1 = make_quantity_concept("concept1", "cycle_a", status="deprecated", replaced_by="concept2")
+        c2 = make_quantity_concept("concept2", "cycle_b", status="deprecated", replaced_by="concept3")
+        c3 = make_quantity_concept("concept3", "cycle_c", status="deprecated", replaced_by="concept1")
         write_concept(concept_dir, "cycle_a.yaml", c1)
         write_concept(concept_dir, "cycle_b.yaml", c2)
         write_concept(concept_dir, "cycle_c.yaml", c3)
@@ -231,8 +231,8 @@ class TestDeprecation:
 
 class TestRelationshipTargets:
     def test_nonexistent_target_error(self, concept_dir):
-        c = make_quantity_concept("speech_0001", "test_concept",
-                                  relationships=[{"type": "related", "target": "speech_9999"}])
+        c = make_quantity_concept("concept1", "test_concept",
+                                  relationships=[{"type": "related", "target": "concept9999"}])
         write_concept(concept_dir, "test_concept.yaml", c)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
@@ -240,10 +240,10 @@ class TestRelationshipTargets:
                     for e in result.errors)
 
     def test_contested_definition_without_note_error(self, concept_dir):
-        c1 = make_structural_concept("narr_0001", "focalization_genette")
-        c2 = make_structural_concept("narr_0002", "focalization_bal",
+        c1 = make_structural_concept("concept101", "focalization_genette")
+        c2 = make_structural_concept("concept102", "focalization_bal",
                                       relationships=[{"type": "contested_definition",
-                                                       "target": "narr_0001"}])
+                                                       "target": "concept101"}])
         write_concept(concept_dir, "focalization_genette.yaml", c1)
         write_concept(concept_dir, "focalization_bal.yaml", c2)
         concepts = load_concepts(concept_dir)
@@ -251,10 +251,10 @@ class TestRelationshipTargets:
         assert any("note" in e.lower() and "contested" in e.lower() for e in result.errors)
 
     def test_contested_definition_with_note_ok(self, concept_dir):
-        c1 = make_structural_concept("narr_0001", "focalization_genette")
-        c2 = make_structural_concept("narr_0002", "focalization_bal",
+        c1 = make_structural_concept("concept101", "focalization_genette")
+        c2 = make_structural_concept("concept102", "focalization_bal",
                                       relationships=[{"type": "contested_definition",
-                                                       "target": "narr_0001",
+                                                       "target": "concept101",
                                                        "note": "Different theoretical framework"}])
         write_concept(concept_dir, "focalization_genette.yaml", c1)
         write_concept(concept_dir, "focalization_bal.yaml", c2)
@@ -267,10 +267,10 @@ class TestRelationshipTargets:
 
 class TestParameterizationInputs:
     def test_nonexistent_input_error(self, concept_dir):
-        c = make_quantity_concept("speech_0001", "test_concept",
+        c = make_quantity_concept("concept1", "test_concept",
                                   parameterization_relationships=[{
                                       "formula": "x = y / z",
-                                      "inputs": ["speech_0001", "speech_9999"],
+                                      "inputs": ["concept1", "concept9999"],
                                       "exactness": "exact",
                                       "source": "Test_2024",
                                       "bidirectional": True,
@@ -282,12 +282,12 @@ class TestParameterizationInputs:
                     for e in result.errors)
 
     def test_non_quantity_input_error(self, concept_dir):
-        c1 = make_quantity_concept("speech_0001", "test_quantity")
-        c2 = make_category_concept("speech_0030", "task", ["speech"])
-        c3 = make_quantity_concept("speech_0002", "derived_thing",
+        c1 = make_quantity_concept("concept1", "test_quantity")
+        c2 = make_category_concept("concept30", "task", ["speech"])
+        c3 = make_quantity_concept("concept2", "derived_thing",
                                    parameterization_relationships=[{
                                        "formula": "x = y * task",
-                                       "inputs": ["speech_0001", "speech_0030"],
+                                       "inputs": ["concept1", "concept30"],
                                        "exactness": "exact",
                                        "source": "Test_2024",
                                        "bidirectional": True,
@@ -300,11 +300,11 @@ class TestParameterizationInputs:
         assert any("quantity" in e.lower() for e in result.errors)
 
     def test_conditional_exactness_without_conditions_error(self, concept_dir):
-        c1 = make_quantity_concept("speech_0001", "concept_a")
-        c2 = make_quantity_concept("speech_0002", "concept_b",
+        c1 = make_quantity_concept("concept1", "concept_a")
+        c2 = make_quantity_concept("concept2", "concept_b",
                                    parameterization_relationships=[{
                                        "formula": "a = b",
-                                       "inputs": ["speech_0001"],
+                                       "inputs": ["concept1"],
                                        "exactness": "conditional",
                                        "source": "Test_2024",
                                        "bidirectional": True,
@@ -316,11 +316,11 @@ class TestParameterizationInputs:
         assert any("condition" in e.lower() for e in result.errors)
 
     def test_valid_parameterization(self, concept_dir):
-        c1 = make_quantity_concept("speech_0001", "concept_a")
-        c2 = make_quantity_concept("speech_0002", "concept_b",
+        c1 = make_quantity_concept("concept1", "concept_a")
+        c2 = make_quantity_concept("concept2", "concept_b",
                                    parameterization_relationships=[{
                                        "formula": "b = a * 2",
-                                       "inputs": ["speech_0001"],
+                                       "inputs": ["concept1"],
                                        "exactness": "exact",
                                        "source": "Test_2024",
                                        "bidirectional": True,
@@ -337,7 +337,7 @@ class TestParameterizationInputs:
 class TestFormValidation:
     def test_missing_form_error(self, concept_dir):
         c = {
-            "id": "speech_0001",
+            "id": "concept1",
             "canonical_name": "bad_concept",
             "status": "accepted",
             "definition": "No form.",
@@ -349,7 +349,7 @@ class TestFormValidation:
 
     def test_nonexistent_form_error(self, concept_dir):
         c = {
-            "id": "speech_0001",
+            "id": "concept1",
             "canonical_name": "bad_concept",
             "status": "accepted",
             "definition": "Bad form ref.",
@@ -361,33 +361,33 @@ class TestFormValidation:
         assert any("no matching file" in e.lower() for e in result.errors)
 
 
-# ── ID prefix / domain match ────────────────────────────────────────
+# ── ID format ────────────────────────────────────────────────────────
 
-class TestDomainMatch:
-    def test_prefix_mismatch_error(self, concept_dir):
-        c = make_quantity_concept("speech_0001", "test_concept", domain="narr")
-        write_concept(concept_dir, "test_concept.yaml", c)
-        concepts = load_concepts(concept_dir)
-        result = validate_concepts(concepts)
-        assert any("domain" in e.lower() or "prefix" in e.lower() for e in result.errors)
-
-    def test_prefix_match_ok(self, concept_dir):
-        c = make_quantity_concept("speech_0001", "test_concept", domain="speech")
+class TestIdFormat:
+    def test_valid_concept_id(self, concept_dir):
+        c = make_quantity_concept("concept1", "test_concept")
         write_concept(concept_dir, "test_concept.yaml", c)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert not result.errors
+
+    def test_invalid_concept_id_rejected(self, concept_dir):
+        c = make_quantity_concept("speech_0001", "test_concept")
+        write_concept(concept_dir, "test_concept.yaml", c)
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert any("format" in e.lower() or "conceptN" in e.lower() for e in result.errors)
 
 
 # ── CEL expression validation in relationships ───────────────────────
 
 class TestCelInRelationships:
     def test_valid_cel_in_relationship(self, concept_dir):
-        c1 = make_quantity_concept("speech_0001", "fundamental_frequency")
-        c2 = make_quantity_concept("speech_0002", "voicing_amplitude",
+        c1 = make_quantity_concept("concept1", "fundamental_frequency")
+        c2 = make_quantity_concept("concept2", "voicing_amplitude",
                                    relationships=[{
                                        "type": "related",
-                                       "target": "speech_0001",
+                                       "target": "concept1",
                                        "conditions": ["fundamental_frequency > 200"],
                                    }])
         write_concept(concept_dir, "fundamental_frequency.yaml", c1)
@@ -397,11 +397,11 @@ class TestCelInRelationships:
         assert not result.errors
 
     def test_invalid_cel_structural_in_expression(self, concept_dir):
-        c1 = make_structural_concept("narr_0001", "focalization")
-        c2 = make_quantity_concept("speech_0001", "test_concept",
+        c1 = make_structural_concept("concept101", "focalization")
+        c2 = make_quantity_concept("concept1", "test_concept",
                                    relationships=[{
                                        "type": "related",
-                                       "target": "narr_0001",
+                                       "target": "concept101",
                                        "conditions": ["focalization == 'internal'"],
                                    }])
         write_concept(concept_dir, "focalization.yaml", c1)
@@ -412,10 +412,10 @@ class TestCelInRelationships:
         assert result.errors
 
     def test_undefined_concept_in_cel(self, concept_dir):
-        c = make_quantity_concept("speech_0001", "test_concept",
+        c = make_quantity_concept("concept1", "test_concept",
                                   relationships=[{
                                       "type": "related",
-                                      "target": "speech_0001",
+                                      "target": "concept1",
                                       "conditions": ["nonexistent > 5"],
                                   }])
         write_concept(concept_dir, "test_concept.yaml", c)
@@ -429,7 +429,7 @@ class TestCelInRelationships:
 class TestWarnings:
     def test_proposed_concept_warning(self, concept_dir):
         """Proposed concepts should produce a warning (not error) when referenced."""
-        c = make_quantity_concept("speech_0001", "test_concept", status="proposed")
+        c = make_quantity_concept("concept1", "test_concept", status="proposed")
         write_concept(concept_dir, "test_concept.yaml", c)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
@@ -437,11 +437,11 @@ class TestWarnings:
         assert not result.errors
 
     def test_missing_sympy_warning(self, concept_dir):
-        c1 = make_quantity_concept("speech_0001", "concept_a")
-        c2 = make_quantity_concept("speech_0002", "concept_b",
+        c1 = make_quantity_concept("concept1", "concept_a")
+        c2 = make_quantity_concept("concept2", "concept_b",
                                    parameterization_relationships=[{
                                        "formula": "b = a * 2",
-                                       "inputs": ["speech_0001"],
+                                       "inputs": ["concept1"],
                                        "exactness": "exact",
                                        "source": "Test_2024",
                                        "bidirectional": True,
@@ -469,7 +469,7 @@ class TestCanonicalClaim:
                 {
                     "id": "claim1",
                     "type": "parameter",
-                    "concept": "speech_0001",
+                    "concept": "concept1",
                     "value": [200.0],
                     "unit": "Hz",
                     "provenance": {"paper": "test_paper", "page": 1},
@@ -479,11 +479,11 @@ class TestCanonicalClaim:
         (claims_dir / "test_paper.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False))
 
-        c1 = make_quantity_concept("speech_0001", "concept_a")
-        c2 = make_quantity_concept("speech_0002", "concept_b",
+        c1 = make_quantity_concept("concept1", "concept_a")
+        c2 = make_quantity_concept("concept2", "concept_b",
                                    parameterization_relationships=[{
                                        "formula": "b = a * 2",
-                                       "inputs": ["speech_0001"],
+                                       "inputs": ["concept1"],
                                        "exactness": "exact",
                                        "source": "Test_2024",
                                        "bidirectional": True,
@@ -497,11 +497,11 @@ class TestCanonicalClaim:
 
     def test_canonical_claim_nonexistent(self, concept_dir):
         """canonical_claim pointing to nonexistent claim produces validation error."""
-        c1 = make_quantity_concept("speech_0001", "concept_a")
-        c2 = make_quantity_concept("speech_0002", "concept_b",
+        c1 = make_quantity_concept("concept1", "concept_a")
+        c2 = make_quantity_concept("concept2", "concept_b",
                                    parameterization_relationships=[{
                                        "formula": "b = a * 2",
-                                       "inputs": ["speech_0001"],
+                                       "inputs": ["concept1"],
                                        "exactness": "exact",
                                        "source": "Test_2024",
                                        "bidirectional": True,
@@ -520,9 +520,9 @@ class TestCanonicalClaim:
 class TestRelationshipTypeValidation:
     def test_invalid_relationship_type_error(self, concept_dir):
         """Relationship type 'derives' should produce validation error (must be 'derived_from')."""
-        c1 = make_quantity_concept("speech_0001", "concept_a")
-        c2 = make_quantity_concept("speech_0002", "concept_b",
-                                   relationships=[{"type": "derives", "target": "speech_0001"}])
+        c1 = make_quantity_concept("concept1", "concept_a")
+        c2 = make_quantity_concept("concept2", "concept_b",
+                                   relationships=[{"type": "derives", "target": "concept1"}])
         write_concept(concept_dir, "concept_a.yaml", c1)
         write_concept(concept_dir, "concept_b.yaml", c2)
         concepts = load_concepts(concept_dir)
@@ -534,13 +534,13 @@ class TestRelationshipTypeValidation:
         """All valid RelationshipType values should validate without errors."""
         valid_types = ["broader", "narrower", "related", "component_of",
                        "derived_from", "contested_definition"]
-        c1 = make_quantity_concept("speech_0001", "concept_a")
+        c1 = make_quantity_concept("concept1", "concept_a")
         write_concept(concept_dir, "concept_a.yaml", c1)
 
         for i, rel_type in enumerate(valid_types):
             name = f"concept_{rel_type}"
             cid = f"speech_{1001 + i:04d}"
-            rel = {"type": rel_type, "target": "speech_0001"}
+            rel = {"type": rel_type, "target": "concept1"}
             if rel_type == "contested_definition":
                 rel["note"] = "Different theoretical framework"
             c = make_quantity_concept(cid, name, relationships=[rel])

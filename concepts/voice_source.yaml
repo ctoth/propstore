@@ -1,4 +1,4 @@
-id: speech_0004
+id: concept4
 canonical_name: voice_source
 status: accepted
 definition: >
@@ -12,6 +12,6 @@ form: structural
 
 relationships:
   - type: narrower
-    target: speech_0001
+    target: concept1
   - type: narrower
-    target: speech_0002
+    target: concept2

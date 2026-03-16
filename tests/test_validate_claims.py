@@ -96,22 +96,22 @@ def make_model_claim(id, name, equations, parameters, page=1, **kwargs):
 def make_concept_registry():
     """Build a mock concept registry for testing."""
     return {
-        "speech_0001": {
-            "id": "speech_0001",
+        "concept1": {
+            "id": "concept1",
             "canonical_name": "fundamental_frequency",
             "form": "frequency",
             "status": "accepted",
             "definition": "F0",
         },
-        "speech_0002": {
-            "id": "speech_0002",
+        "concept2": {
+            "id": "concept2",
             "canonical_name": "subglottal_pressure",
             "form": "pressure",
             "status": "accepted",
             "definition": "Ps",
         },
-        "speech_0003": {
-            "id": "speech_0003",
+        "concept3": {
+            "id": "concept3",
             "canonical_name": "task",
             "form": "category",
             "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True},
@@ -134,7 +134,7 @@ def make_claim_file_data(claims, paper="test_paper"):
 
 class TestValidClaims:
     def test_valid_parameter_claim(self, claims_dir):
-        claim = make_parameter_claim("claim1", "speech_0001", 440.0, "Hz")
+        claim = make_parameter_claim("claim1", "concept1", 440.0, "Hz")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
@@ -147,8 +147,8 @@ class TestValidClaims:
             "claim1",
             "F0 = Ps * k",
             [
-                {"symbol": "F0", "concept": "speech_0001"},
-                {"symbol": "Ps", "concept": "speech_0002"},
+                {"symbol": "F0", "concept": "concept1"},
+                {"symbol": "Ps", "concept": "concept2"},
             ],
         )
         data = make_claim_file_data([claim])
@@ -162,7 +162,7 @@ class TestValidClaims:
         claim = make_observation_claim(
             "claim1",
             "Higher subglottal pressure increases F0",
-            ["speech_0001", "speech_0002"],
+            ["concept1", "concept2"],
         )
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
@@ -177,8 +177,8 @@ class TestValidClaims:
             "Linear F0 model",
             ["F0 = Ps * k + b"],
             [
-                {"name": "k", "concept": "speech_0001"},
-                {"name": "b", "concept": "speech_0002"},
+                {"name": "k", "concept": "concept1"},
+                {"name": "b", "concept": "concept2"},
             ],
         )
         data = make_claim_file_data([claim])
@@ -190,18 +190,18 @@ class TestValidClaims:
 
     def test_multiple_valid_claims(self, claims_dir):
         claims = [
-            make_parameter_claim("claim1", "speech_0001", 440.0, "Hz"),
+            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
             make_observation_claim(
                 "claim2",
                 "F0 varies with pressure",
-                ["speech_0001", "speech_0002"],
+                ["concept1", "concept2"],
             ),
             make_equation_claim(
                 "claim3",
                 "F0 = Ps * k",
                 [
-                    {"symbol": "F0", "concept": "speech_0001"},
-                    {"symbol": "Ps", "concept": "speech_0002"},
+                    {"symbol": "F0", "concept": "concept1"},
+                    {"symbol": "Ps", "concept": "concept2"},
                 ],
             ),
         ]
@@ -219,10 +219,10 @@ class TestValidClaims:
 class TestClaimIdErrors:
     def test_duplicate_claim_id_error(self, claims_dir):
         data1 = make_claim_file_data([
-            make_parameter_claim("claim1", "speech_0001", 440.0, "Hz"),
+            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
         ], paper="paper_a")
         data2 = make_claim_file_data([
-            make_parameter_claim("claim1", "speech_0002", 100.0, "Pa"),
+            make_parameter_claim("claim1", "concept2", 100.0, "Pa"),
         ], paper="paper_b")
         write_claim_file(claims_dir, "paper_a.yaml", data1)
         write_claim_file(claims_dir, "paper_b.yaml", data2)
@@ -233,7 +233,7 @@ class TestClaimIdErrors:
         assert any("duplicate" in e.lower() for e in result.errors)
 
     def test_invalid_claim_id_format(self, claims_dir):
-        claim = make_parameter_claim("bad_id", "speech_0001", 440.0, "Hz")
+        claim = make_parameter_claim("bad_id", "concept1", 440.0, "Hz")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
@@ -248,22 +248,22 @@ class TestClaimIdErrors:
 
 class TestConceptReferenceErrors:
     def test_nonexistent_concept_parameter_error(self, claims_dir):
-        claim = make_parameter_claim("claim1", "speech_9999", 440.0, "Hz")
+        claim = make_parameter_claim("claim1", "concept9999", 440.0, "Hz")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
-        assert any("speech_9999" in e for e in result.errors)
+        assert any("concept9999" in e for e in result.errors)
 
     def test_nonexistent_concept_equation_error(self, claims_dir):
         claim = make_equation_claim(
             "claim1",
             "F0 = X * k",
             [
-                {"symbol": "F0", "concept": "speech_0001"},
-                {"symbol": "X", "concept": "speech_9999"},
+                {"symbol": "F0", "concept": "concept1"},
+                {"symbol": "X", "concept": "concept9999"},
             ],
         )
         data = make_claim_file_data([claim])
@@ -272,13 +272,13 @@ class TestConceptReferenceErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
-        assert any("speech_9999" in e for e in result.errors)
+        assert any("concept9999" in e for e in result.errors)
 
     def test_nonexistent_concept_observation_error(self, claims_dir):
         claim = make_observation_claim(
             "claim1",
             "Some statement",
-            ["speech_0001", "speech_9999"],
+            ["concept1", "concept9999"],
         )
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
@@ -286,7 +286,7 @@ class TestConceptReferenceErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
-        assert any("speech_9999" in e for e in result.errors)
+        assert any("concept9999" in e for e in result.errors)
 
     def test_nonexistent_concept_model_error(self, claims_dir):
         claim = make_model_claim(
@@ -294,7 +294,7 @@ class TestConceptReferenceErrors:
             "Bad model",
             ["F0 = k * Ps"],
             [
-                {"name": "k", "concept": "speech_9999"},
+                {"name": "k", "concept": "concept9999"},
             ],
         )
         data = make_claim_file_data([claim])
@@ -303,7 +303,7 @@ class TestConceptReferenceErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
-        assert any("speech_9999" in e for e in result.errors)
+        assert any("concept9999" in e for e in result.errors)
 
 
 # ── Provenance errors ────────────────────────────────────────────────
@@ -314,7 +314,7 @@ class TestProvenanceErrors:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "value": 440.0,
             "unit": "Hz",
         }
@@ -330,7 +330,7 @@ class TestProvenanceErrors:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "value": 440.0,
             "unit": "Hz",
             "provenance": {"paper": "test_paper"},
@@ -352,7 +352,7 @@ class TestParameterClaimErrors:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "unit": "Hz",
             "provenance": {"paper": "test_paper", "page": 1},
         }
@@ -368,7 +368,7 @@ class TestParameterClaimErrors:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "value": 440.0,
             "provenance": {"paper": "test_paper", "page": 1},
         }
@@ -405,7 +405,7 @@ class TestEquationClaimErrors:
         claim = {
             "id": "claim1",
             "type": "equation",
-            "variables": [{"symbol": "F0", "concept": "speech_0001"}],
+            "variables": [{"symbol": "F0", "concept": "concept1"}],
             "provenance": {"paper": "test_paper", "page": 1},
         }
         data = make_claim_file_data([claim])
@@ -440,7 +440,7 @@ class TestObservationClaimErrors:
         claim = {
             "id": "claim1",
             "type": "observation",
-            "concepts": ["speech_0001"],
+            "concepts": ["concept1"],
             "provenance": {"paper": "test_paper", "page": 1},
         }
         data = make_claim_file_data([claim])
@@ -476,7 +476,7 @@ class TestModelClaimErrors:
             "id": "claim1",
             "type": "model",
             "equations": ["F0 = k * Ps"],
-            "parameters": [{"name": "k", "concept": "speech_0001"}],
+            "parameters": [{"name": "k", "concept": "concept1"}],
             "provenance": {"paper": "test_paper", "page": 1},
         }
         data = make_claim_file_data([claim])
@@ -492,7 +492,7 @@ class TestModelClaimErrors:
             "id": "claim1",
             "type": "model",
             "name": "Test model",
-            "parameters": [{"name": "k", "concept": "speech_0001"}],
+            "parameters": [{"name": "k", "concept": "concept1"}],
             "provenance": {"paper": "test_paper", "page": 1},
         }
         data = make_claim_file_data([claim])
@@ -528,8 +528,8 @@ class TestCelErrors:
         """Structural concept in CEL should produce an error."""
         # We need a concept registry with a structural concept
         registry = make_concept_registry()
-        registry["narr_0001"] = {
-            "id": "narr_0001",
+        registry["concept101"] = {
+            "id": "concept101",
             "canonical_name": "focalization",
             "form": "structural",
             "status": "accepted",
@@ -537,7 +537,7 @@ class TestCelErrors:
         }
 
         claim = make_parameter_claim(
-            "claim1", "speech_0001", 440.0, "Hz",
+            "claim1", "concept1", 440.0, "Hz",
             conditions=["focalization == 'internal'"],
         )
         data = make_claim_file_data([claim])
@@ -551,7 +551,7 @@ class TestCelErrors:
     def test_cel_undefined_concept_in_conditions(self, claims_dir):
         """CEL referencing undefined concept should produce an error."""
         claim = make_parameter_claim(
-            "claim1", "speech_0001", 440.0, "Hz",
+            "claim1", "concept1", 440.0, "Hz",
             conditions=["nonexistent_concept > 5"],
         )
         data = make_claim_file_data([claim])
@@ -583,7 +583,7 @@ def test_valid_claims_always_pass(claim_id_num, value, page):
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = pathlib.Path(tmpdir)
         claim_id = f"claim{claim_id_num}"
-        claim = make_parameter_claim(claim_id, "speech_0001", value, "Hz", page=page)
+        claim = make_parameter_claim(claim_id, "concept1", value, "Hz", page=page)
         data = make_claim_file_data([claim])
 
         path = tmp_path / "test_paper.yaml"
@@ -605,7 +605,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "value": 0.7,
             "unit": "Hz",
             "provenance": {"paper": "test_paper", "page": 1},
@@ -622,7 +622,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "value": 0.7,
             "lower_bound": 0.5,
             "upper_bound": 0.9,
@@ -641,7 +641,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "value": 0.7,
             "uncertainty": 0.12,
             "uncertainty_type": "sd",
@@ -660,7 +660,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "value": 0.7,
             "lower_bound": 0.5,
             "unit": "Hz",
@@ -679,7 +679,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "value": 0.7,
             "upper_bound": 0.9,
             "unit": "Hz",
@@ -698,7 +698,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "value": 0.7,
             "uncertainty_type": "sd",
             "unit": "Hz",
@@ -717,7 +717,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "value": 0.7,
             "uncertainty": 0.12,
             "unit": "Hz",
@@ -736,7 +736,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "unit": "Hz",
             "provenance": {"paper": "test_paper", "page": 1},
         }
@@ -753,7 +753,7 @@ class TestNamedValueFields:
         claim = {
             "id": "claim1",
             "type": "parameter",
-            "concept": "speech_0001",
+            "concept": "concept1",
             "lower_bound": 0.5,
             "upper_bound": 0.9,
             "unit": "Hz",
@@ -776,7 +776,7 @@ class TestMeasurementClaimValidation:
         claim = {
             "id": "claim1",
             "type": "measurement",
-            "target_concept": "speech_0002",
+            "target_concept": "concept2",
             "measure": "jnd_absolute",
             "value": 0.14,
             "unit": "ratio",
@@ -812,7 +812,7 @@ class TestMeasurementClaimValidation:
         claim = {
             "id": "claim1",
             "type": "measurement",
-            "target_concept": "speech_0002",
+            "target_concept": "concept2",
             "value": 0.14,
             "unit": "ratio",
             "provenance": {"paper": "test_paper", "page": 1},
@@ -830,7 +830,7 @@ class TestMeasurementClaimValidation:
         claim = {
             "id": "claim1",
             "type": "measurement",
-            "target_concept": "speech_0002",
+            "target_concept": "concept2",
             "measure": "jnd_absolute",
             "value": 0.14,
             "uncertainty": 0.03,
@@ -855,7 +855,7 @@ class TestMeasurementClaimValidation:
         claim = {
             "id": "claim1",
             "type": "measurement",
-            "target_concept": "speech_0002",
+            "target_concept": "concept2",
             "measure": measure,
             "value": 0.14,
             "unit": "ratio",

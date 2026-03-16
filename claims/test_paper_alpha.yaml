@@ -2,11 +2,11 @@ source:
   paper: test_paper_alpha
 
 claims:
-  # 1. CONFLICT: two parameter claims, same concept (speech_0001),
+  # 1. CONFLICT: two parameter claims, same concept (concept1),
   #    SAME conditions, DIFFERENT values
   - id: claim1
     type: parameter
-    concept: speech_0001
+    concept: concept1
     value: [200.0]
     unit: Hz
     conditions:
@@ -17,7 +17,7 @@ claims:
 
   - id: claim2
     type: parameter
-    concept: speech_0001
+    concept: concept1
     value: [350.0]
     unit: Hz
     conditions:
@@ -27,10 +27,10 @@ claims:
       page: 8
       table: "Table 2"
 
-  # 2. PHI-NODE: same concept (speech_0001), DIFFERENT conditions, different values
+  # 2. PHI-NODE: same concept (concept1), DIFFERENT conditions, different values
   - id: claim3
     type: parameter
-    concept: speech_0001
+    concept: concept1
     value: [180.0]
     unit: Hz
     conditions:
@@ -39,10 +39,10 @@ claims:
       paper: test_paper_alpha
       page: 12
 
-  # 3. COMPATIBLE: same concept (speech_0002), same conditions, SAME value
+  # 3. COMPATIBLE: same concept (concept2), same conditions, SAME value
   - id: claim4
     type: parameter
-    concept: speech_0002
+    concept: concept2
     value: [800.0]
     unit: Pa
     conditions:
@@ -58,8 +58,8 @@ claims:
       Fundamental frequency increases with subglottal pressure
       in a roughly logarithmic relationship.
     concepts:
-      - speech_0001
-      - speech_0002
+      - concept1
+      - concept2
     provenance:
       paper: test_paper_alpha
       page: 20

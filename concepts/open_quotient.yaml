@@ -1,4 +1,4 @@
-id: speech_0006
+id: concept6
 canonical_name: open_quotient
 status: accepted
 definition: >
@@ -29,22 +29,22 @@ aliases:
 
 relationships:
   - type: broader
-    target: speech_0004   # voice_source
+    target: concept4   # voice_source
   - type: related
-    target: speech_0015   # contact_quotient
+    target: concept15   # contact_quotient
     note: "CQ + OQ approximately equals 1 in modal phonation"
   - type: related
-    target: speech_0016   # h1_h2_difference
+    target: concept16   # h1_h2_difference
     note: "H1-H2 depends on OQ but also on asymmetry coefficient"
 
 parameterization_relationships:
   - formula: "OQe = (1 + Rk) / (2 * Rg) + Ra"
     sympy: "Eq(OQe, (1 + Rk) / (2 * Rg) + Ra)"
     inputs:
-      - speech_0006   # open_quotient
-      - speech_0007   # speed_quotient (via Rk)
-      - speech_0012   # glottal_formant_frequency (via Rg)
-      - speech_0010   # return_phase_time_constant (via Ra)
+      - concept6   # open_quotient
+      - concept7   # speed_quotient (via Rk)
+      - concept12   # glottal_formant_frequency (via Rg)
+      - concept10   # return_phase_time_constant (via Ra)
     exactness: exact
     source: Fant_1997_VoiceSourceConnectedSpeech
     bidirectional: false

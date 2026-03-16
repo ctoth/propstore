@@ -47,11 +47,7 @@ def write_counter(domain: str, value: int) -> None:
 
 
 def next_id(domain: str) -> tuple[str, int]:
-    """Return (concept_id, next_counter) and increment the counter file.
-
-    New format: concept1, concept2, etc. (no zero-padding, no domain prefix).
-    Legacy format (speech_0001) still accepted by validator.
-    """
+    """Return (concept_id, next_counter) and increment the counter file."""
     n = read_counter(domain)
     cid = f"concept{n}"
     write_counter(domain, n + 1)
@@ -105,7 +101,7 @@ def validate_concept_data(data: dict, filename: str) -> ValidationResult:
 
 # ── Lookup helpers ───────────────────────────────────────────────────
 
-_ID_RE = re.compile(r'^[a-z]+_\d{4,}$')
+_ID_RE = re.compile(r'^concept\d+$')
 
 
 def find_concept(id_or_name: str) -> Path | None:

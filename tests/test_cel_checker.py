@@ -29,11 +29,11 @@ def registry():
     """A registry with one concept of each kind, plus extras."""
     return {
         # Quantities
-        "fundamental_frequency": ConceptInfo("speech_0001", "fundamental_frequency", KindType.QUANTITY),
-        "subglottal_pressure": ConceptInfo("speech_0012", "subglottal_pressure", KindType.QUANTITY),
+        "fundamental_frequency": ConceptInfo("concept1", "fundamental_frequency", KindType.QUANTITY),
+        "subglottal_pressure": ConceptInfo("concept12", "subglottal_pressure", KindType.QUANTITY),
         "speaking_rate": ConceptInfo("speech_0020", "speaking_rate", KindType.QUANTITY),
-        "F0": ConceptInfo("speech_0001b", "F0", KindType.QUANTITY),
-        "F1": ConceptInfo("speech_0002", "F1", KindType.QUANTITY),
+        "F0": ConceptInfo("concept1b", "F0", KindType.QUANTITY),
+        "F1": ConceptInfo("concept2", "F1", KindType.QUANTITY),
         # Category
         "task": ConceptInfo(
             "speech_0030", "task", KindType.CATEGORY,
@@ -53,7 +53,7 @@ def registry():
         # Boolean
         "phonation_present": ConceptInfo("speech_0040", "phonation_present", KindType.BOOLEAN),
         # Structural
-        "focalization": ConceptInfo("narr_0001", "focalization", KindType.STRUCTURAL),
+        "focalization": ConceptInfo("concept101", "focalization", KindType.STRUCTURAL),
         "coarticulation": ConceptInfo("speech_0050", "coarticulation", KindType.STRUCTURAL),
     }
 

@@ -1,4 +1,4 @@
-id: speech_0001
+id: concept1
 canonical_name: fundamental_frequency
 status: accepted
 definition: >
@@ -22,4 +22,4 @@ aliases:
 
 relationships:
   - type: broader
-    target: speech_0004
+    target: concept4

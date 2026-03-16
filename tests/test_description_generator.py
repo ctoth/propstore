@@ -14,18 +14,18 @@ from compiler.description_generator import generate_description, _summarize_cond
 @pytest.fixture
 def concept_registry():
     return {
-        "speech_0002": {
-            "id": "speech_0002",
+        "concept2": {
+            "id": "concept2",
             "canonical_name": "open_quotient",
             "form": "duration_ratio",
         },
-        "speech_0001": {
-            "id": "speech_0001",
+        "concept1": {
+            "id": "concept1",
             "canonical_name": "fundamental_frequency",
             "form": "frequency",
         },
-        "speech_0010": {
-            "id": "speech_0010",
+        "concept10": {
+            "id": "concept10",
             "canonical_name": "harmonic_richness",
             "form": "level",
         },
@@ -37,7 +37,7 @@ def concept_registry():
 def test_parameter_claim_with_value(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "speech_0002",
+        "concept": "concept2",
         "value": 0.7,
         "unit": "ratio",
         "conditions": ["voice_quality_type == 'modal'"],
@@ -51,7 +51,7 @@ def test_parameter_claim_with_value(concept_registry):
 def test_parameter_claim_with_range(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "speech_0002",
+        "concept": "concept2",
         "lower_bound": 0.5,
         "upper_bound": 0.9,
         "unit": "ratio",
@@ -65,7 +65,7 @@ def test_parameter_claim_with_range(concept_registry):
 def test_parameter_claim_with_uncertainty(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "speech_0002",
+        "concept": "concept2",
         "value": 0.7,
         "uncertainty": 0.12,
         "uncertainty_type": "sd",
@@ -102,7 +102,7 @@ def test_observation_preserves_statement(concept_registry):
 def test_parameter_no_conditions(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "speech_0002",
+        "concept": "concept2",
         "value": 0.7,
         "unit": "ratio",
     }
@@ -115,7 +115,7 @@ def test_parameter_no_conditions(concept_registry):
 def test_parameter_multiple_conditions(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "speech_0002",
+        "concept": "concept2",
         "value": 0.7,
         "unit": "ratio",
         "conditions": [
@@ -143,7 +143,7 @@ def test_model_claim(concept_registry):
 def test_measurement_claim(concept_registry):
     claim = {
         "type": "measurement",
-        "target_concept": "speech_0002",
+        "target_concept": "concept2",
         "measure": "jnd_absolute",
         "value": 0.05,
         "unit": "ratio",
@@ -165,12 +165,12 @@ def test_unknown_type_returns_none(concept_registry):
 def test_missing_concept_falls_back_to_id(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "speech_9999",
+        "concept": "concept9999",
         "value": 42.0,
         "unit": "Hz",
     }
     result = generate_description(claim, concept_registry)
-    assert result == "speech_9999 = 42 Hz"
+    assert result == "concept9999 = 42 Hz"
 
 
 # ── Test: Parameter with value + range prefers value ──────────────────
@@ -178,7 +178,7 @@ def test_missing_concept_falls_back_to_id(concept_registry):
 def test_parameter_value_and_range(concept_registry):
     claim = {
         "type": "parameter",
-        "concept": "speech_0002",
+        "concept": "concept2",
         "value": 0.7,
         "lower_bound": 0.5,
         "upper_bound": 0.9,

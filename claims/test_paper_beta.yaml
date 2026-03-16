@@ -5,7 +5,7 @@ claims:
   # COMPATIBLE with claim4 (same concept, same conditions, same value)
   - id: claim6
     type: parameter
-    concept: speech_0002
+    concept: concept2
     value: [800.0]
     unit: Pa
     conditions:
@@ -14,11 +14,11 @@ claims:
       paper: test_paper_beta
       page: 3
 
-  # OVERLAP: same concept as claim1 (speech_0001),
+  # OVERLAP: same concept as claim1 (concept1),
   # partially overlapping conditions (one shared, one different)
   - id: claim7
     type: parameter
-    concept: speech_0001
+    concept: concept1
     value: [250.0]
     unit: Hz
     conditions:
@@ -35,10 +35,10 @@ claims:
     sympy: "Eq(log(Ps), 1.00 + 0.88 * log(F0))"
     variables:
       - symbol: Ps
-        concept: speech_0002
+        concept: concept2
         role: dependent
       - symbol: F0
-        concept: speech_0001
+        concept: concept1
         role: independent
     fit:
       r: 0.965
@@ -53,10 +53,10 @@ claims:
       table: "Table 3"
 
   # Another parameter claim for phi-node with claim3
-  # (both for speech_0001 but different conditions)
+  # (both for concept1 but different conditions)
   - id: claim9
     type: parameter
-    concept: speech_0001
+    concept: concept1
     value: [220.0]
     unit: Hz
     conditions:

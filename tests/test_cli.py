@@ -74,13 +74,13 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
     # Write two concepts
     _write_concept(concepts, "fundamental_frequency", _make_concept(
-        "fundamental_frequency", "speech_0001", "speech",
+        "fundamental_frequency", "concept1", "speech",
         form="frequency",
         range=[50, 1000],
         aliases=[{"name": "F0", "source": "common"}],
     ))
     _write_concept(concepts, "task", _make_concept(
-        "task", "speech_0002", "speech",
+        "task", "concept2", "speech",
         form="category",
         form_parameters={"values": ["speech", "singing"], "extensible": True},
     ))
@@ -155,7 +155,7 @@ class TestConceptAlias:
     def test_adds_alias(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "alias", "speech_0001",
+            "concept", "alias", "concept1",
             "--name", "f_zero", "--source", "Smith_2020",
         ])
         assert result.exit_code == 0, result.output
@@ -168,9 +168,9 @@ class TestConceptAlias:
 
     def test_warns_on_name_collision(self, workspace: Path) -> None:
         runner = CliRunner()
-        # "task" is a canonical_name of speech_0002
+        # "task" is a canonical_name of concept2
         result = runner.invoke(cli, [
-            "concept", "alias", "speech_0001",
+            "concept", "alias", "concept1",
             "--name", "task", "--source", "test",
         ])
         assert result.exit_code == 0
@@ -183,7 +183,7 @@ class TestConceptRename:
     def test_renames_file_and_field(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "rename", "speech_0002",
+            "concept", "rename", "concept2",
             "--name", "vocal_task",
         ])
         assert result.exit_code == 0, result.output
@@ -196,7 +196,7 @@ class TestConceptRename:
 
         data = yaml.safe_load(new_path.read_text())
         assert data["canonical_name"] == "vocal_task"
-        assert data["id"] == "speech_0002"  # ID unchanged
+        assert data["id"] == "concept2"  # ID unchanged
 
 
 # ── concept deprecate ────────────────────────────────────────────────
@@ -205,8 +205,8 @@ class TestConceptDeprecate:
     def test_sets_fields(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "deprecate", "speech_0002",
-            "--replaced-by", "speech_0001",
+            "concept", "deprecate", "concept2",
+            "--replaced-by", "concept1",
         ])
         assert result.exit_code == 0, result.output
         assert "Deprecated" in result.output
@@ -214,30 +214,30 @@ class TestConceptDeprecate:
         data = yaml.safe_load(
             (workspace / "concepts" / "task.yaml").read_text())
         assert data["status"] == "deprecated"
-        assert data["replaced_by"] == "speech_0001"
+        assert data["replaced_by"] == "concept1"
 
     def test_rejects_nonexistent_replacement(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "deprecate", "speech_0002",
-            "--replaced-by", "speech_9999",
+            "concept", "deprecate", "concept2",
+            "--replaced-by", "concept9999",
         ])
         assert result.exit_code != 0
         assert "not found" in result.output
 
     def test_rejects_deprecated_replacement(self, workspace: Path) -> None:
-        # First deprecate speech_0002
+        # First deprecate concept2
         data = yaml.safe_load(
             (workspace / "concepts" / "task.yaml").read_text())
         data["status"] = "deprecated"
-        data["replaced_by"] = "speech_0001"
+        data["replaced_by"] = "concept1"
         with open(workspace / "concepts" / "task.yaml", "w") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "deprecate", "speech_0001",
-            "--replaced-by", "speech_0002",
+            "concept", "deprecate", "concept1",
+            "--replaced-by", "concept2",
         ])
         assert result.exit_code != 0
         assert "deprecated" in result.output
@@ -249,7 +249,7 @@ class TestConceptLink:
     def test_adds_relationship(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "link", "speech_0001", "broader", "speech_0002",
+            "concept", "link", "concept1", "broader", "concept2",
         ])
         assert result.exit_code == 0, result.output
         assert "Added broader" in result.output
@@ -257,7 +257,7 @@ class TestConceptLink:
         data = yaml.safe_load(
             (workspace / "concepts" / "fundamental_frequency.yaml").read_text())
         rels = data.get("relationships", [])
-        assert any(r["type"] == "broader" and r["target"] == "speech_0002" for r in rels)
+        assert any(r["type"] == "broader" and r["target"] == "concept2" for r in rels)
 
 
 # ── validate ─────────────────────────────────────────────────────────
@@ -273,7 +273,7 @@ class TestValidate:
         # Write a broken concept
         bad = workspace / "concepts" / "broken.yaml"
         bad.write_text(yaml.dump({
-            "id": "speech_0001",  # duplicate ID
+            "id": "concept1",  # duplicate ID
             "canonical_name": "broken",
             "status": "accepted",
             "definition": "dup",
@@ -304,7 +304,7 @@ class TestBuild:
     def test_refuses_on_validation_failure(self, workspace: Path) -> None:
         bad = workspace / "concepts" / "broken.yaml"
         bad.write_text(yaml.dump({
-            "id": "speech_0001",  # duplicate
+            "id": "concept1",  # duplicate
             "canonical_name": "broken",
             "status": "accepted",
             "definition": "dup",
