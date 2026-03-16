@@ -1,0 +1,66 @@
+source:
+  paper: test_paper_beta
+
+claims:
+  # COMPATIBLE with claim_0004 (same concept, same conditions, same value)
+  - id: claim_0006
+    type: parameter
+    concept: speech_0002
+    value: [800.0]
+    unit: Pa
+    conditions:
+      - "task == 'speech'"
+    provenance:
+      paper: test_paper_beta
+      page: 3
+
+  # OVERLAP: same concept as claim_0001 (speech_0001),
+  # partially overlapping conditions (one shared, one different)
+  - id: claim_0007
+    type: parameter
+    concept: speech_0001
+    value: [250.0]
+    unit: Hz
+    conditions:
+      - "task == 'speech'"
+      - "fundamental_frequency > 100"
+    provenance:
+      paper: test_paper_beta
+      page: 7
+
+  # An equation claim referencing multiple concepts
+  - id: claim_0008
+    type: equation
+    expression: "log(Ps) = 1.00 + 0.88 * log(F0)"
+    sympy: "Eq(log(Ps), 1.00 + 0.88 * log(F0))"
+    variables:
+      - symbol: Ps
+        concept: speech_0002
+        role: dependent
+      - symbol: F0
+        concept: speech_0001
+        role: independent
+    fit:
+      r: 0.965
+      r_sd: 0.04
+      slope: 0.88
+      slope_sd: 0.186
+    conditions:
+      - "task == 'speech'"
+    provenance:
+      paper: test_paper_beta
+      page: 19
+      table: "Table 3"
+
+  # Another parameter claim for phi-node with claim_0003
+  # (both for speech_0001 but different conditions)
+  - id: claim_0009
+    type: parameter
+    concept: speech_0001
+    value: [220.0]
+    unit: Hz
+    conditions:
+      - "task == 'whisper'"
+    provenance:
+      paper: test_paper_beta
+      page: 22
