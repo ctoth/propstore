@@ -32,12 +32,22 @@ class FormDefinition:
     parameters: dict = field(default_factory=dict)
 
 
+_form_cache: dict[tuple[str, str], FormDefinition | None] = {}
+
+
 def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
-    """Load a single form definition and return a FormDefinition, or None."""
+    """Load a single form definition and return a FormDefinition, or None.
+
+    Results are cached by (forms_dir, form_name) to avoid redundant disk reads.
+    """
     if not isinstance(form_name, str) or not form_name:
         return None
+    cache_key = (str(forms_dir), form_name)
+    if cache_key in _form_cache:
+        return _form_cache[cache_key]
     form_path = forms_dir / f"{form_name}.yaml"
     if not form_path.exists():
+        _form_cache[cache_key] = None
         return None
     with open(form_path) as f:
         data = yaml.safe_load(f)
@@ -67,7 +77,7 @@ def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
             and form_name not in ("structural",))
     )
 
-    return FormDefinition(
+    result = FormDefinition(
         name=form_name,
         kind=kind,
         unit_symbol=unit_symbol,
@@ -75,6 +85,8 @@ def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
         is_dimensionless=is_dimensionless,
         parameters=parameters,
     )
+    _form_cache[cache_key] = result
+    return result
 
 
 def load_all_forms(forms_dir: Path) -> dict[str, FormDefinition]:
