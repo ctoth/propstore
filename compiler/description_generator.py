@@ -30,7 +30,7 @@ def generate_description(claim: dict, concept_registry: dict) -> str | None:
     if ctype == "parameter":
         return _describe_parameter(claim, concept_registry)
     elif ctype == "equation":
-        return _describe_equation(claim)
+        return _expression_as_description(claim)
     elif ctype == "observation":
         # Observation claims require statement — return it (or None)
         return claim.get("statement")
@@ -96,7 +96,7 @@ def _describe_parameter(claim: dict, concept_registry: dict) -> str:
     return val_str
 
 
-def _describe_equation(claim: dict) -> str:
+def _expression_as_description(claim: dict) -> str:
     """Generate description for an equation claim."""
     expression = claim.get("expression", "")
     return expression
