@@ -119,25 +119,31 @@ def build_sidecar(
         sidecar_path.unlink()
 
     conn = sqlite3.connect(sidecar_path)
-    conn.execute("PRAGMA journal_mode=WAL")
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
 
-    _create_tables(conn)
-    _populate_concepts(conn, concepts)
-    _populate_aliases(conn, concepts)
-    _populate_relationships(conn, concepts)
-    _populate_parameterizations(conn, concepts)
-    _populate_parameterization_groups(conn, concepts)
-    _build_fts_index(conn, concepts)
+        _create_tables(conn)
+        _populate_concepts(conn, concepts)
+        _populate_aliases(conn, concepts)
+        _populate_relationships(conn, concepts)
+        _populate_parameterizations(conn, concepts)
+        _populate_parameterization_groups(conn, concepts)
+        _build_fts_index(conn, concepts)
 
-    if claim_files is not None:
-        _create_claim_tables(conn)
-        if concept_registry is None:
-            concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-        _populate_claims(conn, claim_files, concept_registry)
-        _populate_conflicts(conn, claim_files, concept_registry)
-        _build_claim_fts_index(conn, claim_files)
+        if claim_files is not None:
+            _create_claim_tables(conn)
+            if concept_registry is None:
+                concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+            _populate_claims(conn, claim_files, concept_registry)
+            _populate_conflicts(conn, claim_files, concept_registry)
+            _build_claim_fts_index(conn, claim_files)
 
-    conn.commit()
+        conn.commit()
+    except BaseException:
+        conn.close()
+        if sidecar_path.exists():
+            sidecar_path.unlink()
+        raise
     conn.close()
 
     # Write content hash
