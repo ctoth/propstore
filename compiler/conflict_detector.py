@@ -267,7 +267,8 @@ def _detect_param_conflicts(
             try:
                 # Create symbols for each input concept ID
                 symbols = {inp_id: sympy.Symbol(inp_id) for inp_id in inputs}
-                expr = sympy.sympify(sympy_expr_str, locals=symbols)
+                assert isinstance(sympy_expr_str, str)
+                expr = sympy.parse_expr(sympy_expr_str, local_dict=symbols)
                 derived_value = float(expr.subs(input_values))
             except Exception:
                 # SymPy can't simplify -> warn, don't error
