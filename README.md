@@ -30,6 +30,16 @@ Everything goes through `pks`:
 uv run pks --help
 ```
 
+### Init
+
+```bash
+pks init                # creates ./knowledge/ with concepts/, claims/, sidecar/
+pks init myproject      # creates ./myproject/ instead
+pks -C /some/path init  # creates /some/path/knowledge/
+```
+
+If the target directory already contains `concepts/`, prints "Already initialized" and exits.
+
 ### Concepts
 
 ```bash
@@ -92,7 +102,7 @@ Key invariant: **the compiler never produces output from an invalid state.** If 
 uv run pytest tests/ -v
 ```
 
-180 tests covering the validator, CEL type-checker, conflict detector, sidecar builder, and CLI.
+185 tests covering the validator, CEL type-checker, conflict detector, sidecar builder, and CLI.
 
 ## File layout
 
@@ -116,6 +126,7 @@ compiler/
     concept.py               # concept subcommands
     claim.py                 # claim subcommands
     compiler_cmds.py         # validate/build/query/export
+    init.py                  # pks init command
     helpers.py               # shared utilities
 schema/
   concept_registry.linkml.yaml
