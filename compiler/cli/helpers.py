@@ -35,15 +35,39 @@ def schema_path() -> Path:
 
 # ── Counter management ───────────────────────────────────────────────
 
+def _scan_max_concept_id() -> int:
+    """Scan existing concepts to find the highest numeric ID in use."""
+    cdir = concepts_dir()
+    if not cdir.exists():
+        return 0
+    max_id = 0
+    for entry in cdir.iterdir():
+        if entry.is_file() and entry.suffix == ".yaml":
+            try:
+                data = yaml.safe_load(entry.read_text())
+            except Exception:
+                continue
+            cid = (data or {}).get("id", "")
+            if isinstance(cid, str) and cid.startswith("concept"):
+                try:
+                    max_id = max(max_id, int(cid[len("concept"):]))
+                except ValueError:
+                    pass
+    return max_id
+
+
 def read_counter(domain: str) -> int:
-    p = counters_dir() / f"{domain}.next"
+    # Global counter — domain parameter kept for backward compatibility
+    p = counters_dir() / "global.next"
     if p.exists():
         return int(p.read_text().strip())
-    return 1
+    # Migrate: if no global counter, scan existing IDs for the true max
+    return _scan_max_concept_id() + 1
 
 
 def write_counter(domain: str, value: int) -> None:
-    p = counters_dir() / f"{domain}.next"
+    # Global counter — domain parameter kept for backward compatibility
+    p = counters_dir() / "global.next"
     p.write_text(f"{value}\n")
 
 
