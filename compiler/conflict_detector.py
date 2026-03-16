@@ -499,7 +499,7 @@ def _equation_signature(claim: dict) -> tuple[str, tuple[str, ...]] | None:
 
 def _canonicalize_equation(claim: dict) -> str | None:
     try:
-        import sympy
+        from sympy import Equality, SympifyError, Symbol, simplify
         from sympy.parsing.sympy_parser import parse_expr
     except ImportError:
         return None
@@ -515,7 +515,7 @@ def _canonicalize_equation(claim: dict) -> str | None:
         symbol = var.get("symbol")
         concept_id = var.get("concept")
         if isinstance(symbol, str) and symbol and isinstance(concept_id, str) and concept_id:
-            symbol_map[symbol] = sympy.Symbol(concept_id)
+            symbol_map[symbol] = Symbol(concept_id)
     if not symbol_map:
         return None
 
@@ -523,10 +523,10 @@ def _canonicalize_equation(claim: dict) -> str | None:
     if isinstance(explicit_sympy, str) and explicit_sympy.strip():
         text = explicit_sympy.strip().replace("^", "**")
         try:
-            parsed = sympy.sympify(text, locals=symbol_map)
-            if isinstance(parsed, sympy.Equality):
-                return str(sympy.simplify(parsed.lhs - parsed.rhs))
-        except (sympy.SympifyError, SyntaxError, TypeError, ValueError):
+            parsed = parse_expr(text, local_dict=symbol_map)
+            if isinstance(parsed, Equality):
+                return str(simplify(parsed.lhs - parsed.rhs))
+        except (SympifyError, SyntaxError, TypeError, ValueError):
             pass
 
     expression = claim.get("expression")
@@ -539,7 +539,7 @@ def _canonicalize_equation(claim: dict) -> str | None:
         rhs = parse_expr(rhs_text.strip(), local_dict=symbol_map)
     except Exception:
         return None
-    return str(sympy.simplify(lhs - rhs))
+    return str(simplify(lhs - rhs))
 
 
 def _value_str(value, claim: dict | None = None) -> str:
@@ -702,7 +702,8 @@ def _detect_param_conflicts(
     - Compare with direct claims for the output concept
     """
     try:
-        import sympy
+        from sympy import Symbol as _Symbol
+        from sympy.parsing.sympy_parser import parse_expr as _parse_expr
     except ImportError:
         return  # SymPy not available, skip param conflict detection
 
@@ -765,9 +766,9 @@ def _detect_param_conflicts(
             # Evaluate the SymPy expression
             try:
                 # Create symbols for each input concept ID
-                symbols = {inp_id: sympy.Symbol(inp_id) for inp_id in inputs}
+                symbols = {inp_id: _Symbol(inp_id) for inp_id in inputs}
                 assert isinstance(sympy_expr_str, str)
-                expr = sympy.parse_expr(sympy_expr_str, local_dict=symbols)
+                expr = _parse_expr(sympy_expr_str, local_dict=symbols)
                 derived_value = float(expr.subs(input_values))
             except Exception:
                 # SymPy can't simplify -> warn, don't error
