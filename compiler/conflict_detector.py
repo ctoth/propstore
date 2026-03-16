@@ -237,12 +237,12 @@ def _detect_param_conflicts(
             if not inputs or not sympy_expr_str:
                 continue
 
-            # Check all inputs are quantity kind
+            # Check all inputs are quantity kind (form is not category/structural/boolean)
             all_quantity = True
             for inp_id in inputs:
                 inp_data = concept_registry.get(inp_id, {})
-                kind = inp_data.get("kind", {})
-                if "quantity" not in kind:
+                inp_form = inp_data.get("form", "")
+                if inp_form in ("category", "structural", "boolean", ""):
                     all_quantity = False
                     break
             if not all_quantity:

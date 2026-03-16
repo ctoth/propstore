@@ -23,8 +23,6 @@ from compiler.cli.helpers import (
 )
 from compiler.validate import load_concepts, validate_concepts
 
-# Valid kind types and relationship types from schema
-KIND_TYPES = ("quantity", "category", "boolean", "structural")
 RELATIONSHIP_TYPES = (
     "broader", "narrower", "related",
     "component_of", "derived_from", "contested_definition",
@@ -42,42 +40,27 @@ def concept() -> None:
 @click.option("--domain", required=True, help="Domain prefix (e.g. speech, narr)")
 @click.option("--name", required=True, help="Canonical name (lowercase, underscored)")
 @click.option("--definition", default=None, help="Definition (prompted if omitted)")
-@click.option("--kind", "kind_type", type=click.Choice(KIND_TYPES), default=None,
-              help="Kind type (prompted if omitted)")
-@click.option("--unit", default=None, help="Unit for quantity kind")
-@click.option("--values", default=None, help="Comma-separated values for category kind")
+@click.option("--form", "form_name", default=None,
+              help="Form name (references forms/<name>.yaml, prompted if omitted)")
 @click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
 def add(
     domain: str,
     name: str,
     definition: str | None,
-    kind_type: str | None,
-    unit: str | None,
-    values: str | None,
+    form_name: str | None,
     dry_run: bool,
 ) -> None:
     """Add a new concept to the registry."""
     # Prompt for missing fields
     if definition is None:
         definition = click.prompt("Definition")
-    if kind_type is None:
-        kind_type = click.prompt("Kind", type=click.Choice(KIND_TYPES))
-
-    # Build kind dict
-    kind: dict = {}
-    if kind_type == "quantity":
-        if unit is None:
-            unit = click.prompt("Unit")
-        kind["quantity"] = {"unit": unit}
-    elif kind_type == "category":
-        if values is None:
-            values = click.prompt("Values (comma-separated)")
-        assert values is not None
-        kind["category"] = {"values": [v.strip() for v in values.split(",")], "extensible": True}
-    elif kind_type == "boolean":
-        kind["boolean"] = {}
-    elif kind_type == "structural":
-        kind["structural"] = {}
+    if form_name is None:
+        # List available forms
+        forms_dir = Path("forms")
+        if forms_dir.exists():
+            available = sorted(f.stem for f in forms_dir.iterdir() if f.suffix == ".yaml")
+            click.echo(f"Available forms: {', '.join(available)}")
+        form_name = click.prompt("Form")
 
     cid, counter = next_id(domain)
     filepath = concepts_dir() / f"{name}.yaml"
@@ -89,7 +72,7 @@ def add(
         "definition": definition,
         "domain": domain,
         "created_date": str(date.today()),
-        "kind": kind,
+        "form": form_name,
     }
 
     if dry_run:

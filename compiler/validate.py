@@ -59,16 +59,25 @@ def load_concepts(concept_dir: Path) -> list[LoadedConcept]:
     return concepts
 
 
-def _get_kind_type(concept_data: dict) -> KindType | None:
-    """Extract the kind type from a concept's data dict."""
-    kind = concept_data.get("kind")
-    if not kind or not isinstance(kind, dict):
+def _get_kind_type_from_form(concept_data: dict, forms_dir: Path | None = None) -> KindType | None:
+    """Derive the KindType from a concept's form field.
+
+    Maps form names to KindType:
+      - 'category' -> CATEGORY
+      - 'structural' -> STRUCTURAL
+      - 'boolean' -> BOOLEAN
+      - everything else -> QUANTITY (measurable forms)
+    """
+    form = concept_data.get("form")
+    if not form or not isinstance(form, str):
         return None
-    populated = [k for k in ("quantity", "category", "boolean", "structural")
-                 if kind.get(k) is not None]
-    if len(populated) != 1:
-        return None
-    return KindType(populated[0])
+    if form == "category":
+        return KindType.CATEGORY
+    if form == "structural":
+        return KindType.STRUCTURAL
+    if form == "boolean":
+        return KindType.BOOLEAN
+    return KindType.QUANTITY
 
 
 def _get_id_prefix(concept_id: str) -> str | None:
@@ -84,18 +93,19 @@ def _build_cel_registry(concepts: list[LoadedConcept]) -> dict[str, ConceptInfo]
         data = c.data
         cid = data.get("id", "")
         name = data.get("canonical_name", "")
-        kind_type = _get_kind_type(data)
+        kind_type = _get_kind_type_from_form(data)
         if not name or kind_type is None:
             continue
 
         category_values: list[str] = []
         category_extensible = True
         if kind_type == KindType.CATEGORY:
-            cat = data.get("kind", {}).get("category", {})
-            if cat:
-                category_values = cat.get("values", [])
-                ext = cat.get("extensible")
-                category_extensible = ext if ext is not None else True
+            # Category values may be in form_parameters as structured data
+            fp = data.get("form_parameters", {}) or {}
+            if isinstance(fp.get("values"), list):
+                category_values = fp["values"]
+            ext = fp.get("extensible")
+            category_extensible = ext if ext is not None else True
 
         registry[name] = ConceptInfo(
             id=cid,
@@ -121,7 +131,7 @@ def validate_concepts(concepts: list[LoadedConcept]) -> ValidationResult:
         name = data.get("canonical_name")
         status = data.get("status")
         definition = data.get("definition")
-        kind = data.get("kind")
+        form = data.get("form")
 
         if not cid:
             result.errors.append(f"{c.filename}: missing required field 'id'")
@@ -132,8 +142,30 @@ def validate_concepts(concepts: list[LoadedConcept]) -> ValidationResult:
             result.errors.append(f"{c.filename}: missing required field 'status'")
         if not definition:
             result.errors.append(f"{c.filename}: missing required field 'definition'")
-        if not kind:
-            result.errors.append(f"{c.filename}: missing required field 'kind'")
+        if not form:
+            result.errors.append(f"{c.filename}: missing required field 'form'")
+        elif not isinstance(form, str):
+            result.errors.append(f"{c.filename}: 'form' must be a string")
+        else:
+            # Check that a matching form file exists
+            forms_dir = c.filepath.parent.parent / "forms"
+            form_file = forms_dir / f"{form}.yaml"
+            if not form_file.exists():
+                result.errors.append(
+                    f"{c.filename}: form '{form}' has no matching file at forms/{form}.yaml")
+
+        # Validate form_parameters if present
+        form_params = data.get("form_parameters")
+        if form_params is not None and not isinstance(form_params, dict):
+            result.errors.append(f"{c.filename}: 'form_parameters' must be a mapping")
+
+        # Validate range if present
+        range_val = data.get("range")
+        if range_val is not None:
+            if not isinstance(range_val, list):
+                result.errors.append(f"{c.filename}: 'range' must be a list")
+            elif not all(isinstance(v, (int, float)) for v in range_val):
+                result.errors.append(f"{c.filename}: 'range' must contain only numbers")
 
         # ── ID uniqueness ───────────────────────────────────────
         if cid in id_to_concept:
@@ -147,17 +179,6 @@ def validate_concepts(concepts: list[LoadedConcept]) -> ValidationResult:
         if name and name != c.filename:
             result.errors.append(
                 f"{c.filename}: canonical_name '{name}' does not match filename '{c.filename}'")
-
-        # ── Exactly one kind variant ────────────────────────────
-        if kind and isinstance(kind, dict):
-            populated = [k for k in ("quantity", "category", "boolean", "structural")
-                         if kind.get(k) is not None]
-            if len(populated) == 0:
-                result.errors.append(f"{c.filename}: kind has no variant populated (need exactly one)")
-            elif len(populated) > 1:
-                result.errors.append(
-                    f"{c.filename}: kind has {len(populated)} variants populated "
-                    f"({', '.join(populated)}), need exactly one")
 
         # ── ID prefix matches domain ────────────────────────────
         domain = data.get("domain")
@@ -226,7 +247,7 @@ def validate_concepts(concepts: list[LoadedConcept]) -> ValidationResult:
                         f"{c.filename}: parameterization input '{input_id}' not found in registry")
                 else:
                     input_concept = id_to_concept[input_id]
-                    input_kind = _get_kind_type(input_concept.data)
+                    input_kind = _get_kind_type_from_form(input_concept.data)
                     if input_kind and input_kind != KindType.QUANTITY:
                         result.errors.append(
                             f"{c.filename}: parameterization input '{input_id}' "

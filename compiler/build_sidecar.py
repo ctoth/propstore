@@ -38,13 +38,13 @@ def _content_hash(
     return h.hexdigest()
 
 
-def _get_kind_type(data: dict) -> str:
-    kind = data.get("kind", {})
-    if not isinstance(kind, dict):
-        return "unknown"
-    for k in ("quantity", "category", "boolean", "structural"):
-        if kind.get(k) is not None:
-            return k
+def _get_form_kind(data: dict) -> str:
+    """Derive a kind-type string from the concept's form field."""
+    form = data.get("form", "")
+    if form in ("category", "structural", "boolean"):
+        return form
+    if form:
+        return "quantity"
     return "unknown"
 
 
@@ -114,6 +114,10 @@ def _create_tables(conn: sqlite3.Connection):
             domain TEXT,
             definition TEXT NOT NULL,
             kind_type TEXT NOT NULL,
+            form TEXT NOT NULL,
+            form_parameters TEXT,
+            range_min REAL,
+            range_max REAL,
             created_date TEXT,
             last_modified TEXT
         );
@@ -159,11 +163,26 @@ def _populate_concepts(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
         if modified and not isinstance(modified, str):
             modified = str(modified)
 
+        # Extract range bounds
+        range_val = d.get("range")
+        range_min = None
+        range_max = None
+        if isinstance(range_val, list) and len(range_val) >= 2:
+            range_min = float(range_val[0])
+            range_max = float(range_val[1])
+
+        # Serialize form_parameters as JSON
+        form_params = d.get("form_parameters")
+        form_params_json = json.dumps(form_params) if form_params else None
+
         conn.execute(
-            "INSERT INTO concept (id, canonical_name, status, domain, definition, kind_type, created_date, last_modified) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO concept (id, canonical_name, status, domain, definition, "
+            "kind_type, form, form_parameters, range_min, range_max, "
+            "created_date, last_modified) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (d.get("id"), d.get("canonical_name"), d.get("status"),
-             d.get("domain"), d.get("definition"), _get_kind_type(d),
+             d.get("domain"), d.get("definition"), _get_form_kind(d),
+             d.get("form", ""), form_params_json, range_min, range_max,
              created, modified),
         )
 

@@ -53,21 +53,22 @@ def make_concept_registry():
         "speech_0001": {
             "id": "speech_0001",
             "canonical_name": "fundamental_frequency",
-            "kind": {"quantity": {"unit": "Hz"}},
+            "form": "frequency",
             "status": "accepted",
             "definition": "F0",
         },
         "speech_0002": {
             "id": "speech_0002",
             "canonical_name": "subglottal_pressure",
-            "kind": {"quantity": {"unit": "Pa"}},
+            "form": "pressure",
             "status": "accepted",
             "definition": "Ps",
         },
         "speech_0003": {
             "id": "speech_0003",
             "canonical_name": "task",
-            "kind": {"category": {"values": ["speech", "singing"], "extensible": True}},
+            "form": "category",
+            "form_parameters": {"values": ["speech", "singing"], "extensible": True},
             "status": "accepted",
             "definition": "Task type",
         },
@@ -244,7 +245,7 @@ class TestParameterizationConflict:
             "speech_0010": {
                 "id": "speech_0010",
                 "canonical_name": "open_quotient",
-                "kind": {"quantity": {"unit": "%"}},
+                "form": "duration_ratio",
                 "status": "accepted",
                 "definition": "ra = ta / T0",
                 "parameterization_relationships": [
@@ -258,14 +259,14 @@ class TestParameterizationConflict:
             "speech_0011": {
                 "id": "speech_0011",
                 "canonical_name": "return_time",
-                "kind": {"quantity": {"unit": "s"}},
+                "form": "time",
                 "status": "accepted",
                 "definition": "ta",
             },
             "speech_0012": {
                 "id": "speech_0012",
                 "canonical_name": "period",
-                "kind": {"quantity": {"unit": "s"}},
+                "form": "time",
                 "status": "accepted",
                 "definition": "T0",
             },
@@ -298,7 +299,7 @@ class TestParameterizationConflict:
             "speech_0010": {
                 "id": "speech_0010",
                 "canonical_name": "open_quotient",
-                "kind": {"quantity": {"unit": "%"}},
+                "form": "duration_ratio",
                 "status": "accepted",
                 "definition": "ra ~ ta / T0",
                 "parameterization_relationships": [
@@ -312,14 +313,14 @@ class TestParameterizationConflict:
             "speech_0011": {
                 "id": "speech_0011",
                 "canonical_name": "return_time",
-                "kind": {"quantity": {"unit": "s"}},
+                "form": "time",
                 "status": "accepted",
                 "definition": "ta",
             },
             "speech_0012": {
                 "id": "speech_0012",
                 "canonical_name": "period",
-                "kind": {"quantity": {"unit": "s"}},
+                "form": "time",
                 "status": "accepted",
                 "definition": "T0",
             },

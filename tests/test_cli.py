@@ -19,7 +19,7 @@ from compiler.cli import cli
 # ── Fixtures ─────────────────────────────────────────────────────────
 
 def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
-                  kind: dict | None = None, **extra: object) -> dict:
+                  form: str = "frequency", **extra: object) -> dict:
     """Build a minimal valid concept dict."""
     data: dict = {
         "id": cid,
@@ -28,7 +28,7 @@ def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
         "definition": f"Test definition for {name}.",
         "domain": domain,
         "created_date": "2026-03-15",
-        "kind": kind or {"quantity": {"unit": "Hz"}},
+        "form": form,
     }
     data.update(extra)
     return data
@@ -76,15 +76,27 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     concepts = tmp_path / "concepts"
     concepts.mkdir()
 
+    # Create form definition files
+    forms_dir = tmp_path / "forms"
+    forms_dir.mkdir()
+    for form_name in ("frequency", "category", "boolean", "structural",
+                      "duration_ratio", "pressure", "level", "time",
+                      "flow", "flow_derivative", "amplitude_ratio",
+                      "dimensionless_compound"):
+        (forms_dir / f"{form_name}.yaml").write_text(
+            yaml.dump({"name": form_name}, default_flow_style=False))
+
     # Write two concepts
     _write_concept(concepts, "fundamental_frequency", _make_concept(
         "fundamental_frequency", "speech_0001", "speech",
-        kind={"quantity": {"unit": "Hz", "dimension": "frequency", "range": [50, 1000]}},
+        form="frequency",
+        range=[50, 1000],
         aliases=[{"name": "F0", "source": "common"}],
     ))
     _write_concept(concepts, "task", _make_concept(
         "task", "speech_0002", "speech",
-        kind={"category": {"values": ["speech", "singing"], "extensible": True}},
+        form="category",
+        form_parameters={"values": ["speech", "singing"], "extensible": True},
     ))
 
     _write_counter(concepts, "speech", 3)
@@ -109,8 +121,7 @@ class TestConceptAdd:
             "--domain", "speech",
             "--name", "test_pressure",
             "--definition", "A test concept",
-            "--kind", "quantity",
-            "--unit", "Pa",
+            "--form", "pressure",
         ])
         assert result.exit_code == 0, result.output
         assert "Created" in result.output
@@ -121,21 +132,21 @@ class TestConceptAdd:
         assert data["id"] == "speech_0003"
         assert data["canonical_name"] == "test_pressure"
         assert data["status"] == "proposed"
-        assert data["kind"]["quantity"]["unit"] == "Pa"
+        assert data["form"] == "pressure"
 
     def test_increments_counter(self, workspace: Path) -> None:
         runner = CliRunner()
         runner.invoke(cli, [
             "concept", "add",
             "--domain", "speech", "--name", "c1",
-            "--definition", "d1", "--kind", "boolean",
+            "--definition", "d1", "--form", "boolean",
         ])
         assert _read_counter(workspace / "concepts", "speech") == 4
 
         runner.invoke(cli, [
             "concept", "add",
             "--domain", "speech", "--name", "c2",
-            "--definition", "d2", "--kind", "boolean",
+            "--definition", "d2", "--form", "boolean",
         ])
         assert _read_counter(workspace / "concepts", "speech") == 5
 
@@ -144,7 +155,7 @@ class TestConceptAdd:
         result = runner.invoke(cli, [
             "concept", "add",
             "--domain", "speech", "--name", "ghost",
-            "--definition", "d", "--kind", "boolean",
+            "--definition", "d", "--form", "boolean",
             "--dry-run",
         ])
         assert result.exit_code == 0
@@ -280,7 +291,7 @@ class TestValidate:
             "canonical_name": "broken",
             "status": "accepted",
             "definition": "dup",
-            "kind": {"quantity": {"unit": "x"}},
+            "form": "frequency",
         }))
         runner = CliRunner()
         result = runner.invoke(cli, ["validate"])
@@ -311,7 +322,7 @@ class TestBuild:
             "canonical_name": "broken",
             "status": "accepted",
             "definition": "dup",
-            "kind": {"quantity": {"unit": "x"}},
+            "form": "frequency",
         }))
         runner = CliRunner()
         sidecar = workspace / "sidecar" / "propstore.sqlite"

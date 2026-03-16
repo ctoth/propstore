@@ -70,6 +70,20 @@ def _json_safe(obj):
     return obj
 
 
+def _kind_type_from_form(data: dict) -> KindType | None:
+    """Derive KindType from a concept's form field."""
+    form = data.get("form")
+    if not form or not isinstance(form, str):
+        return None
+    if form == "category":
+        return KindType.CATEGORY
+    if form == "structural":
+        return KindType.STRUCTURAL
+    if form == "boolean":
+        return KindType.BOOLEAN
+    return KindType.QUANTITY
+
+
 def _build_cel_registry_from_concepts(concept_registry: dict[str, dict]) -> dict[str, ConceptInfo]:
     """Build a CEL type-checking registry from concept data dicts.
 
@@ -78,24 +92,18 @@ def _build_cel_registry_from_concepts(concept_registry: dict[str, dict]) -> dict
     registry: dict[str, ConceptInfo] = {}
     for cid, data in concept_registry.items():
         name = data.get("canonical_name", "")
-        kind = data.get("kind")
-        if not name or not kind or not isinstance(kind, dict):
+        kind_type = _kind_type_from_form(data)
+        if not name or kind_type is None:
             continue
 
-        populated = [k for k in ("quantity", "category", "boolean", "structural")
-                     if kind.get(k) is not None]
-        if len(populated) != 1:
-            continue
-
-        kind_type = KindType(populated[0])
         category_values: list[str] = []
         category_extensible = True
         if kind_type == KindType.CATEGORY:
-            cat = kind.get("category", {})
-            if cat:
-                category_values = cat.get("values", [])
-                ext = cat.get("extensible")
-                category_extensible = ext if ext is not None else True
+            fp = data.get("form_parameters", {}) or {}
+            if isinstance(fp.get("values"), list):
+                category_values = fp["values"]
+            ext = fp.get("extensible")
+            category_extensible = ext if ext is not None else True
 
         registry[name] = ConceptInfo(
             id=cid,

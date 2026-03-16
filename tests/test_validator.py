@@ -30,12 +30,25 @@ from compiler.validate import (
 
 @pytest.fixture
 def concept_dir(tmp_path):
-    """Create a temporary concepts directory."""
-    counters = tmp_path / ".counters"
+    """Create a temporary concepts directory with form definitions."""
+    concept_path = tmp_path / "concepts"
+    concept_path.mkdir()
+    counters = concept_path / ".counters"
     counters.mkdir()
     (counters / "speech.next").write_text("100")
     (counters / "narr.next").write_text("10")
-    return tmp_path
+
+    # Create form definition files alongside concepts
+    forms_dir = tmp_path / "forms"
+    forms_dir.mkdir()
+    for form_name in ("frequency", "category", "boolean", "structural",
+                      "duration_ratio", "pressure", "level", "time",
+                      "flow", "flow_derivative", "amplitude_ratio",
+                      "dimensionless_compound"):
+        (forms_dir / f"{form_name}.yaml").write_text(
+            yaml.dump({"name": form_name}, default_flow_style=False))
+
+    return concept_path
 
 
 def write_concept(concept_dir, filename, data):
@@ -52,7 +65,7 @@ def make_quantity_concept(id, name, status="accepted", **kwargs):
         "canonical_name": name,
         "status": status,
         "definition": f"Definition of {name}.",
-        "kind": {"quantity": {"unit": "Hz"}},
+        "form": "frequency",
     }
     c.update(kwargs)
     return c
@@ -64,7 +77,8 @@ def make_category_concept(id, name, values, status="accepted", extensible=True, 
         "canonical_name": name,
         "status": status,
         "definition": f"Definition of {name}.",
-        "kind": {"category": {"values": values, "extensible": extensible}},
+        "form": "category",
+        "form_parameters": {"values": values, "extensible": extensible},
     }
     c.update(kwargs)
     return c
@@ -76,7 +90,7 @@ def make_boolean_concept(id, name, status="accepted", **kwargs):
         "canonical_name": name,
         "status": status,
         "definition": f"Definition of {name}.",
-        "kind": {"boolean": {}},
+        "form": "boolean",
     }
     c.update(kwargs)
     return c
@@ -88,7 +102,7 @@ def make_structural_concept(id, name, status="accepted", **kwargs):
         "canonical_name": name,
         "status": status,
         "definition": f"Definition of {name}.",
-        "kind": {"structural": {}},
+        "form": "structural",
     }
     c.update(kwargs)
     return c
@@ -325,35 +339,31 @@ class TestParameterizationInputs:
 
 # ── Kind validation ──────────────────────────────────────────────────
 
-class TestKindValidation:
-    def test_no_kind_variant_error(self, concept_dir):
+class TestFormValidation:
+    def test_missing_form_error(self, concept_dir):
         c = {
             "id": "speech_0001",
             "canonical_name": "bad_concept",
             "status": "accepted",
-            "definition": "No kind.",
-            "kind": {},
+            "definition": "No form.",
         }
         write_concept(concept_dir, "bad_concept.yaml", c)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
-        assert any("kind" in e.lower() for e in result.errors)
+        assert any("form" in e.lower() for e in result.errors)
 
-    def test_multiple_kind_variants_error(self, concept_dir):
+    def test_nonexistent_form_error(self, concept_dir):
         c = {
             "id": "speech_0001",
             "canonical_name": "bad_concept",
             "status": "accepted",
-            "definition": "Two kinds.",
-            "kind": {
-                "quantity": {"unit": "Hz"},
-                "boolean": {},
-            },
+            "definition": "Bad form ref.",
+            "form": "nonexistent_form",
         }
         write_concept(concept_dir, "bad_concept.yaml", c)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
-        assert any("kind" in e.lower() for e in result.errors)
+        assert any("no matching file" in e.lower() for e in result.errors)
 
 
 # ── ID prefix / domain match ────────────────────────────────────────

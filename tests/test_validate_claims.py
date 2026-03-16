@@ -100,21 +100,22 @@ def make_concept_registry():
         "speech_0001": {
             "id": "speech_0001",
             "canonical_name": "fundamental_frequency",
-            "kind": {"quantity": {"unit": "Hz"}},
+            "form": "frequency",
             "status": "accepted",
             "definition": "F0",
         },
         "speech_0002": {
             "id": "speech_0002",
             "canonical_name": "subglottal_pressure",
-            "kind": {"quantity": {"unit": "Pa"}},
+            "form": "pressure",
             "status": "accepted",
             "definition": "Ps",
         },
         "speech_0003": {
             "id": "speech_0003",
             "canonical_name": "task",
-            "kind": {"category": {"values": ["speech", "singing", "whisper"], "extensible": True}},
+            "form": "category",
+            "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True},
             "status": "accepted",
             "definition": "Task type",
         },
@@ -531,7 +532,7 @@ class TestCelErrors:
         registry["narr_0001"] = {
             "id": "narr_0001",
             "canonical_name": "focalization",
-            "kind": {"structural": {}},
+            "form": "structural",
             "status": "accepted",
             "definition": "Narrative focalization",
         }
