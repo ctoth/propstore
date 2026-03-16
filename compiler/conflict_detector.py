@@ -205,7 +205,11 @@ def _values_compatible(value_a, value_b, tolerance: float = DEFAULT_TOLERANCE,
 
         return value_a == value_b
 
-    return False
+    # Scalar values (not lists) — compare directly
+    if isinstance(value_a, (int, float)) and isinstance(value_b, (int, float)):
+        return abs(float(value_a) - float(value_b)) < tolerance
+
+    return value_a == value_b
 
 
 # ── Condition classification ─────────────────────────────────────────
