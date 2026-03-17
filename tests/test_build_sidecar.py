@@ -321,6 +321,15 @@ class TestParameterizationTable:
         assert row["exactness"] == "exact"
         conn.close()
 
+    def test_parameterization_has_output_concept_id(self, concept_dir, sidecar_path):
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path)
+        conn = sqlite3.connect(sidecar_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM parameterization").fetchone()
+        assert row["output_concept_id"] == "concept5"
+        conn.close()
+
 
 # ── FTS5 index ───────────────────────────────────────────────────────
 
