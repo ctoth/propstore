@@ -22,6 +22,8 @@ import functools
 import re
 from typing import Any
 
+from ast_equiv import compare as ast_compare
+
 from propstore.cel_checker import ConceptInfo, KindType
 from propstore.validate_claims import LoadedClaimFile
 
@@ -350,6 +352,34 @@ def _collect_equation_claims(
                 continue
             by_signature[signature].append(claim)
     return dict(by_signature)
+
+
+def _collect_algorithm_claims(
+    claim_files: Sequence[LoadedClaimFile],
+) -> dict[str, list[dict]]:
+    """Group algorithm claims by their primary concept (first concept in variables list).
+
+    Returns dict mapping concept_id to list of algorithm claim dicts.
+    """
+    by_concept: dict[str, list[dict]] = defaultdict(list)
+    for cf in claim_files:
+        for claim in cf.data.get("claims", []):
+            if claim.get("type") != "algorithm":
+                continue
+            variables = claim.get("variables")
+            if not isinstance(variables, list) or not variables:
+                continue
+            # Primary concept is the first variable's concept
+            first_concept = None
+            for var in variables:
+                if isinstance(var, dict):
+                    c = var.get("concept")
+                    if isinstance(c, str) and c:
+                        first_concept = c
+                        break
+            if first_concept is not None:
+                by_concept[first_concept].append(claim)
+    return dict(by_concept)
 
 
 def _parse_condition_atom(
@@ -758,7 +788,66 @@ def detect_conflicts(
                     value_b=claim_b.get("expression") or claim_b.get("sympy") or canonical_b,
                 ))
 
-    # Step 5: Parameterization conflict detection
+    # Step 5: Algorithm claims — compare pairs using ast-equiv
+    by_algorithm_concept = _collect_algorithm_claims(claim_files)
+    for concept_id, algo_claims in by_algorithm_concept.items():
+        if len(algo_claims) < 2:
+            continue
+
+        for i in range(len(algo_claims)):
+            for j in range(i + 1, len(algo_claims)):
+                claim_a = algo_claims[i]
+                claim_b = algo_claims[j]
+
+                body_a = claim_a.get("body", "")
+                body_b = claim_b.get("body", "")
+                if not body_a or not body_b:
+                    continue
+
+                # Build bindings: variable name -> concept
+                bindings_a = {}
+                for var in claim_a.get("variables", []):
+                    if isinstance(var, dict):
+                        name = var.get("name") or var.get("symbol")
+                        concept = var.get("concept")
+                        if name and concept:
+                            bindings_a[name] = concept
+
+                bindings_b = {}
+                for var in claim_b.get("variables", []):
+                    if isinstance(var, dict):
+                        name = var.get("name") or var.get("symbol")
+                        concept = var.get("concept")
+                        if name and concept:
+                            bindings_b[name] = concept
+
+                # Compare using ast-equiv, Tiers 1-2 only (no known_values)
+                try:
+                    result = ast_compare(body_a, bindings_a, body_b, bindings_b)
+                except Exception:
+                    continue  # parse failure — skip pair
+
+                if result.equivalent and result.tier <= 2:
+                    continue  # equivalent — no conflict
+
+                # Not equivalent — classify conditions
+                conditions_a = sorted(claim_a.get("conditions") or [])
+                conditions_b = sorted(claim_b.get("conditions") or [])
+                warning_class = _classify_conditions(conditions_a, conditions_b, cel_registry)
+
+                records.append(ConflictRecord(
+                    concept_id=concept_id,
+                    claim_a_id=claim_a["id"],
+                    claim_b_id=claim_b["id"],
+                    warning_class=warning_class,
+                    conditions_a=conditions_a,
+                    conditions_b=conditions_b,
+                    value_a=f"algorithm:{claim_a['id']}",
+                    value_b=f"algorithm:{claim_b['id']}",
+                    derivation_chain=f"similarity:{result.similarity:.3f} tier:{result.tier}",
+                ))
+
+    # Step 6: Parameterization conflict detection
     _detect_param_conflicts(records, by_concept, concept_registry, claim_files)
 
     return records
