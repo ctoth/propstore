@@ -389,6 +389,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
             auto_summary TEXT,
             body TEXT,
             canonical_ast TEXT,
+            variables_json TEXT,
             stage TEXT,
             source_paper TEXT NOT NULL,
             provenance_page INTEGER NOT NULL,
@@ -505,7 +506,8 @@ def _populate_claims(
             elif ctype == "model":
                 name = claim.get("name")
             elif ctype == "algorithm":
-                pass  # body, canonical_ast, stage handled below
+                concept_id = claim.get("concept")
+                # body, canonical_ast, variables_json, stage handled below
 
             # For equation claims, resolve sympy: explicit > auto-generated
             sympy_generated = None
@@ -523,6 +525,7 @@ def _populate_claims(
             # For algorithm claims, compute body and canonical_ast
             body = None
             canonical_ast = None
+            variables_json = None
             stage = None
             if ctype == "algorithm":
                 body = claim.get("body")
@@ -532,6 +535,10 @@ def _populate_claims(
                     # variables maps variable names to concept names — this IS the bindings dict
                     bindings = variables if isinstance(variables, dict) else {}
                     canonical_ast = canonical_dump(body, bindings)
+                # Store variables as JSON for world model queries
+                raw_vars = claim.get("variables")
+                if raw_vars:
+                    variables_json = json.dumps(raw_vars)
 
             # Auto-generate summary label from structured fields
             auto_summary = generate_description(claim, concept_registry or {})
@@ -553,16 +560,16 @@ def _populate_claims(
                 "conditions_cel, statement, expression, sympy_generated, sympy_error, name, "
                 "target_concept, measure, listener_population, methodology, "
                 "notes, description, auto_summary, "
-                "body, canonical_ast, stage, "
+                "body, canonical_ast, variables_json, stage, "
                 "source_paper, provenance_page, provenance_json) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (cid, content_hash, claim_seq, ctype, concept_id, value, lower_bound,
                  upper_bound, uncertainty, uncertainty_type, sample_size, unit,
                  json.dumps(conditions) if conditions else None,
                  statement, expression, sympy_generated, sympy_error, name,
                  target_concept, measure, listener_population, methodology,
                  notes, description, auto_summary,
-                 body, canonical_ast, stage,
+                 body, canonical_ast, variables_json, stage,
                  prov.get("paper", source_paper),
                  prov.get("page", 0),
                  json.dumps(prov)),
