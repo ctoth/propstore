@@ -192,11 +192,13 @@ def _create_tables(conn: sqlite3.Connection):
         );
 
         CREATE TABLE parameterization (
+            output_concept_id TEXT NOT NULL,
             concept_ids TEXT NOT NULL,
             formula TEXT NOT NULL,
             sympy TEXT,
             exactness TEXT NOT NULL,
-            conditions_cel TEXT
+            conditions_cel TEXT,
+            FOREIGN KEY (output_concept_id) REFERENCES concept(id)
         );
 
         CREATE TABLE parameterization_group (
@@ -297,9 +299,9 @@ def _populate_parameterizations(conn: sqlite3.Connection, concepts: list[LoadedC
             inputs = param.get("inputs", [])
             conditions = param.get("conditions", []) or []
             conn.execute(
-                "INSERT INTO parameterization (concept_ids, formula, sympy, exactness, conditions_cel) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (json.dumps(inputs), param.get("formula"), param.get("sympy"),
+                "INSERT INTO parameterization (output_concept_id, concept_ids, formula, sympy, exactness, conditions_cel) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (d["id"], json.dumps(inputs), param.get("formula"), param.get("sympy"),
                  param.get("exactness"),
                  json.dumps(conditions) if conditions else None),
             )
