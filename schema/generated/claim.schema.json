@@ -95,6 +95,13 @@
                         "null"
                     ]
                 },
+                "notes": {
+                    "description": "Free-text methodological context, experimental conditions, or caveats.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
                 "parameters": {
                     "description": "Parameter bindings for this model, mapping names to concept IDs. Required for model claims.\n",
                     "items": {
