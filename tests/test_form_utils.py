@@ -99,6 +99,7 @@ class TestFormDefinitionLoading:
 
     def test_form_definition_name_matches(self, forms_dir):
         fd = load_form(forms_dir, "frequency")
+        assert fd is not None
         assert fd.name == "frequency"
 
     def test_load_form_with_none_returns_none(self, forms_dir):

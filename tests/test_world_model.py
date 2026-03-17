@@ -821,6 +821,7 @@ class TestChainQuery:
         )
         assert isinstance(result.result, DerivedResult)
         assert result.result.status == "derived"
+        assert result.result.value is not None
         assert abs(result.result.value - 1.0) < 1e-9
 
     def test_chain_reports_steps(self, world):

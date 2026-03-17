@@ -11,6 +11,8 @@ determines which type each concept gets.
 
 from __future__ import annotations
 
+from typing import Any
+
 from compiler.cel_checker import (
     ASTNode,
     BinaryOpNode,
@@ -74,7 +76,7 @@ class Z3ConditionSolver:
             self._enum_values[name] = val_map
         return self._enum_consts[name], self._enum_values[name]
 
-    def _translate(self, node: ASTNode) -> z3.ExprRef:
+    def _translate(self, node: ASTNode) -> Any:
         """Translate a CEL AST node to a Z3 expression."""
         if isinstance(node, LiteralNode):
             return self._translate_literal(node)
@@ -90,7 +92,7 @@ class Z3ConditionSolver:
             return self._translate_ternary(node)
         raise Z3TranslationError(f"Unknown AST node type: {type(node)}")
 
-    def _translate_literal(self, node: LiteralNode) -> z3.ExprRef:
+    def _translate_literal(self, node: LiteralNode) -> Any:
         if node.lit_type in ("int", "float"):
             return z3.RealVal(node.value, self._ctx)
         if node.lit_type == "bool":
@@ -103,7 +105,7 @@ class Z3ConditionSolver:
             )
         raise Z3TranslationError(f"Unknown literal type: {node.lit_type}")
 
-    def _translate_name(self, node: NameNode) -> z3.ExprRef:
+    def _translate_name(self, node: NameNode) -> Any:
         info = self._registry.get(node.name)
         if info is None:
             # Unknown concept — treat as real (most permissive)
@@ -118,7 +120,7 @@ class Z3ConditionSolver:
         # STRUCTURAL or unknown — treat as real
         return self._get_real(node.name)
 
-    def _translate_binary(self, node: BinaryOpNode) -> z3.ExprRef:
+    def _translate_binary(self, node: BinaryOpNode) -> Any:
         # Logical operators
         if node.op == "&&":
             return z3.And(self._translate(node.left), self._translate(node.right))
@@ -160,7 +162,7 @@ class Z3ConditionSolver:
 
         raise Z3TranslationError(f"Unknown binary operator: {node.op}")
 
-    def _try_category_comparison(self, node: BinaryOpNode) -> z3.BoolRef | None:
+    def _try_category_comparison(self, node: BinaryOpNode) -> Any:
         """Handle category == 'value' or category != 'value'."""
         # Identify which side is the name and which is the string literal
         name_node, lit_node = None, None
@@ -189,14 +191,14 @@ class Z3ConditionSolver:
             return const != z3_val
         return None
 
-    def _translate_unary(self, node: UnaryOpNode) -> z3.ExprRef:
+    def _translate_unary(self, node: UnaryOpNode) -> Any:
         if node.op == "!":
             return z3.Not(self._translate(node.operand))
         if node.op == "-":
             return -self._translate(node.operand)
         raise Z3TranslationError(f"Unknown unary operator: {node.op}")
 
-    def _translate_in(self, node: InNode) -> z3.ExprRef:
+    def _translate_in(self, node: InNode) -> Any:
         """Translate 'expr in [v1, v2, ...]'."""
         # Check if LHS is a category concept
         if isinstance(node.expr, NameNode):
@@ -227,13 +229,13 @@ class Z3ConditionSolver:
             return z3.BoolVal(False, self._ctx)
         return z3.Or(*clauses) if len(clauses) > 1 else clauses[0]
 
-    def _translate_ternary(self, node: TernaryNode) -> z3.ExprRef:
+    def _translate_ternary(self, node: TernaryNode) -> Any:
         cond = self._translate(node.condition)
         true_br = self._translate(node.true_branch)
         false_br = self._translate(node.false_branch)
         return z3.If(cond, true_br, false_br)
 
-    def _conditions_to_z3(self, conditions: list[str]) -> z3.BoolRef:
+    def _conditions_to_z3(self, conditions: list[str]) -> Any:
         """Parse and translate a list of CEL condition strings, conjuncting them."""
         if not conditions:
             return z3.BoolVal(True, self._ctx)

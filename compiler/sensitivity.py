@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from typing import Any
 
 from compiler.propagation import _parse_cached
 
@@ -118,8 +119,10 @@ def analyze_sensitivity(
         return None
 
     # Compute output value
+    subs_pairs: Any = [(symbols[k], v) for k, v in input_values.items() if k in symbols]
     try:
-        output_value = float(expr.subs(input_values))
+        result: Any = expr.subs(subs_pairs)
+        output_value = float(result)
     except (TypeError, ValueError, ZeroDivisionError):
         output_value = None
 
@@ -132,7 +135,8 @@ def analyze_sensitivity(
 
         # Evaluate numerically
         try:
-            partial_val = float(partial.subs(input_values))
+            partial_result: Any = partial.subs(subs_pairs)
+            partial_val = float(partial_result)
         except (TypeError, ValueError, ZeroDivisionError):
             partial_val = None
 
