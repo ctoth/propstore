@@ -59,6 +59,16 @@
     "note": {
       "type": "string",
       "description": "Human-readable note about this form."
+    },
+    "dimensions": {
+      "type": "object",
+      "description": "SI base dimension exponents. Keys are dimension symbols (L, M, T, I, Theta, N, J); values are integer exponents.",
+      "propertyNames": {
+        "enum": ["L", "M", "T", "I", "Theta", "N", "J"]
+      },
+      "additionalProperties": {
+        "type": "integer"
+      }
     }
   },
   "additionalProperties": false
