@@ -32,6 +32,7 @@ class FormDefinition:
     allowed_units: set[str] = field(default_factory=set)
     is_dimensionless: bool = False
     parameters: dict = field(default_factory=dict)
+    dimensions: dict[str, int] | None = None
 
 
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
@@ -84,6 +85,12 @@ def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
                 and form_name not in ("structural",))
         )
 
+    # Read dimensions field (dict of SI dimension symbol -> integer exponent)
+    raw_dims = data.get("dimensions")
+    dimensions: dict[str, int] | None = None
+    if isinstance(raw_dims, dict):
+        dimensions = {str(k): int(v) for k, v in raw_dims.items()}
+
     result = FormDefinition(
         name=form_name,
         kind=kind,
@@ -91,6 +98,7 @@ def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
         allowed_units=allowed,
         is_dimensionless=is_dimensionless,
         parameters=parameters,
+        dimensions=dimensions,
     )
     _form_cache[cache_key] = result
     return result
@@ -213,6 +221,19 @@ def validate_form_files(forms_dir: Path) -> list[str]:
             jsonschema.validate(data, schema)
         except jsonschema.ValidationError as e:
             errors.append(f"{entry.stem}: {e.message}")
+
+        # Cross-check: dimensions vs dimensionless consistency
+        dims = data.get("dimensions")
+        is_dimless = data.get("dimensionless", False)
+        has_unit = data.get("unit_symbol") is not None
+        if isinstance(dims, dict) and len(dims) > 0 and is_dimless is True:
+            errors.append(
+                f"{entry.stem}: non-empty dimensions conflicts with "
+                f"dimensionless=true")
+        if isinstance(dims, dict) and len(dims) == 0 and is_dimless is False and has_unit:
+            errors.append(
+                f"{entry.stem}: empty dimensions conflicts with "
+                f"dimensionless=false for a quantity with unit_symbol")
 
         # Cross-check: name field must match filename
         name = data.get("name")
