@@ -4,14 +4,13 @@ Resolves unit strings (like "kPa", "cm/s", "Hz") to their SI dimensions
 (like {M: 1, L: -1, T: -2}). Used by claim validation to check that a
 claim's unit is dimensionally compatible with its concept's form.
 
-The base lookup table is shipped as propstore/data/physgen_units.json,
+The base lookup table is shipped as propstore/_resources/physgen_units.json,
 generated from physgen's ISO 80000 physics.yml. Speech-specific units
 (dB, semitones, etc.) are layered on top.
 """
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 
 # ── Types ────────────────────────────────────────────────────────────
@@ -59,8 +58,6 @@ _SPEECH_UNITS: dict[str, Dimensions] = {
 
 # ── Load shipped lookup table ────────────────────────────────────────
 
-_DATA_PATH = Path(__file__).resolve().parent / "data" / "physgen_units.json"
-
 _symbol_table: dict[str, Dimensions] | None = None
 
 
@@ -70,12 +67,12 @@ def _get_symbol_table() -> dict[str, Dimensions]:
     if _symbol_table is not None:
         return _symbol_table
 
+    from propstore.resources import load_resource_text, resource_exists
+
     table: dict[str, Dimensions] = {}
 
-    if _DATA_PATH.exists():
-        with open(_DATA_PATH, encoding="utf-8") as f:
-            raw = json.load(f)
-        # JSON keys are strings, values are {dim: exponent} dicts
+    if resource_exists("physgen_units.json"):
+        raw = json.loads(load_resource_text("physgen_units.json"))
         for symbol, dims in raw.items():
             table[symbol] = {k: v for k, v in dims.items() if v != 0}
 
