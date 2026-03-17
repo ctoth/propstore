@@ -36,6 +36,7 @@ class Z3ConditionSolver:
 
     def __init__(self, registry: dict[str, ConceptInfo]) -> None:
         self._registry = registry
+        self._ctx = z3.Context()
         self._reals: dict[str, z3.ArithRef] = {}
         self._bools: dict[str, z3.BoolRef] = {}
         # For categories: one EnumSort per concept, with a z3 const
@@ -45,12 +46,12 @@ class Z3ConditionSolver:
 
     def _get_real(self, name: str) -> z3.ArithRef:
         if name not in self._reals:
-            self._reals[name] = z3.Real(name)
+            self._reals[name] = z3.Real(name, self._ctx)
         return self._reals[name]
 
     def _get_bool(self, name: str) -> z3.BoolRef:
         if name not in self._bools:
-            self._bools[name] = z3.Bool(name)
+            self._bools[name] = z3.Bool(name, self._ctx)
         return self._bools[name]
 
     def _get_enum(self, name: str) -> tuple[z3.ExprRef, dict[str, z3.ExprRef]]:
@@ -60,12 +61,12 @@ class Z3ConditionSolver:
             values = list(info.category_values) if info else []
             if not values:
                 # No known values — use a fresh uninterpreted sort
-                sort = z3.DeclareSort(f"{name}_Sort")
+                sort = z3.DeclareSort(f"{name}_Sort", self._ctx)
                 const = z3.Const(name, sort)
                 self._enum_consts[name] = const
                 self._enum_values[name] = {}
                 return const, {}
-            sort, enum_vals = z3.EnumSort(f"{name}_Sort", values)
+            sort, enum_vals = z3.EnumSort(f"{name}_Sort", values, self._ctx)
             self._enum_sorts[name] = sort
             const = z3.Const(name, sort)
             self._enum_consts[name] = const
@@ -91,9 +92,9 @@ class Z3ConditionSolver:
 
     def _translate_literal(self, node: LiteralNode) -> z3.ExprRef:
         if node.lit_type in ("int", "float"):
-            return z3.RealVal(node.value)
+            return z3.RealVal(node.value, self._ctx)
         if node.lit_type == "bool":
-            return z3.BoolVal(node.value)
+            return z3.BoolVal(node.value, self._ctx)
         if node.lit_type == "string":
             # String literals are resolved against enum sorts at comparison time
             # Return a sentinel — actual resolution happens in _translate_binary
@@ -214,7 +215,7 @@ class Z3ConditionSolver:
                     else:
                         raise Z3TranslationError("Non-string in category 'in' list")
                 if not clauses:
-                    return z3.BoolVal(False)
+                    return z3.BoolVal(False, self._ctx)
                 return z3.Or(*clauses) if len(clauses) > 1 else clauses[0]
 
         # Numeric 'in' — x in [1, 2, 3] -> x == 1 || x == 2 || x == 3
@@ -223,7 +224,7 @@ class Z3ConditionSolver:
         for v in node.values:
             clauses.append(lhs == self._translate(v))
         if not clauses:
-            return z3.BoolVal(False)
+            return z3.BoolVal(False, self._ctx)
         return z3.Or(*clauses) if len(clauses) > 1 else clauses[0]
 
     def _translate_ternary(self, node: TernaryNode) -> z3.ExprRef:
@@ -235,7 +236,7 @@ class Z3ConditionSolver:
     def _conditions_to_z3(self, conditions: list[str]) -> z3.BoolRef:
         """Parse and translate a list of CEL condition strings, conjuncting them."""
         if not conditions:
-            return z3.BoolVal(True)
+            return z3.BoolVal(True, self._ctx)
         z3_exprs = []
         for cond_str in conditions:
             ast = parse_cel(cond_str)
@@ -252,7 +253,7 @@ class Z3ConditionSolver:
         except (Z3TranslationError, ValueError):
             return False  # Can't determine — assume not disjoint (conservative)
 
-        solver = z3.Solver()
+        solver = z3.Solver(ctx=self._ctx)
         solver.add(expr_a)
         solver.add(expr_b)
         return solver.check() == z3.unsat
@@ -269,14 +270,14 @@ class Z3ConditionSolver:
             return False  # Can't determine — assume not equivalent
 
         # Check A ∧ ¬B is UNSAT
-        s1 = z3.Solver()
+        s1 = z3.Solver(ctx=self._ctx)
         s1.add(expr_a)
         s1.add(z3.Not(expr_b))
         if s1.check() != z3.unsat:
             return False
 
         # Check B ∧ ¬A is UNSAT
-        s2 = z3.Solver()
+        s2 = z3.Solver(ctx=self._ctx)
         s2.add(expr_b)
         s2.add(z3.Not(expr_a))
         return s2.check() == z3.unsat
