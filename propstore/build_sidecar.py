@@ -383,6 +383,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
             measure TEXT,
             listener_population TEXT,
             methodology TEXT,
+            notes TEXT,
             description TEXT,
             auto_summary TEXT,
             source_paper TEXT NOT NULL,
@@ -518,6 +519,9 @@ def _populate_claims(
             # LLM-written description from YAML (if present)
             description = claim.get("description")
 
+            # Human-written annotation (if present)
+            notes = claim.get("notes")
+
             # Content-addressed hash for dedup and integrity
             content_hash = _claim_content_hash(claim, source_paper)
 
@@ -528,14 +532,14 @@ def _populate_claims(
                 "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
                 "conditions_cel, statement, expression, sympy_generated, sympy_error, name, "
                 "target_concept, measure, listener_population, methodology, "
-                "description, auto_summary, source_paper, provenance_page, provenance_json) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "notes, description, auto_summary, source_paper, provenance_page, provenance_json) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (cid, content_hash, claim_seq, ctype, concept_id, value, lower_bound,
                  upper_bound, uncertainty, uncertainty_type, sample_size, unit,
                  json.dumps(conditions) if conditions else None,
                  statement, expression, sympy_generated, sympy_error, name,
                  target_concept, measure, listener_population, methodology,
-                 description, auto_summary,
+                 notes, description, auto_summary,
                  prov.get("paper", source_paper),
                  prov.get("page", 0),
                  json.dumps(prov)),
