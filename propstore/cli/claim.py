@@ -112,3 +112,84 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
             click.echo(f"    chain: {r.derivation_chain}")
 
     click.echo(f"\n{len(records)} conflict(s) found.")
+
+
+@claim.command()
+@click.argument("id_a")
+@click.argument("id_b")
+@click.option("--bindings", "-b", multiple=True, help="Known values as key=value pairs")
+@click.pass_obj
+def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
+    """Compare two algorithm claims for equivalence."""
+    from ast_equiv import compare as ast_compare
+
+    from propstore.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(EXIT_ERROR)
+
+    claim_a = wm.get_claim(id_a)
+    if claim_a is None:
+        click.echo(f"ERROR: Claim '{id_a}' not found.", err=True)
+        wm.close()
+        sys.exit(EXIT_ERROR)
+
+    claim_b = wm.get_claim(id_b)
+    if claim_b is None:
+        click.echo(f"ERROR: Claim '{id_b}' not found.", err=True)
+        wm.close()
+        sys.exit(EXIT_ERROR)
+
+    body_a = claim_a.get("body")
+    body_b = claim_b.get("body")
+    if not body_a or not body_b:
+        click.echo("ERROR: Both claims must be algorithm claims with a body.", err=True)
+        wm.close()
+        sys.exit(EXIT_ERROR)
+
+    import json as _json
+
+    def _parse_variables(claim: dict) -> dict[str, str]:
+        vj = claim.get("variables_json")
+        if not vj:
+            return {}
+        variables = _json.loads(vj)
+        result: dict[str, str] = {}
+        if isinstance(variables, list):
+            for var in variables:
+                if isinstance(var, dict):
+                    name = var.get("name") or var.get("symbol")
+                    concept = var.get("concept", "")
+                    if name:
+                        result[name] = concept
+        elif isinstance(variables, dict):
+            result.update(variables)
+        return result
+
+    bindings_a = _parse_variables(claim_a)
+    bindings_b = _parse_variables(claim_b)
+
+    # Parse known values from --bindings options
+    known_values: dict[str, float] | None = None
+    if bindings:
+        known_values = {}
+        for b in bindings:
+            key, _, value = b.partition("=")
+            try:
+                known_values[key] = float(value)
+            except ValueError:
+                click.echo(f"WARNING: Ignoring non-numeric binding: {b}", err=True)
+
+    result = ast_compare(body_a, bindings_a, body_b, bindings_b,
+                         known_values=known_values or None)
+
+    click.echo(f"Tier:       {result.tier}")
+    click.echo(f"Equivalent: {result.equivalent}")
+    click.echo(f"Similarity: {result.similarity:.4f}")
+    if result.details:
+        click.echo(f"Details:    {result.details}")
+    wm.close()

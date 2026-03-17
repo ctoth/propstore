@@ -453,6 +453,49 @@ def world_explain(obj: dict, claim_id: str) -> None:
     wm.close()
 
 
+@world.command("algorithms")
+@click.option("--stage", default=None, help="Filter by processing stage")
+@click.option("--concept", default=None, help="Filter by concept")
+@click.pass_obj
+def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
+    """List algorithm claims in the world model."""
+    from propstore.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    # Fetch all algorithm claims
+    all_claims = wm.claims_for(None)
+    algos = [c for c in all_claims if c.get("type") == "algorithm"]
+
+    if stage:
+        algos = [c for c in algos if c.get("stage") == stage]
+    if concept:
+        algos = [c for c in algos if c.get("concept_id") == concept]
+
+    if not algos:
+        click.echo("No algorithm claims found.")
+        wm.close()
+        return
+
+    # Table header
+    click.echo(f"{'ID':<20} {'Name':<30} {'Stage':<15} {'Concept(s)'}")
+    click.echo("-" * 80)
+    for a in algos:
+        aid = a.get("id", "?")
+        name = a.get("name") or a.get("body", "")[:25] or "?"
+        a_stage = a.get("stage") or "-"
+        a_concept = a.get("concept_id") or "-"
+        click.echo(f"{aid:<20} {name:<30} {a_stage:<15} {a_concept}")
+
+    click.echo(f"\n{len(algos)} algorithm claim(s).")
+    wm.close()
+
+
 def _parse_bindings(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
     """Parse CLI args into (bindings, concept_id).
 
