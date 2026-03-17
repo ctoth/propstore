@@ -101,6 +101,8 @@ class WorldModel:
         return dict(row) if row else None
 
     def get_claim(self, claim_id: str) -> dict | None:
+        if not self._has_table("claim"):
+            return None
         row = self._conn.execute(
             "SELECT * FROM claim WHERE id = ?", (claim_id,)
         ).fetchone()
@@ -113,6 +115,8 @@ class WorldModel:
         return row["concept_id"] if row else None
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
+        if not self._has_table("claim"):
+            return []
         if concept_id is None:
             rows = self._conn.execute("SELECT * FROM claim").fetchall()
         else:
@@ -122,6 +126,8 @@ class WorldModel:
         return [dict(r) for r in rows]
 
     def conflicts(self) -> list[dict]:
+        if not self._has_table("conflicts"):
+            return []
         rows = self._conn.execute("SELECT * FROM conflicts").fetchall()
         return [dict(r) for r in rows]
 
@@ -132,16 +138,30 @@ class WorldModel:
         ).fetchall()
         return [dict(r) for r in rows]
 
+    def _has_table(self, name: str) -> bool:
+        row = self._conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+        ).fetchone()
+        return row is not None
+
     def stats(self) -> dict:
         concepts = self._conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0]
-        claims = self._conn.execute("SELECT COUNT(*) FROM claim").fetchone()[0]
-        conflicts = self._conn.execute("SELECT COUNT(*) FROM conflicts").fetchone()[0]
+        if self._has_table("claim"):
+            claims = self._conn.execute("SELECT COUNT(*) FROM claim").fetchone()[0]
+        else:
+            claims = 0
+        if self._has_table("conflicts"):
+            conflicts = self._conn.execute("SELECT COUNT(*) FROM conflicts").fetchone()[0]
+        else:
+            conflicts = 0
         return {"concepts": concepts, "claims": claims, "conflicts": conflicts}
 
     # ── Stance graph ─────────────────────────────────────────────────
 
     def explain(self, claim_id: str) -> list[dict]:
         """Walk claim_stance edges breadth-first from claim_id."""
+        if not self._has_table("claim_stance"):
+            return []
         result: list[dict] = []
         visited: set[str] = set()
         queue: deque[str] = deque([claim_id])
