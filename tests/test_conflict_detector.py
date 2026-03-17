@@ -668,3 +668,119 @@ class TestEquationConflicts:
         records = detect_conflicts([cf], make_concept_registry())
         assert len(records) == 1
         assert records[0].warning_class == ConflictClass.PHI_NODE
+
+
+# ── Algorithm claim conflict detection ────────────────────────────────
+
+
+def _make_algorithm_claim(id, body, variables, conditions=None):
+    """Build an algorithm claim dict for testing."""
+    return {
+        "id": id,
+        "type": "algorithm",
+        "body": body,
+        "variables": variables,
+        "conditions": conditions or [],
+        "provenance": {"paper": "test", "page": 1},
+    }
+
+
+class TestAlgorithmConflicts:
+    def test_algorithm_equivalent_no_conflict(self):
+        """Two equivalent algorithm claims (same logic, different var names) -> no conflict."""
+        claims = [
+            _make_algorithm_claim(
+                "algo1",
+                "def compute(x):\n    return x * 2 + 1",
+                [
+                    {"name": "x", "concept": "concept1"},
+                ],
+            ),
+            _make_algorithm_claim(
+                "algo2",
+                "def calc(val):\n    return val * 2 + 1",
+                [
+                    {"name": "val", "concept": "concept1"},
+                ],
+            ),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        algo_records = [r for r in records if r.concept_id == "concept1"]
+        assert len(algo_records) == 0
+
+    def test_algorithm_different_conflict(self):
+        """Two genuinely different algorithm claims for same concept -> conflict detected."""
+        claims = [
+            _make_algorithm_claim(
+                "algo1",
+                "def compute(x):\n    return x * 2 + 1",
+                [
+                    {"name": "x", "concept": "concept1"},
+                ],
+            ),
+            _make_algorithm_claim(
+                "algo2",
+                "def calc(val):\n    return val ** 3 - 10",
+                [
+                    {"name": "val", "concept": "concept1"},
+                ],
+            ),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        algo_records = [r for r in records if r.value_a.startswith("algorithm:")]
+        assert len(algo_records) == 1
+        assert algo_records[0].concept_id == "concept1"
+        assert algo_records[0].value_a == "algorithm:algo1"
+        assert algo_records[0].value_b == "algorithm:algo2"
+        assert "similarity:" in algo_records[0].derivation_chain
+
+    def test_algorithm_different_concepts_no_conflict(self):
+        """Algorithm claims for different concepts -> no conflict (not compared)."""
+        claims = [
+            _make_algorithm_claim(
+                "algo1",
+                "def compute(x):\n    return x * 2 + 1",
+                [
+                    {"name": "x", "concept": "concept1"},
+                ],
+            ),
+            _make_algorithm_claim(
+                "algo2",
+                "def calc(val):\n    return val ** 3 - 10",
+                [
+                    {"name": "val", "concept": "concept2"},
+                ],
+            ),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        algo_records = [r for r in records if r.value_a.startswith("algorithm:")]
+        assert len(algo_records) == 0
+
+    def test_algorithm_conditional_overlap(self):
+        """Two algorithm claims with overlapping conditions -> appropriate classification."""
+        claims = [
+            _make_algorithm_claim(
+                "algo1",
+                "def compute(x):\n    return x * 2 + 1",
+                [
+                    {"name": "x", "concept": "concept1"},
+                ],
+                conditions=["task == 'speech'", "fundamental_frequency > 100"],
+            ),
+            _make_algorithm_claim(
+                "algo2",
+                "def calc(val):\n    return val ** 3 - 10",
+                [
+                    {"name": "val", "concept": "concept1"},
+                ],
+                conditions=["task == 'speech'", "subglottal_pressure < 500"],
+            ),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        algo_records = [r for r in records if r.value_a.startswith("algorithm:")]
+        assert len(algo_records) == 1
+        assert algo_records[0].warning_class == ConflictClass.OVERLAP
