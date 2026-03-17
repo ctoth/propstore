@@ -5,9 +5,6 @@ TDD tests (Phases 1-2 from design doc):
 - Hypothesis property tests for invariants
 """
 
-import json
-import sqlite3
-
 import pytest
 import yaml
 
