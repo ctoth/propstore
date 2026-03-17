@@ -967,3 +967,80 @@ class TestConceptFormMetadata:
         row = conn.execute("SELECT unit_symbol FROM concept WHERE id='concept5'").fetchone()
         assert row[0] is None
         conn.close()
+
+
+# ── Algorithm claim tests ─────────────────────────────────────────────
+
+@pytest.fixture
+def algorithm_claim_files(concept_dir):
+    """Create claim files containing an algorithm claim."""
+    claims_dir = concept_dir / "claims_algo"
+    claims_dir.mkdir(exist_ok=True)
+
+    algo_paper = {
+        "source": {"paper": "algo_test_paper"},
+        "claims": [
+            {
+                "id": "algo_claim1",
+                "type": "algorithm",
+                "body": "def compute(x):\n    return x * 2\n",
+                "stage": "excitation",
+                "variables": {"x": "input_signal"},
+                "provenance": {"paper": "algo_test_paper", "page": 3},
+            },
+        ],
+    }
+    (claims_dir / "algo_test_paper.yaml").write_text(
+        yaml.dump(algo_paper, default_flow_style=False)
+    )
+
+    from propstore.validate_claims import load_claim_files
+    return load_claim_files(claims_dir)
+
+
+@pytest.fixture
+def sidecar_with_algorithm(concept_dir, sidecar_path, algorithm_claim_files):
+    """Build a sidecar that includes an algorithm claim."""
+    concepts = load_concepts(concept_dir)
+    concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+    build_sidecar(
+        concepts, sidecar_path, force=True,
+        claim_files=algorithm_claim_files,
+        concept_registry=concept_registry,
+    )
+    return sidecar_path
+
+
+class TestAlgorithmClaim:
+    def test_algorithm_claim_stored(self, sidecar_with_algorithm):
+        """Algorithm claim appears in sidecar with body, canonical_ast, stage."""
+        conn = sqlite3.connect(sidecar_with_algorithm)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM claim WHERE id='algo_claim1'").fetchone()
+        assert row is not None
+        assert row["type"] == "algorithm"
+        assert row["body"] is not None
+        assert "return x * 2" in row["body"]
+        assert row["canonical_ast"] is not None
+        assert row["stage"] == "excitation"
+        conn.close()
+
+    def test_algorithm_canonical_ast_populated(self, sidecar_with_algorithm):
+        """canonical_ast is non-empty for valid algorithm claims."""
+        conn = sqlite3.connect(sidecar_with_algorithm)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT canonical_ast FROM claim WHERE id='algo_claim1'"
+        ).fetchone()
+        assert row["canonical_ast"] is not None
+        assert len(row["canonical_ast"]) > 0
+        conn.close()
+
+    def test_stage_index_exists(self, sidecar_with_algorithm):
+        """The idx_claim_stage index is created."""
+        conn = sqlite3.connect(sidecar_with_algorithm)
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_claim_stage'"
+        )
+        assert cursor.fetchone() is not None
+        conn.close()
