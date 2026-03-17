@@ -29,6 +29,8 @@ enums:
         description: "A parameterized equation system (multi-equation framework)."
       measurement:
         description: "A perceptual or behavioral measurement (JND, threshold, rating) about a concept."
+      algorithm:
+        description: "A procedural computation (Python function body) that transforms inputs to outputs."
 
   StanceType:
     description: >
@@ -304,6 +306,19 @@ classes:
         range: ParameterBinding
         multivalued: true
         inlined_as_list: true
+
+      # --- algorithm fields ---
+
+      body:
+        description: >
+          Python function body for algorithm claims.
+        range: string
+
+      stage:
+        description: >
+          Processing stage this algorithm belongs to
+          (e.g., 'excitation', 'filtering', 'radiation').
+        range: string
 
 
   Provenance:
