@@ -337,7 +337,7 @@ class TestDimensionsPropertyBased:
         assert fd.is_dimensionless is False
 
     @given(dimensions=_dimensions_strategy)
-    @settings(max_examples=50)
+    @settings(max_examples=50, suppress_health_check=[HealthCheck.filter_too_much])
     def test_dimensionless_implies_empty_or_absent_dimensions(
         self, dimensions: dict[str, int],
     ) -> None:
