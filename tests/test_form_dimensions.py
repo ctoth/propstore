@@ -84,27 +84,14 @@ class TestDimensionsSchemaValidation:
         }
         jsonschema.validate(form_data, form_schema)
 
-    def test_dimensions_conflict_nonempty_but_dimensionless(
-        self, form_schema: dict
-    ) -> None:
+    def test_dimensions_conflict_nonempty_but_dimensionless(self) -> None:
         """Form with dimensions: {T: -1} but dimensionless: true fails validation.
 
         A form cannot claim to be dimensionless while having non-empty dimensions.
         This should be caught either by the schema or by validate_form_files.
+        Tested via TestDimensionsValidationLogic below.
         """
-        form_data = {
-            "name": "test_conflict",
-            "dimensionless": True,
-            "unit_symbol": "Hz",
-            "dimensions": {"T": -1},
-        }
-        # This combination should be rejected — either by schema or by
-        # validation logic.  We test the validate_form_files path below;
-        # here we just document that the schema alone may or may not catch
-        # it (implementation decides).  The important thing is that the
-        # full validation pipeline rejects it.
-        # For now, test that validate_form_files catches it:
-        pass  # Tested via TestDimensionsValidationLogic below
+        pass
 
     def test_form_without_dimensions_still_validates(
         self, form_schema: dict
