@@ -17,7 +17,7 @@ Tests the compiler contract checks that JSON Schema can't express:
 import pytest
 import yaml
 
-from compiler.validate import (
+from propstore.validate import (
     load_concepts,
     validate_concepts,
 )

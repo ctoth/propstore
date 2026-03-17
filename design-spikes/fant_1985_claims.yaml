@@ -1,0 +1,316 @@
+source:
+  paper: Fant_1985_LFModelGlottalFlow
+  extraction_model: hand-written-design-spike
+  extraction_date: "2026-03-17"
+
+claims:
+
+  # --- LF Model as a whole ---
+
+  - id: claim1
+    type: model
+    name: "LF model of glottal flow derivative"
+    equations:
+      - "E(t) = E_0 * exp(alpha*t) * sin(omega_g*t)  [opening phase, 0 < t < t_e]"
+      - "E_2(t) = (-E_e / (epsilon*t_a)) * (exp(-epsilon*(t-t_e)) - exp(-epsilon*(t_c-t_e)))  [return phase, t_e < t < t_c]"
+      - "epsilon*t_a = 1 - exp(-epsilon*(t_c - t_e))  [constraint]"
+      - "integral(E(t), 0, T0) = 0  [area balance]"
+    parameters:
+      - name: E_0
+        concept: lf_initial_amplitude
+        note: "Initial amplitude scale factor"
+      - name: alpha
+        concept: lf_growth_constant
+        note: "Exponential growth constant (positive = negative damping)"
+      - name: omega_g
+        concept: lf_angular_frequency
+        note: "Angular frequency of glottal formant = 2*pi*F_g"
+      - name: t_p
+        concept: lf_peak_time
+        note: "Time of flow derivative positive maximum"
+      - name: t_e
+        concept: lf_excitation_time
+        note: "Time of negative peak (main excitation)"
+      - name: t_a
+        concept: lf_return_time_constant
+        note: "Effective duration of return phase"
+      - name: E_e
+        concept: lf_excitation_amplitude
+        note: "Negative peak amplitude (excitation strength)"
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      figure: "Fig. 2"
+      section: "LF-Model"
+    # DOESN'T FIT: The model has TWO phase equations (opening + return) that apply
+    # over different time ranges. The "equations" list can hold them both as strings,
+    # but there's no way to express the domain constraint (which equation applies when).
+    # Also, the area balance constraint is a relationship between parameters, not an
+    # equation that produces output. The model claim type is adequate but loses structure.
+
+  # --- Individual equations ---
+
+  - id: claim2
+    type: equation
+    expression: "E(t) = E_0 * exp(alpha*t) * sin(omega_g*t)"
+    sympy: "Eq(E, E_0 * exp(alpha*t) * sin(omega_g*t))"
+    variables:
+      - symbol: E
+        concept: glottal_flow_derivative
+        role: dependent
+      - symbol: E_0
+        concept: lf_initial_amplitude
+        role: parameter
+      - symbol: alpha
+        concept: lf_growth_constant
+        role: parameter
+      - symbol: omega_g
+        concept: lf_angular_frequency
+        role: parameter
+      - symbol: t
+        concept: time
+        role: independent
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "L-Model Opening Phase"
+    conditions:
+      - "lf_phase == 'opening'"
+
+  - id: claim3
+    type: equation
+    expression: "E_2(t) = (-E_e / (epsilon*t_a)) * (exp(-epsilon*(t-t_e)) - exp(-epsilon*(t_c-t_e)))"
+    sympy: "Eq(E_2, (-E_e / (epsilon*t_a)) * (exp(-epsilon*(t-t_e)) - exp(-epsilon*(t_c-t_e))))"
+    variables:
+      - symbol: E_2
+        concept: glottal_flow_derivative
+        role: dependent
+      - symbol: E_e
+        concept: lf_excitation_amplitude
+        role: parameter
+      - symbol: epsilon
+        concept: lf_decay_rate
+        role: parameter
+      - symbol: t_a
+        concept: lf_return_time_constant
+        role: parameter
+      - symbol: t_e
+        concept: lf_excitation_time
+        role: parameter
+      - symbol: t_c
+        concept: lf_closure_time
+        role: parameter
+      - symbol: t
+        concept: time
+        role: independent
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "LF-Model Return Phase"
+    conditions:
+      - "lf_phase == 'return'"
+
+  - id: claim4
+    type: equation
+    expression: "epsilon*t_a = 1 - exp(-epsilon*(t_c - t_e))"
+    sympy: "Eq(epsilon*t_a, 1 - exp(-epsilon*(t_c - t_e)))"
+    variables:
+      - symbol: epsilon
+        concept: lf_decay_rate
+        role: dependent
+      - symbol: t_a
+        concept: lf_return_time_constant
+      - symbol: t_c
+        concept: lf_closure_time
+      - symbol: t_e
+        concept: lf_excitation_time
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Epsilon-Ta Relationship"
+
+  - id: claim5
+    type: equation
+    expression: "R_k = (t_e - t_p) / t_p"
+    sympy: "Eq(R_k, (t_e - t_p) / t_p)"
+    variables:
+      - symbol: R_k
+        concept: lf_relative_closing_time
+        role: dependent
+      - symbol: t_e
+        concept: lf_excitation_time
+      - symbol: t_p
+        concept: lf_peak_time
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Dimensionless Shape Parameters"
+
+  - id: claim6
+    type: equation
+    expression: "R_a = t_a / (t_c - t_e)"
+    sympy: "Eq(R_a, t_a / (t_c - t_e))"
+    variables:
+      - symbol: R_a
+        concept: lf_relative_return_phase
+        role: dependent
+      - symbol: t_a
+        concept: lf_return_time_constant
+      - symbol: t_c
+        concept: lf_closure_time
+      - symbol: t_e
+        concept: lf_excitation_time
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Return Phase Ratio"
+
+  - id: claim7
+    type: equation
+    expression: "F_a = 1 / (2*pi*t_a)"
+    sympy: "Eq(F_a, 1 / (2*pi*t_a))"
+    variables:
+      - symbol: F_a
+        concept: spectral_tilt_cutoff_frequency
+        role: dependent
+      - symbol: t_a
+        concept: lf_return_time_constant
+        role: independent
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Spectral Tilt from Return Phase"
+      quote_fragment: "The return phase acts as an additional first-order low-pass filter"
+    stances:
+      - type: mechanism_for
+        target: "Klatt_1980:spectral_tilt"
+        note: "LF return phase provides theoretical basis for Klatt's TL parameter"
+
+  # --- Ka piecewise approximation ---
+  # DOESN'T FIT: This is a piecewise equation with 3 branches. The schema has one
+  # expression field per equation claim. We must either: (a) use 3 separate equation
+  # claims with conditions, (b) write the whole piecewise as one string, or (c) use
+  # a model claim. None is ideal. Using conditions approach:
+
+  - id: claim8
+    type: equation
+    expression: "K_a = 2 - 2.34*R_a^2 + 1.34*R_a^4"
+    sympy: "Eq(K_a, 2 - 2.34*R_a**2 + 1.34*R_a**4)"
+    variables:
+      - symbol: K_a
+        concept: lf_residual_flow_factor
+        role: dependent
+      - symbol: R_a
+        concept: lf_relative_return_phase
+        role: independent
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Ka Approximation"
+    conditions:
+      - "lf_relative_return_phase < 0.5"
+
+  - id: claim9
+    type: equation
+    expression: "K_a = 2.16 - 1.32*R_a + 0.64*(R_a - 0.5)^2"
+    sympy: "Eq(K_a, 2.16 - 1.32*R_a + 0.64*(R_a - 0.5)**2)"
+    variables:
+      - symbol: K_a
+        concept: lf_residual_flow_factor
+        role: dependent
+      - symbol: R_a
+        concept: lf_relative_return_phase
+        role: independent
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Ka Approximation"
+    conditions:
+      - "lf_relative_return_phase > 0.5"
+
+  # --- Voice quality parameter ranges ---
+
+  - id: claim10
+    type: parameter
+    concept: lf_return_time_constant
+    lower_bound: 0.0
+    upper_bound: 0.2
+    unit: ms
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Voice Quality Parameter Ranges"
+    conditions:
+      - "voice_quality == 'modal'"
+
+  - id: claim11
+    type: parameter
+    concept: lf_return_time_constant
+    lower_bound: 0.6
+    upper_bound: 1.5
+    unit: ms
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Voice Quality Parameter Ranges"
+    conditions:
+      - "voice_quality == 'breathy'"
+
+  - id: claim12
+    type: parameter
+    concept: lf_Rd
+    lower_bound: 0.5
+    upper_bound: 1.0
+    unit: ratio
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Voice Quality Parameter Ranges"
+    conditions:
+      - "voice_quality == 'modal'"
+    # DOESN'T FIT: Rd is dimensionless but not a ratio in the usual sense.
+    # unit: "ratio" is the closest available but not semantically correct.
+    # The schema doesn't have a generic "dimensionless" unit option.
+
+  - id: claim13
+    type: parameter
+    concept: lf_Ae_peak_ratio
+    lower_bound: 3.0
+    upper_bound: 4.0
+    unit: ratio
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Voice Quality Parameter Ranges"
+    conditions:
+      - "voice_quality == 'pressed'"
+
+  # --- Observation ---
+
+  - id: claim14
+    type: observation
+    statement: "The LF-model provides fits not less reliable than Ananthapadmanabha's 5-parameter model while using only 4 shape parameters, and better matches highly aspirated (breathy) waveforms."
+    concepts:
+      - lf_model
+      - glottal_flow_derivative
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Results Summary"
+
+  - id: claim15
+    type: observation
+    statement: "The area balance constraint (integral of E(t) over one period equals zero) ties the four shape parameters together: given t_p, t_e, t_a, the growth constant alpha is determined."
+    concepts:
+      - lf_growth_constant
+      - lf_peak_time
+      - lf_excitation_time
+      - lf_return_time_constant
+    provenance:
+      paper: Fant_1985_LFModelGlottalFlow
+      page: 0
+      section: "Area Balance Constraint"
+    # DOESN'T FIT: This is a constraint between parameters, not really a qualitative
+    # observation. It's a mathematical fact about the model. There's no "constraint"
+    # claim type. It could be an equation (integral = 0) but that doesn't capture
+    # the "determines alpha" implication.

@@ -21,8 +21,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Protocol, runtime_checkable
 
-from compiler.cel_checker import ConceptInfo, KindType
-from compiler.z3_conditions import Z3ConditionSolver
+from propstore.cel_checker import ConceptInfo, KindType
+from propstore.z3_conditions import Z3ConditionSolver
 
 
 _FORM_TO_KIND = {
@@ -621,7 +621,7 @@ class BoundWorld:
         Single-step only — uses value_of() on input concepts (or override_values
         from chain_query) to compute the output via SymPy.
         """
-        from compiler.propagation import evaluate_parameterization
+        from propstore.propagation import evaluate_parameterization
 
         params = self._world._parameterizations_for(concept_id)
         if not params:
@@ -799,7 +799,7 @@ class HypotheticalWorld:
 
     def derived_value(self, concept_id: str) -> DerivedResult:
         """Derive using this hypothetical world's active claims."""
-        from compiler.propagation import evaluate_parameterization
+        from propstore.propagation import evaluate_parameterization
 
         params = self._base._world._parameterizations_for(concept_id)
         if not params:
