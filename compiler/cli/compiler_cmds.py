@@ -630,3 +630,110 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
     for step in result.steps:
         click.echo(f"  {step.concept_id}: {step.value} ({step.source})")
     wm.close()
+
+
+@world.command("export-graph")
+@click.argument("args", nargs=-1)
+@click.option("--format", "fmt", type=click.Choice(["dot", "json"]), default="dot")
+@click.option("--group", "group_id", type=int, default=None,
+              help="Parameterization group ID to filter by")
+@click.option("--output", "output_file", default=None, help="Output file path")
+@click.pass_obj
+def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
+                       group_id: int | None, output_file: str | None) -> None:
+    """Export the knowledge graph as DOT or JSON.
+
+    Usage: pks world export-graph task=speech --format dot --output graph.dot
+    """
+    from compiler.graph_export import build_knowledge_graph
+    from compiler.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    bindings, _ = _parse_bindings(args)
+    bound = wm.bind(**bindings) if bindings else None
+
+    graph = build_knowledge_graph(wm, bound=bound, group_id=group_id)
+
+    if fmt == "json":
+        output = json.dumps(graph.to_json(), indent=2)
+    else:
+        output = graph.to_dot()
+
+    if output_file:
+        Path(output_file).write_text(output)
+        click.echo(f"Graph written to {output_file}")
+    else:
+        click.echo(output)
+
+    wm.close()
+
+
+@world.command("sensitivity")
+@click.argument("concept_id")
+@click.argument("args", nargs=-1)
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
+@click.pass_obj
+def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
+                      fmt: str) -> None:
+    """Analyze which input most influences a derived quantity.
+
+    Usage: pks world sensitivity concept5 task=speech
+    """
+    from compiler.sensitivity import analyze_sensitivity
+    from compiler.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    bindings, _ = _parse_bindings(args)
+    resolved = wm.resolve_alias(concept_id) or concept_id
+    bound = wm.bind(**bindings)
+
+    result = analyze_sensitivity(wm, resolved, bound)
+
+    if result is None:
+        click.echo(f"No sensitivity analysis available for {resolved}.")
+        wm.close()
+        return
+
+    if fmt == "json":
+        data = {
+            "concept_id": result.concept_id,
+            "formula": result.formula,
+            "output_value": result.output_value,
+            "input_values": result.input_values,
+            "entries": [
+                {
+                    "input_concept_id": e.input_concept_id,
+                    "partial_derivative_expr": e.partial_derivative_expr,
+                    "partial_derivative_value": e.partial_derivative_value,
+                    "elasticity": e.elasticity,
+                }
+                for e in result.entries
+            ],
+        }
+        click.echo(json.dumps(data, indent=2))
+    else:
+        click.echo(f"Sensitivity: {resolved}")
+        click.echo(f"Formula: {result.formula}")
+        click.echo(f"Output value: {result.output_value}")
+        click.echo(f"Inputs: {result.input_values}")
+        click.echo("")
+        click.echo(f"{'Input':<25} {'Partial':>12} {'Elasticity':>12}")
+        click.echo("-" * 51)
+        for e in result.entries:
+            pval = f"{e.partial_derivative_value:.6g}" if e.partial_derivative_value is not None else "N/A"
+            elast = f"{e.elasticity:.4f}" if e.elasticity is not None else "N/A"
+            click.echo(f"{e.input_concept_id:<25} {pval:>12} {elast:>12}")
+
+    wm.close()
