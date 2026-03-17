@@ -162,6 +162,10 @@ classes:
         multivalued: true
         inlined_as_list: true
 
+      notes:
+        description: "Free-text methodological context, experimental conditions, or caveats."
+        range: string
+
       # --- parameter fields ---
 
       concept:
