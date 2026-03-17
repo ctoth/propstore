@@ -13,11 +13,11 @@ from __future__ import annotations
 import pytest
 from hypothesis import given, strategies as st, settings
 
-from compiler.conflict_detector import (
+from propstore.conflict_detector import (
     ConflictClass,
     detect_conflicts,
 )
-from compiler.validate_claims import LoadedClaimFile
+from propstore.validate_claims import LoadedClaimFile
 
 
 # ── Test helpers ─────────────────────────────────────────────────────

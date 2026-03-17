@@ -6,7 +6,7 @@ that lack explicit statement fields.
 
 import pytest
 
-from compiler.description_generator import generate_description, _format_conditions_prose
+from propstore.description_generator import generate_description, _format_conditions_prose
 
 
 # ── Concept registry fixture ─────────────────────────────────────────

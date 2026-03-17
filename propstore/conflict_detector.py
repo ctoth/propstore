@@ -22,8 +22,8 @@ import functools
 import re
 from typing import Any
 
-from compiler.cel_checker import ConceptInfo, KindType
-from compiler.validate_claims import LoadedClaimFile
+from propstore.cel_checker import ConceptInfo, KindType
+from propstore.validate_claims import LoadedClaimFile
 
 
 class ConflictClass(Enum):
@@ -250,7 +250,7 @@ def _try_z3_classify(
     if cel_registry is None:
         return None
     try:
-        from compiler.z3_conditions import Z3ConditionSolver
+        from propstore.z3_conditions import Z3ConditionSolver
     except ImportError:
         return None
 
@@ -899,8 +899,8 @@ def detect_transitive_conflicts(
     Only emits conflicts for concepts reachable via 2+ hops to avoid duplicating
     the single-hop conflicts already found by _detect_param_conflicts.
     """
-    from compiler.parameterization_groups import build_groups
-    from compiler.propagation import evaluate_parameterization
+    from propstore.parameterization_groups import build_groups
+    from propstore.propagation import evaluate_parameterization
 
     records: list[ConflictRecord] = []
 

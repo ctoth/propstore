@@ -6,7 +6,7 @@ from pathlib import Path
 
 import click
 
-from compiler.cli.repository import Repository
+from propstore.cli.repository import Repository
 
 
 _FALLBACK_FORMS = (

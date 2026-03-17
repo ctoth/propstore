@@ -11,7 +11,7 @@ from pathlib import Path
 import click
 import yaml
 
-from compiler.cli.helpers import (
+from propstore.cli.helpers import (
     EXIT_ERROR,
     EXIT_VALIDATION,
     find_concept,
@@ -20,9 +20,9 @@ from compiler.cli.helpers import (
     write_counter,
     write_concept_file,
 )
-from compiler.cli.repository import Repository
-from compiler.validate import LoadedConcept, load_concepts, validate_concepts
-from compiler.validate_claims import load_claim_files, validate_claims
+from propstore.cli.repository import Repository
+from propstore.validate import LoadedConcept, load_concepts, validate_concepts
+from propstore.validate_claims import load_claim_files, validate_claims
 
 RELATIONSHIP_TYPES = (
     "broader", "narrower", "related",

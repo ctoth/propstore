@@ -1,0 +1,240 @@
+source:
+  paper: Henrich_2003_JND_OpenQuotient
+  extraction_model: hand-written-design-spike
+  extraction_date: "2026-03-17"
+
+claims:
+
+  # --- JND absolute measurements ---
+
+  - id: claim1
+    type: measurement
+    target_concept: open_quotient
+    measure: jnd_absolute
+    value: 0.058
+    uncertainty: 0.019
+    uncertainty_type: sd
+    unit: ratio
+    listener_population: "untrained (G1, n=20)"
+    methodology: "3-interval forced-choice, 2-down 1-up adaptive staircase"
+    sample_size: 20
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 2"
+    conditions:
+      - "open_quotient == 0.4"
+
+  - id: claim2
+    type: measurement
+    target_concept: open_quotient
+    measure: jnd_absolute
+    value: 0.037
+    uncertainty: 0.010
+    uncertainty_type: sd
+    unit: ratio
+    listener_population: "trained (G2, n=10, 3 repetitions)"
+    methodology: "3-interval forced-choice, 2-down 1-up adaptive staircase"
+    sample_size: 10
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 2"
+    conditions:
+      - "open_quotient == 0.4"
+
+  - id: claim3
+    type: measurement
+    target_concept: open_quotient
+    measure: jnd_absolute
+    value: 0.087
+    uncertainty: 0.027
+    uncertainty_type: sd
+    unit: ratio
+    listener_population: "untrained (G1, n=20)"
+    methodology: "3-interval forced-choice, 2-down 1-up adaptive staircase"
+    sample_size: 20
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 2"
+    conditions:
+      - "open_quotient == 0.6"
+
+  - id: claim4
+    type: measurement
+    target_concept: open_quotient
+    measure: jnd_absolute
+    value: 0.106
+    uncertainty: 0.043
+    uncertainty_type: sd
+    unit: ratio
+    listener_population: "untrained (G1, n=20)"
+    methodology: "3-interval forced-choice, 2-down 1-up adaptive staircase"
+    sample_size: 20
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 2"
+    conditions:
+      - "open_quotient == 0.8"
+
+  # --- Relative JND (Weber fraction) ---
+
+  - id: claim5
+    type: measurement
+    target_concept: open_quotient
+    measure: jnd_relative
+    value: 14.5
+    uncertainty: 4.7
+    uncertainty_type: sd
+    unit: "%"
+    listener_population: "untrained (G1, n=20)"
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 5"
+    conditions:
+      - "open_quotient == 0.4"
+    # DOESN'T FIT: The unit "%" for a relative JND is awkward. It's a Weber fraction
+    # expressed as a percentage. The schema has no special handling for "percentage of
+    # what" -- is it percent of Oq? percent of E? The paper clarifies this is delta_Oq/Oq.
+
+  - id: claim6
+    type: measurement
+    target_concept: open_quotient
+    measure: jnd_relative
+    value: 10.5
+    uncertainty: 2.5
+    uncertainty_type: sd
+    unit: "%"
+    listener_population: "trained (G2, n=10, 3 repetitions)"
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 5"
+    conditions:
+      - "open_quotient == 0.6"
+
+  # --- Asymmetry coefficient JND ---
+
+  - id: claim7
+    type: measurement
+    target_concept: asymmetry_coefficient
+    measure: jnd_absolute
+    value: 0.033
+    uncertainty: 0.009
+    uncertainty_type: sd
+    unit: ratio
+    listener_population: "untrained (G1, n=20)"
+    methodology: "3-interval forced-choice, 2-down 1-up adaptive staircase"
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 2"
+    conditions:
+      - "asymmetry_coefficient == 0.667"
+
+  - id: claim8
+    type: measurement
+    target_concept: asymmetry_coefficient
+    measure: jnd_absolute
+    value: 0.027
+    uncertainty: 0.009
+    uncertainty_type: sd
+    unit: ratio
+    listener_population: "untrained (G1, n=20)"
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 2"
+    conditions:
+      - "asymmetry_coefficient == 0.8"
+
+  # --- Weber's law observations ---
+
+  - id: claim9
+    type: observation
+    statement: "Weber's law holds for open quotient: the relative JND (delta_Oq/Oq) is constant at approximately 14% for untrained and 10% for trained listeners across Oq values of 0.4, 0.6, and 0.8."
+    concepts:
+      - open_quotient
+      - webers_law
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      section: "Results"
+      quote_fragment: "Relative JND is constant across Oq values"
+    stances:
+      - type: mechanism_for
+        target: "open_quotient_perception"
+        note: "Weber's law provides the perceptual mechanism for Oq discrimination"
+    # DOESN'T FIT: This observation has quantitative content (14%, 10%) that should
+    # be searchable/comparable. An observation claim only stores prose. The quantitative
+    # data is in the measurement claims above, but the Weber's law *relationship* across
+    # those measurements can only be expressed as prose.
+
+  - id: claim10
+    type: observation
+    statement: "Asymmetry coefficient JND decreases as alpha_m increases (JND at alpha_m=0.8 < JND at alpha_m=2/3), meaning Weber's law does NOT hold directly for alpha_m."
+    concepts:
+      - asymmetry_coefficient
+      - webers_law
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      section: "Results"
+
+  # --- Effects of experimental conditions ---
+
+  - id: claim11
+    type: observation
+    statement: "No significant effect of vowel choice ([AA] vs [IY]) on the JND of open quotient for untrained listeners."
+    concepts:
+      - open_quotient
+      - vowel_identity
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 4"
+    # DOESN'T FIT: This is a null result from a statistical test. The schema has no way
+    # to express p-values or statistical significance. An effect_size measurement type
+    # exists but this is specifically a null finding.
+
+  - id: claim12
+    type: observation
+    statement: "No significant effect of pitch (130 Hz vs 196 Hz) on the JND of open quotient."
+    concepts:
+      - open_quotient
+      - fundamental_frequency
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 4"
+
+  - id: claim13
+    type: observation
+    statement: "Vibrato presence significantly increases the JND of open quotient (p<0.05 untrained, p<0.01 trained), as naturalness of vibrato masks fine Oq variations."
+    concepts:
+      - open_quotient
+      - vibrato
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 4"
+
+  - id: claim14
+    type: observation
+    statement: "Amplitude parameter has the largest effect on Oq JND: when E (negative peak amplitude) is held constant instead of Av, the JND increases significantly (p<0.001 untrained) because the spectral slope change associated with Oq variation is the primary perceptual cue."
+    concepts:
+      - open_quotient
+      - lf_excitation_amplitude
+      - voicing_amplitude
+    provenance:
+      paper: Henrich_2003_JND_OpenQuotient
+      page: 0
+      table: "Table 4"
+      section: "Discussion"
+    # DOESN'T FIT: This observation references a causal chain (E constant -> less spectral
+    # change -> higher JND) that is really a mechanism_for stance toward the JND measurements.
+    # But stances point at other claim IDs, and this is within the same paper. Cross-referencing
+    # claim1-claim4 would work but feels heavy for what is essentially an explanatory note.

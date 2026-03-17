@@ -18,12 +18,12 @@ from typing import Any
 import jsonschema
 import yaml
 
-from compiler.cel_checker import (
+from propstore.cel_checker import (
     ConceptInfo,
     KindType,
     check_cel_expression,
 )
-from compiler.form_utils import (
+from propstore.form_utils import (
     DIMENSIONLESS_UNITS,
     LEVEL_UNITS,
     FormDefinition,
@@ -331,7 +331,7 @@ def _validate_equation(
         result.errors.append(f"{filename}: equation claim '{cid}' missing 'expression'")
 
     # Validate explicit sympy field if provided; warn if auto-generation fails when absent
-    from compiler.sympy_generator import generate_sympy_with_error
+    from propstore.sympy_generator import generate_sympy_with_error
     sympy_field = claim.get("sympy")
     if sympy_field:
         # Use generate_sympy for validation — it handles = and ^ preprocessing
@@ -442,7 +442,7 @@ def build_concept_registry_from_paths(
     forms_dir: Path,
 ) -> dict[str, dict]:
     """Load concepts and build {concept_id: concept_data} mapping."""
-    from compiler.validate import load_concepts
+    from propstore.validate import load_concepts
     concepts = load_concepts(concepts_dir)
     registry: dict[str, dict] = {}
     for concept in concepts:

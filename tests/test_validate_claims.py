@@ -15,7 +15,7 @@ Tests the compiler contract checks that JSON Schema can't express:
 import pytest
 import yaml
 
-from compiler.validate_claims import (
+from propstore.validate_claims import (
     load_claim_files,
     validate_claims,
 )
@@ -958,8 +958,8 @@ class TestFormAwareUnitValidation:
             (concepts_dir / f"{cdata['canonical_name']}.yaml").write_text(
                 _yaml.dump(cdata, default_flow_style=False))
 
-        from compiler.cli.repository import Repository
-        from compiler.validate_claims import build_concept_registry
+        from propstore.cli.repository import Repository
+        from propstore.validate_claims import build_concept_registry
         repo = Repository(knowledge)
         return build_concept_registry(repo)
 

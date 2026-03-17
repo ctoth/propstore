@@ -12,9 +12,9 @@ TDD tests:
 import pytest
 import yaml
 
-from compiler.build_sidecar import build_sidecar
-from compiler.validate import load_concepts
-from compiler.world_model import (
+from propstore.build_sidecar import build_sidecar
+from propstore.validate import load_concepts
+from propstore.world_model import (
     BoundWorld,
     ChainResult,
     ClaimView,
@@ -161,7 +161,7 @@ def concept_dir(tmp_path):
 
 @pytest.fixture
 def repo(concept_dir):
-    from compiler.cli.repository import Repository
+    from propstore.cli.repository import Repository
     return Repository(concept_dir.parent)
 
 
@@ -307,7 +307,7 @@ def claim_files(concept_dir):
     (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
 
-    from compiler.validate_claims import load_claim_files
+    from propstore.validate_claims import load_claim_files
     return load_claim_files(claims_dir)
 
 
@@ -328,7 +328,7 @@ class TestWorldModelConstruction:
         assert world is not None
 
     def test_raises_without_sidecar(self, tmp_path):
-        from compiler.cli.repository import Repository
+        from propstore.cli.repository import Repository
         repo = Repository.init(tmp_path / "empty_knowledge")
         with pytest.raises(FileNotFoundError):
             WorldModel(repo)
@@ -989,8 +989,8 @@ class TestCrossFeatureProperties:
 class TestTransitiveConsistency:
     def test_transitive_conflict_detected(self, world, claim_files, concept_dir):
         """Build sidecar with claim11, call detect_transitive_conflicts, verify PARAM_CONFLICT for concept5."""
-        from compiler.conflict_detector import detect_transitive_conflicts
-        from compiler.validate import load_concepts
+        from propstore.conflict_detector import detect_transitive_conflicts
+        from propstore.validate import load_concepts
 
         concepts = load_concepts(concept_dir)
         concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
@@ -1058,8 +1058,8 @@ class TestTransitiveConsistency:
 
     def test_transitive_conflict_has_chain(self, world, claim_files, concept_dir):
         """Verify derivation_chain field is populated when transitive conflicts exist."""
-        from compiler.conflict_detector import detect_transitive_conflicts
-        from compiler.validate import load_concepts
+        from propstore.conflict_detector import detect_transitive_conflicts
+        from propstore.validate import load_concepts
 
         concepts = load_concepts(concept_dir)
         concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
@@ -1070,9 +1070,9 @@ class TestTransitiveConsistency:
 
     def test_no_transitive_when_compatible(self, world, claim_files, concept_dir):
         """If claim11's value matches derived (e.g. 0.2), no conflict emitted."""
-        from compiler.conflict_detector import detect_transitive_conflicts
-        from compiler.validate import load_concepts
-        from compiler.validate_claims import LoadedClaimFile
+        from propstore.conflict_detector import detect_transitive_conflicts
+        from propstore.validate import load_concepts
+        from propstore.validate_claims import LoadedClaimFile
 
         concepts = load_concepts(concept_dir)
         concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
@@ -1100,8 +1100,8 @@ class TestTransitiveConsistency:
 
     def test_transitive_respects_conditions(self, world, claim_files, concept_dir):
         """Conflict only under bindings where all claims are active."""
-        from compiler.conflict_detector import detect_transitive_conflicts
-        from compiler.validate import load_concepts
+        from propstore.conflict_detector import detect_transitive_conflicts
+        from propstore.validate import load_concepts
 
         concepts = load_concepts(concept_dir)
         concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}

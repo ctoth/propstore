@@ -19,10 +19,10 @@ import sqlite3
 from pathlib import Path
 from typing import Sequence
 
-from compiler.parameterization_groups import build_groups
-from compiler.form_utils import kind_value_from_form_name, load_form
-from compiler.validate import LoadedConcept
-from compiler.validate_claims import LoadedClaimFile
+from propstore.parameterization_groups import build_groups
+from propstore.form_utils import kind_value_from_form_name, load_form
+from propstore.validate import LoadedConcept
+from propstore.validate_claims import LoadedClaimFile
 
 
 def _content_hash(
@@ -436,7 +436,7 @@ def _populate_claims(
     claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict | None = None,
 ):
-    from compiler.description_generator import generate_description
+    from propstore.description_generator import generate_description
 
     claim_seq = 0
     deferred_stances: list[tuple] = []
@@ -507,7 +507,7 @@ def _populate_claims(
                 if explicit_sympy:
                     sympy_generated = explicit_sympy
                 elif expression:
-                    from compiler.sympy_generator import generate_sympy_with_error
+                    from propstore.sympy_generator import generate_sympy_with_error
                     sympy_result = generate_sympy_with_error(expression)
                     sympy_generated = sympy_result.expression
                     sympy_error = sympy_result.error
@@ -569,7 +569,7 @@ def _populate_conflicts(
     claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict,
 ):
-    from compiler.conflict_detector import detect_conflicts, detect_transitive_conflicts
+    from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 
     records = detect_conflicts(claim_files, concept_registry)
     transitive_records = detect_transitive_conflicts(claim_files, concept_registry)
