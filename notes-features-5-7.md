@@ -7,25 +7,31 @@ Session: 2026-03-16
 - Feature 6: sensitivity.py (analyze_sensitivity, SensitivityResult)
 - Feature 7: transitive conflicts + HypotheticalWorld.recompute_conflicts()
 
-## Key observations from codebase read
-- WorldModel queries sidecar SQLite via self._conn
-- Tables: concept, alias, relationship, parameterization, parameterization_group, claim, claim_stance, conflicts
-- BoundWorld._is_active checks conditions via Z3
-- propagation.py has evaluate_parameterization() and _parse_cached()
-- build_sidecar calls _populate_conflicts which calls detect_conflicts from conflict_detector
-- Parameterization: output_concept_id, concept_ids (JSON list of input IDs), formula, sympy, exactness, conditions_cel
-- Existing claim IDs in fixture: claim1-claim10
-- Test fixture has 7 concepts (concept1-concept7)
+## Progress — ALL COMPLETE
 
-## Progress
-- [ ] Feature 5: graph_export.py
-- [ ] Feature 5: tests
-- [ ] Feature 5: CLI
-- [ ] Feature 6: sensitivity.py
-- [ ] Feature 6: tests
-- [ ] Feature 6: CLI
-- [ ] Feature 7: detect_transitive_conflicts
-- [ ] Feature 7: HypotheticalWorld.recompute_conflicts
-- [ ] Feature 7: tests
-- [ ] Feature 7: CLI
-- [ ] Feature 7: build_sidecar integration
+### Feature 6 — DONE (commit 36f5253)
+- `compiler/sensitivity.py` — NEW: SensitivityEntry, SensitivityResult, analyze_sensitivity
+- `tests/test_sensitivity.py` — NEW: 7/7 tests passing
+- CLI: `world sensitivity`
+
+### Feature 5 — DONE (commit fd6a180)
+- `compiler/graph_export.py` — NEW: GraphNode, GraphEdge, KnowledgeGraph, build_knowledge_graph
+- `tests/test_graph_export.py` — NEW: 9/9 tests passing
+- CLI: `world export-graph`
+
+### Feature 7 — DONE (commit b8a8dc1)
+- `compiler/conflict_detector.py` — detect_transitive_conflicts() added
+- `compiler/world_model.py` — HypotheticalWorld.recompute_conflicts() added
+- `compiler/build_sidecar.py` — integrated transitive detection into _populate_conflicts
+- `tests/test_world_model.py` — claim11 added, 7 new tests in TestTransitiveConsistency
+- CLI: `world check-consistency --transitive`
+- 3 existing chain tests updated (claim11 makes concept5 determined instead of derived)
+
+## Final test counts
+- test_world_model.py: 87/87
+- Full suite: 494/494
+- No regressions
+
+## Pyright diagnostics
+All "reportMissingImports" for sympy/graphviz/compiler.propagation are pre-existing patterns
+(runtime imports in try/except blocks or lazy imports — not real bugs).
