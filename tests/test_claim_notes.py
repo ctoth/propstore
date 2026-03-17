@@ -1,0 +1,375 @@
+"""TDD tests for the notes field on claims.
+
+Tests that claims can carry an optional free-text notes string, that
+it roundtrips through validation, sidecar storage, and WorldModel queries.
+"""
+
+import sqlite3
+import tempfile
+from pathlib import Path
+
+import pytest
+import yaml
+from hypothesis import given, settings, HealthCheck
+from hypothesis import strategies as st
+
+from propstore.build_sidecar import build_sidecar
+from propstore.validate import load_concepts
+from propstore.validate_claims import load_claim_files, validate_claims
+from propstore.world_model import WorldModel
+
+
+# ── Helpers (reused patterns from test_validate_claims) ──────────────
+
+
+def make_parameter_claim(id, concept, value, unit, page=1, **kwargs):
+    """Helper: make a minimal valid parameter claim."""
+    c = {
+        "id": id,
+        "type": "parameter",
+        "concept": concept,
+        "value": value,
+        "unit": unit,
+        "provenance": {"paper": "test_paper", "page": page},
+    }
+    c.update(kwargs)
+    return c
+
+
+def make_claim_file_data(claims, paper="test_paper"):
+    """Wrap claims in a ClaimFile structure."""
+    return {
+        "source": {"paper": paper},
+        "claims": claims,
+    }
+
+
+def write_claim_file(claims_dir, filename, data):
+    """Helper: write a claim YAML file."""
+    path = claims_dir / filename
+    path.write_text(yaml.dump(data, default_flow_style=False))
+    return path
+
+
+def make_concept_registry():
+    """Build a mock concept registry for testing."""
+    return {
+        "concept1": {
+            "id": "concept1",
+            "canonical_name": "fundamental_frequency",
+            "form": "frequency",
+            "status": "accepted",
+            "definition": "F0",
+        },
+        "concept2": {
+            "id": "concept2",
+            "canonical_name": "subglottal_pressure",
+            "form": "pressure",
+            "status": "accepted",
+            "definition": "Ps",
+        },
+    }
+
+
+# ── Fixtures (reused patterns from test_build_sidecar) ──────────────
+
+
+@pytest.fixture
+def claims_dir(tmp_path):
+    return tmp_path / "claims"
+
+
+@pytest.fixture
+def concept_dir(tmp_path):
+    """Create a concepts directory with test concepts."""
+    knowledge = tmp_path / "knowledge"
+    concepts_path = knowledge / "concepts"
+    concepts_path.mkdir(parents=True)
+    counters = concepts_path / ".counters"
+    counters.mkdir()
+    (counters / "speech.next").write_text("3")
+
+    forms_dir = knowledge / "forms"
+    forms_dir.mkdir()
+    for form_name in ("frequency", "pressure"):
+        (forms_dir / f"{form_name}.yaml").write_text(
+            yaml.dump({"name": form_name}, default_flow_style=False))
+
+    def write(name, data):
+        (concepts_path / f"{name}.yaml").write_text(
+            yaml.dump(data, default_flow_style=False))
+
+    write("fundamental_frequency", {
+        "id": "concept1",
+        "canonical_name": "fundamental_frequency",
+        "status": "accepted",
+        "definition": "The rate of vocal fold vibration during phonation.",
+        "domain": "speech",
+        "created_date": "2026-03-15",
+        "form": "frequency",
+    })
+
+    write("subglottal_pressure", {
+        "id": "concept2",
+        "canonical_name": "subglottal_pressure",
+        "status": "accepted",
+        "definition": "Air pressure below the glottis during phonation.",
+        "domain": "speech",
+        "form": "pressure",
+    })
+
+    return concepts_path
+
+
+@pytest.fixture
+def sidecar_path(tmp_path):
+    return tmp_path / "sidecar" / "propstore.sqlite"
+
+
+# ── Unit Tests ───────────────────────────────────────────────────────
+
+
+class TestClaimNotesValidation:
+    """Validation tests for the notes field on claims."""
+
+    def test_claim_with_notes_validates(self, claims_dir):
+        """A parameter claim with notes: 'some note' validates against JSON schema."""
+        claims_dir.mkdir(parents=True, exist_ok=True)
+        claim = make_parameter_claim(
+            "claim1", "concept1", 200.0, "Hz", notes="some note"
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        claim_files = load_claim_files(claims_dir)
+        registry = make_concept_registry()
+        result = validate_claims(claim_files, registry)
+        assert result.ok, f"Validation errors: {result.errors}"
+
+    def test_claim_without_notes_validates(self, claims_dir):
+        """Existing claims without notes still validate (backward compat)."""
+        claims_dir.mkdir(parents=True, exist_ok=True)
+        claim = make_parameter_claim("claim1", "concept1", 200.0, "Hz")
+        # Explicitly verify no notes key
+        assert "notes" not in claim
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        claim_files = load_claim_files(claims_dir)
+        registry = make_concept_registry()
+        result = validate_claims(claim_files, registry)
+        assert result.ok, f"Validation errors: {result.errors}"
+
+    def test_notes_any_nonempty_string_valid(self, claims_dir):
+        """Notes field accepts any non-empty string, no constraints."""
+        claims_dir.mkdir(parents=True, exist_ok=True)
+        notes_values = [
+            "short",
+            "A much longer note with special characters: !@#$%^&*()",
+            "Multi\nline\nnotes",
+            "Unicode: \u00e9\u00e0\u00fc\u00f1 \u4e16\u754c",
+        ]
+        claims = [
+            make_parameter_claim(
+                f"claim{i+1}", "concept1", 200.0, "Hz",
+                notes=note,
+            )
+            for i, note in enumerate(notes_values)
+        ]
+        data = make_claim_file_data(claims)
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        claim_files = load_claim_files(claims_dir)
+        registry = make_concept_registry()
+        result = validate_claims(claim_files, registry)
+        assert result.ok, f"Validation errors: {result.errors}"
+
+
+class TestClaimNotesSidecar:
+    """Sidecar storage tests for the notes field."""
+
+    def test_sidecar_stores_notes_in_claim_table(
+        self, concept_dir, sidecar_path
+    ):
+        """Build sidecar with a claim that has notes, verify notes column exists."""
+        claims_dir = concept_dir / "claims_notes"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = {
+            "source": {"paper": "notes_paper"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 200.0,
+                    "unit": "Hz",
+                    "notes": "This is a test note",
+                    "provenance": {"paper": "notes_paper", "page": 1},
+                },
+            ],
+        }
+        (claims_dir / "notes_paper.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
+
+        claim_files = load_claim_files(claims_dir)
+        concepts = load_concepts(concept_dir)
+        concept_registry = {
+            c.data["id"]: c.data for c in concepts if c.data.get("id")
+        }
+        build_sidecar(
+            concepts, sidecar_path, force=True,
+            claim_files=claim_files, concept_registry=concept_registry,
+        )
+
+        conn = sqlite3.connect(sidecar_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM claim WHERE id='claim1'"
+        ).fetchone()
+        assert "notes" in row.keys(), "notes column missing from claim table"
+        assert row["notes"] == "This is a test note"
+        conn.close()
+
+    def test_world_model_get_claim_returns_notes(
+        self, concept_dir, sidecar_path
+    ):
+        """After building sidecar, WorldModel.get_claim returns notes field."""
+        claims_dir = concept_dir / "claims_wm_notes"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = {
+            "source": {"paper": "wm_notes_paper"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 200.0,
+                    "unit": "Hz",
+                    "notes": "WorldModel test note",
+                    "provenance": {"paper": "wm_notes_paper", "page": 1},
+                },
+            ],
+        }
+        (claims_dir / "wm_notes_paper.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
+
+        claim_files = load_claim_files(claims_dir)
+        concepts = load_concepts(concept_dir)
+        concept_registry = {
+            c.data["id"]: c.data for c in concepts if c.data.get("id")
+        }
+        build_sidecar(
+            concepts, sidecar_path, force=True,
+            claim_files=claim_files, concept_registry=concept_registry,
+        )
+
+        # WorldModel expects a repo-like object with .sidecar_path
+        class _FakeRepo:
+            def __init__(self, path):
+                self.sidecar_path = path
+
+        wm = WorldModel(_FakeRepo(sidecar_path))
+        claim = wm.get_claim("claim1")
+        assert claim is not None
+        assert "notes" in claim, f"notes not in claim dict, keys: {list(claim.keys())}"
+        assert claim["notes"] == "WorldModel test note"
+        wm.close()
+
+
+# ── Hypothesis Property Tests ────────────────────────────────────────
+
+
+class TestClaimNotesProperties:
+    """Property-based tests for the notes field."""
+
+    @given(notes_text=st.text(min_size=1))
+    def test_any_nonempty_string_produces_valid_claim(self, notes_text):
+        """For any valid claim, adding a non-empty notes string produces a valid claim."""
+        with tempfile.TemporaryDirectory() as td:
+            claims_dir = Path(td) / "claims_hyp"
+            claims_dir.mkdir(exist_ok=True)
+            claim = make_parameter_claim(
+                "claim1", "concept1", 200.0, "Hz", notes=notes_text
+            )
+            data = make_claim_file_data([claim])
+            write_claim_file(claims_dir, "test_paper.yaml", data)
+
+            claim_files = load_claim_files(claims_dir)
+            registry = make_concept_registry()
+            result = validate_claims(claim_files, registry)
+            assert result.ok, f"Validation failed for notes={notes_text!r}: {result.errors}"
+
+    @given(notes_text=st.text(min_size=1, max_size=500))
+    def test_notes_roundtrips_through_sidecar(self, notes_text):
+        """Notes field roundtrips: write claim with notes -> build sidecar -> query -> same string."""
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as td:
+            tmp_path = Path(td)
+            # Set up minimal concept dir
+            knowledge = tmp_path / "knowledge"
+            concepts_path = knowledge / "concepts"
+            concepts_path.mkdir(parents=True, exist_ok=True)
+            counters = concepts_path / ".counters"
+            counters.mkdir(exist_ok=True)
+            (counters / "speech.next").write_text("2")
+
+            forms_dir = knowledge / "forms"
+            forms_dir.mkdir(exist_ok=True)
+            (forms_dir / "frequency.yaml").write_text(
+                yaml.dump({"name": "frequency"}, default_flow_style=False))
+
+            (concepts_path / "fundamental_frequency.yaml").write_text(
+                yaml.dump({
+                    "id": "concept1",
+                    "canonical_name": "fundamental_frequency",
+                    "status": "accepted",
+                    "definition": "F0",
+                    "domain": "speech",
+                    "form": "frequency",
+                }, default_flow_style=False))
+
+            claims_dir = concepts_path / "claims_rt"
+            claims_dir.mkdir(exist_ok=True)
+            claim_data = {
+                "source": {"paper": "rt_paper"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 200.0,
+                        "unit": "Hz",
+                        "notes": notes_text,
+                        "provenance": {"paper": "rt_paper", "page": 1},
+                    },
+                ],
+            }
+            (claims_dir / "rt_paper.yaml").write_text(
+                yaml.dump(claim_data, default_flow_style=False)
+            )
+
+            claim_files = load_claim_files(claims_dir)
+            concepts = load_concepts(concepts_path)
+            concept_registry = {
+                c.data["id"]: c.data for c in concepts if c.data.get("id")
+            }
+
+            sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
+            build_sidecar(
+                concepts, sidecar_path, force=True,
+                claim_files=claim_files, concept_registry=concept_registry,
+            )
+
+            conn = sqlite3.connect(sidecar_path)
+            try:
+                conn.row_factory = sqlite3.Row
+                row = conn.execute(
+                    "SELECT notes FROM claim WHERE id='claim1'"
+                ).fetchone()
+                assert row is not None, "claim1 not found in sidecar"
+                assert row["notes"] == notes_text, (
+                    f"Notes roundtrip failed: wrote {notes_text!r}, got {row['notes']!r}"
+                )
+            finally:
+                conn.close()
