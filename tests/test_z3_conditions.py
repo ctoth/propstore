@@ -121,12 +121,15 @@ class TestSoundnessBugRegression:
 
 # ── Z3 module tests ──────────────────────────────────────────────────
 
-z3 = pytest.importorskip("z3")
+try:
+    import z3 as _z3  # noqa: F401
+    from compiler.cel_checker import ConceptInfo, KindType
+    from compiler.z3_conditions import Z3ConditionSolver
+    HAS_Z3 = True
+except ImportError:
+    HAS_Z3 = False
 
-from compiler.cel_checker import ConceptInfo, KindType  # noqa: E402
-from compiler.z3_conditions import (  # noqa: E402
-    Z3ConditionSolver,
-)
+z3_only = pytest.mark.skipif(not HAS_Z3, reason="z3-solver not installed")
 
 
 def _make_cel_registry():
@@ -156,6 +159,7 @@ def _make_cel_registry():
     }
 
 
+@z3_only
 class TestZ3Disjointness:
     """Test that Z3 correctly determines disjointness of condition sets."""
 
@@ -222,6 +226,7 @@ class TestZ3Disjointness:
         )
 
 
+@z3_only
 class TestZ3CompoundConditions:
     """Test &&, ||, and combinations."""
 
@@ -262,6 +267,7 @@ class TestZ3CompoundConditions:
         )
 
 
+@z3_only
 class TestZ3InOperator:
     """Test the 'in' operator translation."""
 
@@ -284,6 +290,7 @@ class TestZ3InOperator:
         )
 
 
+@z3_only
 class TestZ3CrossConceptArithmetic:
     """Test arithmetic expressions across concepts (e.g. F0 / Ps > 2.0)."""
 
@@ -306,6 +313,7 @@ class TestZ3CrossConceptArithmetic:
         )
 
 
+@z3_only
 class TestZ3Negation:
     """Test negation (!) translation."""
 
@@ -328,6 +336,7 @@ class TestZ3Negation:
         )
 
 
+@z3_only
 class TestZ3Equivalence:
     """Test equivalence detection (both A∧¬B and B∧¬A are UNSAT)."""
 
@@ -366,6 +375,7 @@ class TestZ3Equivalence:
         )
 
 
+@z3_only
 class TestZ3IntegrationWithConflictDetector:
     """Test that Z3 is wired into _classify_conditions properly."""
 
