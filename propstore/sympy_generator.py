@@ -8,6 +8,7 @@ equation representations for equation claims that only have a human-readable
 from __future__ import annotations
 
 from dataclasses import dataclass
+from tokenize import TokenError
 
 from sympy import SympifyError
 from sympy.parsing.sympy_parser import parse_expr
@@ -46,7 +47,7 @@ def generate_sympy_with_error(expression: str | None) -> SympyGenerationResult:
     try:
         result = parse_expr(text)
         return SympyGenerationResult(str(result), None)
-    except (SympifyError, SyntaxError, TypeError, ValueError) as exc:
+    except Exception as exc:
         return SympyGenerationResult(None, str(exc))
 
 

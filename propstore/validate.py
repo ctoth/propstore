@@ -46,7 +46,7 @@ def load_concepts(concept_dir: Path) -> list[LoadedConcept]:
     concepts = []
     for entry in sorted(concept_dir.iterdir()):
         if entry.is_file() and entry.suffix == ".yaml":
-            with open(entry) as f:
+            with open(entry, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             concepts.append(LoadedConcept(
                 filename=entry.stem,
@@ -103,7 +103,7 @@ def _load_all_claim_ids(claims_dir: Path) -> set[str]:
         return claim_ids
     for entry in sorted(claims_dir.iterdir()):
         if entry.is_file() and entry.suffix == ".yaml":
-            with open(entry) as f:
+            with open(entry, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             if data and isinstance(data.get("claims"), list):
                 for claim in data["claims"]:
