@@ -298,15 +298,36 @@ def _validate_unit_against_form(
     unit: str, form_def: FormDefinition, cid: str, concept: str,
     filename: str, result: ValidationResult,
 ) -> None:
-    """Check a claim unit against the concept's form definition."""
+    """Check a claim unit against the concept's form definition.
+
+    Uses dimensional analysis via physgen's unit table:
+    1. Resolve the unit string to SI dimensions
+    2. Compare against the form's declared dimensions
+    3. Fall back to allowed_units whitelist if dimensional lookup fails
+    """
+    from propstore.unit_dimensions import resolve_unit_dimensions, dimensions_compatible
+
+    form_dims = form_def.dimensions
+
+    # If the form has dimensions declared, use dimensional analysis
+    if form_dims is not None:
+        unit_dims = resolve_unit_dimensions(unit)
+        if unit_dims is not None:
+            if not dimensions_compatible(unit_dims, form_dims):
+                result.errors.append(
+                    f"{filename}: parameter claim '{cid}' unit '{unit}' has dimensions "
+                    f"{unit_dims or 'dimensionless'} but concept '{concept}' expects "
+                    f"{form_dims or 'dimensionless'}")
+            return  # dimensional check passed or errored — done
+        # Unit not in lookup table — fall through to whitelist
+
+    # Fallback: whitelist check (for units not in physgen or forms without dimensions)
     if form_def.allowed_units:
-        # Physical form with declared units
         if unit not in form_def.allowed_units:
             result.errors.append(
                 f"{filename}: parameter claim '{cid}' unit '{unit}' does not match "
                 f"concept '{concept}' allowed units {sorted(form_def.allowed_units)}")
     elif form_def.is_dimensionless:
-        # Dimensionless form — check for level vs general dimensionless
         if form_def.name == "level":
             if unit not in LEVEL_UNITS and unit not in DIMENSIONLESS_UNITS:
                 result.errors.append(
@@ -314,7 +335,6 @@ def _validate_unit_against_form(
                     f"for level form on concept '{concept}' "
                     f"(expected dB variant or dimensionless)")
         else:
-            # General dimensionless (ratio, dimensionless_compound, etc.)
             if unit not in DIMENSIONLESS_UNITS:
                 result.errors.append(
                     f"{filename}: parameter claim '{cid}' unit '{unit}' is not valid "
