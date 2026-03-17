@@ -364,13 +364,14 @@ def world_query(obj: dict, concept_id: str) -> None:
 
 
 @world.command("bind")
-@click.argument("bindings", nargs=-1)
-@click.argument("concept_id", required=False, default=None)
+@click.argument("args", nargs=-1)
 @click.pass_obj
-def world_bind(obj: dict, bindings: tuple[str, ...], concept_id: str | None) -> None:
+def world_bind(obj: dict, args: tuple[str, ...]) -> None:
     """Show active claims under condition bindings.
 
     Usage: pks world bind task=speech [concept_id]
+
+    Arguments with '=' are bindings, the last argument without '=' is a concept filter.
     """
     from compiler.world_model import WorldModel
 
@@ -381,13 +382,10 @@ def world_bind(obj: dict, bindings: tuple[str, ...], concept_id: str | None) -> 
         click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
         sys.exit(1)
 
-    # Parse bindings: "key=value" pairs
-    # Last arg might be a concept_id if it doesn't contain '='
-    binding_args = list(bindings)
-    query_concept = concept_id
-
-    if binding_args and "=" not in binding_args[-1]:
-        query_concept = binding_args.pop()
+    # Parse: args with '=' are bindings, last arg without '=' is concept_id
+    binding_args = [a for a in args if "=" in a]
+    non_binding = [a for a in args if "=" not in a]
+    query_concept = non_binding[-1] if non_binding else None
 
     parsed: dict[str, str] = {}
     for b in binding_args:
