@@ -87,7 +87,6 @@ def validate(obj: dict) -> None:
 def build(obj: dict, output: str | None, force: bool) -> None:
     """Validate everything, build sidecar, run conflict detection."""
     from compiler.build_sidecar import build_sidecar
-    from compiler.conflict_detector import detect_conflicts
     from compiler.validate import load_concepts, validate_concepts
     from compiler.validate_claims import (
         build_concept_registry,
@@ -153,21 +152,29 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         repo=repo,
     )
 
-    # Step 4: Conflict detection summary
-    conflict_count = 0
-    warning_count = len(concept_result.warnings)
-    if claim_files and concept_registry:
-        records = detect_conflicts(claim_files, concept_registry)
-        conflict_count = len(records)
-        for r in records:
-            click.echo(
-                f"  {r.warning_class.value}: {r.concept_id} "
-                f"({r.claim_a_id} vs {r.claim_b_id})", err=True)
+    # Step 4: Summary via WorldModel (proves the roundtrip)
+    from compiler.world_model import WorldModel
 
-    claim_count = 0
-    if claim_files:
-        for cf in claim_files:
-            claim_count += len(cf.data.get("claims", []))
+    warning_count = len(concept_result.warnings)
+    try:
+        wm = WorldModel(repo)
+        s = wm.stats()
+        conflict_count = s["conflicts"]
+        claim_count = s["claims"]
+
+        conflicts = wm.conflicts()
+        for c in conflicts:
+            click.echo(
+                f"  {c['warning_class']}: {c['concept_id']} "
+                f"({c['claim_a_id']} vs {c['claim_b_id']})", err=True)
+        wm.close()
+    except FileNotFoundError:
+        # Sidecar didn't get written (no claims?) — fall back to counting
+        conflict_count = 0
+        claim_count = 0
+        if claim_files:
+            for cf in claim_files:
+                claim_count += len(cf.data.get("claims", []))
 
     status = "rebuilt" if rebuilt else "unchanged"
     click.echo(
@@ -292,3 +299,151 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
             yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
     click.echo(f"Imported {len(imports)} paper claim file(s) into {output_dir}")
+
+
+# ── World command group ──────────────────────────────────────────────
+
+
+@click.group()
+@click.pass_obj
+def world(obj: dict) -> None:
+    """Query the compiled knowledge base."""
+    pass
+
+
+@world.command("status")
+@click.pass_obj
+def world_status(obj: dict) -> None:
+    """Show knowledge base stats (concepts, claims, conflicts)."""
+    from compiler.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    s = wm.stats()
+    click.echo(f"Concepts: {s['concepts']}")
+    click.echo(f"Claims:   {s['claims']}")
+    click.echo(f"Conflicts: {s['conflicts']}")
+    wm.close()
+
+
+@world.command("query")
+@click.argument("concept_id")
+@click.pass_obj
+def world_query(obj: dict, concept_id: str) -> None:
+    """Show all claims for a concept."""
+    from compiler.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    # Try alias resolution
+    resolved = wm.resolve_alias(concept_id) or concept_id
+    concept = wm.get_concept(resolved)
+    if concept is None:
+        click.echo(f"Unknown concept: {concept_id}", err=True)
+        wm.close()
+        sys.exit(1)
+
+    click.echo(f"{concept['canonical_name']} ({resolved})")
+    claims = wm.claims_for(resolved)
+    if not claims:
+        click.echo("  (no claims)")
+    for c in claims:
+        conds = c.get("conditions_cel") or "[]"
+        click.echo(f"  {c['id']}: {c['type']} value={c.get('value')} conditions={conds}")
+    wm.close()
+
+
+@world.command("bind")
+@click.argument("bindings", nargs=-1)
+@click.argument("concept_id", required=False, default=None)
+@click.pass_obj
+def world_bind(obj: dict, bindings: tuple[str, ...], concept_id: str | None) -> None:
+    """Show active claims under condition bindings.
+
+    Usage: pks world bind task=speech [concept_id]
+    """
+    from compiler.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    # Parse bindings: "key=value" pairs
+    # Last arg might be a concept_id if it doesn't contain '='
+    binding_args = list(bindings)
+    query_concept = concept_id
+
+    if binding_args and "=" not in binding_args[-1]:
+        query_concept = binding_args.pop()
+
+    parsed: dict[str, str] = {}
+    for b in binding_args:
+        if "=" not in b:
+            click.echo(f"Invalid binding: {b} (expected key=value)", err=True)
+            wm.close()
+            sys.exit(1)
+        key, _, value = b.partition("=")
+        parsed[key] = value
+
+    bound = wm.bind(**parsed)
+
+    if query_concept:
+        resolved = wm.resolve_alias(query_concept) or query_concept
+        result = bound.value_of(resolved)
+        click.echo(f"{resolved}: {result.status}")
+        for c in result.claims:
+            click.echo(f"  {c['id']}: value={c.get('value')} source={c.get('source_paper')}")
+    else:
+        active = bound.active_claims()
+        click.echo(f"Active claims: {len(active)}")
+        for c in active:
+            conds = c.get("conditions_cel") or "[]"
+            click.echo(
+                f"  {c['id']}: {c.get('concept_id', '?')} "
+                f"value={c.get('value')} conditions={conds}")
+
+    wm.close()
+
+
+@world.command("explain")
+@click.argument("claim_id")
+@click.pass_obj
+def world_explain(obj: dict, claim_id: str) -> None:
+    """Show the stance chain for a claim."""
+    from compiler.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    claim = wm.get_claim(claim_id)
+    if claim is None:
+        click.echo(f"Unknown claim: {claim_id}", err=True)
+        wm.close()
+        sys.exit(1)
+
+    click.echo(f"{claim_id}: {claim['type']} concept={claim.get('concept_id')} value={claim.get('value')}")
+    chain = wm.explain(claim_id)
+    if not chain:
+        click.echo("  (no stances)")
+    for s in chain:
+        click.echo(
+            f"  {s['stance_type']} -> {s['target_claim_id']}"
+            f" (strength={s.get('strength')}, note={s.get('note')})")
+    wm.close()
