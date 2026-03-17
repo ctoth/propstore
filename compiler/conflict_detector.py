@@ -15,10 +15,12 @@ from __future__ import annotations
 
 import warnings
 from collections import defaultdict
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass, field as dataclass_field
 from enum import Enum
 import functools
 import re
+from typing import Any
 
 from compiler.cel_checker import ConceptInfo, KindType
 from compiler.validate_claims import LoadedClaimFile
@@ -67,21 +69,13 @@ class _NumericConstraint:
     upper: float | None = None
     upper_inclusive: bool = False
     equals: float | None = None
-    excluded: set[float] | None = None
-
-    def __post_init__(self) -> None:
-        if self.excluded is None:
-            self.excluded = set()
+    excluded: set[float] = dataclass_field(default_factory=set)
 
 
 @dataclass
 class _DiscreteConstraint:
     equals: str | bool | None = None
-    excluded: set[str | bool] | None = None
-
-    def __post_init__(self) -> None:
-        if self.excluded is None:
-            self.excluded = set()
+    excluded: set[str | bool] = dataclass_field(default_factory=set)
 
 
 @dataclass
@@ -115,16 +109,14 @@ def _extract_interval(claim: dict) -> tuple[float, float, float] | None:
     lower_bound = claim.get("lower_bound")
     upper_bound = claim.get("upper_bound")
 
-    has_value = value is not None and not isinstance(value, list)
-    has_bounds = lower_bound is not None and upper_bound is not None
+    is_list_value = isinstance(value, list)
 
-    # Named fields path
-    if has_value and has_bounds:
+    if value is not None and not is_list_value and lower_bound is not None and upper_bound is not None:
         return (float(value), float(lower_bound), float(upper_bound))
-    if has_value and not has_bounds:
+    if value is not None and not is_list_value:
         v = float(value)
-        return (v, v, v)  # point
-    if has_bounds and not has_value:
+        return (v, v, v)
+    if lower_bound is not None and upper_bound is not None:
         lo, hi = float(lower_bound), float(upper_bound)
         return ((lo + hi) / 2, lo, hi)
 
@@ -320,7 +312,7 @@ def _classify_conditions(
 
 
 def _collect_measurement_claims(
-    claim_files: list[LoadedClaimFile],
+    claim_files: Sequence[LoadedClaimFile],
 ) -> dict[tuple[str, str], list[dict]]:
     """Group measurement claims by (target_concept, measure) across all claim files."""
     by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
@@ -334,7 +326,7 @@ def _collect_measurement_claims(
     return dict(by_key)
 
 
-def _collect_parameter_claims(claim_files: list[LoadedClaimFile]) -> dict[str, list[dict]]:
+def _collect_parameter_claims(claim_files: Sequence[LoadedClaimFile]) -> dict[str, list[dict]]:
     """Group parameter claims by concept_id across all claim files."""
     by_concept: dict[str, list[dict]] = defaultdict(list)
     for cf in claim_files:
@@ -345,7 +337,7 @@ def _collect_parameter_claims(claim_files: list[LoadedClaimFile]) -> dict[str, l
 
 
 def _collect_equation_claims(
-    claim_files: list[LoadedClaimFile],
+    claim_files: Sequence[LoadedClaimFile],
 ) -> dict[tuple[str, tuple[str, ...]], list[dict]]:
     """Group equation claims by dependent concept and independent concept set."""
     by_signature: dict[tuple[str, tuple[str, ...]], list[dict]] = defaultdict(list)
@@ -439,6 +431,8 @@ def _summarize_conditions(conditions: list[str]) -> _ConditionSummary | None:
                     constraint.upper_inclusive = True
         else:
             constraint = summary.discrete.setdefault(name, _DiscreteConstraint())
+            if not isinstance(value, (str, bool)):
+                return None
             if op == "==":
                 constraint.equals = value
             elif op == "!=":
@@ -551,22 +545,23 @@ def _equation_signature(claim: dict) -> tuple[str, tuple[str, ...]] | None:
     if not isinstance(variables, list):
         return None
 
-    dependent_concepts = [
-        var.get("concept")
-        for var in variables
-        if isinstance(var, dict) and var.get("concept") and var.get("role") == "dependent"
-    ]
+    dependent_concepts: list[str] = []
+    for var in variables:
+        if isinstance(var, dict) and var.get("role") == "dependent":
+            c = var.get("concept")
+            if isinstance(c, str) and c:
+                dependent_concepts.append(c)
     if len(dependent_concepts) != 1:
         return None
 
     dependent_concept = dependent_concepts[0]
-    independents = sorted(
-        var.get("concept")
-        for var in variables
-        if isinstance(var, dict)
-        and var.get("concept")
-        and var.get("concept") != dependent_concept
-    )
+    independent_list: list[str] = []
+    for var in variables:
+        if isinstance(var, dict):
+            c = var.get("concept")
+            if isinstance(c, str) and c and c != dependent_concept:
+                independent_list.append(c)
+    independents = sorted(independent_list)
     return dependent_concept, tuple(independents)
 
 
@@ -600,7 +595,9 @@ def _canonicalize_equation(claim: dict) -> str | None:
         try:
             parsed = parse_expr(text, local_dict=symbol_map)
             if isinstance(parsed, Equality):
-                return str(simplify(parsed.lhs - parsed.rhs))
+                lhs_val: Any = parsed.lhs
+                rhs_val: Any = parsed.rhs
+                return str(simplify(lhs_val - rhs_val))
         except (SympifyError, SyntaxError, TypeError, ValueError):
             pass
 
@@ -614,7 +611,8 @@ def _canonicalize_equation(claim: dict) -> str | None:
         rhs = parse_expr(rhs_text.strip(), local_dict=symbol_map)
     except (SympifyError, SyntaxError, TypeError, ValueError, AttributeError, TokenError):
         return None
-    return str(simplify(lhs - rhs))
+    diff_expr: Any = lhs - rhs
+    return str(simplify(diff_expr))
 
 
 def _value_str(value, claim: dict | None = None) -> str:
@@ -641,7 +639,7 @@ def _value_str(value, claim: dict | None = None) -> str:
 
 
 def detect_conflicts(
-    claim_files: list[LoadedClaimFile],
+    claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict[str, dict],
 ) -> list[ConflictRecord]:
     """Detect conflicts between claims binding to the same concept.
@@ -770,7 +768,7 @@ def _detect_param_conflicts(
     records: list[ConflictRecord],
     by_concept: dict[str, list[dict]],
     concept_registry: dict[str, dict],
-    claim_files: list[LoadedClaimFile],
+    claim_files: Sequence[LoadedClaimFile],
 ) -> None:
     """Detect PARAM_CONFLICT via parameterization relationships.
 
@@ -889,7 +887,7 @@ def _detect_param_conflicts(
 
 
 def detect_transitive_conflicts(
-    claim_files: list[LoadedClaimFile],
+    claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict[str, dict],
 ) -> list[ConflictRecord]:
     """Detect multi-hop transitive conflicts via parameterization chains.

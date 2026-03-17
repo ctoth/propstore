@@ -624,7 +624,8 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
 
     click.echo(f"Target: {resolved}")
     click.echo(f"Result: {result.result.status}")
-    if hasattr(result.result, "value") and result.result.value is not None:
+    from compiler.world_model import DerivedResult
+    if isinstance(result.result, DerivedResult) and result.result.value is not None:
         click.echo(f"  value: {result.result.value}")
     click.echo(f"Steps ({len(result.steps)}):")
     for step in result.steps:

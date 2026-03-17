@@ -49,14 +49,16 @@ def evaluate_parameterization(
             if output_sym is None:
                 output_sym = Symbol(output_concept_id)
 
-            substituted = parsed_expr.subs(effective_inputs)
+            subs_pairs = [(symbols[k], v) for k, v in effective_inputs.items() if k in symbols]
+            substituted = parsed_expr.subs(subs_pairs)
             solutions = solve(substituted, output_sym)
             if solutions:
                 return float(solutions[0])
             return None
         else:
             # Bare expression — direct substitution
-            result = parsed_expr.subs(effective_inputs)
+            subs_pairs = [(symbols[k], v) for k, v in effective_inputs.items() if k in symbols]
+            result = parsed_expr.subs(subs_pairs)
             return float(result)
     except (TypeError, ValueError, ZeroDivisionError, AttributeError):
         return None

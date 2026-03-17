@@ -121,13 +121,19 @@ class TestSoundnessBugRegression:
 
 # ── Z3 module tests ──────────────────────────────────────────────────
 
+from typing import TYPE_CHECKING
+
+from compiler.cel_checker import ConceptInfo, KindType
+
 try:
     import z3 as _z3  # noqa: F401
-    from compiler.cel_checker import ConceptInfo, KindType
-    from compiler.z3_conditions import Z3ConditionSolver
+    from compiler.z3_conditions import Z3ConditionSolver as Z3ConditionSolver
     HAS_Z3 = True
 except ImportError:
     HAS_Z3 = False
+
+if TYPE_CHECKING:
+    from compiler.z3_conditions import Z3ConditionSolver as Z3ConditionSolver
 
 z3_only = pytest.mark.skipif(not HAS_Z3, reason="z3-solver not installed")
 

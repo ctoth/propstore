@@ -186,6 +186,7 @@ def _load_form_schema() -> dict:
     if _form_schema_cache is None:
         with open(_FORM_SCHEMA_PATH) as f:
             _form_schema_cache = json.load(f)
+    assert _form_schema_cache is not None
     return _form_schema_cache
 
 
