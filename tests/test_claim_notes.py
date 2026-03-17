@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from hypothesis import given, settings, HealthCheck
+from hypothesis import given
 from hypothesis import strategies as st
 
 from propstore.build_sidecar import build_sidecar
