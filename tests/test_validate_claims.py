@@ -924,15 +924,20 @@ class TestFormAwareUnitValidation:
         forms_dir.mkdir(parents=True, exist_ok=True)
 
         import yaml as _yaml
-        _yaml.dump({"name": "frequency", "unit_symbol": "Hz"},
+        _yaml.dump({"name": "frequency", "unit_symbol": "Hz",
+                     "dimensions": {"T": -1}},
                     (forms_dir / "frequency.yaml").open("w"))
         _yaml.dump({"name": "pressure", "unit_symbol": "Pa",
+                     "dimensions": {"M": 1, "L": -1, "T": -2},
                      "common_alternatives": [{"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}]},
                     (forms_dir / "pressure.yaml").open("w"))
         _yaml.dump({"name": "duration_ratio", "base": "ratio",
+                     "dimensions": {},
                      "parameters": {"numerator": "duration", "denominator": "duration"}},
                     (forms_dir / "duration_ratio.yaml").open("w"))
-        _yaml.dump({"name": "level", "parameters": {"scale": "dB", "reference": None}},
+        _yaml.dump({"name": "level", "unit_symbol": "dB",
+                     "dimensions": {},
+                     "parameters": {"scale": "dB", "reference": None}},
                     (forms_dir / "level.yaml").open("w"))
         _yaml.dump({"name": "category", "parameters": {"values": [], "extensible": False}},
                     (forms_dir / "category.yaml").open("w"))
