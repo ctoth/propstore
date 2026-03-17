@@ -39,6 +39,8 @@ def generate_description(claim: dict, concept_registry: dict) -> str | None:
     elif ctype == "model":
         name = claim.get("name", "unnamed")
         return f"Model: {name}"
+    elif ctype == "algorithm":
+        return _describe_algorithm(claim)
     else:
         return None
 
@@ -130,6 +132,15 @@ def _describe_measurement(claim: dict, concept_registry: dict) -> str:
             val_str = f"{val_str} ({summary})"
 
     return val_str
+
+
+def _describe_algorithm(claim: dict) -> str:
+    """Generate description for an algorithm claim."""
+    name = claim.get("name", "unnamed")
+    stage = claim.get("stage")
+    if stage:
+        return f"Algorithm: {name} [{stage}]"
+    return f"Algorithm: {name}"
 
 
 # ── Condition summarization ───────────────────────────────────────────

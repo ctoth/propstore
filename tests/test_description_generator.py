@@ -152,6 +152,29 @@ def test_measurement_claim(concept_registry):
     assert result == "jnd_absolute of open_quotient = 0.05 ratio"
 
 
+# ── Test: Algorithm claim with stage ─────────────────────────────────
+
+def test_algorithm_claim_with_stage(concept_registry):
+    claim = {
+        "type": "algorithm",
+        "name": "Viterbi decoding",
+        "stage": "inference",
+    }
+    result = generate_description(claim, concept_registry)
+    assert result == "Algorithm: Viterbi decoding [inference]"
+
+
+# ── Test: Algorithm claim without stage ──────────────────────────────
+
+def test_algorithm_claim_without_stage(concept_registry):
+    claim = {
+        "type": "algorithm",
+        "name": "Viterbi decoding",
+    }
+    result = generate_description(claim, concept_registry)
+    assert result == "Algorithm: Viterbi decoding"
+
+
 # ── Test: Unknown type returns None ───────────────────────────────────
 
 def test_unknown_type_returns_none(concept_registry):
