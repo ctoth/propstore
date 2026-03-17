@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from compiler.cel_checker import (
+from propstore.cel_checker import (
     ASTNode,
     BinaryOpNode,
     ConceptInfo,

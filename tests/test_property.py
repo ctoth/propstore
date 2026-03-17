@@ -8,17 +8,17 @@ from __future__ import annotations
 from hypothesis import given, assume, settings
 from hypothesis import strategies as st
 
-from compiler.cel_checker import (
+from propstore.cel_checker import (
     ConceptInfo,
     KindType,
     check_cel_expression,
     tokenize,
 )
-from compiler.conflict_detector import (
+from propstore.conflict_detector import (
     ConflictClass,
     detect_conflicts,
 )
-from compiler.validate_claims import LoadedClaimFile
+from propstore.validate_claims import LoadedClaimFile
 from pathlib import Path
 
 

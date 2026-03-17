@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-from compiler.propagation import _parse_cached
+from propstore.propagation import _parse_cached
 
 
 @dataclass

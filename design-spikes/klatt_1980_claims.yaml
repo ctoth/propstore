@@ -1,0 +1,332 @@
+source:
+  paper: Klatt_1980_CascadeParallelFormantSynthesizer
+  extraction_model: hand-written-design-spike
+  extraction_date: "2026-03-17"
+
+claims:
+
+  # --- Variable control parameters (Table I) ---
+
+  - id: claim1
+    type: parameter
+    concept: fundamental_frequency_default
+    value: 0.0
+    lower_bound: 0.0
+    upper_bound: 500.0
+    unit: Hz
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "I"
+      section: "Variable Control Parameters"
+    conditions:
+      - "synthesizer == 'klatt_1980'"
+
+  - id: claim2
+    type: parameter
+    concept: first_formant_frequency_default
+    value: 450.0
+    lower_bound: 150.0
+    upper_bound: 900.0
+    unit: Hz
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "I"
+
+  - id: claim3
+    type: parameter
+    concept: second_formant_frequency_default
+    value: 1450.0
+    lower_bound: 500.0
+    upper_bound: 2500.0
+    unit: Hz
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "I"
+
+  - id: claim4
+    type: parameter
+    concept: third_formant_frequency_default
+    value: 2450.0
+    lower_bound: 1300.0
+    upper_bound: 3500.0
+    unit: Hz
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "I"
+
+  - id: claim5
+    type: parameter
+    concept: first_formant_bandwidth_default
+    value: 50.0
+    lower_bound: 40.0
+    upper_bound: 500.0
+    unit: Hz
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "I"
+
+  - id: claim6
+    type: parameter
+    concept: voicing_amplitude_default
+    value: 0.0
+    lower_bound: 0.0
+    upper_bound: 80.0
+    unit: dB
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "I"
+    # DOESN'T FIT: The schema has no way to express that ~60 dB is "typical for a strong vowel"
+    # without a separate claim or notes field. The default (0) and the typical value (60) are
+    # different concepts but the schema only holds one value+range.
+
+  - id: claim7
+    type: parameter
+    concept: aspiration_amplitude_default
+    value: 0.0
+    lower_bound: 0.0
+    upper_bound: 80.0
+    unit: dB
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "I"
+
+  # --- Constant control parameters (Table I continued) ---
+
+  - id: claim8
+    type: parameter
+    concept: glottal_resonator_frequency
+    value: 0.0
+    lower_bound: 0.0
+    upper_bound: 600.0
+    unit: Hz
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "I"
+      quote_fragment: "0 Hz = low-pass"
+    # DOESN'T FIT: The value 0 has special meaning (low-pass mode). Schema has no way
+    # to annotate that a specific value has sentinel behavior.
+
+  - id: claim9
+    type: parameter
+    concept: sampling_rate
+    value: 10000.0
+    lower_bound: 5000.0
+    upper_bound: 20000.0
+    unit: Hz
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "I"
+
+  - id: claim10
+    type: parameter
+    concept: overall_gain
+    value: 47.0
+    lower_bound: 0.0
+    upper_bound: 80.0
+    unit: dB
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "I"
+
+  # --- Vowel formant parameters (Table II) ---
+
+  - id: claim11
+    type: parameter
+    concept: first_formant_frequency
+    value: 700.0
+    unit: Hz
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "II"
+    conditions:
+      - "vowel == 'a'"
+    # DOESN'T FIT: Diphthongs have onset/offset pairs (e.g. [iY] F1=310/290).
+    # The schema can only represent a single value or a range. A diphthong trajectory
+    # needs two time-indexed values, which doesn't fit value/lower_bound/upper_bound.
+
+  - id: claim12
+    type: parameter
+    concept: second_formant_frequency
+    value: 1220.0
+    unit: Hz
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "II"
+    conditions:
+      - "vowel == 'a'"
+
+  - id: claim13
+    type: parameter
+    concept: first_formant_bandwidth
+    value: 130.0
+    unit: Hz
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      table: "II"
+    conditions:
+      - "vowel == 'a'"
+
+  # --- dB Scale Factors (NDBSCA array) ---
+
+  - id: claim14
+    type: parameter
+    concept: db_scale_factor_A1
+    value: -58.0
+    unit: dB
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      section: "dB Scale Factors"
+    # DOESN'T FIT: These are implementation-internal calibration constants, not
+    # physical parameters. The schema doesn't distinguish between physical measurements
+    # and implementation constants.
+
+  - id: claim15
+    type: parameter
+    concept: db_scale_factor_AV
+    value: -72.0
+    unit: dB
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      section: "dB Scale Factors"
+
+  # --- Proximity Correction Table ---
+  # DOESN'T FIT: This is a lookup table mapping frequency_difference -> dB_correction.
+  # The schema has no way to represent a discrete mapping/table as a single claim.
+  # Each row could be a separate parameter claim with conditions, but that loses the
+  # table structure. Representing as an equation would require fitting a function.
+
+  - id: claim16
+    type: parameter
+    concept: proximity_correction
+    value: 10.0
+    unit: dB
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      section: "Proximity Correction"
+    conditions:
+      - "formant_frequency_difference == 50"
+
+  # --- Key Equations ---
+
+  - id: claim17
+    type: equation
+    expression: "y(nT) = A*x(nT) + B*y(nT-T) + C*y(nT-2T)"
+    sympy: "Eq(y_n, A*x_n + B*y_n1 + C*y_n2)"
+    variables:
+      - symbol: "y_n"
+        concept: resonator_output
+        role: dependent
+      - symbol: "x_n"
+        concept: resonator_input
+        role: independent
+      - symbol: A
+        concept: resonator_coefficient_A
+      - symbol: B
+        concept: resonator_coefficient_B
+      - symbol: C
+        concept: resonator_coefficient_C
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      section: "Key Equations"
+      quote_fragment: "Digital Resonator Difference Equation"
+
+  - id: claim18
+    type: equation
+    expression: "C = -exp(-2*pi*BW*T)"
+    sympy: "Eq(C, -exp(-2*pi*BW*T))"
+    variables:
+      - symbol: C
+        concept: resonator_coefficient_C
+        role: dependent
+      - symbol: BW
+        concept: formant_bandwidth
+        role: independent
+      - symbol: T
+        concept: sampling_period
+        role: independent
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      section: "Resonator Coefficients"
+
+  - id: claim19
+    type: equation
+    expression: "B = 2*exp(-pi*BW*T)*cos(2*pi*F*T)"
+    sympy: "Eq(B, 2*exp(-pi*BW*T)*cos(2*pi*F*T))"
+    variables:
+      - symbol: B
+        concept: resonator_coefficient_B
+        role: dependent
+      - symbol: BW
+        concept: formant_bandwidth
+        role: independent
+      - symbol: F
+        concept: formant_frequency
+        role: independent
+      - symbol: T
+        concept: sampling_period
+        role: independent
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      section: "Resonator Coefficients"
+
+  # --- Observations ---
+
+  - id: claim20
+    type: observation
+    statement: "Synthesized speech achieved 98% vowel identification accuracy when tested on trained phoneticians unfamiliar with synthetic speech."
+    concepts:
+      - vowel_identification_accuracy
+      - formant_synthesis
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      section: "Results Summary"
+    # DOESN'T FIT: This is really a quantitative result (98%) expressed as an observation.
+    # It could be a parameter claim (value: 98, unit: percent) but "vowel identification
+    # accuracy" is a measurement, not a physical parameter. It could be a measurement claim
+    # but there's no clear MeasureType for "identification accuracy".
+
+  - id: claim21
+    type: observation
+    statement: "Synthesized speech achieved 95% consonant identification accuracy on 337 CV syllables."
+    concepts:
+      - consonant_identification_accuracy
+      - formant_synthesis
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      section: "Results Summary"
+    sample_size: 337
+    # DOESN'T FIT: sample_size is on the claim class but it's a parameter field.
+    # Using it on an observation feels wrong but there's no better place for it.
+
+  - id: claim22
+    type: observation
+    statement: "Cascade configuration is preferred for vowels and sonorants because only formant frequencies and bandwidths need to be specified; formant amplitudes are automatically correct."
+    concepts:
+      - cascade_synthesis
+      - formant_frequency
+      - formant_bandwidth
+    provenance:
+      paper: Klatt_1980_CascadeParallelFormantSynthesizer
+      page: 0
+      section: "Cascade vs Parallel"

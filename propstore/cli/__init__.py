@@ -8,12 +8,12 @@ from pathlib import Path
 
 import click
 
-from compiler.cli.concept import concept
-from compiler.cli.claim import claim
-from compiler.cli.compiler_cmds import validate, build, query, export_aliases, import_papers, world
-from compiler.cli.form import form
-from compiler.cli.init import init
-from compiler.cli.repository import Repository, RepositoryNotFound
+from propstore.cli.concept import concept
+from propstore.cli.claim import claim
+from propstore.cli.compiler_cmds import validate, build, query, export_aliases, import_papers, world
+from propstore.cli.form import form
+from propstore.cli.init import init
+from propstore.cli.repository import Repository, RepositoryNotFound
 
 
 @click.group()
