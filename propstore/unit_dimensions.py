@@ -1,18 +1,17 @@
-"""Unit-to-dimensions resolver using physgen's physics.yml as the source of truth.
+"""Unit-to-dimensions resolver.
 
 Resolves unit strings (like "kPa", "cm/s", "Hz") to their SI dimensions
 (like {M: 1, L: -1, T: -2}). Used by claim validation to check that a
 claim's unit is dimensionally compatible with its concept's form.
 
-The lookup table is built from physgen's physics.yml at import time.
-Speech-specific units (dB, semitones) are added as a supplement.
+The base lookup table is shipped as propstore/data/physgen_units.json,
+generated from physgen's ISO 80000 physics.yml. Speech-specific units
+(dB, semitones, etc.) are layered on top.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import Any
-
-import yaml
 
 
 # ── Types ────────────────────────────────────────────────────────────
@@ -22,8 +21,6 @@ Dimensions = dict[str, int]  # e.g. {"M": 1, "L": -1, "T": -2}
 
 # ── Speech-specific units not in physgen ─────────────────────────────
 
-# These are logarithmic or domain-specific scales that don't participate
-# in standard dimensional analysis but need to be recognized.
 _SPEECH_UNITS: dict[str, Dimensions] = {
     # Level / logarithmic (dimensionless)
     "dB": {},
@@ -42,7 +39,7 @@ _SPEECH_UNITS: dict[str, Dimensions] = {
     "fraction": {},
     "dimensionless": {},
     "SD": {},
-    # Rates that physgen might not cover
+    # Rates that physgen doesn't cover
     "cps": {"T": -1},  # cycles per second = Hz
     "syl/s": {"T": -1},
     "ms/syl": {"T": 1},
@@ -55,61 +52,34 @@ _SPEECH_UNITS: dict[str, Dimensions] = {
     "bits": {},
     "count": {},
     "periods": {},
-    "kbps": {},  # kilobits per second (data rate, not physics)
+    "kbps": {},
     "1–9 scale": {},
 }
 
 
-# ── Physgen loader ───────────────────────────────────────────────────
+# ── Load shipped lookup table ────────────────────────────────────────
 
-def _load_physgen_units(physics_yml: Path) -> dict[str, Dimensions]:
-    """Parse physgen physics.yml and build {symbol: dimensions} lookup."""
-    with open(physics_yml, encoding="utf-8") as f:
-        spec = yaml.safe_load(f)
-
-    table: dict[str, Dimensions] = {}
-    for scalar in spec.get("scalars", []):
-        dims = scalar.get("dimensions", {})
-        # Normalize: drop zero-exponent entries
-        dims = {k: v for k, v in dims.items() if v != 0}
-
-        for unit_name, unit_data in scalar.get("units", {}).items():
-            if isinstance(unit_data, dict):
-                symbol = unit_data.get("symbol")
-            else:
-                # Old format: units: {Name: factor}
-                symbol = None
-
-            if symbol and isinstance(symbol, str) and symbol.strip():
-                table[symbol.strip()] = dims
-
-    return table
-
-
-# ── Build the lookup ─────────────────────────────────────────────────
-
-_PHYSGEN_PATH = Path(__file__).resolve().parent.parent.parent / "physgen" / "example" / "physics.yml"
-# Fallback: try sibling directory layout
-_PHYSGEN_ALT = Path("C:/Users/Q/code/physgen/example/physics.yml")
+_DATA_PATH = Path(__file__).resolve().parent / "data" / "physgen_units.json"
 
 _symbol_table: dict[str, Dimensions] | None = None
 
 
 def _get_symbol_table() -> dict[str, Dimensions]:
-    """Lazy-load the symbol→dimensions table."""
+    """Lazy-load the symbol→dimensions table from shipped JSON + speech supplement."""
     global _symbol_table
     if _symbol_table is not None:
         return _symbol_table
 
     table: dict[str, Dimensions] = {}
 
-    # Try to load physgen
-    for path in [_PHYSGEN_PATH, _PHYSGEN_ALT]:
-        if path.exists():
-            table = _load_physgen_units(path)
-            break
+    if _DATA_PATH.exists():
+        with open(_DATA_PATH, encoding="utf-8") as f:
+            raw = json.load(f)
+        # JSON keys are strings, values are {dim: exponent} dicts
+        for symbol, dims in raw.items():
+            table[symbol] = {k: v for k, v in dims.items() if v != 0}
 
-    # Layer speech-specific units on top (override physgen if conflict)
+    # Layer speech-specific units on top
     table.update(_SPEECH_UNITS)
 
     _symbol_table = table
@@ -131,7 +101,6 @@ def resolve_unit_dimensions(unit: str) -> Dimensions | None:
     """
     table = _get_symbol_table()
 
-    # Direct lookup
     if unit in table:
         return table[unit]
 
