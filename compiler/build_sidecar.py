@@ -569,9 +569,11 @@ def _populate_conflicts(
     claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict,
 ):
-    from compiler.conflict_detector import detect_conflicts
+    from compiler.conflict_detector import detect_conflicts, detect_transitive_conflicts
 
     records = detect_conflicts(claim_files, concept_registry)
+    transitive_records = detect_transitive_conflicts(claim_files, concept_registry)
+    records.extend(transitive_records)
     for r in records:
         conn.execute(
             "INSERT INTO conflicts (concept_id, claim_a_id, claim_b_id, "

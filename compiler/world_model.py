@@ -856,6 +856,53 @@ class HypotheticalWorld:
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status == "determined"
 
+    def recompute_conflicts(self) -> list[dict]:
+        """Check for direct value disagreements among active claims.
+
+        Simpler than full detect_conflicts() — just checks pairwise value
+        compatibility among active claims for each concept. Does NOT do
+        transitive/parameterization checking.
+
+        Returns conflict dicts with schema:
+            {"concept_id", "claim_a_id", "claim_b_id", "warning_class",
+             "value_a", "value_b"}
+        """
+        conflicts: list[dict] = []
+        all_active = self.active_claims()  # no concept filter
+
+        # Group by concept_id
+        by_concept: dict[str, list[dict]] = {}
+        for claim in all_active:
+            cid = claim.get("concept_id")
+            if cid is None:
+                continue
+            if cid not in by_concept:
+                by_concept[cid] = []
+            by_concept[cid].append(claim)
+
+        # For each concept with 2+ active claims, check pairwise
+        for cid, claims in by_concept.items():
+            if len(claims) < 2:
+                continue
+            for i in range(len(claims)):
+                for j in range(i + 1, len(claims)):
+                    val_a = claims[i].get("value")
+                    val_b = claims[j].get("value")
+                    # Skip if either has no value
+                    if val_a is None or val_b is None:
+                        continue
+                    # Conflict if values differ
+                    if val_a != val_b:
+                        conflicts.append({
+                            "concept_id": cid,
+                            "claim_a_id": claims[i]["id"],
+                            "claim_b_id": claims[j]["id"],
+                            "warning_class": "CONFLICT",
+                            "value_a": val_a,
+                            "value_b": val_b,
+                        })
+        return conflicts
+
     def diff(self) -> dict[str, tuple[ValueResult, ValueResult]]:
         """Compare base and hypothetical value_of for all affected concepts."""
         # Gather concept_ids that might differ

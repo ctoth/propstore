@@ -737,3 +737,78 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
             click.echo(f"{e.input_concept_id:<25} {pval:>12} {elast:>12}")
 
     wm.close()
+
+
+@world.command("check-consistency")
+@click.argument("args", nargs=-1)
+@click.option("--transitive", is_flag=True, help="Check multi-hop transitive conflicts")
+@click.pass_obj
+def world_check_consistency(obj: dict, args: tuple[str, ...],
+                            transitive: bool) -> None:
+    """Check for conflicts, optionally including transitive (multi-hop) ones.
+
+    Usage: pks world check-consistency task=speech
+           pks world check-consistency --transitive
+    """
+    from compiler.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    bindings, _ = _parse_bindings(args)
+
+    if transitive:
+        from compiler.conflict_detector import detect_transitive_conflicts
+        from compiler.validate_claims import load_claim_files
+
+        claim_files = load_claim_files(repo.claims_dir)
+        # Build concept_registry from sidecar
+        concept_registry: dict[str, dict] = {}
+        rows = wm._conn.execute("SELECT * FROM concept").fetchall()
+        for row in rows:
+            cdata = dict(row)
+            cid = cdata["id"]
+            # Load parameterization_relationships from parameterization table
+            param_rows = wm._conn.execute(
+                "SELECT * FROM parameterization WHERE output_concept_id = ?",
+                (cid,),
+            ).fetchall()
+            if param_rows:
+                cdata["parameterization_relationships"] = []
+                for pr in param_rows:
+                    prd = dict(pr)
+                    cdata["parameterization_relationships"].append({
+                        "inputs": json.loads(prd["concept_ids"]),
+                        "sympy": prd.get("sympy"),
+                        "exactness": prd.get("exactness"),
+                        "conditions": json.loads(prd["conditions_cel"]) if prd.get("conditions_cel") else [],
+                    })
+            concept_registry[cid] = cdata
+
+        records = detect_transitive_conflicts(claim_files, concept_registry)
+        if not records:
+            click.echo("No transitive conflicts found.")
+        else:
+            click.echo(f"Found {len(records)} transitive conflict(s):")
+            for r in records:
+                click.echo(f"  {r.concept_id}: {r.value_a} vs {r.value_b}")
+                if r.derivation_chain:
+                    click.echo(f"    chain: {r.derivation_chain}")
+    else:
+        bound = wm.bind(**bindings)
+        conflicts = bound.conflicts()
+        if not conflicts:
+            click.echo("No conflicts under current bindings.")
+        else:
+            click.echo(f"Found {len(conflicts)} conflict(s):")
+            for c in conflicts:
+                click.echo(
+                    f"  {c['concept_id']}: {c.get('warning_class', '?')} "
+                    f"({c['claim_a_id']} vs {c['claim_b_id']})"
+                )
+
+    wm.close()

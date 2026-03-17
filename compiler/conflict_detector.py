@@ -886,3 +886,211 @@ def _detect_param_conflicts(
                     value_b=str(derived_value),
                     derivation_chain=chain,
                 ))
+
+
+def detect_transitive_conflicts(
+    claim_files: list[LoadedClaimFile],
+    concept_registry: dict[str, dict],
+) -> list[ConflictRecord]:
+    """Detect multi-hop transitive conflicts via parameterization chains.
+
+    Unlike _detect_param_conflicts which checks single-hop (direct inputs → output),
+    this checks chains of 2+ hops (A → B → C) where we have direct claims for
+    both endpoints but the chain shows they are inconsistent.
+
+    Only emits conflicts for concepts reachable via 2+ hops to avoid duplicating
+    the single-hop conflicts already found by _detect_param_conflicts.
+    """
+    from compiler.parameterization_groups import build_groups
+    from compiler.propagation import evaluate_parameterization
+
+    records: list[ConflictRecord] = []
+
+    # Convert concept_registry to list[dict] for build_groups
+    concept_list = []
+    for cid, cdata in concept_registry.items():
+        entry = dict(cdata)
+        if "id" not in entry:
+            entry["id"] = cid
+        concept_list.append(entry)
+
+    groups = build_groups(concept_list)
+    all_param_claims = _collect_parameter_claims(claim_files)
+
+    # Build a directed graph of parameterization edges:
+    # output_concept -> list of (inputs, sympy_expr, conditions, exactness)
+    param_edges: dict[str, list[dict]] = defaultdict(list)
+    # Track which concepts have DIRECT parameterization (single-hop)
+    direct_param_outputs: set[str] = set()
+
+    for cid, cdata in concept_registry.items():
+        for rel in cdata.get("parameterization_relationships", []):
+            if rel.get("exactness") != "exact":
+                continue
+            inputs = rel.get("inputs", [])
+            sympy_expr = rel.get("sympy")
+            if not inputs or not sympy_expr:
+                continue
+            param_edges[cid].append({
+                "inputs": inputs,
+                "sympy": sympy_expr,
+                "conditions": rel.get("conditions", []),
+            })
+            direct_param_outputs.add(cid)
+
+    # For each group with 3+ concepts (multi-hop chain possible)
+    for group in groups:
+        if len(group) < 3:
+            continue
+
+        # Iterative resolution within the group: derive values from claims
+        # Try all combinations of input claims to find transitive conflicts
+        # For each concept in the group, collect scalar claim values
+        concept_claim_values: dict[str, list[tuple[float, str, list[str]]]] = {}
+        for cid in group:
+            claims = all_param_claims.get(cid, [])
+            for claim in claims:
+                interval = _extract_interval(claim)
+                if interval is not None:
+                    center, lo, hi = interval
+                    if abs(hi - lo) < DEFAULT_TOLERANCE:
+                        if cid not in concept_claim_values:
+                            concept_claim_values[cid] = []
+                        concept_claim_values[cid].append(
+                            (center, claim["id"], sorted(claim.get("conditions") or []))
+                        )
+
+        # Iterative forward propagation through the chain
+        # resolved: concept_id -> list of (value, chain_desc, source_claim_ids, conditions)
+        resolved: dict[str, list[tuple[float, str, list[str], list[str]]]] = {}
+
+        # Seed with direct claims
+        for cid in group:
+            if cid in concept_claim_values:
+                for val, claim_id, conds in concept_claim_values[cid]:
+                    if cid not in resolved:
+                        resolved[cid] = []
+                    resolved[cid].append(
+                        (val, f"{cid}={val}(claim:{claim_id})", [claim_id], conds)
+                    )
+
+        # Iterate: try to derive new values
+        changed = True
+        max_iterations = len(group) * 2
+        iteration = 0
+        while changed and iteration < max_iterations:
+            changed = False
+            iteration += 1
+            for cid in group:
+                if cid not in param_edges:
+                    continue
+                for edge in param_edges[cid]:
+                    inputs = edge["inputs"]
+                    sympy_expr = edge["sympy"]
+                    edge_conds = sorted(edge.get("conditions") or [])
+
+                    # Check all inputs are resolved
+                    all_resolved = all(inp in resolved for inp in inputs)
+                    if not all_resolved:
+                        continue
+
+                    # Try all combinations of input values
+                    # (For simplicity, use first available value per input)
+                    input_vals: dict[str, float] = {}
+                    chain_parts: list[str] = []
+                    source_ids: list[str] = []
+                    input_conds: list[list[str]] = []
+
+                    for inp in inputs:
+                        # Use first resolved value for this input
+                        val, desc, src_ids, conds = resolved[inp][0]
+                        input_vals[inp] = val
+                        chain_parts.append(desc)
+                        source_ids.extend(src_ids)
+                        input_conds.append(conds)
+
+                    # Evaluate
+                    derived_val = evaluate_parameterization(
+                        sympy_expr, input_vals, cid
+                    )
+                    if derived_val is None:
+                        continue
+
+                    chain_desc = (
+                        f"{' + '.join(chain_parts)} -> {sympy_expr} -> {cid}={derived_val}"
+                    )
+
+                    # Check if this is a NEW derivation
+                    already_have = False
+                    if cid in resolved:
+                        for existing_val, _, _, _ in resolved[cid]:
+                            if abs(existing_val - derived_val) < DEFAULT_TOLERANCE:
+                                already_have = True
+                                break
+
+                    if not already_have:
+                        if cid not in resolved:
+                            resolved[cid] = []
+                        resolved[cid].append(
+                            (derived_val, chain_desc, source_ids, edge_conds)
+                        )
+                        changed = True
+
+        # Now check for transitive conflicts:
+        # For each concept that has BOTH a direct claim AND a derived value
+        # through a chain of 2+ hops, compare them.
+        for cid in group:
+            if cid not in concept_claim_values:
+                continue
+            if cid not in resolved:
+                continue
+
+            # Find derived values that came through chains (not direct claims)
+            for val, chain_desc, src_ids, derived_conds in resolved[cid]:
+                # Skip if this is just a direct claim (source is a single claim for this concept)
+                if len(src_ids) == 1 and src_ids[0] in {
+                    claim_id for _, claim_id, _ in concept_claim_values[cid]
+                }:
+                    continue
+
+                # Skip single-hop derivations (already handled by _detect_param_conflicts)
+                # A single-hop means the source claims are all direct inputs of this concept
+                is_single_hop = False
+                if cid in param_edges:
+                    for edge in param_edges[cid]:
+                        edge_input_ids = set()
+                        for inp in edge["inputs"]:
+                            if inp in concept_claim_values:
+                                edge_input_ids.update(
+                                    cid2 for _, cid2, _ in concept_claim_values[inp]
+                                )
+                        if set(src_ids) <= edge_input_ids:
+                            is_single_hop = True
+                            break
+                if is_single_hop:
+                    continue
+
+                # Compare derived value against direct claims
+                derived_claim = {"value": val}
+                for direct_val, direct_claim_id, direct_conds in concept_claim_values[cid]:
+                    direct_claim_dict = {"value": direct_val}
+                    if _values_compatible(
+                        direct_val, val,
+                        claim_a=direct_claim_dict,
+                        claim_b=derived_claim,
+                    ):
+                        continue
+
+                    records.append(ConflictRecord(
+                        concept_id=cid,
+                        claim_a_id=direct_claim_id,
+                        claim_b_id="+".join(src_ids),
+                        warning_class=ConflictClass.PARAM_CONFLICT,
+                        conditions_a=direct_conds,
+                        conditions_b=derived_conds,
+                        value_a=str(direct_val),
+                        value_b=str(val),
+                        derivation_chain=chain_desc,
+                    ))
+
+    return records
