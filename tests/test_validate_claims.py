@@ -1125,3 +1125,126 @@ class TestEmptyClaimFiles:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert result.ok, f"Unexpected errors: {result.errors}"
+
+
+# ── Algorithm claim helpers ──────────────────────────────────────────
+
+VALID_ALGORITHM_BODY = """\
+def compute(x, ps):
+    return x * ps
+"""
+
+
+def make_algorithm_claim(id, body, variables, page=1, **kwargs):
+    """Helper: make a minimal valid algorithm claim."""
+    c = {
+        "id": id,
+        "type": "algorithm",
+        "body": body,
+        "variables": variables,
+        "provenance": {"paper": "test_paper", "page": page},
+    }
+    c.update(kwargs)
+    return c
+
+
+# ── Algorithm claim validation ───────────────────────────────────────
+
+
+class TestValidateAlgorithm:
+    def test_valid_algorithm_claim(self, claims_dir):
+        claim = make_algorithm_claim(
+            "claim1",
+            VALID_ALGORITHM_BODY,
+            [
+                {"symbol": "x", "concept": "concept1"},
+                {"symbol": "ps", "concept": "concept2"},
+            ],
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
+    def test_algorithm_missing_body(self, claims_dir):
+        claim = make_algorithm_claim(
+            "claim1",
+            None,
+            [{"symbol": "x", "concept": "concept1"}],
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("missing 'body'" in e for e in result.errors)
+
+    def test_algorithm_invalid_body(self, claims_dir):
+        claim = make_algorithm_claim(
+            "claim1",
+            "def compute(x):\n    return x +",
+            [{"symbol": "x", "concept": "concept1"}],
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("parse error" in e for e in result.errors)
+
+    def test_algorithm_missing_variables(self, claims_dir):
+        claim = make_algorithm_claim(
+            "claim1",
+            VALID_ALGORITHM_BODY,
+            [],
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("missing 'variables'" in e for e in result.errors)
+
+    def test_algorithm_unknown_concept(self, claims_dir):
+        claim = make_algorithm_claim(
+            "claim1",
+            VALID_ALGORITHM_BODY,
+            [
+                {"symbol": "x", "concept": "nonexistent_concept"},
+                {"symbol": "ps", "concept": "concept2"},
+            ],
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("nonexistent concept" in e for e in result.errors)
+
+    def test_algorithm_unbound_name_warns(self, claims_dir):
+        body = """\
+def compute(x, ps, mystery):
+    return x * ps + mystery
+"""
+        claim = make_algorithm_claim(
+            "claim1",
+            body,
+            [
+                {"symbol": "x", "concept": "concept1"},
+                {"symbol": "ps", "concept": "concept2"},
+            ],
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        # Should pass (no errors) but have warnings
+        assert result.ok, f"Unexpected errors: {result.errors}"
+        assert any("mystery" in w and "not declared" in w for w in result.warnings)
