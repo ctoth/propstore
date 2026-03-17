@@ -8,15 +8,20 @@ YAML is the source of truth. A deterministic Python compiler validates, type-che
 
 ```
 concepts/*.yaml          ──┐
-claims/*.yaml              ├──▶  compiler  ──▶  sidecar/propstore.sqlite
+claims/*.yaml              │
+forms/*.yaml               ├──▶  compiler  ──▶  sidecar/propstore.sqlite
 schema/ (LinkML + JSON)  ──┘      (pks)          (FTS5, conflict table, ...)
+                                    │
+                                    └──▶  WorldModel (read-only reasoner)
 ```
 
 - **Concepts** are true-named quantities, categories, booleans, or structural types. Each gets a stable ID (`concept12`), a canonical name, and a kind that determines what operations are legal in CEL condition expressions.
 - **Claims** bind to concept IDs with provenance, values, units, and CEL conditions that scope when the claim holds. Five claim types: **parameter** (numeric value binding), **equation** (math relationship with variable bindings), **observation** (qualitative), **model** (multi-equation framework), and **measurement** (perceptual/behavioral — JND, threshold, rating).
-- **Conflicts** are data, not errors. When two claims for the same concept disagree, the compiler classifies the pair as CONFLICT (same scope), OVERLAP (partial scope overlap), or PHI_NODE (different scope — not actually a conflict).
+- **Forms** define the measurement/representation kind for concepts (e.g. `pressure`, `category`, `boolean`). Each form is a YAML file in `forms/` that specifies kind type, units, and any parameters (category values, extensibility).
+- **Conflicts** are data, not errors. When two claims for the same concept disagree, the compiler classifies the pair as CONFLICT (same scope), OVERLAP (partial scope overlap), or PHI_NODE (different scope — not actually a conflict). Classification uses Z3 satisfiability checking as the primary path, with interval arithmetic as fallback.
 - **Parameterization groups** — connected-component analysis over concepts linked by algebraic/functional relationships. Each group is a "parameter space" of related quantities.
 - **Auto-generation** — the compiler generates SymPy expressions from human-readable equation strings, and produces human-readable descriptions for claims that lack an explicit statement.
+- **WorldModel** — a read-only reasoner over the compiled sidecar. Supports condition-bound views: bind concrete values to condition variables (e.g. `vowel_height="high"`) and query which claims are active, conflicted, or determined under those bindings. Uses Z3 to test whether a claim's conditions are compatible with the bindings.
 
 ## Install
 
@@ -35,7 +40,7 @@ uv run pks --help
 ### Init
 
 ```bash
-pks init                # creates ./knowledge/ with concepts/, claims/, sidecar/
+pks init                # creates ./knowledge/ with concepts/, claims/, forms/, sidecar/
 pks init myproject      # creates ./myproject/ instead
 pks -C /some/path init  # creates /some/path/knowledge/
 ```
@@ -66,6 +71,27 @@ pks concept link concept1 broader concept4 [--source Paper_2020] [--note "..."]
 ```bash
 pks claim validate [--dir claims/]
 pks claim conflicts [--concept concept1] [--class CONFLICT|OVERLAP|PARAM_CONFLICT]
+```
+
+### Forms
+
+```bash
+pks form list
+pks form show pressure
+pks form add --file forms/pressure.yaml
+pks form remove pressure
+pks form validate [pressure]       # validate one or all form definitions
+```
+
+### World
+
+Query the compiled knowledge base through the WorldModel reasoner:
+
+```bash
+pks world status                   # concept/claim/conflict counts
+pks world query concept12          # all claims for a concept
+pks world explain claim_001        # stance chain for a claim
+pks world bind concept12 vowel_height=high  # active claims under bindings
 ```
 
 ### Compiler
@@ -129,41 +155,18 @@ Key invariant: **the compiler never produces output from an invalid state.** If 
 uv run pytest tests/ -v
 ```
 
-The test suite covers the validator, CEL type-checker, conflict detector,
-sidecar builder, CLI, SymPy generator, description generator, and
-parameterization groups.
+The test suite covers the validator, CEL type-checker, Z3 condition solver,
+conflict detector, sidecar builder, WorldModel, CLI, SymPy generator,
+description generator, and parameterization groups.
 
-## File layout
+## Repository layout
+
+`pks init` creates a `knowledge/` directory:
 
 ```
-concepts/
-  .counters/speech.next      # just an integer
-  subglottal_pressure.yaml
-  fundamental_frequency.yaml
-  ...
-claims/
-  paper_alpha.yaml
-  paper_beta.yaml
-compiler/
-  validate.py                # concept validator
-  cel_checker.py             # CEL parser + type checker
-  validate_claims.py         # claim validator
-  conflict_detector.py       # conflict classification
-  build_sidecar.py           # SQLite builder
-  sympy_generator.py         # SymPy expression auto-generation
-  description_generator.py   # human-readable claim descriptions
-  parameterization_groups.py # connected-component group analysis
-  cli/                       # Click CLI
-    __init__.py              # main group
-    concept.py               # concept subcommands
-    claim.py                 # claim subcommands
-    compiler_cmds.py         # validate/build/query/export
-    init.py                  # pks init command
-    helpers.py               # shared utilities
-schema/
-  concept_registry.linkml.yaml
-  claim.linkml.yaml
-  generated/                 # JSON Schema, Python dataclasses
-sidecar/
-  propstore.sqlite           # compiled output (not checked in)
+knowledge/
+  concepts/           # one YAML per concept (hand-editable)
+  claims/             # one YAML per paper/source
+  forms/              # form definitions (kind, units, parameters)
+  sidecar/            # compiled SQLite output (not checked in)
 ```
