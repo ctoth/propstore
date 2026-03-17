@@ -239,14 +239,10 @@ def _classify_conditions(
             return ConflictClass.PHI_NODE
         return ConflictClass.OVERLAP
 
-    set_a = set(normalized_a)
-    set_b = set(normalized_b)
-    intersection = set_a & set_b
-    if not intersection:
-        # Fully disjoint -> PHI_NODE
-        return ConflictClass.PHI_NODE
-
-    # Partial overlap
+    # Fallback: conditions couldn't be parsed into summaries.
+    # String-set disjointness does NOT prove region disjointness —
+    # e.g. "F1/F0 > 3.0" and "F1/F0 > 2.0" are string-disjoint but
+    # their regions overlap.  Conservative: return OVERLAP.
     return ConflictClass.OVERLAP
 
 
