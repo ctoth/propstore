@@ -15,12 +15,12 @@ from pathlib import Path
 
 import yaml
 
-from compiler.cel_checker import (
+from propstore.cel_checker import (
     ConceptInfo,
     KindType,
     check_cel_expression,
 )
-from compiler.form_utils import kind_type_from_form_name, load_form
+from propstore.form_utils import kind_type_from_form_name, load_form
 
 
 @dataclass

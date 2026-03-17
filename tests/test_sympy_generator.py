@@ -6,7 +6,7 @@ and symbol validation against variable bindings.
 
 import pytest
 
-from compiler.sympy_generator import generate_sympy, check_symbols
+from propstore.sympy_generator import generate_sympy, check_symbols
 
 
 class TestGenerateSympy:

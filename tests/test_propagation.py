@@ -1,6 +1,6 @@
 """Tests for the shared SymPy evaluation helper."""
 
-from compiler.propagation import evaluate_parameterization
+from propstore.propagation import evaluate_parameterization
 
 
 class TestEvaluateParameterization:

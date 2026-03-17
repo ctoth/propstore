@@ -6,8 +6,8 @@ from pathlib import Path
 
 import click
 
-from compiler.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
-from compiler.cli.repository import Repository
+from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
+from propstore.cli.repository import Repository
 
 
 @click.group()
@@ -21,7 +21,7 @@ def claim() -> None:
 @click.pass_obj
 def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
-    from compiler.validate_claims import (
+    from propstore.validate_claims import (
         build_concept_registry_from_paths,
         load_claim_files,
         validate_claims,
@@ -70,8 +70,8 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
 @click.pass_obj
 def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None:
     """Detect and report claim conflicts."""
-    from compiler.conflict_detector import ConflictClass, detect_conflicts
-    from compiler.validate_claims import build_concept_registry, load_claim_files
+    from propstore.conflict_detector import ConflictClass, detect_conflicts
+    from propstore.validate_claims import build_concept_registry, load_claim_files
 
     repo: Repository = obj["repo"]
     cd = repo.claims_dir

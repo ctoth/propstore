@@ -18,7 +18,7 @@ import yaml
 from hypothesis import given, assume, settings, HealthCheck
 from hypothesis import strategies as st
 
-from compiler.form_utils import (
+from propstore.form_utils import (
     FormDefinition,
     load_form,
     validate_form_files,
@@ -235,7 +235,7 @@ class TestFormAddCLIDimensions:
     def test_form_add_with_dimensions_creates_yaml(self, tmp_path: Path) -> None:
         """form add --dimensions '{"T": -1}' writes dimensions to YAML."""
         from click.testing import CliRunner
-        from compiler.cli.form import add
+        from propstore.cli.form import add
 
         runner = CliRunner()
         result = runner.invoke(
@@ -264,7 +264,7 @@ class TestFormAddCLIDimensions:
     ) -> None:
         """form add for dimensionless form creates dimensions: {}."""
         from click.testing import CliRunner
-        from compiler.cli.form import add
+        from propstore.cli.form import add
 
         runner = CliRunner()
         result = runner.invoke(

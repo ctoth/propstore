@@ -9,7 +9,7 @@ import pytest
 from hypothesis import given, assume, settings
 from hypothesis import strategies as st
 
-from compiler.cel_checker import (
+from propstore.cel_checker import (
     BinaryOpNode,
     CelError,
     ConceptInfo,

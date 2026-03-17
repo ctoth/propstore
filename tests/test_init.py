@@ -7,7 +7,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from compiler.cli import cli
+from propstore.cli import cli
 
 
 @pytest.fixture()

@@ -7,8 +7,8 @@ import sys
 import click
 import yaml
 
-from compiler.cli.helpers import EXIT_ERROR
-from compiler.cli.repository import Repository
+from propstore.cli.helpers import EXIT_ERROR
+from propstore.cli.repository import Repository
 
 
 @click.group()

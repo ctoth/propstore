@@ -6,7 +6,7 @@ are grouped into the correct connected components.
 
 import pytest
 
-from compiler.parameterization_groups import build_groups
+from propstore.parameterization_groups import build_groups
 
 
 def _concept(cid, param_inputs=None):

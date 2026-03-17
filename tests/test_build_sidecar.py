@@ -9,8 +9,8 @@ import sqlite3
 import pytest
 import yaml
 
-from compiler.build_sidecar import build_sidecar
-from compiler.validate import load_concepts
+from propstore.build_sidecar import build_sidecar
+from propstore.validate import load_concepts
 
 
 @pytest.fixture
@@ -115,7 +115,7 @@ def concept_dir(tmp_path):
 @pytest.fixture
 def repo(concept_dir):
     """Create a Repository pointing at the knowledge/ directory."""
-    from compiler.cli.repository import Repository
+    from propstore.cli.repository import Repository
     return Repository(concept_dir.parent)
 
 
@@ -521,7 +521,7 @@ def claim_files(concept_dir):
     (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
 
-    from compiler.validate_claims import load_claim_files
+    from propstore.validate_claims import load_claim_files
     return load_claim_files(claims_dir)
 
 
@@ -648,7 +648,7 @@ class TestClaimTable:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        from compiler.validate_claims import build_concept_registry, load_claim_files
+        from propstore.validate_claims import build_concept_registry, load_claim_files
 
         claim_files = load_claim_files(claims_dir)
         concepts = load_concepts(concept_dir)
@@ -689,7 +689,7 @@ class TestClaimTable:
         }
         (claims_dir / "range_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
 
-        from compiler.validate_claims import load_claim_files, build_concept_registry
+        from propstore.validate_claims import load_claim_files, build_concept_registry
 
         claim_files = load_claim_files(claims_dir)
         concepts = load_concepts(concept_dir)
@@ -718,7 +718,7 @@ class TestClaimTable:
         }
         (claims_dir / "bounds_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
 
-        from compiler.validate_claims import load_claim_files, build_concept_registry
+        from propstore.validate_claims import load_claim_files, build_concept_registry
 
         claim_files = load_claim_files(claims_dir)
         concepts = load_concepts(concept_dir)

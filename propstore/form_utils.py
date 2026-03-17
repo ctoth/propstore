@@ -10,7 +10,7 @@ from typing import Any
 import jsonschema
 import yaml
 
-from compiler.cel_checker import KindType
+from propstore.cel_checker import KindType
 
 
 # ── Dimensionless unit markers ────────────────────────────────────────

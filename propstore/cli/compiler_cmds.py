@@ -9,16 +9,16 @@ from pathlib import Path
 import click
 import yaml
 
-from compiler.cli.helpers import EXIT_VALIDATION
-from compiler.cli.repository import Repository
+from propstore.cli.helpers import EXIT_VALIDATION
+from propstore.cli.repository import Repository
 
 
 @click.command()
 @click.pass_obj
 def validate(obj: dict) -> None:
     """Validate all concepts and claims. Runs CEL type-checking."""
-    from compiler.validate import load_concepts, validate_concepts
-    from compiler.validate_claims import (
+    from propstore.validate import load_concepts, validate_concepts
+    from propstore.validate_claims import (
         build_concept_registry,
         load_claim_files,
         validate_claims,
@@ -36,7 +36,7 @@ def validate(obj: dict) -> None:
         return
 
     # Validate form schema files
-    from compiler.form_utils import validate_form_files
+    from propstore.form_utils import validate_form_files
 
     form_errors = validate_form_files(repo.forms_dir)
     for e in form_errors:
@@ -86,9 +86,9 @@ def validate(obj: dict) -> None:
 @click.pass_obj
 def build(obj: dict, output: str | None, force: bool) -> None:
     """Validate everything, build sidecar, run conflict detection."""
-    from compiler.build_sidecar import build_sidecar
-    from compiler.validate import load_concepts, validate_concepts
-    from compiler.validate_claims import (
+    from propstore.build_sidecar import build_sidecar
+    from propstore.validate import load_concepts, validate_concepts
+    from propstore.validate_claims import (
         build_concept_registry,
         load_claim_files,
         validate_claims,
@@ -106,7 +106,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         return
 
     # Step 0: Validate form schema files
-    from compiler.form_utils import validate_form_files
+    from propstore.form_utils import validate_form_files
 
     form_errors = validate_form_files(repo.forms_dir)
     if form_errors:
@@ -153,7 +153,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     )
 
     # Step 4: Summary via WorldModel (proves the roundtrip)
-    from compiler.world_model import WorldModel
+    from propstore.world_model import WorldModel
 
     warning_count = len(concept_result.warnings)
     try:
@@ -225,7 +225,7 @@ def export_aliases(obj: dict, fmt: str) -> None:
         click.echo("ERROR: No concepts directory.", err=True)
         sys.exit(1)
 
-    from compiler.validate import load_concepts
+    from propstore.validate import load_concepts
 
     concepts = load_concepts(all_concepts)
     aliases: dict[str, dict[str, str]] = {}
@@ -315,7 +315,7 @@ def world(obj: dict) -> None:
 @click.pass_obj
 def world_status(obj: dict) -> None:
     """Show knowledge base stats (concepts, claims, conflicts)."""
-    from compiler.world_model import WorldModel
+    from propstore.world_model import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -336,7 +336,7 @@ def world_status(obj: dict) -> None:
 @click.pass_obj
 def world_query(obj: dict, concept_id: str) -> None:
     """Show all claims for a concept."""
-    from compiler.world_model import WorldModel
+    from propstore.world_model import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -373,7 +373,7 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
 
     Arguments with '=' are bindings, the last argument without '=' is a concept filter.
     """
-    from compiler.world_model import WorldModel
+    from propstore.world_model import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -421,7 +421,7 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
 @click.pass_obj
 def world_explain(obj: dict, claim_id: str) -> None:
     """Show the stance chain for a claim."""
-    from compiler.world_model import WorldModel
+    from propstore.world_model import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -473,7 +473,7 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
 
     Usage: pks world derive concept5 task=speech
     """
-    from compiler.world_model import WorldModel
+    from propstore.world_model import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -512,7 +512,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 
     Usage: pks world resolve concept1 task=speech --strategy sample_size
     """
-    from compiler.world_model import ResolutionStrategy, WorldModel, resolve
+    from propstore.world_model import ResolutionStrategy, WorldModel, resolve
 
     repo: Repository = obj["repo"]
     try:
@@ -558,7 +558,7 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
 
     Usage: pks world hypothetical task=speech --remove claim2
     """
-    from compiler.world_model import HypotheticalWorld, SyntheticClaim, WorldModel
+    from propstore.world_model import HypotheticalWorld, SyntheticClaim, WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -607,7 +607,7 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
 
     Usage: pks world chain concept5 task=speech --strategy sample_size
     """
-    from compiler.world_model import ResolutionStrategy, WorldModel
+    from propstore.world_model import ResolutionStrategy, WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -624,7 +624,7 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
 
     click.echo(f"Target: {resolved}")
     click.echo(f"Result: {result.result.status}")
-    from compiler.world_model import DerivedResult
+    from propstore.world_model import DerivedResult
     if isinstance(result.result, DerivedResult) and result.result.value is not None:
         click.echo(f"  value: {result.result.value}")
     click.echo(f"Steps ({len(result.steps)}):")
@@ -646,8 +646,8 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
 
     Usage: pks world export-graph task=speech --format dot --output graph.dot
     """
-    from compiler.graph_export import build_knowledge_graph
-    from compiler.world_model import WorldModel
+    from propstore.graph_export import build_knowledge_graph
+    from propstore.world_model import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -686,8 +686,8 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
 
     Usage: pks world sensitivity concept5 task=speech
     """
-    from compiler.sensitivity import analyze_sensitivity
-    from compiler.world_model import WorldModel
+    from propstore.sensitivity import analyze_sensitivity
+    from propstore.world_model import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -751,7 +751,7 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
     Usage: pks world check-consistency task=speech
            pks world check-consistency --transitive
     """
-    from compiler.world_model import WorldModel
+    from propstore.world_model import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -763,8 +763,8 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
     bindings, _ = _parse_bindings(args)
 
     if transitive:
-        from compiler.conflict_detector import detect_transitive_conflicts
-        from compiler.validate_claims import load_claim_files
+        from propstore.conflict_detector import detect_transitive_conflicts
+        from propstore.validate_claims import load_claim_files
 
         claim_files = load_claim_files(repo.claims_dir)
         # Build concept_registry from sidecar

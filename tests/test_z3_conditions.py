@@ -10,12 +10,12 @@ from __future__ import annotations
 
 import pytest
 
-from compiler.conflict_detector import (
+from propstore.conflict_detector import (
     ConflictClass,
     _classify_conditions,
     detect_conflicts,
 )
-from compiler.validate_claims import LoadedClaimFile
+from propstore.validate_claims import LoadedClaimFile
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -123,17 +123,17 @@ class TestSoundnessBugRegression:
 
 from typing import TYPE_CHECKING
 
-from compiler.cel_checker import ConceptInfo, KindType
+from propstore.cel_checker import ConceptInfo, KindType
 
 try:
     import z3 as _z3  # noqa: F401
-    from compiler.z3_conditions import Z3ConditionSolver as Z3ConditionSolver
+    from propstore.z3_conditions import Z3ConditionSolver as Z3ConditionSolver
     HAS_Z3 = True
 except ImportError:
     HAS_Z3 = False
 
 if TYPE_CHECKING:
-    from compiler.z3_conditions import Z3ConditionSolver as Z3ConditionSolver
+    from propstore.z3_conditions import Z3ConditionSolver as Z3ConditionSolver
 
 z3_only = pytest.mark.skipif(not HAS_Z3, reason="z3-solver not installed")
 

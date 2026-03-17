@@ -3,10 +3,10 @@
 import pytest
 import yaml
 
-from compiler.build_sidecar import build_sidecar
-from compiler.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
-from compiler.validate import load_concepts
-from compiler.world_model import WorldModel
+from propstore.build_sidecar import build_sidecar
+from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
+from propstore.validate import load_concepts
+from propstore.world_model import WorldModel
 
 
 # ── Fixtures (duplicated from test_world_model.py) ────────────────────
@@ -141,7 +141,7 @@ def concept_dir(tmp_path):
 
 @pytest.fixture
 def repo(concept_dir):
-    from compiler.cli.repository import Repository
+    from propstore.cli.repository import Repository
     return Repository(concept_dir.parent)
 
 
@@ -279,7 +279,7 @@ def claim_files(concept_dir):
     (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
 
-    from compiler.validate_claims import load_claim_files
+    from propstore.validate_claims import load_claim_files
     return load_claim_files(claims_dir)
 
 

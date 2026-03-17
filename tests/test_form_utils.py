@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from compiler.form_utils import FormDefinition, load_form, load_all_forms
+from propstore.form_utils import FormDefinition, load_form, load_all_forms
 
 
 @pytest.fixture
@@ -52,13 +52,13 @@ class TestFormDefinitionLoading:
     def test_load_category_form(self, forms_dir):
         fd = load_form(forms_dir, "category")
         assert fd is not None
-        from compiler.cel_checker import KindType
+        from propstore.cel_checker import KindType
         assert fd.kind == KindType.CATEGORY
 
     def test_load_structural_form(self, forms_dir):
         fd = load_form(forms_dir, "structural")
         assert fd is not None
-        from compiler.cel_checker import KindType
+        from propstore.cel_checker import KindType
         assert fd.kind == KindType.STRUCTURAL
 
     def test_load_all_forms_returns_complete_registry(self, forms_dir):
