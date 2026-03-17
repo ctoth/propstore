@@ -18,6 +18,8 @@ from typing import Any
 import jsonschema
 import yaml
 
+from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
+
 from propstore.cel_checker import (
     ConceptInfo,
     KindType,
@@ -201,6 +203,8 @@ def validate_claims(
                 _validate_model(claim, cid, cf.filename, concept_registry, result)
             elif ctype == "measurement":
                 _validate_measurement(claim, cid, cf.filename, concept_registry, result)
+            elif ctype == "algorithm":
+                _validate_algorithm(claim, cid, cf.filename, concept_registry, result)
             else:
                 result.errors.append(
                     f"{cf.filename}: claim '{cid}' has unrecognized type '{ctype}'")
@@ -455,6 +459,48 @@ def _validate_measurement(
     unit = claim.get("unit")
     if not unit:
         result.errors.append(f"{filename}: measurement claim '{cid}' missing 'unit'")
+
+
+def _validate_algorithm(
+    claim: dict, cid: str, filename: str,
+    concept_registry: dict[str, dict], result: ValidationResult,
+) -> None:
+    body = claim.get("body")
+    tree = None
+    if not body:
+        result.errors.append(f"{filename}: algorithm claim '{cid}' missing 'body'")
+    else:
+        try:
+            tree = parse_algorithm(body)
+        except AlgorithmParseError as e:
+            result.errors.append(
+                f"{filename}: algorithm claim '{cid}' body parse error: {e}")
+            tree = None
+
+    variables = claim.get("variables")
+    if not variables or not isinstance(variables, list) or len(variables) == 0:
+        result.errors.append(f"{filename}: algorithm claim '{cid}' missing 'variables' (at least one required)")
+    elif isinstance(variables, list):
+        declared_names: set[str] = set()
+        for var in variables:
+            if isinstance(var, dict):
+                var_concept = var.get("concept")
+                if var_concept and var_concept not in concept_registry:
+                    result.errors.append(
+                        f"{filename}: algorithm claim '{cid}' variable references "
+                        f"nonexistent concept '{var_concept}'")
+                var_name = var.get("name") or var.get("symbol")
+                if var_name:
+                    declared_names.add(var_name)
+
+        # Cross-check: warn about unbound names in body AST
+        if body and tree is not None:
+            ast_names = extract_names(tree)
+            unbound = ast_names - KNOWN_BUILTINS - declared_names
+            for name in sorted(unbound):
+                result.warnings.append(
+                    f"{filename}: algorithm claim '{cid}' body references "
+                    f"name '{name}' not declared in variables")
 
 
 def build_concept_registry_from_paths(
