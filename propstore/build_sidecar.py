@@ -23,6 +23,7 @@ from propstore.parameterization_groups import build_groups
 from propstore.form_utils import kind_value_from_form_name, load_form
 from propstore.validate import LoadedConcept
 from propstore.validate_claims import LoadedClaimFile
+from ast_equiv import canonical_dump
 
 
 def _content_hash(
@@ -386,6 +387,9 @@ def _create_claim_tables(conn: sqlite3.Connection):
             notes TEXT,
             description TEXT,
             auto_summary TEXT,
+            body TEXT,
+            canonical_ast TEXT,
+            stage TEXT,
             source_paper TEXT NOT NULL,
             provenance_page INTEGER NOT NULL,
             provenance_json TEXT
@@ -429,6 +433,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
         CREATE INDEX idx_claim_stance_target ON claim_stance(target_claim_id);
         CREATE INDEX idx_conflicts_concept ON conflicts(concept_id);
         CREATE INDEX idx_conflicts_class ON conflicts(warning_class);
+        CREATE INDEX idx_claim_stage ON claim(stage);
     """)
 
 
@@ -499,6 +504,8 @@ def _populate_claims(
                 expression = claim.get("expression")
             elif ctype == "model":
                 name = claim.get("name")
+            elif ctype == "algorithm":
+                pass  # body, canonical_ast, stage handled below
 
             # For equation claims, resolve sympy: explicit > auto-generated
             sympy_generated = None
@@ -512,6 +519,19 @@ def _populate_claims(
                     sympy_result = generate_sympy_with_error(expression)
                     sympy_generated = sympy_result.expression
                     sympy_error = sympy_result.error
+
+            # For algorithm claims, compute body and canonical_ast
+            body = None
+            canonical_ast = None
+            stage = None
+            if ctype == "algorithm":
+                body = claim.get("body")
+                stage = claim.get("stage")
+                if body:
+                    variables = claim.get("variables", {}) or {}
+                    # variables maps variable names to concept names — this IS the bindings dict
+                    bindings = variables if isinstance(variables, dict) else {}
+                    canonical_ast = canonical_dump(body, bindings)
 
             # Auto-generate summary label from structured fields
             auto_summary = generate_description(claim, concept_registry or {})
@@ -532,14 +552,17 @@ def _populate_claims(
                 "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
                 "conditions_cel, statement, expression, sympy_generated, sympy_error, name, "
                 "target_concept, measure, listener_population, methodology, "
-                "notes, description, auto_summary, source_paper, provenance_page, provenance_json) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "notes, description, auto_summary, "
+                "body, canonical_ast, stage, "
+                "source_paper, provenance_page, provenance_json) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (cid, content_hash, claim_seq, ctype, concept_id, value, lower_bound,
                  upper_bound, uncertainty, uncertainty_type, sample_size, unit,
                  json.dumps(conditions) if conditions else None,
                  statement, expression, sympy_generated, sympy_error, name,
                  target_concept, measure, listener_population, methodology,
                  notes, description, auto_summary,
+                 body, canonical_ast, stage,
                  prov.get("paper", source_paper),
                  prov.get("page", 0),
                  json.dumps(prov)),
