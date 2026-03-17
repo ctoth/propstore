@@ -42,7 +42,11 @@ def validate(obj: dict) -> None:
     for e in form_errors:
         click.echo(f"ERROR (form): {e}", err=True)
 
-    concept_result = validate_concepts(concepts, repo=repo)
+    concept_result = validate_concepts(
+        concepts,
+        claims_dir=repo.claims_dir if repo.claims_dir.exists() else None,
+        repo=repo,
+    )
 
     for w in concept_result.warnings:
         click.echo(f"WARNING: {w}", err=True)
@@ -113,7 +117,11 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         sys.exit(EXIT_VALIDATION)
 
     # Step 1: Validate concepts
-    concept_result = validate_concepts(concepts, repo=repo)
+    concept_result = validate_concepts(
+        concepts,
+        claims_dir=repo.claims_dir if repo.claims_dir.exists() else None,
+        repo=repo,
+    )
     if not concept_result.ok:
         for e in concept_result.errors:
             click.echo(f"ERROR: {e}", err=True)

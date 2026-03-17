@@ -441,6 +441,31 @@ def link(
     rels.append(rel)
     data["relationships"] = rels
     data["last_modified"] = str(date.today())
+
+    concepts = load_concepts(repo.concepts_dir)
+    updated_concepts = []
+    for concept_record in concepts:
+        updated_concepts.append(
+            LoadedConcept(
+                filename=concept_record.filename,
+                filepath=concept_record.filepath,
+                data=data if concept_record.filepath == filepath else concept_record.data,
+            )
+        )
+    validation = validate_concepts(
+        updated_concepts,
+        claims_dir=repo.claims_dir if repo.claims_dir.exists() else None,
+        repo=repo,
+    )
+    if not validation.ok:
+        for e in validation.errors:
+            click.echo(f"ERROR: {e}", err=True)
+        click.echo("Validation failed. No changes written.", err=True)
+        sys.exit(EXIT_VALIDATION)
+
+    for w in validation.warnings:
+        click.echo(f"WARNING: {w}", err=True)
+
     write_concept_file(filepath, data)
 
     click.echo(f"Added {rel_type} -> {target_id} on {data.get('id')} ({filepath.stem})")

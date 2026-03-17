@@ -368,6 +368,18 @@ class TestConceptLink:
         rels = data.get("relationships", [])
         assert any(r["type"] == "broader" and r["target"] == "concept2" for r in rels)
 
+    def test_rejects_invalid_relationship_without_writing(self, workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "link", "concept1", "contested_definition", "concept2",
+        ])
+        assert result.exit_code != 0
+        assert "Validation failed" in result.output
+
+        data = yaml.safe_load(
+            (workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text())
+        assert not data.get("relationships")
+
 
 # ── validate ─────────────────────────────────────────────────────────
 
@@ -377,6 +389,46 @@ class TestValidate:
         result = runner.invoke(cli, ["validate"])
         assert result.exit_code == 0
         assert "passed" in result.output
+
+    def test_accepts_valid_canonical_claim_reference(self, workspace: Path) -> None:
+        concepts_dir = workspace / "knowledge" / "concepts"
+        claims_dir = workspace / "knowledge" / "claims"
+
+        _write_concept(concepts_dir, "subglottal_pressure", _make_concept(
+            "subglottal_pressure", "concept3", "speech", form="pressure",
+        ))
+        concept_path = concepts_dir / "fundamental_frequency.yaml"
+        concept_data = yaml.safe_load(concept_path.read_text())
+        concept_data["parameterization_relationships"] = [{
+            "formula": "fundamental_frequency = subglottal_pressure",
+            "inputs": ["concept3"],
+            "exactness": "approximate",
+            "canonical_claim": "claim1",
+            "sympy": "concept3",
+        }]
+        concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
+        _write_claim_file(
+            claims_dir,
+            "paper.yaml",
+            {
+                "source": {"paper": "paper"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "concept3",
+                        "value": 800.0,
+                        "unit": "Pa",
+                        "provenance": {"paper": "paper", "page": 1},
+                    }
+                ],
+            },
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["validate"])
+        assert result.exit_code == 0, result.output
+        assert "Validation passed" in result.output
 
     def test_fails_on_invalid(self, workspace: Path) -> None:
         # Write a broken concept
@@ -410,6 +462,47 @@ class TestBuild:
         conn.close()
         assert count == 2
 
+    def test_accepts_valid_canonical_claim_reference(self, workspace: Path) -> None:
+        concepts_dir = workspace / "knowledge" / "concepts"
+        claims_dir = workspace / "knowledge" / "claims"
+        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
+
+        _write_concept(concepts_dir, "subglottal_pressure", _make_concept(
+            "subglottal_pressure", "concept3", "speech", form="pressure",
+        ))
+        concept_path = concepts_dir / "fundamental_frequency.yaml"
+        concept_data = yaml.safe_load(concept_path.read_text())
+        concept_data["parameterization_relationships"] = [{
+            "formula": "fundamental_frequency = subglottal_pressure",
+            "inputs": ["concept3"],
+            "exactness": "approximate",
+            "canonical_claim": "claim1",
+            "sympy": "concept3",
+        }]
+        concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
+        _write_claim_file(
+            claims_dir,
+            "paper.yaml",
+            {
+                "source": {"paper": "paper"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "concept3",
+                        "value": 800.0,
+                        "unit": "Pa",
+                        "provenance": {"paper": "paper", "page": 1},
+                    }
+                ],
+            },
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        assert result.exit_code == 0, result.output
+        assert sidecar.exists()
+
     def test_refuses_on_validation_failure(self, workspace: Path) -> None:
         bad = workspace / "knowledge" / "concepts" / "broken.yaml"
         bad.write_text(yaml.dump({
@@ -424,6 +517,56 @@ class TestBuild:
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
         assert result.exit_code != 0
         assert not sidecar.exists()
+
+
+class TestClaimValidate:
+    def test_uses_concepts_dir_override(self, workspace: Path) -> None:
+        alt_root = workspace / "alt_knowledge"
+        alt_concepts = alt_root / "concepts"
+        alt_forms = alt_root / "forms"
+        alt_concepts.mkdir(parents=True)
+        alt_forms.mkdir()
+
+        _write_concept(alt_concepts, "fundamental_frequency", _make_concept(
+            "fundamental_frequency", "concept1", "speech", form="frequency",
+        ))
+        _write_concept(alt_concepts, "other_task", _make_concept(
+            "other_task", "concept9", "speech", form="category",
+            form_parameters={"values": ["speech"], "extensible": True},
+        ))
+        (alt_forms / "frequency.yaml").write_text(
+            yaml.dump({"name": "frequency", "dimensionless": False}, default_flow_style=False)
+        )
+        (alt_forms / "category.yaml").write_text(
+            yaml.dump({"name": "category", "dimensionless": True}, default_flow_style=False)
+        )
+
+        _write_claim_file(
+            workspace / "knowledge" / "claims",
+            "paper.yaml",
+            {
+                "source": {"paper": "paper"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 200.0,
+                        "unit": "Hz",
+                        "conditions": ["other_task == 'speech'"],
+                        "provenance": {"paper": "paper", "page": 1},
+                    }
+                ],
+            },
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "claim", "validate",
+            "--concepts-dir", str(alt_concepts),
+        ])
+        assert result.exit_code == 0, result.output
+        assert "Validation passed" in result.output
 
 
 class TestQuery:
