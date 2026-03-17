@@ -58,7 +58,7 @@ def load_claim_files(claims_dir: Path) -> list[LoadedClaimFile]:
     files = []
     for entry in sorted(claims_dir.iterdir()):
         if entry.is_file() and entry.suffix == ".yaml":
-            with open(entry) as f:
+            with open(entry, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             files.append(LoadedClaimFile(
                 filename=entry.stem,
@@ -441,7 +441,11 @@ def build_concept_registry_from_paths(
     concepts_dir: Path,
     forms_dir: Path,
 ) -> dict[str, dict]:
-    """Load concepts and build {concept_id: concept_data} mapping."""
+    """Load concepts and build a registry keyed by ID, canonical_name, and aliases.
+
+    Claims can reference concepts by any of these keys.
+    All keys point to the same enriched concept data dict.
+    """
     from propstore.validate import load_concepts
     concepts = load_concepts(concepts_dir)
     registry: dict[str, dict] = {}
@@ -462,7 +466,17 @@ def build_concept_registry_from_paths(
             allowed_units = sorted(allowed_units_from_form_definition(form_definition))
             if allowed_units:
                 enriched["_allowed_units"] = allowed_units
+        # Index by concept ID
         registry[cid] = enriched
+        # Index by canonical_name (claims can reference concepts by name)
+        canonical = enriched.get("canonical_name")
+        if canonical and canonical not in registry:
+            registry[canonical] = enriched
+        # Index by aliases
+        for alias in enriched.get("aliases", []) or []:
+            alias_name = alias.get("name") if isinstance(alias, dict) else None
+            if alias_name and alias_name not in registry:
+                registry[alias_name] = enriched
     return registry
 
 

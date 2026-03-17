@@ -285,8 +285,9 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
         return
 
     output_dir.mkdir(parents=True, exist_ok=True)
+    global_counter = 1
     for source_path, destination_path in imports:
-        with open(source_path) as f:
+        with open(source_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         if not isinstance(data, dict):
             raise click.ClickException(f"{source_path} is not a YAML mapping")
@@ -295,10 +296,15 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
             source = {}
             data["source"] = source
         source["paper"] = source_path.parent.name
-        with open(destination_path, "w") as f:
+        # Rewrite claim IDs to be globally unique
+        for claim in data.get("claims", []) or []:
+            if isinstance(claim, dict) and "id" in claim:
+                claim["id"] = f"claim{global_counter}"
+                global_counter += 1
+        with open(destination_path, "w", encoding="utf-8") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
-    click.echo(f"Imported {len(imports)} paper claim file(s) into {output_dir}")
+    click.echo(f"Imported {len(imports)} paper claim file(s) into {output_dir} ({global_counter - 1} claims)")
 
 
 # ── World command group ──────────────────────────────────────────────
