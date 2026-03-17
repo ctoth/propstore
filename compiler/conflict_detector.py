@@ -20,6 +20,7 @@ from enum import Enum
 import functools
 import re
 
+from compiler.cel_checker import ConceptInfo, KindType
 from compiler.validate_claims import LoadedClaimFile
 
 
@@ -213,16 +214,79 @@ def _values_compatible(value_a, value_b, tolerance: float = DEFAULT_TOLERANCE,
     return value_a == value_b
 
 
+# ── CEL registry conversion ──────────────────────────────────────────
+
+_FORM_TO_KIND = {
+    "category": KindType.CATEGORY,
+    "boolean": KindType.BOOLEAN,
+    "structural": KindType.STRUCTURAL,
+}
+
+
+def _build_cel_registry(concept_registry: dict[str, dict]) -> dict[str, ConceptInfo]:
+    """Convert the raw concept registry to a dict[canonical_name, ConceptInfo]."""
+    cel_registry: dict[str, ConceptInfo] = {}
+    for concept_id, data in concept_registry.items():
+        canonical = data.get("canonical_name", concept_id)
+        form = data.get("form", "")
+        kind = _FORM_TO_KIND.get(form, KindType.QUANTITY)
+        cat_values = []
+        cat_extensible = True
+        form_params = data.get("form_parameters", {})
+        if isinstance(form_params, dict):
+            cat_values = form_params.get("values", [])
+            cat_extensible = form_params.get("extensible", True)
+        cel_registry[canonical] = ConceptInfo(
+            id=concept_id,
+            canonical_name=canonical,
+            kind=kind,
+            category_values=cat_values,
+            category_extensible=cat_extensible,
+        )
+    return cel_registry
+
+
+# ── Z3 condition classification ──────────────────────────────────────
+
+
+def _try_z3_classify(
+    conditions_a: list[str],
+    conditions_b: list[str],
+    cel_registry: dict[str, ConceptInfo] | None,
+) -> ConflictClass | None:
+    """Try to classify conditions using Z3. Returns None if Z3 unavailable."""
+    if cel_registry is None:
+        return None
+    try:
+        from compiler.z3_conditions import Z3ConditionSolver
+    except ImportError:
+        return None
+
+    solver = Z3ConditionSolver(cel_registry)
+    try:
+        if solver.are_equivalent(conditions_a, conditions_b):
+            return ConflictClass.CONFLICT
+        if solver.are_disjoint(conditions_a, conditions_b):
+            return ConflictClass.PHI_NODE
+    except Exception:
+        return None  # Z3 failed — fall through to fallback
+    return ConflictClass.OVERLAP
+
+
 # ── Condition classification ─────────────────────────────────────────
 
 
 def _classify_conditions(
     conditions_a: list[str],
     conditions_b: list[str],
+    cel_registry: dict[str, ConceptInfo] | None = None,
 ) -> ConflictClass:
     """Classify a pair of differing-value claims based on their conditions.
 
     Returns CONFLICT, PHI_NODE, or OVERLAP.
+
+    Z3 is the primary path when cel_registry is provided. Existing interval
+    arithmetic is the fallback when Z3 isn't installed or fails.
     """
     normalized_a = sorted(conditions_a)
     normalized_b = sorted(conditions_b)
@@ -230,6 +294,12 @@ def _classify_conditions(
         # Identical conditions (or both empty) -> CONFLICT
         return ConflictClass.CONFLICT
 
+    # Primary path: Z3
+    z3_result = _try_z3_classify(conditions_a, conditions_b, cel_registry)
+    if z3_result is not None:
+        return z3_result
+
+    # Fallback: interval arithmetic
     summary_a = _summarize_conditions(conditions_a)
     summary_b = _summarize_conditions(conditions_b)
     if summary_a is not None and summary_b is not None:
@@ -239,7 +309,7 @@ def _classify_conditions(
             return ConflictClass.PHI_NODE
         return ConflictClass.OVERLAP
 
-    # Fallback: conditions couldn't be parsed into summaries.
+    # Last resort: conditions couldn't be parsed into summaries.
     # String-set disjointness does NOT prove region disjointness —
     # e.g. "F1/F0 > 3.0" and "F1/F0 > 2.0" are string-disjoint but
     # their regions overlap.  Conservative: return OVERLAP.
@@ -580,6 +650,7 @@ def detect_conflicts(
     COMPATIBLE pairs are detected but not returned (they're fine).
     """
     records: list[ConflictRecord] = []
+    cel_registry = _build_cel_registry(concept_registry)
 
     # Step 1: Collect parameter claims grouped by concept_id
     by_concept = _collect_parameter_claims(claim_files)
@@ -605,7 +676,7 @@ def detect_conflicts(
                     continue  # COMPATIBLE — skip
 
                 # Step 3c: Values differ — classify based on conditions
-                warning_class = _classify_conditions(conditions_a, conditions_b)
+                warning_class = _classify_conditions(conditions_a, conditions_b, cel_registry)
 
                 records.append(ConflictRecord(
                     concept_id=concept_id,
@@ -642,7 +713,7 @@ def detect_conflicts(
                 else:
                     conditions_a = sorted(claim_a.get("conditions") or [])
                     conditions_b = sorted(claim_b.get("conditions") or [])
-                    warning_class = _classify_conditions(conditions_a, conditions_b)
+                    warning_class = _classify_conditions(conditions_a, conditions_b, cel_registry)
 
                 records.append(ConflictRecord(
                     concept_id=target_concept,
@@ -676,7 +747,7 @@ def detect_conflicts(
 
                 conditions_a = sorted(claim_a.get("conditions") or [])
                 conditions_b = sorted(claim_b.get("conditions") or [])
-                warning_class = _classify_conditions(conditions_a, conditions_b)
+                warning_class = _classify_conditions(conditions_a, conditions_b, cel_registry)
 
                 records.append(ConflictRecord(
                     concept_id=dependent_concept,
