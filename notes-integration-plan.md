@@ -5,12 +5,12 @@
 ## Status
 - Phase 0: Design Spikes — COMPLETE (3 claims.yaml files + report)
 - Phase 1: Form Dimensions — COMPLETE (21 tests pass, 515 total, commits b84f0cf..31619ad)
-- Phase 2: Package Rename — NOT STARTED
-- Phase 3: Claim Notes Field — NOT STARTED
-- Phase 4: Generator Script — NOT STARTED
-- Phase 5: Extract-claims Skill — NOT STARTED
-- Phase 6: Migration Tooling — NOT STARTED
-- Phase 7: READMEs — NOT STARTED
+- Phase 2: Package Rename — COMPLETE (compiler→propstore, 515 tests pass, commits b23ab14..bd796aa)
+- Phase 3: Claim Notes Field — COMPLETE (7 tests pass, 522 total, commits f73add3..aa7b28e)
+- Phase 4: Generator Script — COMPLETE (16 tests pass, commit 1ed6d54 in research-papers-plugin)
+- Phase 5: Extract-claims Skill — COMPLETE (SKILL.md, commit 4cb9edf in research-papers-plugin)
+- Phase 6: Migration Tooling — COMPLETE (15 tests pass, commits f476fb2..26b37e1 in research-papers-plugin)
+- Phase 7: READMEs — COMPLETE (both repos updated and pushed)
 
 ## Baseline
 - 494 tests, ALL PASSING on clean master (2026-03-17)
