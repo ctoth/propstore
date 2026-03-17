@@ -437,15 +437,12 @@ def _validate_measurement(
         result.errors.append(f"{filename}: measurement claim '{cid}' missing 'unit'")
 
 
-def build_concept_registry(repo: object) -> dict[str, dict]:
-    """Load concepts and build {concept_id: concept_data} mapping.
-
-    Args:
-        repo: A Repository object providing concepts_dir and forms_dir.
-    """
+def build_concept_registry_from_paths(
+    concepts_dir: Path,
+    forms_dir: Path,
+) -> dict[str, dict]:
+    """Load concepts and build {concept_id: concept_data} mapping."""
     from compiler.validate import load_concepts
-    concepts_dir = repo.concepts_dir  # type: ignore[union-attr]
-    forms_dir = repo.forms_dir  # type: ignore[union-attr]
     concepts = load_concepts(concepts_dir)
     registry: dict[str, dict] = {}
     for concept in concepts:
@@ -468,4 +465,15 @@ def build_concept_registry(repo: object) -> dict[str, dict]:
         registry[cid] = enriched
     return registry
 
+
+def build_concept_registry(repo: object) -> dict[str, dict]:
+    """Load concepts and build {concept_id: concept_data} mapping.
+
+    Args:
+        repo: A Repository object providing concepts_dir and forms_dir.
+    """
+    return build_concept_registry_from_paths(
+        repo.concepts_dir,  # type: ignore[union-attr]
+        repo.forms_dir,  # type: ignore[union-attr]
+    )
 

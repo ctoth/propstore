@@ -22,7 +22,7 @@ def claim() -> None:
 def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
     from compiler.validate_claims import (
-        build_concept_registry,
+        build_concept_registry_from_paths,
         load_claim_files,
         validate_claims,
     )
@@ -43,7 +43,11 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
         click.echo("No claim files found.")
         return
 
-    registry = build_concept_registry(repo)
+    forms_dir = cpd.parent / "forms"
+    if not forms_dir.exists():
+        forms_dir = repo.forms_dir
+
+    registry = build_concept_registry_from_paths(cpd, forms_dir)
     result = validate_claims(files, registry)
 
     for w in result.warnings:
