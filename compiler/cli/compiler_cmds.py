@@ -445,3 +445,188 @@ def world_explain(obj: dict, claim_id: str) -> None:
             f"  {s['stance_type']} -> {s['target_claim_id']}"
             f" (strength={s.get('strength')}, note={s.get('note')})")
     wm.close()
+
+
+def _parse_bindings(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
+    """Parse CLI args into (bindings, concept_id).
+
+    Arguments with '=' are bindings, the last argument without '=' is concept_id.
+    """
+    binding_args = [a for a in args if "=" in a]
+    non_binding = [a for a in args if "=" not in a]
+    concept_id = non_binding[-1] if non_binding else None
+
+    parsed: dict[str, str] = {}
+    for b in binding_args:
+        key, _, value = b.partition("=")
+        parsed[key] = value
+
+    return parsed, concept_id
+
+
+@world.command("derive")
+@click.argument("concept_id")
+@click.argument("args", nargs=-1)
+@click.pass_obj
+def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
+    """Derive a value for a concept via parameterization relationships.
+
+    Usage: pks world derive concept5 task=speech
+    """
+    from compiler.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    bindings, _ = _parse_bindings(args)
+    resolved = wm.resolve_alias(concept_id) or concept_id
+    bound = wm.bind(**bindings)
+    result = bound.derived_value(resolved)
+
+    click.echo(f"{resolved}: {result.status}")
+    if result.value is not None:
+        click.echo(f"  value: {result.value}")
+    if result.formula:
+        click.echo(f"  formula: {result.formula}")
+    if result.input_values:
+        click.echo(f"  inputs: {result.input_values}")
+    if result.exactness:
+        click.echo(f"  exactness: {result.exactness}")
+    wm.close()
+
+
+@world.command("resolve")
+@click.argument("concept_id")
+@click.argument("args", nargs=-1)
+@click.option("--strategy", required=True,
+              type=click.Choice(["recency", "sample_size", "stance", "override"]))
+@click.option("--override", "override_id", default=None, help="Claim ID for override strategy")
+@click.pass_obj
+def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
+                  strategy: str, override_id: str | None) -> None:
+    """Resolve a conflicted concept using a strategy.
+
+    Usage: pks world resolve concept1 task=speech --strategy sample_size
+    """
+    from compiler.world_model import ResolutionStrategy, WorldModel, resolve
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    bindings, _ = _parse_bindings(args)
+    resolved = wm.resolve_alias(concept_id) or concept_id
+    bound = wm.bind(**bindings)
+
+    strat = ResolutionStrategy(strategy)
+    overrides = {resolved: override_id} if override_id else None
+
+    try:
+        result = resolve(bound, resolved, strat, world=wm, overrides=overrides)
+    except ValueError as e:
+        click.echo(f"ERROR: {e}", err=True)
+        wm.close()
+        sys.exit(1)
+
+    click.echo(f"{resolved}: {result.status}")
+    if result.value is not None:
+        click.echo(f"  value: {result.value}")
+    if result.winning_claim_id:
+        click.echo(f"  winner: {result.winning_claim_id}")
+    if result.strategy:
+        click.echo(f"  strategy: {result.strategy}")
+    if result.reason:
+        click.echo(f"  reason: {result.reason}")
+    wm.close()
+
+
+@world.command("hypothetical")
+@click.argument("args", nargs=-1)
+@click.option("--remove", multiple=True, help="Claim ID to remove")
+@click.option("--add", "add_json", default=None, help="JSON synthetic claim")
+@click.pass_obj
+def world_hypothetical(obj: dict, args: tuple[str, ...],
+                       remove: tuple[str, ...], add_json: str | None) -> None:
+    """Show what changes if claims are removed/added.
+
+    Usage: pks world hypothetical task=speech --remove claim2
+    """
+    from compiler.world_model import HypotheticalWorld, SyntheticClaim, WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    bindings, _ = _parse_bindings(args)
+    bound = wm.bind(**bindings)
+
+    synthetics: list[SyntheticClaim] = []
+    if add_json:
+        data = json.loads(add_json)
+        if isinstance(data, dict):
+            data = [data]
+        for d in data:
+            synthetics.append(SyntheticClaim(
+                id=d["id"],
+                concept_id=d["concept_id"],
+                type=d.get("type", "parameter"),
+                value=d.get("value"),
+                conditions=d.get("conditions", []),
+            ))
+
+    hypo = HypotheticalWorld(bound, remove=list(remove), add=synthetics)
+    diff = hypo.diff()
+
+    if not diff:
+        click.echo("No changes detected.")
+    else:
+        for cid, (base_vr, hypo_vr) in diff.items():
+            click.echo(f"{cid}: {base_vr.status} → {hypo_vr.status}")
+    wm.close()
+
+
+@world.command("chain")
+@click.argument("concept_id")
+@click.argument("args", nargs=-1)
+@click.option("--strategy", default=None,
+              type=click.Choice(["recency", "sample_size", "stance", "override"]))
+@click.pass_obj
+def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
+                strategy: str | None) -> None:
+    """Traverse the parameter space to derive a target concept.
+
+    Usage: pks world chain concept5 task=speech --strategy sample_size
+    """
+    from compiler.world_model import ResolutionStrategy, WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    bindings, _ = _parse_bindings(args)
+    resolved = wm.resolve_alias(concept_id) or concept_id
+
+    strat = ResolutionStrategy(strategy) if strategy else None
+    result = wm.chain_query(resolved, strategy=strat, **bindings)
+
+    click.echo(f"Target: {resolved}")
+    click.echo(f"Result: {result.result.status}")
+    if hasattr(result.result, "value") and result.result.value is not None:
+        click.echo(f"  value: {result.result.value}")
+    click.echo(f"Steps ({len(result.steps)}):")
+    for step in result.steps:
+        click.echo(f"  {step.concept_id}: {step.value} ({step.source})")
+    wm.close()
