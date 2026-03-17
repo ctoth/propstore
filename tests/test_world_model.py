@@ -1151,3 +1151,253 @@ class TestTransitiveConsistency:
         # Under singing, concept1 has only claim3(180) → determined, no conflicts
         concept1_conflicts = [c for c in conflicts if c["concept_id"] == "concept1"]
         assert len(concept1_conflicts) == 0
+
+
+# ── Feature 8: Algorithm World Model ─────────────────────────────────
+
+
+@pytest.fixture
+def algo_concept_dir(tmp_path):
+    """Create a concepts directory with test concepts for algorithm tests."""
+    knowledge = tmp_path / "knowledge"
+    concepts_path = knowledge / "concepts"
+    concepts_path.mkdir(parents=True)
+    counters = concepts_path / ".counters"
+    counters.mkdir()
+    (counters / "speech.next").write_text("5")
+
+    forms_dir = knowledge / "forms"
+    forms_dir.mkdir()
+    for form_name in ("frequency", "category", "structural", "algorithm"):
+        (forms_dir / f"{form_name}.yaml").write_text(
+            yaml.dump({"name": form_name}, default_flow_style=False))
+
+    def write(name, data):
+        (concepts_path / f"{name}.yaml").write_text(yaml.dump(data, default_flow_style=False))
+
+    write("sample_rate", {
+        "id": "algo_concept1",
+        "canonical_name": "sample_rate",
+        "status": "accepted",
+        "definition": "Audio sample rate in Hz.",
+        "domain": "speech",
+        "form": "frequency",
+    })
+
+    write("window_size", {
+        "id": "algo_concept2",
+        "canonical_name": "window_size",
+        "status": "accepted",
+        "definition": "Analysis window size in samples.",
+        "domain": "speech",
+        "form": "frequency",
+    })
+
+    write("spectral_envelope", {
+        "id": "algo_concept3",
+        "canonical_name": "spectral_envelope",
+        "status": "accepted",
+        "definition": "Spectral envelope estimation algorithm.",
+        "domain": "speech",
+        "form": "structural",
+    })
+
+    write("task", {
+        "id": "algo_concept4",
+        "canonical_name": "task",
+        "status": "accepted",
+        "definition": "The vocal activity type.",
+        "domain": "speech",
+        "form": "category",
+        "form_parameters": {"values": ["speech", "singing"], "extensible": True},
+    })
+
+    return concepts_path
+
+
+@pytest.fixture
+def algo_repo(algo_concept_dir):
+    from propstore.cli.repository import Repository
+    return Repository(algo_concept_dir.parent)
+
+
+@pytest.fixture
+def algo_claim_files(algo_concept_dir):
+    """Create claim files with algorithm claims for testing."""
+    claims_dir = algo_concept_dir / "claims_data"
+    claims_dir.mkdir(exist_ok=True)
+
+    algo_body_a = (
+        "def compute(sr, ws):\n"
+        "    return sr / ws\n"
+    )
+    # Equivalent algorithm: same logic, different variable names
+    algo_body_b = (
+        "def compute(sample_rate, window):\n"
+        "    return sample_rate / window\n"
+    )
+    # Different algorithm: different logic
+    algo_body_c = (
+        "def compute(sr, ws):\n"
+        "    return sr * ws + 1\n"
+    )
+
+    alpha = {
+        "source": {"paper": "algo_paper_alpha"},
+        "claims": [
+            {
+                "id": "algo_claim1",
+                "type": "algorithm",
+                "concept": "algo_concept3",
+                "body": algo_body_a,
+                "variables": [
+                    {"name": "sr", "concept": "algo_concept1"},
+                    {"name": "ws", "concept": "algo_concept2"},
+                ],
+                "conditions": ["task == 'speech'"],
+                "provenance": {"paper": "algo_paper_alpha", "page": 1},
+            },
+            {
+                "id": "algo_claim2",
+                "type": "algorithm",
+                "concept": "algo_concept3",
+                "body": algo_body_b,
+                "variables": [
+                    {"name": "sample_rate", "concept": "algo_concept1"},
+                    {"name": "window", "concept": "algo_concept2"},
+                ],
+                "conditions": ["task == 'speech'"],
+                "provenance": {"paper": "algo_paper_alpha", "page": 5},
+            },
+            # Parameter claim for sample_rate (used by _collect_known_values)
+            {
+                "id": "algo_claim_sr",
+                "type": "parameter",
+                "concept": "algo_concept1",
+                "value": 44100.0,
+                "conditions": ["task == 'speech'"],
+                "provenance": {"paper": "algo_paper_alpha", "page": 10},
+            },
+            # Parameter claim for window_size
+            {
+                "id": "algo_claim_ws",
+                "type": "parameter",
+                "concept": "algo_concept2",
+                "value": 512.0,
+                "conditions": ["task == 'speech'"],
+                "provenance": {"paper": "algo_paper_alpha", "page": 11},
+            },
+        ],
+    }
+
+    beta = {
+        "source": {"paper": "algo_paper_beta"},
+        "claims": [
+            # A different algorithm for the same concept
+            {
+                "id": "algo_claim3",
+                "type": "algorithm",
+                "concept": "algo_concept3",
+                "body": algo_body_c,
+                "variables": [
+                    {"name": "sr", "concept": "algo_concept1"},
+                    {"name": "ws", "concept": "algo_concept2"},
+                ],
+                "conditions": ["task == 'speech'"],
+                "provenance": {"paper": "algo_paper_beta", "page": 1},
+            },
+            # A parameter claim for the same concept as algorithms (mixed)
+            {
+                "id": "algo_claim_param",
+                "type": "parameter",
+                "concept": "algo_concept3",
+                "value": 42.0,
+                "conditions": ["task == 'speech'"],
+                "provenance": {"paper": "algo_paper_beta", "page": 5},
+            },
+        ],
+    }
+
+    (claims_dir / "algo_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
+    (claims_dir / "algo_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
+
+    from propstore.validate_claims import load_claim_files
+    return load_claim_files(claims_dir)
+
+
+@pytest.fixture
+def algo_world(algo_concept_dir, algo_repo, algo_claim_files):
+    """Build sidecar and return a WorldModel with algorithm claims."""
+    concepts = load_concepts(algo_concept_dir)
+    concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+    build_sidecar(concepts, algo_repo.sidecar_path, claim_files=algo_claim_files,
+                  concept_registry=concept_registry, repo=algo_repo)
+    return WorldModel(algo_repo)
+
+
+class TestAlgorithmWorldModel:
+    def test_algorithm_for_returns_claims(self, algo_world):
+        """algorithm_for returns relevant algorithm claims."""
+        bound = algo_world.bind(task="speech")
+        algos = bound.algorithm_for("algo_concept3")
+        algo_ids = {a["id"] for a in algos}
+        assert "algo_claim1" in algo_ids
+        assert "algo_claim2" in algo_ids
+        assert "algo_claim3" in algo_ids
+        # Parameter claim should not be returned
+        assert "algo_claim_param" not in algo_ids
+
+    def test_collect_known_values(self, algo_world):
+        """Known values collected from resolved concepts."""
+        bound = algo_world.bind(task="speech")
+        known = bound._collect_known_values(["algo_concept1", "algo_concept2"])
+        assert "algo_concept1" in known
+        assert known["algo_concept1"] == 44100.0
+        assert "algo_concept2" in known
+        assert known["algo_concept2"] == 512.0
+
+    def test_collect_known_values_skips_unresolvable(self, algo_world):
+        """Known values skips concepts that can't be resolved."""
+        bound = algo_world.bind(task="speech")
+        known = bound._collect_known_values(["algo_concept1", "nonexistent_concept"])
+        assert "algo_concept1" in known
+        assert "nonexistent_concept" not in known
+
+    def test_algorithm_value_of_single(self, algo_world):
+        """Single algorithm claim resolves as determined."""
+        bound = algo_world.bind(task="singing")
+        # Under singing, no algorithm claims are active (all speech-conditioned)
+        result = bound.value_of("algo_concept3")
+        assert result.status == "no_claims"
+
+    def test_algorithm_value_of_equivalent_pair(self, algo_world):
+        """Two equivalent algorithms under partial eval → no conflict."""
+        # algo_claim1 and algo_claim2 compute the same thing (sr/ws)
+        # Remove algo_claim3 (different) and algo_claim_param (parameter)
+        bound = algo_world.bind(task="speech")
+        hypo = HypotheticalWorld(bound, remove=["algo_claim3", "algo_claim_param"])
+        result = hypo.value_of("algo_concept3")
+        # algo_claim1 and algo_claim2 are structurally equivalent (both do arg0/arg1)
+        assert result.status == "determined"
+        assert len(result.claims) == 2
+
+    def test_algorithm_value_of_different_pair(self, algo_world):
+        """Two different algorithms → conflict reported."""
+        # algo_claim1 (sr/ws) vs algo_claim3 (sr*ws+1) — different
+        bound = algo_world.bind(task="speech")
+        hypo = HypotheticalWorld(bound, remove=["algo_claim2", "algo_claim_param"])
+        result = hypo.value_of("algo_concept3")
+        assert result.status == "conflicted"
+        assert len(result.claims) == 2
+
+    def test_mixed_algorithm_parameter_separate(self, algo_world):
+        """Algorithm and parameter claims for same concept don't conflict."""
+        # algo_concept3 has algo_claim1, algo_claim2, algo_claim3 (algorithms)
+        # and algo_claim_param (parameter, value=42.0). With mixed claims,
+        # value_of should resolve based on the parameter claim only.
+        bound = algo_world.bind(task="speech")
+        # Remove all but one algorithm and keep the parameter
+        hypo = HypotheticalWorld(bound, remove=["algo_claim2", "algo_claim3"])
+        result = hypo.value_of("algo_concept3")
+        # Mixed: one algorithm + one parameter → determined via parameter value
+        assert result.status == "determined"
