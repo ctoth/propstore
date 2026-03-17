@@ -1,6 +1,7 @@
 """pks form — subcommands for managing form definitions."""
 from __future__ import annotations
 
+import json
 import sys
 
 import click
@@ -62,6 +63,10 @@ def show(obj: dict, name: str) -> None:
 @click.option("--unit", "unit_symbol", default=None, help="Primary unit symbol (e.g. Hz, Pa)")
 @click.option("--qudt", default=None, help="QUDT IRI (e.g. qudt:HZ)")
 @click.option("--base", default=None, help="Base type (e.g. ratio)")
+@click.option("--dimensions", default=None, help="JSON dict of SI dimension exponents, e.g. '{\"T\": -1}'")
+@click.option("--dimensionless", default=None, help="Whether the form is dimensionless (true/false)")
+@click.option("--common-alternatives", default=None, help="JSON array of alternative unit conversions")
+@click.option("--note", default=None, help="Human-readable note about this form")
 @click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
 @click.pass_obj
 def add(
@@ -70,6 +75,10 @@ def add(
     unit_symbol: str | None,
     qudt: str | None,
     base: str | None,
+    dimensions: str | None,
+    dimensionless: str | None,
+    common_alternatives: str | None,
+    note: str | None,
     dry_run: bool,
 ) -> None:
     """Add a new form definition."""
@@ -80,13 +89,43 @@ def add(
         click.echo(f"ERROR: Form '{name}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
-    data: dict[str, object] = {"name": name}
+    # Parse dimensions JSON if provided
+    dims_parsed: dict | None = None
+    if dimensions is not None:
+        try:
+            dims_parsed = json.loads(dimensions)
+        except json.JSONDecodeError:
+            click.echo(f"ERROR: Invalid JSON for --dimensions: {dimensions}", err=True)
+            sys.exit(EXIT_ERROR)
+
+    # Determine dimensionless value
+    if dimensionless is not None:
+        is_dimless = dimensionless.lower() in ("true", "1", "yes")
+    elif dims_parsed is not None and len(dims_parsed) > 0:
+        is_dimless = False
+    else:
+        is_dimless = dims_parsed is not None and len(dims_parsed) == 0
+
+    data: dict[str, object] = {"name": name, "dimensionless": is_dimless}
     if base is not None:
         data["base"] = base
     if unit_symbol is not None:
         data["unit_symbol"] = unit_symbol
     if qudt is not None:
         data["qudt"] = qudt
+    if dims_parsed is not None:
+        data["dimensions"] = dims_parsed
+
+    # Parse common_alternatives JSON if provided
+    if common_alternatives is not None:
+        try:
+            data["common_alternatives"] = json.loads(common_alternatives)
+        except json.JSONDecodeError:
+            click.echo(f"ERROR: Invalid JSON for --common-alternatives: {common_alternatives}", err=True)
+            sys.exit(EXIT_ERROR)
+
+    if note is not None:
+        data["note"] = note
 
     if dry_run:
         click.echo(f"Would create {path}")
