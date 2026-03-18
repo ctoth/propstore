@@ -22,10 +22,11 @@ from propstore.world.types import (
 from propstore.z3_conditions import Z3ConditionSolver
 
 
-_FORM_TO_KIND = {
+_KIND_TYPE_MAP = {
     "category": KindType.CATEGORY,
     "boolean": KindType.BOOLEAN,
     "structural": KindType.STRUCTURAL,
+    "quantity": KindType.QUANTITY,
 }
 
 
@@ -70,8 +71,7 @@ class WorldModel:
         ).fetchall()
         for row in rows:
             canonical = row["canonical_name"]
-            form = row["form"] or ""
-            kind = _FORM_TO_KIND.get(form, KindType.QUANTITY)
+            kind = _KIND_TYPE_MAP.get(row["kind_type"], KindType.QUANTITY)
             cat_values: list[str] = []
             cat_extensible = True
             fp = row["form_parameters"]
