@@ -1,0 +1,222 @@
+source:
+  paper: Dixon_1993_ATMSandAGM
+  extraction_model: "claude-opus-4-6-20260317"
+  extraction_date: "2026-03-17"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "The ATMS and AGM systems are behaviourally equivalent: for all propositions p in the language, p is in the AGM belief set K if and only if E proves p in the ATMS, when the entrenchment ordering is computed by the ATMS_to_AGM algorithm."
+    concepts:
+      - atms_provability
+      - agm_belief_set
+      - epistemic_entrenchment
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 5
+      section: "5 Theorem and Proof of Correctness"
+      quote_fragment: "The ATMS and AGM systems are equivalent if and only if: for all p in Sigma, E proves_ATMS p iff p in K"
+    notes: "This is Theorem 1, the main result. Proved by induction on the number of expansion and contraction operations."
+
+  - id: claim2
+    type: observation
+    statement: "ATMS context switching (changing the current environment) can be simulated by sequences of AGM expansion and contraction operations on the belief set."
+    concepts:
+      - atms_context_switching
+      - agm_expansion
+      - agm_contraction
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 4
+      section: "4.3 Algorithm ATMS_to_AGM"
+      quote_fragment: "we now describe the algorithm which calculates the entrenchments for the AGM logic to simulate the ATMS behaviour"
+    notes: "Environment changes are decomposed into removal of old assumptions (contraction) and addition of new assumptions (expansion)."
+
+  - id: claim3
+    type: observation
+    statement: "The coherence-based AGM logic can achieve foundational-style behaviour through appropriate choice of epistemic entrenchment orderings derived from justificational information."
+    concepts:
+      - coherence_theory
+      - foundational_theory
+      - epistemic_entrenchment
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 1
+      section: "Abstract"
+      quote_fragment: "the AGM logic, which is based on the coherence theory of justification, is able to achieve both coherence and foundational style behaviour via the choice of epistemic entrenchment orderings"
+
+  - id: claim4
+    type: observation
+    statement: "For an atom a in environment E and any atom b, the entrenchment of a equals the entrenchment of (a or b) if and only if a is in the essential support of b in E."
+    concepts:
+      - epistemic_entrenchment
+      - essential_support
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 5
+      section: "5.1 Lemma 1"
+      quote_fragment: "For all a in E, and for all b in Sigma, Ent_E(a) = Ent_E(a v b) iff a in ES(b,E)"
+    notes: "Lemma 1. Key bridge between entrenchment ordering and ATMS essential support structure."
+
+  - id: claim5
+    type: observation
+    statement: "If E is a consistent environment and a is not equal to b, then a is in the essential support of b in E if and only if E proves b in the ATMS and (E minus {a}) does not prove b in the ATMS."
+    concepts:
+      - essential_support
+      - atms_provability
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 5
+      section: "5.2 Lemma 2"
+      quote_fragment: "If E is a consistent environment and a != b then a in ES(b,E) iff (E proves_ATMS b) and ((E - {a}) proves_ATMS b)"
+    notes: "Lemma 2. Characterizes essential support in terms of ATMS provability -- an assumption is essential to a conclusion iff removing it breaks the proof."
+
+  - id: claim6
+    type: equation
+    expression: "FB(p,E) = \\{A \\in Label(p) \\mid A \\subseteq E\\}"
+    sympy: "Eq(FB_p_E, {A for A in Label_p if A.issubset(E)})"
+    variables:
+      - symbol: "FB(p,E)"
+        concept: "foundational_beliefs"
+        role: "dependent"
+      - symbol: "Label(p)"
+        concept: "atms_label"
+        role: "independent"
+      - symbol: "E"
+        concept: "atms_environment"
+        role: "independent"
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 4
+      section: "4.2 Definitions"
+      quote_fragment: "the set of support sets of p which are held to be true in E"
+    notes: "Foundational beliefs are the label entries (support sets) that are subsets of the current environment."
+
+  - id: claim7
+    type: equation
+    expression: "ES(p,E) = \\bigcap_{X \\in FB(p,E)} X"
+    sympy: "Eq(ES_p_E, Intersection(*FB_p_E))"
+    variables:
+      - symbol: "ES(p,E)"
+        concept: "essential_support"
+        role: "dependent"
+      - symbol: "FB(p,E)"
+        concept: "foundational_beliefs"
+        role: "independent"
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 4
+      section: "4.2 Definitions"
+      quote_fragment: "The essential support set, ES(p,E), is defined"
+    notes: "Essential support is the intersection of all foundational belief sets -- assumptions common to every proof of p in E."
+
+  - id: claim8
+    type: equation
+    expression: "K^+_\\alpha = Conseq(K \\cup \\alpha)"
+    sympy: "Eq(K_plus_alpha, Conseq(Union(K, {alpha})))"
+    variables:
+      - symbol: "K^+_alpha"
+        concept: "agm_expansion"
+        role: "dependent"
+      - symbol: "K"
+        concept: "agm_belief_set"
+        role: "independent"
+      - symbol: "alpha"
+        concept: "belief_sentence"
+        role: "independent"
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 2
+      section: "3 The AGM Logic"
+      quote_fragment: "Expansion: K^+_alpha = Conseq(K union alpha)"
+
+  - id: claim9
+    type: equation
+    expression: "K^-_\\alpha = \\{\\beta \\in K \\mid \\beta \\vdash \\alpha \\text{ or } Ent(\\alpha) < Ent(\\alpha \\lor \\beta)\\}"
+    sympy: "Eq(K_minus_alpha, {beta for beta in K if (beta.entails(alpha)) or (Ent(alpha) < Ent(Or(alpha, beta)))})"
+    variables:
+      - symbol: "K^-_alpha"
+        concept: "agm_contraction"
+        role: "dependent"
+      - symbol: "K"
+        concept: "agm_belief_set"
+        role: "independent"
+      - symbol: "Ent"
+        concept: "epistemic_entrenchment"
+        role: "parameter"
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 2
+      section: "3 The AGM Logic"
+      quote_fragment: "Contraction: K^-_alpha = {beta in K | beta |- alpha or Ent(alpha) < Ent(alpha v beta)}"
+
+  - id: claim10
+    type: observation
+    statement: "The ATMS encoding does not specify a complete entrenchment relation but instead calculates a class of entrenchments for which the AGM's behaviour with respect to atoms is equivalent to the ATMS."
+    concepts:
+      - epistemic_entrenchment
+      - atms_provability
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 2
+      section: "4.1 Constructing an Entrenchment Relation"
+      quote_fragment: "we are not defining an alternative to the AGM entrenchment axioms, but instead we are allowing many of the entrenchment values to be unknown"
+    notes: "The partial nature of the entrenchment ordering is a feature, not a limitation -- unknown values never need to be consulted."
+
+  - id: claim11
+    type: observation
+    statement: "The amount of work performed by the ATMS_to_AGM algorithm simulating the ATMS in AGM logic is not trivial, because foundational reasoning is independent of history while AGM relies on minimal change from one state to the next."
+    concepts:
+      - atms_context_switching
+      - agm_minimal_change
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 4
+      section: "4.3 Algorithm ATMS_to_AGM"
+      quote_fragment: "the ATMS context depends only on the current environment, and is not affected by any previous environment, whereas the AGM logic relies on a principle of minimal change"
+    notes: "This asymmetry means extensive revisions of the entrenchment relation are often necessary to keep the system effectively independent of its previous state."
+
+  - id: claim12
+    type: observation
+    statement: "Rule revision, which is not allowed by the ATMS since justifications cannot be altered without restarting the system, could be easily implemented in the AGM logic by decreasing the entrenchment of justifications."
+    concepts:
+      - atms_justifications
+      - agm_contraction
+      - rule_revision
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 6
+      section: "6 Conclusions and Further Research"
+      quote_fragment: "rule revision, which is not allowed by the ATMS, but could easily be implemented in the AGM logic by decreasing the entrenchment of justifications"
+    notes: "Identified as future work. Implementation described in [Dixon, 1993]."
+
+  - id: claim13
+    type: model
+    name: "ATMS_to_AGM Translation"
+    equations:
+      - "K^+_x = Conseq(K \\cup x)  for each new assumption x"
+      - "K^-_x = \\{\\beta \\in K \\mid Ent(x) < Ent(x \\lor \\beta)\\}  for each removed assumption x"
+      - "Ent(x) := E_1  for removed assumptions"
+      - "Ent(y \\lor c) := E_2  for new essential supports (Ent(y) = Ent(y \\lor c))"
+      - "Ent(y \\lor c) := E_3  for old essential supports with decreased entrenchment"
+    parameters:
+      - name: "E_1"
+        concept: "entrenchment_level_removed"
+        note: "Lowest entrenchment, assigned to contracted assumptions"
+      - name: "E_2"
+        concept: "entrenchment_level_new_support"
+        note: "Assigned to new essential supports and newly expanded assumptions"
+      - name: "E_3"
+        concept: "entrenchment_level_decreased_support"
+        note: "Assigned when old essential support entrenchment must decrease"
+      - name: "E_4"
+        concept: "entrenchment_level_default"
+        note: "Default entrenchment for all formulas initially"
+      - name: "E_5"
+        concept: "entrenchment_level_tautology"
+        note: "Reserved for tautologies only (by axiom EE5)"
+    provenance:
+      paper: Dixon_1993_ATMSandAGM
+      page: 4
+      section: "4.3 Algorithm ATMS_to_AGM"
+    notes: "The algorithm processes environment changes by decomposing them into AGM contraction (for removed assumptions) and expansion (for added assumptions), updating entrenchment values to maintain equivalence with ATMS behaviour."

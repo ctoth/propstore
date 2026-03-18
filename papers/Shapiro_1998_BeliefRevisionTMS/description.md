@@ -1,0 +1,4 @@
+---
+tags: [truth-maintenance, belief-revision, atms, nonmonotonic-reasoning, agm-postulates]
+---
+Surveys and compares the truth maintenance system (TMS) tradition --- covering JTMSs, LTMSs, ATMSs, and SNeBR --- with the AGM belief revision tradition, identifying that these two bodies of work address the same problem (maintaining consistency in knowledge bases) yet almost never cite each other. Proposes building a TMS implementation on SNePS/SNeBR/SNePSwD that satisfies the AGM postulates for minimal information loss and entrenchment-based culprit selection during belief revision. Directly relevant to the propstore as a bridge paper connecting the TMS implementation papers already in the collection (Doyle 1979, McAllester 1978, de Kleer 1986) with the formal constraints any belief revision system should satisfy.
