@@ -26,7 +26,6 @@ from propstore.cel_checker import (
     check_cel_expression,
 )
 from propstore.form_utils import (
-    DIMENSIONLESS_UNITS,
     FormDefinition,
     allowed_units_from_form_definition,
     json_safe,
@@ -324,22 +323,13 @@ def _validate_unit_against_form(
             return  # dimensional check passed or errored — done
         # Unit not in lookup table — fall through to whitelist
 
-    # Fallback: whitelist check (for units not in physgen or forms without dimensions)
+    # Whitelist check: form declares its accepted units via unit_symbol,
+    # common_alternatives, and extra_units. If none declared, skip.
     if form_def.allowed_units:
         if unit not in form_def.allowed_units:
             result.errors.append(
                 f"{filename}: parameter claim '{cid}' unit '{unit}' does not match "
                 f"concept '{concept}' allowed units {sorted(form_def.allowed_units)}")
-    elif form_def.is_dimensionless:
-        # For dimensionless forms: accept generic dimensionless units,
-        # plus any extra_units declared on the form itself.
-        form_extra = {eu["symbol"] for eu in form_def.extra_units}
-        if unit not in DIMENSIONLESS_UNITS and unit not in form_extra:
-            result.errors.append(
-                f"{filename}: parameter claim '{cid}' unit '{unit}' is not valid "
-                f"for dimensionless form '{form_def.name}' on concept '{concept}' "
-                f"(expected dimensionless unit like ratio, %, fraction"
-                f"{', or form-declared unit' if form_extra else ''})")
 
 
 def _validate_equation(
