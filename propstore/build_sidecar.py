@@ -261,7 +261,8 @@ def _populate_concepts(
             "created_date, last_modified) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (d.get("id"), content_hash, seq, d.get("canonical_name"), d.get("status"),
-             d.get("domain"), d.get("definition"), kind_value_from_form_name(d.get("form")),
+             d.get("domain"), d.get("definition"),
+             form_def.kind.value if form_def is not None else kind_value_from_form_name(d.get("form")),
              d.get("form", ""), form_params_json, range_min, range_max,
              is_dimensionless, unit_symbol,
              created, modified),
