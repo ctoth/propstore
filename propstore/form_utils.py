@@ -13,12 +13,6 @@ import yaml
 from propstore.cel_checker import KindType
 
 
-# Generic dimensionless units — used as fallback when a dimensionless form
-# has no extra_units declared. Kept minimal and domain-independent.
-DIMENSIONLESS_UNITS = frozenset({
-    "ratio", "dimensionless", "%", "fraction", "",
-})
-
 
 @dataclass
 class FormDefinition:
