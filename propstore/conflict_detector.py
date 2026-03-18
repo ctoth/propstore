@@ -25,6 +25,7 @@ from typing import Any
 from ast_equiv import compare as ast_compare
 
 from propstore.cel_checker import ConceptInfo, KindType
+from propstore.form_utils import kind_type_from_form_name
 from propstore.validate_claims import LoadedClaimFile
 
 
@@ -210,20 +211,13 @@ def _values_compatible(value_a, value_b, tolerance: float = DEFAULT_TOLERANCE,
 
 # ── CEL registry conversion ──────────────────────────────────────────
 
-_FORM_TO_KIND = {
-    "category": KindType.CATEGORY,
-    "boolean": KindType.BOOLEAN,
-    "structural": KindType.STRUCTURAL,
-}
-
-
 def _build_cel_registry(concept_registry: dict[str, dict]) -> dict[str, ConceptInfo]:
     """Convert the raw concept registry to a dict[canonical_name, ConceptInfo]."""
     cel_registry: dict[str, ConceptInfo] = {}
     for concept_id, data in concept_registry.items():
         canonical = data.get("canonical_name", concept_id)
         form = data.get("form", "")
-        kind = _FORM_TO_KIND.get(form, KindType.QUANTITY)
+        kind = kind_type_from_form_name(form) or KindType.QUANTITY
         cat_values = []
         cat_extensible = True
         form_params = data.get("form_parameters", {})
