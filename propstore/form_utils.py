@@ -57,9 +57,20 @@ def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
     if not isinstance(data, dict):
         return None
 
-    kind = kind_type_from_form_name(form_name)
-    if kind is None:
-        kind = KindType.QUANTITY
+    # Prefer explicit kind from YAML; fall back to name-based heuristic
+    raw_kind = data.get("kind")
+    if isinstance(raw_kind, str):
+        _KIND_MAP = {
+            "quantity": KindType.QUANTITY,
+            "category": KindType.CATEGORY,
+            "boolean": KindType.BOOLEAN,
+            "structural": KindType.STRUCTURAL,
+        }
+        kind = _KIND_MAP.get(raw_kind, KindType.QUANTITY)
+    else:
+        kind = kind_type_from_form_name(form_name)
+        if kind is None:
+            kind = KindType.QUANTITY
 
     unit_symbol = data.get("unit_symbol")
     if unit_symbol is not None and not isinstance(unit_symbol, str):
@@ -72,15 +83,13 @@ def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
 
     parameters = data.get("parameters", {}) or {}
 
-    # Read explicit dimensionless field; fall back to heuristic for
-    # form files that haven't been updated yet.
+    # Read explicit dimensionless field; fall back to base == "ratio" heuristic
     _explicit = data.get("dimensionless")
     if isinstance(_explicit, bool):
         is_dimensionless = _explicit
     else:
         is_dimensionless = (
             data.get("base") == "ratio"
-            or form_name in ("level", "dimensionless_compound")
             or (unit_symbol is None and kind == KindType.QUANTITY
                 and form_name not in ("structural",))
         )
