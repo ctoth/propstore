@@ -49,6 +49,7 @@ enums:
   MeasureType:
     description: >
       The type of perceptual or behavioral measurement.
+      These are documented examples; validators accept any string.
     permissible_values:
       jnd_absolute:
         description: "Absolute just-noticeable difference."
@@ -226,8 +227,8 @@ classes:
       measure:
         description: >
           Type of measurement (e.g., jnd_absolute, preference_rating).
-          Required for measurement claims.
-        range: MeasureType
+          Required for measurement claims. Any string accepted.
+        range: string
 
       listener_population:
         description: >
