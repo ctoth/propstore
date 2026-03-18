@@ -535,6 +535,91 @@ class WorldModel:
         )
 
 
+def _value_of_from_active(
+    active: list[dict], concept_id: str, helpers: BoundWorld,
+) -> ValueResult:
+    """Shared implementation for value_of() — used by BoundWorld and HypotheticalWorld.
+
+    ``helpers`` is always a BoundWorld instance (HypotheticalWorld passes self._base).
+    It provides _extract_variable_concepts, _collect_known_values, _extract_bindings.
+    """
+    if not active:
+        return ValueResult(concept_id=concept_id, status="no_claims")
+
+    # Separate algorithm claims from value-bearing claims
+    algo_claims = [c for c in active if c.get("type") == "algorithm"]
+    value_claims = [c for c in active if c.get("type") != "algorithm"]
+
+    # Mixed: algorithms are separate channel, resolve value claims only
+    if value_claims and algo_claims:
+        values = set()
+        for c in value_claims:
+            v = c.get("value")
+            if v is not None:
+                values.add(v)
+        if not values:
+            return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
+        if len(values) == 1:
+            return ValueResult(concept_id=concept_id, status="determined", claims=active)
+        return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+
+    # Algorithm-only claims
+    if algo_claims and not value_claims:
+        if len(algo_claims) == 1:
+            return ValueResult(concept_id=concept_id, status="determined", claims=algo_claims)
+
+        # Multiple algorithms — compare pairwise using ast_compare
+        all_var_concepts: set[str] = set()
+        for ac in algo_claims:
+            all_var_concepts.update(helpers._extract_variable_concepts(ac))
+        all_var_concepts.discard(concept_id)
+
+        known_values = helpers._collect_known_values(list(all_var_concepts))
+
+        all_equivalent = True
+        for i in range(len(algo_claims)):
+            for j in range(i + 1, len(algo_claims)):
+                body_a = algo_claims[i].get("body", "")
+                body_b = algo_claims[j].get("body", "")
+                if not body_a or not body_b:
+                    all_equivalent = False
+                    break
+                bindings_a = helpers._extract_bindings(algo_claims[i])
+                bindings_b = helpers._extract_bindings(algo_claims[j])
+                try:
+                    result = ast_compare(
+                        body_a, bindings_a, body_b, bindings_b,
+                        known_values=known_values if known_values else None,
+                    )
+                except Exception:
+                    all_equivalent = False
+                    break
+                if not result.equivalent:
+                    all_equivalent = False
+                    break
+            if not all_equivalent:
+                break
+
+        if all_equivalent:
+            return ValueResult(concept_id=concept_id, status="determined", claims=algo_claims)
+        return ValueResult(concept_id=concept_id, status="conflicted", claims=algo_claims)
+
+    # Standard value-based resolution
+    values = set()
+    for c in active:
+        v = c.get("value")
+        if v is not None:
+            values.add(v)
+
+    if not values:
+        return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
+
+    if len(values) == 1:
+        return ValueResult(concept_id=concept_id, status="determined", claims=active)
+
+    return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+
+
 class BoundWorld:
     """The world under specific condition bindings."""
 
@@ -651,93 +736,7 @@ class BoundWorld:
 
     def value_of(self, concept_id: str) -> ValueResult:
         active = self.active_claims(concept_id)
-        if not active:
-            return ValueResult(concept_id=concept_id, status="no_claims")
-
-        # Separate algorithm claims from value-bearing claims
-        algo_claims = [c for c in active if c.get("type") == "algorithm"]
-        value_claims = [c for c in active if c.get("type") != "algorithm"]
-
-        # If we have both algorithm and non-algorithm claims, they live in
-        # separate channels — algorithms provide procedural knowledge,
-        # parameter claims provide declarative values. Resolve value claims only.
-        if value_claims and algo_claims:
-            # Mixed: resolve based on value claims only (algorithms are separate channel)
-            values = set()
-            for c in value_claims:
-                v = c.get("value")
-                if v is not None:
-                    values.add(v)
-            if not values:
-                return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
-            if len(values) == 1:
-                return ValueResult(concept_id=concept_id, status="determined", claims=active)
-            return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
-
-        # Algorithm-only claims
-        if algo_claims and not value_claims:
-            if len(algo_claims) == 1:
-                # Single algorithm — it IS the value
-                return ValueResult(concept_id=concept_id, status="determined", claims=algo_claims)
-
-            # Multiple algorithms — compare pairwise using Tier 3
-            # Collect variable concepts from all algorithm claims
-            all_var_concepts: set[str] = set()
-            for ac in algo_claims:
-                all_var_concepts.update(self._extract_variable_concepts(ac))
-            # Remove self-references
-            all_var_concepts.discard(concept_id)
-
-            # Collect known values for partial evaluation
-            known_values = self._collect_known_values(list(all_var_concepts))
-
-            # Compare all pairs
-            all_equivalent = True
-            for i in range(len(algo_claims)):
-                for j in range(i + 1, len(algo_claims)):
-                    body_a = algo_claims[i].get("body", "")
-                    body_b = algo_claims[j].get("body", "")
-                    if not body_a or not body_b:
-                        all_equivalent = False
-                        break
-
-                    bindings_a = self._extract_bindings(algo_claims[i])
-                    bindings_b = self._extract_bindings(algo_claims[j])
-
-                    try:
-                        result = ast_compare(
-                            body_a, bindings_a, body_b, bindings_b,
-                            known_values=known_values if known_values else None,
-                        )
-                    except Exception:
-                        all_equivalent = False
-                        break
-
-                    if not result.equivalent:
-                        all_equivalent = False
-                        break
-                if not all_equivalent:
-                    break
-
-            if all_equivalent:
-                return ValueResult(concept_id=concept_id, status="determined", claims=algo_claims)
-            return ValueResult(concept_id=concept_id, status="conflicted", claims=algo_claims)
-
-        # No algorithm claims — standard value-based resolution
-        values = set()
-        for c in active:
-            v = c.get("value")
-            if v is not None:
-                values.add(v)
-
-        if not values:
-            # No value-bearing claims (e.g. only observations/equations)
-            return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
-
-        if len(values) == 1:
-            return ValueResult(concept_id=concept_id, status="determined", claims=active)
-
-        return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+        return _value_of_from_active(active, concept_id, self)
 
     def derived_value(
         self,
@@ -909,81 +908,7 @@ class HypotheticalWorld:
 
     def value_of(self, concept_id: str) -> ValueResult:
         active = self.active_claims(concept_id)
-        if not active:
-            return ValueResult(concept_id=concept_id, status="no_claims")
-
-        # Separate algorithm claims from value-bearing claims
-        algo_claims = [c for c in active if c.get("type") == "algorithm"]
-        value_claims = [c for c in active if c.get("type") != "algorithm"]
-
-        # Mixed: algorithms are separate channel, resolve value claims only
-        if value_claims and algo_claims:
-            values = set()
-            for c in value_claims:
-                v = c.get("value")
-                if v is not None:
-                    values.add(v)
-            if not values:
-                return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
-            if len(values) == 1:
-                return ValueResult(concept_id=concept_id, status="determined", claims=active)
-            return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
-
-        # Algorithm-only claims
-        if algo_claims and not value_claims:
-            if len(algo_claims) == 1:
-                return ValueResult(concept_id=concept_id, status="determined", claims=algo_claims)
-
-            # Multiple algorithms — compare pairwise using ast_compare
-            all_var_concepts: set[str] = set()
-            for ac in algo_claims:
-                all_var_concepts.update(self._base._extract_variable_concepts(ac))
-            all_var_concepts.discard(concept_id)
-
-            known_values = self._base._collect_known_values(list(all_var_concepts))
-
-            all_equivalent = True
-            for i in range(len(algo_claims)):
-                for j in range(i + 1, len(algo_claims)):
-                    body_a = algo_claims[i].get("body", "")
-                    body_b = algo_claims[j].get("body", "")
-                    if not body_a or not body_b:
-                        all_equivalent = False
-                        break
-                    bindings_a = self._base._extract_bindings(algo_claims[i])
-                    bindings_b = self._base._extract_bindings(algo_claims[j])
-                    try:
-                        result = ast_compare(
-                            body_a, bindings_a, body_b, bindings_b,
-                            known_values=known_values if known_values else None,
-                        )
-                    except Exception:
-                        all_equivalent = False
-                        break
-                    if not result.equivalent:
-                        all_equivalent = False
-                        break
-                if not all_equivalent:
-                    break
-
-            if all_equivalent:
-                return ValueResult(concept_id=concept_id, status="determined", claims=algo_claims)
-            return ValueResult(concept_id=concept_id, status="conflicted", claims=algo_claims)
-
-        # Standard value-based resolution
-        values = set()
-        for c in active:
-            v = c.get("value")
-            if v is not None:
-                values.add(v)
-
-        if not values:
-            return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
-
-        if len(values) == 1:
-            return ValueResult(concept_id=concept_id, status="determined", claims=active)
-
-        return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+        return _value_of_from_active(active, concept_id, self._base)
 
     def derived_value(self, concept_id: str) -> DerivedResult:
         """Derive using this hypothetical world's active claims."""
