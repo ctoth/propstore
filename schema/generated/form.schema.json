@@ -56,6 +56,11 @@
         "additionalProperties": false
       }
     },
+    "kind": {
+      "type": "string",
+      "description": "Kind of quantity this form represents.",
+      "enum": ["quantity", "category", "boolean", "structural"]
+    },
     "note": {
       "type": "string",
       "description": "Human-readable note about this form."
