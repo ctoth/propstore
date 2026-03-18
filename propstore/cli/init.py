@@ -10,17 +10,9 @@ from propstore.cli.repository import Repository
 
 
 _FALLBACK_FORMS = (
-    "amplitude_ratio",
     "category",
-    "dimensionless_compound",
-    "duration_ratio",
-    "flow",
-    "flow_derivative",
-    "frequency",
-    "level",
-    "pressure",
+    "boolean",
     "structural",
-    "time",
 )
 
 
@@ -33,7 +25,8 @@ def _seed_forms(forms_dir: Path) -> None:
         return
 
     for form_name in _FALLBACK_FORMS:
-        (forms_dir / f"{form_name}.yaml").write_text(f"name: {form_name}\n")
+        stub = f"name: {form_name}\nkind: {form_name}\ndimensionless: false\n"
+        (forms_dir / f"{form_name}.yaml").write_text(stub)
 
 
 @click.command()
