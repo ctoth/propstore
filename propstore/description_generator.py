@@ -148,27 +148,11 @@ def _describe_algorithm(claim: dict) -> str:
 # Patterns for common CEL equality conditions
 _EQUALITY_RE = re.compile(r"""^(\w+)\s*==\s*(['"])(.+?)\2$""")
 
-# Human-readable labels for known concept names in conditions
-_CONDITION_LABELS = {
-    "voice_quality_type": lambda v: f"{v} voice",
-    "speaker_sex": lambda v: f"{v} speakers",
-    "phonation_type": lambda v: f"{v} phonation",
-    "vowel_height": lambda v: f"{v} vowels",
-    "vowel_backness": lambda v: f"{v} vowels",
-    "speaking_style": lambda v: f"{v} speech",
-    "language": lambda v: v,
-    "context": lambda v: v,
-    "register": lambda v: f"{v} register",
-    "task": lambda v: v,
-}
-
-
 def _format_conditions_prose(conditions: list[str]) -> str:
     """Convert CEL conditions to readable text.
 
-    Simple equality conditions (``concept == 'value'``) are mapped to
-    human-readable labels where the concept name is recognized. Complex
-    conditions pass through as-is.
+    Simple equality conditions (``concept == 'value'``) become
+    ``"value concept_name"``; complex conditions pass through as-is.
 
     Args:
         conditions: List of CEL expression strings.
@@ -181,11 +165,7 @@ def _format_conditions_prose(conditions: list[str]) -> str:
         m = _EQUALITY_RE.match(cond.strip())
         if m:
             concept_name, value = m.group(1), m.group(3)
-            labeler = _CONDITION_LABELS.get(concept_name)
-            if labeler:
-                parts.append(labeler(value))
-            else:
-                parts.append(f"{value} {concept_name}")
+            parts.append(f"{value} {concept_name}")
         else:
             parts.append(cond)
     return ", ".join(parts)
