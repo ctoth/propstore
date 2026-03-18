@@ -1,0 +1,181 @@
+source:
+  paper: Ginsberg_1985_Counterfactuals
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-17"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Contraposition is not valid for counterfactuals: from 'if p then q' we cannot conclude 'if not-q then not-p'."
+    concepts:
+      - counterfactual_reasoning
+      - contraposition
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 2
+      section: "Properties of counterfactuals"
+      quote_fragment: "Contraposition is not necessarily valid for counterfactuals. If we denote the counterfactual, 'if p, then q' by p > q, we cannot conclude ¬q > ¬p from p > q."
+
+  - id: claim2
+    type: observation
+    statement: "Counterfactuals are not transitive: from p > q and q > r we cannot conclude p > r."
+    concepts:
+      - counterfactual_reasoning
+      - transitivity
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 2
+      section: "Properties of counterfactuals"
+      quote_fragment: "Counterfactuals are not necessarily transitive. From p > q and q > r we cannot necessarily conclude p > r."
+
+  - id: claim3
+    type: observation
+    statement: "Counterfactuals are non-monotonic: from p > r we cannot conclude p ∧ q > r (strengthening the antecedent is invalid)."
+    concepts:
+      - counterfactual_reasoning
+      - nonmonotonic_reasoning
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 2
+      section: "Properties of counterfactuals"
+      quote_fragment: "counterfactuals are non-mono tonic. Given p > r, we cannot conclude p ∧ q > r."
+
+  - id: claim4
+    type: observation
+    statement: "A counterfactual p > q is true if and only if q holds uniformly in the most similar possible worlds in which the premise p holds."
+    concepts:
+      - counterfactual_reasoning
+      - possible_worlds
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 2
+      section: "Possible worlds"
+      quote_fragment: "He defines a counterfactual to be true if and only if it holds uniformly in the most similar possible worlds in which the premise holds."
+
+  - id: claim5
+    type: observation
+    statement: "The counterfactual excluded middle (p > q) ∨ (p > ¬q) does not hold in general, as demonstrated by Quine's Caesar examples where both counterfactuals may be valid depending on context."
+    concepts:
+      - counterfactual_reasoning
+      - excluded_middle
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 2
+      section: "Possible worlds"
+      quote_fragment: "This distinction is apparent if we consider the counterfactual excluded middle: (p > q) ∨ (p > ¬q)."
+
+  - id: claim6
+    type: model
+    name: "Three-valued truth function framework for counterfactuals"
+    equations:
+      - "phi : L -> T where T = {t, f, u}"
+      - "cl(phi) <= phi (closure is always less than or equal)"
+      - "phi|_p(q) = cl(theta)(q) where theta has phi(p) replaced by t"
+    parameters:
+      - name: "L"
+        concept: "logical_language"
+        note: "The set of sentences in the language"
+      - name: "T"
+        concept: "truth_values"
+        note: "Three-valued: t (true), f (false), u (unknown)"
+      - name: "V"
+        concept: "sublanguage"
+        note: "Subset of L encoding context-dependent information"
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 3
+      section: "Framework"
+
+  - id: claim7
+    type: observation
+    statement: "A consistent truth function is reduced if and only if it is closed."
+    concepts:
+      - truth_function
+      - logical_closure
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 3
+      section: "Framework"
+      quote_fragment: "A consistent truth function φ is reduced if and only if it is closed."
+    notes: "Lemma 3 in the paper. A truth function is reduced if all of its simple extensions are consistent."
+
+  - id: claim8
+    type: observation
+    statement: "No extension of an inconsistent truth function is consistent."
+    concepts:
+      - truth_function
+      - consistency
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 3
+      section: "Framework"
+      quote_fragment: "No extension of an inconsistent truth function is consistent."
+    notes: "Lemma 1 in the paper."
+
+  - id: claim9
+    type: observation
+    statement: "The three-valued truth function construction with closure and sublanguage selection is formally identical to Lewis's possible world interpretation of counterfactuals."
+    concepts:
+      - counterfactual_reasoning
+      - possible_worlds
+      - truth_function
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 5
+      section: "Similarity"
+      quote_fragment: "With the above definition, our construction is formally identical to Lewis' possible world interpretation."
+    notes: "Theorem 4 in the paper. Proof by reference to [3] (Ginsberg 1984 tech report)."
+
+  - id: claim10
+    type: observation
+    statement: "Counterfactual reasoning subsumes the minimal fault assumption used in automated diagnosis: device assumptions can be recast as counterfactual assumptions, and diagnosis proceeds by examining counterfactual consequences of observed misbehavior."
+    concepts:
+      - counterfactual_reasoning
+      - automated_diagnosis
+      - minimal_fault_assumption
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 6
+      section: "Diagnosis using counterfactuals"
+      quote_fragment: "Both of these conditions can be recast naturally in the framework of counterfactuals."
+
+  - id: claim11
+    type: observation
+    statement: "In a full adder diagnosis scenario with one faulty exclusive-or gate, counterfactual analysis correctly identifies that one of the two XOR gates must be faulty while the AND and OR gates are functioning correctly."
+    concepts:
+      - automated_diagnosis
+      - counterfactual_reasoning
+    conditions:
+      - "device == 'full_adder'"
+      - "fault_type == 'single_gate'"
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 6
+      section: "Diagnosis using predicate calculus"
+      quote_fragment: "one of the exclusive-or gates must be faulty"
+    notes: "Full adder has 3 inputs, 2 outputs, 5 gates (2 XOR, 2 AND, 1 OR). Structural description uses 17 axioms (SD1-SD17)."
+
+  - id: claim12
+    type: observation
+    statement: "When counterfactual analysis generates a contradiction (the single fault assumption is violated), it automatically produces a new diagnosis involving a minimal set of faulty components rather than failing."
+    concepts:
+      - counterfactual_reasoning
+      - automated_diagnosis
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 7
+      section: "Diagnosis using counterfactuals"
+      quote_fragment: "rather than generating a contradiction, the counterfactual analysis will automatically produce a new diagnosis which once again involves failure for a minimal set of components"
+
+  - id: claim13
+    type: observation
+    statement: "The context-dependent nature of counterfactuals can be formally encoded in the choice of sublanguage V of the logical language L, where V determines which propositions may change under counterfactual reasoning while propositions outside V remain fixed."
+    concepts:
+      - counterfactual_reasoning
+      - context_dependence
+      - sublanguage
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 4
+      section: "Similarity"
+      quote_fragment: "the choice of which to discard corresponded to our choice of φ''"

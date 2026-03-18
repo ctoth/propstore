@@ -1,0 +1,4 @@
+---
+tags: [counterfactuals, nonmonotonic-reasoning, possible-worlds, automated-diagnosis, truth-maintenance]
+---
+Presents a formal framework for counterfactual reasoning ("if p were true, then q") using three-valued truth functions with closure operations, proving equivalence to Lewis's possible worlds semantics while making context dependence explicit through sublanguage selection. Key contributions include the separation of context-dependent and context-independent features of counterfactuals, formal proofs connecting the construction to philosophical accounts, and a demonstration that counterfactual reasoning subsumes the minimal fault assumption in automated diagnosis. Directly relevant to the propstore's assumption-based reasoning architecture, providing the theoretical link between ATMS-style assumption management and counterfactual/hypothetical reasoning.
