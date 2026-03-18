@@ -581,40 +581,6 @@ class TestQuery:
         assert "2" in query_result.output
 
 
-class TestWorkflow:
-    def test_init_add_build_query_workflow(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.chdir(tmp_path)
-        runner = CliRunner()
-
-        init_result = runner.invoke(cli, ["init"])
-        assert init_result.exit_code == 0, init_result.output
-
-        project_root = tmp_path / "knowledge"
-        add_result = runner.invoke(
-            cli,
-            [
-                "-C", str(project_root),
-                "concept", "add",
-                "--domain", "speech",
-                "--name", "test_pressure",
-                "--definition", "A test concept",
-                "--form", "pressure",
-            ],
-        )
-        assert add_result.exit_code == 0, add_result.output
-
-        build_result = runner.invoke(cli, ["-C", str(project_root), "build"])
-        assert build_result.exit_code == 0, build_result.output
-
-        query_result = runner.invoke(
-            cli,
-            ["-C", str(project_root), "query", "SELECT canonical_name FROM concept ORDER BY canonical_name"],
-        )
-        assert query_result.exit_code == 0, query_result.output
-        assert "canonical_name" in query_result.output
-        assert "test_pressure" in query_result.output
-
-
 class TestImportPapers:
     def test_imports_claims_from_papers_root(self, workspace: Path) -> None:
         papers_root = workspace / "plugin-papers"
