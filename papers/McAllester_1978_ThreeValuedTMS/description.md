@@ -1,0 +1,4 @@
+---
+tags: [truth-maintenance, three-valued-logic, dependency-tracking, nonmonotonic-reasoning, backtracking]
+---
+Presents a truth maintenance system where each proposition takes one of three truth states (true, false, unknown) and all logical relations are represented as disjunctive clauses, enabling symmetric deduction of both a value and its negation from the same clause structure. Key contributions include a clause-based contradiction resolution mechanism that generates new clauses encoding deductive paths, dependency-directed backtracking over default assumptions, and elimination of the non-monotonic dependency structures present in Doyle's TMS. This is the "RUP" system referenced by de Kleer (1986) and represents an intermediate design point between Doyle's original TMS and the ATMS in the evolution of truth maintenance systems foundational to the propstore's assumption-tracking architecture.

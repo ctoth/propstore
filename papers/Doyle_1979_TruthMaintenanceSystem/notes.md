@@ -183,7 +183,9 @@ This is the foundational paper for the entire truth maintenance / belief revisio
 ### New Leads (Not Yet in Collection)
 - Stallman and Sussman (1977) — "Forward reasoning and dependency-directed backtracking" — direct predecessor to the TMS
 - McDermott and Doyle (1978) — "Non-monotonic logic I" — formalizes the logic underlying TMS reasoning
-- McAllester (1978, 1980) — "Three-valued truth maintenance system" and "Use of equality in deduction" — alternative TMS designs
+
+### Now in Collection (previously listed as leads)
+- [[McAllester_1978_ThreeValuedTMS]] — Three-valued TMS using disjunctive clause representation with true/false/unknown states. Designed as a simpler alternative to Doyle's TMS: eliminates non-monotonic dependency structures and separate negation nodes. Does not implement conditional proofs but achieves similar non-monotonic power through clause-based contradiction resolution and default backtracking.
 
 ### Supersedes or Recontextualizes
 - (none)
