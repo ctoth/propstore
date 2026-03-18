@@ -1,0 +1,177 @@
+source:
+  paper: Doyle_1979_TruthMaintenanceSystem
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-17"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A node is in the current set of beliefs (in) if and only if at least one justification in its justification-set is well-founded valid."
+    concepts:
+      - support_status
+      - well_founded_justification
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 8
+      section: "2.1 States of belief"
+      quote_fragment: "a node which has at least one valid justification is in"
+
+  - id: claim2
+    type: observation
+    statement: "A support-list justification (SL <inlist> <outlist>) is valid if and only if each node in its inlist is in and each node in its outlist is out."
+    concepts:
+      - sl_justification
+      - justification_validity
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 9
+      section: "2.3 Support-list justifications"
+      quote_fragment: "is valid if and only if each node in its inlist is in, and each node in its outlist is out"
+
+  - id: claim3
+    type: observation
+    statement: "The well-founded supporting justification of each in node must be non-circular: the node must not appear in its own foundations via the supporting-justification chain."
+    concepts:
+      - well_founded_justification
+      - circular_argument
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 14
+      section: "3.1 Circular arguments"
+      quote_fragment: "the algorithms of the TMS must ensure that it believes no node for circular reasons"
+
+  - id: claim4
+    type: model
+    name: "Truth Maintenance Process"
+    equations:
+      - "Step 1: Add justification to node's justification-set"
+      - "Step 2: Update beliefs by checking affected-consequences"
+      - "Step 3: Mark nodes with nil support-status"
+      - "Step 4: Evaluate justifications (well-founded check)"
+      - "Step 5: Relax circularities (constraint relaxation)"
+      - "Step 6: Check CP-justifications and contradictions"
+      - "Step 7: Signal changes to user program"
+    parameters:
+      - name: "justification-set"
+        concept: "justification_set"
+        note: "The set of all justifications for a node"
+      - name: "support-status"
+        concept: "support_status"
+        note: "in, out, or nil (during maintenance)"
+      - name: "supporting-justification"
+        concept: "supporting_justification"
+        note: "The single selected well-founded justification for each in node"
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 16
+      section: "3.2 The truth maintenance process"
+
+  - id: claim5
+    type: model
+    name: "Dependency-Directed Backtracking"
+    equations:
+      - "Step 1: Find maximal assumptions S = {A_1, ..., A_n} in foundations of contradiction C"
+      - "Step 2: Create nogood NG representing inconsistency, justify with (CP C S ())"
+      - "Step 3: Select culprit A_i from S, select denial D_j, justify with (SL (NG A_1...A_{i-1} A_{i+1}...A_n)(D_1...D_{j-1} D_{j+1}...D_k))"
+      - "Step 4: Repeat if contradiction C remains in"
+    parameters:
+      - name: "maximal assumptions"
+        concept: "maximal_assumptions"
+        note: "Set S of assumptions found by tracing foundations of contradiction"
+      - name: "nogood"
+        concept: "nogood"
+        note: "Node representing the inconsistency of a set of assumptions"
+      - name: "culprit"
+        concept: "culprit_assumption"
+        note: "The assumption selected for retraction from S"
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 20
+      section: "4. Dependency-Directed Backtracking"
+
+  - id: claim6
+    type: observation
+    statement: "Dependency-directed backtracking operates only on the reasons for beliefs, not on the form or content of the beliefs themselves, making it the least specialized revision procedure."
+    concepts:
+      - dependency_directed_backtracking
+      - belief_revision
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 5
+      section: "1.1 The essence of the theory"
+      quote_fragment: "it only operates on the reasons for beliefs, not on the form or content of the beliefs"
+
+  - id: claim7
+    type: observation
+    statement: "The current implementation picks the culprit and denial randomly from alternatives during dependency-directed backtracking, relying on blind search, which is inadequate for all but the simplest problems."
+    concepts:
+      - culprit_selection
+      - backtracking_strategy
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 22
+      section: "4. Dependency-Directed Backtracking"
+      quote_fragment: "picks the culprit and denial alternatives randomly from the alternatives, and so relies on blind search"
+
+  - id: claim8
+    type: observation
+    statement: "Non-monotonic justifications (SL-justifications with non-empty outlists) enable encoding of default assumptions, commonsense reasoning, and the frame problem within the TMS framework."
+    concepts:
+      - non_monotonic_justification
+      - default_reasoning
+      - frame_problem
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 5
+      section: "1.1 The essence of the theory"
+      quote_fragment: "Commonsense default expectations we represent as new-style assumptions"
+
+  - id: claim9
+    type: observation
+    statement: "The TMS makes binary statements about belief status (in/out), treating incompleteness as exact rather than inexact, and has no non-trivial grading of beliefs."
+    concepts:
+      - support_status
+      - belief_grading
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 38
+      section: "10. Discussion"
+      quote_fragment: "the TMS has no non-trivial grading of beliefs"
+
+  - id: claim10
+    type: observation
+    statement: "Control information can be embedded in patterns of non-monotonic justifications, encoding default assumptions, sequences of alternatives, and equivalence class representatives as assumption structures."
+    concepts:
+      - control_structure
+      - assumption_pattern
+      - default_assumption
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 30
+      section: "8. Assumptions and the Problem of Control"
+      quote_fragment: "encode some control information into the set of justifications for beliefs"
+
+  - id: claim11
+    type: observation
+    statement: "Arguments can be summarized by using conditional-proof justifications to subtract low-level details, creating explanations that depend only on high-level nodes."
+    concepts:
+      - summarizing_argument
+      - conditional_proof_justification
+      - explanation
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 22
+      section: "5. Summarizing Arguments"
+      quote_fragment: "summarize the arguments and explanations recorded in the TMS by using conditional-proofs to subtract nodes"
+
+  - id: claim12
+    type: observation
+    statement: "Problem solvers can be organized as dialectical arguers: modular components that argue for and against conclusions, with the TMS accumulating arguments additively and never discarding them."
+    concepts:
+      - dialectical_argumentation
+      - modular_problem_solving
+    provenance:
+      paper: Doyle_1979_TruthMaintenanceSystem
+      page: 26
+      section: "6. Dialectical Arguments"
+      quote_fragment: "the belief system becomes additive. The system never discards arguments, but accumulates them"

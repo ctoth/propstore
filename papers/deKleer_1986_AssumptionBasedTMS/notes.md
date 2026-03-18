@@ -196,8 +196,10 @@ This is the foundational paper for the ATMS, which is the core inference substra
 ### Already in Collection
 - [[deKleer_1986_ProblemSolvingATMS]] — companion paper in same journal issue; builds the problem-solving architecture (consumers, scheduling, constraint language, control disjunctions) on top of the ATMS substrate defined here
 
+### Now in Collection (previously listed as leads)
+- [[Doyle_1979_TruthMaintenanceSystem]] — The original justification-based TMS that the ATMS replaces. Introduces support-list and conditional-proof justifications, the truth maintenance process, dependency-directed backtracking with nogoods, and control patterns for defaults and alternatives. The ATMS addresses all seven limitations cataloged in Section 3 of this paper.
+
 ### New Leads (Not Yet in Collection)
-- Doyle (1979) — "A truth maintenance system" — the original justification-based TMS that the ATMS replaces
 - de Kleer (1986) — "Extending the ATMS" — extends the basic ATMS with default reasoning, disjunction axioms, propositional expressions
 - Reiter (1980) — "A logic for default reasoning" — formal framework for the kind of nonmonotonic reasoning the ATMS supports
 - Stallman and Sussman (1977) — "Forward reasoning and dependency-directed backtracking" — early dependency tracking that the ATMS builds upon
