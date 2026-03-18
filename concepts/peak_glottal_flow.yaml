@@ -1,9 +1,0 @@
-id: concept14
-canonical_name: peak_glottal_flow
-status: proposed
-definition: Maximum volume velocity through the glottis during the open phase of a
-  vibratory cycle. Determines the amplitude of the fundamental frequency region of
-  the source spectrum.
-domain: speech
-created_date: '2026-03-15'
-form: flow

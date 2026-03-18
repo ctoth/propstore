@@ -1,8 +1,0 @@
-id: concept10
-canonical_name: return_phase_time_constant
-status: proposed
-definition: Effective duration of the exponential return phase after glottal closure
-  in the LF model. Controls spectral tilt via the relationship Fa = 1/(2*pi*Ta).
-domain: speech
-created_date: '2026-03-15'
-form: time

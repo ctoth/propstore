@@ -1,9 +1,0 @@
-id: concept12
-canonical_name: glottal_formant_frequency
-status: proposed
-definition: 'Frequency of the spectral maximum in the glottal flow derivative spectrum,
-  arising from the resonance of the open-phase pulse shape. Inversely proportional
-  to Oq: Fg ~ F0/Oq.'
-domain: speech
-created_date: '2026-03-15'
-form: frequency
