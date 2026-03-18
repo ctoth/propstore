@@ -1,0 +1,217 @@
+source:
+  paper: Falkenhainer_1987_BeliefMaintenanceSystem
+  extraction_model: "claude-opus-4-6-20250317"
+  extraction_date: "2026-03-17"
+
+claims:
+  - id: claim1
+    type: parameter
+    concept: propagation_delta_threshold
+    value: 0.001
+    unit: "-"
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 3
+      section: "2.4 Control"
+      quote_fragment: "A threshold value, 'propagation-delta', is defined so that, when the change to a node's positive and negative beliefs are less than the threshold, the system will not continue to propagate changes past this node. The default threshold is 10^-3."
+    notes: "Terminates belief propagation early when changes are sufficiently small. Referenced from Ginsberg, 1985a."
+
+  - id: claim2
+    type: equation
+    expression: "(a\\;b) \\oplus (c\\;d) = \\left(1 - \\frac{\\bar{a}\\bar{c}}{1-(ad+bc)},\\; 1 - \\frac{\\bar{b}\\bar{d}}{1-(ad+bc)}\\right)"
+    sympy: "(1 - (1-a)*(1-c)/(1-(a*d+b*c)), 1 - (1-b)*(1-d)/(1-(a*d+b*c)))"
+    variables:
+      - symbol: "a"
+        concept: belief_positive_source1
+        role: independent
+      - symbol: "b"
+        concept: belief_negative_source1
+        role: independent
+      - symbol: "c"
+        concept: belief_positive_source2
+        role: independent
+      - symbol: "d"
+        concept: belief_negative_source2
+        role: independent
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 1
+      section: "2.1 Overview of Dempster-Shafer Theory"
+      quote_fragment: "This allows the derivation of a simplified version of Dempster's formula (Prade, 1983; Ginsberg, 1984)"
+    notes: "Simplified Dempster's combination rule for two-valued case where frame of discernment is {A, not-A}. a-bar means (1-a)."
+
+  - id: claim3
+    type: equation
+    expression: "(a\\;b) - (c\\;d) = \\left(\\frac{\\bar{c}(a\\bar{d} - \\bar{b}\\bar{c})}{\\bar{c}d - b\\bar{c}\\bar{c} - \\bar{a}\\bar{d}\\bar{d}},\\; \\frac{\\bar{d}(b\\bar{c} - \\bar{a}\\bar{d})}{\\bar{c}d - b\\bar{c}\\bar{c} - \\bar{a}\\bar{d}\\bar{d}}\\right)"
+    sympy: "((1-c)*(a*(1-d)-(1-b)*(1-c))/((1-c)*d - b*(1-c)*(1-c) - (1-a)*(1-d)*(1-d)), (1-d)*(b*(1-c)-(1-a)*(1-d))/((1-c)*d - b*(1-c)*(1-c) - (1-a)*(1-d)*(1-d)))"
+    variables:
+      - symbol: "a"
+        concept: belief_positive_combined
+        role: independent
+      - symbol: "b"
+        concept: belief_negative_combined
+        role: independent
+      - symbol: "c"
+        concept: belief_positive_to_subtract
+        role: independent
+      - symbol: "d"
+        concept: belief_negative_to_subtract
+        role: independent
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 1
+      section: "2.1 Overview of Dempster-Shafer Theory"
+      quote_fragment: "It also allows us to formulate an inverse function for subtracting evidence (Ginsberg, 1984)"
+    notes: "Inverse of Dempster's rule for subtracting one evidence source from a combined belief. Used by invertible support links."
+
+  - id: claim4
+    type: equation
+    expression: "(\\text{not } A)_{[s,p]} = A_{[1-p, 1-s]}"
+    sympy: "(1-p, 1-s)"
+    variables:
+      - symbol: "s"
+        concept: belief_support
+        role: independent
+      - symbol: "p"
+        concept: belief_plausibility
+        role: independent
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 2
+      section: "2.2 A Logic of Beliefs"
+      quote_fragment: "Because Dempster-Shafer theory allows us to express belief for and belief against in a single probability interval, (not A) and A can simply be stored as the same proposition, A"
+    notes: "NOT simply swaps and inverts the interval endpoints."
+
+  - id: claim5
+    type: equation
+    expression: "(A \\& B \\& C)_{[\\max(s_A + s_B + s_C - 2, 0),\\; \\min(s_A, s_B, s_C)]}"
+    sympy: "(Max(s_A + s_B + s_C - 2, 0), Min(s_A, s_B, s_C))"
+    variables:
+      - symbol: "s_A"
+        concept: belief_support_a
+        role: independent
+      - symbol: "s_B"
+        concept: belief_support_b
+        role: independent
+      - symbol: "s_C"
+        concept: belief_support_c
+        role: independent
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 2
+      section: "2.2 A Logic of Beliefs"
+      quote_fragment: "The -2 term represents (1 - cardinality(conjuncts))."
+    notes: "AND combination formula from Garvey et al, 1981. The constant term generalizes to (1 - n) for n conjuncts."
+
+  - id: claim6
+    type: equation
+    expression: "(A \\vee B)_{[\\max(s_A, s_B),\\; \\max(0, p_A + p_B - 1)]}"
+    sympy: "(Max(s_A, s_B), Max(0, p_A + p_B - 1))"
+    variables:
+      - symbol: "s_A"
+        concept: belief_support_a
+        role: independent
+      - symbol: "s_B"
+        concept: belief_support_b
+        role: independent
+      - symbol: "p_A"
+        concept: belief_plausibility_a
+        role: independent
+      - symbol: "p_B"
+        concept: belief_plausibility_b
+        role: independent
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 2
+      section: "2.2 A Logic of Beliefs"
+      quote_fragment: "The belief in OR is the maximum of the individual beliefs (Garvey et al, 1981)"
+    notes: "OR combination formula from Garvey et al, 1981."
+
+  - id: claim7
+    type: observation
+    statement: "The BMS reduces to standard TMS behavior when all beliefs are absolute (0 or 1), replacing infinite-valued logic with three-valued logic."
+    concepts:
+      - belief_maintenance_system
+      - truth_maintenance_system
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 1
+      section: "1. Introduction"
+      quote_fragment: "replacing its 3-valued logic (true, false, unknown) with an infinite-valued logic, in such a way as to reduce to a standard TMS if all statements are given in absolute true/false terms"
+
+  - id: claim8
+    type: observation
+    statement: "In a TMS architecture, only one justification is needed to establish truth, but in a probabilistic architecture each source of support adds to the overall belief via Dempster's rule."
+    concepts:
+      - belief_combination
+      - dempster_rule
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 3
+      section: "2.4 Control"
+      quote_fragment: "In a TMS architecture, only one justification is needed to establish truth. Any independent justifications are extraneous. Using a probabilistic architecture, each source of support adds to the node's overall belief."
+
+  - id: claim9
+    type: observation
+    statement: "Combining two contradicting absolute beliefs (1 0) and (0 1) via Dempster's rule produces the same result as a TMS detecting a contradiction, and the system signals the contradiction to the user."
+    concepts:
+      - contradiction_detection
+      - belief_maintenance_system
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 3
+      section: "2.4 Control"
+      quote_fragment: "If one tries to combine two contradicting, absolute beliefs, (1 0) ⊕ (0 1), the system would simply detect the attempt and signal a contradiction in the same way that a TMS would."
+
+  - id: claim10
+    type: observation
+    statement: "Circular support structures in the BMS cause evidence amplification along the loop and are currently handled by signaling an error rather than attempting resolution."
+    concepts:
+      - circular_support
+      - belief_propagation
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 3
+      section: "2.4.1 New Control Issues"
+      quote_fragment: "Circular support structures like that of Figure 2 cause a number of problems for belief maintenance. Because of these problems, the current implementation requires that no such structures exist and it will signal an error if one is discovered."
+
+  - id: claim11
+    type: observation
+    statement: "The BMS handles non-monotonic reasoning by allowing probabilistic belief intervals (e.g., 90-95% of birds fly) rather than requiring special default logic mechanisms."
+    concepts:
+      - non_monotonic_reasoning
+      - belief_maintenance_system
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 4
+      section: "2.5 User Support"
+      quote_fragment: "a belief maintenance system is able to handle non-monotonic reasoning much more elegantly than a two or three valued logic is able to"
+
+  - id: claim12
+    type: observation
+    statement: "The BMS rule engine supports three trigger types: :INTERN (fires on new facts), BELIEF+ (fires when support exceeds threshold), and BELIEF- (fires when support against exceeds threshold)."
+    concepts:
+      - rule_engine
+      - belief_maintenance_system
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 4
+      section: "2.6 Rule Engine"
+      quote_fragment: "There are three types of rule triggers. The :INTERN trigger causes the rule to fire each time a new fact is added to the knowledge base... The BELIEF+ trigger causes the rule to fire each time the support in favor of its pattern first exceeds the specified value. A BELIEF- rule fires when the support against its pattern exceeds the specified value."
+
+  - id: claim13
+    type: model
+    name: "Match hypothesis evidence scoring"
+    equations:
+      - "evidence(same-functor) = 0.5"
+    parameters:
+      - name: "same-functor evidence"
+        concept: match_hypothesis_evidence
+        note: "When two items are facts with the same functor, 0.5 evidence is supplied in favor of the match hypothesis"
+    provenance:
+      paper: Falkenhainer_1987_BeliefMaintenanceSystem
+      page: 5
+      section: "3.1 Rule-Based Pattern Matching"
+      figure: "Figure 3"
+      quote_fragment: "If the two items are facts and their functors are the same, then supply 0.5 evidence in favor of the match hypothesis."
+    notes: "Match hypothesis evidence values in Figure 3 range from 0.632 to 0.932 after running all evidence rules."
