@@ -115,7 +115,7 @@ class TestInit:
         result = runner.invoke(cli, ["init"])
         assert result.exit_code == 0, result.output
         assert (tmp_path / "knowledge" / "forms").is_dir()
-        assert (tmp_path / "knowledge" / "forms" / "pressure.yaml").exists()
+        assert (tmp_path / "knowledge" / "forms" / "category.yaml").exists()
 
     def test_fresh_project_can_add_concept(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.chdir(tmp_path)
@@ -127,14 +127,14 @@ class TestInit:
         add_result = runner.invoke(cli, [
             "-C", str(tmp_path / "knowledge"),
             "concept", "add",
-            "--domain", "speech",
-            "--name", "test_pressure",
+            "--domain", "test",
+            "--name", "test_structural",
             "--definition", "A test concept",
-            "--form", "pressure",
+            "--form", "structural",
         ])
         assert add_result.exit_code == 0, add_result.output
         assert "Created" in add_result.output
-        assert (tmp_path / "knowledge" / "concepts" / "test_pressure.yaml").exists()
+        assert (tmp_path / "knowledge" / "concepts" / "test_structural.yaml").exists()
 
 
 # ── concept add ──────────────────────────────────────────────────────
