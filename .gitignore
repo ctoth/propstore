@@ -11,7 +11,7 @@ schema/generated/
 uv.lock
 prompts/
 reports/
-notes.md
+/notes.md
 prompt.md
 cli-prompt.md
 main.py
