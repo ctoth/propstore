@@ -1,0 +1,4 @@
+---
+tags: [qualitative-reasoning, qualitative-physics, confluences, causal-reasoning, truth-maintenance]
+---
+Presents a complete framework for qualitative reasoning about physical devices using confluences (qualitative differential equations over {+, 0, -} values), qualitative states, and a qualitative calculus with versions of continuity, Rolle's theorem, and the mean value theorem. The paper introduces the ENVISION program that derives behavioral predictions and causal explanations from device topology and generic component models, establishing foundational principles (no-function-in-structure, locality, class-wide assumptions, mythical causality) for the qualitative physics that later motivated the development of the assumption-based truth maintenance system. Directly relevant as the theoretical predecessor to de Kleer's ATMS work, providing the ontological framework of multiple interpretations and component-based reasoning that the ATMS was designed to support.
