@@ -1,0 +1,255 @@
+source:
+  paper: Reiter_1980_DefaultReasoning
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-17"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Every closed normal default theory has at least one extension."
+    concepts:
+      - normal_default
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 15
+      section: "3.1 Closed normal default theories"
+      quote_fragment: "Every closed normal default theory has an extension."
+    notes: "Theorem 3.1. The proof constructs an extension by iteratively selecting maximal consistent sets of consequents."
+
+  - id: claim2
+    type: observation
+    statement: "If a closed normal default theory (D,W) has distinct extensions E and F, then E union F is inconsistent."
+    concepts:
+      - normal_default
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 18
+      section: "3.1 Closed normal default theories"
+      quote_fragment: "If a closed normal default theory (D,W) has distinct extensions E and F then E union F is inconsistent."
+    notes: "Theorem 3.3 (Orthogonality of Extensions). One cannot simultaneously hold beliefs from two distinct extensions without contradiction."
+
+  - id: claim3
+    type: observation
+    statement: "A consistent closed normal default theory such that W union CONSEQUENTS(D) is consistent has a unique extension."
+    concepts:
+      - normal_default
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 18
+      section: "3.1 Closed normal default theories"
+      quote_fragment: "Suppose Delta = (D,W) is a closed normal default theory such that W union CONSEQUENTS(D) is consistent. Then Delta has a unique extension."
+    notes: "Corollary 3.4. This is the common case in practice where all defaults are mutually compatible."
+
+  - id: claim4
+    type: observation
+    statement: "The number of extensions of a closed normal default theory is monotone non-decreasing under the addition of closed normal defaults."
+    concepts:
+      - normal_default
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 19
+      section: "3.1 Closed normal default theories"
+      quote_fragment: "The number of extensions of a closed normal default theory is monotone non-decreasing under the addition of normal defaults."
+    notes: "Theorem 3.5 combined with Remark after it. Adding defaults can split existing extensions but never eliminate them."
+
+  - id: claim5
+    type: observation
+    statement: "For a consistent closed normal default theory, a closed wff beta is in some extension E if and only if beta has a default proof with respect to Delta."
+    concepts:
+      - normal_default
+      - extension
+      - default_proof
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 23
+      section: "4. Proof Theory: Closed Normal Default Theories"
+      quote_fragment: "Let beta be a closed wff. A consistent closed normal default theory Delta has an extension E such that beta in E iff beta has a default proof with respect to Delta."
+    notes: "Theorem 4.8 (Completeness). This establishes the completeness of the default proof theory for normal defaults."
+
+  - id: claim6
+    type: observation
+    statement: "The extension membership problem for closed normal default theories is not semi-decidable."
+    concepts:
+      - normal_default
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 24
+      section: "4.2 The extension membership problem"
+      quote_fragment: "The extension membership problem for closed normal default theories is not semi-decidable."
+    notes: "Theorem 4.9. This means the set of beliefs in an arbitrary extension is not recursively enumerable --- a fundamental computational limitation."
+
+  - id: claim7
+    type: observation
+    statement: "An extension E of a closed default theory (D,W) satisfies E = Th_L(W union CONSEQUENTS(GD(E, Delta)))."
+    concepts:
+      - extension
+      - generating_defaults
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 12
+      section: "2. Default Theories and their Extensions"
+      quote_fragment: "Suppose E is an extension for a closed default theory Delta = (D,W). Then E = Th_L(W union CONSEQUENTS(GD(E, Delta)))"
+    notes: "Theorem 2.5. An extension is exactly the deductive closure of W together with the consequents of the generating defaults."
+
+  - id: claim8
+    type: observation
+    statement: "If E and F are extensions for a closed default theory (D,W) and E is a subset of F, then E = F."
+    concepts:
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 12
+      section: "2. Default Theories and their Extensions"
+      quote_fragment: "If E and F are extensions for a closed default theory (D,W) and if E is a subset of F, then E = F."
+    notes: "Theorem 2.4 (Minimality of Extensions). No extension is properly contained in another."
+
+  - id: claim9
+    type: observation
+    statement: "A closed default theory (D,W) has an inconsistent extension if and only if W is inconsistent."
+    concepts:
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 11
+      section: "2. Default Theories and their Extensions"
+      quote_fragment: "A closed default theory (D, W) has an inconsistent extension iff W is inconsistent."
+    notes: "Corollary 2.2. If W is consistent, all extensions are consistent."
+
+  - id: claim10
+    type: observation
+    statement: "If a closed default theory has an inconsistent extension then this is its only extension."
+    concepts:
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 11
+      section: "2. Default Theories and their Extensions"
+      quote_fragment: "If a closed default theory has an inconsistent extension then this is its only extension."
+    notes: "Corollary 2.3."
+
+  - id: claim11
+    type: observation
+    statement: "There exist closed default theories with no extensions."
+    concepts:
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 11
+      section: "2. Default Theories and their Extensions"
+      quote_fragment: "This theory has no extension."
+    notes: "Example 2.6: D = {:MA / neg A}, W = empty set. The self-defeating default prevents any fixed point."
+
+  - id: claim12
+    type: observation
+    statement: "Default theories are non-monotonic in both D and W: augmenting either the set of defaults or the axioms can change the set of extensions."
+    concepts:
+      - extension
+      - nonmonotonic_reasoning
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 17
+      section: "3. Normal Default Theories"
+      quote_fragment: "Now default theories (D,W) in general are non-monotonic in both D and W."
+    notes: "This is the fundamental property that distinguishes default logic from classical first-order logic."
+
+  - id: claim13
+    type: observation
+    statement: "Semi-monotonicity holds for normal defaults: if D' is a subset of D and both are sets of closed normal defaults, and E' is an extension for (D',W), then (D,W) has an extension E such that E' is a subset of E."
+    concepts:
+      - normal_default
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 16
+      section: "3.1 Closed normal default theories"
+      quote_fragment: "Suppose D and D' are sets of closed normal defaults with D' a subset of D. Let E' be an extension for the closed normal default theory Delta' = (D',W). Then Delta has an extension E such that (1) E' is a subset of E and (2) GD(E', Delta') is a subset of GD(E, Delta)."
+    notes: "Theorem 3.2 (Semi-monotonicity). Extensions can only grow or split when normal defaults are added."
+
+  - id: claim14
+    type: observation
+    statement: "For the closed world assumption, the default schema :M neg R(x1,...,xn) / neg R(x1,...,xn) for each n-ary relation R formalizes the assumption that any ground atom not provable from W is false."
+    concepts:
+      - closed_world_assumption
+      - normal_default
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 4
+      section: "1.1.3 The closed world assumption"
+      quote_fragment: "If this default is in force for all relations R of some domain, then reasoning is being done under the closed world assumption."
+    notes: "The closed world assumption is a special case of normal default logic, showing that default logic subsumes database query answering under CWA."
+
+  - id: claim15
+    type: observation
+    statement: "The extension membership problem is decidable for the sentential case (each alpha and w is a sentential wff) and for the monadic predicate calculus."
+    concepts:
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 25
+      section: "4.2 The extension membership problem"
+      quote_fragment: "this problem is decidable for the sentential case, i.e. when each alpha and w and each formula of W is a sentential wff. It is also decidable in the monadic case"
+    notes: "These are the only known decidable subclasses mentioned in the paper."
+
+  - id: claim16
+    type: model
+    name: "Default Logic"
+    equations:
+      - "Gamma(S) = smallest set satisfying D1-D3"
+      - "E is an extension iff Gamma(E) = E"
+      - "E = union_{i=0}^{inf} E_i where E_0 = W and E_{i+1} = Th_L(E_i) union {w | alpha:Mbeta_1,...,Mbeta_m/w in D, alpha in E_i, neg beta_j not in E}"
+    parameters:
+      - name: "W"
+        concept: "first_order_axioms"
+        note: "Set of first-order wffs representing known facts about the world"
+      - name: "D"
+        concept: "default_rules"
+        note: "Set of default rules, each with prerequisite, justifications, and consequent"
+      - name: "E"
+        concept: "extension"
+        note: "A fixed point of Gamma --- a maximal consistent set of beliefs under the defaults"
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 9
+      section: "2. Default Theories and their Extensions"
+
+  - id: claim17
+    type: observation
+    statement: "Top-down default proofs provide a computationally coherent method for determining default beliefs: at each stage the goal wff or PREREQUISITES guides the selection of defaults to invoke, avoiding enumeration of all defaults."
+    concepts:
+      - default_proof
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 31
+      section: "5. Top Down Default Proofs"
+      quote_fragment: "Top down default proofs provide a coherent method for determining the necessary defaults to invoke in establishing a wff beta."
+    notes: "Theorem 5.1 proves completeness of top-down default proofs for closed normal defaults. This is the practical implementation pathway."
+
+  - id: claim18
+    type: observation
+    statement: "Derived beliefs from a default reasoning program can safely be used as lemmas for deriving new beliefs provided the union of their default supports remains consistent with W."
+    concepts:
+      - belief_revision
+      - default_proof
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 33
+      section: "6.1 Derived beliefs: maintaining a common extension"
+      quote_fragment: "W U union_{i=0}^{n} CONSEQUENTS(DS(P_{beta_i})) is consistent then Delta_0 has an extension E_0 such that {beta_0,...,beta_n} subset E_0."
+    notes: "Theorem 6.1. This is the formal criterion for when belief revision is NOT needed."
+
+  - id: claim19
+    type: observation
+    statement: "Updating a closed normal default theory with new first-order facts cannot invalidate previously derived beliefs whose default supports remain consistent with the updated axiom set."
+    concepts:
+      - belief_revision
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 34
+      section: "6.2 Derived beliefs and the assimilation of new information"
+      quote_fragment: "provided the derived beliefs beta_0,...,beta_n have a common extension in (D,W) then they will continue to have a common extension in (D union D', W)."
+    notes: "Theorem 6.2 and 6.3. New facts (updating W to W union F) or new defaults (updating D to D union D') preserve consistency of derived beliefs when the consistency condition holds."
