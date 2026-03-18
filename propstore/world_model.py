@@ -535,6 +535,82 @@ class WorldModel:
         )
 
 
+def _derived_value_impl(
+    concept_id: str,
+    world: WorldModel,
+    is_param_compatible,
+    value_of_fn,
+    override_values: dict[str, float | str | None] | None = None,
+) -> DerivedResult:
+    """Shared implementation for derived_value() — used by BoundWorld and HypotheticalWorld."""
+    from propstore.propagation import evaluate_parameterization
+
+    params = world._parameterizations_for(concept_id)
+    if not params:
+        return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+    for param in params:
+        if not is_param_compatible(param.get("conditions_cel")):
+            continue
+
+        sympy_expr = param.get("sympy")
+        if not sympy_expr:
+            continue
+
+        input_ids = json.loads(param["concept_ids"])
+        effective_inputs = [iid for iid in input_ids if iid != concept_id]
+
+        input_values: dict[str, float] = {}
+        all_determined = True
+        any_conflicted = False
+
+        for iid in effective_inputs:
+            if override_values and iid in override_values:
+                ov = override_values[iid]
+                if ov is not None:
+                    try:
+                        input_values[iid] = float(ov)
+                        continue
+                    except (TypeError, ValueError):
+                        pass
+
+            vr = value_of_fn(iid)
+            if vr.status == "determined":
+                val = vr.claims[0].get("value") if vr.claims else None
+                if val is not None:
+                    input_values[iid] = float(val)
+                else:
+                    all_determined = False
+            elif vr.status == "conflicted":
+                any_conflicted = True
+                all_determined = False
+            else:
+                all_determined = False
+
+        if any_conflicted:
+            return DerivedResult(concept_id=concept_id, status="conflicted")
+
+        if not all_determined or len(input_values) != len(effective_inputs):
+            continue
+
+        result = evaluate_parameterization(sympy_expr, input_values, concept_id)
+        if result is not None:
+            return DerivedResult(
+                concept_id=concept_id,
+                status="derived",
+                value=result,
+                formula=param.get("formula"),
+                input_values=input_values,
+                exactness=param.get("exactness"),
+            )
+
+    # No parameterization succeeded
+    if any(not is_param_compatible(p.get("conditions_cel")) for p in params):
+        return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+    return DerivedResult(concept_id=concept_id, status="underspecified")
+
+
 def _value_of_from_active(
     active: list[dict], concept_id: str, helpers: BoundWorld,
 ) -> ValueResult:
@@ -744,81 +820,14 @@ class BoundWorld:
         *,
         override_values: dict[str, float | str | None] | None = None,
     ) -> DerivedResult:
-        """Derive a value for concept_id via parameterization relationships.
-
-        Single-step only — uses value_of() on input concepts (or override_values
-        from chain_query) to compute the output via SymPy.
-        """
-        from propstore.propagation import evaluate_parameterization
-
-        params = self._world._parameterizations_for(concept_id)
-        if not params:
-            return DerivedResult(concept_id=concept_id, status="no_relationship")
-
-        for param in params:
-            # Check parameterization conditions against bindings
-            if not self._is_param_compatible(param.get("conditions_cel")):
-                continue
-
-            sympy_expr = param.get("sympy")
-            if not sympy_expr:
-                continue
-
-            input_ids = json.loads(param["concept_ids"])
-            # Exclude self-references
-            effective_inputs = [iid for iid in input_ids if iid != concept_id]
-
-            # Collect input values
-            input_values: dict[str, float] = {}
-            all_determined = True
-            any_conflicted = False
-
-            for iid in effective_inputs:
-                # Check override_values first (for chain_query)
-                if override_values and iid in override_values:
-                    ov = override_values[iid]
-                    if ov is not None:
-                        try:
-                            input_values[iid] = float(ov)
-                            continue
-                        except (TypeError, ValueError):
-                            pass
-
-                vr = self.value_of(iid)
-                if vr.status == "determined":
-                    val = vr.claims[0].get("value") if vr.claims else None
-                    if val is not None:
-                        input_values[iid] = float(val)
-                    else:
-                        all_determined = False
-                elif vr.status == "conflicted":
-                    any_conflicted = True
-                    all_determined = False
-                else:
-                    all_determined = False
-
-            if any_conflicted:
-                return DerivedResult(concept_id=concept_id, status="conflicted")
-
-            if not all_determined or len(input_values) != len(effective_inputs):
-                continue  # Try next parameterization
-
-            result = evaluate_parameterization(sympy_expr, input_values, concept_id)
-            if result is not None:
-                return DerivedResult(
-                    concept_id=concept_id,
-                    status="derived",
-                    value=result,
-                    formula=param.get("formula"),
-                    input_values=input_values,
-                    exactness=param.get("exactness"),
-                )
-
-        # No parameterization succeeded
-        if any(not self._is_param_compatible(p.get("conditions_cel")) for p in params):
-            return DerivedResult(concept_id=concept_id, status="no_relationship")
-
-        return DerivedResult(concept_id=concept_id, status="underspecified")
+        """Derive a value for concept_id via parameterization relationships."""
+        return _derived_value_impl(
+            concept_id,
+            self._world,
+            self._is_param_compatible,
+            self.value_of,
+            override_values=override_values,
+        )
 
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status == "determined"
@@ -910,61 +919,20 @@ class HypotheticalWorld:
         active = self.active_claims(concept_id)
         return _value_of_from_active(active, concept_id, self._base)
 
-    def derived_value(self, concept_id: str) -> DerivedResult:
+    def derived_value(
+        self,
+        concept_id: str,
+        *,
+        override_values: dict[str, float | str | None] | None = None,
+    ) -> DerivedResult:
         """Derive using this hypothetical world's active claims."""
-        from propstore.propagation import evaluate_parameterization
-
-        params = self._base._world._parameterizations_for(concept_id)
-        if not params:
-            return DerivedResult(concept_id=concept_id, status="no_relationship")
-
-        for param in params:
-            if not self._base._is_param_compatible(param.get("conditions_cel")):
-                continue
-
-            sympy_expr = param.get("sympy")
-            if not sympy_expr:
-                continue
-
-            input_ids = json.loads(param["concept_ids"])
-            effective_inputs = [iid for iid in input_ids if iid != concept_id]
-
-            input_values: dict[str, float] = {}
-            all_determined = True
-            any_conflicted = False
-
-            for iid in effective_inputs:
-                vr = self.value_of(iid)
-                if vr.status == "determined":
-                    val = vr.claims[0].get("value") if vr.claims else None
-                    if val is not None:
-                        input_values[iid] = float(val)
-                    else:
-                        all_determined = False
-                elif vr.status == "conflicted":
-                    any_conflicted = True
-                    all_determined = False
-                else:
-                    all_determined = False
-
-            if any_conflicted:
-                return DerivedResult(concept_id=concept_id, status="conflicted")
-
-            if not all_determined or len(input_values) != len(effective_inputs):
-                continue
-
-            result = evaluate_parameterization(sympy_expr, input_values, concept_id)
-            if result is not None:
-                return DerivedResult(
-                    concept_id=concept_id,
-                    status="derived",
-                    value=result,
-                    formula=param.get("formula"),
-                    input_values=input_values,
-                    exactness=param.get("exactness"),
-                )
-
-        return DerivedResult(concept_id=concept_id, status="underspecified")
+        return _derived_value_impl(
+            concept_id,
+            self._base._world,
+            self._base._is_param_compatible,
+            self.value_of,
+            override_values=override_values,
+        )
 
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status == "determined"
