@@ -13,13 +13,10 @@ import yaml
 from propstore.cel_checker import KindType
 
 
-# ── Dimensionless unit markers ────────────────────────────────────────
+# Generic dimensionless units — used as fallback when a dimensionless form
+# has no extra_units declared. Kept minimal and domain-independent.
 DIMENSIONLESS_UNITS = frozenset({
     "ratio", "dimensionless", "%", "fraction", "",
-})
-
-LEVEL_UNITS = frozenset({
-    "dB", "dB SPL", "dB HL", "dB SL",
 })
 
 
@@ -33,6 +30,7 @@ class FormDefinition:
     is_dimensionless: bool = False
     parameters: dict = field(default_factory=dict)
     dimensions: dict[str, int] | None = None
+    extra_units: list[dict[str, Any]] = field(default_factory=list)
 
 
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
@@ -100,6 +98,15 @@ def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
     if isinstance(raw_dims, dict):
         dimensions = {str(k): int(v) for k, v in raw_dims.items()}
 
+    # Read extra_units and add their symbols to allowed_units
+    extra_units: list[dict[str, Any]] = []
+    raw_extra = data.get("extra_units")
+    if isinstance(raw_extra, list):
+        for entry in raw_extra:
+            if isinstance(entry, dict) and isinstance(entry.get("symbol"), str):
+                extra_units.append(entry)
+                allowed.add(entry["symbol"])
+
     result = FormDefinition(
         name=form_name,
         kind=kind,
@@ -108,6 +115,7 @@ def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
         is_dimensionless=is_dimensionless,
         parameters=parameters,
         dimensions=dimensions,
+        extra_units=extra_units,
     )
     _form_cache[cache_key] = result
     return result

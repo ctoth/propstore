@@ -27,7 +27,6 @@ from propstore.cel_checker import (
 )
 from propstore.form_utils import (
     DIMENSIONLESS_UNITS,
-    LEVEL_UNITS,
     FormDefinition,
     allowed_units_from_form_definition,
     json_safe,
@@ -332,18 +331,15 @@ def _validate_unit_against_form(
                 f"{filename}: parameter claim '{cid}' unit '{unit}' does not match "
                 f"concept '{concept}' allowed units {sorted(form_def.allowed_units)}")
     elif form_def.is_dimensionless:
-        if form_def.name == "level":
-            if unit not in LEVEL_UNITS and unit not in DIMENSIONLESS_UNITS:
-                result.errors.append(
-                    f"{filename}: parameter claim '{cid}' unit '{unit}' is not valid "
-                    f"for level form on concept '{concept}' "
-                    f"(expected dB variant or dimensionless)")
-        else:
-            if unit not in DIMENSIONLESS_UNITS:
-                result.errors.append(
-                    f"{filename}: parameter claim '{cid}' unit '{unit}' is not valid "
-                    f"for dimensionless form '{form_def.name}' on concept '{concept}' "
-                    f"(expected dimensionless unit like ratio, %, fraction)")
+        # For dimensionless forms: accept generic dimensionless units,
+        # plus any extra_units declared on the form itself.
+        form_extra = {eu["symbol"] for eu in form_def.extra_units}
+        if unit not in DIMENSIONLESS_UNITS and unit not in form_extra:
+            result.errors.append(
+                f"{filename}: parameter claim '{cid}' unit '{unit}' is not valid "
+                f"for dimensionless form '{form_def.name}' on concept '{concept}' "
+                f"(expected dimensionless unit like ratio, %, fraction"
+                f"{', or form-declared unit' if form_extra else ''})")
 
 
 def _validate_equation(
