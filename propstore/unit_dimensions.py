@@ -11,6 +11,7 @@ are layered on top (currently hardcoded, migrating to form YAML).
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 
 # ── Types ────────────────────────────────────────────────────────────
@@ -18,38 +19,39 @@ import json
 Dimensions = dict[str, int]  # e.g. {"M": 1, "L": -1, "T": -2}
 
 
-# ── Speech-specific units not in physgen ─────────────────────────────
+# ── Common units not in physgen (domain-independent) ─────────────────
 
-_SPEECH_UNITS: dict[str, Dimensions] = {
-    # Level / logarithmic (dimensionless)
+_COMMON_UNITS: dict[str, Dimensions] = {
+    "ratio": {},
+    "fraction": {},
+    "dimensionless": {},
+    "%": {},
+    "count": {},
+    "bits": {},
+    "points": {},
+    "cps": {"T": -1},   # cycles per second = Hz
+    "1/s": {"T": -1},
+}
+
+# Legacy speech-specific units — loaded as fallback when no forms provide
+# extra_units. Will be removed after qlatt migrates to form-based units.
+_LEGACY_DOMAIN_UNITS: dict[str, Dimensions] = {
     "dB": {},
     "dB SPL": {},
     "dB/oct": {},
     "dB/octave": {},
     "dB/dB": {},
     "dB re 0.0002 dyne/cm^2": {},
-    # Semitones (logarithmic frequency ratio)
     "ST": {},
     "st": {},
     "semitones": {},
     "cents": {},
-    # Dimensionless measures
-    "ratio": {},
-    "fraction": {},
-    "dimensionless": {},
     "SD": {},
-    # Rates that physgen doesn't cover
-    "cps": {"T": -1},  # cycles per second = Hz
     "syl/s": {"T": -1},
     "ms/syl": {"T": 1},
-    "fps": {"T": -1},  # frames per second
-    "1/s": {"T": -1},
-    # Other domain units
+    "fps": {"T": -1},
     "samples": {},
     "frames": {},
-    "points": {},
-    "bits": {},
-    "count": {},
     "periods": {},
     "kbps": {},
     "1–9 scale": {},
@@ -62,7 +64,7 @@ _symbol_table: dict[str, Dimensions] | None = None
 
 
 def _get_symbol_table() -> dict[str, Dimensions]:
-    """Lazy-load the symbol→dimensions table from shipped JSON + speech supplement."""
+    """Lazy-load the symbol->dimensions table from shipped JSON + common units."""
     global _symbol_table
     if _symbol_table is not None:
         return _symbol_table
@@ -76,11 +78,33 @@ def _get_symbol_table() -> dict[str, Dimensions]:
         for symbol, dims in raw.items():
             table[symbol] = {k: v for k, v in dims.items() if v != 0}
 
-    # Layer speech-specific units on top
-    table.update(_SPEECH_UNITS)
+    # Layer common units on top
+    table.update(_COMMON_UNITS)
+
+    # Legacy fallback: include domain-specific units until forms provide extra_units
+    table.update(_LEGACY_DOMAIN_UNITS)
 
     _symbol_table = table
     return table
+
+
+def register_form_units(forms_dir: Path) -> None:
+    """Register extra_units from all form YAML files into the symbol table.
+
+    Called during validation/build to make form-declared units available
+    for dimensional analysis.
+    """
+    from propstore.form_utils import load_all_forms
+
+    table = _get_symbol_table()
+    for form_def in load_all_forms(forms_dir).values():
+        for eu in form_def.extra_units:
+            symbol = eu["symbol"]
+            dims = eu.get("dimensions", {})
+            if isinstance(dims, dict):
+                table[symbol] = {k: int(v) for k, v in dims.items() if v != 0}
+            else:
+                table[symbol] = {}
 
 
 # ── Public API ───────────────────────────────────────────────────────
