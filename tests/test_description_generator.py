@@ -43,7 +43,7 @@ def test_parameter_claim_with_value(concept_registry):
         "conditions": ["voice_quality_type == 'modal'"],
     }
     result = generate_description(claim, concept_registry)
-    assert result == "open_quotient = 0.7 ratio (modal voice)"
+    assert result == "open_quotient = 0.7 ratio (modal voice_quality_type)"
 
 
 # ── Test 2: Parameter claim with range ────────────────────────────────
@@ -124,7 +124,7 @@ def test_parameter_multiple_conditions(concept_registry):
         ],
     }
     result = generate_description(claim, concept_registry)
-    assert result == "open_quotient = 0.7 ratio (modal voice, male speakers)"
+    assert result == "open_quotient = 0.7 ratio (modal voice_quality_type, male speaker_sex)"
 
 
 # ── Test: Model claim ─────────────────────────────────────────────────
@@ -215,11 +215,11 @@ def test_parameter_value_and_range(concept_registry):
 # ── Test: Condition summarizer ────────────────────────────────────────
 
 def test_summarize_voice_quality():
-    assert _format_conditions_prose(["voice_quality_type == 'modal'"]) == "modal voice"
+    assert _format_conditions_prose(["voice_quality_type == 'modal'"]) == "modal voice_quality_type"
 
 
 def test_summarize_speaker_sex():
-    assert _format_conditions_prose(["speaker_sex == 'male'"]) == "male speakers"
+    assert _format_conditions_prose(["speaker_sex == 'male'"]) == "male speaker_sex"
 
 
 def test_summarize_complex_condition():
@@ -233,9 +233,9 @@ def test_summarize_multiple():
         "voice_quality_type == 'breathy'",
         "speaker_sex == 'female'",
     ])
-    assert result == "breathy voice, female speakers"
+    assert result == "breathy voice_quality_type, female speaker_sex"
 
 
 def test_summarize_double_quoted_equality():
     result = _format_conditions_prose(['task == "speech"'])
-    assert result == "speech"
+    assert result == "speech task"
