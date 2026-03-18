@@ -430,12 +430,6 @@ def _validate_model(
                         f"nonexistent concept '{param_concept}'")
 
 
-_VALID_MEASURE_TYPES = {
-    "jnd_absolute", "jnd_relative", "discrimination_threshold",
-    "preference_rating", "detection_threshold", "correlation", "effect_size",
-}
-
-
 def _validate_measurement(
     claim: dict, cid: str, filename: str,
     concept_registry: dict[str, dict], result: ValidationResult,
@@ -450,9 +444,6 @@ def _validate_measurement(
     measure = claim.get("measure")
     if not measure:
         result.errors.append(f"{filename}: measurement claim '{cid}' missing 'measure'")
-    elif measure not in _VALID_MEASURE_TYPES:
-        result.errors.append(
-            f"{filename}: measurement claim '{cid}' invalid measure type '{measure}'")
 
     _validate_value_fields(claim, cid, filename, "measurement", result)
 
