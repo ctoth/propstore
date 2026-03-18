@@ -1,0 +1,93 @@
+source:
+  paper: Groth_2010_AnatomyNanopublication
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-17"
+
+claims:
+- id: claim1
+  type: parameter
+  concept: named_graphs_per_nanopub
+  value: 2
+  unit: count
+  provenance:
+    paper: Groth_2010_AnatomyNanopublication
+    page: 3
+    section: "3. A realization as Named Graphs"
+    quote_fragment: "the simplest nanopublication has two Named Graphs"
+  notes: "Minimum count: one graph for the statement, one for annotations"
+
+- id: claim2
+  type: model
+  name: "Nanopublication conceptual model"
+  equations: []
+  parameters:
+    - name: "concept"
+      concept: "nanopub_concept"
+      note: "Smallest unambiguous unit of thought, uniquely identifiable"
+    - name: "triple"
+      concept: "nanopub_triple"
+      note: "Tuple of three concepts (subject, predicate, object)"
+    - name: "statement"
+      concept: "nanopub_statement"
+      note: "A uniquely identifiable triple"
+    - name: "annotation"
+      concept: "nanopub_annotation"
+      note: "A triple whose subject is a statement"
+    - name: "nanopublication"
+      concept: "nanopublication"
+      note: "Set of annotations on same statement with minimum community-agreed annotations"
+    - name: "s_evidence"
+      concept: "nanopub_s_evidence"
+      note: "All nanopublications referring to the same statement"
+  provenance:
+    paper: Groth_2010_AnatomyNanopublication
+    page: 2
+    section: "2. Core model"
+
+- id: claim3
+  type: observation
+  statement: "Each nanopublication maps to exactly two Named Graphs in RDF: one containing the statement triple and one containing the annotation triples."
+  concepts:
+    - nanopublication
+    - named_graph
+  provenance:
+    paper: Groth_2010_AnatomyNanopublication
+    page: 3
+    section: "3. A realization as Named Graphs"
+    quote_fragment: "the simplest nanopublication has two Named Graphs, one with a statement and another containing the annotations on that statement"
+
+- id: claim4
+  type: observation
+  statement: "The nanopublication model can be realized entirely using existing community-developed Semantic Web technologies (Named Graphs, SWAN ontology, SWP ontology, FOAF) without requiring new specifications."
+  concepts:
+    - nanopublication
+    - semantic_web
+  provenance:
+    paper: Groth_2010_AnatomyNanopublication
+    page: 1
+    section: "Abstract"
+    quote_fragment: "the serialization is defined completely using already existing community-developed technologies"
+
+- id: claim5
+  type: observation
+  statement: "S-Evidence aggregation requires publishers to use shared identifiers for statements and concepts, following Linked Data principles."
+  concepts:
+    - nanopub_s_evidence
+    - linked_data
+  provenance:
+    paper: Groth_2010_AnatomyNanopublication
+    page: 5
+    section: "7. Aggregation and the Concept Wiki"
+    quote_fragment: "to make aggregation easier, publishers should follow Linked Data principles by pointing to resources already available on the Web"
+
+- id: claim6
+  type: observation
+  statement: "Separating statements from their annotations allows reasoning on statements alone or on condensed annotation views, enabling independent evidence assessment."
+  concepts:
+    - nanopub_statement
+    - nanopub_annotation
+  provenance:
+    paper: Groth_2010_AnatomyNanopublication
+    page: 5
+    section: "7. Aggregation and the Concept Wiki"
+    quote_fragment: "separating statements from their various annotations... allows reasoning on only the statements themselves or on a condensed version of the annotations"
