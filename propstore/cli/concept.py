@@ -119,7 +119,7 @@ def _rewrite_claim_conditions(claim_file_data: dict, old_name: str, new_name: st
 # ── concept add ──────────────────────────────────────────────────────
 
 @concept.command()
-@click.option("--domain", required=True, help="Domain prefix (e.g. speech, narr)")
+@click.option("--domain", required=True, help="Domain prefix (e.g. speech, a11y, finance)")
 @click.option("--name", required=True, help="Canonical name (lowercase, underscored)")
 @click.option("--definition", default=None, help="Definition (prompted if omitted)")
 @click.option("--form", "form_name", default=None,

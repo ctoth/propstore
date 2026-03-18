@@ -375,7 +375,7 @@ def world_query(obj: dict, concept_id: str) -> None:
 def world_bind(obj: dict, args: tuple[str, ...]) -> None:
     """Show active claims under condition bindings.
 
-    Usage: pks world bind task=speech [concept_id]
+    Usage: pks world bind domain=example [concept_id]
 
     Arguments with '=' are bindings, the last argument without '=' is a concept filter.
     """
@@ -520,7 +520,7 @@ def _parse_bindings(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
 def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
     """Derive a value for a concept via parameterization relationships.
 
-    Usage: pks world derive concept5 task=speech
+    Usage: pks world derive concept5 domain=example
     """
     from propstore.world_model import WorldModel
 
@@ -559,7 +559,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                   strategy: str, override_id: str | None) -> None:
     """Resolve a conflicted concept using a strategy.
 
-    Usage: pks world resolve concept1 task=speech --strategy sample_size
+    Usage: pks world resolve concept1 domain=example --strategy sample_size
     """
     from propstore.world_model import ResolutionStrategy, WorldModel, resolve
 
@@ -605,7 +605,7 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
                        remove: tuple[str, ...], add_json: str | None) -> None:
     """Show what changes if claims are removed/added.
 
-    Usage: pks world hypothetical task=speech --remove claim2
+    Usage: pks world hypothetical domain=example --remove claim2
     """
     from propstore.world_model import HypotheticalWorld, SyntheticClaim, WorldModel
 
@@ -654,7 +654,7 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
                 strategy: str | None) -> None:
     """Traverse the parameter space to derive a target concept.
 
-    Usage: pks world chain concept5 task=speech --strategy sample_size
+    Usage: pks world chain concept5 domain=example --strategy sample_size
     """
     from propstore.world_model import ResolutionStrategy, WorldModel
 
@@ -693,7 +693,7 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
                        group_id: int | None, output_file: str | None) -> None:
     """Export the knowledge graph as DOT or JSON.
 
-    Usage: pks world export-graph task=speech --format dot --output graph.dot
+    Usage: pks world export-graph domain=example --format dot --output graph.dot
     """
     from propstore.graph_export import build_knowledge_graph
     from propstore.world_model import WorldModel
@@ -733,7 +733,7 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
                       fmt: str) -> None:
     """Analyze which input most influences a derived quantity.
 
-    Usage: pks world sensitivity concept5 task=speech
+    Usage: pks world sensitivity concept5 domain=example
     """
     from propstore.sensitivity import analyze_sensitivity
     from propstore.world_model import WorldModel
@@ -797,7 +797,7 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
                             transitive: bool) -> None:
     """Check for conflicts, optionally including transitive (multi-hop) ones.
 
-    Usage: pks world check-consistency task=speech
+    Usage: pks world check-consistency domain=example
            pks world check-consistency --transitive
     """
     from propstore.world_model import WorldModel

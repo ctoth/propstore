@@ -5,8 +5,8 @@ Resolves unit strings (like "kPa", "cm/s", "Hz") to their SI dimensions
 claim's unit is dimensionally compatible with its concept's form.
 
 The base lookup table is shipped as propstore/_resources/physgen_units.json,
-generated from physgen's ISO 80000 physics.yml. Speech-specific units
-(dB, semitones, etc.) are layered on top.
+generated from physgen's ISO 80000 physics.yml. Domain-specific units
+are layered on top (currently hardcoded, migrating to form YAML).
 """
 from __future__ import annotations
 
