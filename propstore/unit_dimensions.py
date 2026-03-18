@@ -6,7 +6,7 @@ claim's unit is dimensionally compatible with its concept's form.
 
 The base lookup table is shipped as propstore/_resources/physgen_units.json,
 generated from physgen's ISO 80000 physics.yml. Domain-specific units
-are layered on top (currently hardcoded, migrating to form YAML).
+come from form YAML files via extra_units and register_form_units().
 """
 from __future__ import annotations
 
@@ -19,44 +19,6 @@ from pathlib import Path
 Dimensions = dict[str, int]  # e.g. {"M": 1, "L": -1, "T": -2}
 
 
-# ── Common units not in physgen (domain-independent) ─────────────────
-
-_COMMON_UNITS: dict[str, Dimensions] = {
-    "ratio": {},
-    "fraction": {},
-    "dimensionless": {},
-    "%": {},
-    "count": {},
-    "bits": {},
-    "points": {},
-    "cps": {"T": -1},   # cycles per second = Hz
-    "1/s": {"T": -1},
-}
-
-# Legacy speech-specific units — loaded as fallback when no forms provide
-# extra_units. Will be removed after qlatt migrates to form-based units.
-_LEGACY_DOMAIN_UNITS: dict[str, Dimensions] = {
-    "dB": {},
-    "dB SPL": {},
-    "dB/oct": {},
-    "dB/octave": {},
-    "dB/dB": {},
-    "dB re 0.0002 dyne/cm^2": {},
-    "ST": {},
-    "st": {},
-    "semitones": {},
-    "cents": {},
-    "SD": {},
-    "syl/s": {"T": -1},
-    "ms/syl": {"T": 1},
-    "fps": {"T": -1},
-    "samples": {},
-    "frames": {},
-    "periods": {},
-    "kbps": {},
-    "1–9 scale": {},
-}
-
 
 # ── Load shipped lookup table ────────────────────────────────────────
 
@@ -64,7 +26,7 @@ _symbol_table: dict[str, Dimensions] | None = None
 
 
 def _get_symbol_table() -> dict[str, Dimensions]:
-    """Lazy-load the symbol->dimensions table from shipped JSON + common units."""
+    """Lazy-load the symbol->dimensions table from shipped physgen JSON."""
     global _symbol_table
     if _symbol_table is not None:
         return _symbol_table
@@ -77,12 +39,6 @@ def _get_symbol_table() -> dict[str, Dimensions]:
         raw = json.loads(load_resource_text("physgen_units.json"))
         for symbol, dims in raw.items():
             table[symbol] = {k: v for k, v in dims.items() if v != 0}
-
-    # Layer common units on top
-    table.update(_COMMON_UNITS)
-
-    # Legacy fallback: include domain-specific units until forms provide extra_units
-    table.update(_LEGACY_DOMAIN_UNITS)
 
     _symbol_table = table
     return table
