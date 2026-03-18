@@ -1,9 +1,0 @@
-id: concept9
-canonical_name: excitation_strength
-status: proposed
-definition: Amplitude of the negative peak of the glottal flow derivative at the instant
-  of maximum excitation (glottal closure). Primary determinant of mid- and high-frequency
-  source spectrum level.
-domain: speech
-created_date: '2026-03-15'
-form: flow_derivative

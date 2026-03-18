@@ -1,8 +1,0 @@
-id: concept15
-canonical_name: contact_quotient
-status: proposed
-definition: Ratio of the vocal fold contact duration to the fundamental period. Complementary
-  to open quotient in modal phonation but may decorrelate from OQ in extreme conditions.
-domain: speech
-created_date: '2026-03-15'
-form: duration_ratio

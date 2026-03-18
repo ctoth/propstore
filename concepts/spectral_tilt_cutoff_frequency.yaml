@@ -1,9 +1,0 @@
-id: concept11
-canonical_name: spectral_tilt_cutoff_frequency
-status: proposed
-definition: Cutoff frequency of the first-order low-pass filter effect introduced
-  by the glottal return phase. Fa = 1/(2*pi*Ta). Frequencies above Fa are attenuated
-  at 6 dB/octave.
-domain: speech
-created_date: '2026-03-15'
-form: frequency
