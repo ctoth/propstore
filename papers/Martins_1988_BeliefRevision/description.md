@@ -1,0 +1,4 @@
+---
+tags: [belief-revision, truth-maintenance, assumption-based-reasoning, relevance-logic, dependency-tracking]
+---
+Presents SWM, a relevance logic that automatically computes propositional dependencies via origin sets and restriction sets, and MBR, an abstract belief revision model built on SWM that defines contexts and belief spaces for managing contradictions through assumption-based reasoning. The key contribution is that the logic itself tracks which hypotheses support each derived proposition and which hypothesis sets are known to be inconsistent, enabling precise identification of contradiction culprits without user-provided dependency information. Directly foundational for the propstore's assumption-tracking and belief-revision architecture, complementing the ATMS papers already in the collection with a richer connective set and interactive revision model.
