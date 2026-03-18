@@ -1,0 +1,4 @@
+---
+tags: [truth-maintenance, belief-revision, multiple-agents, contradiction-handling, nonmonotonic-reasoning]
+---
+Describes MBR (Multiple Belief Reasoner), a system built on SWM logic and SNePS that represents multiple agents' possibly contradictory and hypothetical beliefs simultaneously in a single knowledge base, using contexts (sets of hypotheses) to define per-agent Belief Spaces and restriction sets to detect and record contradictions. Key contributions include the context/belief-space partitioning mechanism, the negation introduction and restriction set updating rules for contradiction handling, and the elimination of separate NOGOOD data structures. Directly relevant to the propstore's assumption-tracking architecture as a precursor to de Kleer's ATMS, offering an alternative perspective on multi-context reasoning and belief revision.
