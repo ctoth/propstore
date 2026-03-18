@@ -248,3 +248,28 @@ This paper provides the philosophical and formal foundations for defeasible reas
 - McCarthy, J. (1980). Circumscription -- a form of non-monotonic reasoning. *Artificial Intelligence, 13*, 27-39. [Another major AI nonmonotonic approach]
 - Harman, G. (1986). *Change in view*. Cambridge, MA: MIT Press. [Philosophical account of belief revision that Pollock responds to]
 - Pollock, J.L. (1983). Epistemology and probability. *Synthese, 55*, 231-252. [Foundation for statistical syllogism and projectibility]
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Doyle_1979_TruthMaintenanceSystem]] — cited as Doyle (1979); Pollock contrasts OSCAR's approach (storing only immediate bases, not all arguments) with Doyle's TMS (storing all arguments, creating memory burden).
+- [[Reiter_1980_DefaultReasoning]] — cited as Reiter (1980); Pollock argues his epistemological approach provides richer structure than Reiter's default logic, particularly the rebutting/undercutting defeat distinction that default logic lacks.
+
+### New Leads (Not Yet in Collection)
+- Pollock, J.L. (1986) — "Contemporary theories of knowledge" — full epistemological theory underlying this paper
+- Harman, G. (1986) — "Change in view" — competing philosophical account of belief revision
+- McCarthy, J. (1980) — "Circumscription" — model-theoretic minimization approach to nonmonotonic reasoning
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- [[Dung_1995_AcceptabilityArguments]] — cited as [45]; Dung proves Pollock's indefeasible arguments correspond to the grounded extension of the corresponding argumentation framework (Theorem 47)
+
+### Conceptual Links (not citation-based)
+- [[Dung_1995_AcceptabilityArguments]] — **Strong.** Dung proves that Pollock's defeasible reasoning is a special case of abstract argumentation (Theorem 47). Pollock provides the epistemological content (prima facie reasons, rebutting/undercutting defeaters, warrant via defeat levels); Dung provides the abstract mathematical framework. OSCAR's adoption/retraction/reinstatement cycle is an operational procedure for computing something like the grounded extension.
+- [[Reiter_1980_DefaultReasoning]] — **Strong.** Both provide formal frameworks for nonmonotonic reasoning. Reiter's defaults have prerequisite/justification/consequent; Pollock's reasons are prima facie or conclusive with rebutting or undercutting defeaters. Key difference: Pollock distinguishes rebutting defeat (attacking the conclusion) from undercutting defeat (attacking the reason-conclusion link), a distinction Reiter's defaults cannot express. Dung (1995) proves both are special cases of argumentation.
+- [[deKleer_1986_AssumptionBasedTMS]] — **Moderate.** Both manage belief sets under contradictions: the ATMS tracks multiple consistent environments, while OSCAR manages a single evolving belief set with defeat and reinstatement. The ATMS's nogood management corresponds to Pollock's defeat detection, and ATMS context switching corresponds to Pollock's reinstatement.
+- [[Clark_2014_Micropublications]] — **Moderate.** Clark's micropublication model is grounded in Toulmin-Verheij defeasible argumentation theory, which Pollock's work directly informs. Clark's support/challenge relations map to Pollock's prima facie reasons and defeaters. Clark's bipolar networks are practical instances of the kind of argumentation structure Pollock formalizes.
+- [[Alchourron_1985_TheoryChange]] — **Moderate.** Pollock's warrant theory and AGM's belief revision both address rational belief management under contradictions, but from different traditions. Pollock's approach is constructive (build arguments, compute warrant via defeat levels); AGM's is axiomatic (specify postulates for rational contraction/revision). Both agree on minimal change and consistency preservation.
+- [[Falkenhainer_1987_BeliefMaintenanceSystem]] — **Moderate.** Both address graded or defeasible support for beliefs. The BMS provides quantitative mechanisms (Dempster-Shafer intervals); Pollock provides qualitative ones (prima facie reasons with defeat levels). Pollock's undercutting defeaters are conceptually related to the BMS's evidence subtraction via inverted Dempster's rule.

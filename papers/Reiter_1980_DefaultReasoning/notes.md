@@ -222,3 +222,29 @@ This paper is the foundational reference for default reasoning in the propstore'
 - McCarthy, J., "Epistemological problems of Artificial Intelligence" (1977) --- circumscription as an alternative formalization
 - Sandewall, E., "An approach to the frame problem" (1972) --- frame default as a default schema
 - Clark, K., "Negation as failure" (1978) --- relationship between negation in PROLOG and closed world defaults
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Doyle_1979_TruthMaintenanceSystem]] — cited as Doyle (1978); Reiter explicitly identifies Doyle's TMS as the heuristic implementation mechanism for belief revision when default-derived beliefs conflict with new observations (Section 6).
+
+### New Leads (Not Yet in Collection)
+- McDermott, D. and Doyle, J. (1978) — "Non-monotonic Logic I" — the competing modal logic approach to nonmonotonic reasoning
+- McCarthy, J. (1977) — "Epistemological problems of Artificial Intelligence" — circumscription as an alternative formalization
+- Clark, K. (1978) — "Negation as failure" — formalizes the connection between PROLOG's negation-as-failure and the closed world assumption as a special case of normal defaults
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- [[deKleer_1986_AssumptionBasedTMS]] — lists Reiter [18] as providing the formal framework for default reasoning the ATMS supports
+- [[deKleer_1986_ProblemSolvingATMS]] — lists Reiter (1980) as a new lead for the formal default reasoning framework
+- [[Dung_1995_AcceptabilityArguments]] — cited as [52]; Dung proves R-extensions of default theories correspond exactly to stable extensions of argumentation frameworks (Theorem 43)
+- [[Pollock_1987_DefeasibleReasoning]] — cited as Reiter (1980); Pollock contrasts his epistemological approach with Reiter's default logic, arguing his provides richer structure (rebutting vs. undercutting defeat)
+
+### Conceptual Links (not citation-based)
+- [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** Default logic provides the formal substrate for the kind of assumption-based reasoning the ATMS manages computationally. Reiter's extensions (fixed-point belief sets under defaults) correspond to ATMS environments (consistent assumption sets). The ATMS operationalizes what default logic formalizes.
+- [[Pollock_1987_DefeasibleReasoning]] — **Strong.** Both provide formal frameworks for nonmonotonic reasoning but from different traditions: Reiter from mathematical logic (default rules, extensions as fixed points), Pollock from epistemology (prima facie reasons, warrant via defeat levels). Reiter's defaults have prerequisite/justification/consequent; Pollock's reasons are prima facie or conclusive with rebutting or undercutting defeaters. Dung (1995) proves both are special cases of abstract argumentation.
+- [[Alchourron_1985_TheoryChange]] — **Moderate.** Reiter's belief revision criteria (Section 6: when default-derived beliefs safely persist under new observations) address the same problem AGM formalizes axiomatically. Default logic's multiple extensions create exactly the kind of belief revision scenario AGM postulates govern.
+- [[Dung_1995_AcceptabilityArguments]] — **Strong.** Dung proves that Reiter's default logic is a special case of abstract argumentation (Theorem 43: R-extensions = stable extensions). This provides argumentation-theoretic semantics for default reasoning.
+- [[Ginsberg_1985_Counterfactuals]] — **Moderate.** Both address reasoning under assumptions that may need revision. Reiter's defaults are assumptions held in absence of contrary info; Ginsberg's counterfactuals explore what follows when assumptions change. Ginsberg's sublanguage selection for context dependence parallels the problem of choosing which defaults to apply.

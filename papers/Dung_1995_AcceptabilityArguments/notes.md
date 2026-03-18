@@ -314,3 +314,28 @@ This paper is foundational for the propstore's world model architecture. Argumen
 - Kakas, Kowalski and Toni [27] --- argumentational approach to logic programming
 - Vreeswijk [61] --- feasibility of defeat in defeasible reasoning
 - Von Neuman and Morgenstern [62] --- original theory of n-person games
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Reiter_1980_DefaultReasoning]] — cited as [52]; Dung proves that R-extensions of default theories correspond exactly to stable extensions of the corresponding argumentation framework (Theorem 43).
+- [[Pollock_1987_DefeasibleReasoning]] — cited as [45]; Dung proves that Pollock's indefeasible arguments correspond to the grounded extension (Theorem 47), showing defeasible reasoning is a special case of abstract argumentation.
+
+### New Leads (Not Yet in Collection)
+- Bondarenko, Toni and Kowalski (1993) — assumption-based framework (ABA) that extends Dung's work
+- Pollock, J.L. (1994) — "Justification and defeat" — later Pollock work that Dung references
+- Lin and Shoham (1989) — "Argument systems: a uniform basis for nonmonotonic reasoning"
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- (none found)
+
+### Conceptual Links (not citation-based)
+- [[Doyle_1979_TruthMaintenanceSystem]] — **Strong.** Doyle's TMS maintains a single consistent belief set under contradictions; Dung's argumentation frameworks provide the abstract semantics for determining which beliefs (arguments) should be accepted. The TMS's dependency-directed backtracking when contradictions arise is an operational procedure for computing something like a grounded or preferred extension.
+- [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** ATMS environments (consistent assumption sets) correspond to conflict-free sets in argumentation frameworks. ATMS nogoods correspond to attack relations. The ATMS's management of multiple simultaneous consistent contexts maps to the multiple extensions (preferred, stable) that Dung defines.
+- [[Clark_2014_Micropublications]] — **Strong.** Clark's micropublication model is grounded in Toulmin-Verheij defeasible argumentation theory, with explicit support and challenge relations. Dung's abstract argumentation frameworks provide the formal semantics for the challenge/attack relations that Clark models. Clark's bipolar claim-evidence networks (Use Case 8) are instances of Dung's argumentation frameworks with both support and attack.
+- [[Alchourron_1985_TheoryChange]] — **Moderate.** AGM belief revision and Dung's argumentation both address rational management of contradictory beliefs. AGM provides postulates for how belief sets should change; Dung provides semantics for which arguments to accept. Different formalizations of the consistency-maintenance problem.
+- [[Pollock_1987_DefeasibleReasoning]] — **Strong.** Pollock provides the epistemological theory of defeasible reasoning (prima facie reasons, rebutting/undercutting defeaters, warrant via defeat levels); Dung proves this is a special case of abstract argumentation. Pollock's OSCAR implementation and Dung's meta-interpreter architecture are complementary computational approaches.
+- [[Shapiro_1998_BeliefRevisionTMS]] — **Moderate.** Shapiro surveys TMS architectures as belief revision mechanisms; Dung's argumentation frameworks provide an alternative abstract framework for the same problem of maintaining consistent beliefs under conflict.

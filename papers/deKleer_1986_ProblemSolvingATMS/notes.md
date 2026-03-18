@@ -198,12 +198,17 @@ This paper is foundational for the propstore project's world model and assumptio
 
 ### Now in Collection (previously listed as leads)
 - [[Doyle_1979_TruthMaintenanceSystem]] — The original justification-based TMS. Introduces SL/CP justifications, truth maintenance process, dependency-directed backtracking, and control patterns (defaults, sequences, equivalence classes) that this paper's consumer architecture and constraint language supersede. This paper compares the ATMS consumer approach favorably against Doyle's data pool mechanism for control.
+- [[Reiter_1980_DefaultReasoning]] — Referenced as Reiter (1980); provides the formal framework for default reasoning that the ATMS supports computationally. Reiter's extensions (fixed-point belief sets under defaults) correspond to ATMS environments.
 
 ### New Leads (Not Yet in Collection)
-- Reiter (1980) — "A logic for default reasoning" — formal framework for the kind of nonmonotonic reasoning the ATMS supports
+- de Kleer (1986) — "Extending the ATMS" — extends the basic ATMS with default reasoning, disjunction axioms, nonmonotonic justifications
 
 ### Supersedes or Recontextualizes
 - (none)
 
+### Cited By (in Collection)
+- [[Dixon_1993_ATMSandAGM]] — the ATMS functional specification from this and the companion paper is what Dixon proves equivalent to AGM operations
+
 ### Conceptual Links (not citation-based)
 - [[deKleer_1986_AssumptionBasedTMS]] — direct companion; this paper defines the problem-solving architecture, that paper defines the ATMS substrate it runs on
+- [[deKleer_1984_QualitativePhysicsConfluences]] — **Strong.** The constraint language (PLUS, TIMES, AND, OR, ONEOF) directly generalizes the qualitative constraint satisfaction demonstrated in the qualitative physics paper. The consumer architecture mirrors ENVISION's component models.

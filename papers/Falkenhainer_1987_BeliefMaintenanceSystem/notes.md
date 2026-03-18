@@ -218,3 +218,24 @@ This paper presents a foundational approach to maintaining a network of beliefs 
 - Ginsberg, M.L., "Implementing Probabilistic Reasoning," *Workshop on Uncertainty and Probability in Artificial Intelligence*, August, 1985a. (Propagation-delta threshold, combination formula details)
 - Falkenhainer, B., Forbus, K., Gentner, D., "The Structure-Mapping Engine," *Proceedings AAAI*, August, 1986. (The pattern matching algorithm the BMS implements)
 - McAllester, D.A., "Reasoning Utility Package User's Manual," MIT AI Memo 667, April, 1980. (Rule engine foundation)
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Doyle_1979_TruthMaintenanceSystem]] — cited as the foundational justification-based TMS that the BMS directly generalizes from binary to continuous-valued beliefs.
+- [[McAllester_1978_ThreeValuedTMS]] — cited via McAllester 1980 (Reasoning Utility Package); the BMS rule engine builds on McAllester's pattern-matching architecture.
+
+### New Leads (Not Yet in Collection)
+- Shafer, G. (1976) — "A Mathematical Theory of Evidence" — the Dempster-Shafer theory foundation for the BMS's belief intervals
+- Ginsberg, M.L. (1984) — "Non-Monotonic Reasoning Using Dempster's Rule" — provides the simplified Dempster's rule formulas used in the BMS
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- [[Shapiro_1998_BeliefRevisionTMS]] — surveys the BMS implicitly as part of the TMS tradition; the BMS is a variant of the JTMS architecture extended with continuous beliefs
+
+### Conceptual Links (not citation-based)
+- [[Ginsberg_1985_Counterfactuals]] — **Moderate.** Both Falkenhainer and Ginsberg draw on three-valued or continuous-valued approaches to extend binary TMS reasoning. The BMS uses Dempster-Shafer intervals [s,p] while Ginsberg uses {t,f,u} truth values with closure operations. Both address the same limitation of binary TMS systems: inability to represent partial/uncertain belief.
+- [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** Both systems extend Doyle's TMS in different dimensions: the ATMS extends to multiple simultaneous contexts (environments), while the BMS extends to continuous-valued beliefs within a single context. The BMS's hard and invertible support links are analogous to ATMS justifications, and both propagate changes through dependency networks. Complementary extensions that could theoretically be combined.
+- [[Pollock_1987_DefeasibleReasoning]] — **Moderate.** Both address graded or defeasible support for beliefs. The BMS provides a quantitative mechanism (Dempster-Shafer intervals) while Pollock provides a qualitative one (prima facie reasons with defeat levels). Pollock's undercutting defeaters are conceptually related to the BMS's evidence subtraction via inverted Dempster's rule.

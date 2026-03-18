@@ -198,10 +198,10 @@ This is the foundational paper for the ATMS, which is the core inference substra
 
 ### Now in Collection (previously listed as leads)
 - [[Doyle_1979_TruthMaintenanceSystem]] — The original justification-based TMS that the ATMS replaces. Introduces support-list and conditional-proof justifications, the truth maintenance process, dependency-directed backtracking with nogoods, and control patterns for defaults and alternatives. The ATMS addresses all seven limitations cataloged in Section 3 of this paper.
+- [[Reiter_1980_DefaultReasoning]] — Cited as [18]; provides the formal framework for default reasoning (assumptions held in absence of contrary information) that the ATMS supports computationally. Reiter's extensions (fixed-point belief sets under defaults) correspond to ATMS environments.
 
 ### New Leads (Not Yet in Collection)
 - de Kleer (1986) — "Extending the ATMS" — extends the basic ATMS with default reasoning, disjunction axioms, propositional expressions
-- Reiter (1980) — "A logic for default reasoning" — formal framework for the kind of nonmonotonic reasoning the ATMS supports
 - Stallman and Sussman (1977) — "Forward reasoning and dependency-directed backtracking" — early dependency tracking that the ATMS builds upon
 
 ### Supersedes or Recontextualizes
@@ -209,9 +209,17 @@ This is the foundational paper for the ATMS, which is the core inference substra
 
 ### Cited By (in Collection)
 - [[deKleer_1986_ProblemSolvingATMS]] — references this as [8] throughout for ATMS definitions, label properties, and the problem-solver-TMS protocol
+- [[Dixon_1993_ATMSandAGM]] — proves the ATMS functional specification is behaviourally equivalent to AGM belief revision under appropriate entrenchment encoding
+- [[Shapiro_1998_BeliefRevisionTMS]] — surveys the ATMS as one of four TMS architectures, describing its assumption-set-based label tracking
+- [[Martins_1988_BeliefRevision]] — cites as [6]; the main alternative approach to assumption-based reasoning that MBR/SWM compares against
+- [[Falkenhainer_1987_BeliefMaintenanceSystem]] — the BMS extends Doyle's TMS in a different dimension (continuous beliefs) than the ATMS (multiple contexts); complementary extensions
 
 ### Conceptual Links (not citation-based)
 - [[deKleer_1986_ProblemSolvingATMS]] — direct companion; this paper defines the ATMS substrate, that paper defines the problem-solving architecture that runs on top of it
+- [[Martins_1983_MultipleBeliefSpaces]] — **Strong.** Both systems maintain multiple hypothetical contexts simultaneously. MBR's restriction sets are functionally analogous to ATMS nogoods; MBR's contexts map to ATMS environments. Key difference: MBR operates within a relevance logic while the ATMS is logic-independent.
+- [[deKleer_1984_QualitativePhysicsConfluences]] — **Strong.** The qualitative physics framework is the application domain that motivated the ATMS. Multiple interpretations from qualitative constraint satisfaction correspond directly to ATMS environments.
+- [[Alchourron_1985_TheoryChange]] — **Strong.** The AGM postulates define rational belief revision; Dixon (1993) proved the ATMS satisfies them. The ATMS's context switching implements AGM contraction/expansion.
+- [[Ginsberg_1985_Counterfactuals]] — **Moderate.** Ginsberg's counterfactual evaluation (set proposition to unknown, recompute closure) maps directly to ATMS assumption retraction and label recomputation.
 
 ## Related Work Worth Reading
 - Doyle [12]: Original justification-based TMS (the system the ATMS improves upon)

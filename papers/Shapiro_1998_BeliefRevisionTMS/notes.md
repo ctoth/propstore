@@ -140,3 +140,29 @@ This paper is directly relevant to the propstore's architecture. It provides a c
 - Cravo, M.R. and Martins, J.P. (1993). SNePSwD: a newcomer to the SNePS family. *JETAI*, 5(2&3):135-148. [Non-monotonic extension with importance ordering]
 - Gardenfors, P. and Rott, H. (1995). Belief revision. In *Handbook of Logic in AI and Logic Programming*, vol 4, pp 35-132. [The only cross-tradition citation noted by Shapiro]
 - Friedman, N. and Halpern, J.Y. (1996). Belief revision: A critique. In *KR '96*, pp 421-431. [Notes that both AGM postulates and TMS were motivated by chronological backtracking]
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Doyle_1979_TruthMaintenanceSystem]] — cited as Doyle (1979); surveyed as the foundational JTMS architecture with dependency graph and IN/OUT labeling.
+- [[McAllester_1978_ThreeValuedTMS]] — cited as McAllester (1978); surveyed as the LTMS architecture adding clause-based three-valued labeling.
+- [[deKleer_1986_AssumptionBasedTMS]] — cited as de Kleer (1986); surveyed as the ATMS architecture tracking minimal assumption sets per derived assertion.
+- [[Martins_1988_BeliefRevision]] — cited as Martins and Shapiro (1988); surveyed as the SNeBR architecture that unites ATMS-style assumption tracking with the reasoner, computing assumption sets per inference rule.
+- [[Alchourron_1985_TheoryChange]] — cited as Alchourron, Gardenfors, and Makinson (1985); surveyed as the foundational AGM belief revision paper defining expansion, contraction, and revision postulates.
+
+### New Leads (Not Yet in Collection)
+- Cravo, M.R. and Martins, J.P. (1993) — "SNePSwD" — extends SNeBR with non-monotonic rules and partial importance ordering; directly implements AGM entrenchment constraint
+- Gardenfors, P. and Rott, H. (1995) — "Belief revision" in Handbook — the only cross-tradition citation Shapiro identifies
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- (none found)
+
+### Conceptual Links (not citation-based)
+- [[Dixon_1993_ATMSandAGM]] — **Strong.** Both papers bridge TMS and AGM traditions. Dixon provides a formal proof of ATMS-AGM equivalence via entrenchment encoding; Shapiro provides a taxonomic survey and proposes building AGM-compliant SNeBR. Complementary contributions: Dixon solves the theoretical bridge, Shapiro identifies the implementation path.
+- [[Martins_1983_MultipleBeliefSpaces]] — **Moderate.** The 1983 MBR conference paper introduces the context/belief-space mechanism that Shapiro surveys as part of the SNeBR lineage.
+- [[Dung_1995_AcceptabilityArguments]] — **Moderate.** Dung's argumentation frameworks provide an alternative abstract framework for the same belief maintenance problem Shapiro surveys. Both address which beliefs to accept under conflict, but from different traditions (TMS/AGM vs. argumentation).
+- [[Reiter_1980_DefaultReasoning]] — **Moderate.** Shapiro's non-monotonic rule format (conditions that must be IN, conditions that must be OUT) directly echoes Reiter's default rules (prerequisite, justification, consequent). Default logic provides the formal underpinning for the non-monotonic TMS extensions Shapiro surveys.
+- [[Pollock_1987_DefeasibleReasoning]] — **Moderate.** Pollock's epistemological approach to belief revision (warrant via defeat levels) provides a philosophical complement to the engineering-oriented TMS architectures Shapiro surveys. Both aim for principled culprit selection during contradiction resolution.

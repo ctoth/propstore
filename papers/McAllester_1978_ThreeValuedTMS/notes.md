@@ -170,6 +170,11 @@ This paper is the "RUP" (Reason, Unknown, Premiss) system referenced in de Kleer
 - [[Doyle_1979_TruthMaintenanceSystem]] -- cites McAllester [30] as an alternative TMS design with cleaner organization
 - [[deKleer_1986_ProblemSolvingATMS]] -- cites this as [14], the RUP system, in comparison of TMS architectures
 - [[deKleer_1986_AssumptionBasedTMS]] -- cites this as [14] in the lineage of truth maintenance systems
+- [[Martins_1983_MultipleBeliefSpaces]] -- cites as [4]; referenced as a prior approach to contradiction handling
+- [[Martins_1988_BeliefRevision]] -- cites as [31]; part of the TMS lineage that MBR/SWM improves upon
+- [[Falkenhainer_1987_BeliefMaintenanceSystem]] -- cites McAllester 1980 (Reasoning Utility Package); BMS rule engine builds on McAllester's pattern-matching
+- [[McDermott_1983_ContextsDataDependencies]] -- cites as [11]; McAllester pointed out that labels can grow exponentially
+- [[Shapiro_1998_BeliefRevisionTMS]] -- surveys this as the LTMS architecture with three-valued clause-based labeling
 
 ### Conceptual Links (not citation-based)
 - [[Doyle_1979_TruthMaintenanceSystem]] -- Strong: both papers solve the same core problem (maintaining consistent beliefs under contradiction) with fundamentally different architectures. Doyle uses two-valued SL/CP justifications with non-monotonic dependencies; McAllester uses three-valued clausal representation. McAllester's clause-based contradiction resolution (generating new clauses from contradictions) is a precursor to the ATMS's nogood management. Key difference: McAllester eliminates non-monotonic dependencies but loses conditional proofs.

@@ -207,3 +207,24 @@ This paper is foundational to the propstore's domain of qualitative reasoning an
 - de Kleer, J., "An assumption-based TMS", Artificial Intelligence 28 (1986) - the ATMS paper
 - de Kleer, J. and Sussman, G.J., "Propagation of constraints applied to circuit synthesis", Circuit Theory and Applications 8 (1980) 127-144
 - DiSessa, A.A., "Momentum flow as a world view in elementary mechanics" (1979) - influence on the digital physics perspective
+
+## Collection Cross-References
+
+### Already in Collection
+- [[deKleer_1986_AssumptionBasedTMS]] — cited in Related Work as the ATMS paper; the qualitative physics framework's need for managing multiple interpretations and component assumptions directly motivated the ATMS design.
+- [[deKleer_1986_ProblemSolvingATMS]] — the constraint propagation and consumer architecture in the ATMS problem-solving paper builds on the qualitative constraint satisfaction demonstrated here with confluences.
+
+### New Leads (Not Yet in Collection)
+- Forbus, K.D. (1984) — "Qualitative process theory" — companion paper presenting the process-based alternative to component-based qualitative physics
+- Kuipers, B. (1984) — "Commonsense reasoning about causality" — complementary approach to deriving behavior from structure
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- (none found — this paper predates most collection papers and is referenced implicitly through de Kleer's later work)
+
+### Conceptual Links (not citation-based)
+- [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** The qualitative physics framework is the application domain that motivated the ATMS. Multiple interpretations arising from qualitative constraint satisfaction (8 confluences yielding 4 solutions) correspond directly to multiple ATMS environments. The class-wide assumptions and component assumptions in ENVISION became the ATMS's formal assumption management. This paper provides the "why" for the ATMS design.
+- [[deKleer_1986_ProblemSolvingATMS]] — **Strong.** The ATMS problem-solving paper's constraint language (PLUS, TIMES, AND, OR, ONEOF) directly generalizes the qualitative constraint satisfaction demonstrated here. The consumer architecture's pattern of modular rules firing based on ATMS label status mirrors ENVISION's component models producing behavioral predictions.
+- [[Ginsberg_1985_Counterfactuals]] — **Moderate.** Both papers address reasoning about physical devices under assumptions. De Kleer's class-wide assumptions (quasistatic, locality) parallel Ginsberg's device assumptions in the diagnosis application. Ginsberg's counterfactual framework could formalize the "what if this assumption is violated?" reasoning that de Kleer handles informally.

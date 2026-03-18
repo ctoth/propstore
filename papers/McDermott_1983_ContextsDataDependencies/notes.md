@@ -174,3 +174,25 @@ This paper is foundational for understanding how the propstore's data dependency
 - Charniak, Riesbeck, and McDermott [2]: "Artificial Intelligence Programming" -- textbook with data dependency implementation
 - McAllester [11]: "An outlook on truth maintenance" -- related approach to the same problems
 - Stallman and Sussman [19]: First to point out correspondence between beads/premisses and data pool labels
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Doyle_1979_TruthMaintenanceSystem]] — cited as [5]; McDermott directly extends and synthesizes Doyle's data dependency framework with data pools (contexts).
+- [[McAllester_1978_ThreeValuedTMS]] — cited as [11]; McAllester pointed out that labels can grow exponentially with depth of well-founded support, which McDermott's Boolean substitution algorithm addresses.
+
+### New Leads (Not Yet in Collection)
+- Stallman and Sussman (1977) — "Forward reasoning and dependency-directed backtracking" — first to identify correspondence between data pool beads and dependency premisses
+- de Kleer, Doyle, Steele, and Sussman (1977) — "Explicit control of reasoning" — early dependency-directed backtracking
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- [[Martins_1983_MultipleBeliefSpaces]] — cited as [5]; referenced as an alternative approach to contextual reasoning
+- [[Martins_1988_BeliefRevision]] — cited as [34]; McDermott's synthesis is referenced as an alternative multi-context approach
+
+### Conceptual Links (not citation-based)
+- [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** McDermott's unified framework of data pools and dependencies is a direct precursor to the ATMS. McDermott's Boolean labels over beads anticipate the ATMS's labels as sets of environments. McDermott's beads correspond to ATMS assumptions, and his label computation algorithm is a precursor to ATMS label propagation. The ATMS generalizes McDermott's approach by maintaining all consistent environments simultaneously with formal minimality guarantees.
+- [[Martins_1983_MultipleBeliefSpaces]] — **Moderate.** Both papers address multi-context reasoning: McDermott via data pools with Boolean labels, Martins via contexts (hypothesis sets) with restriction sets. Different mechanisms for the same problem of maintaining multiple hypothetical views of a knowledge base.
+- [[Ginsberg_1985_Counterfactuals]] — **Moderate.** McDermott's data pools enable hypothetical reasoning by switching between contexts; Ginsberg formalizes counterfactual reasoning (what would be true if an assumption changed). McDermott provides the operational mechanism; Ginsberg provides the formal semantics for the kind of hypothetical reasoning data pools support.

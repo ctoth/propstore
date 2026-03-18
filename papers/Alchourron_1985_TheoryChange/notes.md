@@ -173,3 +173,27 @@ This paper defines the theoretical foundation for the belief revision operations
 - Gardenfors, P. and Makinson, D. (1988) "Revisions of Knowledge Systems Using Epistemic Entrenchment" -- Introduces epistemic entrenchment, which provides a constructive mechanism for choosing selection functions
 - Hansson, S.O. (1999) "A Textbook of Belief Dynamics" -- Comprehensive textbook covering AGM and its extensions
 - Alchourron and Makinson (1982) "On the Logic of Theory Change: Contraction Functions and their Associated Revision Functions" -- Predecessor paper developing earlier ideas
+
+## Collection Cross-References
+
+### Already in Collection
+- (none directly cited — this paper predates and is foundational to the TMS/belief revision literature in the collection)
+
+### New Leads (Not Yet in Collection)
+- Gardenfors, P. (1988) — "Knowledge in Flux" — the book-length treatment expanding the AGM postulates
+- Gardenfors, P. and Makinson, D. (1988) — "Revisions of Knowledge Systems Using Epistemic Entrenchment" — introduces EE1-EE5 axioms used by Dixon (1993)
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- [[Dixon_1993_ATMSandAGM]] — references Gardenfors (1988) which is the expanded version; the AGM postulates from this paper are the correctness criteria Dixon proves the ATMS satisfies
+- [[Shapiro_1998_BeliefRevisionTMS]] — cited as Alchourron, Gardenfors, and Makinson (1985); surveyed as the foundational AGM paper defining the belief revision tradition
+
+### Conceptual Links (not citation-based)
+- [[Dixon_1993_ATMSandAGM]] — **Strong.** This paper defines the AGM postulates; Dixon proves that ATMS context switching satisfies them under appropriate entrenchment encoding. The partial meet contraction construction (selection over remainder sets) is the abstract mechanism that Dixon's entrenchment values implement concretely.
+- [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** The AGM postulates define what "rational" belief revision means; the ATMS provides a computational mechanism that (per Dixon 1993) satisfies these postulates. The ATMS's nogood-directed context switching implements AGM contraction, and adding assumptions implements AGM expansion.
+- [[Shapiro_1998_BeliefRevisionTMS]] — **Strong.** Shapiro surveys both TMS and AGM traditions, noting their near-complete isolation. This paper provides the axiomatic framework that Shapiro proposes TMSs should satisfy. Shapiro's proposal to build AGM-compliant SNeBR is a direct response to the gap between TMS implementations and AGM theory.
+- [[Martins_1988_BeliefRevision]] — **Moderate.** MBR's interactive culprit selection during contradiction recovery is an informal implementation of AGM contraction. The selection function over remainder sets (this paper's construction) corresponds to MBR's interactive choice of which hypothesis to discard.
+- [[Reiter_1980_DefaultReasoning]] — **Moderate.** Reiter's belief revision criteria (Section 6) address when default-derived beliefs safely persist, which is the same problem AGM contraction formalizes. Default logic creates exactly the kind of belief revision scenarios the AGM postulates govern.
+- [[Dung_1995_AcceptabilityArguments]] — **Moderate.** Both address rational management of contradictory beliefs. AGM provides axiomatic postulates for how belief sets should change; Dung provides semantics for which arguments to accept under conflict. Different formalizations converging on the same consistency-maintenance problem.

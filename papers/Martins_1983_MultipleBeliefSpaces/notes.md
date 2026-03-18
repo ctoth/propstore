@@ -129,3 +129,27 @@ This paper is a direct precursor to de Kleer's ATMS work (1986) already in the c
 - [3] Martins J., "Reasoning in Multiple Belief Spaces", Ph.D. Dissertation, SUNY at Buffalo, May 1983 — Full dissertation with complete details
 - [5] McDermott D., "Contexts and Data Dependencies", Department of Computer Science, Yale University, 1982 — Alternative approach to contextual reasoning
 - [6] Shapiro S., "The SNePS semantic network processing system", in Associative Networks, N.v.Findler (ed.), Academic Press, 1979 — The underlying network system
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Doyle_1979_TruthMaintenanceSystem]] — cited as [2]; the original TMS that MBR improves upon. MBR's restriction sets replace Doyle's NOGOOD list, and MBR's context/belief-space mechanism replaces Doyle's single-state architecture.
+- [[McAllester_1978_ThreeValuedTMS]] — cited as [4]; referenced as a prior approach to contradiction handling that MBR extends with multi-agent belief spaces.
+- [[McDermott_1983_ContextsDataDependencies]] — cited as [5]; presents an alternative approach to contextual reasoning via data pools and data dependencies that MBR's context/belief-space mechanism can be compared against.
+
+### New Leads (Not Yet in Collection)
+- Anderson A. and Belnap N. (1975) — "Entailment: The Logic of Relevance and Necessity" — the relevance logic foundation for SWM
+- Shapiro S. and Wand M. (1976) — "The Relevance of Relevance" — theoretical basis for SWM's relevance constraints
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- [[Martins_1988_BeliefRevision]] — cites this as [28]; this is the conference paper version of the full model presented in the 1988 journal paper
+- [[deKleer_1986_AssumptionBasedTMS]] — cites Martins [13] as a related multi-context approach
+- [[Shapiro_1998_BeliefRevisionTMS]] — surveys MBR/SNeBR as one of four TMS architectures, describing its context/belief-space mechanism
+
+### Conceptual Links (not citation-based)
+- [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** Both systems maintain multiple hypothetical contexts simultaneously. MBR uses contexts (sets of hypotheses) to define belief spaces with restriction sets recording inconsistencies; the ATMS uses environments with labels and nogoods. MBR's restriction sets are functionally analogous to the ATMS's nogoods, and MBR's contexts map to ATMS environments. Key difference: MBR operates within a relevance logic (SWM) while the ATMS is logic-independent.
+- [[Martins_1988_BeliefRevision]] — **Strong.** The 1988 paper is the full journal-length presentation of the MBR model introduced in this 1983 conference paper, adding formal proofs, the ext origin tag, nonstandard connectives, and the SNeBR implementation.
+- [[Dixon_1993_ATMSandAGM]] — **Moderate.** Dixon bridges ATMS and AGM belief revision; MBR's interactive culprit selection during contradiction recovery is an informal precursor to the entrenchment-based culprit selection that Dixon formalizes.

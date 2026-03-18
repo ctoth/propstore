@@ -229,3 +229,25 @@ This paper provides the theoretical foundation for counterfactual reasoning with
 - Genescreth, M.R., "The use of design descriptions in automated diagnosis", *Artificial Intelligence* 24 (1984), 411-436 -- the diagnosis framework applied in Section 6
 - Glymour, C. and Thomason, R.H., "Default reasoning and the logic of theory perturbation", *Non-monotonic Reasoning Workshop* (1984) -- non-monotonic inference connection
 - Adams, E., "The logic of conditionals", *Inquiry* 8 (1965), 166-197 -- early formal treatment of conditionals
+
+## Collection Cross-References
+
+### Already in Collection
+- (none directly cited)
+
+### New Leads (Not Yet in Collection)
+- Lewis, D. (1973) — "Counterfactuals" — the foundational philosophical work on possible worlds semantics that Ginsberg proves equivalent to his construction
+- Genescreth, M.R. (1984) — "The use of design descriptions in automated diagnosis" — the diagnosis framework applied in Section 6
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- (none found)
+
+### Conceptual Links (not citation-based)
+- [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** Ginsberg's counterfactual framework maps directly onto ATMS assumption management. Setting a proposition to "unknown" and recomputing closure corresponds to retracting an ATMS assumption and observing which derived beliefs change. The sublanguage mechanism for encoding context dependence parallels the ATMS's distinction between assumptions (revisable) and justifications (fixed). Ginsberg's diagnosis application (identifying faulty components by counterfactual analysis) is exactly the kind of problem the ATMS was designed to support.
+- [[deKleer_1984_QualitativePhysicsConfluences]] — **Moderate.** Ginsberg's diagnosis application on a full adder circuit uses the same assumption-based reasoning pattern as de Kleer's qualitative physics: component assumptions that may be individually false, with the goal of identifying the minimal set of faulty assumptions. Different domains (digital circuits vs. physical devices) but same reasoning pattern.
+- [[Reiter_1980_DefaultReasoning]] — **Moderate.** Both address reasoning under assumptions that may need revision. Reiter's defaults are assumptions held absent contrary information; Ginsberg's counterfactuals explore consequences of changing assumptions. Glymour and Thomason (1984, cited by Ginsberg) explicitly connect default reasoning to theory perturbation.
+- [[McAllester_1978_ThreeValuedTMS]] — **Moderate.** Both use three-valued logic (true/false/unknown). McAllester uses it for truth maintenance with clause-based dependency tracking; Ginsberg uses it for counterfactual evaluation with closure operations. Ginsberg's closure operation over three-valued truth functions is conceptually related to McAllester's label computation.
+- [[McDermott_1983_ContextsDataDependencies]] — **Moderate.** McDermott's data pool switching enables hypothetical reasoning by maintaining multiple contexts; Ginsberg formalizes the semantics of the kind of hypothetical ("what if?") reasoning that data pool switching supports.

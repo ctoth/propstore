@@ -193,6 +193,13 @@ This is the foundational paper for the entire truth maintenance / belief revisio
 ### Cited By (in Collection)
 - [[deKleer_1986_AssumptionBasedTMS]] — cites this as [12], the original justification-based TMS that the ATMS replaces; catalogs seven limitations of this system that motivate the ATMS design
 - [[deKleer_1986_ProblemSolvingATMS]] — cites this for comparison of TMS architectures; compares control mechanisms, data pool vs. consumer architecture
+- [[Martins_1983_MultipleBeliefSpaces]] — cites this as [2]; MBR improves upon Doyle's TMS with restriction sets replacing the NOGOOD list
+- [[Martins_1988_BeliefRevision]] — cites this as [12]; MBR/SWM designed to improve upon Doyle's justification-based approach by computing dependencies automatically
+- [[Falkenhainer_1987_BeliefMaintenanceSystem]] — cites this as the foundational TMS that the BMS directly generalizes to continuous-valued beliefs
+- [[McDermott_1983_ContextsDataDependencies]] — cites this as [5]; McDermott directly extends and synthesizes Doyle's data dependencies with data pools
+- [[Reiter_1980_DefaultReasoning]] — cites Doyle (1978) as the heuristic implementation mechanism for belief revision under default reasoning
+- [[Pollock_1987_DefeasibleReasoning]] — cites this as Doyle (1979); contrasts OSCAR's approach (storing only immediate bases) with Doyle's TMS (storing all arguments)
+- [[Shapiro_1998_BeliefRevisionTMS]] — surveys this as the foundational JTMS architecture
 
 ### Conceptual Links (not citation-based)
 - [[deKleer_1986_AssumptionBasedTMS]] — Strong: this paper defines the single-context justification-based TMS; that paper defines the multi-context assumption-based TMS that replaces it. Same core problem (belief revision under contradictions) with fundamentally different architecture (retraction-based vs. label-based). Key concepts from this paper (justifications, nogoods, dependency-directed backtracking) are preserved but reconceptualized in the ATMS.

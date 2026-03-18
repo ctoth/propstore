@@ -262,10 +262,21 @@ This paper is directly foundational for the propstore's claim representation arc
 
 ## Collection Cross-References
 
+### Already in Collection
+- (none directly cited)
+
 ### Now in Collection (previously listed as leads)
 - [[Groth_2010_AnatomyNanopublication]] — Defines nanopublication model (concept→triple→statement→annotation→nanopublication) with RDF Named Graph serialization. Structurally analogous to the micropublication model but focused on Semantic Web interoperability rather than argumentation structure. Clark's model adds supports/challenges argumentation; Groth provides concrete RDF serialization.
 - [[Greenberg_2009_CitationDistortions]] — Empirically demonstrates how citation bias, amplification, and invention create unfounded authority in a claim-specific citation network (242 papers on β-amyloid/IBM). Provides the motivating case study for why claim-level tracking (micropublications) is needed: paper-level citation fails to distinguish data-supported from citation-amplified claims.
 
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- (none found)
+
 ### Conceptual Links (not citation-based)
 - [[Groth_2010_AnatomyNanopublication]] — **Strong.** Both define atomic scientific assertion models with layered provenance. Complementary formalizations: Clark adds argumentation structure, Groth adds Semantic Web serialization.
 - [[Greenberg_2009_CitationDistortions]] — **Strong.** Greenberg's citation distortion taxonomy (bias, amplification, invention) is the empirical motivation for Clark's micropublication model. Clark's supports/challenges stances directly address Greenberg's citation bias problem by making claim-level evidence explicit.
+- [[Dung_1995_AcceptabilityArguments]] — **Strong.** Clark's micropublication model is grounded in Toulmin-Verheij defeasible argumentation theory with explicit support and challenge relations. Dung's abstract argumentation frameworks provide the formal semantics for these challenge/attack relations. Clark's bipolar claim-evidence networks (Use Case 8) are instances of argumentation frameworks where claims form arguments and challenge relations form attacks. Dung's multiple semantics (preferred, stable, grounded) offer formal strategies for resolving the competing claims Clark models.
+- [[Pollock_1987_DefeasibleReasoning]] — **Moderate.** Clark grounds the micropublication model in Toulmin-Verheij defeasible argumentation theory. Pollock provides the formal epistemological theory of defeasible reasoning (prima facie reasons, rebutting/undercutting defeaters) that underpins the kind of argumentation Clark models. Clark's directlyChallenges maps to rebutting defeat; Clark's indirectlyChallenges (undercutting support) maps to undercutting defeat.

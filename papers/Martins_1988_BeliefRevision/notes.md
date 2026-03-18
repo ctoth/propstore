@@ -213,3 +213,29 @@ This paper is directly foundational for the propstore's assumption-tracking and 
 - Martins, J., "Belief revision" in Encyclopedia of AI (Wiley, 1987) [26]
 - Shapiro, S. and Rapaport, W., "SNePS considered as a fully intensional propositional semantic network" (1987) [49]
 - Goodwin, J.W., "A Theory and System for Non-Monotonic Reasoning" (Linkoping dissertation, 1987) [18]
+
+## Collection Cross-References
+
+### Already in Collection
+- [[deKleer_1986_AssumptionBasedTMS]] — cited as [6]; the main alternative approach to assumption-based reasoning. SWM/MBR provides a relevance-logic-based alternative to the ATMS's logic-independent approach.
+- [[Doyle_1979_TruthMaintenanceSystem]] — cited as [12]; the foundational TMS that MBR improves upon by computing dependencies automatically via the SWM logic rather than requiring user-provided justifications.
+- [[McAllester_1978_ThreeValuedTMS]] — cited as [31]; referenced as part of the TMS lineage, using three-valued clausal representation compared to MBR's four-tuple supported wffs.
+- [[McDermott_1983_ContextsDataDependencies]] — cited as [34]; McDermott's synthesis of contexts and data dependencies is an alternative approach to the same multi-context reasoning problem MBR addresses.
+- [[Martins_1983_MultipleBeliefSpaces]] — cited as [28]; this is the full journal-length expansion of the 1983 conference paper, with complete formal proofs and the SNeBR implementation.
+
+### New Leads (Not Yet in Collection)
+- Goodwin, J.W. (1987) — "A Theory and System for Non-Monotonic Reasoning" — Linkoping dissertation presenting an alternative non-monotonic reasoning system
+- Shapiro, S. and Rapaport, W. (1987) — "SNePS considered as a fully intensional propositional semantic network" — describes the representation substrate for SNeBR
+
+### Supersedes or Recontextualizes
+- [[Martins_1983_MultipleBeliefSpaces]] — this 1988 paper is the full journal treatment superseding the 1983 conference paper, adding formal proofs (Appendix A), the ext origin tag, nonstandard connectives (Section 3), and the complete SNeBR implementation (Section 5)
+
+### Cited By (in Collection)
+- [[Shapiro_1998_BeliefRevisionTMS]] — cites this as the primary reference for SNeBR; describes how SNeBR unites the ATMS with the reasoner by computing assumption sets per inference rule
+- [[Dixon_1993_ATMSandAGM]] — does not directly cite this paper but addresses the same ATMS-vs-belief-revision bridging problem from a different angle
+
+### Conceptual Links (not citation-based)
+- [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** Both systems track which assumptions support each derived proposition and which assumption sets are inconsistent. MBR's origin sets correspond to ATMS labels (minimal environments), and MBR's restriction sets correspond to ATMS nogoods. Key difference: MBR computes dependencies automatically from inference rules in a relevance logic, while the ATMS receives justifications from an external problem solver.
+- [[Alchourron_1985_TheoryChange]] — **Moderate.** MBR's belief revision via context manipulation and culprit selection during contradiction recovery is an informal implementation of the kind of rational belief change that AGM formalizes axiomatically. MBR's interactive culprit selection corresponds to AGM's selection function over remainder sets.
+- [[Dixon_1993_ATMSandAGM]] — **Moderate.** Dixon bridges the ATMS and AGM formally; this paper provides the alternative MBR/SNeBR architecture that Shapiro (1998) later proposes should be made AGM-compliant.
+- [[Shapiro_1998_BeliefRevisionTMS]] — **Strong.** Shapiro's 1998 proposal to build an AGM-compliant TMS on SNePS/SNeBR directly builds on the MBR model presented here. The 1998 paper explicitly identifies this as the implementation foundation.

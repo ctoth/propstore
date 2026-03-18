@@ -270,3 +270,25 @@ This paper is directly foundational for the propstore's world model architecture
 - [Williams, 1993] *On the Logic of Theory Base Change* -- finite theory base approach to AGM, implementation described in [Dixon, 1993]
 - [Dixon and Foo, 1992a] *Encoding the ATMS in AGM Logic (Revised)* -- technical report predecessor
 - [Nebel, 1991] *Belief Revision and Default Reasoning: Syntax-Based Approaches* -- finite belief revision
+
+## Collection Cross-References
+
+### Already in Collection
+- [[deKleer_1986_AssumptionBasedTMS]] — cited as [de Kleer, 1986]; the ATMS functional specification that this paper proves equivalent to AGM operations under the right entrenchment encoding.
+
+### New Leads (Not Yet in Collection)
+- Gardenfors, P. (1988) — "Knowledge in Flux" — the definitive AGM reference book
+- Gardenfors, P. and Makinson, D. (1988) — "Revisions of Knowledge Systems Using Epistemic Entrenchment" — defines the EE1-EE5 axioms central to the translation algorithm
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- [[Shapiro_1998_BeliefRevisionTMS]] — does not directly cite Dixon but addresses the same TMS-AGM bridge problem; Shapiro notes the near-complete isolation between the two traditions that Dixon bridges
+
+### Conceptual Links (not citation-based)
+- [[Alchourron_1985_TheoryChange]] — **Strong.** AGM (1985) defines the postulates and partial meet contraction/revision functions; Dixon (1993) proves that ATMS context switching satisfies these postulates under appropriate entrenchment encoding. The AGM paper provides the axiomatic criteria; Dixon provides the constructive bridge.
+- [[Shapiro_1998_BeliefRevisionTMS]] — **Strong.** Both papers identify the disconnect between TMS and AGM traditions and propose bridges. Dixon provides a formal proof of equivalence; Shapiro provides a taxonomic survey and proposes a new implementation. Shapiro's proposal to build AGM-compliant SNeBR could benefit from Dixon's entrenchment encoding.
+- [[Martins_1988_BeliefRevision]] — **Moderate.** MBR's interactive culprit selection during contradiction recovery is an informal version of what Dixon formalizes via epistemic entrenchment. Dixon's algorithm could automate MBR's culprit selection.
+- [[Reiter_1980_DefaultReasoning]] — **Moderate.** Reiter's default logic provides the formal substrate for assumptions that the ATMS manages; Dixon's bridge to AGM provides a principled framework for revising default-derived beliefs when contradictions arise.
+- [[deKleer_1986_ProblemSolvingATMS]] — **Moderate.** Dixon's entrenchment relation could inform the consumer architecture's scheduling decisions --- simplest-label-first scheduling implicitly encodes a form of entrenchment.
