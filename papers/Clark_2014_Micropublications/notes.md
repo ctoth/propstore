@@ -255,7 +255,7 @@ This paper is directly foundational for the propstore's claim representation arc
 
 - Toulmin S: The Uses of Argument (1958/2003) - foundational argumentation model
 - Groth P, Gibson A, Velterop J: The anatomy of a nanopublication (2010) - statement-based model comparison → NOW IN COLLECTION: [[Groth_2010_AnatomyNanopublication]]
-- Greenberg SA: How citation distortions create unfounded authority (2009) - motivation for claim networks
+- Greenberg SA: How citation distortions create unfounded authority (2009) - motivation for claim networks → NOW IN COLLECTION: [[Greenberg_2009_CitationDistortions]]
 - Verheij B: Artificial argument assistants (2003/2005) - bipolar argumentation frameworks
 - Carroll JJ et al: Named graphs, provenance and trust (2005) - RDF named graph foundations
 - Ciccarese P et al: The SWAN biomedical discourse ontology (2008) - predecessor model
@@ -264,6 +264,8 @@ This paper is directly foundational for the propstore's claim representation arc
 
 ### Now in Collection (previously listed as leads)
 - [[Groth_2010_AnatomyNanopublication]] — Defines nanopublication model (concept→triple→statement→annotation→nanopublication) with RDF Named Graph serialization. Structurally analogous to the micropublication model but focused on Semantic Web interoperability rather than argumentation structure. Clark's model adds supports/challenges argumentation; Groth provides concrete RDF serialization.
+- [[Greenberg_2009_CitationDistortions]] — Empirically demonstrates how citation bias, amplification, and invention create unfounded authority in a claim-specific citation network (242 papers on β-amyloid/IBM). Provides the motivating case study for why claim-level tracking (micropublications) is needed: paper-level citation fails to distinguish data-supported from citation-amplified claims.
 
 ### Conceptual Links (not citation-based)
 - [[Groth_2010_AnatomyNanopublication]] — **Strong.** Both define atomic scientific assertion models with layered provenance. Complementary formalizations: Clark adds argumentation structure, Groth adds Semantic Web serialization.
+- [[Greenberg_2009_CitationDistortions]] — **Strong.** Greenberg's citation distortion taxonomy (bias, amplification, invention) is the empirical motivation for Clark's micropublication model. Clark's supports/challenges stances directly address Greenberg's citation bias problem by making claim-level evidence explicit.
