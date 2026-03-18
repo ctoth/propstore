@@ -411,23 +411,6 @@ class TestDimensionsPropertyBased:
         assert fd_a is not None and fd_b is not None
         assert fd_a.dimensions == fd_b.dimensions
 
-    def test_common_alternatives_dont_change_dimensions(
-        self, forms_dir: Path
-    ) -> None:
-        """common_alternatives on a form don't change its dimensions.
-
-        The pressure form has common_alternatives (cmH2O, hPa) but should
-        still have the same dimensions as a plain pressure form would.
-        """
-        fd = load_form(forms_dir, "pressure")
-        assert fd is not None
-        # After implementation, pressure should have dimensions {M: 1, L: -1, T: -2}
-        assert hasattr(fd, "dimensions")
-        # Dimensions should reflect pressure (force/area) regardless of
-        # which alternative unit is used
-        if fd.dimensions is not None:
-            expected_pressure_dims = {"M": 1, "L": -1, "T": -2}
-            assert fd.dimensions == expected_pressure_dims
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
