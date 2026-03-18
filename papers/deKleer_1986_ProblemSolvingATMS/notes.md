@@ -190,3 +190,18 @@ This paper is foundational for the propstore project's world model and assumptio
 - de Kleer, J. and Brown, J.S., "A qualitative physics based on confluences", Artificial Intelligence 24 (1984) 7-83
 - Reiter, R., "A logic for default reasoning", Artificial Intelligence 13 (1980) 81-132
 - Ginsberg, M.L., "Counterfactuals", Proc. IJCAI (1985) 107-110
+
+## Collection Cross-References
+
+### Already in Collection
+- [[deKleer_1986_AssumptionBasedTMS]] — the foundational companion paper defining the ATMS itself (environments, labels, nogoods, contexts, label properties); this problem-solving paper builds the control regime and constraint language on top of that substrate
+
+### New Leads (Not Yet in Collection)
+- Doyle (1979) — "A truth maintenance system" — the original justification-based TMS; essential baseline for understanding what the ATMS replaces
+- Reiter (1980) — "A logic for default reasoning" — formal framework for the kind of nonmonotonic reasoning the ATMS supports
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Conceptual Links (not citation-based)
+- [[deKleer_1986_AssumptionBasedTMS]] — direct companion; this paper defines the problem-solving architecture, that paper defines the ATMS substrate it runs on

@@ -1,0 +1,211 @@
+source:
+  paper: deKleer_1986_AssumptionBasedTMS
+  extraction_model: "claude-opus-4-6-20250317"
+  extraction_date: "2026-03-17"
+
+claims:
+  - id: claim1
+    type: model
+    name: "ATMS node representation"
+    equations:
+      - "gamma_datum = (datum, label, justifications)"
+      - "label = {E_1, E_2, ...} where each E_i is a consistent environment"
+      - "environment = {A_1, A_2, ...} where each A_i is an assumption"
+    parameters:
+      - name: "datum"
+        note: "Problem-solver-supplied data item"
+      - name: "label"
+        note: "Set of minimal consistent environments under which datum holds"
+      - name: "justifications"
+        note: "Set of propositional Horn clauses deriving the datum"
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 19
+      section: "4.4. Basic data structures"
+      quote_fragment: "The basic data structure is an ATMS node. It contains the problem-solver datum with which it is associated, the justifications the problem solver has created for it, and a label computed for it by the ATMS"
+
+  - id: claim2
+    type: observation
+    statement: "The ATMS label for every node is guaranteed to be consistent, sound, complete, and minimal with respect to the current set of justifications and assumptions."
+    concepts:
+      - label_consistency
+      - label_soundness
+      - label_completeness
+      - label_minimality
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 33
+      section: "7. Summary"
+      quote_fragment: "Most fundamentally, label consistency ensures all inconsistent environments are identified"
+
+  - id: claim3
+    type: observation
+    statement: "Label consistency ensures that no environment in any node's label is inconsistent (i.e., a superset of any nogood), preventing the problem solver from working on irrelevant assumption sets."
+    concepts:
+      - label_consistency
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 33
+      section: "7. Summary"
+
+  - id: claim4
+    type: observation
+    statement: "Label soundness ensures that no context will contain a datum it should not, so nodes which hold in no context have empty labels and will not be mistakenly worked on."
+    concepts:
+      - label_soundness
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 33
+      section: "7. Summary"
+
+  - id: claim5
+    type: observation
+    statement: "Label completeness guarantees that every context will contain every datum it should, so the problem solver can easily identify all relevant nodes for any context."
+    concepts:
+      - label_completeness
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 33
+      section: "7. Summary"
+
+  - id: claim6
+    type: observation
+    statement: "Label minimality states that each node label has the fewest disjuncts and each disjunct has the fewest assumptions, ensuring that changing any label assumption affects the node's status."
+    concepts:
+      - label_minimality
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 33
+      section: "7. Summary"
+
+  - id: claim7
+    type: observation
+    statement: "The ATMS is incremental: after every primitive operation (create node, create assumption, add justification), every label is consistent, sound, complete, and minimal."
+    concepts:
+      - atms_incrementality
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 23
+      section: "4.6. Basic operations"
+
+  - id: claim8
+    type: observation
+    statement: "The ATMS is order-independent: node labels are completely insensitive to the order in which assumptions, nodes, and justifications are introduced."
+    concepts:
+      - atms_order_independence
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 23
+      section: "4.6. Basic operations"
+
+  - id: claim9
+    type: observation
+    statement: "The ATMS eliminates the single-state problem: multiple mutually contradictory solutions can coexist because each datum is labeled with the assumptions under which it holds, not globally believed or disbelieved."
+    concepts:
+      - single_state_problem
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 27
+      section: "5. Limitations Removed"
+
+  - id: claim10
+    type: observation
+    statement: "The ATMS eliminates overzealous contradiction avoidance: a contradiction merely indicates that a specific set of assumptions is inconsistent, not that work on related assumption sets must stop."
+    concepts:
+      - contradiction_handling
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 27
+      section: "5. Limitations Removed"
+
+  - id: claim11
+    type: observation
+    statement: "Context switching in the ATMS is trivial: a state is completely specified by a set of assumptions, and data obtained in one state is automatically available in any other state where those assumptions hold."
+    concepts:
+      - context_switching
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 27
+      section: "5. Limitations Removed"
+
+  - id: claim12
+    type: observation
+    statement: "The ATMS completely resolves the unouting problem because there is no backtracking, no retraction, and no context switching; the problem solver explores all solutions at once."
+    concepts:
+      - unouting_problem
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 28
+      section: "5. Limitations Removed"
+
+  - id: claim13
+    type: observation
+    statement: "In the ATMS, assumptions (not justifications) are the dominant representational mode; it is easy to compare sets of assumptions, find the datum with the most or least assumptions, and determine whether one datum implies another."
+    concepts:
+      - assumption_dominance
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 28
+      section: "5. Limitations Removed"
+
+  - id: claim14
+    type: observation
+    statement: "ATMS efficiency is directly proportional to the number of environments actually considered, not the total size of the environment lattice; in practice most environments are inconsistent, keeping label sizes manageable even with 1000+ assumptions."
+    concepts:
+      - atms_efficiency
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 25
+      section: "4.8. Complexity considerations"
+      quote_fragment: "The architecture of the ATMS is such that it is practical to use even when n is very large (e.g., 1000)"
+
+  - id: claim15
+    type: observation
+    statement: "Environments are efficiently represented as bit-vectors with one bit per assumption; union is bitwise OR, subset test is (A AND NOT B) == 0, and a hash table keyed by bit-vectors provides O(1) environment lookup."
+    concepts:
+      - bit_vector_representation
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 30
+      section: "6. Implementation Issues"
+
+  - id: claim16
+    type: observation
+    statement: "Direct retraction of justifications in the ATMS is inefficient (isomorphic to LISP garbage collection); the preferred mechanism is to conjoin an extra defeasability assumption with the justification and contradict that assumption to retract."
+    concepts:
+      - justification_retraction
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 26
+      section: "4.9. Retracting justifications"
+
+  - id: claim17
+    type: observation
+    statement: "Approximately 30% of assumptions can typically be garbage collected in practice because their singleton environments are contradictory or all their consequent nodes are universally true or false."
+    concepts:
+      - assumption_garbage_collection
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 31
+      section: "6. Implementation Issues"
+      quote_fragment: "In my experience, typically 30% of the assumptions can be garbage collected"
+
+  - id: claim18
+    type: observation
+    statement: "The four types of ATMS nodes (premises, assumptions, assumed nodes, derived nodes) partition all possible nodes and determine their label structure: premises have label containing the empty environment, assumptions have label containing their singleton environment."
+    concepts:
+      - node_types
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 19
+      section: "4.4. Basic data structures"
+
+  - id: claim19
+    type: observation
+    statement: "The ATMS node set partitions into four non-overlapping categories: true (hold in every consistent context), in (hold in at least one nonuniversal consistent context), out (empty label, hold in no known consistent context), and false (whose label would only contain nogoods)."
+    concepts:
+      - node_categories
+    provenance:
+      paper: deKleer_1986_AssumptionBasedTMS
+      page: 18
+      section: "4.3. Labels"
