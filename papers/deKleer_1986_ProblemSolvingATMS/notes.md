@@ -196,8 +196,10 @@ This paper is foundational for the propstore project's world model and assumptio
 ### Already in Collection
 - [[deKleer_1986_AssumptionBasedTMS]] — the foundational companion paper defining the ATMS itself (environments, labels, nogoods, contexts, label properties); this problem-solving paper builds the control regime and constraint language on top of that substrate
 
+### Now in Collection (previously listed as leads)
+- [[Doyle_1979_TruthMaintenanceSystem]] — The original justification-based TMS. Introduces SL/CP justifications, truth maintenance process, dependency-directed backtracking, and control patterns (defaults, sequences, equivalence classes) that this paper's consumer architecture and constraint language supersede. This paper compares the ATMS consumer approach favorably against Doyle's data pool mechanism for control.
+
 ### New Leads (Not Yet in Collection)
-- Doyle (1979) — "A truth maintenance system" — the original justification-based TMS; essential baseline for understanding what the ATMS replaces
 - Reiter (1980) — "A logic for default reasoning" — formal framework for the kind of nonmonotonic reasoning the ATMS supports
 
 ### Supersedes or Recontextualizes
