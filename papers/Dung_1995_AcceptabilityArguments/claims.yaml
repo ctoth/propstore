@@ -1,0 +1,282 @@
+source:
+  paper: Dung_1995_AcceptabilityArguments
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-17"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "An argumentation framework is defined as a pair AF = (AR, attacks) where AR is a set of arguments and attacks is a binary relation on AR representing the attack relationship between arguments."
+    concepts:
+      - argumentation_framework
+      - attack_relation
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 6
+      section: "2.1 Argumentation frameworks"
+      quote_fragment: "An argumentation framework is a pair AF = <AR, attacks> where AR is a set of arguments, and attacks is a binary relation on AR"
+
+  - id: claim2
+    type: observation
+    statement: "An argument A is acceptable with respect to a set S iff for each argument B that attacks A, B is attacked by some argument in S."
+    concepts:
+      - acceptability
+      - admissible_set
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 6
+      section: "2.1 Argumentation frameworks"
+      quote_fragment: "An argument A in AR is acceptable with respect to a set S of arguments iff for each argument B in AR: if B attacks A then B is attacked by S"
+
+  - id: claim3
+    type: observation
+    statement: "Every argumentation framework possesses at least one preferred extension."
+    concepts:
+      - preferred_extension
+      - argumentation_framework
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 7
+      section: "2.1 Argumentation frameworks"
+      quote_fragment: "Every argumentation framework possesses at least one preferred extension"
+    notes: "Corollary 12. Follows from Theorem 11 and the fact that the empty set is always admissible."
+
+  - id: claim4
+    type: observation
+    statement: "Every stable extension is a preferred extension, but not every preferred extension is a stable extension."
+    concepts:
+      - stable_extension
+      - preferred_extension
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 8
+      section: "2.1 Argumentation frameworks"
+      quote_fragment: "Every stable extension is a preferred extension, but not vice versa"
+    notes: "Lemma 15. Counterexample: AF = ({A}, {(A,A)}) has empty preferred extension which is not stable."
+
+  - id: claim5
+    type: observation
+    statement: "The characteristic function F_AF is monotonic with respect to set inclusion, where F_AF(S) = {A | A is acceptable with respect to S}."
+    concepts:
+      - characteristic_function
+      - monotonicity
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 9
+      section: "2.2 Fixpoint semantics and grounded (skeptical) semantics"
+      quote_fragment: "F_AF is monotonic (with respect to set inclusion)"
+    notes: "Lemma 19. Enables definition of grounded extension as least fixed point."
+
+  - id: claim6
+    type: observation
+    statement: "The grounded extension of an argumentation framework is the least fixed point of the characteristic function F_AF, and it is the least complete extension with respect to set inclusion."
+    concepts:
+      - grounded_extension
+      - characteristic_function
+      - complete_extension
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 10
+      section: "2.2 Fixpoint semantics and grounded (skeptical) semantics"
+      quote_fragment: "The grounded extension is the least (with respect to set inclusion) complete extension"
+    notes: "Definition 20 and Theorem 25(2)."
+
+  - id: claim7
+    type: observation
+    statement: "Each preferred extension is a complete extension, but not vice versa. The complete extensions form a complete semilattice with respect to set inclusion."
+    concepts:
+      - preferred_extension
+      - complete_extension
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 10
+      section: "2.2 Fixpoint semantics and grounded (skeptical) semantics"
+      quote_fragment: "Each preferred extension is a complete extension, but not vice versa"
+    notes: "Theorem 25."
+
+  - id: claim8
+    type: observation
+    statement: "Every well-founded argumentation framework has exactly one complete extension which is simultaneously grounded, preferred, and stable."
+    concepts:
+      - well_founded_framework
+      - grounded_extension
+      - preferred_extension
+      - stable_extension
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 11
+      section: "2.3 Sufficient conditions for coincidence between different semantics"
+      quote_fragment: "Every well-founded argumentation framework has exactly one complete extension which is grounded, preferred and stable"
+    notes: "Theorem 30. A framework is well-founded iff there is no infinite sequence A_0, A_1, ... where each A_{i+1} attacks A_i."
+
+  - id: claim9
+    type: observation
+    statement: "Every limited controversial argumentation framework is coherent (each preferred extension is stable), and every uncontroversial framework is coherent and relatively grounded."
+    concepts:
+      - limited_controversial
+      - coherent_framework
+      - relatively_grounded
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 12
+      section: "2.3 Sufficient conditions for coincidence between different semantics"
+      quote_fragment: "Every limited controversial argumentation framework is coherent"
+    notes: "Theorem 33. Every limited controversial framework possesses at least one stable extension (Corollary 36)."
+
+  - id: claim10
+    type: observation
+    statement: "The NM-solutions of a cooperative n-person game are exactly the stable extensions of the argumentation framework where arguments are imputations and attacks is the domination relation."
+    concepts:
+      - stable_extension
+      - n_person_game
+      - nm_solution
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 16
+      section: "3.1 Argumentation in n-person games"
+      quote_fragment: "each NM-solution of the game G is a stable extension of (IMP, attacks) interpreted as an argumentation framework, and vice versa"
+    notes: "Theorem 37."
+
+  - id: claim11
+    type: observation
+    statement: "The core of a cooperative n-person game coincides with F(empty_set) where F is the characteristic function of the corresponding argumentation framework over imputations."
+    concepts:
+      - core_game_theory
+      - characteristic_function
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 17
+      section: "3.1 Argumentation in n-person games"
+      quote_fragment: "the core of G coincides with F(phi) where F is the characteristic function of (IMP, attacks)"
+    notes: "Theorem 38."
+
+  - id: claim12
+    type: observation
+    statement: "A set S constitutes a solution to the stable marriage problem iff S is a stable extension of the corresponding argumentation framework."
+    concepts:
+      - stable_extension
+      - stable_marriage_problem
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 17
+      section: "3.2 Argumentation and the stable marriage problem"
+      quote_fragment: "A set S subset of AR constitutes a solution to the SMP iff S is a stable extension of the corresponding argumentation framework"
+    notes: "Theorem 39."
+
+  - id: claim13
+    type: observation
+    statement: "Reiter's R-extensions of a default theory correspond exactly to stable extensions of the corresponding argumentation framework AF(T), via the arg and flat mappings."
+    concepts:
+      - default_logic
+      - stable_extension
+      - r_extension
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 20
+      section: "4.1 Reiter's default logic as argumentation"
+      quote_fragment: "arg(E) is a stable extension of AF(T) ... flat(E') is an R-extension of T"
+    notes: "Theorem 43."
+
+  - id: claim14
+    type: observation
+    statement: "Pollock's indefeasible arguments correspond to the grounded extension in finitary frameworks: if AF is finitary, then the set of indefeasible arguments equals the grounded extension."
+    concepts:
+      - indefeasible_arguments
+      - grounded_extension
+      - defeasible_reasoning
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 22
+      section: "4.2 Pollock's inductive defeasible logic as grounded argumentation"
+      quote_fragment: "If AF is finitary, then AR_inf = GE_AF"
+    notes: "Theorem 47(3)."
+
+  - id: claim15
+    type: observation
+    statement: "Stable models of a logic program P correspond to stable extensions of AF_napif(P), and the well-founded model corresponds to the grounded extension."
+    concepts:
+      - stable_model
+      - stable_extension
+      - well_founded_model
+      - grounded_extension
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 24
+      section: "4.3.1 Negation as possibly infinite failure"
+      quote_fragment: "a Herbrand interpretation M is a stable model of P iff there is a stable extension E of AF_napif(P)"
+    notes: "Theorems 49 and 50."
+
+  - id: claim16
+    type: observation
+    statement: "For arbitrary logic programs, the stable, well-founded and preferred extension semantics are in general incomputable."
+    concepts:
+      - computability
+      - logic_programming_semantics
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 25
+      section: "4.3.1 Negation as possibly infinite failure"
+      quote_fragment: "the stable, well-founded and preferred extension semantics of P are in general incomputable"
+    notes: "Theorem 52."
+
+  - id: claim17
+    type: model
+    name: "Meta-interpreter architecture for argumentation systems"
+    equations:
+      - "acc(X) <- not defeat(X)"
+      - "defeat(X) <- attack(Y, X), acc(Y)"
+    parameters:
+      - name: "APU"
+        concept: "argument_processing_unit"
+        note: "The two clauses C1 and C2 above"
+      - name: "AGU"
+        concept: "argument_generation_unit"
+        note: "Generates attack(A,B) facts from the argumentation framework"
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 28
+      section: "5. Argumentation as logic programming"
+      quote_fragment: "acc(X) <- not defeat(X) ... defeat(X) <- attack(Y, X), acc(Y)"
+    notes: "Theorem 62 proves correctness: stable extensions of AF correspond to stable models of P_AF, grounded extension corresponds to well-founded model."
+
+  - id: claim18
+    type: observation
+    statement: "Let P be a knowledge base represented either as a logic program, or as a nonmonotonic theory, or as an argumentation framework. Then there is not necessarily a 'bug' in P if P has no stable semantics."
+    concepts:
+      - stable_semantics
+      - knowledge_representation
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 18
+      section: "3.2 Argumentation and the stable marriage problem"
+      quote_fragment: "Let P be a knowledge base represented either as a logic program, or as a nonmonotonic theory or as an argumentation framework. Then there is not necessarily a 'bug' in P if P has no stable semantics"
+    notes: "This defeats a commonly held opinion in the logic programming and nonmonotonic reasoning community. Demonstrated via the stable marriage problem with gays (SMPG) which has no stable extension."
+
+  - id: claim19
+    type: observation
+    statement: "Models of Clark's completion of a logic program P correspond to stable extensions of AF_naff(P), and Fitting's model corresponds to the grounded extension."
+    concepts:
+      - clarks_completion
+      - fittings_model
+      - stable_extension
+      - grounded_extension
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 26
+      section: "4.3.2 Negations as finite failure"
+      quote_fragment: "a Herbrand interpretation M is a model of Clark's completion of P, comp(P), if there is a stable extension E of AF_naff(P)"
+    notes: "Theorems 55 and 56."
+
+  - id: claim20
+    type: observation
+    statement: "If a logic program P is stratified, then AF_napif(P) is well-founded; if P is hierarchical, then AF_naff(P) is well-founded. If P is strict, then both frameworks are uncontroversial. If P is call-consistent, then both are limited controversial."
+    concepts:
+      - stratified_program
+      - well_founded_framework
+      - logic_programming_semantics
+    provenance:
+      paper: Dung_1995_AcceptabilityArguments
+      page: 27
+      section: "4.3.3 Coincidence between different semantics"
+      quote_fragment: "If P is stratified, then AF_napif(P) is well-founded"
+    notes: "Theorems 57, 58. These results unify and simplify many previously known results about when different LP semantics coincide."
