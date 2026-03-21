@@ -4,8 +4,8 @@ from __future__ import annotations
 import dataclasses
 import struct
 import sqlite3
+from collections.abc import Callable
 from datetime import datetime, timezone
-from pathlib import Path
 
 
 def _require_litellm():
@@ -93,7 +93,7 @@ def embed_claims(
     model_name: str,
     claim_ids: list[str] | None = None,
     batch_size: int = 64,
-    on_progress: callable | None = None,
+    on_progress: Callable[[int, int], None] | None = None,
 ) -> dict:
     """Generate and store embeddings for claims.
 
