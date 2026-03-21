@@ -193,3 +193,107 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
     if result.details:
         click.echo(f"Details:    {result.details}")
     wm.close()
+
+
+@claim.command()
+@click.argument("claim_id", required=False, default=None)
+@click.option("--all", "embed_all", is_flag=True, help="Embed all claims")
+@click.option("--model", required=True, help="litellm model string, or 'all' for every registered model")
+@click.option("--batch-size", default=64, type=int, help="Claims per API call")
+@click.pass_obj
+def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_size: int) -> None:
+    """Generate embeddings for claims via litellm."""
+    if not claim_id and not embed_all:
+        click.echo("Error: provide a claim ID or use --all", err=True)
+        raise SystemExit(1)
+
+    from propstore.embed import embed_claims, _load_vec_extension, get_registered_models
+
+    repo = obj["repo"]
+    sidecar = repo.sidecar_path
+    if not sidecar.exists():
+        click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
+        raise SystemExit(1)
+
+    import sqlite3
+    conn = sqlite3.connect(sidecar)
+    conn.row_factory = sqlite3.Row
+    _load_vec_extension(conn)
+
+    ids = [claim_id] if claim_id else None
+
+    if model == "all":
+        models = get_registered_models(conn)
+        if not models:
+            click.echo("Error: no models registered. Run embed with a specific model first.", err=True)
+            conn.close()
+            raise SystemExit(1)
+        for m in models:
+            click.echo(f"Embedding with {m['model_name']}...")
+            result = embed_claims(
+                conn, m["model_name"], claim_ids=ids, batch_size=batch_size,
+                on_progress=lambda done, total: click.echo(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None
+            )
+            click.echo(f"  embedded={result['embedded']} skipped={result['skipped']} errors={result['errors']}")
+    else:
+        def progress(done: int, total: int) -> None:
+            click.echo(f"  {done}/{total} claims embedded", err=True)
+
+        result = embed_claims(conn, model, claim_ids=ids, batch_size=batch_size, on_progress=progress)
+        click.echo(f"Embedded: {result['embedded']}, Skipped: {result['skipped']}, Errors: {result['errors']}")
+
+    conn.commit()
+    conn.close()
+
+
+@claim.command()
+@click.argument("claim_id")
+@click.option("--model", default=None, help="litellm model string (default: first available)")
+@click.option("--top-k", default=10, type=int, help="Number of results")
+@click.option("--agree", is_flag=True, help="Similar under ALL stored models")
+@click.option("--disagree", is_flag=True, help="Similar under some models but not others")
+@click.pass_obj
+def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool, disagree: bool) -> None:
+    """Find similar claims by embedding distance."""
+    from propstore.embed import find_similar, find_similar_agree, find_similar_disagree, _load_vec_extension, get_registered_models
+
+    repo = obj["repo"]
+    sidecar = repo.sidecar_path
+    if not sidecar.exists():
+        click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
+        raise SystemExit(1)
+
+    import sqlite3
+    conn = sqlite3.connect(sidecar)
+    conn.row_factory = sqlite3.Row
+    _load_vec_extension(conn)
+
+    try:
+        if agree:
+            results = find_similar_agree(conn, claim_id, top_k=top_k)
+        elif disagree:
+            results = find_similar_disagree(conn, claim_id, top_k=top_k)
+        else:
+            if model is None:
+                models = get_registered_models(conn)
+                if not models:
+                    click.echo("Error: no embeddings found. Run 'pks claim embed' first.", err=True)
+                    raise SystemExit(1)
+                model = models[0]["model_name"]
+            results = find_similar(conn, claim_id, model, top_k=top_k)
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
+    finally:
+        conn.close()
+
+    if not results:
+        click.echo("No similar claims found.")
+        return
+
+    for r in results:
+        dist = r.get("distance", 0)
+        cid = r.get("id", "?")
+        summary = r.get("auto_summary") or r.get("statement") or ""
+        paper = r.get("source_paper", "")
+        click.echo(f"  {dist:.4f}  {cid}  [{paper}]  {summary[:120]}")

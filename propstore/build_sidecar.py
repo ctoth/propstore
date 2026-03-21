@@ -116,6 +116,19 @@ def build_sidecar(
         if existing_hash == content_hash:
             return False
 
+    # Snapshot embeddings before rebuild
+    _embedding_snapshot = None
+    if sidecar_path.exists():
+        try:
+            from propstore.embed import extract_embeddings, _load_vec_extension
+            _snap_conn = sqlite3.connect(sidecar_path)
+            _snap_conn.row_factory = sqlite3.Row
+            _load_vec_extension(_snap_conn)
+            _embedding_snapshot = extract_embeddings(_snap_conn)
+            _snap_conn.close()
+        except (ImportError, Exception):
+            pass  # sqlite-vec not installed or no embeddings
+
     # Build fresh
     if sidecar_path.exists():
         sidecar_path.unlink()
@@ -139,6 +152,15 @@ def build_sidecar(
             _populate_claims(conn, claim_files, concept_registry)
             _populate_conflicts(conn, claim_files, concept_registry)
             _build_claim_fts_index(conn, claim_files)
+
+        # Restore embeddings after rebuild
+        if _embedding_snapshot is not None:
+            try:
+                from propstore.embed import restore_embeddings, _load_vec_extension
+                _load_vec_extension(conn)
+                _restore_report = restore_embeddings(conn, _embedding_snapshot)
+            except (ImportError, Exception):
+                pass
 
         conn.commit()
     except BaseException:

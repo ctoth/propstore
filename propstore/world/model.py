@@ -136,6 +136,27 @@ class WorldModel:
         ).fetchall()
         return [dict(r) for r in rows]
 
+    def similar_claims(
+        self,
+        claim_id: str,
+        model_name: str | None = None,
+        top_k: int = 10,
+    ) -> list[dict]:
+        """Find claims similar to the given claim by embedding distance.
+
+        Requires sqlite-vec extension and pre-computed embeddings.
+        """
+        from propstore.embed import find_similar, _load_vec_extension, get_registered_models
+        _load_vec_extension(self._conn)
+
+        if model_name is None:
+            models = get_registered_models(self._conn)
+            if not models:
+                return []
+            model_name = models[0]["model_name"]
+
+        return find_similar(self._conn, claim_id, model_name, top_k=top_k)
+
     def _has_table(self, name: str) -> bool:
         row = self._conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
