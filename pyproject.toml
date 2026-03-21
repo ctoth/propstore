@@ -14,6 +14,12 @@ dependencies = [
     "ast-equiv",
 ]
 
+[project.optional-dependencies]
+embeddings = [
+    "litellm>=1.0",
+    "sqlite-vec>=0.1",
+]
+
 [project.scripts]
 pks = "propstore.cli:cli"
 
