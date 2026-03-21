@@ -13,6 +13,10 @@ _FALLBACK_FORMS = (
     "category",
     "boolean",
     "structural",
+    "count",
+    "rate",
+    "score",
+    "ratio",
 )
 
 
