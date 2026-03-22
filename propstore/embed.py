@@ -6,6 +6,7 @@ import struct
 import sqlite3
 from collections.abc import Callable
 from datetime import datetime, timezone
+from typing import Any
 
 
 def _require_litellm():
@@ -110,309 +111,105 @@ def _ensure_vec_table(
         )
 
 
-def embed_claims(
-    conn: sqlite3.Connection,
-    model_name: str,
-    claim_ids: list[str] | None = None,
-    batch_size: int = 64,
-    on_progress: Callable[[int, int], None] | None = None,
-) -> dict:
-    """Generate and store embeddings for claims.
-
-    Args:
-        conn: Open read-write sidecar connection (with vec extension loaded).
-        model_name: litellm model string (e.g. "gemini/gemini-embedding-001").
-        claim_ids: Specific claim IDs, or None for all claims.
-        batch_size: Texts per API call.
-        on_progress: Optional callback(embedded_so_far, total) for progress reporting.
-
-    Returns:
-        {"embedded": int, "skipped": int, "errors": int}
-    """
-    litellm = _require_litellm()
-    _ensure_embedding_tables(conn)
-    model_key = _sanitize_model_key(model_name)
-
-    # Fetch claims
-    if claim_ids:
-        placeholders = ",".join("?" for _ in claim_ids)
-        rows = conn.execute(
-            f"SELECT id, seq, content_hash, auto_summary, statement, expression, name "
-            f"FROM claim WHERE id IN ({placeholders})", claim_ids
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT id, seq, content_hash, auto_summary, statement, expression, name FROM claim"
-        ).fetchall()
-
-    claims = [dict(r) for r in rows]
-
-    # Check existing embeddings -- skip unchanged
-    existing = {}
-    try:
-        for r in conn.execute(
-            "SELECT claim_id, content_hash FROM embedding_status WHERE model_key=?",
-            (model_key,)
-        ).fetchall():
-            existing[r["claim_id"]] = r["content_hash"]
-    except sqlite3.OperationalError:
-        pass  # table doesn't exist yet
-
-    to_embed = []
-    skipped = 0
-    for claim in claims:
-        if claim["id"] in existing and existing[claim["id"]] == claim["content_hash"]:
-            skipped += 1
-            continue
-        to_embed.append(claim)
-
-    if not to_embed:
-        return {"embedded": 0, "skipped": skipped, "errors": 0}
-
-    # Process in batches
-    embedded = 0
-    errors = 0
-    dimensions = None
-    now = datetime.now(timezone.utc).isoformat()
-
-    for i in range(0, len(to_embed), batch_size):
-        batch = to_embed[i:i + batch_size]
-        texts = [_embedding_text_for_claim(c) for c in batch]
-
-        try:
-            response = litellm.embedding(model=model_name, input=texts)
-        except Exception as e:
-            errors += len(batch)
-            continue
-
-        # First successful batch: discover dimensions, register model, create table
-        if dimensions is None:
-            dimensions = len(response.data[0]["embedding"])
-            conn.execute(
-                "INSERT OR REPLACE INTO embedding_model VALUES (?, ?, ?, ?)",
-                (model_key, model_name, dimensions, now)
-            )
-            _ensure_vec_table(conn, model_key, dimensions, prefix="claim_vec")
-
-        table_name = f"claim_vec_{model_key}"
-        for j, claim in enumerate(batch):
-            vec = response.data[j]["embedding"]
-            seq = claim["seq"]
-
-            # Delete existing vector for this seq if re-embedding
-            conn.execute(f"DELETE FROM [{table_name}] WHERE rowid = ?", (seq,))
-
-            # Insert new vector
-            conn.execute(
-                f"INSERT INTO [{table_name}](rowid, embedding) VALUES (?, ?)",
-                (seq, _serialize_float32(vec))
-            )
-
-            # Update status
-            conn.execute(
-                "INSERT OR REPLACE INTO embedding_status VALUES (?, ?, ?, ?)",
-                (model_key, claim["id"], claim["content_hash"], now)
-            )
-            embedded += 1
-
-        if on_progress:
-            on_progress(embedded, len(to_embed))
-
-    return {"embedded": embedded, "skipped": skipped, "errors": errors}
+@dataclasses.dataclass(frozen=True)
+class _EmbedConfig:
+    """Configuration that differs between claim and concept embedding."""
+    entity_table: str              # "claim" or "concept"
+    select_columns: str            # columns to SELECT from entity table
+    status_table: str              # "embedding_status" or "concept_embedding_status"
+    status_id_column: str          # "claim_id" or "concept_id"
+    vec_prefix: str                # "claim_vec" or "concept_vec"
+    text_builder: Callable[..., str]  # function to build embedding text
+    pre_batch_hook: Callable[[sqlite3.Connection, list[dict]], Any] | None = None
 
 
-def find_similar(
-    conn: sqlite3.Connection,
-    claim_id: str,
-    model_name: str,
-    top_k: int = 10,
-) -> list[dict]:
-    """Find top-k most similar claims by embedding distance."""
-    model_key = _sanitize_model_key(model_name)
-    table_name = f"claim_vec_{model_key}"
-
-    # Get claim's seq
-    row = conn.execute("SELECT seq FROM claim WHERE id = ?", (claim_id,)).fetchone()
-    if not row:
-        raise ValueError(f"Claim {claim_id} not found")
-    seq = row["seq"]
-
-    # Get claim's embedding
-    vec_row = conn.execute(
-        f"SELECT embedding FROM [{table_name}] WHERE rowid = ?", (seq,)
-    ).fetchone()
-    if not vec_row:
-        raise ValueError(f"No embedding for {claim_id} under model {model_name}")
-
-    # KNN search
-    results = conn.execute(
-        f"""SELECT v.rowid, v.distance, c.id, c.type, c.auto_summary, c.statement,
-                   c.source_paper, c.concept_id
-            FROM [{table_name}] v
-            JOIN claim c ON c.seq = v.rowid
-            WHERE v.embedding MATCH ? AND k = ?
-            ORDER BY v.distance""",
-        (vec_row["embedding"], top_k + 1)
-    ).fetchall()
-
-    return [dict(r) for r in results if r["id"] != claim_id][:top_k]
+_CLAIM_CONFIG = _EmbedConfig(
+    entity_table="claim",
+    select_columns="id, seq, content_hash, auto_summary, statement, expression, name",
+    status_table="embedding_status",
+    status_id_column="claim_id",
+    vec_prefix="claim_vec",
+    text_builder=lambda entity, _extra: _embedding_text_for_claim(entity),
+)
 
 
-def get_registered_models(conn: sqlite3.Connection) -> list[dict]:
-    """Return all registered embedding models."""
-    try:
-        return [dict(r) for r in conn.execute(
-            "SELECT model_key, model_name, dimensions, created_at FROM embedding_model"
-        ).fetchall()]
-    except sqlite3.OperationalError:
-        return []
-
-
-def find_similar_agree(
-    conn: sqlite3.Connection,
-    claim_id: str,
-    top_k: int = 10,
-) -> list[dict]:
-    """Claims similar under ALL stored models (intersection)."""
-    models = get_registered_models(conn)
-    if not models:
-        return []
-
-    result_sets = []
-    for m in models:
-        try:
-            results = find_similar(conn, claim_id, m["model_name"], top_k=top_k * 2)
-            result_sets.append({r["id"] for r in results})
-        except ValueError:
-            continue
-
-    if not result_sets:
-        return []
-
-    common_ids = result_sets[0]
-    for s in result_sets[1:]:
-        common_ids &= s
-
-    # Re-fetch with first model for distances
-    all_results = find_similar(conn, claim_id, models[0]["model_name"], top_k=top_k * 2)
-    return [r for r in all_results if r["id"] in common_ids][:top_k]
-
-
-def find_similar_disagree(
-    conn: sqlite3.Connection,
-    claim_id: str,
-    top_k: int = 10,
-) -> list[dict]:
-    """Claims similar under some models but not others."""
-    models = get_registered_models(conn)
-    if len(models) < 2:
-        return []
-
-    per_model = {}
-    for m in models:
-        try:
-            results = find_similar(conn, claim_id, m["model_name"], top_k=top_k * 2)
-            per_model[m["model_name"]] = {r["id"] for r in results}
-        except ValueError:
-            continue
-
-    if len(per_model) < 2:
-        return []
-
-    all_ids = set()
-    for ids in per_model.values():
-        all_ids |= ids
-
-    # Keep only IDs that appear in some but not all
-    disagree_ids = set()
-    for cid in all_ids:
-        present_in = sum(1 for ids in per_model.values() if cid in ids)
-        if 0 < present_in < len(per_model):
-            disagree_ids.add(cid)
-
-    # Fetch full data from first model that has each result
-    results = []
-    first_model = models[0]["model_name"]
-    try:
-        all_results = find_similar(conn, claim_id, first_model, top_k=top_k * 3)
-        for r in all_results:
-            if r["id"] in disagree_ids:
-                # Annotate with which models found it similar
-                r["similar_in"] = [mn for mn, ids in per_model.items() if r["id"] in ids]
-                r["not_similar_in"] = [mn for mn, ids in per_model.items() if r["id"] not in ids]
-                results.append(r)
-    except ValueError:
-        pass
-
-    return results[:top_k]
-
-
-def embed_concepts(
-    conn: sqlite3.Connection,
-    model_name: str,
-    concept_ids: list[str] | None = None,
-    batch_size: int = 64,
-    on_progress: Callable[[int, int], None] | None = None,
-) -> dict:
-    """Generate and store embeddings for concepts.
-
-    Args:
-        conn: Open read-write sidecar connection (with vec extension loaded).
-        model_name: litellm model string (e.g. "gemini/gemini-embedding-001").
-        concept_ids: Specific concept IDs, or None for all concepts.
-        batch_size: Texts per API call.
-        on_progress: Optional callback(embedded_so_far, total) for progress reporting.
-
-    Returns:
-        {"embedded": int, "skipped": int, "errors": int}
-    """
-    litellm = _require_litellm()
-    _ensure_embedding_tables(conn)
-    model_key = _sanitize_model_key(model_name)
-
-    # Fetch concepts
-    if concept_ids:
-        placeholders = ",".join("?" for _ in concept_ids)
-        rows = conn.execute(
-            f"SELECT id, seq, canonical_name, definition, content_hash "
-            f"FROM concept WHERE id IN ({placeholders})", concept_ids
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT id, seq, canonical_name, definition, content_hash FROM concept"
-        ).fetchall()
-
-    concepts = [dict(r) for r in rows]
-
-    # Check existing embeddings -- skip unchanged
-    existing = {}
-    try:
-        for r in conn.execute(
-            "SELECT concept_id, content_hash FROM concept_embedding_status WHERE model_key=?",
-            (model_key,)
-        ).fetchall():
-            existing[r["concept_id"]] = r["content_hash"]
-    except sqlite3.OperationalError:
-        pass  # table doesn't exist yet
-
-    to_embed = []
-    skipped = 0
-    for concept in concepts:
-        if concept["id"] in existing and existing[concept["id"]] == concept["content_hash"]:
-            skipped += 1
-            continue
-        to_embed.append(concept)
-
-    if not to_embed:
-        return {"embedded": 0, "skipped": skipped, "errors": 0}
-
-    # Fetch aliases for all concepts to embed
+def _concept_pre_batch_hook(conn: sqlite3.Connection, to_embed: list[dict]) -> dict[str, list[dict]]:
+    """Fetch aliases for all concepts to embed."""
     alias_map: dict[str, list[dict]] = {}
     for concept in to_embed:
         alias_rows = conn.execute(
             "SELECT alias_name FROM alias WHERE concept_id = ?", (concept["id"],)
         ).fetchall()
         alias_map[concept["id"]] = [dict(r) for r in alias_rows]
+    return alias_map
+
+
+_CONCEPT_CONFIG = _EmbedConfig(
+    entity_table="concept",
+    select_columns="id, seq, canonical_name, definition, content_hash",
+    status_table="concept_embedding_status",
+    status_id_column="concept_id",
+    vec_prefix="concept_vec",
+    text_builder=lambda entity, extra: _embedding_text_for_concept(entity, extra.get(entity["id"], [])),
+    pre_batch_hook=_concept_pre_batch_hook,
+)
+
+
+def _embed_entities(
+    conn: sqlite3.Connection,
+    model_name: str,
+    config: _EmbedConfig,
+    entity_ids: list[str] | None = None,
+    batch_size: int = 64,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> dict:
+    """Generic embedding function for claims or concepts.
+
+    Returns:
+        {"embedded": int, "skipped": int, "errors": int}
+    """
+    litellm = _require_litellm()
+    _ensure_embedding_tables(conn)
+    model_key = _sanitize_model_key(model_name)
+
+    # Fetch entities
+    if entity_ids:
+        placeholders = ",".join("?" for _ in entity_ids)
+        rows = conn.execute(
+            f"SELECT {config.select_columns} "
+            f"FROM {config.entity_table} WHERE id IN ({placeholders})", entity_ids
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            f"SELECT {config.select_columns} FROM {config.entity_table}"
+        ).fetchall()
+
+    entities = [dict(r) for r in rows]
+
+    # Check existing embeddings -- skip unchanged
+    existing = {}
+    try:
+        for r in conn.execute(
+            f"SELECT {config.status_id_column}, content_hash FROM {config.status_table} WHERE model_key=?",
+            (model_key,)
+        ).fetchall():
+            existing[r[config.status_id_column]] = r["content_hash"]
+    except sqlite3.OperationalError:
+        pass  # table doesn't exist yet
+
+    to_embed = []
+    skipped = 0
+    for entity in entities:
+        if entity["id"] in existing and existing[entity["id"]] == entity["content_hash"]:
+            skipped += 1
+            continue
+        to_embed.append(entity)
+
+    if not to_embed:
+        return {"embedded": 0, "skipped": skipped, "errors": 0}
+
+    # Run pre-batch hook (e.g. fetch aliases for concepts)
+    extra = config.pre_batch_hook(conn, to_embed) if config.pre_batch_hook else None
 
     # Process in batches
     embedded = 0
@@ -422,10 +219,7 @@ def embed_concepts(
 
     for i in range(0, len(to_embed), batch_size):
         batch = to_embed[i:i + batch_size]
-        texts = [
-            _embedding_text_for_concept(c, alias_map.get(c["id"], []))
-            for c in batch
-        ]
+        texts = [config.text_builder(e, extra) for e in batch]
 
         try:
             response = litellm.embedding(model=model_name, input=texts)
@@ -440,26 +234,21 @@ def embed_concepts(
                 "INSERT OR REPLACE INTO embedding_model VALUES (?, ?, ?, ?)",
                 (model_key, model_name, dimensions, now)
             )
-            _ensure_vec_table(conn, model_key, dimensions, prefix="concept_vec")
+            _ensure_vec_table(conn, model_key, dimensions, prefix=config.vec_prefix)
 
-        table_name = f"concept_vec_{model_key}"
-        for j, concept in enumerate(batch):
+        table_name = f"{config.vec_prefix}_{model_key}"
+        for j, entity in enumerate(batch):
             vec = response.data[j]["embedding"]
-            seq = concept["seq"]
+            seq = entity["seq"]
 
-            # Delete existing vector for this seq if re-embedding
             conn.execute(f"DELETE FROM [{table_name}] WHERE rowid = ?", (seq,))
-
-            # Insert new vector
             conn.execute(
                 f"INSERT INTO [{table_name}](rowid, embedding) VALUES (?, ?)",
                 (seq, _serialize_float32(vec))
             )
-
-            # Update status
             conn.execute(
-                "INSERT OR REPLACE INTO concept_embedding_status VALUES (?, ?, ?, ?)",
-                (model_key, concept["id"], concept["content_hash"], now)
+                f"INSERT OR REPLACE INTO {config.status_table} VALUES (?, ?, ?, ?)",
+                (model_key, entity["id"], entity["content_hash"], now)
             )
             embedded += 1
 
@@ -468,6 +257,41 @@ def embed_concepts(
 
     return {"embedded": embedded, "skipped": skipped, "errors": errors}
 
+
+def embed_claims(
+    conn: sqlite3.Connection,
+    model_name: str,
+    claim_ids: list[str] | None = None,
+    batch_size: int = 64,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> dict:
+    """Generate and store embeddings for claims."""
+    return _embed_entities(conn, model_name, _CLAIM_CONFIG, claim_ids, batch_size, on_progress)
+
+
+@dataclasses.dataclass(frozen=True)
+class _FindConfig:
+    """Configuration for find-similar queries."""
+    vec_prefix: str                # "claim_vec" or "concept_vec"
+    entity_table: str              # "claim" or "concept"
+    join_columns: str              # columns to SELECT from entity table in KNN join
+    resolve_id: Callable[[sqlite3.Connection, str], tuple[str, int]]
+
+
+def _resolve_claim_id(conn: sqlite3.Connection, claim_id: str) -> tuple[str, int]:
+    """Resolve a claim ID to (id, seq)."""
+    row = conn.execute("SELECT id, seq FROM claim WHERE id = ?", (claim_id,)).fetchone()
+    if not row:
+        raise ValueError(f"Claim {claim_id} not found")
+    return row["id"], row["seq"]
+
+
+_FIND_CLAIM_CONFIG = _FindConfig(
+    vec_prefix="claim_vec",
+    entity_table="claim",
+    join_columns="c.id, c.type, c.auto_summary, c.statement, c.source_paper, c.concept_id",
+    resolve_id=_resolve_claim_id,
+)
 
 def _resolve_concept_id(conn: sqlite3.Connection, concept_id_or_name: str) -> tuple[str, int]:
     """Resolve a concept ID or canonical_name to (id, seq).
@@ -484,31 +308,37 @@ def _resolve_concept_id(conn: sqlite3.Connection, concept_id_or_name: str) -> tu
     return row["id"], row["seq"]
 
 
-def find_similar_concepts(
+_FIND_CONCEPT_CONFIG = _FindConfig(
+    vec_prefix="concept_vec",
+    entity_table="concept",
+    join_columns="c.id, c.canonical_name, c.definition",
+    resolve_id=_resolve_concept_id,
+)
+
+
+def _find_similar_entities(
     conn: sqlite3.Connection,
-    concept_id: str,
+    entity_id: str,
     model_name: str,
+    config: _FindConfig,
     top_k: int = 10,
 ) -> list[dict]:
-    """Find top-k most similar concepts by embedding distance."""
+    """Generic find-similar for claims or concepts."""
     model_key = _sanitize_model_key(model_name)
-    table_name = f"concept_vec_{model_key}"
+    table_name = f"{config.vec_prefix}_{model_key}"
 
-    # Resolve concept ID or canonical_name
-    resolved_id, seq = _resolve_concept_id(conn, concept_id)
+    resolved_id, seq = config.resolve_id(conn, entity_id)
 
-    # Get concept's embedding
     vec_row = conn.execute(
         f"SELECT embedding FROM [{table_name}] WHERE rowid = ?", (seq,)
     ).fetchone()
     if not vec_row:
         raise ValueError(f"No embedding for {resolved_id} under model {model_name}")
 
-    # KNN search
     results = conn.execute(
-        f"""SELECT v.rowid, v.distance, c.id, c.canonical_name, c.definition
+        f"""SELECT v.rowid, v.distance, {config.join_columns}
             FROM [{table_name}] v
-            JOIN concept c ON c.seq = v.rowid
+            JOIN {config.entity_table} c ON c.seq = v.rowid
             WHERE v.embedding MATCH ? AND k = ?
             ORDER BY v.distance""",
         (vec_row["embedding"], top_k + 1)
@@ -517,12 +347,33 @@ def find_similar_concepts(
     return [dict(r) for r in results if r["id"] != resolved_id][:top_k]
 
 
-def find_similar_concepts_agree(
+def find_similar(
     conn: sqlite3.Connection,
-    concept_id: str,
+    claim_id: str,
+    model_name: str,
     top_k: int = 10,
 ) -> list[dict]:
-    """Concepts similar under ALL stored models (intersection)."""
+    """Find top-k most similar claims by embedding distance."""
+    return _find_similar_entities(conn, claim_id, model_name, _FIND_CLAIM_CONFIG, top_k)
+
+
+def get_registered_models(conn: sqlite3.Connection) -> list[dict]:
+    """Return all registered embedding models."""
+    try:
+        return [dict(r) for r in conn.execute(
+            "SELECT model_key, model_name, dimensions, created_at FROM embedding_model"
+        ).fetchall()]
+    except sqlite3.OperationalError:
+        return []
+
+
+def _find_similar_agree_generic(
+    conn: sqlite3.Connection,
+    entity_id: str,
+    config: _FindConfig,
+    top_k: int = 10,
+) -> list[dict]:
+    """Entities similar under ALL stored models (intersection)."""
     models = get_registered_models(conn)
     if not models:
         return []
@@ -530,7 +381,7 @@ def find_similar_concepts_agree(
     result_sets = []
     for m in models:
         try:
-            results = find_similar_concepts(conn, concept_id, m["model_name"], top_k=top_k * 2)
+            results = _find_similar_entities(conn, entity_id, m["model_name"], config, top_k=top_k * 2)
             result_sets.append({r["id"] for r in results})
         except ValueError:
             continue
@@ -542,17 +393,17 @@ def find_similar_concepts_agree(
     for s in result_sets[1:]:
         common_ids &= s
 
-    # Re-fetch with first model for distances
-    all_results = find_similar_concepts(conn, concept_id, models[0]["model_name"], top_k=top_k * 2)
+    all_results = _find_similar_entities(conn, entity_id, models[0]["model_name"], config, top_k=top_k * 2)
     return [r for r in all_results if r["id"] in common_ids][:top_k]
 
 
-def find_similar_concepts_disagree(
+def _find_similar_disagree_generic(
     conn: sqlite3.Connection,
-    concept_id: str,
+    entity_id: str,
+    config: _FindConfig,
     top_k: int = 10,
 ) -> list[dict]:
-    """Concepts similar under some models but not others."""
+    """Entities similar under some models but not others."""
     models = get_registered_models(conn)
     if len(models) < 2:
         return []
@@ -560,7 +411,7 @@ def find_similar_concepts_disagree(
     per_model = {}
     for m in models:
         try:
-            results = find_similar_concepts(conn, concept_id, m["model_name"], top_k=top_k * 2)
+            results = _find_similar_entities(conn, entity_id, m["model_name"], config, top_k=top_k * 2)
             per_model[m["model_name"]] = {r["id"] for r in results}
         except ValueError:
             continue
@@ -572,18 +423,16 @@ def find_similar_concepts_disagree(
     for ids in per_model.values():
         all_ids |= ids
 
-    # Keep only IDs that appear in some but not all
     disagree_ids = set()
     for cid in all_ids:
         present_in = sum(1 for ids in per_model.values() if cid in ids)
         if 0 < present_in < len(per_model):
             disagree_ids.add(cid)
 
-    # Fetch full data from first model that has each result
     results = []
     first_model = models[0]["model_name"]
     try:
-        all_results = find_similar_concepts(conn, concept_id, first_model, top_k=top_k * 3)
+        all_results = _find_similar_entities(conn, entity_id, first_model, config, top_k=top_k * 3)
         for r in all_results:
             if r["id"] in disagree_ids:
                 r["similar_in"] = [mn for mn, ids in per_model.items() if r["id"] in ids]
@@ -593,6 +442,63 @@ def find_similar_concepts_disagree(
         pass
 
     return results[:top_k]
+
+
+def find_similar_agree(
+    conn: sqlite3.Connection,
+    claim_id: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Claims similar under ALL stored models (intersection)."""
+    return _find_similar_agree_generic(conn, claim_id, _FIND_CLAIM_CONFIG, top_k)
+
+
+def find_similar_disagree(
+    conn: sqlite3.Connection,
+    claim_id: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Claims similar under some models but not others."""
+    return _find_similar_disagree_generic(conn, claim_id, _FIND_CLAIM_CONFIG, top_k)
+
+
+def embed_concepts(
+    conn: sqlite3.Connection,
+    model_name: str,
+    concept_ids: list[str] | None = None,
+    batch_size: int = 64,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> dict:
+    """Generate and store embeddings for concepts."""
+    return _embed_entities(conn, model_name, _CONCEPT_CONFIG, concept_ids, batch_size, on_progress)
+
+
+def find_similar_concepts(
+    conn: sqlite3.Connection,
+    concept_id: str,
+    model_name: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Find top-k most similar concepts by embedding distance."""
+    return _find_similar_entities(conn, concept_id, model_name, _FIND_CONCEPT_CONFIG, top_k)
+
+
+def find_similar_concepts_agree(
+    conn: sqlite3.Connection,
+    concept_id: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Concepts similar under ALL stored models (intersection)."""
+    return _find_similar_agree_generic(conn, concept_id, _FIND_CONCEPT_CONFIG, top_k)
+
+
+def find_similar_concepts_disagree(
+    conn: sqlite3.Connection,
+    concept_id: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Concepts similar under some models but not others."""
+    return _find_similar_disagree_generic(conn, concept_id, _FIND_CONCEPT_CONFIG, top_k)
 
 
 @dataclasses.dataclass
