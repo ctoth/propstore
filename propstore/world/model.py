@@ -157,6 +157,27 @@ class WorldModel:
 
         return find_similar(self._conn, claim_id, model_name, top_k=top_k)
 
+    def similar_concepts(
+        self,
+        concept_id: str,
+        model_name: str | None = None,
+        top_k: int = 10,
+    ) -> list[dict]:
+        """Find concepts similar to the given concept by embedding distance.
+
+        Requires sqlite-vec extension and pre-computed embeddings.
+        """
+        from propstore.embed import find_similar_concepts, _load_vec_extension, get_registered_models
+        _load_vec_extension(self._conn)
+
+        if model_name is None:
+            models = get_registered_models(self._conn)
+            if not models:
+                return []
+            model_name = models[0]["model_name"]
+
+        return find_similar_concepts(self._conn, concept_id, model_name, top_k=top_k)
+
     def _has_table(self, name: str) -> bool:
         row = self._conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
