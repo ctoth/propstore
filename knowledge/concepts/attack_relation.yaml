@@ -1,8 +1,8 @@
-id: concept37
+id: concept190
 canonical_name: attack_relation
 status: proposed
-definition: A binary relation on arguments in an argumentation framework representing
-  conflict, where (A,B) in attacks means argument A attacks argument B
+definition: A binary relation on a set of arguments where one argument attacks another,
+  representing conflict between arguments
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

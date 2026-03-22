@@ -1,8 +1,8 @@
-id: concept101
+id: concept338
 canonical_name: bipolar_argumentation_framework
 status: proposed
-definition: An extension of Dung's argumentation framework as a tuple (A, R_def, R_sup)
-  with both a defeat relation and an independent support relation on arguments
+definition: An argumentation framework with both an independent defeat relation and
+  a support relation on arguments
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

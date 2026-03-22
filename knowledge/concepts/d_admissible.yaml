@@ -1,8 +1,7 @@
-id: concept116
+id: concept342
 canonical_name: d_admissible
 status: proposed
-definition: A conflict-free set of arguments that defends all its elements using set-defeat,
-  the weakest of Cayrol's three BAF admissibility levels
+definition: A conflict-free set that defends all its elements using set-defeat
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

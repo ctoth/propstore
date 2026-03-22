@@ -4,157 +4,275 @@ source:
   extraction_date: "2026-03-22"
 
 claims:
-  - id: pollock87_prima_facie_vs_conclusive
+  - id: claim1
     type: observation
     statement: >
-      Reasons divide into two fundamental kinds: prima facie reasons (defeasible,
-      can be undermined by additional information) and conclusive reasons
-      (non-defeasible, deductive). A prima facie reason P for Q is one where
-      there exists R consistent with P such that (P & R) is not a reason for Q.
+      A prima facie reason is a defeasible reason for belief where there exists
+      some additional information R consistent with the reason P such that
+      (P & R) is no longer a reason for the conclusion Q.
     concepts:
       - prima_facie_reason
-      - conclusive_reason
-    reference: "Definitions 2.1, 2.2"
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 484
+      section: "Definition 2.2"
 
-  - id: pollock87_rebutting_vs_undercutting
+  - id: claim2
     type: observation
     statement: >
-      Defeaters divide into two fundamentally different kinds: rebutting defeaters
-      provide a reason to believe the negation of the conclusion, while undercutting
-      defeaters deny the connection between the premises and the conclusion without
-      attacking the conclusion itself. Undercutting defeat has been generally
-      overlooked in AI approaches to nonmonotonic reasoning.
+      A conclusive (nondefeasible) reason logically entails its conclusion
+      and cannot be defeated by any additional information.
+    concepts:
+      - conclusive_reason
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 484
+      section: "Section 2"
+
+  - id: claim3
+    type: observation
+    statement: >
+      A rebutting defeater is a defeater that provides a reason for believing
+      the negation of the conclusion.
     concepts:
       - rebutting_defeater
-      - undercutting_defeater
-    reference: "Definitions 2.4, 2.5"
+      - prima_facie_reason
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 485
+      section: "Definition 2.4"
 
-  - id: pollock87_warrant_definition
+  - id: claim4
     type: observation
     statement: >
-      A proposition P is warranted relative to an epistemic basis iff P is
-      supported by an ultimately undefeated argument proceeding from that basis.
-      An argument is ultimately undefeated iff there exists some m such that the
-      argument is a level n argument for every n > m.
+      An undercutting defeater attacks the connection between reason and
+      conclusion rather than the conclusion itself, by providing a reason
+      for denying that the reason-conclusion link holds.
+    concepts:
+      - undercutting_defeater
+      - prima_facie_reason
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 485
+      section: "Definition 2.5"
+
+  - id: claim5
+    type: observation
+    statement: >
+      Undercutting defeaters have been generally overlooked both in philosophy
+      and in AI, yet they are essential for an adequate theory of defeasible
+      reasoning.
+    concepts:
+      - undercutting_defeater
+      - nonmonotonic_reasoning
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 485
+      section: "Section 2"
+
+  - id: claim6
+    type: observation
+    statement: >
+      A proposition is warranted relative to an epistemic basis iff it is
+      supported by some ultimately undefeated argument proceeding from
+      that epistemic basis.
     concepts:
       - warrant
-      - defeat_level
-    reference: "Principles 4.2, 4.3"
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 492
+      section: "Principle 4.3"
 
-  - id: pollock87_defeat_levels
+  - id: claim7
     type: observation
     statement: >
-      Arguments are stratified into levels: level 0 contains all arguments;
-      level n+1 contains those level 0 arguments not defeated by any level n
-      argument. An argument is ultimately undefeated if it persists at every
-      sufficiently high level. This mechanism handles reinstatement: if a defeater
-      is itself defeated at level n, the original argument reappears at level n+1.
+      An argument is ultimately undefeated iff there exists some m such that
+      the argument is a level n argument for every n greater than m, where
+      level n+1 arguments are those not defeated by any level n argument.
     concepts:
       - defeat_level
-      - reinstatement
-    reference: "Definition 4.2"
+      - warrant
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 492
+      section: "Definition 4.2"
 
-  - id: pollock87_self_defeating_exclusion
+  - id: claim8
     type: observation
     statement: >
-      A self-defeating argument is one that supports a defeater for one of its
-      own defeasible steps. Self-defeating arguments should be excluded from
-      competition in the defeat level computation, as they cannot contribute
-      to warrant. The lottery paradox is resolved by this principle.
+      A self-defeating argument is one that supports a defeater for one of
+      its own defeasible steps; such arguments should be excluded from
+      competition in the defeat hierarchy.
     concepts:
       - self_defeating_argument
-      - warrant
       - defeat_level
-    reference: "Definition 4.5, Section 4.5"
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 495
+      section: "Definition 4.5"
 
-  - id: pollock87_collective_defeat
+  - id: claim9
     type: observation
     statement: >
-      If a set of propositions is believed and each member has an equally good
-      defeasible argument, but the conjunction of their premises defeats the
-      original argument, then none of the propositions in the set is warranted
-      on those defeasible arguments. This principle handles cases of symmetrical
-      rebutting defeat.
+      If a set of propositions is believed and each member has an equally
+      good defeasible argument, but the conjunction of their premises
+      defeats the original argument, then none of the propositions in the
+      set is warranted on those defeasible arguments (collective defeat).
     concepts:
       - collective_defeat
+      - warrant
       - prima_facie_reason
-      - warrant
-    reference: "Principle 4.4"
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 493
+      section: "Principle 4.4"
 
-  - id: pollock87_warrant_consistency
+  - id: claim10
     type: observation
     statement: >
-      The set of warranted propositions is deductively consistent: if propositions
-      P and Q are both warranted from the same epistemic basis, then P and Q
-      cannot be contradictory.
+      The set of warranted propositions is deductively consistent.
     concepts:
       - warrant
-    reference: "Principle 5.4"
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 499
+      section: "Principle 5.4"
 
-  - id: pollock87_warrant_closure
+  - id: claim11
     type: observation
     statement: >
-      Warrant is closed under deductive consequence: if P1,...,Pn are all
-      warranted and Q is a deductive consequence of P1,...,Pn, then Q is
-      warranted.
+      Warrant is closed under deductive consequence: if all premises are
+      warranted and the conclusion follows deductively, then the conclusion
+      is warranted.
     concepts:
       - warrant
-    reference: "Principles 5.5, 5.6"
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 499
+      section: "Principle 5.6"
 
-  - id: pollock87_reinstatement_mechanism
+  - id: claim12
     type: observation
     statement: >
-      Reinstatement occurs when a defeater of an argument is itself defeated:
-      the original argument is restored. This is captured both in the formal
-      theory (defeat levels oscillate and stabilize) and in OSCAR's implementation
-      (U-REINSTATE and R-REINSTATE rules).
+      When a defeater is itself defeated, the original conclusion should
+      be restored through reinstatement.
     concepts:
       - reinstatement
-      - rebutting_defeater
-      - undercutting_defeater
-    reference: "Section 4.2, OSCAR rules"
+      - defeat_level
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 492
+      section: "Section 4"
 
-  - id: pollock87_oscar_architecture
+  - id: claim13
     type: observation
     statement: >
-      OSCAR implements defeasible reasoning via a cycle of adoption (adding new
-      beliefs from prima facie and conclusive reasons), defeat (undercutting and
-      rebutting retraction), and reinstatement, using data structures onset
-      (defeasible beliefs), conset (conclusive beliefs), and beliefs (all believed
-      propositions). The algorithm iterates until no new adoptions or retractions occur.
+      Reasoning begins from foundational states (perceptual states, memory
+      states) that are nondoxastic and can serve as reasons without
+      themselves being beliefs, avoiding infinite regress.
     concepts:
+      - foundational_state
       - prima_facie_reason
-      - conclusive_reason
-      - rebutting_defeater
-      - undercutting_defeater
-      - reinstatement
-    reference: "Figure 7, Section 7"
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 483
+      section: "Section 1"
 
-  - id: pollock87_undercutting_not_rebutting
+  - id: claim14
     type: observation
     statement: >
-      Undercutting defeat is fundamentally different from rebutting defeat and
-      cannot be reduced to it. An undercutting defeater R for P as prima facie
-      reason for Q denies the connection P->Q without providing any reason to
-      believe not-Q. This distinction is essential for correctly handling
-      statistical syllogism defeaters and perception defeaters.
+      Justified belief is what a real reasoner with finite resources should
+      believe, using local reasoning rules that appeal to the arguments
+      actually constructed rather than the global argument structure.
     concepts:
-      - undercutting_defeater
-      - rebutting_defeater
-      - prima_facie_reason
-    reference: "Section 2.3, Definition 2.5"
+      - justified_belief
+      - warrant
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 504
+      section: "Section 6"
 
-  - id: pollock87_defeasible_reasoning_as_argumentation
+  - id: claim15
     type: observation
     statement: >
-      Defeasible reasoning can be modeled as constructing arguments from prima
-      facie and conclusive reasons, where defeat is a binary relation between
-      argument lines. This argument-based framework was later shown by Dung (1995)
-      to be a special case of abstract argumentation where Pollock's indefeasible
-      arguments correspond to the grounded extension.
+      AI theories of nonmonotonic reasoning are simplistic and overlook
+      the fine structure of defeasible reasoning that epistemologists have
+      identified, particularly the distinction between rebutting and
+      undercutting defeaters.
     concepts:
-      - prima_facie_reason
-      - conclusive_reason
-      - argumentation_framework
-      - grounded_extension
-    reference: "Sections 4-5, cf. Dung 1995 Theorem 47"
+      - nonmonotonic_reasoning
+      - rebutting_defeater
+      - undercutting_defeater
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 482
+      section: "Introduction"
+
+  - id: claim16
+    type: observation
+    statement: >
+      The lottery paradox is resolved by identifying the extended argument
+      as self-defeating: the argument from individual ticket probabilities
+      to each ticket not winning collectively generates a defeater for
+      its own premises.
+    concepts:
+      - self_defeating_argument
+      - collective_defeat
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 494
+      section: "Section 4.4-4.5"
+
+  - id: claim17
+    type: observation
+    statement: >
+      The OSCAR system stores only immediate bases for beliefs rather than
+      entire argument chains, contrasting with Doyle's TMS which stores
+      all arguments and creates an excessive memory burden.
+    concepts:
+      - justified_belief
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 508
+      section: "Section 7"
+
+  - id: claim18
+    type: observation
+    statement: >
+      A theory that looks good in the abstract may not work when implemented
+      as a program; implementation serves as a mechanical way of generating
+      counterexamples to epistemological theories.
+    concepts:
+      - warrant
+      - justified_belief
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 482
+      section: "Introduction"
+
+  - id: claim19
+    type: observation
+    statement: >
+      Defeaters can themselves be defeated, creating chains of arbitrary
+      depth that the defeat level hierarchy is designed to handle.
+    concepts:
+      - defeat_level
+      - rebutting_defeater
+      - undercutting_defeater
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 485
+      section: "Section 2"
+
+  - id: claim20
+    type: observation
+    statement: >
+      The deduction theorem analogue holds for warrant: if P is warranted
+      relative to the epistemic basis augmented with Q, then the material
+      conditional (Q implies P) is warranted relative to the original basis.
+    concepts:
+      - warrant
+    provenance:
+      paper: Pollock_1987_DefeasibleReasoning
+      page: 499
+      section: "Principle 5.7"

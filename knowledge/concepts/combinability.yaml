@@ -1,9 +1,0 @@
-id: concept147
-canonical_name: combinability
-status: proposed
-definition: In MBR/SWM, a predicate that checks whether two supported wffs can be
-  combined as premises in an inference without producing a known inconsistency, based
-  on their origin sets and restriction sets
-domain: argumentation
-created_date: '2026-03-21'
-form: structural

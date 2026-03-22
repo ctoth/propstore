@@ -1,0 +1,8 @@
+id: concept322
+canonical_name: suppositional_reasoning
+status: proposed
+definition: Reasoning from suppositions that can be introduced and retracted, as in
+  natural deduction, extended to defeasible contexts
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

@@ -1,0 +1,8 @@
+id: concept302
+canonical_name: constraint_propagation
+status: proposed
+definition: A technique for incrementally solving systems of constraints by propagating
+  known values to determine unknown values in connected constraints
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

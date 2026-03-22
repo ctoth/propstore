@@ -1,8 +1,8 @@
-id: concept69
+id: concept239
 canonical_name: self_defeating_argument
 status: proposed
-definition: An argument that supports a defeater for one of its own defeasible steps,
-  rendering it unable to contribute to warrant
+definition: An argument that defeats itself, either through a direct cycle (serial)
+  or through mutual defeat with another argument that shares its conclusion (parallel)
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

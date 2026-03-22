@@ -1,0 +1,8 @@
+id: concept248
+canonical_name: defeasible_inference_rule
+status: proposed
+definition: An inference rule that provides a prima facie reason for believing a conclusion,
+  but can be defeated by new information
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

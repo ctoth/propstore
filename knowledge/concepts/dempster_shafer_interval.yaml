@@ -1,9 +1,0 @@
-id: concept151
-canonical_name: dempster_shafer_interval
-status: proposed
-definition: A belief representation as the interval [s(A), p(A)] where s(A) is the
-  support for A (belief function) and p(A) is the plausibility of A, with p(A) = 1
-  - s(not-A)
-domain: belief_maintenance
-created_date: '2026-03-21'
-form: structural

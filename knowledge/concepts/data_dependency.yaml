@@ -1,9 +1,8 @@
-id: concept156
+id: concept274
 canonical_name: data_dependency
 status: proposed
-definition: A record of the reasons (in-justifiers and out-justifiers) supporting
-  a belief, enabling fine-grained tracking of why each assertion is believed and automatic
-  status recomputation when reasons change
+definition: A mechanism tracking reasons for beliefs via justification tuples of in-justifiers
+  and out-justifiers
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

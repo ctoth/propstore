@@ -3,181 +3,234 @@ source:
   extraction_model: claude-opus-4-20250514
   extraction_date: '2026-03-22'
 claims:
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_def_baf
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim1
   type: observation
-  statement: 'A bipolar argumentation framework (BAF) is a tuple (A, R_def, R_sup)
-    where A is a finite set of arguments, R_def is a defeat relation, and R_sup is
-    an independent support relation, both binary relations on A.
+  statement: 'A bipolar argumentation framework is a tuple (A, R_def, R_sup) where
+    A is a finite set of arguments, R_def is a defeat relation, and R_sup is a support
+    relation, with the two relations being entirely independent.
 
     '
   concepts:
   - bipolar_argumentation_framework
   - attack_relation
   - support_relation
-  reference: Definition 1
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_supported_defeat
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 382
+    section: Definition 1
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim2
   type: observation
   statement: 'A supported defeat for argument B is a sequence where support edges
-    lead to a final defeat edge: A1 supports A2 supports ... supports An-1 defeats
-    B. This propagates defeat through chains of support.
+    lead to an argument that directly defeats B, combining positive and negative interactions.
 
     '
   concepts:
   - supported_defeat
   - support_relation
   - attack_relation
-  reference: Definition 3
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_indirect_defeat
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 383
+    section: Definition 3
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim3
   type: observation
-  statement: 'An indirect defeat for argument B is a sequence where a defeat edge
-    is followed by support edges: A defeats A2 and A2 supports ... supports B. Defeating
-    a supporter indirectly defeats its beneficiaries.
+  statement: 'An indirect defeat for argument B is a sequence where an initial defeat
+    edge is followed by support edges leading to B, so that defeating a supporter
+    indirectly defeats the supported argument.
 
     '
   concepts:
   - indirect_defeat
   - support_relation
   - attack_relation
-  reference: Definition 3
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_conflict_free_generalized
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 383
+    section: Definition 3
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim4
   type: observation
-  statement: 'A set S is conflict-free in a BAF iff no element of S set-defeats another
-    element of S, where set-defeat includes supported defeats and indirect defeats,
-    not just direct defeat. This generalizes Dung''s conflict-free definition.
-
-    '
-  concepts:
-  - conflict_free_set
-  - supported_defeat
-  - indirect_defeat
-  reference: Definition 6
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_safe_set
-  type: observation
-  statement: 'A set S is safe iff there is no argument B such that S set-defeats B
-    and either S set-supports B or B is in S. Safety ensures external coherence: a
-    set cannot both support and defeat the same argument.
+  statement: 'A set S is safe iff no argument is simultaneously set-defeated and either
+    set-supported or a member of S, capturing external coherence between support and
+    defeat.
 
     '
   concepts:
   - safe_set
   - bipolar_argumentation_framework
-  reference: Definition 7
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_safe_implies_conflict_free
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 385
+    section: Definition 7
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim5
   type: observation
-  statement: 'If a set S is safe then S is conflict-free. Conversely, if S is conflict-free
-    and closed under the support relation R_sup, then S is safe.
+  statement: 'If a set S is safe then S is conflict-free; if S is conflict-free and
+    closed under the support relation then S is safe.
 
     '
   concepts:
   - safe_set
   - conflict_free_set
   - support_relation
-  reference: Property 1
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_three_admissibility_levels
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 385
+    section: Property 1
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim6
   type: observation
-  statement: 'Three levels of admissibility of increasing strength are defined for
-    BAFs: d-admissible (conflict-free + defends elements), s-admissible (safe + defends
-    elements), and c-admissible (conflict-free + closed under support + defends elements).
-    c-admissible implies s-admissible implies d-admissible.
-
-    '
-  concepts:
-  - d_admissible
-  - s_admissible
-  - c_admissible
-  reference: Definitions 9-11
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_d_admissible_def
-  type: observation
-  statement: 'A set S is d-admissible iff S is conflict-free and S collectively defends
-    all its elements, where defence uses set-defeat. This is the weakest BAF admissibility
-    level, directly generalizing Dung''s admissibility.
+  statement: 'A d-admissible set is conflict-free and defends all its elements using
+    set-defeat, directly generalizing Dung''s admissibility.
 
     '
   concepts:
   - d_admissible
   - conflict_free_set
-  - admissible_set
-  reference: Definition 9
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_s_admissible_def
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 386
+    section: Definition 9
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim7
   type: observation
-  statement: 'A set S is s-admissible iff S is safe and S collectively defends all
-    its elements. Safety enforces external coherence: accepted arguments cannot simultaneously
-    be supported and defeated by the accepted set.
+  statement: 'An s-admissible set is safe and defends all its elements, enforcing
+    external coherence between support and defeat relations.
 
     '
   concepts:
   - s_admissible
   - safe_set
-  reference: Definition 10
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_c_admissible_def
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 386
+    section: Definition 10
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim8
   type: observation
-  statement: 'A set S is c-admissible iff S is conflict-free, S is closed for R_sup
-    (if A in S and A supports B then B in S), and S collectively defends all its elements.
-    This is the strongest admissibility level.
+  statement: 'A c-admissible set is conflict-free, closed under the support relation,
+    and defends all its elements, providing the strongest bipolar admissibility.
 
     '
   concepts:
   - c_admissible
   - conflict_free_set
   - support_relation
-  reference: Definition 11
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_preferred_extensions
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 386
+    section: Definition 11
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim9
   type: observation
-  statement: 'Three types of preferred extensions correspond to the three admissibility
-    levels: d-preferred (maximal d-admissible), s-preferred (maximal s-admissible),
-    and c-preferred (maximal c-admissible).
+  statement: 'The admissibility hierarchy for bipolar frameworks is: c-admissible
+    implies s-admissible implies d-admissible.
+
+    '
+  concepts:
+  - c_admissible
+  - s_admissible
+  - d_admissible
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 386
+    section: Section 5
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim10
+  type: observation
+  statement: 'There exists at least one d-preferred, s-preferred, and c-preferred
+    extension for any bipolar argumentation framework.
 
     '
   concepts:
   - d_admissible
   - s_admissible
   - c_admissible
-  - preferred_extension
-  reference: Definition 12
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_stable_extension_baf
+  - bipolar_argumentation_framework
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 386
+    section: Property 2
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim11
   type: observation
-  statement: 'A stable extension of a BAF is a conflict-free set S that set-defeats
-    every argument not in S. This generalizes Dung''s stable extension using set-defeat.
+  statement: 'For acyclic bipolar argumentation frameworks, the s-preferred and c-preferred
+    extensions are subsets of the unique stable extension.
 
     '
   concepts:
+  - s_admissible
+  - c_admissible
   - stable_extension
-  - conflict_free_set
   - bipolar_argumentation_framework
-  reference: Definition 8
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_acyclic_unique_stable
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 387
+    section: Property 4
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim12
   type: observation
-  statement: 'In acyclic BAFs, a unique stable extension always exists. The s-preferred
-    and c-preferred extensions are subsets of this unique stable extension.
+  statement: 'When the unique stable extension of an acyclic BAF is safe, it equals
+    the unique s-preferred extension and is also a d-preferred extension.
 
     '
   concepts:
   - stable_extension
   - s_admissible
-  - c_admissible
-  - bipolar_argumentation_framework
-  reference: Property 4
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_stable_not_always_safe
+  - d_admissible
+  - safe_set
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 387
+    section: Property 4(2)
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim13
   type: observation
-  statement: 'A stable extension of a BAF may not be safe, meaning it can simultaneously
-    set-defeat and set-support the same argument. When this happens, the stable extension
-    is not s-admissible.
+  statement: 'A stable extension of a bipolar argumentation framework is not safe
+    iff it set-supports an element outside the extension.
 
     '
   concepts:
   - stable_extension
   - safe_set
-  - s_admissible
-  reference: Example 3
-- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:cayrol05_reduces_to_dung
+  - support_relation
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 386
+    section: Consequence 1
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim14
   type: observation
-  statement: 'When the support relation R_sup is empty, a BAF reduces to Dung''s standard
-    argumentation framework. Set-defeat reduces to direct defeat, safety reduces to
-    conflict-free, and all three admissibility levels coincide with Dung''s admissibility.
+  statement: 'Dung''s framework models only defeat between arguments; however, arguments
+    can also support each other independently, and this support relation cannot be
+    reduced to or derived from the defeat relation.
+
+    '
+  concepts:
+  - argumentation_framework
+  - support_relation
+  - bipolar_argumentation_framework
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 378
+    section: Introduction
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim15
+  type: observation
+  statement: 'Dung''s notion of conflict-free is insufficient for bipolar coherence
+    because a set can be conflict-free yet still externally incoherent by simultaneously
+    defeating and supporting the same argument.
+
+    '
+  concepts:
+  - conflict_free_set
+  - safe_set
+  - bipolar_argumentation_framework
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 384
+    section: Section 4
+- id: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim16
+  type: observation
+  statement: 'The bipolar argumentation framework can be reduced to a standard Dung
+    framework by using set-defeats (incorporating supported and indirect defeats)
+    as the attack relation, ensuring Dung''s extension existence results carry over.
 
     '
   concepts:
   - bipolar_argumentation_framework
   - argumentation_framework
-  - admissible_set
-  reference: Implicit throughout paper
+  - supported_defeat
+  - indirect_defeat
+  provenance:
+    paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+    page: 385
+    section: Section 4

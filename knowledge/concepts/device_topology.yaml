@@ -1,9 +1,8 @@
-id: concept93
+id: concept296
 canonical_name: device_topology
 status: proposed
 definition: A graph representation of a physical system where nodes are components
-  and edges are conduits (pipes, wires), forming the structural basis for qualitative
-  physics reasoning
+  and edges are conduits that transport material between components
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

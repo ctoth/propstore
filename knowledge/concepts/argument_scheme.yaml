@@ -1,0 +1,8 @@
+id: concept363
+canonical_name: argument_scheme
+status: proposed
+definition: A stereotypical reasoning pattern that can be instantiated as a defeasible
+  inference rule with associated critical questions
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

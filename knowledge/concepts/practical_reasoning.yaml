@@ -1,8 +1,8 @@
-id: concept136
+id: concept307
 canonical_name: practical_reasoning
 status: proposed
-definition: Goal-directed reasoning where an agent infers that an action ought to
-  be carried out because it is a means to realize a desired goal or promote a value
+definition: Goal-directed reasoning about what action to take, based on goals, means,
+  and values rather than establishing truth
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

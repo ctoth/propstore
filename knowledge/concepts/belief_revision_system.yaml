@@ -1,9 +1,8 @@
-id: concept126
+id: concept284
 canonical_name: belief_revision_system
 status: proposed
-definition: A subsystem of a knowledge-based system responsible for finding derivation
-  support, identifying derived assertions, and deleting assertions while maintaining
-  consistency
+definition: A subsystem of a knowledge-based system responsible for detecting contradictions,
+  identifying culprits, and maintaining consistency
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

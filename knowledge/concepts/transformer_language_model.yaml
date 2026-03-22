@@ -1,0 +1,8 @@
+id: concept347
+canonical_name: transformer_language_model
+status: proposed
+definition: A neural network architecture using self-attention mechanisms for contextual
+  language representation, including BERT, SciBERT, BioBERT, and RoBERTa variants
+domain: machine_learning
+created_date: '2026-03-22'
+form: structural

@@ -1,8 +1,8 @@
-id: concept17
+id: concept193
 canonical_name: levi_identity
 status: proposed
-definition: The equation K*x = (K-~x)+x defining revision in terms of contraction
-  followed by expansion, establishing the interdefinability of revision and contraction
+definition: 'The principle that revision can be defined via contraction: K*x = (K
+  - ~x) + x'
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

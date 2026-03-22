@@ -1,9 +1,8 @@
-id: concept71
+id: concept323
 canonical_name: collective_defeat
 status: proposed
-definition: When a set of propositions each supported by equally good defeasible arguments
-  forms a conjunction that defeats the original reasoning, none of the propositions
-  is warranted on those arguments
+definition: When a set of equally supported defeasible conclusions jointly defeat
+  each other, none is warranted
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

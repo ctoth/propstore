@@ -1,9 +1,8 @@
-id: concept88
+id: concept291
 canonical_name: qualitative_state
 status: proposed
-definition: A distinct operating region of a physical component, defined by inequalities
-  over non-derivative variables, where each region is governed by a different set
-  of confluences
+definition: A region in a component's operating range governed by a specific set of
+  confluences, defined by inequality specifications over non-derivative variables
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

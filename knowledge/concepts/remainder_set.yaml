@@ -1,8 +1,7 @@
-id: concept13
+id: concept184
 canonical_name: remainder_set
 status: proposed
-definition: For a belief set K and sentence x, the set of all maximal subsets of K
-  that do not logically imply x, denoted K_|_x
+definition: The set of all maximal subsets of a theory that do not imply a given sentence
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

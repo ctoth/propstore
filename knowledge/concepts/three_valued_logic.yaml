@@ -1,9 +1,8 @@
-id: concept68
+id: concept238
 canonical_name: three_valued_logic
 status: proposed
-definition: A logic with three truth states (true, false, unknown) rather than the
-  classical two, allowing explicit representation of propositions whose truth value
-  has not yet been determined
+definition: 'A logic system with three truth states: true, false, and unknown, eliminating
+  the need for separate negation nodes'
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

@@ -5,122 +5,45 @@ source:
 claims:
 - id: Alchourron_1985_TheoryChange:claim1
   type: observation
-  statement: A belief set (theory) is a set of sentences closed under logical consequence,
-    i.e. K = Cn(K).
+  statement: A theory (belief set) is a deductively closed set of sentences under
+    a consequence operation Cn satisfying inclusion, idempotence, monotonicity, compactness,
+    and introduction of disjunctions in premises.
   concepts:
+  - theory
   - belief_set
   - deductive_closure
   provenance:
     paper: Alchourron_1985_TheoryChange
-    section: Preliminaries
+    page: 511
+    section: Section 1
 - id: Alchourron_1985_TheoryChange:claim2
   type: observation
-  statement: 'Contraction postulate K-1: The result of contracting a belief set is
-    itself a belief set (closure under consequence).'
-  concepts:
-  - contraction
-  - agm_postulates
-  - belief_set
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 2
-- id: Alchourron_1985_TheoryChange:claim3
-  type: observation
-  statement: 'Contraction postulate K-2: K-x is a subset of K (contraction never adds
-    new beliefs).'
-  concepts:
-  - contraction
-  - agm_postulates
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 2
-- id: Alchourron_1985_TheoryChange:claim4
-  type: observation
-  statement: 'Contraction postulate K-3 (vacuity): If x is not in K, then K-x = K.'
-  concepts:
-  - contraction
-  - agm_postulates
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 2
-- id: Alchourron_1985_TheoryChange:claim5
-  type: observation
-  statement: 'Contraction postulate K-4 (success): If x is not a tautology, then x
-    is not in K-x.'
-  concepts:
-  - contraction
-  - agm_postulates
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 2
-- id: Alchourron_1985_TheoryChange:claim6
-  type: observation
-  statement: 'Contraction postulate K-5 (recovery): K is a subset of (K-x)+x, meaning
-    expanding the contracted set by x recovers the original theory.'
-  concepts:
-  - contraction
-  - agm_postulates
-  - recovery_postulate
-  - expansion
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 2
-- id: Alchourron_1985_TheoryChange:claim7
-  type: observation
-  statement: 'Contraction postulate K-6 (extensionality): If Cn(x) = Cn(y), then K-x
-    = K-y.'
-  concepts:
-  - contraction
-  - agm_postulates
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 2
-- id: Alchourron_1985_TheoryChange:claim8
-  type: observation
-  statement: The remainder set K_|_x consists of all maximal subsets of K that do
-    not logically imply x.
-  concepts:
-  - remainder_set
-  - belief_set
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 1
-- id: Alchourron_1985_TheoryChange:claim9
-  type: observation
-  statement: A selection function gamma picks a non-empty subset of the remainder
-    set K_|_x when K_|_x is non-empty, and returns {K} otherwise.
-  concepts:
-  - selection_function
-  - remainder_set
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 2
-- id: Alchourron_1985_TheoryChange:claim10
-  type: equation
-  statement: Partial meet contraction is defined as the intersection of remainders
-    chosen by the selection function.
-  expression: K - x = intersection(gamma(K _|_ x))
-  sympy: Intersection(*gamma(remainder(K, x)))
-  variables:
-    K: belief set
-    x: sentence to contract
-    gamma: selection function
+  statement: 'Partial meet contraction is defined as the intersection of the elements
+    selected by a selection function from the remainder set: K - x = intersection
+    of gamma(K _|_ x).'
   concepts:
   - partial_meet_contraction
   - selection_function
   - remainder_set
   provenance:
     paper: Alchourron_1985_TheoryChange
+    page: 512
     section: Section 2
-- id: Alchourron_1985_TheoryChange:claim11
-  type: equation
-  statement: The Levi identity defines revision in terms of contraction followed by
-    expansion.
-  expression: K * x = (K - ~x) + x
-  sympy: expansion(contraction(K, Not(x)), x)
-  variables:
-    K: belief set
-    x: sentence to revise by
+- id: Alchourron_1985_TheoryChange:claim3
+  type: observation
+  statement: The remainder set K _|_ x consists of all maximal subsets of K that do
+    not imply x.
+  concepts:
+  - remainder_set
+  - theory
+  provenance:
+    paper: Alchourron_1985_TheoryChange
+    page: 512
+    section: Section 2
+- id: Alchourron_1985_TheoryChange:claim4
+  type: observation
+  statement: 'The Levi identity defines revision in terms of contraction: K * x =
+    (K - ~x) + x, where + denotes expansion by deductive closure.'
   concepts:
   - levi_identity
   - revision
@@ -128,112 +51,172 @@ claims:
   - expansion
   provenance:
     paper: Alchourron_1985_TheoryChange
-    section: Section 3
-- id: Alchourron_1985_TheoryChange:claim12
-  type: equation
-  statement: The Harper identity defines contraction in terms of revision.
-  expression: K - x = K intersect (K * ~x)
-  sympy: Intersection(K, revision(K, Not(x)))
-  variables:
-    K: belief set
-    x: sentence to contract
+    page: 511
+    section: Section 1
+- id: Alchourron_1985_TheoryChange:claim5
+  type: observation
+  statement: 'The Harper identity defines contraction in terms of revision: K - x
+    = K intersect K * ~x.'
   concepts:
   - harper_identity
   - contraction
   - revision
   provenance:
     paper: Alchourron_1985_TheoryChange
-    section: Section 3
-- id: Alchourron_1985_TheoryChange:claim13
-  type: equation
-  statement: Expansion adds a sentence and closes under consequence.
-  expression: K + x = Cn(K union {x})
-  sympy: Cn(Union(K, FiniteSet(x)))
-  variables:
-    K: belief set
-    x: sentence to add
+    page: 513
+    section: Section 2
+- id: Alchourron_1985_TheoryChange:claim6
+  type: observation
+  statement: 'The six basic AGM contraction postulates (-1 through -6) are: closure,
+    inclusion, vacuity, success, preservation, and recovery.'
   concepts:
-  - expansion
-  - deductive_closure
-  - belief_set
+  - agm_postulates
+  - contraction
+  - recovery_postulate
   provenance:
     paper: Alchourron_1985_TheoryChange
-    section: Section 3
-- id: Alchourron_1985_TheoryChange:claim14
+    page: 513
+    section: Section 2
+- id: Alchourron_1985_TheoryChange:claim7
   type: observation
-  statement: 'Representation theorem (Observation 2.5): A contraction function satisfies
-    postulates K-1 through K-6 if and only if it is a partial meet contraction function.'
+  statement: A function is a partial meet contraction operation over A if and only
+    if it satisfies postulates (-1) through (-6) (Observation 2.5, representation
+    theorem).
   concepts:
-  - representation_theorem
+  - partial_meet_contraction
   - agm_postulates
+  - representation_theorem
+  provenance:
+    paper: Alchourron_1985_TheoryChange
+    page: 514
+    section: Section 2
+- id: Alchourron_1985_TheoryChange:claim8
+  type: observation
+  statement: Every partial meet contraction function satisfies the Gardenfors postulates
+    for contraction, and its associated partial meet revision function satisfies the
+    Gardenfors postulates for revision (Observation 2.3).
+  concepts:
+  - partial_meet_contraction
+  - agm_postulates
+  - contraction
+  - revision
+  provenance:
+    paper: Alchourron_1985_TheoryChange
+    page: 513
+    section: Section 2
+- id: Alchourron_1985_TheoryChange:claim9
+  type: observation
+  statement: Supplementary postulates (-7) and (-8) together characterize exactly
+    the class of transitively relational partial meet contraction functions (Corollary
+    4.5).
+  concepts:
+  - agm_postulates
+  - transitively_relational
   - partial_meet_contraction
   provenance:
     paper: Alchourron_1985_TheoryChange
-    section: Section 2
-- id: Alchourron_1985_TheoryChange:claim15
+    page: 520
+    section: Section 4
+- id: Alchourron_1985_TheoryChange:claim10
   type: observation
-  statement: 'Representation theorem (Observation 2.6): The supplementary postulates
-    K-7 and K-8 together with the basic postulates characterize exactly the transitively
-    relational partial meet contraction functions.'
-  concepts:
-  - representation_theorem
-  - agm_postulates
-  - partial_meet_contraction
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 2
-- id: Alchourron_1985_TheoryChange:claim16
-  type: observation
-  statement: Maxichoice contraction, where the selection function always picks exactly
-    one remainder, yields complete (maximal) theories.
-  concepts:
-  - maxichoice_contraction
-  - selection_function
-  - remainder_set
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 1
-- id: Alchourron_1985_TheoryChange:claim17
-  type: observation
-  statement: Full meet contraction, where the selection function picks all remainders,
-    is the most conservative contraction operation.
+  statement: Full meet contraction, where the selection function always selects the
+    entire remainder set, is the most conservative contraction option.
   concepts:
   - full_meet_contraction
   - selection_function
   - remainder_set
   provenance:
     paper: Alchourron_1985_TheoryChange
+    page: 512
+    section: Section 2
+- id: Alchourron_1985_TheoryChange:claim11
+  type: observation
+  statement: Maxichoice contraction, where the selection function always selects a
+    singleton from the remainder set, always yields complete (maximal) theories.
+  concepts:
+  - maxichoice_contraction
+  - selection_function
+  - remainder_set
+  provenance:
+    paper: Alchourron_1985_TheoryChange
+    page: 512
+    section: Section 2
+- id: Alchourron_1985_TheoryChange:claim12
+  type: observation
+  statement: Expansion is defined as K + x = Cn(K union {x}), the deductive closure
+    of the union of the theory with the new sentence.
+  concepts:
+  - expansion
+  - deductive_closure
+  - theory
+  provenance:
+    paper: Alchourron_1985_TheoryChange
+    page: 511
+    section: Section 1
+- id: Alchourron_1985_TheoryChange:claim13
+  type: observation
+  statement: Ventilation (-V) is equivalent to satisfying both supplementary postulates
+    (-7) and (-8) (Observation 6.5).
+  concepts:
+  - agm_postulates
+  - partial_meet_contraction
+  provenance:
+    paper: Alchourron_1985_TheoryChange
+    page: 526
+    section: Section 6
+- id: Alchourron_1985_TheoryChange:claim14
+  type: observation
+  statement: 'In the finite case, the hierarchy of conditions (gamma7:1) through (gamma7:infinity)
+    collapses differently than in the infinite case: (gamma7:1) does not imply (gamma7:2).'
+  concepts:
+  - selection_function
+  - transitively_relational
+  provenance:
+    paper: Alchourron_1985_TheoryChange
+    page: 522
+    section: Section 4
+- id: Alchourron_1985_TheoryChange:claim15
+  type: observation
+  statement: Connectivity of the ordering relation adds nothing beyond transitivity
+    in the infinite case but matters in the finite case (Observation 5.1).
+  concepts:
+  - transitively_relational
+  - selection_function
+  provenance:
+    paper: Alchourron_1985_TheoryChange
+    page: 523
+    section: Section 5
+- id: Alchourron_1985_TheoryChange:claim16
+  type: observation
+  statement: The AGM framework assumes deductively closed (infinite) theories, which
+    raises computability issues for implementation.
+  concepts:
+  - theory
+  - deductive_closure
+  - agm_postulates
+  provenance:
+    paper: Alchourron_1985_TheoryChange
+    page: 511
+    section: Section 1
+- id: Alchourron_1985_TheoryChange:claim17
+  type: observation
+  statement: 'The selection function is left abstract: the paper does not specify
+    how to choose among remainder sets in practice.'
+  concepts:
+  - selection_function
+  - remainder_set
+  provenance:
+    paper: Alchourron_1985_TheoryChange
+    page: 512
     section: Section 2
 - id: Alchourron_1985_TheoryChange:claim18
   type: observation
-  statement: 'Revision postulate K*2 (success): x is in K*x, meaning the new information
-    is always accepted.'
+  statement: 'Maxichoice contraction is characterized by the fullness condition (-F):
+    if y is in A and y is not in A - x, then ~y v x is in A - x (Observation 6.1).'
   concepts:
-  - revision
-  - agm_postulates
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 4
-- id: Alchourron_1985_TheoryChange:claim19
-  type: observation
-  statement: 'Revision postulate K*5 (consistency preservation): K*x is inconsistent
-    if and only if x itself is logically contradictory.'
-  concepts:
-  - revision
-  - agm_postulates
-  provenance:
-    paper: Alchourron_1985_TheoryChange
-    section: Section 4
-- id: Alchourron_1985_TheoryChange:claim20
-  type: observation
-  statement: 'The Levi and Harper identities establish a duality between contraction
-    and revision: each operation can be defined in terms of the other, and the postulates
-    for one can be derived from the postulates for the other via these identities.'
-  concepts:
-  - levi_identity
-  - harper_identity
+  - maxichoice_contraction
   - contraction
-  - revision
   provenance:
     paper: Alchourron_1985_TheoryChange
-    section: Section 3
+    page: 524
+    section: Section 6

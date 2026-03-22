@@ -1,8 +1,8 @@
-id: concept115
+id: concept264
 canonical_name: context
 status: proposed
-definition: A set of hypotheses that defines a belief space; in MBR, contexts partition
-  a shared knowledge base into per-agent or per-scenario reasoning scopes
+definition: A set of hypotheses that defines a belief space in a multi-context reasoning
+  system
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

@@ -1,9 +1,8 @@
-id: concept65
+id: concept315
 canonical_name: undercutting_defeater
 status: proposed
-definition: A defeater that attacks the connection between premises and conclusion
-  rather than the conclusion itself, denying that the premises provide adequate support
-  for the conclusion
+definition: A defeater that attacks the connection between reason and conclusion rather
+  than the conclusion itself
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

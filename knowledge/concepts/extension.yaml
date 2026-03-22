@@ -1,0 +1,9 @@
+id: concept253
+canonical_name: extension
+status: proposed
+definition: A fixed point of the operator Gamma that closes a set of axioms under
+  first-order consequence and applicable defaults, representing a coherent belief
+  set
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

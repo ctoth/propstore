@@ -1,8 +1,0 @@
-id: concept92
-canonical_name: qualitative_calculus
-status: proposed
-definition: Qualitative versions of continuity, Rolle's theorem, and the mean value
-  theorem that operate on the three-valued quantity space {+, 0, -}
-domain: argumentation
-created_date: '2026-03-21'
-form: structural

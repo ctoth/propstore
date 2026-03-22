@@ -2,44 +2,40 @@ source:
   paper: Ginsberg_1985_Counterfactuals
   extraction_model: "claude-opus-4-20250514"
   extraction_date: "2026-03-22"
-
 claims:
   - id: claim1
-    type: model
-    name: counterfactual_truth_function_model
-    statement: "Counterfactual conditionals can be formalized using three-valued truth functions (true/false/unknown) with closure operations over a logical language, where the counterfactual 'if p then q' is evaluated by setting p to unknown, computing closure, then setting p to true and recomputing closure to determine q's truth value."
+    type: observation
+    statement: "Counterfactual reasoning can be formalized using three-valued truth functions (true/false/unknown) with closure operations over a logical language, reducing the possible worlds interpretation to operations on truth functions."
     concepts:
-      - counterfactual_conditional
+      - counterfactual_reasoning
       - three_valued_truth_function
       - truth_function_closure
-    equations:
-      - "phi: L -> {t, f, u}"
-      - "phi|_p(q) = cl(theta)(q)"
-    parameters:
-      - name: L
-        description: "Set of sentences in the logical language"
-      - name: T
-        description: "Set of truth values {t, f, u} (true, false, unknown)"
+      - possible_worlds_semantics
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 80
+      section: "Key Contributions"
 
   - id: claim2
-    type: equation
-    statement: "A truth function psi is an extension of phi (phi <= psi) if for all propositions p, either phi(p) equals psi(p) or phi(p) is unknown."
-    expression: "phi <= psi iff forall p in L: phi(p) = psi(p) or phi(p) = u"
-    sympy: "ForAll(p, Implies(Element(p, L), Or(Eq(phi(p), psi(p)), Eq(phi(p), u))))"
-    variables:
-      phi: "Original truth function"
-      psi: "Extended truth function"
-      L: "Logical language"
-      u: "Unknown truth value"
+    type: observation
+    statement: "A truth function phi is consistent if and only if it has a consistent complete extension, where a complete extension assigns only true or false (no unknown values)."
     concepts:
       - three_valued_truth_function
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 82
+      section: "Consistency"
 
   - id: claim3
     type: observation
-    statement: "The closure of a consistent truth function phi is the maximally extended truth function psi such that every consistent complete extension of phi is also an extension of psi, corresponding precisely to logical closure."
+    statement: "The closure of a consistent truth function is the maximally extended truth function such that every consistent complete extension of the original is also an extension of the closure."
     concepts:
       - truth_function_closure
       - three_valued_truth_function
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 82
+      section: "Closure"
 
   - id: claim4
     type: observation
@@ -47,46 +43,96 @@ claims:
     concepts:
       - truth_function_closure
       - three_valued_truth_function
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 82
+      section: "Closure"
 
   - id: claim5
     type: observation
-    statement: "The three-valued truth function construction with closure operations is formally identical to Lewis's possible world interpretation of counterfactuals (Theorem 4)."
+    statement: "Counterfactual evaluation proceeds by: setting the premise to unknown, computing closure, setting the premise to true, computing closure again, and reading off the consequence's truth value."
     concepts:
-      - counterfactual_conditional
-      - possible_worlds_semantics
+      - counterfactual_reasoning
       - truth_function_closure
+      - three_valued_truth_function
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 83
+      section: "Counterfactual Construction"
 
   - id: claim6
     type: observation
-    statement: "Context dependence in counterfactual reasoning is encoded by choosing a sublanguage V subset of L, which determines which propositions may change truth values under counterfactual evaluation while others remain fixed."
+    statement: "The three-valued truth function construction for counterfactuals is formally identical to Lewis's possible world interpretation of counterfactuals when restricted to a countably infinite language (Theorem 4)."
     concepts:
-      - sublanguage_selection
-      - counterfactual_conditional
+      - counterfactual_reasoning
+      - possible_worlds_semantics
+      - three_valued_truth_function
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 84
+      section: "Properties of Counterfactuals"
 
   - id: claim7
     type: observation
-    statement: "Counterfactual conditionals do not support contraposition (p > q does not imply not-q > not-p), transitivity (p > q and q > r does not imply p > r), or strengthening the antecedent (p > r does not imply p and q > r)."
+    statement: "Context dependence in counterfactual reasoning is encoded by choosing a sublanguage V subset of L, where propositions in V may change under counterfactual evaluation while those outside V are held fixed."
     concepts:
-      - counterfactual_conditional
-      - non_monotonic_reasoning
+      - counterfactual_reasoning
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 81
+      section: "Similarity and Context Dependence"
 
   - id: claim8
     type: observation
-    statement: "The counterfactual framework subsumes the minimal fault assumption used in automated diagnosis: device assumptions that components function correctly can be recast as counterfactual assumptions, and counterfactual reasoning identifies which assumptions must be abandoned when observations contradict predictions."
+    statement: "Counterfactuals violate three properties of classical material conditionals: contraposition fails, transitivity fails, and strengthening the antecedent fails (non-monotonicity)."
     concepts:
-      - counterfactual_conditional
-      - truth_function_closure
+      - counterfactual_reasoning
+      - non_monotonic_reasoning
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 81
+      section: "Properties of Counterfactuals"
 
   - id: claim9
     type: observation
-    statement: "No extension of an inconsistent truth function is consistent (Lemma 1), and closure is always less than or equal to the original truth function in the extension ordering (Lemma 2)."
+    statement: "The counterfactual framework subsumes the minimal fault assumption used in automated diagnosis: device assumptions can be recast as counterfactual assumptions, and when observations contradict predictions, counterfactual reasoning identifies which assumptions must be abandoned."
     concepts:
-      - truth_function_closure
-      - three_valued_truth_function
+      - counterfactual_reasoning
+      - automated_diagnosis
+      - assumption
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 85
+      section: "Connection to Automated Diagnosis"
 
   - id: claim10
     type: observation
-    statement: "Similarity between possible worlds has two sources: the number of propositions whose truth values change (fewer is more similar) and the relative importance of propositions (unnecessary changes make a world more distant)."
+    statement: "Counterfactual diagnosis provides stronger conclusions than predicate calculus diagnosis: it can establish which components are definitely not faulty (their correct behavior is counterfactually implied by observations), not merely which components might be faulty."
+    concepts:
+      - automated_diagnosis
+      - counterfactual_reasoning
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 86
+      section: "Connection to Automated Diagnosis"
+
+  - id: claim11
+    type: observation
+    statement: "Lewis's possible worlds semantics for counterfactuals is too vaguely defined to be computationally useful from an AI perspective, because the notion of similarity between worlds is left to intuition rather than formalized."
     concepts:
       - possible_worlds_semantics
-      - sublanguage_selection
+      - counterfactual_reasoning
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 81
+      section: "Arguments Against Prior Work"
+
+  - id: claim12
+    type: observation
+    statement: "No extension of an inconsistent truth function is consistent (Lemma 1)."
+    concepts:
+      - three_valued_truth_function
+    provenance:
+      paper: Ginsberg_1985_Counterfactuals
+      page: 82
+      section: "Closure"

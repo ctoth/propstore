@@ -1,9 +1,7 @@
-id: concept110
+id: concept263
 canonical_name: belief_space
 status: proposed
-definition: In MBR, the set of all propositions derivable from a given context (set
-  of hypotheses); each context defines a unique belief space within a shared knowledge
-  base
+definition: The set of all propositions derivable from a given context (set of hypotheses)
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

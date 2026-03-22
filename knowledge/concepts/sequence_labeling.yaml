@@ -1,0 +1,8 @@
+id: concept348
+canonical_name: sequence_labeling
+status: proposed
+definition: A structured prediction task that assigns a label to each token in a sequence,
+  using architectures like LSTM, GRU, or CRF with BIO tagging schemes
+domain: machine_learning
+created_date: '2026-03-22'
+form: structural

@@ -1,0 +1,8 @@
+id: concept281
+canonical_name: signal_function
+status: proposed
+definition: A communication mechanism between knowledge-representation and data-dependency
+  levels
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

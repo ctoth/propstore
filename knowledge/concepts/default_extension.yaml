@@ -1,8 +1,0 @@
-id: concept105
-canonical_name: default_extension
-status: proposed
-definition: A fixed point of the operator Gamma characterizing a maximal consistent
-  set of beliefs derivable from a default theory's axioms and applicable defaults
-domain: argumentation
-created_date: '2026-03-21'
-form: structural

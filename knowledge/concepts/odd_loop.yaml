@@ -1,9 +1,8 @@
-id: concept162
+id: concept277
 canonical_name: odd_loop
 status: proposed
-definition: A cycle in a dependency network containing an odd number of negative (out-justifier)
-  links; odd loops prevent consistent labeling and must be forbidden in well-founded
-  dependency networks
+definition: A cycle of justifications with an odd number of negative links, which
+  prevents consistent labeling
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

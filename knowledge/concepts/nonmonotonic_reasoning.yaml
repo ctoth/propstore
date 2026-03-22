@@ -1,0 +1,8 @@
+id: concept217
+canonical_name: nonmonotonic_reasoning
+status: proposed
+definition: Reasoning where conclusions can be retracted when new information becomes
+  available
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

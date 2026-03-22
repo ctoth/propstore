@@ -1,8 +1,8 @@
-id: concept7
+id: concept177
 canonical_name: revision
 status: proposed
-definition: A belief change operation that incorporates a new sentence into a belief
-  set while maintaining consistency, possibly removing existing beliefs that conflict
+definition: An operation that incorporates a new belief into a theory while maintaining
+  consistency
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

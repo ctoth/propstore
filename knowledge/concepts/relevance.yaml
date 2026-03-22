@@ -1,8 +1,8 @@
-id: concept46
+id: concept206
 canonical_name: relevance
 status: proposed
-definition: The property that resolving a particular queryable could change the justification
-  status of a target literal
+definition: Property of an unsettled observation (queryable) whose resolution could
+  change a literal's justification status
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

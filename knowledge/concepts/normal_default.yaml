@@ -1,8 +1,8 @@
-id: concept106
+id: concept254
 canonical_name: normal_default
 status: proposed
-definition: 'A default rule where the single justification equals the consequent,
-  of the form alpha : Mw / w, guaranteeing existence of at least one extension'
+definition: A default rule where the justification equals the consequent, forming
+  the tractable core of default logic with guaranteed extension existence
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

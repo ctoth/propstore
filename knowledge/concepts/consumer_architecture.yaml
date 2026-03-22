@@ -1,9 +1,8 @@
-id: concept132
+id: concept349
 canonical_name: consumer_architecture
 status: proposed
-definition: A modular problem-solving design where inference rules (consumers) are
-  attached to ATMS nodes and execute exactly once when antecedent labels become nonempty,
-  producing new justifications
+definition: A problem-solving architecture where modular consumers are attached to
+  ATMS nodes and fire when antecedent labels become nonempty, producing new justifications
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

@@ -1,0 +1,8 @@
+id: concept213
+canonical_name: future_argumentation_theory
+status: proposed
+definition: A possible state of an argumentation theory after resolving some or all
+  queryables by adding them to the axioms
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

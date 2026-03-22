@@ -1,0 +1,8 @@
+id: concept262
+canonical_name: generating_defaults
+status: proposed
+definition: The set of default rules whose prerequisites are in an extension and whose
+  justifications are consistent with it
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

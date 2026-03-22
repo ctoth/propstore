@@ -1,0 +1,8 @@
+id: concept249
+canonical_name: contradiction_resolution
+status: proposed
+definition: The process of generating new clauses from contradictions by resolving
+  the contradicting clause with its supporting clauses, enabling deduction of negations
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

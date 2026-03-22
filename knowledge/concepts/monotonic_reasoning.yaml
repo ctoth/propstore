@@ -1,0 +1,8 @@
+id: concept182
+canonical_name: monotonic_reasoning
+status: proposed
+definition: Classical reasoning where the set of beliefs can only grow as new information
+  is added, never shrink
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

@@ -7,157 +7,224 @@ claims:
   - id: claim1
     type: observation
     statement: >
-      A default rule has the form alpha(x) : M*beta_1(x),...,M*beta_m(x) / w(x),
-      where alpha is the prerequisite, beta_1...beta_m are justifications (consistent
-      assumptions), and w is the consequent.
+      A default rule has the form alpha : M*beta_1, ..., M*beta_m / w, where alpha
+      is the prerequisite, beta_1 through beta_m are the justifications (prefixed
+      with the consistency operator M meaning "it is consistent to assume"), and w
+      is the consequent.
     concepts:
       - default_rule
-      - non_monotonic_reasoning
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 88
+      section: "Default Rules"
 
   - id: claim2
     type: observation
     statement: >
       A default theory is a pair (D, W) where D is a set of default rules and W
-      is a set of first-order sentences (axioms).
+      is a set of first-order axioms. Default rules are meta-rules that extend
+      an incomplete first-order theory, not object-level sentences.
     concepts:
       - default_theory
       - default_rule
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 88
+      section: "Default Theories"
 
   - id: claim3
     type: observation
     statement: >
       An extension of a default theory is a fixed point of the operator Gamma,
-      which closes under deduction, includes the axioms W, and applies defaults
-      whose prerequisites are in the set and whose justifications are consistent
-      with the set.
+      which closes a set of axioms under first-order consequence and applicable
+      defaults. An extension represents a self-supporting, deductively closed
+      set of beliefs.
     concepts:
-      - default_extension
+      - extension
       - default_theory
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 89
+      section: "Definition 1"
 
   - id: claim4
-    type: equation
+    type: observation
     statement: >
-      The extension operator Gamma(S) is the smallest set satisfying: (D1) W is
-      a subset of Gamma(S), (D2) Gamma(S) is deductively closed, and (D3) for
-      each default with prerequisite in Gamma(S) and justification negations not
-      in S, the consequent is in Gamma(S).
-    expression: "Gamma(S) = smallest set satisfying D1, D2, D3"
-    sympy: null
-    variables:
-      S: "candidate extension (set of closed wffs)"
-      W: "axiom set"
-      D: "set of default rules"
+      A normal default has the form alpha : Mw / w, where the single justification
+      equals the consequent. Normal defaults form the tractable core of default logic,
+      covering all standard examples of default reasoning.
+    concepts:
+      - normal_default
+      - default_rule
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 95
+      section: "Normal Defaults"
 
   - id: claim5
     type: observation
     statement: >
-      A normal default has the form alpha(x) : Mw(x) / w(x), where the single
-      justification equals the consequent; this is the most important subclass
-      of defaults.
+      Every closed normal default theory with consistent axioms W has at least
+      one extension.
     concepts:
       - normal_default
-      - default_rule
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 95
+      section: "Theorem 3.1"
 
   - id: claim6
     type: observation
     statement: >
-      Every closed normal default theory has at least one extension (Theorem 3.1),
-      unlike general default theories which may have no extensions.
+      Distinct extensions of a closed normal default theory are orthogonal: their
+      union is inconsistent.
     concepts:
+      - extension
       - normal_default
-      - default_extension
-      - default_theory
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 98
+      section: "Theorem 3.3"
 
   - id: claim7
     type: observation
     statement: >
-      Extensions of a normal default theory are orthogonal: if E and F are
-      distinct extensions, then E union F is inconsistent (Theorem 3.3).
+      A consistent closed normal default theory where W union CONSEQUENTS(D) is
+      consistent has a unique extension.
     concepts:
-      - default_extension
+      - extension
       - normal_default
+      - default_theory
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 98
+      section: "Corollary 3.4"
 
   - id: claim8
-    type: equation
+    type: observation
     statement: >
-      An extension E equals the deductive closure of the axioms W together with
-      the consequents of the generating defaults: E = Th(W union CONSEQUENTS(GD(E, Delta))).
-    expression: "E = Th(W union CONSEQUENTS(GD(E, Delta)))"
-    sympy: null
-    variables:
-      E: "extension"
-      W: "axiom set"
-      GD: "generating defaults for E"
-      Delta: "default theory (D, W)"
+      Adding normal defaults to a normal default theory can never reduce the number
+      of extensions (semi-monotonicity).
+    concepts:
+      - semi_monotonicity
+      - normal_default
+      - extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 96
+      section: "Theorem 3.2"
 
   - id: claim9
     type: observation
     statement: >
-      A consistent closed normal default theory where W union CONSEQUENTS(D) is
-      consistent has a unique extension (Corollary 3.4).
+      The proof theory for closed normal default theories is complete: a formula
+      beta is in some extension E if and only if beta has a default proof with
+      respect to the default theory.
     concepts:
-      - default_extension
+      - default_proof
+      - extension
       - normal_default
-      - default_theory
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 103
+      section: "Theorem 4.8"
 
   - id: claim10
     type: observation
     statement: >
-      Semi-monotonicity holds for normal defaults: adding normal defaults to a
-      normal default theory never reduces the number of extensions (Theorem 3.2).
+      The extension membership problem for closed normal default theories is not
+      semi-decidable: no algorithm can enumerate all beliefs of an arbitrary
+      extension.
     concepts:
+      - extension
       - normal_default
-      - default_extension
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 104
+      section: "Theorem 4.9"
 
   - id: claim11
     type: observation
     statement: >
-      The proof theory for closed normal default theories is complete: a sentence
-      beta belongs to an extension E if and only if beta has a default proof with
-      respect to the default theory (Theorem 4.8).
+      A general (non-normal) default theory may have no extensions, as demonstrated
+      by the theory with D = {:MA / not-A} and W = empty set.
     concepts:
-      - normal_default
-      - default_extension
+      - extension
       - default_theory
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 91
+      section: "Example 2.6"
 
   - id: claim12
     type: observation
     statement: >
-      The extension membership problem for closed normal default theories is not
-      semi-decidable (Theorem 4.9); no algorithm can enumerate all beliefs of an
-      arbitrary extension.
+      Multiple extensions from a single default theory are not a defect but reflect
+      genuine ambiguity: defaults can sanction different sets of beliefs about the
+      world.
     concepts:
-      - default_extension
-      - normal_default
+      - extension
+      - default_theory
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 86
+      section: "Design Rationale"
 
   - id: claim13
     type: observation
     statement: >
-      Derived beliefs safely persist under new observations if the union of the
-      consequents of all default supports used in their proofs remains consistent
-      with the axioms (Theorem 6.1).
+      The closed world assumption is a special case of default logic, where the
+      default schema concludes the negation of a predicate when the predicate
+      cannot be proved, unifying database query answering with default reasoning.
     concepts:
-      - belief_revision
-      - default_theory
-      - default_extension
+      - closed_world_assumption
+      - default_logic
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 84
+      section: "Closed World Assumption"
 
   - id: claim14
     type: observation
     statement: >
-      Reiter's default logic extensions correspond exactly to Dung's stable
-      extensions of argumentation frameworks, as later proved by Dung (1995,
-      Theorem 43).
+      Derived beliefs safely persist under new observations if the union of their
+      default supports remains consistent. When consistency fails, belief revision
+      is needed.
     concepts:
-      - default_extension
-      - stable_extension
-      - argumentation_framework
+      - belief_revision
+      - default_proof
+      - default_theory
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 113
+      section: "Section 6: Belief Revision"
 
   - id: claim15
     type: observation
     statement: >
-      Open (non-closed) default theories are handled by Skolemization: replacing
-      wffs with Skolemized forms and grounding over the Herbrand universe, with
-      all results on normal defaults generalizing to open normal defaults.
+      The extension membership problem is decidable for the sentential case (all
+      defaults and W are sentential wffs) and for the monadic predicate calculus
+      case.
     concepts:
+      - extension
       - default_theory
-      - normal_default
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 105
+      section: "Decidability"
+
+  - id: claim16
+    type: observation
+    statement: >
+      First-order logic is monotonic: adding new information never invalidates
+      previous conclusions. Default reasoning is inherently non-monotonic, requiring
+      a logic where new information can retract previously derived beliefs.
+    concepts:
+      - monotonic_reasoning
+      - non_monotonic_reasoning
+      - default_logic
+    provenance:
+      paper: Reiter_1980_DefaultReasoning
+      page: 85
+      section: "Problem Addressed"

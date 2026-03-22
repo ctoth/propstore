@@ -1,8 +1,8 @@
-id: concept144
+id: concept355
 canonical_name: defeasible_rule
 status: proposed
-definition: A non-deductive inference rule in ASPIC+ of the form phi1,...,phin =>
-  psi that can be attacked via undercutting and whose conclusions can be rebutted
+definition: An inference rule that creates a presumption for its conclusion, can be
+  attacked via undercutting
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

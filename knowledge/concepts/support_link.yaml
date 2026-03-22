@@ -1,9 +1,9 @@
-id: concept153
+id: concept371
 canonical_name: support_link
 status: proposed
-definition: 'A directed connection in a BMS dependency network through which belief
-  values propagate, with two types: hard links (absolute statement of consequent belief)
-  and invertible links (allowing evidence subtraction via inverted Dempster rule)'
-domain: belief_maintenance
-created_date: '2026-03-21'
+definition: A directed dependency link in a belief maintenance system connecting antecedent
+  nodes to consequent nodes, typed as hard (direct computation) or invertible (evidence
+  subtractable via inverse Dempster rule)
+domain: knowledge_based_system
+created_date: '2026-03-22'
 form: structural

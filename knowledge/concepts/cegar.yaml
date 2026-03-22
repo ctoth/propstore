@@ -1,0 +1,8 @@
+id: concept218
+canonical_name: cegar
+status: proposed
+definition: Counterexample-Guided Abstraction Refinement approach for iteratively
+  solving computational problems by drawing candidates and verifying them
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

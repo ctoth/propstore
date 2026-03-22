@@ -7,135 +7,200 @@ claims:
   - id: claim1
     type: observation
     statement: >
-      An argumentation system AS = (L, C, R, n) consists of a logical language L
-      closed under negation, a contrariness function C, strict and defeasible rules
-      R = R_s union R_d, and a naming function n for defeasible rules.
+      ASPIC+ is extended to handle incomplete information where some observations
+      are unsettled, defining four justification statuses for literals: unsatisfiable,
+      defended, out, and blocked.
     concepts:
       - aspic_plus
-      - argumentation_framework
-      - knowledge_base
+      - incomplete_information
+      - justification_status
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 1
+      section: "Abstract"
 
   - id: claim2
     type: observation
     statement: >
-      Under incomplete information in ASPIC+, literals are assigned one of four
-      justification statuses: unsatisfiable (no supporting argument exists),
-      defended (in the grounded extension), out (argument exists but is defeated),
-      or blocked (argument exists, not in grounded extension, not definitively defeated).
+      A literal is unsatisfiable if there is no argument with that literal as its
+      conclusion, meaning the literal cannot be concluded regardless of what
+      information arrives.
     concepts:
       - justification_status
-      - grounded_semantics
-      - incomplete_information
-      - aspic_plus
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 4
+      section: "Justification Statuses under Incomplete Information"
 
   - id: claim3
     type: observation
     statement: >
-      A literal l is j-stable with respect to a set of queryables Q if and only if
-      l has justification status j in every future argumentation theory obtained by
-      resolving queryables from Q.
+      A literal is defended if there is an argument for it in the grounded extension,
+      meaning it is justified under grounded semantics.
     concepts:
-      - stability
       - justification_status
-      - queryable
+      - grounded_extension
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 4
+      section: "Justification Statuses under Incomplete Information"
 
   - id: claim4
     type: observation
     statement: >
-      A queryable q is j-relevant for a literal l if q or its contradictory appears
-      in the axiom additions of some minimal stable-j future theory for l.
+      A literal is out if it is not unsatisfiable but not defended -- there exists
+      an argument for it, but it is not in the grounded extension because it is
+      defeated.
     concepts:
-      - relevance
-      - queryable
-      - stability
       - justification_status
+      - grounded_extension
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 4
+      section: "Justification Statuses under Incomplete Information"
 
   - id: claim5
     type: observation
     statement: >
-      Computing the justification status of a literal in a complete argumentation
-      theory under grounded semantics is decidable in polynomial time via the
-      characteristic function's least fixpoint.
+      A literal is blocked if there is an argument for it but it is neither in the
+      grounded extension nor definitively out, meaning it might be justifiable under
+      semantics other than grounded.
     concepts:
       - justification_status
       - grounded_semantics
-      - characteristic_function
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 4
+      section: "Justification Statuses under Incomplete Information"
 
   - id: claim6
-    type: parameter
-    concept: stability
-    value: "coNP-complete"
-    unit: "computational complexity class"
-    statement: >
-      Deciding whether a literal is j-stable in an argumentation theory with respect
-      to a set of queryables is coNP-complete for each justification status j in
-      {unsatisfiable, defended, out, blocked} (Proposition 7).
-
-  - id: claim7
-    type: parameter
-    concept: relevance
-    value: "Sigma_2^P-complete"
-    unit: "computational complexity class"
-    statement: >
-      Deciding whether a queryable is j-relevant for a literal in an argumentation
-      theory is Sigma_2^P-complete for each justification status j in
-      {unsatisfiable, defended, out, blocked} (Theorem 2).
-
-  - id: claim8
-    type: model
-    name: "ASPIC+ under incomplete information"
-    statement: >
-      The framework extends ASPIC+ with observation-based argumentation theories
-      (AT, O), queryable sets Q of unsettled literals, and future argumentation
-      theories representing possible completions of incomplete knowledge bases.
-    equations:
-      - "future AT' = (AS, K') where K_n subset K'_n subset K_n union Q"
-    parameters:
-      - aspic_plus
-      - queryable
-      - knowledge_base
-      - incomplete_information
-
-  - id: claim9
     type: observation
     statement: >
-      If a literal is j-stable, adding more observations (resolving queryables)
-      cannot change its justification status, providing a monotonicity guarantee
-      for stability.
+      A literal is j-stable with respect to a set of queryables if its justification
+      status j will not change regardless of how the queryables are resolved.
     concepts:
       - stability
       - justification_status
       - queryable
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 5
+      section: "Section 3: Stability and Relevance"
+
+  - id: claim7
+    type: observation
+    statement: >
+      A queryable q is j-relevant for a literal l if resolving q (positively or
+      negatively) could be part of the minimal information needed to stabilize
+      l's status at j.
+    concepts:
+      - relevance
+      - queryable
+      - stability
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 5
+      section: "Section 3: Stability and Relevance"
+
+  - id: claim8
+    type: observation
+    statement: >
+      A future argumentation theory AT' is defined as a possible state of knowledge
+      after resolving some or all queryables, where axioms can only grow by adding
+      queryables and ordinary and assumption premises remain unchanged.
+    concepts:
+      - future_argumentation_theory
+      - queryable
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 5
+      section: "Section 3: Stability and Relevance"
+
+  - id: claim9
+    type: observation
+    statement: >
+      Deciding whether a literal is j-stable in an ASPIC+ argumentation theory
+      with respect to a set of queryables is coNP-complete for each of the four
+      justification statuses.
+    concepts:
+      - stability
+      - justification_status
+      - aspic_plus
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 6
+      section: "Section 4: Complexity Results"
 
   - id: claim10
     type: observation
     statement: >
-      The ASP-based algorithms for computing justification status, stability, and
-      relevance use counterexample-guided abstraction refinement (CEGAR) and are
-      implemented using the Clingo solver.
+      Deciding whether a queryable is j-relevant for a literal is Sigma_2^P-complete
+      for each of the four justification statuses, with hardness holding even
+      without preferences.
+    concepts:
+      - relevance
+      - justification_status
+      - queryable
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 6
+      section: "Section 4: Complexity Results"
+
+  - id: claim11
+    type: observation
+    statement: >
+      The ASP-based algorithms for computing justification labels, stability, and
+      relevance are practical, handling real-world benchmarks with sub-second
+      performance for justification status and seconds for stability and relevance
+      on moderate-sized instances.
     concepts:
       - answer_set_programming
       - justification_status
       - stability
       - relevance
-
-  - id: claim11
-    type: measurement
-    target_concept: justification_status
-    measure: "mean computation time on real-world benchmarks without preferences"
-    value: 0.26
-    unit: "seconds"
-    statement: >
-      The ASP-based justification status algorithm achieves a mean runtime of
-      0.26 seconds on real-world argumentation benchmarks without preferences.
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 8
+      section: "Performance"
 
   - id: claim12
     type: observation
     statement: >
-      Arguments in ASPIC+ attack each other via three mechanisms: undermining
-      (attacking ordinary premises), rebutting (attacking defeasible conclusions),
-      and undercutting (attacking defeasible rule applicability).
+      The CEGAR approach for relevance computation iteratively refines by drawing
+      candidates from an abstract space and verifying them in the concrete semantics,
+      proving practical for moderate-sized instances.
     concepts:
+      - cegar
+      - relevance
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 7
+      section: "ASP-Based Counterexample Generation"
+
+  - id: claim13
+    type: observation
+    statement: >
+      Both a queryable q and its contradictory can be j-relevant for the same literal,
+      because resolving q either way could contribute to stabilizing the literal's
+      status through different minimal future theories.
+    concepts:
+      - relevance
+      - queryable
+      - future_argumentation_theory
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 5
+      section: "Section 3: Stability and Relevance"
+
+  - id: claim14
+    type: observation
+    statement: >
+      The paper focuses exclusively on grounded semantics; extension to preferred,
+      stable, or other Dung semantics is left as future work.
+    concepts:
+      - grounded_semantics
       - aspic_plus
-      - attack_relation
-      - argumentation_framework
+    provenance:
+      paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+      page: 8
+      section: "Limitations"

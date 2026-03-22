@@ -1,8 +1,8 @@
-id: concept10
+id: concept172
 canonical_name: belief_revision
 status: proposed
-definition: The process of changing an agent's set of beliefs in response to new information
-  that may contradict existing beliefs
+definition: The process of changing the set of currently held beliefs in response
+  to new information or discovered contradictions
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

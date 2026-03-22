@@ -1,9 +1,9 @@
-id: concept70
+id: concept242
 canonical_name: disjunctive_clause
 status: proposed
-definition: A logical constraint in disjunctive normal form (a disjunction of literals),
-  used as the fundamental representation of logical relations in clause-based truth
-  maintenance systems
+definition: A logical constraint in disjunctive normal form (A v B v C) used to represent
+  implications symmetrically, where any term can be deduced from the falsity of all
+  others
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

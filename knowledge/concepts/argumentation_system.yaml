@@ -1,0 +1,8 @@
+id: concept353
+canonical_name: argumentation_system
+status: proposed
+definition: A triple (L, R, n) with a logical language L, strict and defeasible inference
+  rules R, and a naming function n for defeasible rules
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

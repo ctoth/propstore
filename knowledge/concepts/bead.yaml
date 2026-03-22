@@ -1,0 +1,8 @@
+id: concept275
+canonical_name: bead
+status: proposed
+definition: A unique identifier (natural number) serving as a premiss in a data pool
+  system
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

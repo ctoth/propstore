@@ -1,9 +1,9 @@
-id: concept102
+id: concept251
 canonical_name: default_rule
 status: proposed
-definition: 'A meta-rule of the form prerequisite : justifications / consequent, allowing
-  inference of the consequent when the prerequisite holds and the justifications are
-  consistent with current beliefs'
+definition: A meta-rule with prerequisite, justification, and consequent that allows
+  concluding the consequent when the prerequisite holds and it is consistent to assume
+  the justifications
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

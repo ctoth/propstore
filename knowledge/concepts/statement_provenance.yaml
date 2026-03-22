@@ -1,0 +1,8 @@
+id: concept303
+canonical_name: statement_provenance
+status: proposed
+definition: Metadata recording the origin, authorship, creation date, and import history
+  of a scientific statement
+domain: scientific_communication
+created_date: '2026-03-22'
+form: structural

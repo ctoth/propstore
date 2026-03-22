@@ -1,9 +1,8 @@
-id: concept161
+id: concept278
 canonical_name: well_founded_labeling
 status: proposed
-definition: A status assignment for a dependency network where every IN assertion
-  has a justification tree that bottoms out in premises or OUT assertions, with no
-  unsupported circular justifications
+definition: A status assignment where every IN assertion has grounded support not
+  depending on circular reasoning
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

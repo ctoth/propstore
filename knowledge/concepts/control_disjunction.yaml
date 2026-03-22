@@ -1,9 +1,9 @@
-id: concept133
+id: concept350
 canonical_name: control_disjunction
 status: proposed
-definition: An ATMS mechanism that partitions the search space by constraining the
-  scheduler to explore only environments consistent with specified mutually exclusive
-  choices
+definition: A mechanism that partitions the search space in the ATMS, expressing search
+  preferences and enabling dependency-directed backtracking by maintaining a current
+  environment consistent with all disjunctions
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

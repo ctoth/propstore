@@ -1,8 +1,8 @@
-id: concept42
+id: concept201
 canonical_name: justification_status
 status: proposed
-definition: 'A label assigned to a literal indicating its acceptability state: unsatisfiable,
-  defended, out, or blocked under grounded semantics'
+definition: 'Label assigned to a literal indicating its epistemic state: unsatisfiable,
+  defended, out, or blocked'
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

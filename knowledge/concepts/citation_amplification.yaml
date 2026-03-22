@@ -1,9 +1,8 @@
-id: concept97
+id: concept328
 canonical_name: citation_amplification
 status: proposed
-definition: Expansion of a belief system through papers presenting no primary data
-  that cite and amplify supportive claims, increasing the number of supportive citations
-  exponentially
+definition: Expansion of a belief system by papers presenting no primary data, increasing
+  the number of supportive citations through reviews and derivative works
 domain: scientific_communication
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

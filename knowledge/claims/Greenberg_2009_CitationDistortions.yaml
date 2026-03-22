@@ -6,105 +6,206 @@ claims:
 - id: Greenberg_2009_CitationDistortions:claim1
   type: observation
   statement: 'Citation distortions create unfounded authority for scientific claims
-    through three distinct mechanisms: citation bias, amplification, and invention.'
+    through three distinct mechanisms: citation bias (systematic ignoring of conflicting
+    papers), amplification (propagation through non-data papers), and invention (creation
+    of new facts through the citation process).'
   concepts:
   - citation_distortion
   - citation_bias
   - citation_amplification
   - citation_invention
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 1
+    section: Key Contributions
 - id: Greenberg_2009_CitationDistortions:claim2
   type: observation
-  statement: Citation bias is the systematic ignoring of papers containing content
-    conflicting with a claim, resulting in differing citation frequency between supportive
-    and critical primary data papers.
+  statement: A claim-specific citation network is the set of all papers and citations
+    pertaining to a single scientific claim, enabling tracking of how a specific belief
+    propagates through the literature.
   concepts:
-  - citation_bias
-  - claim_specific_citation_network
+  - claim_network
+  - citation_distortion
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 1
+    section: Key Contributions
 - id: Greenberg_2009_CitationDistortions:claim3
-  type: observation
-  statement: Amplification expands a belief system through papers presenting no primary
-    data, increasing the number of supportive citations exponentially without adding
-    new evidence.
-  concepts:
-  - citation_amplification
-  - claim_specific_citation_network
+  type: measurement
+  target_concept: citation_bias
+  measure: supportive_citation_share
+  value: 94.0
+  unit: '%'
+  notes: Supportive primary data papers received 94% of 214 citations to primary data
+    in the beta-amyloid/IBM network.
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 3
+    section: Citation Bias
 - id: Greenberg_2009_CitationDistortions:claim4
+  type: measurement
+  target_concept: citation_bias
+  measure: critical_citation_share
+  value: 6.0
+  unit: '%'
+  notes: Six papers with weakening/refuting data received only 6% of citations to
+    primary data (P=0.01).
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 3
+    section: Citation Bias
+- id: Greenberg_2009_CitationDistortions:claim5
+  type: measurement
+  target_concept: claim_network
+  measure: network_size
+  value: 242.0
+  unit: papers
+  notes: Total papers in the beta-amyloid/IBM claim-specific citation network.
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 1
+    section: Methodology
+- id: Greenberg_2009_CitationDistortions:claim6
+  type: measurement
+  target_concept: claim_network
+  measure: citation_count
+  value: 675.0
+  unit: citations
+  notes: Total citations in the network, not counting duplicates.
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 1
+    section: Methodology
+- id: Greenberg_2009_CitationDistortions:claim7
+  type: measurement
+  target_concept: citation_amplification
+  measure: supportive_citation_path_count
+  value: 220609.0
+  unit: paths
+  notes: Number of supportive citation paths in the network.
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 5
+    section: Amplification
+- id: Greenberg_2009_CitationDistortions:claim8
+  type: measurement
+  target_concept: citation_amplification
+  measure: critical_citation_path_count
+  value: 21.0
+  unit: paths
+  notes: Number of critical citation paths in the network, vs 220,609 supportive paths.
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 5
+    section: Amplification
+- id: Greenberg_2009_CitationDistortions:claim9
+  type: measurement
+  target_concept: citation_amplification
+  measure: citation_path_growth_fold
+  value: 777.0
+  unit: fold
+  notes: Fold increase in supportive citation paths between 1996-2007.
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 5
+    section: Amplification
+- id: Greenberg_2009_CitationDistortions:claim10
+  type: measurement
+  target_concept: network_authority
+  measure: authority_traffic_share
+  value: 97.0
+  unit: '%'
+  notes: The 8 most authoritative papers (7 by same lab) carried 97% of all network
+    traffic.
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 5
+    section: Amplification
+- id: Greenberg_2009_CitationDistortions:claim11
   type: observation
-  statement: 'Citation invention creates facts through the citation process itself
-    via five subtypes: citation diversion, citation transmutation, back door invention,
-    dead end citation, and title invention.'
+  statement: 'Citation invention has five subtypes: citation diversion (claiming content
+    has different meaning), citation transmutation (converting hypothesis to fact),
+    back door invention (citing abstracts as peer-reviewed data), dead end citation
+    (citing papers with no relevant content), and title invention (reporting experiments
+    in title that paper does not contain).'
   concepts:
   - citation_invention
   - citation_transmutation
-- id: Greenberg_2009_CitationDistortions:claim5
-  type: observation
-  statement: Citation transmutation converts hypothesis into accepted fact through
-    successive citations that progressively strengthen modal status from possibility
-    to certainty.
-  concepts:
-  - citation_transmutation
-  - citation_distortion
-- id: Greenberg_2009_CitationDistortions:claim6
-  type: measurement
-  statement: In the beta-amyloid/IBM citation network, supportive primary data papers
-    received 94% of 214 citations while six papers with weakening or refuting data
-    received only 6%.
-  target_concept: citation_bias
-  measure: supportive_citation_share
-  value: 94
-  unit: percent
-- id: Greenberg_2009_CitationDistortions:claim7
-  type: measurement
-  statement: The beta-amyloid/IBM claim-specific citation network contained 242 papers
-    and 675 citations with 220,553 citation paths.
-  target_concept: claim_specific_citation_network
-  measure: network_size
-  value: 242
-  unit: papers
-- id: Greenberg_2009_CitationDistortions:claim8
-  type: measurement
-  statement: Eight key authority papers (seven by the same lab) carried 97% of all
-    network traffic in the beta-amyloid/IBM citation network.
-  target_concept: claim_specific_citation_network
-  measure: authority_concentration
-  value: 97
-  unit: percent
-- id: Greenberg_2009_CitationDistortions:claim9
-  type: measurement
-  statement: Supportive citation paths grew 777-fold between 1996 and 2007 in the
-    beta-amyloid/IBM network.
-  target_concept: citation_amplification
-  measure: citation_path_growth
-  value: 777
-  unit: fold
-- id: Greenberg_2009_CitationDistortions:claim10
-  type: measurement
-  statement: Nine of 24% of citing papers exhibited citation transmutation, converting
-    hypothesis statements into factual claims.
-  target_concept: citation_transmutation
-  measure: papers_with_transmutation
-  value: 9
-  unit: count
-- id: Greenberg_2009_CitationDistortions:claim11
-  type: measurement
-  statement: Eight of nine NIH grant proposals examined contained citation bias or
-    invention distortions.
-  target_concept: citation_distortion
-  measure: grant_proposals_with_distortions
-  value: 8
-  unit: count (of 9)
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 5
+    section: Invention
 - id: Greenberg_2009_CitationDistortions:claim12
-  type: observation
-  statement: Network authority computed via social network theory centrality measures
-    can diverge completely from data-supported truth when citation distortions are
-    present.
-  concepts:
-  - claim_specific_citation_network
-  - citation_distortion
+  type: measurement
+  target_concept: citation_transmutation
+  measure: transmutation_prevalence
+  value: 24.0
+  unit: '%'
+  notes: Citation transmutation was found in 9 papers (24% of citing papers that could
+    be evaluated).
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 5
+    section: Invention
 - id: Greenberg_2009_CitationDistortions:claim13
   type: observation
-  statement: Computationally removing citation bias from a network produces balanced
-    authority that reflects both supporting and refuting evidence.
+  statement: Network authority computed via social network theory (Kleinberg's HITS
+    algorithm) can diverge completely from data-supported truth when citation distortions
+    are present.
+  concepts:
+  - network_authority
+  - citation_distortion
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 5
+    section: Key Quantitative Findings
+- id: Greenberg_2009_CitationDistortions:claim14
+  type: observation
+  statement: 'Citation distortions propagate into NIH grant proposals: 8 of 9 analyzed
+    proposals contained citation bias or invention, creating a self-reinforcing cycle
+    of unfounded authority.'
   concepts:
   - citation_bias
-  - claim_specific_citation_network
+  - citation_invention
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 6
+    section: Extension to NIH Grant Proposals
+- id: Greenberg_2009_CitationDistortions:claim15
+  type: observation
+  statement: Citation distortions can be understood as information cascades where
+    authors cite what others have cited rather than independently evaluating primary
+    data, though biomedical belief systems built on citation distortions appear to
+    persist even after contradictory data is published.
+  concepts:
+  - information_cascade
+  - citation_distortion
+  - citation_bias
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 7
+    section: Information Cascades and Broader Context
+- id: Greenberg_2009_CitationDistortions:claim16
+  type: observation
+  statement: Paper-level citation analysis cannot detect claim-level distortions because
+    a paper can be cited in support of a claim it actually contradicts or does not
+    address.
+  concepts:
+  - citation_distortion
+  - claim_network
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 1
+    section: Arguments Against Prior Work
+- id: Greenberg_2009_CitationDistortions:claim17
+  type: observation
+  statement: 'Peer review does not prevent citation distortions: citation transmutation
+    converting hypothesis to fact and back door invention citing abstracts as peer-reviewed
+    data both occurred in peer-reviewed journals.'
+  concepts:
+  - citation_invention
+  - citation_transmutation
+  provenance:
+    paper: Greenberg_2009_CitationDistortions
+    page: 5
+    section: Arguments Against Prior Work

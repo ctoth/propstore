@@ -1,0 +1,8 @@
+id: concept359
+canonical_name: structured_argument
+status: proposed
+definition: An argument with internal structure built recursively from premises and
+  inference rules
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

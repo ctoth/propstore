@@ -1,0 +1,8 @@
+id: concept345
+canonical_name: argument_component
+status: proposed
+definition: A unit of argumentation in text, such as a claim (conclusion) or evidence
+  (observational statement supporting a claim)
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

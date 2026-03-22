@@ -1,8 +1,8 @@
-id: concept50
+id: concept215
 canonical_name: answer_set_programming
 status: proposed
-definition: A declarative programming paradigm based on stable model semantics used
-  to encode and solve combinatorial search problems
+definition: Logic programming paradigm used to encode and solve computational argumentation
+  problems via stable model semantics
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

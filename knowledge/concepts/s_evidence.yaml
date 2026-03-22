@@ -1,9 +1,8 @@
-id: concept77
+id: concept298
 canonical_name: s_evidence
 status: proposed
-definition: The aggregate set of all nanopublications that refer to the same statement,
-  enabling collection and comparison of multiple sources of evidence for a single
-  scientific assertion
+definition: The set of all nanopublications that refer to the same scientific statement,
+  enabling evidence aggregation and veracity assessment
 domain: scientific_communication
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

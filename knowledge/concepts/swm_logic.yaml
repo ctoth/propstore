@@ -1,9 +1,8 @@
-id: concept137
+id: concept270
 canonical_name: swm_logic
 status: proposed
-definition: A relevance logic that automatically computes propositional dependencies
-  via origin sets and restriction sets, preventing introduction of irrelevancies;
-  the formal foundation for the MBR belief revision model
+definition: A relevance logic that tracks propositional dependencies via origin sets
+  and restriction sets
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

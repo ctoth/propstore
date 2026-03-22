@@ -4,202 +4,272 @@ source:
   extraction_date: "2026-03-22"
 
 claims:
-  - id: modgil18_attack_vs_defeat_conflict_free
+  - id: claim1
     type: observation
     statement: >
-      The attack-based conflict-free definition (no argument in S attacks another
-      in S) is strictly stronger than the defeat-based definition (no argument
-      in S defeats another in S). Attack-based conflict-free ensures all four
-      rationality postulates hold without additional assumptions required by the
-      defeat-based definition.
+      The standard defeat-based conflict-free definition in ASPIC+ should be
+      replaced with an attack-based conflict-free definition where no argument
+      in the set attacks another, which is strictly stronger and enables all
+      four rationality postulates to hold without additional assumptions.
     concepts:
       - attack_based_conflict_free
-      - conflict_free_set
       - rationality_postulate
-    reference: "Definitions 13-14, Section 3.3"
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 14
+      section: "Definition 14"
 
-  - id: modgil18_three_attack_types
+  - id: claim2
     type: observation
     statement: >
-      ASPIC+ defines three attack types: undermining attacks ordinary premises,
-      rebutting attacks defeasibly-derived conclusions, and undercutting attacks
-      the applicability of defeasible rules via the naming function. Undercutting
-      is always preference-independent; rebutting and undermining are filtered
-      by preferences.
-    concepts:
-      - undermining_attack
-      - rebutting_attack
-      - undercutting_attack
-      - preference_ordering
-    reference: "Definition 8"
-
-  - id: modgil18_defeat_definition
-    type: observation
-    statement: >
-      An argument A defeats B iff A undercuts B (always succeeds), A
-      successfully rebuts B on sub-argument B' where B' is not strictly preferred
-      to A, or A successfully undermines B on sub-argument B' where B' is not
-      strictly preferred to A. Preferences filter attacks into defeats.
-    concepts:
-      - preference_ordering
-      - undercutting_attack
-      - rebutting_attack
-      - undermining_attack
-    reference: "Definition 9"
-
-  - id: modgil18_reasonable_ordering
-    type: observation
-    statement: >
-      A preference ordering is reasonable iff: (1) firm and strict arguments
-      are strictly preferred to all arguments that are not both firm and strict,
-      (2) firm and strict arguments are never strictly less preferred than any
-      argument, and (3) strict continuation of arguments preserves preference
-      status. Both last-link and weakest-link with Elitist or Democratic set
-      comparison yield reasonable orderings.
-    concepts:
-      - reasonable_ordering
-      - preference_ordering
-      - aspic_plus
-    reference: "Definition 18, Propositions 19-24"
-
-  - id: modgil18_rationality_postulates
-    type: observation
-    statement: >
-      Under attack-based conflict-free with reasonable orderings and well-defined
-      c-SAFs, all four rationality postulates hold: sub-argument closure (every
-      sub-argument of a justified argument is justified), closure under strict
-      rules, direct consistency (extension conclusions are consistent), and
-      indirect consistency (strict closure of conclusions is consistent).
+      Under attack-based conflict-free with reasonable orderings and
+      well-defined c-SAFs, ASPIC+ satisfies sub-argument closure: every
+      sub-argument of a justified argument is also justified.
     concepts:
       - rationality_postulate
       - attack_based_conflict_free
-      - reasonable_ordering
-      - aspic_plus
-    reference: "Theorems 12-15"
+      - structured_argument
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 18
+      section: "Theorem 12"
 
-  - id: modgil18_sub_argument_closure
+  - id: claim3
     type: observation
     statement: >
-      For any complete extension E of a well-defined c-SAF under attack-based
-      conflict-free, if argument A is in E then every sub-argument of A is
-      also in E.
-    concepts:
-      - rationality_postulate
-      - complete_extension
-      - aspic_plus
-    reference: "Theorem 12"
-
-  - id: modgil18_strict_closure
-    type: observation
-    statement: >
-      For any complete extension E of a well-defined c-SAF under attack-based
-      conflict-free, the set of conclusions of arguments in E is closed under
-      strict rules.
+      Under attack-based conflict-free with reasonable orderings and
+      well-defined c-SAFs, ASPIC+ satisfies closure under strict rules:
+      conclusions derivable by strict rules from justified conclusions
+      are also justified.
     concepts:
       - rationality_postulate
       - strict_rule
-      - complete_extension
-    reference: "Theorem 13"
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 18
+      section: "Theorem 13"
 
-  - id: modgil18_direct_consistency
+  - id: claim4
     type: observation
     statement: >
-      For any complete extension E of a well-defined c-SAF with reasonable
-      orderings and attack-based conflict-free, the set of conclusions
-      {Conc(A) | A in E} is consistent.
+      Under attack-based conflict-free with reasonable orderings and
+      well-defined c-SAFs, ASPIC+ satisfies direct consistency: the
+      conclusions of any complete extension are consistent.
     concepts:
       - rationality_postulate
-      - reasonable_ordering
       - attack_based_conflict_free
-    reference: "Theorem 14"
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 18
+      section: "Theorem 14"
 
-  - id: modgil18_indirect_consistency
+  - id: claim5
     type: observation
     statement: >
-      For any complete extension E of a well-defined c-SAF with reasonable
-      orderings, attack-based conflict-free, and transposition closure, the
-      strict closure of the conclusions is consistent.
+      Under attack-based conflict-free with reasonable orderings and
+      well-defined c-SAFs, ASPIC+ satisfies indirect consistency: the
+      closure under strict rules of any complete extension's conclusions
+      is consistent.
     concepts:
       - rationality_postulate
-      - transposition_closure
+      - strict_rule
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 19
+      section: "Theorem 15"
+
+  - id: claim6
+    type: observation
+    statement: >
+      A preference ordering on arguments is reasonable iff strict-firm
+      arguments are always strictly preferred to plausible or defeasible
+      arguments, strict-firm arguments are never strictly less preferred
+      than any argument, and strict continuation preserves preference status.
+    concepts:
       - reasonable_ordering
-    reference: "Theorem 15"
+      - structured_argument
+      - preference_ordering
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 16
+      section: "Definition 18"
 
-  - id: modgil18_attack_equals_defeat_cf
+  - id: claim7
     type: observation
     statement: >
-      Under the paper's assumptions (well-defined c-SAF, reasonable orderings),
-      attack-based and defeat-based conflict-free definitions yield the same
-      complete, preferred, grounded, and stable extensions.
+      Both the last-link and weakest-link preference principles, under both
+      Elitist and Democratic set comparisons, produce reasonable argument
+      orderings.
     concepts:
-      - attack_based_conflict_free
-      - conflict_free_set
-      - complete_extension
-      - preferred_extension
-      - grounded_extension
-      - stable_extension
-    reference: "Proposition 16"
+      - reasonable_ordering
+      - preference_ordering
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 22
+      section: "Propositions 19-24"
 
-  - id: modgil18_preferred_subtheories_correspondence
+  - id: claim8
     type: observation
     statement: >
-      For classical-logic ASPIC+ c-SAFs with preferences, stable extensions
-      correspond exactly to Brewka's preferred subtheories. Without preferences,
-      preferred and stable extensions correspond to maximal consistent subsets.
-    concepts:
-      - preferred_subtheory
-      - stable_extension
-      - aspic_plus
-    reference: "Theorem 31"
-
-  - id: modgil18_contrariness_function
-    type: observation
-    statement: >
-      The general ASPIC+ framework uses a contrariness function mapping formulas
-      to sets of conflicting formulas. Contraries are asymmetric (phi conflicts
-      with psi but not vice versa); contradictories are symmetric. Attacks based
-      on contraries always succeed regardless of preferences, like undercutting.
+      The general ASPIC+ framework uses a contrariness function mapping
+      formulas to sets of contraries (asymmetric conflict) and
+      contradictories (symmetric conflict), generalizing beyond classical
+      negation.
     concepts:
       - contrariness_function
-      - aspic_plus
-    reference: "Definition 1, Section 2.1"
+      - argumentation_system
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 8
+      section: "Definition 2"
 
-  - id: modgil18_weakest_link_principle
+  - id: claim9
     type: observation
     statement: >
-      The weakest-link preference principle compares arguments by considering
-      all defeasible rules and all ordinary premises. An argument is preferred
-      iff both its defeasible rules and its ordinary premises are preferred
-      under the chosen set comparison (Elitist or Democratic).
+      Stable extensions of classical-logic c-SAFs with preferences
+      correspond exactly to Brewka's preferred subtheories, establishing
+      that ASPIC+ subsumes this well-known nonmonotonic formalism.
     concepts:
+      - stable_extension
+      - argumentation_system
       - preference_ordering
-      - defeasible_rule
-      - aspic_plus
-    reference: "Definition 21"
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 29
+      section: "Theorem 31"
 
-  - id: modgil18_last_link_principle
+  - id: claim10
     type: observation
     statement: >
-      The last-link preference principle compares arguments by considering only
-      the last defeasible rules applied (or ordinary premises if both arguments
-      are strict). This is less conservative than weakest-link and can yield
-      different defeat relations and extensions.
+      Under the paper's assumptions, attack-based and defeat-based
+      conflict-free definitions yield the same extensions for all standard
+      Dung semantics (complete, preferred, grounded, stable).
     concepts:
-      - preference_ordering
-      - defeasible_rule
-      - aspic_plus
-    reference: "Definition 20"
-
-  - id: modgil18_firm_strict_unattackable
-    type: observation
-    statement: >
-      Arguments that are both firm (all premises are axioms) and strict (use
-      only strict rules) cannot be successfully attacked under any reasonable
-      ordering. They are always in the grounded extension and hence in every
-      complete, preferred, and stable extension.
-    concepts:
-      - strict_rule
-      - knowledge_base
-      - reasonable_ordering
+      - attack_based_conflict_free
+      - preferred_extension
+      - stable_extension
       - grounded_extension
-    reference: "Definition 18, implicit"
+      - complete_extension
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 19
+      section: "Proposition 16"
+
+  - id: claim11
+    type: observation
+    statement: >
+      Dung's fundamental lemma holds for c-SAFs under reasonable orderings,
+      ensuring admissible extensions form a complete partial order and
+      every admissible set can be extended to a preferred extension.
+    concepts:
+      - admissible_set
+      - preferred_extension
+      - reasonable_ordering
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 17
+      section: "Propositions 9-11"
+
+  - id: claim12
+    type: observation
+    statement: >
+      Attacks should only target fallible elements of an argument: ordinary
+      premises (via undermining) or defeasible inference steps (via rebutting
+      or undercutting). Conclusions derived purely by strict rules from
+      axiom premises cannot be attacked.
+    concepts:
+      - undermining_attack
+      - rebutting_attack
+      - undercutting_attack
+      - structured_argument
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 5
+      section: "Section 2"
+
+  - id: claim13
+    type: observation
+    statement: >
+      ASPIC+ can be instantiated with Amgoud and Besnard's abstract logic
+      approach, with premise-minimal ASPIC+ arguments corresponding to
+      abstract logic arguments and extensions coinciding.
+    concepts:
+      - argumentation_system
+      - structured_argument
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 25
+      section: "Propositions 25-27"
+
+  - id: claim14
+    type: observation
+    statement: >
+      The weakest-link preference principle corrects an anomaly in Prakken
+      2010 where premises and defeasible rules were treated asymmetrically;
+      the revised definition requires both premises and rules to be compared.
+    concepts:
+      - preference_ordering
+      - defeasible_rule
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 21
+      section: "Definition 21"
+
+  - id: claim15
+    type: observation
+    statement: >
+      ASPIC+'s sub-argument structure with attacks on sub-arguments prevents
+      the inconsistent extensions that flat preference-based argumentation
+      frameworks can produce, because attacking sub-arguments provides
+      preference-independent attack paths.
+    concepts:
+      - structured_argument
+      - rationality_postulate
+      - preference_ordering
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 32
+      section: "Section 6.2"
+
+  - id: claim16
+    type: observation
+    statement: >
+      Attacks serve two distinct roles: encoding mutual incompatibility
+      of information (declarative role) and determining which arguments
+      prevail (procedural role through preference-based defeat).
+    concepts:
+      - attack_relation
+      - preference_ordering
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 5
+      section: "Section 2"
+
+  - id: claim17
+    type: observation
+    statement: >
+      A well-defined structured argumentation framework requires axiom
+      consistency, well-formedness, and closure under either contraposition
+      or transposition of strict rules.
+    concepts:
+      - argumentation_system
+      - transposition_closure
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 13
+      section: "Definition 12"
+
+  - id: claim18
+    type: observation
+    statement: >
+      For classical-logic c-SAFs without preferences, preferred and stable
+      extensions correspond to maximal consistent subsets of the knowledge
+      base.
+    concepts:
+      - preferred_extension
+      - stable_extension
+      - argumentation_system
+    provenance:
+      paper: Modgil_2018_GeneralAccountArgumentationPreferences
+      page: 27
+      section: "Section 5.3"

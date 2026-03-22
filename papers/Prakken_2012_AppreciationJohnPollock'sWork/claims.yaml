@@ -1,5 +1,5 @@
 source:
-  paper: Prakken_2012_AppreciationJohnPollock'sWork
+  paper: "Prakken_2012_AppreciationJohnPollock'sWork"
   extraction_model: "claude-opus-4-20250514"
   extraction_date: "2026-03-22"
 
@@ -7,105 +7,201 @@ claims:
   - id: claim1
     type: observation
     statement: >
-      Pollock distinguishes two types of defeat: rebutting defeat (an argument for
-      the negation of a conclusion) and undercutting defeat (an argument that the
-      connection between premises and conclusion does not hold).
+      Pollock distinguishes two types of inference rules: conclusive (deductive)
+      reasons that cannot be defeated, and defeasible reasons that can be defeated
+      by new information. Defeasible reasoning is essential and omnipresent in
+      cognitive life.
     concepts:
-      - rebutting_defeater
-      - undercutting_defeater
       - defeasible_reasoning
+      - defeasible_inference_rule
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 2
+      section: "Defeasible vs. Conclusive Reasons"
 
   - id: claim2
     type: observation
     statement: >
-      Pollock's arguments are structured as inference graphs rather than trees,
-      where nodes represent propositions supported by inference steps and
-      subarguments can be shared across multiple arguments.
+      Pollock uses inference graphs rather than argument trees, where arguments
+      share subarguments, a proposition can be supported by multiple independent
+      arguments, and the inference graph is the unit of evaluation.
     concepts:
       - inference_graph
       - defeasible_reasoning
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 4
+      section: "Inference Graphs (not Trees)"
 
   - id: claim3
     type: observation
     statement: >
-      A partial defeat status assignment maps a subset of nodes in an inference
-      graph to in (undefeated) or out (defeated), where a node is in if all its
-      defeaters are out, and a node is out if it has a defeater that is in.
+      Pollock formalizes two kinds of defeat: rebutting defeat (an argument for
+      the negation of a conclusion) and undercutting defeat (an argument that the
+      connection between premises and conclusion does not hold). Undercutting
+      defeat is distinctive and important.
     concepts:
-      - defeat_status
-      - inference_graph
+      - rebutting_defeat
+      - undercutting_defeat
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 4
+      section: "Defeat Relations"
 
   - id: claim4
     type: observation
     statement: >
-      Self-defeating arguments (both parallel and serial forms) must not be able
-      to defeat non-self-defeating arguments; Pollock's semantics handles this
-      by preventing self-defeating arguments from being ultimately undefeated.
+      A partial defeat status assignment assigns in/out to a subset of nodes of
+      an inference graph. A preferred status assignment is a maximal partial defeat
+      status assignment that is admissible. A grounded labelling minimizes the set
+      of in arguments.
     concepts:
-      - self_defeating_argument
-      - defeat_status
+      - defeat_status_assignment
+      - inference_graph
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 7
+      section: "Semantics: Partial Defeat Status Assignment"
 
   - id: claim5
     type: observation
     statement: >
-      In even defeat cycles, where two arguments defeat each other symmetrically,
-      neither argument should be ultimately undefeated and both should be
-      assigned undecided status.
+      Self-defeating arguments should not be able to defeat other arguments. In
+      Pollock's semantics, a self-defeating argument is never ultimately undefeated
+      at any level, so it cannot defeat other arguments.
     concepts:
-      - defeat_status
-      - argumentation_framework
+      - self_defeating_argument
+      - defeat_status_assignment
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 8
+      section: "Self-Defeating Arguments"
 
   - id: claim6
     type: observation
     statement: >
-      Pollock's defeasible inference rules (perception, memory, induction,
-      statistical syllogism, temporal persistence) are domain-specific epistemic
-      rules that serve as precursors to modern argumentation schemes.
+      There are two types of self-defeat: parallel self-defeat (two arguments that
+      defeat each other symmetrically) and serial self-defeat (an argument that
+      defeats itself through a chain).
     concepts:
-      - defeasible_reasoning
-      - argumentation_scheme
+      - self_defeating_argument
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 9
+      section: "Self-Defeating Arguments"
 
   - id: claim7
     type: observation
     statement: >
-      Argument strength in Pollock's system propagates such that the degree of
-      justification of a conclusion cannot exceed the minimum strength of its
-      supporting inference lines.
+      Pollock's treatment of even defeat cycles yields neither argument as
+      ultimately undefeated (both should be undecided), while his treatment of
+      odd defeat cycles remained problematic and unresolved.
     concepts:
-      - argument_strength
-      - defeasible_reasoning
+      - defeat_cycle
+      - defeat_status_assignment
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 10
+      section: "Defeat Cycles"
 
   - id: claim8
     type: observation
     statement: >
-      Pollock never clearly separated attack from defeat; in modern structured
-      argumentation (ASPIC+), attack is the abstract relation while defeat is
-      the result of applying preferences to resolve attacks.
+      Pollock's argument strength approach propagates strength via minimum: the
+      strength of a conclusion is the minimum of the strengths of its supporting
+      lines. Defeat is still all-or-nothing: a weaker defeater cannot succeed.
     concepts:
-      - attack_relation
-      - aspic_plus
+      - argument_strength
       - defeasible_reasoning
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 11
+      section: "Argument Strength"
 
   - id: claim9
     type: observation
     statement: >
-      Pollock's system is better understood as a structured argumentation
-      framework generating Dung-style abstract argumentation frameworks than
-      as a non-monotonic logic, since it constructs arguments from rules and
-      evaluates them via defeat relations.
+      Pollock's defeasible inference rules (perception, memory, induction,
+      statistical syllogism, temporal persistence) are domain-specific epistemic
+      principles grounded in his philosophical work on epistemology, and can be
+      seen as formalisations of epistemic argumentation schemes.
     concepts:
-      - argumentation_framework
-      - defeasible_reasoning
-      - aspic_plus
+      - defeasible_inference_rule
+      - argumentation_scheme
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 12
+      section: "Defeasible Inference Rules and Argumentation Schemes"
 
   - id: claim10
     type: observation
     statement: >
-      Argumentation schemes are stereotypical non-deductive patterns of reasoning
-      with associated critical questions; they connect to Pollock's defeasible
-      inference rules by providing the same rebutting and undercutting defeat
-      distinctions in a more general framework.
+      Pollock never made a clear separation between attack and defeat. In ASPIC+,
+      attack is a structural relation while defeat is attack that succeeds after
+      considering preferences or strength. Without this distinction, formalising
+      priority-based reasoning becomes confused.
     concepts:
-      - argumentation_scheme
-      - rebutting_defeater
-      - undercutting_defeater
+      - attack_defeat_distinction
+      - aspic_plus
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 14
+      section: "Section 4: Critique"
+
+  - id: claim11
+    type: observation
+    statement: >
+      Pollock did not include premise attack (undermining) in his work. He was
+      only interested in what can be defeasibly derived from a consistent base
+      of information, meaning his system cannot handle attacks on strict premises.
+    concepts:
+      - undermining_attack
+      - defeasible_reasoning
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 14
+      section: "Section 4: Critique"
+
+  - id: claim12
+    type: observation
+    statement: >
+      There is a genuine philosophical distinction between plausible reasoning
+      (valid deductive reasoning from an uncertain basis) and defeasible reasoning
+      (deductively invalid but rationally compelling). Typical reductions of
+      defeasible reasoning to non-monotonic logic miss this distinction.
+    concepts:
+      - defeasible_reasoning
+      - non_monotonic_reasoning
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 14
+      section: "Section 4: Critique"
+
+  - id: claim13
+    type: observation
+    statement: >
+      Pollock extended his system with suppositional reasoning (introducing and
+      retracting suppositions as in natural deduction), but this feature has not
+      been taken up by the argumentation community.
+    concepts:
+      - suppositional_reasoning
+      - defeasible_reasoning
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 13
+      section: "Suppositional Reasoning"
+
+  - id: claim14
+    type: observation
+    statement: >
+      Pollock worked in relative isolation from the AI argumentation community.
+      His OSCAR system was monolithic and difficult for others to extend, and
+      the relations between his work and Dung's abstract argumentation are not
+      well understood.
+    concepts:
+      - argumentation_framework
+      - defeasible_reasoning
+    provenance:
+      paper: "Prakken_2012_AppreciationJohnPollock'sWork"
+      page: 15
+      section: "Section 5: Working Style"

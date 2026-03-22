@@ -1,0 +1,8 @@
+id: concept310
+canonical_name: hybrid_scheme
+status: proposed
+definition: An argumentation scheme that is a sub-species of two or more parent scheme
+  types, combining elements of different reasoning categories
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

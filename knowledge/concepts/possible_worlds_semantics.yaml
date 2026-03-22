@@ -1,8 +1,9 @@
-id: concept131
+id: concept365
 canonical_name: possible_worlds_semantics
 status: proposed
-definition: An interpretation of counterfactual conditionals based on similarity ordering
-  over alternative complete states of the world, formalized by Lewis and Stalnaker
-domain: nonmonotonic_reasoning
-created_date: '2026-03-21'
+definition: An approach to modal and counterfactual logic where conditionals are evaluated
+  across alternative possible worlds ordered by similarity to the actual world (Lewis
+  1973)
+domain: logic
+created_date: '2026-03-22'
 form: structural

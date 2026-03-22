@@ -1,8 +1,8 @@
-id: concept44
+id: concept186
 canonical_name: incomplete_information
 status: proposed
-definition: A reasoning setting where the knowledge base contains unsettled literals
-  whose truth value is not yet known
+definition: Reasoning scenario where not all premises or observations are known; some
+  literals have unsettled truth values
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

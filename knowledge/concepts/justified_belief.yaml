@@ -1,0 +1,8 @@
+id: concept325
+canonical_name: justified_belief
+status: proposed
+definition: What a real reasoner with finite resources should believe, approximating
+  warrant using local reasoning rules
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

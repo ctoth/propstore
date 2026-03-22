@@ -1,8 +1,8 @@
-id: concept118
+id: concept343
 canonical_name: s_admissible
 status: proposed
-definition: A safe set of arguments that defends all its elements, the middle level
-  of Cayrol's three BAF admissibility levels enforcing external coherence
+definition: A safe set that defends all its elements, enforcing external coherence
+  between support and defeat
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

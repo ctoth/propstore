@@ -4,97 +4,200 @@ source:
   extraction_date: '2026-03-22'
 claims:
 - id: Clark_2014_Micropublications:claim1
-  type: model
-  name: micropublication_model
-  statement: A micropublication MP_a is defined as the tuple (A_mpa, c, A_c, Phi,
-    R) where A_mpa is the attribution of the formalization, c is the principal claim,
-    A_c is the claim attribution, Phi is a finite non-empty set of representations,
-    and R is a nonempty disjoint union of supports (R+) and challenges (R-) relations
-    forming a strict partial order over the support graph with c as greatest element.
+  type: observation
+  statement: A micropublication is a formalized argument structure defined as MP_a
+    = (A_mpa, c, A_c, Phi, R) where c is the principal Claim, Phi is a finite non-empty
+    set of Representations, and R is a nonempty disjoint union of support and challenge
+    relations with R+ forming a strict partial order whose greatest element is c.
   concepts:
   - micropublication
   - scientific_claim
-  - attribution
   - support_relation
   - challenge_relation
-  - support_graph
-  equations:
-  - MP_a = (A_mpa, c, A_c, Phi, R)
-  parameters:
-  - name: Phi
-    description: Finite non-empty set of Representations which are elements of the
-      Micropublication
-  - name: R
-    description: Nonempty disjoint union of supports (R+) and challenges (R-) relations
-  - name: c
-    description: Principal Claim, the greatest element of R+
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 12
+    section: Core Ontology Classes and Relations
 - id: Clark_2014_Micropublications:claim2
   type: observation
-  statement: The minimal valid micropublication consists of exactly one Claim (the
-    principal Statement) and exactly one Attribution.
+  statement: The supports relation in a micropublication must form a directed acyclic
+    graph rooted at the principal Claim, with R+ being a strict partial order over
+    the support graph elements.
+  concepts:
+  - support_relation
+  - micropublication
+  - scientific_claim
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 12
+    section: Mathematical Representation
+- id: Clark_2014_Micropublications:claim3
+  type: observation
+  statement: A micropublication must have exactly one principal Claim (the Statement
+    argued for) and exactly one Attribution.
   concepts:
   - micropublication
   - scientific_claim
   - attribution
-- id: Clark_2014_Micropublications:claim3
-  type: observation
-  statement: The support relations within a micropublication must form a directed
-    acyclic graph (strict partial order) rooted at the principal claim.
-  concepts:
-  - support_relation
-  - support_graph
-  - scientific_claim
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 9
+    section: Core Ontology Classes and Relations
 - id: Clark_2014_Micropublications:claim4
   type: observation
-  statement: 'Challenge relations are inferred from two sub-relations: directlyChallenges
-    (explicit opposition to a claim, analogous to rebutting defeat) and indirectlyChallenges
-    (undercutting a support element of a claim, analogous to undercutting defeat).'
+  statement: The minimal valid micropublication consists of a single identified Statement
+    with its Attribution.
+  concepts:
+  - micropublication
+  - attribution
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 10
+    section: Complexity Spectrum
+- id: Clark_2014_Micropublications:claim5
+  type: observation
+  statement: 'Challenge relations in a micropublication are of two types: directlyChallenges
+    (explicit opposition to a claim) and indirectlyChallenges (undercutting a support
+    element of a claim).'
   concepts:
   - challenge_relation
   - micropublication
-- id: Clark_2014_Micropublications:claim5
-  type: observation
-  statement: A Representation can only be assertedBy one Micropublication (original
-    instantiation) but may be quotedBy multiple Micropublications, enabling proper
-    attribution tracking when claims are imported across publication boundaries.
-  concepts:
-  - micropublication
-  - attribution
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 12
+    section: Key Properties
 - id: Clark_2014_Micropublications:claim6
   type: observation
-  statement: Claim lineages are chains of support relations resolved across micropublications,
-    tracing a claim back through citation chains to its original evidential sources,
-    by analogy with biological lineages.
+  statement: Statement-based models (SWAN 2008, nanopublications 2010, BEL 2011) model
+    only the statements themselves with limited or no representation of backing evidence,
+    claim networks, or argumentation structure.
   concepts:
-  - claim_lineage
-  - support_relation
-  - micropublication
+  - nanopublication
+  - scientific_claim
+  - claim_network
+  - scientific_evidence
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 3
+    section: Arguments Against Prior Work
+    table: Table 1
 - id: Clark_2014_Micropublications:claim7
   type: observation
-  statement: Similarity groups are equivalence classes of statements judged sufficiently
-    close in meaning, each represented by a single holotype exemplar that serves as
-    the canonical natural-language representation, enabling normalization of diverse
-    statements without dropping qualifiers or hedging.
+  statement: Nanopublications formalize assertions as RDF triples with provenance
+    but provide no mechanism for representing the support graph, challenge relations,
+    or evidential backing chains that connect claims to empirical data.
+  concepts:
+  - nanopublication
+  - support_relation
+  - challenge_relation
+  - scientific_evidence
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 3
+    section: Arguments Against Prior Work
+- id: Clark_2014_Micropublications:claim8
+  type: observation
+  statement: The micropublications model is grounded in Toulmin-Verheij defeasible
+    argumentation theory, extending Toulmin's classical structure (claim, data, warrant,
+    backing, qualifier, rebuttal) with both support and challenge/rebuttal relations
+    and inter-argumentation relations.
+  concepts:
+  - micropublication
+  - defeasible_argumentation
+  - support_relation
+  - challenge_relation
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 9
+    section: Design Rationale
+- id: Clark_2014_Micropublications:claim9
+  type: observation
+  statement: Claim lineages trace support relations across micropublications, resolving
+    document-level references to claim-level backing by analogy with biological lineages.
+  concepts:
+  - claim_lineage
+  - micropublication
+  - support_relation
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 17
+    section: Key Concepts
+- id: Clark_2014_Micropublications:claim10
+  type: observation
+  statement: Similarity groups are equivalence classes of similar scientific statements,
+    each with exactly one representative exemplar (Holotype), allowing normalization
+    of diverse formulations without loss of original qualifiers and hedging.
   concepts:
   - similarity_group
   - holotype
-- id: Clark_2014_Micropublications:claim8
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 19
+    section: Similarity Groups and Holotypes
+- id: Clark_2014_Micropublications:claim11
   type: observation
-  statement: Statement-based models (SWAN 2008, Nanopublications 2010, BEL 2011) support
-    individual statements with provenance and backing references but do not represent
-    support claim networks or direct empirical scientific evidence; the micropublication
-    model extends these by adding argumentation structure.
+  statement: The micropublications model distinguishes between assertedBy (a Representation
+    originally instantiated by a Micropublication) and quotedBy (referred to after
+    first being instantiated elsewhere), enabling proper attribution tracking across
+    publication boundaries.
+  concepts:
+  - micropublication
+  - attribution
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 11
+    section: Asserts vs. Quotes
+- id: Clark_2014_Micropublications:claim12
+  type: observation
+  statement: Greenberg's 2009 study of 242 papers on beta-amyloid and inclusion body
+    myositis demonstrated that citation bias, amplification, and invention create
+    unfounded authority, with foundational publications lacking the expected supporting
+    data.
+  concepts:
+  - citation_distortion
+  - claim_network
+  - scientific_evidence
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 27
+    section: 'Discussion: Citation Distortions'
+- id: Clark_2014_Micropublications:claim13
+  type: observation
+  statement: The micropublications model accommodates a spectrum of representational
+    complexity from minimal (single Statement + Attribution) to maximal (full cross-publication
+    claim-evidence networks with challenge/support relations), allowing incremental
+    adoption.
   concepts:
   - micropublication
   - support_relation
-  - scientific_claim
-- id: Clark_2014_Micropublications:claim9
+  - challenge_relation
+  - claim_network
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 13
+    section: Complexity Spectrum
+- id: Clark_2014_Micropublications:claim14
   type: observation
-  statement: The micropublication model accommodates a spectrum of ten representation
-    complexities from minimal (Statement + Attribution) through evidence-backed, digital
-    abstracts, cross-publication networks, similarity groups, formalized claims, annotations,
-    challenged claims, to fully contextualized documents.
+  statement: The micropublications model integrates with the W3C Open Annotation Model,
+    enabling contextualization of micropublications within full-text documents via
+    standard Web annotation infrastructure without requiring publisher cooperation.
   concepts:
   - micropublication
-  - scientific_claim
-  - support_graph
+  - open_annotation_model
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 25
+    section: Integration with Open Annotation Model
+- id: Clark_2014_Micropublications:claim15
+  type: observation
+  statement: The linear journal article format dating from 1665 cannot support machine-tractable
+    verification of evidence, challenge/disagreement modeling, citation network analysis,
+    or incremental annotation.
+  concepts:
+  - scientific_evidence
+  - claim_network
+  - citation_distortion
+  provenance:
+    paper: Clark_2014_Micropublications
+    page: 1
+    section: Problem Addressed

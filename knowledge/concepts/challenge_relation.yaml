@@ -1,8 +1,8 @@
-id: concept53
+id: concept223
 canonical_name: challenge_relation
 status: proposed
-definition: A relation between representations where one opposes another, either directly
-  (rebutting) or indirectly (undercutting a support element)
+definition: A relation where one representation directly opposes or undercuts support
+  for another representation
 domain: scientific_communication
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

@@ -1,9 +1,8 @@
-id: concept16
+id: concept187
 canonical_name: partial_meet_contraction
 status: proposed
-definition: A contraction function defined as the intersection of remainders chosen
-  by a selection function; the constructive mechanism characterized by the basic AGM
-  contraction postulates
+definition: A contraction operation defined as the intersection of selected elements
+  from a remainder set
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

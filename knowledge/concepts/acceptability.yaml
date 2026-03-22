@@ -1,8 +1,8 @@
-id: concept36
+id: concept192
 canonical_name: acceptability
 status: proposed
-definition: An argument A is acceptable with respect to a set S iff for each argument
-  B that attacks A, B is attacked by some argument in S
+definition: An argument A is acceptable with respect to set S iff for each attacker
+  B of A, S contains an argument that attacks B
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

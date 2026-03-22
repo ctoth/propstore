@@ -4,133 +4,168 @@ source:
   extraction_date: '2026-03-22'
 claims:
 - id: Falkenhainer_1987_BeliefMaintenanceSystem:claim1
-  type: model
-  name: belief_maintenance_system
+  type: observation
   statement: A Belief Maintenance System (BMS) extends justification-based Truth Maintenance
     Systems to manage probabilistic beliefs using Dempster-Shafer intervals [s(A),
-    p(A)] instead of binary true/false states, with automatic dependency-driven propagation
-    through support links.
+    p(A)], replacing binary true/false states with continuous belief values while
+    preserving TMS-like dependency-driven propagation.
   concepts:
   - belief_maintenance_system
-  - dempster_shafer_interval
   - truth_maintenance_system
-  - support_link
-  equations:
-  - '[s(A), p(A)] where p(A) = 1 - s(not-A)'
-  parameters:
-  - name: s_A
-    description: Current amount of support for proposition A (belief function value)
-  - name: p_A
-    description: Plausibility of A, equal to 1 - s(not-A)
+  - dempster_shafer_theory
+  - belief_propagation
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 71
+    section: Key Contributions
 - id: Falkenhainer_1987_BeliefMaintenanceSystem:claim2
-  type: equation
-  statement: Dempster's rule for combining two belief sources in the two-valued case
-    uses the orthogonal sum formula.
-  expression: (a b) + (c d) = (1 - (1-a)(1-c)/(1-(ad+bc)), 1 - (1-b)(1-d)/(1-(ad+bc)))
-  sympy: ((1 - (1-a)*(1-c)/(1-(a*d+b*c))), (1 - (1-b)*(1-d)/(1-(a*d+b*c))))
-  variables:
-    a: Support for A from source 1
-    b: Plausibility of A from source 1
-    c: Support for A from source 2
-    d: Plausibility of A from source 2
+  type: observation
+  statement: The BMS reduces to a standard TMS when all beliefs are absolute (0 or
+    1), ensuring backward compatibility with existing TMS applications.
   concepts:
-  - dempster_shafer_interval
   - belief_maintenance_system
+  - truth_maintenance_system
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 71
+    section: Key Contributions
 - id: Falkenhainer_1987_BeliefMaintenanceSystem:claim3
-  type: equation
-  statement: 'The NOT operator on Dempster-Shafer intervals inverts the interval:
-    NOT(A_[s,p]) = A_[1-p, 1-s].'
-  expression: NOT(A_[s,p]) = A_[1-p, 1-s]
-  sympy: (1 - p, 1 - s)
-  variables:
-    s: Support for A
-    p: Plausibility of A
+  type: observation
+  statement: 'Support links in the BMS are of two types: hard links (provide absolute
+    statement of consequent''s belief via conjunctive/disjunctive formulas) and invertible
+    links (allow old evidence to be subtracted via inverse Dempster''s rule before
+    new evidence is added).'
   concepts:
-  - dempster_shafer_interval
+  - support_link
+  - belief_maintenance_system
+  - dempster_shafer_theory
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 72
+    section: Support Link Types
 - id: Falkenhainer_1987_BeliefMaintenanceSystem:claim4
-  type: equation
-  statement: 'The AND operator for conjuncts uses the formula: (A & B & C)_[max(s_A
-    + s_B + s_C - 2, 0), min(s_A, s_B, s_C)] where -2 represents (1 - cardinality
-    of conjuncts).'
-  expression: AND(A,B,C) = [max(s_A + s_B + s_C - 2, 0), min(s_A, s_B, s_C)]
-  sympy: (Max(s_A + s_B + s_C - 2, 0), Min(s_A, s_B, s_C))
-  variables:
-    s_A: Support for conjunct A
-    s_B: Support for conjunct B
-    s_C: Support for conjunct C
+  type: observation
+  statement: Belief propagation terminates when both positive and negative belief
+    changes are below a propagation-delta threshold (default 10^-3), preventing infinite
+    propagation cascades in large networks.
   concepts:
-  - dempster_shafer_interval
+  - belief_propagation
+  - belief_maintenance_system
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 73
+    section: Belief Propagation
 - id: Falkenhainer_1987_BeliefMaintenanceSystem:claim5
   type: observation
-  statement: The BMS reduces to standard TMS behavior when all beliefs are absolute
-    (0 or 1), making it a proper generalization of justification-based truth maintenance.
+  statement: 'Circular support structures are prohibited in the BMS because they cause
+    three problems: evidence amplification around loops, ambiguous source attribution,
+    and quadratic retraction cost.'
   concepts:
   - belief_maintenance_system
-  - truth_maintenance_system
+  - belief_propagation
+  - support_link
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 73
+    section: Circular Support Handling
 - id: Falkenhainer_1987_BeliefMaintenanceSystem:claim6
   type: observation
-  statement: 'Support links in the BMS have two types: hard links that provide an
-    absolute statement of the consequent''s belief, and invertible links that allow
-    evidence subtraction via inverted Dempster''s rule before new evidence is added.'
-  concepts:
-  - support_link
-  - belief_maintenance_system
-- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim7
-  type: observation
-  statement: Belief propagation terminates early when both positive and negative belief
-    changes at a node fall below the propagation-delta threshold, preventing infinite
-    propagation cascades.
-  concepts:
-  - belief_propagation
-  - belief_maintenance_system
-- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim8
-  type: parameter
-  statement: The default propagation-delta threshold below which belief changes are
-    not propagated further is 10^-3.
-  target_concept: belief_propagation
-  concept: belief_propagation
-  value: 0.001
-  unit: dimensionless
-- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim9
-  type: observation
-  statement: Circular support structures are not handled by the BMS; the system signals
-    an error when one is discovered, because circular evidence amplifies belief along
-    the loop and retraction requires quadratic propagation cost.
-  concepts:
-  - support_link
-  - belief_propagation
-  - belief_maintenance_system
-- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim10
-  type: observation
-  statement: 'The BMS handles non-monotonic reasoning more elegantly than binary logic
-    systems: the classic ''birds fly'' default can be expressed as a graded implication
-    (bird ?x) -> (fly ?x)_[0.90, 0.95] that is naturally overridden by stronger evidence
-    without special control structures.'
+  statement: 'The BMS handles non-monotonic reasoning more elegantly than two or three
+    valued logic systems: the classic birds-fly default can be represented as (bird
+    ?x) -> (fly ?x)_{[0.90, 0.95]} with exceptions overriding automatically without
+    special control structure changes.'
   concepts:
   - belief_maintenance_system
   - non_monotonic_reasoning
-  - dempster_shafer_interval
+  - dempster_shafer_theory
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 74
+    section: Non-Monotonic Reasoning Support
+- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim7
+  type: observation
+  statement: Frames of discernment allow user-defined exhaustive sets of mutually
+    exclusive possibilities, where new evidence for one body node automatically computes
+    updated beliefs for all nodes in the frame via Dempster's rule.
+  concepts:
+  - frame_of_discernment
+  - dempster_shafer_theory
+  - belief_maintenance_system
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 73
+    section: Frames of Discernment
+- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim8
+  type: observation
+  statement: 'The BMS basic design is semi-independent of the specific belief system
+    used: a simple parser translates user assertions into control primitives, and
+    the Dempster-Shafer formalism should be fairly easy to replace with alternative
+    uncertainty calculi.'
+  concepts:
+  - belief_maintenance_system
+  - dempster_shafer_theory
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 71
+    section: Methodology
+- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim9
+  type: observation
+  statement: 'The BMS rule engine supports three trigger types: INTERN (fires on fact
+    addition), BELIEF+ (fires when support exceeds threshold), and BELIEF- (fires
+    when counter-support exceeds threshold), enabling both structural pattern matching
+    and belief-level-sensitive reasoning.'
+  concepts:
+  - belief_maintenance_system
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 74
+    section: Rule Engine
+- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim10
+  type: observation
+  statement: Doyle's non-monotonic TMS fails to account for degrees of belief and
+    cannot combine evidence from multiple uncertain sources, motivating the extension
+    to continuous-valued beliefs.
+  concepts:
+  - truth_maintenance_system
+  - belief_maintenance_system
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 71
+    section: Problem Addressed
 - id: Falkenhainer_1987_BeliefMaintenanceSystem:claim11
   type: observation
-  statement: 'The BMS rule engine supports three trigger types: INTERN (fires when
-    new fact is added), BELIEF+ (fires when support for a pattern exceeds threshold),
-    and BELIEF- (fires when support against a pattern exceeds threshold).'
+  statement: Previous probabilistic reasoning systems (Pearl 1983, Buchanan et al
+    1984) used static networks that cannot be dynamically modified, lacking the ability
+    to add or retract nodes and links at runtime.
+  concepts:
+  - belief_maintenance_system
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 71
+    section: Problem Addressed
+- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim12
+  type: observation
+  statement: In a probabilistic architecture, each source of support adds to and removes
+    from belief via Dempster's rule; retracting a support link does not necessarily
+    change a node's status if other supports remain, unlike binary TMS where a single
+    justification suffices.
+  concepts:
+  - belief_propagation
+  - dempster_shafer_theory
+  - support_link
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 73
+    section: Belief Propagation
+- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim13
+  type: observation
+  statement: 'Explicit transitivity relations cause problems in the BMS: asserting
+    A->C based on A->B and B->C increases C''s belief even though it makes explicit
+    information that already existed in the dependency chain.'
   concepts:
   - belief_maintenance_system
   - belief_propagation
-- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim12
-  type: observation
-  statement: Frames of discernment enable the BMS to reason about user-defined possibility
-    spaces of mutually exclusive hypotheses, with Dempster's rule combining evidence
-    across the frame.
-  concepts:
-  - frame_of_discernment
-  - dempster_shafer_interval
-- id: Falkenhainer_1987_BeliefMaintenanceSystem:claim13
-  type: observation
-  statement: 'For any node in the BMS, belief uncertainty equals 1 minus the sum of
-    support for and support against: uncertainty = 1 - belief+(node) - belief-(node),
-    which must be non-negative.'
-  concepts:
-  - dempster_shafer_interval
-  - belief_maintenance_system
+  provenance:
+    paper: Falkenhainer_1987_BeliefMaintenanceSystem
+    page: 73
+    section: Circular Support Handling

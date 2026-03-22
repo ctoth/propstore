@@ -1,9 +1,8 @@
-id: concept61
+id: concept257
 canonical_name: environment
 status: proposed
-definition: In an ATMS, a set of currently active assumptions defining a reasoning
-  context; changing the environment corresponds to switching between alternative belief
-  states
+definition: A set of assumptions in an ATMS defining a hypothetical context or world
+  state
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

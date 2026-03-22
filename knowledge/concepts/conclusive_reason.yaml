@@ -1,8 +1,7 @@
-id: concept63
+id: concept313
 canonical_name: conclusive_reason
 status: proposed
-definition: A non-defeasible deductive reason where the reason-conclusion connection
-  cannot be undermined by additional information
+definition: A nondefeasible reason that logically entails its conclusion
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

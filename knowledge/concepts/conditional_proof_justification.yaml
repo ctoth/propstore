@@ -1,8 +1,8 @@
-id: concept4
+id: concept165
 canonical_name: conditional_proof_justification
 status: proposed
 definition: A justification of the form (CP consequent inhypotheses outhypotheses)
-  that supports hypothetical reasoning by deriving consequences from assumed premises
+  enabling hypothetical reasoning by deriving what follows from assumed premises
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

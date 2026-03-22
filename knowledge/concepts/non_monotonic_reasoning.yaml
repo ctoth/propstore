@@ -1,8 +1,8 @@
-id: concept8
+id: concept170
 canonical_name: non_monotonic_reasoning
 status: proposed
-definition: Reasoning where the set of conclusions can shrink when new information
-  arrives, in contrast to monotonic logic where conclusions only grow
+definition: Reasoning where the addition of new information can cause previously held
+  beliefs to be retracted, in contrast to monotonic reasoning where beliefs only accumulate
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

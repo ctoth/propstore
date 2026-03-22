@@ -1,8 +1,8 @@
-id: concept91
+id: concept337
 canonical_name: context_switching
 status: proposed
-definition: The ATMS operation of changing the current environment by adding or removing
-  assumptions, enabling exploration of alternative belief states without recomputation
+definition: The process of changing from one consistent set of assumptions to another
+  in a TMS, which is expensive in single-state systems but free in the ATMS
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

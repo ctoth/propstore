@@ -1,9 +1,0 @@
-id: concept123
-canonical_name: negation_introduction
-status: proposed
-definition: In MBR/SWM, the inference rule (~I) that fires when contradictory wffs
-  are found in the current belief space, deriving the negation of culprit hypotheses
-  and triggering context revision
-domain: argumentation
-created_date: '2026-03-21'
-form: structural

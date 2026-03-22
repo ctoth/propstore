@@ -1,8 +1,8 @@
-id: concept5
+id: concept175
 canonical_name: contraction
 status: proposed
-definition: A belief change operation that removes a sentence from a belief set while
-  preserving consistency and retaining as much of the original theory as possible
+definition: An operation that removes a belief from a theory while preserving consistency
+  and satisfying rationality postulates
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

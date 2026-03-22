@@ -1,9 +1,8 @@
-id: concept14
+id: concept167
 canonical_name: well_founded_justification
 status: proposed
-definition: 'A justification whose support chain is non-circular: the justified node
-  does not appear in its own transitive foundations through the supporting-justification
-  chain'
+definition: A non-circular supporting justification where the justified node does
+  not appear in its own foundations via the supporting-justification chain
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

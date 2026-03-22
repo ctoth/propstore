@@ -1,9 +1,0 @@
-id: concept122
-canonical_name: assumption_garbage_collection
-status: proposed
-definition: The process of removing ATMS assumptions that are no longer informative
-  because their singleton environment is nogood or all consequent nodes hold universally
-  or are contradictory
-domain: argumentation
-created_date: '2026-03-21'
-form: structural

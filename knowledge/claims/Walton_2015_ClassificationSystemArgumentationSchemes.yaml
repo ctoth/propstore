@@ -5,130 +5,187 @@ source:
 claims:
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim1
   type: observation
-  statement: 'Argumentation schemes are stereotypical non-deductive patterns of reasoning,
-    each defined by a formal premise-conclusion structure and associated critical
-    questions that identify potential weaknesses.
+  statement: 'Argumentation schemes should be organized in a hierarchical tree structure
+    rather than a flat list, allowing schemes to inherit properties of parent categories
+    and making navigation from general to specific possible.
 
     '
   concepts:
+  - argumentation_scheme_classification
   - argumentation_scheme
-  - critical_question
-  - defeasible_reasoning
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 9
+    section: Desiderata
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim2
-  type: model
-  name: Hierarchical classification of argumentation schemes
-  statement: 'Argumentation schemes are organized into a hierarchical taxonomy with
-    three top-level categories: source-dependent schemes (depending on source characteristics),
-    source-independent epistemic schemes, and practical reasoning schemes.
+  type: observation
+  statement: 'The most fundamental organizing principle for argumentation schemes
+    is source-dependency: whether an argument''s strength depends on the characteristics
+    of its source (source-based) or is independent of the source (source-independent).
 
     '
-  equations: []
-  parameters:
-  - argumentation_scheme
+  concepts:
+  - source_based_argument
+  - source_independent_argument
+  - argumentation_scheme_classification
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 9
+    section: Classification Taxonomy
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim3
   type: observation
-  statement: 'Source-dependent schemes include arguments from expert opinion, arguments
-    from position to know, arguments from witness testimony, ad hominem arguments,
-    and arguments from popular acceptance, where argument strength depends on the
-    characteristics of the information source.
+  statement: 'Source-independent schemes are further divided into epistemic reasoning
+    (aimed at establishing what is true) and practical reasoning (aimed at deciding
+    what to do), reflecting the Aristotelian distinction between theoretical and practical
+    reason.
 
     '
   concepts:
-  - argumentation_scheme
+  - source_independent_argument
+  - practical_reasoning
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 13
+    section: Classification Taxonomy
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim4
   type: observation
-  statement: 'The argument from expert opinion has the structure: if source E is an
-    expert in domain S containing proposition A, and E asserts A is true, then A may
-    plausibly be taken to be true.
+  statement: 'Argument from expert opinion is a sub-species of argument from position
+    to know, since an expert is a special case of someone in a position to know. This
+    allows hierarchical organization where specific schemes inherit properties of
+    parent categories.
 
     '
   concepts:
-  - argumentation_scheme
-  - defeasible_reasoning
+  - argument_from_expert_opinion
+  - argumentation_scheme_classification
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 8
+    section: Classifying Schemes as Sub-species
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim5
   type: observation
-  statement: 'Source-independent epistemic schemes include discovery arguments (argument
-    from best explanation, argument from ignorance, argument from sign) and arguments
-    applying rules to cases (argument from cause to effect, argument from established
-    rule).
+  statement: 'Each argumentation scheme has a formal premise-conclusion structure
+    (major premise, minor premise, conclusion) and an associated set of critical questions
+    that identify potential ways to challenge an argument of that type.
 
     '
   concepts:
   - argumentation_scheme
-  - abductive_reasoning
+  - critical_question
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 10
+    section: Key Scheme Definitions
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim6
   type: observation
-  statement: 'Practical reasoning schemes are goal-directed: the instrumental form
-    concludes that an action ought to be carried out because it is a means to realize
-    a goal; the value-based form grounds the goal in positive or negative values.
+  statement: 'Some argumentation schemes are hybrids that combine elements of multiple
+    categories. The sunk cost argument is a sub-species of both argument from commitment
+    and practical reasoning.
 
     '
   concepts:
+  - hybrid_scheme
   - practical_reasoning
   - argumentation_scheme
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 15
+    section: Hybrid Schemes
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim7
   type: observation
-  statement: 'Critical questions for an argumentation scheme map to potential counterarguments:
-    some challenge premises directly (analogous to rebutting defeat) while others
-    challenge the inferential link between premises and conclusion (analogous to undercutting
-    defeat).
+  statement: 'Six desiderata for evaluating classification systems: helpful for identification,
+    handles borderline cases, accommodates new schemes, captures fine distinctions,
+    is hierarchical not flat, and reflects differences in use.
 
     '
   concepts:
-  - critical_question
-  - argumentation_scheme
-  - rebutting_defeater
-  - undercutting_defeater
+  - argumentation_scheme_classification
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 9
+    section: Desiderata
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim8
   type: observation
-  statement: 'Six desiderata for classification systems: helpfulness for scheme identification,
-    handling of borderline cases, extensibility for new schemes, finer distinctions
-    within groups, hierarchical structure beyond simple lists, and differences reflecting
-    differences in use.
+  statement: 'Prior classifications of argumentation schemes used inconsistent organizing
+    principles and presented them as flat lists without hierarchical structure, failing
+    to capture sub-scheme relationships.
 
     '
   concepts:
+  - argumentation_scheme_classification
   - argumentation_scheme
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 4
+    section: Survey of Prior Classification Systems
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim9
-  type: measurement
-  target_concept: argumentation_scheme
-  measure: number of schemes in complete taxonomy
-  value: 28
-  unit: scheme types
-  statement: 'The complete taxonomy classifies approximately 28 distinct argumentation
-    scheme types across the hierarchical tree structure.
+  type: observation
+  statement: 'Source-based argumentation schemes include arguments from position to
+    know, argument from expert opinion, argument from witness testimony, ad hominem
+    arguments, and arguments from popular acceptance.
 
     '
+  concepts:
+  - source_based_argument
+  - argument_from_expert_opinion
+  - argumentation_scheme
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 22
+    section: Classification Taxonomy
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim10
-  type: measurement
-  target_concept: argumentation_scheme
-  measure: number of arguments classified in empirical study
-  value: 388
-  unit: arguments
-  statement: 'Six participants classified 388 collected arguments from Ontario election
-    campaigns into the proposed scheme categories, demonstrating practical applicability
-    of the classification system.
+  type: observation
+  statement: 'Critical questions for argumentation schemes map to potential counterarguments:
+    some challenge an argument''s premise (pointing to rebutting attacks) and others
+    challenge the inferential link (pointing to undercutting attacks).
 
     '
+  concepts:
+  - critical_question
+  - rebutting_defeat
+  - undercutting_defeat
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 11
+    section: Critical Questions
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim11
   type: observation
-  statement: 'Some argumentation schemes are hybrid, combining elements from multiple
-    categories; for example, the sunk cost argument combines practical reasoning with
-    argument from commitment.
+  statement: 'The classification system was empirically tested by having six participants
+    classify 388 collected arguments from Ontario election campaigns into the proposed
+    categories, identifying 14 argument types with frequencies.
 
     '
   concepts:
-  - argumentation_scheme
-  - practical_reasoning
+  - argumentation_scheme_classification
+  - argument_mining
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 7
+    section: Empirical Study
 - id: Walton_2015_ClassificationSystemArgumentationSchemes:claim12
   type: observation
-  statement: 'Each argumentation scheme''s premise-conclusion structure can be mapped
-    to a defeasible inference rule in ASPIC+, with the scheme''s critical questions
-    mapping to the three ASPIC+ attack types: undermining, rebutting, and undercutting.
+  statement: 'The classification is designed to support argument mining applications,
+    where automated systems need a taxonomy of argument types to classify detected
+    arguments in natural language text.
 
     '
   concepts:
-  - argumentation_scheme
-  - aspic_plus
-  - critical_question
-  - attack_relation
+  - argument_mining
+  - argumentation_scheme_classification
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 3
+    section: Connection to Argument Mining
+- id: Walton_2015_ClassificationSystemArgumentationSchemes:claim13
+  type: observation
+  statement: 'The classification is not yet complete: more sub-types need to be added,
+    rules-based arguments need further development, and classical argument forms from
+    the Aristotelian tradition have not been fully integrated.
+
+    '
+  concepts:
+  - argumentation_scheme_classification
+  provenance:
+    paper: Walton_2015_ClassificationSystemArgumentationSchemes
+    page: 24
+    section: Revising the Classification

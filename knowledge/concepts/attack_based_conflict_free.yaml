@@ -1,9 +1,8 @@
-id: concept157
+id: concept373
 canonical_name: attack_based_conflict_free
 status: proposed
-definition: A definition of conflict-free sets based on the attack relation rather
-  than the defeat relation, strictly stronger than defeat-based conflict-free, ensuring
-  rationality postulates hold without additional assumptions
+definition: A revision to the standard conflict-free definition where no argument
+  in the set attacks another, strictly stronger than defeat-based conflict-free
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

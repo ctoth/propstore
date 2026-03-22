@@ -1,8 +1,8 @@
-id: concept48
+id: concept208
 canonical_name: queryable
 status: proposed
-definition: An unsettled literal in an incomplete knowledge base whose truth value
-  could potentially be resolved by future observations
+definition: An unsettled literal whose truth value is unknown but could potentially
+  be added to the knowledge base
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

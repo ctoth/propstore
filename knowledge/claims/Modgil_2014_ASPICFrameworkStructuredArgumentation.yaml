@@ -3,172 +3,237 @@ source:
   extraction_model: claude-opus-4-20250514
   extraction_date: '2026-03-22'
 claims:
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_aspic_system
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim1
   type: observation
-  statement: 'An ASPIC+ argumentation system is a triple AS = (L, R, n) where L is
-    a logical language closed under negation, R = Rs union Rd partitions rules into
-    strict and defeasible, and n is a naming function mapping defeasible rules to
-    formulas in L.
+  statement: 'An argumentation system is a triple AS = (L, R, n) where L is a logical
+    language closed under negation, R is partitioned into strict rules (Rs) and defeasible
+    rules (Rd), and n is a naming function for defeasible rules.
 
     '
   concepts:
-  - aspic_plus
+  - argumentation_system
   - strict_rule
   - defeasible_rule
-  reference: Definition 3.1
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_knowledge_base
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 35
+    section: Definition 3.1
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim2
   type: observation
-  statement: 'A knowledge base K = (Kn, Kp) is partitioned into necessary premises
-    (axioms, cannot be attacked) and ordinary premises (can be attacked via undermining).
-    This partition determines which parts of arguments are vulnerable to attack.
+  statement: 'Arguments in ASPIC+ are recursively constructed from premises and inference
+    rules, with functions for premises (Prem), conclusion (Conc), sub-arguments (Sub),
+    defeasible rules used (DefRules), and top rule (TopRule).
 
     '
   concepts:
-  - knowledge_base
-  - aspic_plus
-  reference: Definition 3.3
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_argument_construction
-  type: observation
-  statement: 'Arguments in ASPIC+ are recursively constructed: atomic arguments are
-    premises from K; compound arguments apply strict or defeasible rules to conclusions
-    of sub-arguments. Each argument has functions Prem (premises), Conc (conclusion),
-    Sub (sub-arguments), DefRules (defeasible rules used), and TopRule (last rule
-    applied).
-
-    '
-  concepts:
-  - aspic_plus
-  - strict_rule
-  - defeasible_rule
-  reference: Definitions 3.5-3.6
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_three_attack_types
+  - structured_argument
+  - argumentation_system
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 36
+    section: Definition 3.6
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim3
   type: observation
   statement: 'ASPIC+ defines three types of attack: undermining (attacking an ordinary
     premise), rebutting (attacking a defeasibly-derived conclusion), and undercutting
-    (attacking the applicability of a defeasible rule via its name). These formalize
-    Pollock''s rebutting/undercutting distinction plus premise attack.
+    (attacking the applicability of a defeasible inference rule).
 
     '
   concepts:
   - undermining_attack
   - rebutting_attack
   - undercutting_attack
-  - aspic_plus
-  reference: Definition 3.10
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_preference_based_defeat
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 38
+    section: Definition 3.10
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim4
   type: observation
-  statement: 'Attacks succeed as defeats based on a preference ordering: rebutting
-    and undermining attacks succeed only if the attacked sub-argument is not strictly
-    preferred to the attacker. Undercutting attacks always succeed as defeats regardless
-    of preferences.
+  statement: 'Undercutting attacks always succeed as defeats regardless of preferences,
+    while undermining and rebutting attacks succeed only when the attacked sub-argument
+    is not strictly preferred to the attacker.
 
     '
   concepts:
+  - undercutting_attack
   - preference_ordering
   - undermining_attack
   - rebutting_attack
-  - undercutting_attack
-  reference: Definition 3.12
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_undercutting_always_succeeds
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 40
+    section: Definition 3.12
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim5
   type: observation
-  statement: 'Undercutting attacks always succeed as defeats regardless of the preference
-    ordering between arguments. This reflects the principle that challenging the applicability
-    of a defeasible rule cannot be overridden by the rule''s strength.
+  statement: 'A firm and strict argument (one using only necessary premises and strict
+    rules) has no attackers in ASPIC+.
 
     '
   concepts:
-  - undercutting_attack
-  - preference_ordering
-  reference: Definition 3.12
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_generates_dung_af
+  - structured_argument
+  - strict_rule
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 38
+    section: Section 3
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim6
   type: observation
-  statement: 'Every ASPIC+ structured argumentation framework generates a corresponding
-    Dung-style abstract argumentation framework AF = (A, Def) where A is the set of
-    all constructable arguments and Def is the defeat relation. Dung''s semantics
-    (grounded, preferred, stable) then determine justified arguments.
+  statement: 'ASPIC+ generates a Dung-style abstract argumentation framework from
+    a structured argumentation framework by taking the defeat relation derived from
+    attacks and preferences, then applies Dung''s semantics to determine justified
+    arguments.
 
     '
   concepts:
-  - aspic_plus
   - argumentation_framework
-  - grounded_extension
-  - preferred_extension
-  - stable_extension
-  reference: Definition 3.16
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_last_link_vs_weakest_link
-  type: observation
-  statement: 'Two principled ways to lift orderings on rules and premises to orderings
-    on arguments: last-link (compares only the last defeasible rules applied) and
-    weakest-link (compares all defeasible rules and all ordinary premises). Each can
-    use elitist or democratic set comparison.
-
-    '
-  concepts:
+  - structured_argument
   - preference_ordering
-  - aspic_plus
-  reference: Definitions 3.21, 3.23
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_rationality_postulates
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 41
+    section: Definition 3.16
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim7
   type: observation
-  statement: 'ASPIC+ satisfies four rationality postulates under sufficient conditions:
-    sub-argument closure, closure under strict rules, direct consistency (extension
-    conclusions are consistent), and indirect consistency (strict closure of conclusions
-    is consistent). Sufficient conditions include transposition closure and consistent
-    axioms.
+  statement: 'ASPIC+ satisfies four rationality postulates (sub-argument closure,
+    closure under strict rules, direct consistency, indirect consistency) when the
+    argumentation system is closed under transposition, axioms are consistent, and
+    preferences are reasonable.
 
     '
   concepts:
   - rationality_postulate
-  - aspic_plus
   - transposition_closure
-  reference: Section 4.2
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_transposition_closure
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 49
+    section: Section 4.2
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim8
   type: observation
   statement: 'An argumentation theory is closed under transposition iff for every
-    strict rule phi1,...,phin -> phi, all transpositions (moving conclusion''s negation
-    to antecedent, antecedent to conclusion) are also included. This is a sufficient
-    condition for the rationality postulates.
+    strict rule with antecedents and consequent, all transpositions (swapping an antecedent
+    with the negation of the consequent) are also strict rules in the system.
 
     '
   concepts:
   - transposition_closure
   - strict_rule
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 46
+    section: Definition 4.3
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim9
+  type: observation
+  statement: 'If strict rules are not closed under transposition, extensions can be
+    inconsistent because arguments that should have counter-arguments may lack them.
+
+    '
+  concepts:
+  - transposition_closure
   - rationality_postulate
-  reference: Definition 4.3
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_argument_schemes
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 49
+    section: Example 4.4
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim10
   type: observation
-  statement: 'Walton-style argument schemes can be modeled in ASPIC+ by representing
-    schemes as defeasible inference rules and critical questions as potential undercutters
-    or rebutters, with different types of critical questions mapping to different
-    attack types.
+  statement: 'Walton-style argument schemes can be modeled in ASPIC+ as defeasible
+    inference rules, with critical questions mapping to attack types: assumption-challenging
+    questions generate undermining attacks, conclusion-challenging questions generate
+    rebutting attacks, and exception questions generate undercutting attacks.
 
     '
   concepts:
-  - argumentation_scheme
+  - argument_scheme
   - defeasible_rule
-  - undercutting_attack
+  - undermining_attack
   - rebutting_attack
-  reference: Section 4.3
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_contrariness_generalization
+  - undercutting_attack
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 50
+    section: Section 4.3
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim11
   type: observation
-  statement: 'The general ASPIC+ framework replaces ordinary negation with a contrariness
-    function mapping formulas to sets of conflicting formulas. Contraries are asymmetric
-    (phi conflicts with psi but not vice versa) while contradictories are symmetric.
-    Contrary-based attacks always succeed like undercutting.
+  statement: 'The last-link ordering compares only the last defeasible rules applied
+    and is appropriate for legal and normative reasoning, while the weakest-link ordering
+    compares all defeasible rules and premises and is appropriate for epistemic reasoning.
 
     '
   concepts:
-  - contrariness_function
-  - aspic_plus
-  reference: Section 5, Definitions 5.1-5.2
-- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:modgil14_firm_strict_unattackable
+  - preference_ordering
+  - defeasible_rule
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 43
+    section: Section 3
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim12
   type: observation
-  statement: 'An argument that is both firm (all premises are necessary/axioms) and
-    strict (uses only strict rules) has no attackers, making it immune to defeat and
-    always justified.
+  statement: 'ASPIC+ without defeasible rules (all rules strict, all formulas as ordinary
+    premises, conflict resolved through premise preferences) corresponds to Brewka''s
+    Preferred Subtheories.
 
     '
   concepts:
   - strict_rule
-  - knowledge_base
-  - aspic_plus
-  reference: Implicit from Definitions 3.8, 3.10
+  - preference_ordering
+  - argumentation_system
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 55
+    section: Section 4.5
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim13
+  type: observation
+  statement: 'Dung''s abstract argumentation treats arguments as atomic with no internal
+    structure; real argumentation requires structured arguments built from premises
+    and inference rules with different types of attack targeting different components.
+
+    '
+  concepts:
+  - argumentation_framework
+  - structured_argument
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 31
+    section: Introduction
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim14
+  type: observation
+  statement: 'Prior structured argumentation formalisms could violate basic rationality
+    requirements such as consistency of extensions and closure under strict rules,
+    motivating ASPIC+''s design to satisfy these postulates.
+
+    '
+  concepts:
+  - rationality_postulate
+  - structured_argument
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 32
+    section: Introduction
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim15
+  type: observation
+  statement: 'The general ASPIC+ framework replaces ordinary negation with a contrariness
+    function allowing asymmetric conflict relations, where contrary-based attacks
+    always succeed like undercutting and contradictory-based attacks are preference-dependent.
+
+    '
+  concepts:
+  - argumentation_system
+  - undercutting_attack
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 57
+    section: Section 5
+- id: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim16
+  type: observation
+  statement: 'A knowledge base is partitioned into necessary premises (axioms, cannot
+    be attacked) and ordinary premises (can be attacked via undermining), reflecting
+    different levels of commitment to the truth of propositions.
+
+    '
+  concepts:
+  - argumentation_system
+  - undermining_attack
+  provenance:
+    paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+    page: 35
+    section: Definition 3.3

@@ -1,9 +1,8 @@
-id: concept145
+id: concept357
 canonical_name: preference_ordering
 status: proposed
-definition: A binary relation on arguments that determines when attacks succeed as
-  defeats; stronger arguments' attacks succeed against weaker arguments but not vice
-  versa
+definition: An ordering on arguments used to determine whether an attack succeeds
+  as a defeat
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

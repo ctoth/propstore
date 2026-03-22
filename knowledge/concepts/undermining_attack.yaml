@@ -1,8 +1,8 @@
-id: concept138
+id: concept321
 canonical_name: undermining_attack
 status: proposed
-definition: An attack in ASPIC+ where an argument's conclusion negates an ordinary
-  premise of the target argument
+definition: An attack on a premise of an argument, as opposed to its conclusion (rebutting)
+  or inferential link (undercutting)
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

@@ -5,143 +5,230 @@ source:
 claims:
 - id: deKleer_1986_ProblemSolvingATMS:claim1
   type: observation
-  statement: The consumer architecture encodes problem-solving steps as modular consumers
-    attached to ATMS nodes that execute exactly once when antecedent labels become
-    nonempty, producing new justifications and ensuring clean separation between problem-solving
-    logic and ATMS maintenance.
+  statement: 'The consumer architecture encodes problem-solving steps as modular consumers
+    attached to ATMS nodes. Consumers fire when antecedent labels become nonempty,
+    execute exactly once per node, and produce new justifications. Running a consumer
+    is like compilation: it cannot produce new results if rerun.
+
+    '
   concepts:
   - consumer_architecture
-  - atms
-  - label
+  - assumption_based_tms
+  - justification
   provenance:
     paper: deKleer_1986_ProblemSolvingATMS
-    section: 3. Consumers
+    page: 201
+    section: Consumer architecture
 - id: deKleer_1986_ProblemSolvingATMS:claim2
   type: observation
-  statement: Consumers may not have internal state or make control decisions; all
-    inferences are recorded as permanent ATMS justifications, ensuring the ATMS remains
-    order-independent and sound.
+  statement: 'Consumers must obey four restrictions: only examine data of nodes (not
+    labels or justifications), only examine antecedent nodes, include all and only
+    antecedent nodes in justification antecedents, and maintain no internal state
+    or control decisions.
+
+    '
   concepts:
   - consumer_architecture
-  - atms
+  - justification
   provenance:
     paper: deKleer_1986_ProblemSolvingATMS
-    section: 3. Consumers
+    page: 202
+    section: Consumer restrictions
 - id: deKleer_1986_ProblemSolvingATMS:claim3
   type: observation
-  statement: Scheduling consumers by simplest-label-first (fewest assumptions in the
-    environment) finds solutions with near-minimum effort by exploring the most constrained
-    contexts first.
+  statement: 'Incorrect justifications are far more damaging in the ATMS than in conventional
+    reasoning. Too few antecedents make labels too general (nodes appear in wrong
+    contexts); too many antecedents make labels too specific (solutions are missed).
+
+    '
+  concepts:
+  - justification
+  - label
+  - assumption_based_tms
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    page: 200
+    section: Introduction
+- id: deKleer_1986_ProblemSolvingATMS:claim4
+  type: observation
+  statement: 'The scheduler processes nodes with the simplest label (fewest assumptions)
+    first. Finding the most general contradiction first avoids useless problem-solving
+    steps within ultimately inconsistent environments.
+
+    '
   concepts:
   - consumer_architecture
   - environment
-  - atms
+  - nogood
   provenance:
     paper: deKleer_1986_ProblemSolvingATMS
-    section: 4.1 Scheduling
-- id: deKleer_1986_ProblemSolvingATMS:claim4
-  type: observation
-  statement: Control disjunctions partition the search space by constraining the scheduler
-    to explore only environments consistent with specified mutually exclusive choices,
-    achieving at least the efficiency of chronological backtracking.
-  concepts:
-  - control_disjunction
-  - atms
-  - dependency_directed_backtracking
-  provenance:
-    paper: deKleer_1986_ProblemSolvingATMS
-    section: 4.2 Dependency-Directed Backtracking
+    page: 204
+    section: Scheduling
 - id: deKleer_1986_ProblemSolvingATMS:claim5
   type: observation
-  statement: The constraint language provides primitives (PLUS, TIMES, AND, OR, ONEOF,
-    EQ, NOT, MINUS, DIVIDE, ELEMENT) built entirely on ATMS justifications and consumers
-    for encoding arithmetic and logical constraints.
+  statement: 'Control disjunctions partition the search space. The scheduler maintains
+    a single current environment guaranteed consistent with all control disjunctions.
+    A control disjunction also expresses search preference: solutions containing the
+    first alternative are found before solutions containing the second.
+
+    '
   concepts:
-  - constraint_language
+  - control_disjunction
+  - environment
   - consumer_architecture
-  - atms
   provenance:
     paper: deKleer_1986_ProblemSolvingATMS
-    section: 5.3 Constraint Language
+    page: 205
+    section: Dependency-directed backtracking
 - id: deKleer_1986_ProblemSolvingATMS:claim6
   type: observation
-  statement: Constraint consumers trigger when all but one variable in a relation
-    are known, computing the unknown via the constraint's inverse function, and suppress
-    spurious retriggering.
+  statement: 'The consumer architecture automatically solves the unouting problem.
+    If antecedents do not yield a consistent environment, the consumer does not run.
+    When a distant antecedent later becomes justified, the ATMS propagates label updates
+    and the consumer fires automatically.
+
+    '
   concepts:
-  - constraint_language
   - consumer_architecture
+  - assumption_based_tms
+  - label
   provenance:
     paper: deKleer_1986_ProblemSolvingATMS
-    section: 5.3 Constraint Language
+    page: 203
+    section: Consumer architecture
 - id: deKleer_1986_ProblemSolvingATMS:claim7
   type: observation
-  statement: For problems requiring all solutions, the ATMS has an inherent advantage
-    over conventional TMSs by avoiding all dependency-directed backtracking and context
-    switching overhead.
+  statement: 'A simple constraint language built on ATMS primitives provides operations
+    including PLUS, TIMES, AND, OR, ONEOF, EQ, NOT, MINUS, and DIVIDE for encoding
+    arithmetic and logical constraints over assumption-tracked variables.
+
+    '
   concepts:
-  - atms
+  - constraint_language
+  - assumption_based_tms
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    page: 209
+    section: Constraint language
+- id: deKleer_1986_ProblemSolvingATMS:claim8
+  type: observation
+  statement: 'The kernel environment constrains consumer execution: a consumer is
+    not run unless its antecedents hold in some consistent environment not inconsistent
+    with the kernel. If the kernel becomes inconsistent, problem solving halts.
+
+    '
+  concepts:
+  - kernel_environment
+  - consumer_architecture
+  - environment
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    page: 206
+    section: Kernel environment
+- id: deKleer_1986_ProblemSolvingATMS:claim9
+  type: observation
+  statement: 'Control is exercised only before running a consumer. Once a consumer
+    has run and constructed its justifications, those justifications are permanent.
+    No solution will be missed if the control is later removed, preserving the potential
+    for exhaustivity.
+
+    '
+  concepts:
+  - consumer_architecture
+  - control_disjunction
+  - justification
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    page: 206
+    section: Problem solver responsibility
+- id: deKleer_1986_ProblemSolvingATMS:claim10
+  type: observation
+  statement: 'The ATMS never modifies or adds a justification to avoid a contradiction.
+    A contradiction simply ensures that the ATMS will never construct any environment
+    containing it. This gives completeness and consistency guarantees that systems
+    which modify justifications cannot provide.
+
+    '
+  concepts:
+  - assumption_based_tms
+  - nogood
+  - justification
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    page: 219
+    section: Comparison with McDermott
+- id: deKleer_1986_ProblemSolvingATMS:claim11
+  type: observation
+  statement: 'Doyle''s CP-justification mechanism is unnecessary in the ATMS. The
+    ATMS considers all justifications as conditional-proof and translates them into
+    SL-justifications in terms of assumptions, making a separate CP mechanism redundant.
+
+    '
+  concepts:
+  - assumption_based_tms
+  - conditional_proof_justification
+  - support_list_justification
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    page: 217
+    section: Comparison with Doyle
+- id: deKleer_1986_ProblemSolvingATMS:claim12
+  type: observation
+  statement: 'ATMS consumers are both order-insensitive and status-insensitive: they
+    can execute in any order and do not depend on whether antecedent nodes are currently
+    in or out. This makes parallelism natural, requiring no coordination between parallel
+    processors.
+
+    '
+  concepts:
+  - consumer_architecture
+  - assumption_based_tms
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    page: 222
+    section: Parallelism
+- id: deKleer_1986_ProblemSolvingATMS:claim13
+  type: observation
+  statement: 'For problems with many solutions where all are needed, the ATMS has
+    an inherent advantage over conventional TMSs because it avoids all dependency-directed
+    backtracking and context switching costs. For problems needing only one solution,
+    the ATMS may be slower due to database overhead.
+
+    '
+  concepts:
+  - assumption_based_tms
   - dependency_directed_backtracking
   - context_switching
   provenance:
     paper: deKleer_1986_ProblemSolvingATMS
-    section: 6. Summary
-- id: deKleer_1986_ProblemSolvingATMS:claim8
+    page: 215
+    section: Comparison
+- id: deKleer_1986_ProblemSolvingATMS:claim14
   type: observation
-  statement: 'Without control disjunctions, label sizes can grow exponentially: the
-    i-bit parity problem produces 2^(i+2) + 2^i environments, but with control disjunctions
-    the first solution is found after creating only 4i environments.'
+  statement: 'Without control disjunctions, label sizes can grow exponentially. The
+    i-bit parity problem produces 2^(i+2) + 2^i environments without control, but
+    only 4i environments with control disjunctions (linear growth).
+
+    '
   concepts:
   - control_disjunction
   - label
-  - atms
+  - environment
   provenance:
     paper: deKleer_1986_ProblemSolvingATMS
-    section: 5.2 Parity Problem
-- id: deKleer_1986_ProblemSolvingATMS:claim9
+    page: 216
+    section: 'Example: parity'
+- id: deKleer_1986_ProblemSolvingATMS:claim15
   type: observation
-  statement: The ATMS provides a weaker notion of control than Doyle's TMS data pool
-    mechanism, because ATMS consumers cannot make control decisions or maintain internal
-    state.
+  statement: 'Constraint consumers trigger when all but one variable in a constraint
+    relation are known, computing the unknown variable via the inverse function. A
+    type system prevents retriggering on the consumer''s own outputs.
+
+    '
   concepts:
+  - constraint_language
   - consumer_architecture
-  - truth_maintenance_system
-  - atms
   provenance:
     paper: deKleer_1986_ProblemSolvingATMS
-    section: 7. Comparison
-- id: deKleer_1986_ProblemSolvingATMS:claim10
-  type: observation
-  statement: ATMS soundness, completeness, and consistency guarantees for default
-    reasoning can be inadvertently lost if the problem solver does not interface correctly
-    through the consumer architecture.
-  concepts:
-  - atms
-  - consumer_architecture
-  - non_monotonic_reasoning
-  provenance:
-    paper: deKleer_1986_ProblemSolvingATMS
-    section: 1. Introduction
-- id: deKleer_1986_ProblemSolvingATMS:claim11
-  type: observation
-  statement: Conjunctive class consumers are invoked on the cross-product of antecedent
-    class node sets, running once per tuple of nodes, enabling efficient encoding
-    of multi-variable rules.
-  concepts:
-  - consumer_architecture
-  - atms
-  provenance:
-    paper: deKleer_1986_ProblemSolvingATMS
-    section: 3.2 Conjunctive Class Consumers
-- id: deKleer_1986_ProblemSolvingATMS:claim12
-  type: observation
-  statement: Control is exercised only before running a consumer by selecting which
-    environment to explore; once a consumer executes, its justifications are permanent
-    and cannot be retracted without the defeasibility-assumption mechanism.
-  concepts:
-  - consumer_architecture
-  - control_disjunction
-  - atms
-  provenance:
-    paper: deKleer_1986_ProblemSolvingATMS
-    section: 4. Control
+    page: 207
+    section: Constraint consumers

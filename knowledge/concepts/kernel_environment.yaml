@@ -1,0 +1,9 @@
+id: concept352
+canonical_name: kernel_environment
+status: proposed
+definition: 'A problem-solver-specified environment in the ATMS that constrains consumer
+  execution: consumers only run when antecedents hold in environments consistent with
+  the kernel'
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

@@ -6,110 +6,202 @@ source:
 claims:
   - id: claim1
     type: observation
-    statement: "A confluence is a qualitative differential equation where variables take values from {+, 0, -} and terms sum to a constant, serving as the central modeling primitive for component behavior in qualitative physics."
+    statement: >
+      A confluence is a qualitative differential equation where variables take
+      values from {+, 0, -} and terms sum to a constant, serving as the central
+      modeling primitive for component behavior in qualitative physics.
     concepts:
       - confluence
-      - qualitative_calculus
+      - qualitative_value
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "4. Confluences"
+      page: 8
+      section: "Introduction"
 
   - id: claim2
     type: observation
-    statement: "Each physical component's operating range is divided into qualitative states defined by inequalities over non-derivative variables, where each state is governed by a different set of confluences."
+    statement: >
+      Each component's operating range is divided into qualitative states, each
+      governed by a different set of confluences. State specifications use
+      inequalities over non-derivative variables.
     concepts:
       - qualitative_state
       - confluence
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "5. Qualitative States"
+      page: 24
+      section: "Confluences"
 
   - id: claim3
     type: observation
-    statement: "The no-function-in-structure principle requires that component laws may not presume the functioning of the whole device, ensuring component models are context-independent and reusable across different device configurations."
+    statement: >
+      Qualitative multiplication over {+, 0, -} is exact, but qualitative
+      addition introduces ambiguity because addition does not form an algebraic
+      group over {+, 0, -}. The sum of + and - is ambiguous (could be +, 0, or -).
     concepts:
-      - no_function_in_structure
-      - device_topology
+      - qualitative_value
+      - qualitative_ambiguity
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "3.3 No Function in Structure"
+      page: 22
+      section: "Attributes"
 
   - id: claim4
     type: observation
-    statement: "Mythical causality determines device behavior through information-passing between neighboring components in mythical time, a partial ordering distinct from both physical time and logical derivation order."
+    statement: >
+      The no-function-in-structure principle requires that the laws of a device's
+      parts may not presume the functioning of the whole device, preventing
+      circular reasoning in component models.
     concepts:
-      - mythical_causality
+      - no_function_in_structure
       - device_topology
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "10. Mythical Causality"
+      page: 16
+      section: "Six paradigmatic assumptions"
 
   - id: claim5
     type: observation
-    statement: "Qualitative addition over {+, 0, -} does not form an algebraic group and is not invertible, inherently producing multiple valid interpretations where quantitative analysis yields a unique answer."
+    statement: >
+      A physical system is modeled as a device topology: a graph where nodes are
+      components that process or transform material and edges are conduits that
+      transport material between components. Components have types and conduit
+      attachments.
     concepts:
-      - qualitative_ambiguity
-      - qualitative_calculus
+      - device_topology
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "4.1 Qualitative Calculus"
+      page: 19
+      section: "Structure"
 
   - id: claim6
     type: observation
-    statement: "A physical system is modeled as a device topology graph where nodes are components and edges are conduits, with each conduit carrying a flowlike attribute per terminal and a pressurelike attribute per conduit."
+    statement: >
+      Mythical causality is a notion of causality based on information-passing
+      between neighboring components in a fictional partial time ordering called
+      mythical time. It bridges quasistatic models (which cannot account for change)
+      with causal explanation.
     concepts:
+      - mythical_causality
       - device_topology
-      - confluence
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "3.1 Generalized Machines"
+      page: 62
+      section: "Mythical time"
 
   - id: claim7
     type: observation
-    statement: "The qualitative mean value theorem states that if a variable's derivative is positive at time T, then the variable's qualitative value is positive immediately after T, providing a bridge between derivative and value reasoning."
+    statement: >
+      Qualitative constraint satisfaction of 8 confluences with 8 unknowns for
+      the pressure-regulator yields 4 interpretations rather than 1 unique
+      solution. Multiple interpretations represent genuine physical ambiguity
+      inherent in the qualitative approach.
     concepts:
-      - qualitative_calculus
+      - qualitative_ambiguity
+      - confluence
+      - constraint_propagation
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "4.2 Qualitative Mean Value Theorem"
+      page: 78
+      section: "Appendix A"
 
   - id: claim8
     type: observation
-    statement: "State transitions are governed by five rules: ordering (continuous change), equality change (immediate termination at boundaries), epsilon ordering (infinitesimal changes first), contradiction avoidance, and continuity."
+    statement: >
+      Three canonicality heuristics enable causal accounts matching human
+      explanations: the component heuristic (disturbance propagates through a
+      component), the conduit heuristic (disturbance propagates along conduits),
+      and the confluence heuristic (known variables determine unknown ones).
     concepts:
-      - qualitative_state
-      - qualitative_calculus
+      - mythical_causality
+      - confluence
+      - device_topology
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "7. State Transition Rules"
+      page: 67
+      section: "Canonicality heuristics"
 
   - id: claim9
     type: observation
-    statement: "The ENVISION system takes a device topology and component library as input and produces behavioral predictions with causal explanations, demonstrated successfully on hundreds of examples across electronic, translational, hydraulic, and acoustic devices."
+    statement: >
+      Simple constraint propagation alone is insufficient for solving qualitative
+      confluence systems because the system is inherently simultaneous.
+      Generate-and-test combined with constraint propagation is required.
     concepts:
-      - device_topology
-      - mythical_causality
+      - constraint_propagation
       - confluence
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "2. ENVISION"
+      page: 34
+      section: "Behavior"
 
   - id: claim10
     type: observation
-    statement: "Class-wide assumptions such as the quasistatic approximation apply to an entire class of devices rather than a specific device, and their violation signals that the qualitative model has reached the limits of its applicability."
+    statement: >
+      The qualitative mean value theorem states that if a variable's qualitative
+      value is 0 and its derivative is +, then the variable's value at the next
+      time point is +. Formally: [X(T')] = [X(T)] + dX(T).
     concepts:
-      - qualitative_state
-      - no_function_in_structure
+      - qualitative_value
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "6. Class-Wide Assumptions"
+      page: 23
+      section: "Attributes"
 
   - id: claim11
     type: observation
-    statement: "Pushing qualitative analysis to finer grain (e.g., mixed confluences with momentum and storage capacity) dramatically increases the state space, with 81 states arising from just two mixed confluences."
+    statement: >
+      Causal analysis using mythical causality can detect positive and negative
+      feedback as loops in the cause-effect structure, without any explicit
+      notion of feedback in the component models.
     concepts:
-      - qualitative_ambiguity
+      - mythical_causality
+      - device_topology
+    provenance:
+      paper: deKleer_1984_QualitativePhysicsConfluences
+      page: 73
+      section: "Feedback"
+
+  - id: claim12
+    type: observation
+    statement: >
+      Any device with feedback necessarily exhibits oscillation when viewed at
+      a sufficiently detailed level, but this oscillation often damps out quickly
+      under the quasistatic assumption.
+    concepts:
+      - qualitative_state
+      - device_topology
+    provenance:
+      paper: deKleer_1984_QualitativePhysicsConfluences
+      page: 76
+      section: "Summary"
+
+  - id: claim13
+    type: observation
+    statement: >
+      Each component in the digital physics view is modeled as a simple
+      information processor that communicates only with neighboring processors.
+      Overall device behavior emerges from causal interactions between adjacent
+      component processors.
+    concepts:
+      - mythical_causality
+      - device_topology
+      - constraint_propagation
+    provenance:
+      paper: deKleer_1984_QualitativePhysicsConfluences
+      page: 13
+      section: "Six paradigmatic assumptions"
+
+  - id: claim14
+    type: observation
+    statement: >
+      Explanation-proofs are logical proofs in a natural deduction system that
+      must be compelling, meaning they leave no doubt as to the validity of
+      conclusions and contain no undischarged premises (hidden assumptions).
+    concepts:
+      - confluence
       - qualitative_state
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      section: "12. Limitations"
+      page: 50
+      section: "Proof and explanation"

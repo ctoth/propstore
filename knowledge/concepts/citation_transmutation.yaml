@@ -1,9 +1,8 @@
-id: concept100
+id: concept330
 canonical_name: citation_transmutation
 status: proposed
-definition: A form of citation invention where a hypothesis is converted into accepted
-  fact through successive citations that progressively strengthen the modal status
-  of the claim
+definition: Conversion of a hypothesis into accepted fact through progressive citation,
+  where modal verbs shift from speculative to assertive across a citation chain
 domain: scientific_communication
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

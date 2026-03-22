@@ -1,8 +1,0 @@
-id: concept111
-canonical_name: argument_relation_prediction
-status: proposed
-definition: The subtask of argument mining that classifies the directed relation (support,
-  attack, or no relation) between pairs of argument components
-domain: argument_mining
-created_date: '2026-03-21'
-form: structural

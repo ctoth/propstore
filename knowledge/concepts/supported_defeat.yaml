@@ -1,8 +1,8 @@
-id: concept104
+id: concept339
 canonical_name: supported_defeat
 status: proposed
-definition: 'A defeat path in a BAF where a chain of support relations leads to a
-  final defeat: A supports...supports B defeats C'
+definition: A composite defeat where a support chain from A leads to an argument that
+  directly defeats B
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

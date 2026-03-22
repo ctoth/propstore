@@ -1,9 +1,8 @@
-id: concept67
+id: concept317
 canonical_name: defeat_level
 status: proposed
-definition: An ordinal stratification of arguments where level 0 contains all arguments
-  and level n+1 contains level 0 arguments not defeated by any level n argument; ultimately
-  undefeated arguments persist at every sufficiently high level
+definition: A stratification of arguments where level n+1 arguments are those not
+  defeated by any level n argument
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

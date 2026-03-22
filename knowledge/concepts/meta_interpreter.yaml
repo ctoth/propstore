@@ -1,8 +1,8 @@
-id: concept43
+id: concept222
 canonical_name: meta_interpreter
 status: proposed
-definition: A logic program schema for computing argumentation semantics, consisting
-  of an Argument Generation Unit (AGU) and Argument Processing Unit (APU)
+definition: A logic program architecture separating argument generation (AGU) from
+  argument processing (APU)
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

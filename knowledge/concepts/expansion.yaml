@@ -1,8 +1,8 @@
-id: concept9
+id: concept179
 canonical_name: expansion
 status: proposed
-definition: A belief change operation that adds a new sentence to a belief set and
-  closes under logical consequence, without checking for consistency
+definition: An operation that adds a new belief to a theory by taking the deductive
+  closure of the union
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

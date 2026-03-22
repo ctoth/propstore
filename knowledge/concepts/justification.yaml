@@ -1,8 +1,8 @@
-id: concept78
+id: concept180
 canonical_name: justification
 status: proposed
-definition: In a TMS, a dependency record linking a set of antecedent nodes to a consequent
-  node, representing that the consequent is derived from the antecedents
+definition: A recorded reason for believing a node, consisting of references to other
+  nodes whose belief statuses must hold for the justification to be valid
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

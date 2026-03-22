@@ -1,8 +1,8 @@
-id: concept84
+id: concept241
 canonical_name: argument_strength
 status: proposed
-definition: A numerical measure of the degree of justification of a conclusion, propagated
-  through inference steps as the minimum of support strengths
+definition: A numerical measure of the degree of justification of an argument, where
+  the strength of a conclusion is the minimum of the strengths of its supporting lines
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

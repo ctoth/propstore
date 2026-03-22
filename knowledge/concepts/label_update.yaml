@@ -1,9 +1,0 @@
-id: concept121
-canonical_name: label_update
-status: proposed
-definition: The ATMS algorithm that computes a node's complete label by taking the
-  cross-product of antecedent labels, removing inconsistent and subsumed environments,
-  and propagating changes to consequent nodes
-domain: argumentation
-created_date: '2026-03-21'
-form: structural

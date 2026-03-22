@@ -1,8 +1,8 @@
-id: concept31
+id: concept195
 canonical_name: preferred_extension
 status: proposed
-definition: A maximal (with respect to set inclusion) admissible set of arguments
-  in an argumentation framework
+definition: A maximal (with respect to set inclusion) admissible set of an argumentation
+  framework
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

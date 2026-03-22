@@ -1,0 +1,8 @@
+id: concept258
+canonical_name: closed_world_assumption
+status: proposed
+definition: A default schema that concludes the negation of a predicate when the predicate
+  cannot be proved, formalizing database query answering under default logic
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

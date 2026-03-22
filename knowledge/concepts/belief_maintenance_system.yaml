@@ -1,9 +1,9 @@
-id: concept150
+id: concept368
 canonical_name: belief_maintenance_system
 status: proposed
-definition: An extension of justification-based truth maintenance systems that manages
-  probabilistic beliefs using Dempster-Shafer intervals instead of binary true/false
-  states, with automatic dependency-driven propagation
-domain: belief_maintenance
-created_date: '2026-03-21'
+definition: A system that extends justification-based Truth Maintenance Systems to
+  manage probabilistic beliefs using Dempster-Shafer theory, replacing binary states
+  with continuous belief intervals while preserving dependency-driven propagation
+domain: knowledge_based_system
+created_date: '2026-03-22'
 form: structural

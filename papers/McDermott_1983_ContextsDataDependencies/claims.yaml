@@ -2,171 +2,185 @@ source:
   paper: McDermott_1983_ContextsDataDependencies
   extraction_model: "claude-opus-4-20250514"
   extraction_date: "2026-03-22"
-
 claims:
   - id: claim1
     type: observation
-    statement: "Data pools (contexts) and data dependencies are two manifestations of the same underlying mechanism: data pools can be implemented as a special case of dependency networks by treating beads as premises and pool membership labels as justifications."
+    statement: "Data pools (contexts) and data dependencies are not separate mechanisms: a bead in a data pool is equivalent to a premiss justification, and pool membership is equivalent to a dependency label."
     concepts:
       - data_pool
       - data_dependency
+      - bead
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section II"
+      page: 240
+      section: "Part II"
 
   - id: claim2
     type: observation
-    statement: "A data pool is a pair (b, S) where b is a bead (natural number) serving as a unique identifier and S is a set of natural numbers; assertions in the pool are accessible when the bead is active."
+    statement: "A data pool is a pair (b, S) where b is a bead (natural number) and S is a set of natural numbers, with operations for copying, pushing down, adding, and erasing assertions."
     concepts:
       - data_pool
+      - bead
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section I"
+      page: 237
+      section: "Part I"
 
   - id: claim3
     type: observation
-    statement: "A justification is a tuple (in-justifiers, out-justifiers, justificand) where in-justifiers are nodes that must be IN and out-justifiers are nodes that must be OUT for the justificand to be believed."
+    statement: "A justification is a tuple (in-justifiers, out-justifiers, justificand), replacing Doyle's support-list justifications."
     concepts:
       - justification
       - data_dependency
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section I"
+      page: 239
+      section: "Part I"
 
   - id: claim4
     type: observation
-    statement: "A label is a Boolean expression over beads stored in disjunctive normal form, representing the conditions under which an assertion is believed; labels unify data pool membership with dependency-based status."
+    statement: "Labels are Boolean combinations of beads stored in disjunctive normal form, encoding an assertion's status across all data pools simultaneously."
     concepts:
       - boolean_label
+      - bead
       - data_pool
-      - data_dependency
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section II"
+      page: 241
+      section: "Part II"
 
   - id: claim5
     type: observation
-    statement: "A consistent labeling assigns Boolean labels to all assertions such that each assertion's label equals the disjunction of its justification labels, where a justification label is the conjunction of its in-justifiers' labels and the negation of its out-justifiers' labels."
+    statement: "The Boolean substitution algorithm for finding consistent, well-founded labelings always halts because every substitution eliminates one variable."
     concepts:
       - boolean_label
       - well_founded_labeling
-      - data_dependency
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section II"
+      page: 242
+      section: "Part II"
 
   - id: claim6
     type: observation
-    statement: "A well-founded labeling is one where every IN assertion has a justification tree that bottoms out in premises or OUT assertions, with no unsupported circular justifications."
+    statement: "An odd loop is a cycle of justifications with an odd number of negative links (out-justifier appearances), which prevents any consistent labeling."
     concepts:
+      - odd_loop
       - well_founded_labeling
       - data_dependency
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section II"
+      page: 242
+      section: "Part II"
 
   - id: claim7
     type: observation
-    statement: "For self-referential label equations A = f(A) where f is monotonically increasing, the solution is always A = f(OUT), which gives the outermost (most inclusive) consistent labeling."
+    statement: "Even loops always have consistent labelings; only odd loops must be forbidden in dependency networks."
     concepts:
-      - boolean_label
+      - odd_loop
       - well_founded_labeling
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section III"
+      page: 242
+      section: "Part II"
 
   - id: claim8
     type: observation
-    statement: "The Boolean substitution algorithm always halts because every substitution eliminates one variable, and produces a consistent, well-founded labeling."
+    statement: "When a self-referential equation A = f(A) has multiple solutions, the algorithm picks A = f(OUT), the outest (most OUT) solution, ensuring no assertion is IN without grounded support."
     concepts:
-      - boolean_label
       - well_founded_labeling
+      - boolean_label
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section III"
+      page: 242
+      section: "Part II"
 
   - id: claim9
     type: observation
-    statement: "Odd loops (cycles with an odd number of negative links) in a dependency network must be forbidden because they prevent any consistent labeling from existing."
+    statement: "Worst-case label computation complexity is n^2 substitutions when every assertion is directly connected to every other, but typical case is much better."
     concepts:
-      - odd_loop
+      - boolean_label
       - data_dependency
-      - well_founded_labeling
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section II"
+      page: 242
+      section: "Part II"
 
   - id: claim10
     type: observation
-    statement: "Even loops in dependency networks always have consistent labelings; only odd loops are problematic."
+    statement: "Bead subsumption optimization: when B1 is created by pushing from B2's pool, B1 subsumes B2, and the label B1 V B2 simplifies to B2."
     concepts:
-      - odd_loop
-      - well_founded_labeling
+      - bead
+      - boolean_label
+      - data_pool
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section II"
+      page: 241
+      section: "Part II"
 
   - id: claim11
     type: observation
-    statement: "Bead subsumption optimization: if bead B1 was created by pushing from B2's pool, then B1 never occurs without B2, and the label B1 or B2 simplifies to B2, alleviating exponential label growth."
+    statement: "Blocking beads are attached to latent assertions and checked every time a bead enters or leaves a data pool; when the transition causes a latent assertion to become present, it is indexed and forward chaining proceeds."
     concepts:
-      - boolean_label
+      - blocking_bead
+      - latent_assertion
       - data_pool
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section III"
+      page: 243
+      section: "Part III"
 
   - id: claim12
     type: observation
-    statement: "Worst-case complexity of the Boolean substitution algorithm is n-squared substitutions, occurring when every assertion is directly connected to every other; typical case is much better since assertions usually have only one or two associated beads."
+    statement: "Signal functions provide a decoupled communication interface between the knowledge-representation level and the data-dependency level, signaling when an assertion changes status."
     concepts:
-      - boolean_label
+      - signal_function
       - data_dependency
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section III"
+      page: 240
+      section: "Part II"
 
   - id: claim13
-    type: measurement
-    statement: "Adding a justification in the implementation costs approximately 0.3 milliseconds per node on a DEC 2060 with a 200-node benchmark network."
-    target_concept: data_dependency
-    measure: "time per justification addition"
-    value: 0.3
-    unit: "ms/node"
-    concepts:
-      - data_dependency
-    provenance:
-      paper: McDermott_1983_ContextsDataDependencies
-      section: "Section III"
-
-  - id: claim14
-    type: measurement
-    statement: "Label computation requires approximately 3 CONSes per node on average in the 200-node benchmark."
-    target_concept: boolean_label
-    measure: "memory allocations per node"
-    value: 3
-    unit: "CONSes/node"
+    type: observation
+    statement: "In Doyle's original algorithm, status assignments were never explicitly computed; they were determined from the justification set and recomputed on each pool switch. The Boolean label approach summarizes all status computations simultaneously."
     concepts:
       - boolean_label
+      - truth_maintenance_system
+      - data_pool
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section III"
+      page: 241
+      section: "Part II"
+
+  - id: claim14
+    type: observation
+    statement: "Labels can grow exponentially with the depth of well-founded support when assertions have multiple proofs, though this is rare in practice."
+    concepts:
+      - boolean_label
+      - well_founded_labeling
+    provenance:
+      paper: McDermott_1983_ContextsDataDependencies
+      page: 242
+      section: "Part II"
 
   - id: claim15
     type: observation
-    statement: "Blocking beads attached to latent assertions enable efficient deductive chaining across data pools: when a bead transition causes a latent assertion to become present, it is indexed and chained."
+    statement: "Implementation benchmark: approximately 0.3 ms per node for adding a justification, about 3 CONSes per node for label computation, on a 200-node test network."
+    concepts:
+      - data_dependency
+      - boolean_label
+    provenance:
+      paper: McDermott_1983_ContextsDataDependencies
+      page: 244
+      section: "Part III"
+
+  - id: claim16
+    type: observation
+    statement: "Data pools offer only coarse-grained control (fast switching but no reason tracking), while data dependencies offer fine-grained reason tracking but expensive status recomputation; the combined framework preserves the advantages of each."
     concepts:
       - data_pool
       - data_dependency
     provenance:
       paper: McDermott_1983_ContextsDataDependencies
-      section: "Section III"
-
-  - id: claim16
-    type: observation
-    statement: "Signal functions provide the communication interface between the knowledge-representation level and the data-dependency level, allowing the KR system to register interest in status changes and respond to them."
-    concepts:
-      - data_dependency
-    provenance:
-      paper: McDermott_1983_ContextsDataDependencies
-      section: "Section IV"
+      page: 237
+      section: "Part I"

@@ -1,0 +1,8 @@
+id: concept181
+canonical_name: assumption
+status: proposed
+definition: A believed node whose justification depends on the absence of belief in
+  certain other nodes, serving as a tentative basis for reasoning that can be retracted
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

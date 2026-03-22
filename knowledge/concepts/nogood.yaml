@@ -1,8 +1,8 @@
-id: concept12
+id: concept169
 canonical_name: nogood
 status: proposed
 definition: A record that a particular set of assumptions is jointly inconsistent,
-  used to prevent the system from re-entering a known contradictory state
+  justified by a CP-justification to persist regardless of which assumption is retracted
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

@@ -1,9 +1,9 @@
-id: concept96
+id: concept327
 canonical_name: citation_bias
 status: proposed
-definition: Systematic ignoring of papers containing content conflicting with a claim,
-  measured as differing citation frequency between supportive and critical primary
-  data papers
+definition: Systematic ignoring of papers containing content conflicting with a scientific
+  claim, measured as differential citation frequency between supportive and critical
+  papers
 domain: scientific_communication
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

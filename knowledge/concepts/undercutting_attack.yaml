@@ -1,8 +1,8 @@
-id: concept141
+id: concept356
 canonical_name: undercutting_attack
 status: proposed
-definition: An attack in ASPIC+ where an argument's conclusion negates the name of
-  a defeasible inference rule used in the target, challenging the rule's applicability
+definition: An attack on the applicability of a defeasible inference rule, always
+  succeeds as defeat regardless of preferences
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

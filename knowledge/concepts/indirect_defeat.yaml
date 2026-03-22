@@ -1,8 +1,8 @@
-id: concept107
+id: concept340
 canonical_name: indirect_defeat
 status: proposed
-definition: 'A defeat path in a BAF where a defeat is followed by support: A defeats
-  B and B supports...supports C, so A indirectly defeats C'
+definition: A composite defeat where A directly defeats an argument that supports
+  B through a support chain
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

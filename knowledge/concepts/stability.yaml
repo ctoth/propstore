@@ -1,8 +1,8 @@
-id: concept45
+id: concept203
 canonical_name: stability
 status: proposed
-definition: The property that a literal's justification status will not change regardless
+definition: Property of a literal whose justification status will not change regardless
   of how unsettled observations are resolved
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

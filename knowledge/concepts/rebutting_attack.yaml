@@ -1,8 +1,8 @@
-id: concept140
+id: concept367
 canonical_name: rebutting_attack
 status: proposed
-definition: An attack in ASPIC+ where an argument's conclusion negates a defeasibly-derived
-  conclusion of a sub-argument of the target
+definition: An attack on a defeasibly-derived conclusion of an argument by concluding
+  its negation
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

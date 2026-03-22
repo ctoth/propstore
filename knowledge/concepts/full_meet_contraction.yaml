@@ -1,9 +1,8 @@
-id: concept21
+id: concept285
 canonical_name: full_meet_contraction
 status: proposed
-definition: A partial meet contraction where the selection function always picks all
-  remainders, yielding the most conservative contraction that intersects every element
-  of the remainder set
+definition: A contraction where the selection function picks the entire remainder
+  set, yielding the most conservative result
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

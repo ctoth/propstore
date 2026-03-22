@@ -1,8 +1,7 @@
-id: concept87
+id: concept261
 canonical_name: foundational_belief
 status: proposed
-definition: In the context of ATMS-AGM bridging, a support set for a proposition that
-  is a subset of the current environment, i.e. an active derivation path
+definition: A belief supported by a chain of justifications back to foundational assumptions
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

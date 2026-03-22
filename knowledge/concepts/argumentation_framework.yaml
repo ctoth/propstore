@@ -1,8 +1,8 @@
-id: concept24
+id: concept183
 canonical_name: argumentation_framework
 status: proposed
 definition: An abstract pair AF = (AR, attacks) where AR is a set of arguments and
-  attacks is a binary relation on AR representing conflict between arguments
+  attacks is a binary relation on AR
 domain: argumentation
-created_date: '2026-03-21'
+created_date: '2026-03-22'
 form: structural

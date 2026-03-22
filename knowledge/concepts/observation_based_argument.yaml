@@ -1,0 +1,8 @@
+id: concept211
+canonical_name: observation_based_argument
+status: proposed
+definition: An argument in ASPIC+ whose premises include observations from incomplete
+  information settings
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

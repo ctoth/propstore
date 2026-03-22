@@ -1,9 +1,0 @@
-id: concept127
-canonical_name: counterfactual_conditional
-status: proposed
-definition: A conditional statement of the form 'if p were true, then q would be true'
-  evaluated by modifying truth assignments and computing logical closure, distinct
-  from material implication
-domain: nonmonotonic_reasoning
-created_date: '2026-03-21'
-form: structural
