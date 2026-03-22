@@ -305,8 +305,9 @@ def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool
 @click.option("--model", required=True, help="LLM model for classification")
 @click.option("--embedding-model", default=None, help="Embedding model for similarity")
 @click.option("--top-k", default=5, type=int, help="Number of similar claims to classify")
+@click.option("--concurrency", default=20, type=int, help="Max concurrent LLM calls")
 @click.pass_obj
-def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k):
+def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concurrency):
     """Classify epistemic relationships between similar claims via LLM."""
     from propstore.relate import relate_claim, relate_all as relate_all_fn, write_stance_file
     from propstore.embed import _load_vec_extension
@@ -342,7 +343,7 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k):
             if done % 10 == 0 or done == total:
                 click.echo(f"  {done}/{total} claims processed", err=True)
 
-        result = relate_all_fn(conn, model, embedding_model, top_k, on_progress=progress)
+        result = relate_all_fn(conn, model, embedding_model, top_k, concurrency=concurrency, on_progress=progress)
         conn.close()
 
         # Write stance files

@@ -1,6 +1,7 @@
 """NLI stance classification via litellm — classify epistemic relationships between claims."""
 from __future__ import annotations
 
+import asyncio
 import json
 import sqlite3
 from collections.abc import Callable
@@ -60,15 +61,13 @@ def _get_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict | None:
     return d
 
 
-def classify_stance(
+async def _classify_stance_async(
     claim_a: dict,
     claim_b: dict,
     model_name: str,
+    semaphore: asyncio.Semaphore,
 ) -> dict | None:
-    """Classify the epistemic relationship between two claims via LLM.
-
-    Returns dict with type/strength/note/conditions_differ, or None if no relationship.
-    """
+    """Classify the epistemic relationship between two claims via async LLM call."""
     litellm = _require_litellm()
 
     prompt = _CLASSIFICATION_PROMPT.format(
@@ -78,11 +77,15 @@ def classify_stance(
         statement_b=claim_b["text"],
     )
 
-    response = litellm.completion(
-        model=model_name,
-        messages=[{"role": "user", "content": prompt}],
-        response_format={"type": "json_object"},
-    )
+    async with semaphore:
+        try:
+            response = await litellm.acompletion(
+                model=model_name,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+            )
+        except Exception:
+            return None
 
     text = response.choices[0].message.content.strip()
     try:
@@ -103,14 +106,25 @@ def classify_stance(
     }
 
 
-def relate_claim(
+def classify_stance(
+    claim_a: dict,
+    claim_b: dict,
+    model_name: str,
+) -> dict | None:
+    """Classify the epistemic relationship between two claims via LLM (sync wrapper)."""
+    sem = asyncio.Semaphore(1)
+    return asyncio.run(_classify_stance_async(claim_a, claim_b, model_name, sem))
+
+
+async def _relate_claim_async(
     conn: sqlite3.Connection,
     claim_id: str,
     model_name: str,
-    embedding_model: str | None = None,
-    top_k: int = 5,
+    embedding_model: str | None,
+    top_k: int,
+    semaphore: asyncio.Semaphore,
 ) -> list[dict]:
-    """Find similar claims and classify relationships."""
+    """Find similar claims and classify relationships concurrently."""
     from propstore.embed import find_similar, get_registered_models, _load_vec_extension
 
     _load_vec_extension(conn)
@@ -121,25 +135,123 @@ def relate_claim(
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
         embedding_model = models[0]["model_name"]
 
-    # Get source claim text
     claim_a = _get_claim_text(conn, claim_id)
     if not claim_a:
         raise ValueError(f"Claim {claim_id} not found")
 
-    # Find similar claims
     candidates = find_similar(conn, claim_id, embedding_model, top_k=top_k)
 
-    # Classify each candidate
-    stances = []
-    for candidate in candidates:
-        claim_b = _get_claim_text(conn, candidate["id"])
-        if not claim_b:
-            continue
-        stance = classify_stance(claim_a, claim_b, model_name)
-        if stance:
-            stances.append(stance)
+    # Fetch all candidate texts
+    candidate_claims = []
+    for c in candidates:
+        claim_b = _get_claim_text(conn, c["id"])
+        if claim_b:
+            candidate_claims.append(claim_b)
 
-    return stances
+    # Classify all candidates concurrently
+    tasks = [
+        _classify_stance_async(claim_a, claim_b, model_name, semaphore)
+        for claim_b in candidate_claims
+    ]
+    results = await asyncio.gather(*tasks)
+
+    return [r for r in results if r is not None]
+
+
+def relate_claim(
+    conn: sqlite3.Connection,
+    claim_id: str,
+    model_name: str,
+    embedding_model: str | None = None,
+    top_k: int = 5,
+) -> list[dict]:
+    """Find similar claims and classify relationships (sync entry point)."""
+    sem = asyncio.Semaphore(10)
+    return asyncio.run(
+        _relate_claim_async(conn, claim_id, model_name, embedding_model, top_k, sem)
+    )
+
+
+async def _relate_all_async(
+    conn: sqlite3.Connection,
+    model_name: str,
+    embedding_model: str | None,
+    top_k: int,
+    concurrency: int,
+    on_progress: Callable[[int, int], None] | None,
+) -> dict:
+    """Classify relationships for all claims with concurrent LLM calls."""
+    from propstore.embed import find_similar, get_registered_models, _load_vec_extension
+
+    _load_vec_extension(conn)
+
+    if embedding_model is None:
+        models = get_registered_models(conn)
+        if not models:
+            raise ValueError("No embeddings found. Run 'pks claim embed' first.")
+        embedding_model = models[0]["model_name"]
+
+    all_claim_rows = conn.execute("SELECT id FROM claim").fetchall()
+    total = len(all_claim_rows)
+
+    # Phase 1: Gather all (claim_a, candidate_b) pairs from embeddings (fast, no LLM)
+    pairs: list[tuple[dict, dict]] = []
+    for row in all_claim_rows:
+        claim_id = row["id"]
+        claim_a = _get_claim_text(conn, claim_id)
+        if not claim_a:
+            continue
+        try:
+            candidates = find_similar(conn, claim_id, embedding_model, top_k=top_k)
+        except ValueError:
+            continue
+        for c in candidates:
+            claim_b = _get_claim_text(conn, c["id"])
+            if claim_b:
+                pairs.append((claim_a, claim_b))
+
+    # Phase 2: Classify all pairs concurrently
+    semaphore = asyncio.Semaphore(concurrency)
+    tasks = [
+        _classify_stance_async(a, b, model_name, semaphore)
+        for a, b in pairs
+    ]
+
+    all_stances: dict[str, list[dict]] = {}
+    total_stances = 0
+    total_none = 0
+    done = 0
+
+    # Process in chunks to report progress
+    chunk_size = concurrency * 2
+    for i in range(0, len(tasks), chunk_size):
+        chunk = tasks[i:i + chunk_size]
+        chunk_pairs = pairs[i:i + chunk_size]
+        results = await asyncio.gather(*chunk)
+
+        for (claim_a, _claim_b), result in zip(chunk_pairs, results):
+            cid = claim_a["id"]
+            if result is not None:
+                all_stances.setdefault(cid, []).append(result)
+                total_stances += 1
+            else:
+                total_none += 1
+
+        done += len(chunk)
+        if on_progress:
+            # Approximate claim progress from pair progress
+            claims_done = min(total, (done * total) // max(len(pairs), 1))
+            on_progress(claims_done, total)
+
+    if on_progress:
+        on_progress(total, total)
+
+    return {
+        "claims_processed": total,
+        "stances_found": total_stances,
+        "no_relation": total_none,
+        "stances_by_claim": all_stances,
+    }
 
 
 def relate_all(
@@ -147,37 +259,13 @@ def relate_all(
     model_name: str,
     embedding_model: str | None = None,
     top_k: int = 5,
+    concurrency: int = 20,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> dict:
-    """Classify relationships for all claims."""
-    all_claims = conn.execute("SELECT id FROM claim").fetchall()
-    total = len(all_claims)
-
-    total_stances = 0
-    total_none = 0
-    processed = 0
-    all_stances: dict[str, list[dict]] = {}
-
-    for row in all_claims:
-        claim_id = row["id"]
-        try:
-            stances = relate_claim(conn, claim_id, model_name, embedding_model, top_k)
-            if stances:
-                all_stances[claim_id] = stances
-                total_stances += len(stances)
-            total_none += top_k - len(stances)
-        except ValueError:
-            pass
-        processed += 1
-        if on_progress:
-            on_progress(processed, total)
-
-    return {
-        "claims_processed": processed,
-        "stances_found": total_stances,
-        "no_relation": total_none,
-        "stances_by_claim": all_stances,
-    }
+    """Classify relationships for all claims (sync entry point)."""
+    return asyncio.run(
+        _relate_all_async(conn, model_name, embedding_model, top_k, concurrency, on_progress)
+    )
 
 
 def write_stance_file(
