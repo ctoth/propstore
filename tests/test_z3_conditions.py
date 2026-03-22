@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import pytest
 
+from propstore.condition_classifier import classify_conditions as _classify_conditions
 from propstore.conflict_detector import (
     ConflictClass,
-    _classify_conditions,
     detect_conflicts,
 )
 from propstore.validate_claims import LoadedClaimFile
