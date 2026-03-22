@@ -6,10 +6,12 @@ and provides a ContextHierarchy for querying inheritance, exclusion, and visibil
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
+
+from propstore.validate import ValidationResult
 
 
 @dataclass
@@ -18,16 +20,6 @@ class LoadedContext:
     filename: str
     filepath: Path | None
     data: dict
-
-
-@dataclass
-class ContextValidationResult:
-    errors: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-
-    @property
-    def ok(self) -> bool:
-        return len(self.errors) == 0
 
 
 def load_contexts(contexts_dir: Path) -> list[LoadedContext]:
@@ -47,9 +39,9 @@ def load_contexts(contexts_dir: Path) -> list[LoadedContext]:
     return files
 
 
-def validate_contexts(contexts: list[LoadedContext]) -> ContextValidationResult:
+def validate_contexts(contexts: list[LoadedContext]) -> ValidationResult:
     """Validate context files for required fields, references, and cycles."""
-    result = ContextValidationResult()
+    result = ValidationResult()
     seen_ids: dict[str, str] = {}  # id -> filename
     all_ids: set[str] = set()
 

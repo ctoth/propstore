@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import jsonschema
 import yaml
+
+from propstore.validate import ValidationResult
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
@@ -42,15 +44,6 @@ class LoadedClaimFile:
     filepath: Path
     data: dict
 
-
-@dataclass
-class ValidationResult:
-    errors: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-
-    @property
-    def ok(self) -> bool:
-        return len(self.errors) == 0
 
 
 def load_claim_files(claims_dir: Path) -> list[LoadedClaimFile]:
