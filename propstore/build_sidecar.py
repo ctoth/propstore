@@ -405,6 +405,66 @@ def _populate_parameterization_groups(conn: sqlite3.Connection, concepts: list[L
             )
 
 
+def _create_context_tables(conn: sqlite3.Connection):
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS context (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            inherits TEXT,
+            FOREIGN KEY (inherits) REFERENCES context(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS context_assumption (
+            context_id TEXT NOT NULL,
+            assumption_cel TEXT NOT NULL,
+            seq INTEGER NOT NULL,
+            FOREIGN KEY (context_id) REFERENCES context(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS context_exclusion (
+            context_a TEXT NOT NULL,
+            context_b TEXT NOT NULL,
+            FOREIGN KEY (context_a) REFERENCES context(id),
+            FOREIGN KEY (context_b) REFERENCES context(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_ctx_assumption ON context_assumption(context_id);
+        CREATE INDEX IF NOT EXISTS idx_ctx_exclusion_a ON context_exclusion(context_a);
+        CREATE INDEX IF NOT EXISTS idx_ctx_exclusion_b ON context_exclusion(context_b);
+    """)
+
+
+def _populate_contexts(conn: sqlite3.Connection, contexts: list) -> None:
+    """Populate context, context_assumption, and context_exclusion tables."""
+    from propstore.validate_contexts import LoadedContext
+
+    for ctx in contexts:
+        if not isinstance(ctx, LoadedContext):
+            continue
+        d = ctx.data
+        cid = d.get("id")
+        if not cid:
+            continue
+
+        conn.execute(
+            "INSERT INTO context (id, name, description, inherits) VALUES (?, ?, ?, ?)",
+            (cid, d.get("name", ""), d.get("description"), d.get("inherits")),
+        )
+
+        for seq, assumption in enumerate(d.get("assumptions") or [], 1):
+            conn.execute(
+                "INSERT INTO context_assumption (context_id, assumption_cel, seq) VALUES (?, ?, ?)",
+                (cid, assumption, seq),
+            )
+
+        for exc in d.get("excludes") or []:
+            conn.execute(
+                "INSERT INTO context_exclusion (context_a, context_b) VALUES (?, ?)",
+                (cid, exc),
+            )
+
+
 def _build_fts_index(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
     """Build FTS5 index over concept names, aliases, definitions, and condition strings."""
     conn.execute("""

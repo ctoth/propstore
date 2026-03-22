@@ -215,3 +215,93 @@ class TestContextHierarchy:
         assert h.is_visible("ctx_leaf", "ctx_root")    # grandparent
         assert not h.is_visible("ctx_leaf", "ctx_other")  # unrelated
         assert not h.is_visible("ctx_root", "ctx_leaf")   # child not visible from parent
+
+
+# ── Step 2: Context tables in sidecar ────────────────────────────────
+
+import sqlite3
+from propstore.build_sidecar import (
+    _create_context_tables,
+    _populate_contexts,
+)
+
+
+class TestContextSidecar:
+    def _make_conn(self):
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def test_create_context_tables(self):
+        """_create_context_tables creates all three tables."""
+        conn = self._make_conn()
+        _create_context_tables(conn)
+        tables = {r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()}
+        assert "context" in tables
+        assert "context_assumption" in tables
+        assert "context_exclusion" in tables
+
+    def test_populate_contexts(self):
+        """Contexts from LoadedContext list appear in context table."""
+        conn = self._make_conn()
+        _create_context_tables(conn)
+        contexts = [
+            LoadedContext("a", None, make_context("ctx_a", "A", "Desc A")),
+            LoadedContext("b", None, make_context("ctx_b", "B", "Desc B")),
+        ]
+        _populate_contexts(conn, contexts)
+        rows = conn.execute("SELECT * FROM context").fetchall()
+        assert len(rows) == 2
+        ids = {r["id"] for r in rows}
+        assert ids == {"ctx_a", "ctx_b"}
+
+    def test_populate_assumptions(self):
+        """Context assumptions appear in context_assumption table in order."""
+        conn = self._make_conn()
+        _create_context_tables(conn)
+        contexts = [
+            LoadedContext("a", None, make_context("ctx_a", "A",
+                         assumptions=["x == 1", "y == 2"])),
+        ]
+        _populate_contexts(conn, contexts)
+        rows = conn.execute(
+            "SELECT * FROM context_assumption WHERE context_id='ctx_a' ORDER BY seq"
+        ).fetchall()
+        assert len(rows) == 2
+        assert rows[0]["assumption_cel"] == "x == 1"
+        assert rows[1]["assumption_cel"] == "y == 2"
+
+    def test_populate_exclusions(self):
+        """Exclusion pairs appear in context_exclusion table."""
+        conn = self._make_conn()
+        _create_context_tables(conn)
+        contexts = [
+            LoadedContext("a", None, make_context("ctx_a", "A", excludes=["ctx_b"])),
+            LoadedContext("b", None, make_context("ctx_b", "B")),
+        ]
+        _populate_contexts(conn, contexts)
+        rows = conn.execute("SELECT * FROM context_exclusion").fetchall()
+        assert len(rows) == 1
+        assert rows[0]["context_a"] == "ctx_a"
+        assert rows[0]["context_b"] == "ctx_b"
+
+    def test_populate_inherits(self):
+        """Parent reference is stored in context.inherits column."""
+        conn = self._make_conn()
+        _create_context_tables(conn)
+        contexts = [
+            LoadedContext("p", None, make_context("ctx_parent", "Parent")),
+            LoadedContext("c", None, make_context("ctx_child", "Child", inherits="ctx_parent")),
+        ]
+        _populate_contexts(conn, contexts)
+        row = conn.execute("SELECT inherits FROM context WHERE id='ctx_child'").fetchone()
+        assert row["inherits"] == "ctx_parent"
+
+    def test_empty_contexts_ok(self):
+        """Build succeeds with no contexts."""
+        conn = self._make_conn()
+        _create_context_tables(conn)
+        _populate_contexts(conn, [])
+        assert conn.execute("SELECT COUNT(*) FROM context").fetchone()[0] == 0
