@@ -1,0 +1,5 @@
+name: amplitude_ratio
+dimensionless: true
+kind: quantity
+base: ratio
+note: Ratio of two amplitude values (e.g. voltage gain, sound pressure ratio).

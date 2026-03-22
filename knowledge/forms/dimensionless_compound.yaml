@@ -1,0 +1,4 @@
+name: dimensionless_compound
+dimensionless: true
+kind: quantity
+note: Compound dimensionless quantity (e.g. Reynolds number, Mach number).

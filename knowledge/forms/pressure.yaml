@@ -1,0 +1,9 @@
+name: pressure
+dimensionless: false
+kind: quantity
+unit_symbol: Pa
+dimensions:
+  M: 1
+  L: -1
+  T: -2
+note: Force per unit area.

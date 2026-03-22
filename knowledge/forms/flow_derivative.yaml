@@ -1,0 +1,8 @@
+name: flow_derivative
+dimensionless: false
+kind: quantity
+unit_symbol: "m\u00B3/s\u00B2"
+dimensions:
+  L: 3
+  T: -2
+note: Time derivative of volumetric flow rate.

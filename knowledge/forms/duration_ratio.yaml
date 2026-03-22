@@ -1,0 +1,5 @@
+name: duration_ratio
+dimensionless: true
+kind: quantity
+base: ratio
+note: Ratio of two duration values.

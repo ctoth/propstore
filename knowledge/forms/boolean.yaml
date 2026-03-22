@@ -1,1 +1,4 @@
 name: boolean
+dimensionless: true
+kind: boolean
+note: True/false value.

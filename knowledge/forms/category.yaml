@@ -1,0 +1,4 @@
+name: category
+dimensionless: true
+kind: category
+note: Categorical or nominal value (e.g. label, type, class).

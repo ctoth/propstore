@@ -1,1 +1,5 @@
 name: ratio
+dimensionless: true
+kind: quantity
+base: ratio
+note: Generic ratio of two quantities with matching dimensions.
