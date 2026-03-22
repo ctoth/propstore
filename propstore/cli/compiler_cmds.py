@@ -589,10 +589,13 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
 @click.option("--set-comparison", "set_comparison", default="elitist",
               type=click.Choice(["elitist", "democratic"]),
               help="Set comparison for preference ordering (default: elitist)")
+@click.option("--confidence-threshold", "confidence_threshold", default=0.5,
+              type=float, help="Minimum stance confidence to include (default: 0.5)")
 @click.pass_obj
 def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                   strategy: str, override_id: str | None,
-                  semantics: str, set_comparison: str) -> None:
+                  semantics: str, set_comparison: str,
+                  confidence_threshold: float) -> None:
     """Resolve a conflicted concept using a strategy.
 
     Usage: pks world resolve concept1 domain=example --strategy argumentation
@@ -617,6 +620,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
         result = resolve(
             bound, resolved, strat, world=wm, overrides=overrides,
             semantics=semantics, comparison=set_comparison,
+            confidence_threshold=confidence_threshold,
         )
     except ValueError as e:
         click.echo(f"ERROR: {e}", err=True)
@@ -643,14 +647,17 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 @click.option("--set-comparison", "set_comparison", default="elitist",
               type=click.Choice(["elitist", "democratic"]),
               help="Set comparison for preference ordering (default: elitist)")
+@click.option("--confidence-threshold", "confidence_threshold", default=0.5,
+              type=float, help="Minimum stance confidence to include (default: 0.5)")
 @click.pass_obj
 def world_extensions(obj: dict, args: tuple[str, ...],
-                     semantics: str, set_comparison: str) -> None:
+                     semantics: str, set_comparison: str,
+                     confidence_threshold: float) -> None:
     """Show argumentation extensions — all claims that survive scrutiny.
 
     Usage: pks world extensions domain=example --semantics grounded
     """
-    from propstore.argumentation import compute_justified_claims
+    from propstore.argumentation import compute_justified_claims, stance_summary
     from propstore.world_model import WorldModel
 
     repo: Repository = obj["repo"]
@@ -674,11 +681,21 @@ def world_extensions(obj: dict, args: tuple[str, ...],
         wm._conn, claim_ids,
         semantics=semantics,
         comparison=set_comparison,
+        confidence_threshold=confidence_threshold,
     )
 
+    # Render explanation: what stances were used under what policy
+    summary = stance_summary(wm._conn, claim_ids, confidence_threshold)
     click.echo(f"Semantics: {semantics}")
     click.echo(f"Set comparison: {set_comparison}")
+    click.echo(f"Confidence threshold: {confidence_threshold}")
     click.echo(f"Active claims: {len(claim_ids)}")
+    click.echo(f"Stances: {summary['total_stances']} total, "
+               f"{summary['included_as_attacks']} included as attacks, "
+               f"{summary['excluded_by_threshold']} below threshold, "
+               f"{summary['excluded_non_attack']} non-attack")
+    if summary["models"]:
+        click.echo(f"Models: {', '.join(summary['models'])}")
 
     if semantics == "grounded":
         click.echo(f"Grounded extension ({len(result)} claims):")
