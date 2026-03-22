@@ -117,6 +117,57 @@ def compute_justified_claims(
         raise ValueError(f"Unknown semantics: {semantics}")
 
 
+def stance_summary(
+    conn: sqlite3.Connection,
+    active_claim_ids: set[str],
+    confidence_threshold: float = 0.5,
+) -> dict:
+    """Summarize stances used in AF construction for render explanation.
+
+    Returns counts and model info so the render layer can explain
+    which stances were included under what policy.
+    """
+    placeholders = ",".join("?" for _ in active_claim_ids)
+    rows = conn.execute(
+        f"SELECT stance_type, confidence, resolution_model "  # noqa: S608
+        f"FROM claim_stance "
+        f"WHERE claim_id IN ({placeholders}) "
+        f"AND target_claim_id IN ({placeholders})",
+        list(active_claim_ids) + list(active_claim_ids),
+    ).fetchall()
+
+    total = 0
+    included = 0
+    excluded_by_threshold = 0
+    excluded_non_attack = 0
+    models: set[str] = set()
+
+    for row in rows:
+        total += 1
+        stype = row[0]
+        conf = row[1]
+        model = row[2]
+
+        if stype in _NON_ATTACK_TYPES:
+            excluded_non_attack += 1
+            continue
+        if conf is not None and conf < confidence_threshold:
+            excluded_by_threshold += 1
+            continue
+        included += 1
+        if model:
+            models.add(model)
+
+    return {
+        "total_stances": total,
+        "included_as_attacks": included,
+        "excluded_by_threshold": excluded_by_threshold,
+        "excluded_non_attack": excluded_non_attack,
+        "confidence_threshold": confidence_threshold,
+        "models": sorted(models),
+    }
+
+
 def compute_consistent_beliefs(
     conn: sqlite3.Connection,
     active_claim_ids: set[str],
