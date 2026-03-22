@@ -2,3 +2,10 @@ name: category
 dimensionless: true
 kind: category
 note: Categorical or nominal value (e.g. label, type, class).
+parameters:
+  values:
+    required: true
+    note: List of allowed category values
+  extensible:
+    required: false
+    note: Whether new values can be added (default true)

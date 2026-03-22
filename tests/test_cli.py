@@ -78,9 +78,15 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
                       "duration_ratio", "pressure", "level", "time",
                       "flow", "flow_derivative", "amplitude_ratio",
                       "dimensionless_compound"):
+        form_data: dict = {"name": form_name, "dimensionless": form_name in _dimensionless_forms}
+        if form_name == "category":
+            form_data["kind"] = "category"
+            form_data["parameters"] = {
+                "values": {"required": True, "note": "List of allowed category values"},
+                "extensible": {"required": False, "note": "Whether new values can be added (default true)"},
+            }
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name, "dimensionless": form_name in _dimensionless_forms},
-                      default_flow_style=False))
+            yaml.dump(form_data, default_flow_style=False))
 
     # Write two concepts
     _write_concept(concepts, "fundamental_frequency", _make_concept(
@@ -999,3 +1005,70 @@ class TestImportPapersSourcePrefix:
             data = yaml.safe_load(f)
         stance = data["claims"][0]["stances"][0]
         assert stance["target"] == "PaperC_2022_Baz:claim2"
+
+
+class TestConceptCategoryValues:
+    def test_add_category_with_values(self, workspace: Path) -> None:
+        """pks concept add --form category --values creates valid concept with form_parameters."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "general",
+            "--name", "dataset",
+            "--definition", "The benchmark dataset",
+            "--form", "category",
+            "--values", "ActivityNet,YouCook2,Charades",
+        ])
+        assert result.exit_code == 0, result.output
+        assert "Created" in result.output
+
+        filepath = workspace / "knowledge" / "concepts" / "dataset.yaml"
+        data = yaml.safe_load(filepath.read_text())
+        assert data["form"] == "category"
+        assert data["form_parameters"]["values"] == ["ActivityNet", "YouCook2", "Charades"]
+
+    def test_add_category_without_values_fails(self, workspace: Path) -> None:
+        """pks concept add --form category without --values fails before writing file."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "general",
+            "--name", "dataset",
+            "--definition", "The benchmark dataset",
+            "--form", "category",
+        ])
+        assert result.exit_code != 0
+        assert "values" in result.output.lower()
+        assert not (workspace / "knowledge" / "concepts" / "dataset.yaml").exists()
+        # Counter must not advance
+        assert _read_counter(workspace / "knowledge" / "concepts", "general") == 3
+
+    def test_add_category_values_strips_whitespace(self, workspace: Path) -> None:
+        """Whitespace around comma-separated values is stripped."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "general",
+            "--name", "metric",
+            "--definition", "Evaluation metric",
+            "--form", "category",
+            "--values", " CIDEr , METEOR , BLEU ",
+        ])
+        assert result.exit_code == 0, result.output
+        data = yaml.safe_load(
+            (workspace / "knowledge" / "concepts" / "metric.yaml").read_text())
+        assert data["form_parameters"]["values"] == ["CIDEr", "METEOR", "BLEU"]
+
+    def test_add_non_category_with_values_fails(self, workspace: Path) -> None:
+        """--values on a non-category form is an error."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "speech",
+            "--name", "test_freq",
+            "--definition", "A frequency",
+            "--form", "frequency",
+            "--values", "a,b",
+        ])
+        assert result.exit_code != 0
+        assert not (workspace / "knowledge" / "concepts" / "test_freq.yaml").exists()

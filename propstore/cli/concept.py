@@ -124,6 +124,7 @@ def _rewrite_claim_conditions(claim_file_data: dict, old_name: str, new_name: st
 @click.option("--definition", default=None, help="Definition (prompted if omitted)")
 @click.option("--form", "form_name", default=None,
               help="Form name (references forms/<name>.yaml, prompted if omitted)")
+@click.option("--values", default=None, help="Comma-separated values (required for category concepts)")
 @click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
 @click.pass_obj
 def add(
@@ -132,6 +133,7 @@ def add(
     name: str,
     definition: str | None,
     form_name: str | None,
+    values: str | None,
     dry_run: bool,
 ) -> None:
     """Add a new concept to the registry."""
@@ -164,6 +166,20 @@ def add(
             "created_date": str(date.today()),
             "form": form_name,
         }
+
+        # Category concepts require --values
+        if form_name == "category":
+            if values is None:
+                click.echo("ERROR: --values is required when --form=category", err=True)
+                sys.exit(EXIT_ERROR)
+            value_list = [v.strip() for v in values.split(",") if v.strip()]
+            if not value_list:
+                click.echo("ERROR: --values must contain at least one value", err=True)
+                sys.exit(EXIT_ERROR)
+            data["form_parameters"] = {"values": value_list}
+        elif values is not None:
+            click.echo("ERROR: --values is only valid with --form=category", err=True)
+            sys.exit(EXIT_ERROR)
 
         if dry_run:
             click.echo(f"Would create {filepath}")
