@@ -134,6 +134,56 @@ def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) ->
     return count
 
 
+def _populate_defeats(conn: sqlite3.Connection) -> int:
+    """Populate the defeat table from claim_stance using preference filtering.
+
+    This is a materialized view: recomputed on every build. The defeat
+    relation is the stance graph filtered through ASPIC+ preference ordering.
+    """
+    from propstore.argumentation import build_argumentation_framework
+
+    # build_argumentation_framework requires Row factory for dict-style access
+    old_factory = conn.row_factory
+    conn.row_factory = sqlite3.Row
+
+    # Get all concepts that have claims
+    concept_rows = conn.execute(
+        "SELECT DISTINCT concept_id FROM claim WHERE concept_id IS NOT NULL"
+    ).fetchall()
+
+    count = 0
+    for row in concept_rows:
+        concept_id = row[0]
+        claim_ids = {
+            r[0] for r in conn.execute(
+                "SELECT id FROM claim WHERE concept_id = ?", (concept_id,)
+            ).fetchall()
+        }
+        if len(claim_ids) < 2:
+            continue
+
+        af = build_argumentation_framework(conn, claim_ids)
+        for attacker_id, target_id in af.defeats:
+            # Look up the attack type and confidence from the stance
+            stance_row = conn.execute(
+                "SELECT stance_type, confidence FROM claim_stance "
+                "WHERE claim_id = ? AND target_claim_id = ? LIMIT 1",
+                (attacker_id, target_id),
+            ).fetchone()
+            attack_type = stance_row[0] if stance_row else "unknown"
+            confidence = stance_row[1] if stance_row else None
+
+            conn.execute(
+                "INSERT INTO defeat (attacker_id, target_id, attack_type, confidence) "
+                "VALUES (?, ?, ?, ?)",
+                (attacker_id, target_id, attack_type, confidence),
+            )
+            count += 1
+
+    conn.row_factory = old_factory
+    return count
+
+
 def build_sidecar(
     concepts: list[LoadedConcept],
     sidecar_path: Path,
@@ -228,6 +278,10 @@ def build_sidecar(
         # Populate stances from stance files (in addition to inline stances from claims)
         if repo is not None and claim_files is not None:
             _populate_stances_from_files(conn, repo.stances_dir)
+
+        # Populate defeat table (materialized view of preference-filtered attacks)
+        if claim_files is not None:
+            _populate_defeats(conn)
 
         conn.commit()
     except BaseException:
@@ -586,12 +640,23 @@ def _create_claim_tables(conn: sqlite3.Connection):
             expression
         );
 
+        CREATE TABLE defeat (
+            attacker_id TEXT NOT NULL,
+            target_id TEXT NOT NULL,
+            attack_type TEXT NOT NULL,
+            confidence REAL,
+            FOREIGN KEY (attacker_id) REFERENCES claim(id),
+            FOREIGN KEY (target_id) REFERENCES claim(id)
+        );
+
         CREATE INDEX idx_claim_concept ON claim(concept_id);
         CREATE INDEX idx_claim_type ON claim(type);
         CREATE INDEX idx_claim_stance_claim ON claim_stance(claim_id);
         CREATE INDEX idx_claim_stance_target ON claim_stance(target_claim_id);
         CREATE INDEX idx_conflicts_concept ON conflicts(concept_id);
         CREATE INDEX idx_conflicts_class ON conflicts(warning_class);
+        CREATE INDEX idx_defeat_attacker ON defeat(attacker_id);
+        CREATE INDEX idx_defeat_target ON defeat(target_id);
         CREATE INDEX idx_claim_stage ON claim(stage);
     """)
 

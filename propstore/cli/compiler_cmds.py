@@ -636,6 +636,73 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
     wm.close()
 
 
+@world.command("extensions")
+@click.argument("args", nargs=-1)
+@click.option("--semantics", default="grounded",
+              type=click.Choice(["grounded", "preferred", "stable"]),
+              help="Argumentation semantics (default: grounded)")
+@click.option("--set-comparison", "set_comparison", default="elitist",
+              type=click.Choice(["elitist", "democratic"]),
+              help="Set comparison for preference ordering (default: elitist)")
+@click.pass_obj
+def world_extensions(obj: dict, args: tuple[str, ...],
+                     semantics: str, set_comparison: str) -> None:
+    """Show argumentation extensions — all claims that survive scrutiny.
+
+    Usage: pks world extensions domain=example --semantics grounded
+    """
+    from propstore.argumentation import compute_justified_claims
+    from propstore.world_model import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    bindings, _ = _parse_bindings(args)
+    bound = wm.bind(**bindings)
+
+    active = bound.active_claims()
+    if not active:
+        click.echo("No active claims for given bindings.")
+        wm.close()
+        return
+
+    claim_ids = {c["id"] for c in active}
+    result = compute_justified_claims(
+        wm._conn, claim_ids,
+        semantics=semantics,
+        comparison=set_comparison,
+    )
+
+    click.echo(f"Semantics: {semantics}")
+    click.echo(f"Set comparison: {set_comparison}")
+    click.echo(f"Active claims: {len(claim_ids)}")
+
+    if semantics == "grounded":
+        click.echo(f"Grounded extension ({len(result)} claims):")
+        for cid in sorted(result):
+            claim = next((c for c in active if c["id"] == cid), None)
+            concept = claim["concept_id"] if claim else "?"
+            value = claim.get("value", "?") if claim else "?"
+            click.echo(f"  {cid} [{concept}] = {value}")
+        defeated = claim_ids - result
+        if defeated:
+            click.echo(f"Defeated ({len(defeated)} claims):")
+            for cid in sorted(defeated):
+                click.echo(f"  {cid}")
+    else:
+        click.echo(f"Extensions ({len(result)}):")
+        for i, ext in enumerate(result):
+            click.echo(f"  Extension {i + 1} ({len(ext)} claims):")
+            for cid in sorted(ext):
+                click.echo(f"    {cid}")
+
+    wm.close()
+
+
 @world.command("hypothetical")
 @click.argument("args", nargs=-1)
 @click.option("--remove", multiple=True, help="Claim ID to remove")
