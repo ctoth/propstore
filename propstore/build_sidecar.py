@@ -117,12 +117,15 @@ def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) ->
 
             # Extract resolution provenance if present
             res = s.get("resolution") or {}
+            cond_differ = s.get("conditions_differ")
+            if isinstance(cond_differ, list):
+                cond_differ = json.dumps(cond_differ)
 
             conn.execute(
                 "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
                 "conditions_differ, note, resolution_method, resolution_model, embedding_model, "
                 "embedding_distance, pass_number, confidence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (source_claim, target, stype, s.get("strength"), s.get("conditions_differ"), s.get("note"),
+                (source_claim, target, stype, s.get("strength"), cond_differ, s.get("note"),
                  res.get("method"), res.get("model"), res.get("embedding_model"),
                  res.get("embedding_distance"), res.get("pass_number"), res.get("confidence"))
             )
