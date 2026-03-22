@@ -1,0 +1,321 @@
+source:
+  paper: Charwat_2015_MethodsSolvingReasoningProblems
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-22"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "An argumentation framework is a pair F = (A, R) where A is a set of arguments and R is a binary attack relation on A, and the semantics of such frameworks can be characterized through conflict-free, admissible, complete, grounded, preferred, stable, semi-stable, stage, and ideal extensions."
+    concepts:
+      - argumentation_framework
+      - attack_relation
+      - conflict_free_set
+      - admissible_set
+      - complete_extension
+      - grounded_extension
+      - preferred_extension
+      - stable_extension
+      - semi_stable_extension
+      - stage_extension
+      - ideal_extension
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 2
+      section: "2. Background"
+      quote_fragment: "An argumentation framework (AF) is a pair F = (A, R)"
+
+  - id: claim2
+    type: observation
+    statement: "There is a one-to-one correspondence between complete extensions and complete labellings, where a complete labelling assigns each argument a label from {in, out, undec} such that an argument is 'in' iff all its attackers are 'out', and 'out' iff at least one attacker is 'in'."
+    concepts:
+      - complete_extension
+      - complete_labelling
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 3
+      section: "2. Background"
+      quote_fragment: "There is a one-to-one mapping between complete extensions and complete labellings"
+
+  - id: claim3
+    type: observation
+    statement: "Credulous acceptance under admissible semantics is NP-complete, while skeptical acceptance under preferred semantics is Pi-2-P-complete."
+    concepts:
+      - credulous_reasoning
+      - admissible_set
+      - skeptical_reasoning
+      - preferred_extension
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 5
+      section: "2. Background"
+      table: "Table 1"
+      quote_fragment: "computational complexity of reasoning"
+    notes: "Table 1 provides the full complexity landscape for all standard semantics across verification, credulous, skeptical, and enumeration tasks"
+
+  - id: claim4
+    type: observation
+    statement: "Credulous and skeptical acceptance under semi-stable and stage semantics are Sigma-2-P-complete and Pi-2-P-complete respectively, one level higher in the polynomial hierarchy than for preferred semantics."
+    concepts:
+      - semi_stable_extension
+      - stage_extension
+      - credulous_reasoning
+      - skeptical_reasoning
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 5
+      section: "2. Background"
+      table: "Table 1"
+
+  - id: claim5
+    type: observation
+    statement: "The grounded extension is unique for any AF and can be computed in polynomial time, as it equals the least fixpoint of the characteristic function F_F."
+    concepts:
+      - grounded_extension
+      - characteristic_function
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 3
+      section: "2. Background"
+      quote_fragment: "the grounded extension yields a unique extension"
+
+  - id: claim6
+    type: equation
+    expression: "\\phi_{cf} = \\bigwedge_{(a,b) \\in R} (\\neg x_a \\lor \\neg x_b)"
+    sympy: "And(*[Or(Not(x_a), Not(x_b)) for (a,b) in R])"
+    variables:
+      - symbol: "x_a"
+        concept: "conflict_free_set"
+        role: "dependent"
+      - symbol: "R"
+        concept: "attack_relation"
+        role: "parameter"
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 6
+      section: "3.1. Propositional logic based approach"
+      quote_fragment: "encode the conflict-free property"
+    notes: "Propositional variable x_a is true iff argument a is in the extension"
+
+  - id: claim7
+    type: equation
+    expression: "\\phi_{adm} = \\phi_{cf} \\land \\bigwedge_{a \\in A} \\left( x_a \\to \\bigwedge_{b:(b,a) \\in R} \\bigvee_{c:(c,b) \\in R} x_c \\right)"
+    sympy: "And(phi_cf, *[Implies(x_a, And(*[Or(*[x_c for c in attackers_of_b]) for b in attackers_of_a])) for a in A])"
+    variables:
+      - symbol: "x_a"
+        concept: "admissible_set"
+        role: "dependent"
+      - symbol: "R"
+        concept: "attack_relation"
+        role: "parameter"
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 6
+      section: "3.1. Propositional logic based approach"
+      quote_fragment: "the resulting set of arguments is conflict-free, that is, whenever we accept an argument"
+
+  - id: claim8
+    type: equation
+    expression: "\\phi_{stb} = \\phi_{cf} \\land \\bigwedge_{a \\in A} \\left( \\neg x_a \\to \\bigvee_{b:(b,a) \\in R} x_b \\right)"
+    sympy: "And(phi_cf, *[Implies(Not(x_a), Or(*[x_b for b in attackers_of_a])) for a in A])"
+    variables:
+      - symbol: "x_a"
+        concept: "stable_extension"
+        role: "dependent"
+      - symbol: "R"
+        concept: "attack_relation"
+        role: "parameter"
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 6
+      section: "3.1. Propositional logic based approach"
+      quote_fragment: "every non-accepted argument must be attacked by an accepted one"
+
+  - id: claim9
+    type: mechanism
+    statement: "SAT-based approaches encode argumentation semantics as propositional formulas and leverage decades of SAT solver engineering to solve argumentation reasoning problems, with stable extensions computable in a single SAT call while preferred extensions require iterative calls to check subset-maximality."
+    concepts:
+      - sat_encoding
+      - stable_extension
+      - preferred_extension
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 5
+      section: "3.1. Propositional logic based approach"
+      quote_fragment: "reduction-based methods can be seen as the first-line to more specific approaches"
+    notes: "Preferred extension computation requires iterative SAT solving because subset-maximality cannot be directly encoded in a single propositional formula"
+
+  - id: claim10
+    type: mechanism
+    statement: "ASP-based approaches for preferred extension computation use a saturation technique that guesses a candidate admissible set, then verifies no proper superset is also admissible by 'spoiling' the answer set if a superset exists."
+    concepts:
+      - answer_set_programming
+      - preferred_extension
+      - admissible_set
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 13
+      section: "3.3. ASP-based approach"
+      quote_fragment: "saturation technique to enforce subset-maximality"
+
+  - id: claim11
+    type: mechanism
+    statement: "The CEGAR approach to argumentation iteratively computes candidate extensions via an abstract overapproximation, then checks for counterexamples and refines the abstraction, avoiding the need to encode the full preferred/semi-stable semantics in a single formula."
+    concepts:
+      - cegar
+      - preferred_extension
+      - semi_stable_extension
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 8
+      section: "3.1.1. Reductions to propositional logic"
+      quote_fragment: "CEGARTIX approach"
+
+  - id: claim12
+    type: mechanism
+    statement: "Dynamic programming on tree decompositions computes argumentation semantics bottom-up along a nice tree decomposition, using colorings to represent argument status (in/attacked/not-selected), achieving fixed-parameter tractability for bounded-treewidth AFs."
+    concepts:
+      - tree_decomposition
+      - treewidth
+      - admissible_set
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 20
+      section: "4.3. Dynamic programming based approach"
+      quote_fragment: "tree decomposition of the AF graph"
+    notes: "The approach handles admissible, complete, preferred, stable, and semi-stable semantics; complexity is O(f(k)*n) where k is treewidth"
+
+  - id: claim13
+    type: mechanism
+    statement: "Labelling-based algorithms for preferred extensions work by starting with an all-in labelling, propagating forced labels, then branching on undecided arguments by trying both in and undec assignments, backtracking when contradictions arise."
+    concepts:
+      - complete_labelling
+      - preferred_extension
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 17
+      section: "4.1. Labelling-based algorithms"
+      quote_fragment: "start with the all-in labelling, propagate, then branch"
+
+  - id: claim14
+    type: mechanism
+    statement: "Dialogue games for credulous acceptance model argumentation as a two-player game between proponent and opponent, where the proponent wins iff the queried argument is credulously accepted under the given semantics."
+    concepts:
+      - credulous_reasoning
+      - argumentation_framework
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 19
+      section: "4.2. Dialogue games"
+      quote_fragment: "proponent and opponent game for credulous acceptance"
+
+  - id: claim15
+    type: comparison
+    statement: "Reduction-based approaches (SAT, CSP, ASP) leverage existing mature solver infrastructure but are constrained by the target formalism's expressiveness, while direct approaches (labelling, dialogue games, dynamic programming) can exploit argumentation-specific structure but require building specialized algorithms from scratch."
+    concepts:
+      - sat_encoding
+      - answer_set_programming
+      - constraint_satisfaction
+      - argumentation_framework
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 1
+      section: "1. Introduction"
+      quote_fragment: "reduction-based approaches and direct approaches"
+
+  - id: claim16
+    type: comparison
+    statement: "CSP solvers do not natively support subset maximization, making them unsuitable for directly computing preferred extensions, unlike SAT-based approaches which can use iterative solving to enforce maximality."
+    concepts:
+      - constraint_satisfaction
+      - preferred_extension
+      - sat_encoding
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 11
+      section: "3.2. CSP-based approach"
+      quote_fragment: "Most CSP solvers do not support subset maximization"
+
+  - id: claim17
+    type: comparison
+    statement: "ASP naturally handles enumeration of all extensions (a key advantage over SAT), while SAT-based approaches are typically faster for single-extension decision problems."
+    concepts:
+      - answer_set_programming
+      - sat_encoding
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 12
+      section: "3.3. ASP-based approach"
+      quote_fragment: "ASP naturally handles enumeration"
+
+  - id: claim18
+    type: observation
+    statement: "The number of preferred extensions of an argumentation framework can be exponential in the number of arguments."
+    concepts:
+      - preferred_extension
+      - argumentation_framework
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 17
+      section: "4.1. Labelling-based algorithms"
+      quote_fragment: "the potential exponential number of admissible labellings"
+
+  - id: claim19
+    type: observation
+    statement: "Every stable extension is a preferred extension, but stable extensions may not exist for all argumentation frameworks, whereas at least one preferred extension always exists."
+    concepts:
+      - stable_extension
+      - preferred_extension
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 3
+      section: "2. Background"
+    notes: "This containment relationship is a fundamental structural property of Dung semantics"
+
+  - id: claim20
+    type: observation
+    statement: "For argumentation frameworks with bounded treewidth k, reasoning problems including credulous and skeptical acceptance can be solved in time O(f(k) * n) where n is the number of arguments, making them fixed-parameter tractable."
+    concepts:
+      - treewidth
+      - tree_decomposition
+      - argumentation_framework
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 20
+      section: "4.3. Dynamic programming based approach"
+      quote_fragment: "tractable for bounded treewidth"
+
+  - id: claim21
+    type: limitation
+    statement: "This survey focuses exclusively on Dung's original abstract argumentation frameworks and does not cover structured argumentation (ASPIC+, ABA, Deductive), bipolar frameworks, weighted argumentation, or probabilistic argumentation."
+    concepts:
+      - argumentation_framework
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 2
+      section: "1. Introduction"
+      quote_fragment: "scope of this article is on the evaluation of semantics for Dung's abstract argumentation framework"
+
+  - id: claim22
+    type: limitation
+    statement: "Dialogue game approaches are limited primarily to credulous acceptance problems and have not been widely extended to skeptical acceptance or extension enumeration."
+    concepts:
+      - credulous_reasoning
+      - skeptical_reasoning
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 19
+      section: "4.2. Dialogue games"
+      quote_fragment: "dialogue games are typically dedicated to a specific reasoning problem"
+
+  - id: claim23
+    type: limitation
+    statement: "Dynamic argumentation problems where arguments and attacks are added or removed over time are only briefly addressed by existing solver systems, with most systems requiring full recomputation rather than incremental updates."
+    concepts:
+      - dynamic_argumentation_framework
+      - argumentation_framework
+    provenance:
+      paper: Charwat_2015_MethodsSolvingReasoningProblems
+      page: 29
+      section: "6. Summary"
+      quote_fragment: "dynamic AFs... subject to change in the future"

@@ -1,0 +1,4 @@
+---
+tags: [argumentation-framework, propositional-logic, fuzzy-logic, abstract-argumentation, encoding]
+---
+Generalizes the encoding of Dung's argumentation frameworks beyond classical 2-valued propositional logic to 3-valued (Kleene and Lukasiewicz) and fuzzy [0,1]-valued propositional logic systems, using normal and regular encodings to establish exact model correspondences between AF semantics and encoded semantics. Key results show that stable semantics corresponds to encoding with Kleene's PL3, complete semantics to Lukasiewicz's PL3, and Gabbay's equational semantics Eq_max and Eq_inverse correspond to Godel and Product fuzzy logics respectively; additionally proposes a new Lukasiewicz-based fuzzy semantics Eq^L. Directly relevant to the propstore's argumentation framework implementation, providing alternative computational approaches to AF semantics via logic system model checking and a theoretical foundation for graded argument acceptance.

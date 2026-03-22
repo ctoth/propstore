@@ -1,0 +1,278 @@
+source:
+  paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+  extraction_model: "claude-opus-4-6-20250514"
+  extraction_date: "2026-03-22"
+
+claims:
+  - id: claim1
+    type: equation
+    expression: "ec_1(AF) = \\bigwedge_{a \\in A} \\left( a \\leftrightarrow \\bigwedge_{(b,a) \\in R} \\neg b \\right)"
+    sympy: "And(*[Equivalent(a, And(*[Not(b) for b in attackers(a)])) for a in A])"
+    variables:
+      - symbol: "a"
+        concept: argumentation_framework
+        role: "independent"
+      - symbol: "b"
+        concept: attack_relation
+        role: "independent"
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 11
+      section: "3 The general encoding methodology"
+      quote_fragment: "The normal encoding is ec1"
+    notes: "Normal encoding maps each argument to biconditional with conjunction of negated attackers. Empty conjunction is top (argument with no attackers is always accepted)."
+
+  - id: claim2
+    type: equation
+    expression: "ec_2(AF) = \\bigwedge_{a \\in A} \\left( (a \\to \\bigwedge_{(b,a) \\in R} \\neg b) \\wedge (a \\leftrightarrow \\bigwedge_{(b,a) \\in R} \\bigvee_{(c,b) \\in R} c) \\right)"
+    sympy: "And(*[And(Implies(a, And(*[Not(b) for b in attackers(a)])), Equivalent(a, And(*[Or(*[c for c in attackers(b)]) for b in attackers(a)]))) for a in A])"
+    variables:
+      - symbol: "a"
+        concept: argumentation_framework
+        role: "independent"
+      - symbol: "b"
+        concept: attack_relation
+        role: "independent"
+      - symbol: "c"
+        concept: attack_relation
+        role: "independent"
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 11
+      section: "3 The general encoding methodology"
+      quote_fragment: "The regular encoding is ec2"
+    notes: "Regular encoding combines defense condition (a implies attackers are out) with reinstatement condition (a iff all attackers are counter-attacked)."
+
+  - id: claim3
+    type: observation
+    statement: "An assignment is a model of an AF under stable semantics if and only if it is a model of ec1(AF) in Kleene's 3-valued propositional logic PL3^K."
+    concepts:
+      - stable_extension
+      - normal_encoding
+      - propositional_logic_system
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 12
+      section: "4.1 Encoding AFs to PL3s by the normal encoding"
+      quote_fragment: "Theorem 1: An assignment is a model of an AF under stable semantics iff it is a model of ec1(AF) in PL3^K"
+
+  - id: claim4
+    type: observation
+    statement: "An assignment is a model of an AF under complete semantics if and only if it is a model of ec1(AF) in Lukasiewicz's 3-valued propositional logic PL3^L."
+    concepts:
+      - complete_extension
+      - normal_encoding
+      - propositional_logic_system
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 13
+      section: "4.1 Encoding AFs to PL3s by the normal encoding"
+      quote_fragment: "Theorem 2: An assignment is a model of ec1(AF) in PL3^L iff it is a model of the AF under complete semantics"
+
+  - id: claim5
+    type: observation
+    statement: "Stable semantics is translatable by the normal encoding ec1 and Kleene's PL3^K."
+    concepts:
+      - stable_extension
+      - translatable_semantics
+      - normal_encoding
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 13
+      section: "4.1 Encoding AFs to PL3s by the normal encoding"
+      quote_fragment: "Corollary 1: Stable semantics is translatable by ec1 and PL3^K"
+
+  - id: claim6
+    type: observation
+    statement: "Complete semantics is translatable by the normal encoding ec1 and Lukasiewicz's PL3^L."
+    concepts:
+      - complete_extension
+      - translatable_semantics
+      - normal_encoding
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 14
+      section: "4.1 Encoding AFs to PL3s by the normal encoding"
+      quote_fragment: "Corollary 2: Complete semantics is translatable by ec1 and PL3^L"
+
+  - id: claim7
+    type: mechanism
+    statement: "The normal encoding ec1 alone suffices for both stable and complete semantics by choosing the appropriate propositional logic system: Kleene's PL3 for stable, Lukasiewicz's PL3 for complete. The more complex regular encoding ec2 is unnecessary when ec1 is paired with the right logic."
+    concepts:
+      - normal_encoding
+      - regular_encoding
+      - encoded_semantics
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 14
+      section: "4.1 Encoding AFs to PL3s by the normal encoding"
+      quote_fragment: "complete semantics is an encoded semantics w.r.t. ec1 and PL3^L. This indicates that to obtain complete semantics, we need not resort to the more formally complex ec2"
+    notes: "Key design insight: encoding complexity can be traded for logic system complexity."
+
+  - id: claim8
+    type: observation
+    statement: "Gabbay's real equational semantics Eq^R_max is translatable by ec1 and PL^G[0,1] (Godel fuzzy logic with standard negation, Godel t-norm, and Godel R-implication)."
+    concepts:
+      - equational_semantics
+      - translatable_semantics
+      - normal_encoding
+      - t_norm
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 24
+      section: "5.2.1 Encoding AFs to PL^G[0,1] and PL^P[0,1]"
+      quote_fragment: "Corollary 6: The real equational semantics Eq^R_max is translatable by ec1 and PL^G[0,1]"
+
+  - id: claim9
+    type: observation
+    statement: "Gabbay's real equational semantics Eq^R_inverse is translatable by ec1 and PL^P[0,1] (Product fuzzy logic with standard negation, Product t-norm, and Product R-implication)."
+    concepts:
+      - equational_semantics
+      - translatable_semantics
+      - normal_encoding
+      - t_norm
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 24
+      section: "5.2.1 Encoding AFs to PL^G[0,1] and PL^P[0,1]"
+      quote_fragment: "Corollary 7: The real equational semantics Eq^R_inverse is translatable by ec1 and PL^P[0,1]"
+
+  - id: claim10
+    type: equation
+    expression: "\\|a\\| = \\begin{cases} 1, & \\nexists c((c,a) \\in R) \\\\ 0, & \\sum_{i=1}^{k} \\|b_i\\| \\geqslant 1 \\\\ 1 - \\sum_{i=1}^{k} \\|b_i\\|, & \\sum_{i=1}^{k} \\|b_i\\| < 1 \\end{cases}"
+    sympy: "Piecewise((1, Eq(k, 0)), (0, sum_bi >= 1), (1 - sum_bi, sum_bi < 1))"
+    variables:
+      - symbol: "a"
+        concept: argumentation_framework
+        role: "dependent"
+      - symbol: "b_i"
+        concept: attack_relation
+        role: "independent"
+      - symbol: "k"
+        concept: attack_relation
+        role: "parameter"
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 25
+      section: "5.2.2 Encoding AFs to PL^L[0,1]"
+      quote_fragment: "we propose an equational system Eq^L"
+    notes: "New Lukasiewicz-based fuzzy equational semantics. An argument is totally defeated (value 0) when sum of attacker values reaches 1; otherwise its value is 1 minus the sum."
+
+  - id: claim11
+    type: observation
+    statement: "An assignment is a model of ec1(AF) in Lukasiewicz's fuzzy propositional logic PL^L[0,1] if and only if it is a solution of the equational system Eq^L."
+    concepts:
+      - normal_encoding
+      - equational_semantics
+      - encoded_semantics
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 25
+      section: "5.2.2 Encoding AFs to PL^L[0,1]"
+      quote_fragment: "Theorem 15: an assignment is a model of ec1(AF) in PL^L[0,1] iff it is a solution of the equational system Eq^L"
+
+  - id: claim12
+    type: observation
+    statement: "The encoded equational function h^{ec1} satisfies decreasing monotonicity: increasing any attacker's value cannot increase the argument's value."
+    concepts:
+      - normal_encoding
+      - encoded_semantics
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 19
+      section: "5.1.1 Fuzzy normal encoded semantics"
+      quote_fragment: "Theorem 8: The encoded equational function h^{ec1} satisfies the decreasing monotonicity"
+    notes: "This is a property that Gabbay's real equational functions do not necessarily satisfy (Remark 4), making it a distinguishing feature of encoded equational systems."
+
+  - id: claim13
+    type: observation
+    statement: "Every continuous encoded equational system Eq*_{ec1} is a Gabbay real equational system."
+    concepts:
+      - equational_semantics
+      - encoded_semantics
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 21
+      section: "5.1.2 Continuous fuzzy normal encoded semantics"
+      quote_fragment: "Theorem 12: Each continuous encoded equational system Eq*_{ec1} is a Gabbay real equational system"
+    notes: "The converse is NOT true: a real equational system may not be a continuous encoded equational system (Remark 4, Example 2)."
+
+  - id: claim14
+    type: comparison
+    statement: "Gabbay's real equational approach does not require decreasing monotonicity, but encoded equational systems derived from ec1 inherently satisfy it. This makes encoded equational systems a proper subset of real equational systems with a stronger structural guarantee."
+    concepts:
+      - equational_semantics
+      - encoded_semantics
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 19
+      section: "5.1.1 Fuzzy normal encoded semantics"
+      quote_fragment: "A real equational system Eq^R may not satisfy the property of decreasing monotonicity, whereas an encoded equational system Eq^{ec1} necessarily exhibits this property"
+
+  - id: claim15
+    type: limitation
+    statement: "Gabbay's Eq^R_geometrical cannot be derived from the ec1(AF) model in any continuous fuzzy propositional logic system PL*[0,1], because the induced binary operation is not a t-norm."
+    concepts:
+      - equational_semantics
+      - encoded_semantics
+      - t_norm
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 23
+      section: "5.1.2 Continuous fuzzy normal encoded semantics"
+      quote_fragment: "Eq^R_geometrical cannot be derived from the ec1(AF) model in any PL*[0,1]"
+    notes: "Demonstrates a limitation of the encoding approach: not all equational semantics can be captured via propositional logic encoding."
+
+  - id: claim16
+    type: observation
+    statement: "For a 1/2-idempotent zero-divisor-free t-norm with standard negation and R-implication, the set of models under complete semantics equals the set of ternarizations of models under the encoded equational semantics Eq^{ec1}."
+    concepts:
+      - complete_extension
+      - encoded_semantics
+      - t_norm
+      - complete_labelling
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 29
+      section: "5.3 Relationships between complete semantics and fuzzy normal encoded semantics"
+      quote_fragment: "Corollary 10: the set of models under complete semantics equals the set of Tcom of models under Eq^{ec1}"
+    notes: "Establishes that complete semantics can be exactly recovered from fuzzy encoded semantics via ternarization, under appropriate t-norm conditions."
+
+  - id: claim17
+    type: limitation
+    statement: "Only finitary argumentation frameworks (each argument has finitely many attackers) are considered; the encoding methodology is not validated for infinitary frameworks."
+    concepts:
+      - argumentation_framework
+      - finitary_framework
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 3
+      section: "2.1 Argumentation frameworks and argumentation semantics"
+      quote_fragment: "We only study the case of finitary A in this paper"
+
+  - id: claim18
+    type: limitation
+    statement: "Only the normal encoding ec1 is extended to fuzzy propositional logic systems; the regular encoding ec2 is not explored in the fuzzy domain."
+    concepts:
+      - normal_encoding
+      - regular_encoding
+      - encoded_semantics
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 18
+      section: "5 Encoding AFs to PL[0,1]s"
+      quote_fragment: "we encode AFs to [0,1]-valued logic systems by ec1"
+
+  - id: claim19
+    type: observation
+    statement: "A model of ec2(AF) in Lukasiewicz's PL3^L may not be a model of the AF under complete semantics, but its ternarization Tcom always is."
+    concepts:
+      - regular_encoding
+      - complete_extension
+      - complete_labelling
+    provenance:
+      paper: Tang_2025_EncodingArgumentationFrameworksPropositional
+      page: 16
+      section: "4.2 Encoding AFs to PL3s by the regular encoding"
+      quote_fragment: "a model of ec2(AF) in PL3^L may not be a model of the AF under complete semantics"
+    notes: "Example 1 demonstrates: AF = ({a,b}, {(a,b),(b,a)}), assignment ||a||=1/2, ||b||=0 satisfies ec2(AF) in PL3^L but is not a complete labelling."

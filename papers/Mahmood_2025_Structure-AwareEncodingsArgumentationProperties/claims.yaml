@@ -1,0 +1,203 @@
+source:
+  paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-22"
+
+claims:
+  - id: claim1
+    type: mechanism
+    statement: "Argumentation framework semantics can be computed by encoding them as SAT/QSAT formulas constructed along a k-expression parse tree, where each k-expression operation (create, union, relabel, edge-introduce) adds O(k) clauses to the formula, and satisfying assignments correspond bijectively to extensions."
+    concepts:
+      - argumentation_framework
+      - sat_encoding
+      - k_expression
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 7
+      section: "3. K-Expression-Aware Encodings"
+      quote_fragment: "we guide our encoding along the k-expression"
+    notes: "Core contribution — the DDG reduction technique"
+
+  - id: claim2
+    type: observation
+    statement: "The SAT encoding for stable extensions requires only 11k+2 colors (variables) beyond the input k-expression, where k is the clique-width, making the overhead linear in k."
+    concepts:
+      - stable_extension
+      - sat_encoding
+      - clique_width
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 8
+      section: "3.1 Basic Semantics"
+      quote_fragment: "the total number of colors being k' = 11k + 2"
+    notes: "Same 11k+2 bound applies to admissible and complete encodings"
+
+  - id: claim3
+    type: observation
+    statement: "For stable, admissible, and complete extension semantics, the DDG reduction produces a SAT instance solvable in time 2^O(k) * poly(s), where k is the directed incidence clique-width and s is the formula size."
+    concepts:
+      - stable_extension
+      - admissible_set
+      - complete_extension
+      - ddg_reduction
+      - clique_width
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 13
+      section: "Theorem 19 (Runtime-UBs)"
+      quote_fragment: "2^O(k) * poly(s) for sigma in {stab, adm, comp}"
+
+  - id: claim4
+    type: observation
+    statement: "For preferred, semi-stable, and stage extension semantics, the DDG reduction produces a QSAT instance (with 2 quantifier alternations) solvable in time 2^O(k^2) * poly(s)."
+    concepts:
+      - preferred_extension
+      - semi_stable_extension
+      - stage_extension
+      - ddg_reduction
+      - clique_width
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 13
+      section: "Theorem 19 (Runtime-UBs)"
+      quote_fragment: "2^O(k^2) * poly(s) for sigma in {pref, semSt, stage}"
+
+  - id: claim5
+    type: limitation
+    statement: "Under the Exponential Time Hypothesis (ETH), the 2^O(k) runtime for stable/admissible/complete extensions cannot be improved to 2^o(k), and the 2^O(k^2) runtime for preferred/semi-stable/stage cannot be improved to 2^o(k^2)."
+    concepts:
+      - ddg_reduction
+      - clique_width
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 14
+      section: "4 Lower Bounds: Can We Improve?"
+      quote_fragment: "the overhead caused by our DDG reductions cannot be significantly improved under reasonable assumptions"
+    notes: "Matching lower bounds prove the encodings are essentially optimal"
+
+  - id: claim6
+    type: mechanism
+    statement: "Stable extension encoding uses two variable types per color: x_c (whether color c is in the extension) and d_c^v (whether all non-extension arguments of color c are attacked), with conflict-freeness enforced via edge-introduce clauses that prevent two attacking colors from both being in the extension."
+    concepts:
+      - stable_extension
+      - sat_encoding
+      - conflict_free_set
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 7
+      section: "3.1 Basic Semantics — Stable Extensions"
+      quote_fragment: "Formulas (1)-(4) suffice to model conflict-freeness"
+
+  - id: claim7
+    type: mechanism
+    statement: "Admissible extension encoding extends stable encoding with attack-tracking variable a_c^v that records whether some non-extension color remains attacking an argument of color c, ensuring every accepted argument is defended."
+    concepts:
+      - admissible_set
+      - sat_encoding
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 9
+      section: "3.1 Basic Semantics — Admissible Extensions"
+      quote_fragment: "we require conflict-freeness and that every attack from outside is defended"
+
+  - id: claim8
+    type: mechanism
+    statement: "Complete extension encoding further extends admissible encoding with variable o_c^v tracking whether an argument could have been included (is defended but not in the extension), with the root constraint requiring that every defended argument must be included."
+    concepts:
+      - complete_extension
+      - sat_encoding
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 10
+      section: "3.1 Basic Semantics — Complete Extensions"
+      quote_fragment: "we compute admissible extensions such that there is no argument that could have been included"
+
+  - id: claim9
+    type: mechanism
+    statement: "Preferred extension encoding uses starred variables (v*) representing a candidate superset extension and constructs a QBF asserting no admissible superset exists, which is converted to CNF via inner-most universal quantifier elimination on DNF matrices."
+    concepts:
+      - preferred_extension
+      - sat_encoding
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 12
+      section: "3.2 Semantics Using Subset-Maximization — Preferred Extensions"
+      quote_fragment: "we need to find an admissible extension that is subset-maximal"
+
+  - id: claim10
+    type: observation
+    statement: "Credulous acceptance of an argument a under any semantics can be decided by conjoining x_a with the semantics encoding and checking SAT; skeptical acceptance by conjoining negation of x_a, checking SAT, and flipping the answer."
+    concepts:
+      - credulous_reasoning
+      - skeptical_reasoning
+      - sat_encoding
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 13
+      section: "3.3 Credulous and Skeptical Reasoning"
+      quote_fragment: "we append neg x_sigma to each formula and flip the answer"
+
+  - id: claim11
+    type: observation
+    statement: "The DDG reductions bijectively preserve solutions: every satisfying assignment of the SAT formula corresponds to exactly one extension of the AF, and vice versa, enabling counting of extensions via model counting."
+    concepts:
+      - ddg_reduction
+      - sat_encoding
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 2
+      section: "1 Introduction"
+      quote_fragment: "our reductions preserve the solutions bijectively"
+    notes: "Key property — counting extensions reduces to model counting on the SAT formula"
+
+  - id: claim12
+    type: comparison
+    statement: "Clique-width-based encodings handle dense graphs where treewidth-based approaches fail, because clique-width can be small for dense graphs (e.g., complete bipartite structures) while treewidth is necessarily large."
+    concepts:
+      - clique_width
+      - ddg_reduction
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 1
+      section: "Abstract"
+      quote_fragment: "clique-width, which unlike treewidth can be small for dense graphs"
+    notes: "Motivates the paper — extends prior treewidth-based results to a more general parameter"
+
+  - id: claim13
+    type: comparison
+    statement: "For AFs with directed edges, using directed incidence clique-width rather than undirected graph parameters is necessary because two AFs with the same underlying undirected graph can have different numbers of extensions under all semantics."
+    concepts:
+      - argumentation_framework
+      - clique_width
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 9
+      section: "Example 9"
+      quote_fragment: "considering undirected edges only... both AFs are 'the same'. However... the two AFs are also different"
+
+  - id: claim14
+    type: limitation
+    statement: "The QBF encodings for preferred, semi-stable, and stage semantics, while theoretically optimal in structural complexity, have no experimental evaluation and may not outperform iterative SAT approaches (like CEGAR) in practice."
+    concepts:
+      - preferred_extension
+      - semi_stable_extension
+      - stage_extension
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 14
+      section: "5 Conclusion"
+    notes: "Purely theoretical paper — no implementation or benchmarks provided"
+
+  - id: claim15
+    type: observation
+    statement: "The simple flat SAT encoding for stable extensions uses one Boolean variable x_a per argument a, with conflict-freeness encoded as clauses neg(x_a) OR neg(x_b) for each attack (a,b), and completeness encoded as x_a OR OR_{b:(b,a) in R} x_b for each argument a."
+    concepts:
+      - stable_extension
+      - sat_encoding
+      - conflict_free_set
+    provenance:
+      paper: Mahmood_2025_Structure-AwareEncodingsArgumentationProperties
+      page: 4
+      section: "2 Preliminaries"
+      quote_fragment: "A CNF formula for DNF formula is a finite set of clauses"
+    notes: "This is the standard Besnard-Doutre encoding referenced but not the focus of the paper — simpler to implement than DDG but doesn't exploit structure"

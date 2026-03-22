@@ -1,0 +1,16 @@
+{
+  "title": "Methods for solving reasoning problems in abstract argumentation – A survey",
+  "authors": [
+    "Günther Charwat",
+    "Wolfgang Dvořák",
+    "S. A. Gaggl",
+    "J. Wallner",
+    "S. Woltran"
+  ],
+  "year": "2015",
+  "arxiv_id": null,
+  "doi": "10.1016/J.ARTINT.2014.11.008",
+  "abstract": "Within the last decade, abstract argumentation has emerged as a central field in Artificial Intelligence. Besides providing a core formalism for many advanced argumentation systems, abstract argumentation has also served to capture several non-monotonic logics and other AI related principles. Although the idea of abstract argumentation is appealingly simple, several reasoning problems in this formalism exhibit high computational complexity. This calls for advanced techniques when it comes to implementation issues, a challenge which has been recently faced from different angles. In this survey, we give an overview on different methods for solving reasoning problems in abstract argumentation and compare their particular features. Moreover, we highlight available state-of-the-art systems for abstract argumentation, which put these methods to practice.",
+  "url": "https://www.semanticscholar.org/paper/4f57793d44d8e12d8ff55226905ff1e81fa7fe1a",
+  "pdf_url": "https://doi.org/10.1016/j.artint.2014.11.008"
+}

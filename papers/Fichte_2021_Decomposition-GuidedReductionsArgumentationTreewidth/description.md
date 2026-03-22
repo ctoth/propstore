@@ -1,0 +1,4 @@
+---
+tags: [abstract-argumentation, treewidth, computational-complexity, sat-reduction, logic-based-argumentation]
+---
+This paper introduces decomposition-guided (DG) reductions that compile abstract and logic-based argumentation problems into SAT or 2-QBF while linearly preserving the treewidth of the input instance. The reductions cover the full set of standard Dung semantics (stable, admissible, complete, preferred, semi-stable, stage) and establish matching lower bounds under the Exponential Time Hypothesis (ETH), showing the linear treewidth overhead is essentially optimal. For logic-based argumentation, new tight upper and lower complexity bounds parameterized by treewidth are established for the first time. This work is directly relevant to understanding the tractability of argumentation problems and the theoretical foundations of SAT-based argumentation solvers.

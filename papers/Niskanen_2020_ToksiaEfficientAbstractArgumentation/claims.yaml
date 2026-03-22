@@ -1,0 +1,229 @@
+source:
+  paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-22"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "An argumentation framework (AF) is a pair F = (A, R) where A is a finite set of arguments and R is a binary attack relation on A."
+    concepts:
+      - argumentation_framework
+      - attack_relation
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 1
+      section: "Background"
+      quote_fragment: "An argumentation framework (AF) is a pair F = (A, R)"
+
+  - id: claim2
+    type: equation
+    expression: "\\Gamma_F(S) = \\{a \\in A \\mid S \\text{ defends } a\\}"
+    sympy: "Function('Gamma_F')(S)"
+    variables:
+      - symbol: "Gamma_F"
+        concept: "characteristic_function"
+        role: "dependent"
+      - symbol: "S"
+        concept: "admissible_set"
+        role: "independent"
+      - symbol: "A"
+        concept: "argumentation_framework"
+        role: "parameter"
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 1
+      section: "Background"
+      quote_fragment: "the characteristic function of F"
+
+  - id: claim3
+    type: mechanism
+    statement: "The grounded extension can be computed in polynomial time via iterative unit propagation, avoiding full SAT solver overhead by simulating the process of iteratively accepting unattacked arguments and rejecting arguments they attack."
+    concepts:
+      - grounded_extension
+      - unit_propagation
+      - sat_encoding
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 2
+      section: "Algorithmic Details and Optimizations"
+      quote_fragment: "Grounded semantics Unit propagation"
+
+  - id: claim4
+    type: mechanism
+    statement: "SAT-based argumentation reasoning uses iterative solver calls with persistent solver state, initializing the solver only once per execution and preserving learned clauses across calls, avoiding re-encoding overhead."
+    concepts:
+      - sat_encoding
+      - argumentation_framework
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 3
+      section: "Implementation, Availability and Usage"
+      quote_fragment: "a SAT solver is instantiated only once during a single execution"
+
+  - id: claim5
+    type: equation
+    expression: "\\bigwedge_{(a,b) \\in R} (\\neg x_a \\lor \\neg x_b)"
+    sympy: "And(*[Or(Not(x_a), Not(x_b)) for (a,b) in R])"
+    variables:
+      - symbol: "x_a"
+        concept: "conflict_free_set"
+        role: "dependent"
+      - symbol: "x_b"
+        concept: "conflict_free_set"
+        role: "dependent"
+      - symbol: "R"
+        concept: "attack_relation"
+        role: "parameter"
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 2
+      section: "Algorithmic Details and Optimizations"
+      quote_fragment: "conflict-free SAT encoding"
+    notes: "For each attack (a,b) in R, at most one of x_a, x_b can be true. This is the foundational clause for all semantics encodings."
+
+  - id: claim6
+    type: equation
+    expression: "\\text{CF}(F) \\land \\bigwedge_{a \\in A} (x_a \\lor r_a)"
+    sympy: "And(CF_F, And(*[Or(x_a, r_a) for a in A]))"
+    variables:
+      - symbol: "x_a"
+        concept: "stable_extension"
+        role: "dependent"
+      - symbol: "r_a"
+        concept: "attack_relation"
+        role: "dependent"
+      - symbol: "CF_F"
+        concept: "conflict_free_set"
+        role: "parameter"
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 2
+      section: "Algorithmic Details and Optimizations"
+      quote_fragment: "stable extension SAT encoding"
+    notes: "Every argument must be either in the extension (x_a) or attacked by a member (r_a). Combined with conflict-free constraints."
+
+  - id: claim7
+    type: mechanism
+    statement: "Before computing credulous or skeptical acceptance, µ-toksia runs grounded semantics unit propagation as preprocessing: if the query argument is in the grounded extension, the answer is immediately YES for both DC and DS tasks."
+    concepts:
+      - unit_propagation
+      - grounded_extension
+      - credulous_reasoning
+      - skeptical_reasoning
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 2
+      section: "Algorithmic Details and Optimizations"
+      quote_fragment: "unit propagation as preprocessing"
+
+  - id: claim8
+    type: mechanism
+    statement: "For semi-stable semantics, µ-toksia first checks if a stable extension exists; if one does, semi-stable extensions coincide with stable extensions, avoiding the more expensive range maximization procedure."
+    concepts:
+      - semi_stable_extension
+      - stable_extension
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 2
+      section: "Algorithmic Details and Optimizations"
+      quote_fragment: "first check if a stable extension exists"
+
+  - id: claim9
+    type: mechanism
+    statement: "Credulous acceptance under preferred semantics (DC-PR) is equivalent to credulous acceptance under complete semantics (DC-CO), requiring only an admissibility check rather than finding a maximal admissible set."
+    concepts:
+      - credulous_reasoning
+      - preferred_extension
+      - complete_extension
+      - admissible_set
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 2
+      section: "Algorithmic Details and Optimizations"
+      quote_fragment: "DC-PR equivalent to DC-CO"
+
+  - id: claim10
+    type: mechanism
+    statement: "Dynamic argumentation frameworks are handled by introducing time-indexed variables x_{a,i} for each argument a at each time step i, enabling incremental SAT-based reasoning as attacks are added or removed without full recomputation."
+    concepts:
+      - dynamic_argumentation_framework
+      - sat_encoding
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 2
+      section: "Algorithmic Details and Optimizations"
+      quote_fragment: "x_{a,i} variables representing the status of the extension at time step i"
+
+  - id: claim11
+    type: comparison
+    statement: "µ-toksia ranked first in all reasoning tasks in the main track of ICCMA 2019, outperforming Argmat-sat, Aspartix, AFGCL, and CoQuiAAS across complete, preferred, stable, semi-stable, stage, grounded, and ideal semantics."
+    concepts:
+      - argumentation_framework
+      - sat_encoding
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 1
+      section: "Introduction"
+      quote_fragment: "µ-toksia ranked first in all reasoning tasks in the main track of ICCMA 2019"
+
+  - id: claim12
+    type: comparison
+    statement: "µ-toksia scales noticeably better on dynamic track tasks than its current competitors, solving all instances while other solvers time out on subsets."
+    concepts:
+      - dynamic_argumentation_framework
+      - sat_encoding
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 1
+      section: "Introduction"
+      quote_fragment: "has been shown to scale noticeably better on the dynamic track tasks than its current competitors"
+
+  - id: claim13
+    type: limitation
+    statement: "On skeptical acceptance under preferred semantics (DS-PR), Argmat-sat solves slightly more instances than µ-toksia (316 vs 312), indicating that µ-toksia's approach is not uniformly dominant across all task-semantics combinations."
+    concepts:
+      - skeptical_reasoning
+      - preferred_extension
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 4
+      section: "Empirical Evaluation"
+      quote_fragment: "Argmat solves more instances than µ-toksia on DS-PR (316 vs 312)"
+
+  - id: claim14
+    type: limitation
+    statement: "The ICCMA 2019 main track benchmarks were very easy for declarative approaches with almost no timeouts, making it difficult to differentiate solver performance on these standard instances."
+    concepts:
+      - argumentation_framework
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 4
+      section: "Empirical Evaluation"
+      quote_fragment: "ICCMA 2019 benchmarks are very easy for declarative approaches with almost no time-outs"
+
+  - id: claim15
+    type: observation
+    statement: "The ideal extension is the unique maximal admissible set contained in every preferred extension, providing the most cautious position that every credulous reasoner would agree with."
+    concepts:
+      - ideal_extension
+      - admissible_set
+      - preferred_extension
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 2
+      section: "Background"
+      quote_fragment: "the ideal extension is the maximal ideal set"
+
+  - id: claim16
+    type: observation
+    statement: "Every stable extension is both a preferred extension and a semi-stable extension; therefore when a stable extension exists, the semi-stable and preferred extension sets are non-empty."
+    concepts:
+      - stable_extension
+      - preferred_extension
+      - semi_stable_extension
+    provenance:
+      paper: Niskanen_2020_ToksiaEfficientAbstractArgumentation
+      page: 2
+      section: "Background"
+      quote_fragment: "if stable exists, it is also preferred and semi-stable"

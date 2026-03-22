@@ -1,0 +1,242 @@
+source:
+  paper: Järvisalo_2025_ICCMA20235thInternational
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-22"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "SAT-based solvers dominate abstract argumentation reasoning in ICCMA 2023, with HARPER++ winning 10 of 15 Main track subtracks and FARGO-LIMITED winning 4."
+    concepts:
+      - sat_encoding
+      - argumentation_framework
+      - solver_competition
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 16
+      section: "8. Overview of competition results"
+      quote_fragment: "HARPER++ achieved first place in 10 of 15 subtracks"
+    notes: "Both HARPER++ and FARGO-LIMITED use SAT-based approaches with CaDiCaL as backend"
+
+  - id: claim2
+    type: observation
+    statement: "Credulous acceptance under complete semantics (DC-CO) is equivalent to credulous acceptance under preferred semantics (DC-PR), so ICCMA does not include a separate DC-PR subtrack."
+    concepts:
+      - credulous_reasoning
+      - complete_extension
+      - preferred_extension
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 3
+      section: "2. Argumentation formalisms in ICCMA 2023"
+      quote_fragment: "DC is a given query argument a credulously accepted"
+    stances:
+      - type: supports
+        target_paper: Dung_1995_AcceptabilityArguments
+        strength: "strong"
+        note: "Standard result from Dung's theory, used as basis for competition task design"
+
+  - id: claim3
+    type: observation
+    statement: "Skeptical acceptance under complete semantics (DS-CO) is equivalent to membership in the grounded extension (DS-GR), so ICCMA does not include a separate DS-GR subtrack."
+    concepts:
+      - skeptical_reasoning
+      - complete_extension
+      - grounded_extension
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 3
+      section: "2. Argumentation formalisms in ICCMA 2023"
+
+  - id: claim4
+    type: observation
+    statement: "For the Dynamic track, specialized incremental solvers significantly outperform static solvers, with CRUSTABRI achieving PAR-2 scores roughly half those of the next-best solver (mu-toksia)."
+    concepts:
+      - dynamic_argumentation_framework
+      - par2_score
+      - solver_competition
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 18
+      section: "8.3. Dynamic track"
+      table: "Table 5"
+    notes: "CRUSTABRI is Rust-based with labeling approach; mu-toksia variants are SAT-based"
+
+  - id: claim5
+    type: observation
+    statement: "ASP-based solvers (ASPFORABA, ASPARTIX-DL) dominate the ABA track, with ASPFORABA ranking first in 6 of 6 subtracks where it participated."
+    concepts:
+      - assumption_based_argumentation
+      - solver_competition
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 19
+      section: "8.4. ABA track"
+      table: "Table 6"
+    notes: "ABA solving is less mature than AF solving; only 5 solvers participated"
+
+  - id: claim6
+    type: observation
+    statement: "GNN-based approaches (AFGCNv2) are competitive for approximate argumentation reasoning but lag behind SAT-based solvers for exact computation, suggesting neural approaches are not yet viable replacements for combinatorial solvers."
+    concepts:
+      - argumentation_framework
+      - solver_competition
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 17
+      section: "8.2. Approximate track"
+    notes: "AFGCNv2 uses graph convolutional networks; also FUDGE uses GNN approach"
+
+  - id: claim7
+    type: parameter
+    concept: par2_score
+    value: 600
+    unit: "seconds"
+    conditions:
+      - "solver == 'HARPER++'"
+      - "track == 'Main'"
+      - "subtrack == 'DC-CO'"
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 16
+      section: "8. Overview of competition results"
+      table: "Table 3"
+    notes: "Time limit is 600s so PAR-2 penalty is 1200s; lower PAR-2 is better"
+
+  - id: claim8
+    type: comparison
+    statement: "The ICCMA23 input format replaces the older TGF and APX formats with a more compact integer-indexed representation, reducing file sizes and simplifying parsing while maintaining human readability."
+    concepts:
+      - argumentation_framework
+      - solver_competition
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 8
+      section: "5. I/O requirements and processing"
+      quote_fragment: "changes in the input formats towards more clean and simplistic representation"
+
+  - id: claim9
+    type: observation
+    statement: "The number of arguments (atoms) is the primary parameter controlling benchmark instance difficulty, with a very significant impact on solver runtimes."
+    concepts:
+      - argumentation_framework
+      - benchmark_generator
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 23
+      section: "9.6. Impact of benchmark parameters on solver performance in ABA track"
+      quote_fragment: "The number of atoms, as can be expected as the primary parameter for scaling the size of the instances"
+
+  - id: claim10
+    type: observation
+    statement: "The YES/NO distribution across benchmark instances is fairly balanced for most subtracks, with the notable exception of DS-ST where ~96% of solvable instances have YES answers in the Main track."
+    concepts:
+      - stable_extension
+      - skeptical_reasoning
+      - benchmark_generator
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 20
+      section: "9.1. Distribution of positive and negative answers among solved benchmarks"
+      table: "Table 7"
+    notes: "This bias in DS-ST is because stable extensions rarely exist; when they do, the query is usually skeptically accepted"
+
+  - id: claim11
+    type: observation
+    statement: "Solver runtimes are highly correlated within the same semantics across different tasks (DC vs DS vs SE) but less correlated across different semantics, suggesting that instance hardness is primarily determined by the semantics rather than the reasoning task."
+    concepts:
+      - argumentation_framework
+      - solver_competition
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 21
+      section: "9.4. Solver similarity"
+    notes: "Pearson correlation coefficients visualized in heatmaps in Fig. 8 and Fig. A.10"
+
+  - id: claim12
+    type: mechanism
+    statement: "ICCMA uses fuzz testing with small random AFs (4-8 arguments) and a virtual best solver (VBS) cross-validation approach to verify solver correctness, because producing formally verified reference implementations for all semantics is impractical."
+    concepts:
+      - solver_competition
+      - argumentation_framework
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 7
+      section: "5.5. Witness checking"
+      quote_fragment: "fuzz testing procedure was implemented to test the correctness of solver outputs"
+    notes: "100 iterations per AF, edge probability 0.02-0.5, checking conflict-freeness and semantic-specific properties"
+
+  - id: claim13
+    type: limitation
+    statement: "ICCMA 2023 benchmarks are synthetically generated and may not represent the difficulty profile of real-world argumentation problems from domains like law, medicine, or policy debate."
+    concepts:
+      - benchmark_generator
+      - solver_competition
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 25
+      section: "10.2. Diversity of competition benchmarks"
+      quote_fragment: "the benchmarks were generated by a single random generator"
+
+  - id: claim14
+    type: limitation
+    statement: "ICCMA 2023 does not include competition tracks for structured argumentation formalisms such as ASPIC+ or deductive argumentation, limiting evaluation to abstract AFs and ABA."
+    concepts:
+      - solver_competition
+      - assumption_based_argumentation
+      - argumentation_framework
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 24
+      section: "10.1. New developments and potential ideas for new/revised competition tracks"
+      quote_fragment: "future ICCMA instantiations will also feature a track focusing on reasoning in structured formalisms"
+
+  - id: claim15
+    type: observation
+    statement: "The no-limits track (allowing multi-core computation) showed that parallel solvers did not achieve dramatically better performance than single-core solvers on argumentation problems, with the same solvers dominating both tracks."
+    concepts:
+      - solver_competition
+      - argumentation_framework
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 16
+      section: "8.1. Main and No-limits tracks"
+    notes: "No-limits track had 1200s time limit vs 600s for Main; same solvers ranked similarly"
+
+  - id: claim16
+    type: observation
+    statement: "The IPAAF incremental API for the Dynamic track enables true incremental argumentation solving, where the solver maintains state across a sequence of modifications (argument/attack additions and deletions) rather than re-solving from scratch."
+    concepts:
+      - dynamic_argumentation_framework
+      - solver_competition
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 11
+      section: "5.4. IPAAF API for the Dynamic track"
+      quote_fragment: "an external program can initialize a solver, apply changes to the AF, and query the solver"
+
+  - id: claim17
+    type: comparison
+    statement: "The 2023 ABA track benchmarks were generated by translating AFs into ABA frameworks rather than from natural ABA problems, which may not reflect the true difficulty of ABA reasoning."
+    concepts:
+      - assumption_based_argumentation
+      - benchmark_generator
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 13
+      section: "6. Benchmarks"
+      quote_fragment: "ABA benchmarks were generated via translation from AFs"
+    notes: "ABA3SAT generator used; creates ABA frameworks from AF translations"
+
+  - id: claim18
+    type: observation
+    statement: "Virtual best solver (VBS) analysis shows that no single solver dominates across all subtracks, indicating significant room for improvement via portfolio approaches that combine multiple solvers."
+    concepts:
+      - solver_competition
+      - argumentation_framework
+    provenance:
+      paper: Järvisalo_2025_ICCMA20235thInternational
+      page: 20
+      section: "9.2. Comparison of solved instances"
+      table: "Table 9"
+    notes: "VBS solves more instances than any individual solver in every subtrack"

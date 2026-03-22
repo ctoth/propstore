@@ -1,0 +1,14 @@
+{
+  "title": "Encoding Argumentation Frameworks to Propositional Logic Systems",
+  "authors": [
+    "Shuai Tang",
+    "Jiachao Wu",
+    "Ning Zhou"
+  ],
+  "year": "2025",
+  "arxiv_id": "2503.07351",
+  "doi": "10.48550/arXiv.2503.07351",
+  "abstract": "This paper generalizes the encoding of argumentation frameworks beyond the classical 2-valued propositional logic system ($PL_2$) to 3-valued propositional logic systems ($PL_3$s) and fuzzy propositional logic systems ($PL_{[0,1]}s$), employing two key encodings: normal encoding ($ec_1$) and regular encoding ($ec_2$). Specifically, via $ec_1$ and $ec_2$, we establish model relationships between Dung's classical semantics (stable and complete semantics) and the encoded semantics associated with Kleene's $PL_3$ and Łukasiewicz's $PL_3$. Through $ec_1$, we also explore connections between Gabbay's real equational semantics and the encoded semantics of $PL_{[0,1]}s$, including showing that Gabbay's $Eq_{\\text{max}}^R$ and $Eq_{\\text{inverse}}^R$ correspond to the fuzzy encoded semantics of $PL_{[0,1]}^G$ and $PL_{[0,1]}^P$ respectively. Additionally, we propose a new fuzzy encoded semantics ($Eq^L$) associated with Łukasiewicz's $PL_{[0,1]}$ and investigate interactions between complete semantics and fuzzy encoded semantics. This work strengthens the links between argumentation frameworks and propositional logic systems, providing a framework for constructing new argumentation semantics.",
+  "url": "http://arxiv.org/abs/2503.07351v2",
+  "pdf_url": "https://arxiv.org/pdf/2503.07351v2"
+}

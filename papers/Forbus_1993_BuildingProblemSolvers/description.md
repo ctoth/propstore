@@ -1,0 +1,4 @@
+---
+tags: [truth-maintenance, constraint-propagation, nonmonotonic-reasoning, assumption-based-reasoning, qualitative-reasoning]
+---
+Comprehensive textbook providing complete, working Common Lisp implementations of core AI reasoning infrastructure: truth maintenance systems (JTMS, LTMS, ATMS), pattern-directed inference engines (TRE, FTRE), constraint propagation languages (TCON, ATCON), qualitative process theory (TGIZMO), model-based diagnosis (TGDE), and symbolic relaxation (WALTZER). Each system is presented with full theory, data structures, algorithms, and composable code, organized as building blocks for constructing larger reasoning systems. Directly relevant to argumentation and belief revision research as the definitive implementation reference for the TMS family that underlies modern nonmonotonic reasoning and dependency-tracking systems.

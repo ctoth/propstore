@@ -1,0 +1,231 @@
+source:
+  paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-22"
+
+claims:
+  - id: claim1
+    type: mechanism
+    statement: "Decomposition-guided reductions construct SAT/QBF formulas node-by-node along a tree decomposition, where each new bag functionally depends only on the original bag and the constructed bags of child nodes, ensuring the resulting formula's treewidth is linearly bounded by the input treewidth."
+    concepts:
+      - dg_reduction
+      - treewidth
+      - tree_decomposition
+      - sat_encoding
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 3
+      section: "3.1 Decomposition-Guided Reductions to QBF"
+      quote_fragment: "the idea of such a DG reduction is to construct phi from a TD node's point of view"
+    notes: "Core methodological contribution. The time restriction ensures the reduction itself does not already solve the problem."
+
+  - id: claim2
+    type: observation
+    statement: "The DG reduction for stable extensions produces a formula whose treewidth is at most 5 times the input treewidth, since each constructed bag chi'(t) satisfies |chi'(t)| <= 5 * |chi(t)|."
+    concepts:
+      - dg_reduction
+      - stable_extension
+      - treewidth
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 4
+      section: "3.2 Stable Extensions"
+      quote_fragment: "Since |children(t)| <= 2, we have that |chi'(t)| <= 5 * |chi(t)|"
+    notes: "Theorem 5 proof sketch. The factor 5 comes from: original args + extension vars + defeated vars + child defeated vars (with at most 2 children)."
+
+  - id: claim3
+    type: observation
+    statement: "Under the Exponential Time Hypothesis, the linear treewidth overhead of DG reductions from credulous stable acceptance to SAT cannot be significantly improved: no reduction can achieve treewidth in o(tw(G_F)) while running in time 2^o(tw(G_F)) * poly(|A|)."
+    concepts:
+      - dg_reduction
+      - stable_extension
+      - treewidth
+      - exponential_time_hypothesis
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 4
+      section: "3.2 Stable Extensions"
+      quote_fragment: "there is no reduction R' from cstab to SAT yielding a qBf psi in time 2^o(tw(G_F)) * poly(|A|) with tw(G_psi) in o(tw(G_F))"
+    notes: "Theorem 6. The lower bound follows from contradicting known ETH results for argumentation (Fichte et al., 2019)."
+
+  - id: claim4
+    type: mechanism
+    statement: "Naive reductions for stable extensions using inOrX_R(E) cause dense parts in the primal graph because a single formula connects all attackers of each argument, destroying the treewidth structure. DG reductions fix this by introducing defeated variables d^t_a that propagate attack information along the tree decomposition."
+    concepts:
+      - dg_reduction
+      - stable_extension
+      - primal_graph
+      - treewidth
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 4
+      section: "3.2 Stable Extensions"
+      quote_fragment: "inOrX_R(E) could cause dense parts in the primal graph of the formula"
+    notes: "Design rationale for why auxiliary variables are needed."
+
+  - id: claim5
+    type: mechanism
+    statement: "The DG reduction for admissible extensions requires no-attacking variables n_a in addition to defeated variables, where n_a indicates argument a never attacks any extension member, generalizing the stable completion formula to ea OR na OR d^last(a)_a."
+    concepts:
+      - dg_reduction
+      - admissible_set
+      - treewidth
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 4
+      section: "3.3 Admissible Extensions"
+      quote_fragment: "we also need further auxiliary variables of the form n_a for every argument a in A to indicate whether a never attacks an argument of the extension"
+
+  - id: claim6
+    type: observation
+    statement: "DG reductions for preferred extensions require a second quantifier level (2-QBF) with inequality variables q_a and q^t that propagate along the tree decomposition to check that no proper superset of the extension is also admissible."
+    concepts:
+      - dg_reduction
+      - preferred_extension
+      - quantified_boolean_formula
+      - treewidth
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 4
+      section: "3.4 Preferred Extensions"
+      quote_fragment: "we use inequality variables q_a (q^t), indicating that e_a <-> not e_tilde_a"
+
+  - id: claim7
+    type: observation
+    statement: "All DG reductions for abstract argumentation achieve O(k) treewidth awareness and Omega(k) ETH lower bounds for stable, admissible, complete, preferred, semi-stable, and stage semantics."
+    concepts:
+      - dg_reduction
+      - argumentation_framework
+      - treewidth
+      - exponential_time_hypothesis
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 6
+      section: "5 Conclusions"
+      table: "Table 1"
+      quote_fragment: "TW-Awareness O(k)* ... TW-LB (ETH) Omega(k)"
+    notes: "The * for stable/admissible/complete/preferred indicates that while DG reductions preserving widths are new, reductions for linearly preserving treewidth were known for adm and pref (Lampis et al., 2018)."
+
+  - id: claim8
+    type: observation
+    statement: "Credulous acceptance for stable, admissible, complete, and preferred semantics can be solved in time 2^O(k) * poly(n) when parameterized by treewidth k, while semi-stable and stage require doubly-exponential time 2^{2^{O(k)}} * poly(n)."
+    concepts:
+      - credulous_reasoning
+      - treewidth
+      - stable_extension
+      - admissible_set
+      - complete_extension
+      - preferred_extension
+      - semi_stable_extension
+      - stage_extension
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 6
+      section: "5 Conclusions"
+      table: "Table 1"
+    notes: "The gap between singly and doubly exponential runtime corresponds to whether the problem requires one or two quantifier alternations."
+
+  - id: claim9
+    type: observation
+    statement: "The runtime lower bound for skeptical preferred acceptance (spref) under ETH is open - it is unknown whether the doubly-exponential runtime 2^{2^{O(k)}} * poly(n) is necessary."
+    concepts:
+      - skeptical_reasoning
+      - preferred_extension
+      - treewidth
+      - exponential_time_hypothesis
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 6
+      section: "5 Conclusions"
+      table: "Table 1"
+    notes: "Marked as 'open' in Table 1. All other lower bounds are tight."
+
+  - id: claim10
+    type: observation
+    statement: "The logic-based argumentation problem ARG (argument existence) can be reduced to 2-QBF via a DG reduction with O(k) treewidth preservation, yielding runtime tower(2, O(k)) * poly(n), and this is tight under ETH."
+    concepts:
+      - logic_based_argumentation
+      - dg_reduction
+      - quantified_boolean_formula
+      - treewidth
+      - exponential_time_hypothesis
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 5
+      section: "4.1 Argument Existence and Relevance"
+      quote_fragment: "ARG can be solved in time tower(2, O(k)) * poly(|var(Delta) union var(alpha)|)"
+    notes: "Theorems 10-12. These are the first treewidth-parameterized complexity bounds for logic-based argumentation."
+
+  - id: claim11
+    type: observation
+    statement: "ARG-Rel (argument relevance) is exactly as hard as ARG: an instance (Delta, alpha) of ARG has a support iff (Delta union {psi}, alpha, psi) of ARG-Rel has one, where psi is a satisfiable formula over fresh variables."
+    concepts:
+      - logic_based_argumentation
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 6
+      section: "4.1 Argument Existence and Relevance"
+      quote_fragment: "the problem ARG-Rel is as hard as the problem ARG"
+
+  - id: claim12
+    type: observation
+    statement: "ARG-Check (argument verification) is DP-complete and can be reduced to a collection of independent SAT instances (not a single 2-QBF), yielding runtime 2^O(k) * poly(n), matching the ETH lower bound."
+    concepts:
+      - logic_based_argumentation
+      - treewidth
+      - exponential_time_hypothesis
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 6
+      section: "4.2 Argument Verification Problem"
+      quote_fragment: "ARG-Check is DP-complete. A direct reduction encoding all three sub-questions gives a 2-QBF instance"
+    notes: "The reduction splits into n+2 independent qBfs (consistency, entailment, and n minimality checks), which can be merged into 2 qBfs."
+
+  - id: claim13
+    type: comparison
+    statement: "Unlike prior work by Lampis et al. (2018) which provided treewidth-preserving reductions only for admissible and preferred semantics, DG reductions provide a systematic approach covering all six standard Dung semantics."
+    concepts:
+      - dg_reduction
+      - argumentation_framework
+      - treewidth
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 2
+      section: "Related Works"
+      quote_fragment: "We go beyond and present a systematic approach for the full set of standard semantics that linearly preserves the treewidth"
+
+  - id: claim14
+    type: limitation
+    statement: "The DG reduction framework is purely theoretical; practical implementation and experimental evaluation of the reductions on actual argumentation instances is left as future work."
+    concepts:
+      - dg_reduction
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 6
+      section: "5 Conclusions"
+      quote_fragment: "we plan to study practical implementation of this framework and thereby further verify its robustness"
+
+  - id: claim15
+    type: limitation
+    statement: "All ETH lower bounds in this work are conditional on the Exponential Time Hypothesis; without ETH, the treewidth lower bounds do not hold."
+    concepts:
+      - exponential_time_hypothesis
+      - treewidth
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 4
+      section: "3.2 Stable Extensions"
+    notes: "This is inherent to the parameterized complexity approach, not specific to this paper."
+
+  - id: claim16
+    type: observation
+    statement: "DG reductions preserve solutions bijectively: the models of the reduced SAT/QBF formula correspond one-to-one with the extensions of the original argumentation framework, enabling both decision and counting variants."
+    concepts:
+      - dg_reduction
+      - sat_encoding
+    provenance:
+      paper: Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth
+      page: 6
+      section: "5 Conclusions"
+      quote_fragment: "the reductions preserve the solutions bijectively, they are applicable in the enumeration complexity setting"
+    notes: "This is why the same reductions work for both credulous acceptance (cS) and counting (#cS) problems."

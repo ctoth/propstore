@@ -1,0 +1,182 @@
+source:
+  paper: Bjorner_2014_MaximalSatisfactionZ3
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-22"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "νZ composes two main engines: a MaxSMT (MaxSAT solver) module that handles weighted soft constraints, and an OptiMathSAT module that optimizes linear arithmetic objective functions, combined by a translation layer."
+    concepts:
+      - smt_solver
+      - weighted_maxsmt
+      - linear_arithmetic_optimization
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 2
+      section: "1.2 νZ Composition"
+      quote_fragment: "νZ composes of two main components: (1) a MaxSMT (or really it is a collection of MaxSAT solver) module that solves soft constraints and (2) an OptiMathSAT module that optimizes linear arithmetic objective functions"
+
+  - id: claim2
+    type: mechanism
+    statement: "WMax solves weighted MaxSMT by iteratively extracting unsatisfiable cores from soft constraints, blocking the core by adding correction variables, and splitting weights across the new clauses to maintain the weighted sum invariant."
+    concepts:
+      - maxsat_algorithm
+      - weighted_maxsmt
+      - soft_constraint
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 3
+      section: "2.1 WMax"
+      quote_fragment: "assert F, and extract an unsatisfiable core... block the current core, add the assertion"
+
+  - id: claim3
+    type: mechanism
+    statement: "MaxRes (Maximal Resolution) solves weighted MaxSMT by replacing each unsatisfiable core with resolvent clauses, reducing the number of soft clauses with each iteration until the remaining formula is satisfiable."
+    concepts:
+      - maxsat_algorithm
+      - weighted_maxsmt
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 3
+      section: "2.2 MaxRes"
+      quote_fragment: "A very efficient weighted MaxSAT solving method based on Maximal Resolution"
+
+  - id: claim4
+    type: comparison
+    statement: "MaxRes shows significantly better performance than WMax on many larger MaxSAT instances because it creates a bounded number of sub-formulas per core extraction, while WMax can generate many auxiliary variables."
+    concepts:
+      - maxsat_algorithm
+      - weighted_maxsmt
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 4
+      section: "2.2 MaxRes"
+      quote_fragment: "MaxRes shows significantly better performance than WMax on many larger instances"
+
+  - id: claim5
+    type: observation
+    statement: "MaxRes terminates because each core extraction produces a bounded number of new sub-formulas, and the total number of generated sub-formulas across all iterations is bounded by the number of different soft clauses in the original formula."
+    concepts:
+      - maxsat_algorithm
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 4
+      section: "2.2 MaxRes"
+      quote_fragment: "the number of sub-formulas is a number bounded by the number of different soft clauses"
+    stances:
+      - type: supports
+        target: "claim3"
+        note: "Proves termination of the MaxRes algorithm"
+
+  - id: claim6
+    type: mechanism
+    statement: "νZ optimizes linear arithmetic objectives using a modified DPLL engine with dual Simplex: it maintains a satisfying trail, finds a model maximizing the objective, then adds a constraint requiring the next model to improve upon the current value, iterating until no improvement is possible."
+    concepts:
+      - linear_arithmetic_optimization
+      - dual_simplex
+      - smt_solver
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 5
+      section: "3 νZ for Linear Arithmetic"
+      quote_fragment: "the approach is implemented on a modified DPLL engine... maintains a satisfying trail and uses the dual Simplex method"
+
+  - id: claim7
+    type: mechanism
+    statement: "νZ detects unbounded objectives using non-standard arithmetic where variables can take infinitesimal epsilon values: if the optimal value under non-standard arithmetic is infinite, the objective is truly unbounded in the feasible region."
+    concepts:
+      - linear_arithmetic_optimization
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 6
+      section: "3.2 Unbounded Objectives"
+      quote_fragment: "allows variables to take values of the form c + ε, where ε is a fresh propositional variable"
+
+  - id: claim8
+    type: mechanism
+    statement: "Bisection search with Farkas lemmas tightens upper bounds on linear objectives more effectively than simple binary search by extracting Farkas coefficients from T-lemmas that prove infeasibility, yielding a linear combination that directly computes a tighter bound."
+    concepts:
+      - farkas_lemma
+      - linear_arithmetic_optimization
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 7
+      section: "Algorithm 3"
+      quote_fragment: "Let r_i be Farkas coefficients for the T-lemmas, such that r_i A_i > r_i b_i"
+
+  - id: claim9
+    type: comparison
+    statement: "Core-based optimization for linear arithmetic using Farkas lemma bisection has so far not been as good as the more straightforward sequential search approach, because Z3 spends significant time refining infeasible bounds via repeated SAT calls."
+    concepts:
+      - farkas_lemma
+      - linear_arithmetic_optimization
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 6
+      section: "3.3 An Experiment with Core-based optimization"
+      quote_fragment: "our experience with an implementation of this idea has so far not been as good as the more straightforward approach"
+
+  - id: claim10
+    type: observation
+    statement: "Lexicographic combination of multiple objectives finds a model M such that the tuple of objective values is lexicographically maximal: no other model improves any objective without worsening a higher-priority one."
+    concepts:
+      - lexicographic_optimization
+      - pareto_front
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 7
+      section: "4 Combining Objectives"
+      quote_fragment: "The lexicographic combination is to find model M, such that M satisfies F and the pair (M(t_1), M(t_2)) is lexicographically maximal"
+
+  - id: claim11
+    type: mechanism
+    statement: "The Guided Improvement Algorithm computes Pareto fronts by iteratively finding satisfying models and adding constraints requiring that at least one objective strictly improve while none worsen, until no further improvement is possible."
+    concepts:
+      - pareto_front
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 8
+      section: "4 Combining Objectives"
+      quote_fragment: "νZ uses the Guided Improvement Algorithm to produce multiple objectives"
+
+  - id: claim12
+    type: observation
+    statement: "Box-maximal optimization finds independent upper bounds for each objective by maximizing each one separately while blocking previously found solution regions, yielding the maximum achievable value for each objective regardless of others."
+    concepts:
+      - pareto_front
+      - lexicographic_optimization
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 8
+      section: "4 Combining Objectives"
+      quote_fragment: "finding maximal independent assignments to t_1 and t_2 can be accomplished simultaneously"
+
+  - id: claim13
+    type: limitation
+    statement: "νZ's optimization capabilities at the time of publication were limited to linear arithmetic objectives; extension to non-linear objective functions was not addressed."
+    concepts:
+      - linear_arithmetic_optimization
+      - smt_solver
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 7
+      section: "5 Conclusion"
+      quote_fragment: "νZ allows users with somewhat richer theories than propositional logic"
+
+  - id: claim14
+    type: limitation
+    statement: "The core-based approach to linear arithmetic optimization does not consistently outperform sequential Simplex-based search, particularly because the bisection process involves many satisfiability checks that may not efficiently converge."
+    concepts:
+      - linear_arithmetic_optimization
+      - farkas_lemma
+      - dual_simplex
+    provenance:
+      paper: Bjorner_2014_MaximalSatisfactionZ3
+      page: 6
+      section: "3.3 An Experiment with Core-based optimization"
+      quote_fragment: "Z3 spends a lot of time refining infeasible bounds"
+    stances:
+      - type: supports
+        target: "claim9"
+        note: "Elaborates on the performance limitation of core-based approach"
