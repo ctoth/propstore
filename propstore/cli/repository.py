@@ -43,6 +43,10 @@ class Repository:
         return self._root / "sidecar" / "propstore.sqlite"
 
     @property
+    def stances_dir(self) -> Path:
+        return self._root / "stances"
+
+    @property
     def counters_dir(self) -> Path:
         return self._root / "concepts" / ".counters"
 
@@ -77,6 +81,7 @@ class Repository:
             root / "claims",
             root / "forms",
             root / "sidecar",
+            root / "stances",
         ]
         for d in dirs:
             d.mkdir(parents=True, exist_ok=True)

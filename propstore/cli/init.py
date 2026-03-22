@@ -64,3 +64,4 @@ def init(obj: dict, directory: str) -> None:
     click.echo(f"  {root / 'claims/'}")
     click.echo(f"  {root / 'forms/'}")
     click.echo(f"  {root / 'sidecar/'}")
+    click.echo(f"  {root / 'stances/'}")

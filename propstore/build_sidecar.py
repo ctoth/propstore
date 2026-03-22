@@ -19,6 +19,8 @@ import sqlite3
 from pathlib import Path
 from typing import Sequence
 
+import yaml
+
 from propstore.parameterization_groups import build_groups
 from propstore.form_utils import kind_value_from_form_name, load_form
 from propstore.validate import LoadedConcept
@@ -86,6 +88,40 @@ def _claim_content_hash(claim: dict, source_paper: str) -> str:
     h.update(source_paper.encode())
 
     return h.hexdigest()[:16]
+
+
+def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) -> int:
+    """Read stance YAML files and insert into claim_stance table."""
+    if not stances_dir or not stances_dir.exists():
+        return 0
+
+    count = 0
+    valid_types = {"rebuts", "undercuts", "undermines", "supports", "explains", "supersedes"}
+
+    # Build set of valid claim IDs for validation
+    valid_claims = {r[0] for r in conn.execute("SELECT id FROM claim").fetchall()}
+
+    for f in sorted(stances_dir.glob("*.yaml")):
+        with open(f, encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+
+        source_claim = data.get("source_claim", "")
+        if source_claim not in valid_claims:
+            continue
+
+        for s in data.get("stances", []):
+            target = s.get("target", "")
+            stype = s.get("type", "")
+            if target not in valid_claims or stype not in valid_types:
+                continue
+
+            conn.execute(
+                "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, conditions_differ, note) VALUES (?, ?, ?, ?, ?, ?)",
+                (source_claim, target, stype, s.get("strength"), s.get("conditions_differ"), s.get("note"))
+            )
+            count += 1
+
+    return count
 
 
 def build_sidecar(
@@ -161,6 +197,10 @@ def build_sidecar(
                 _restore_report = restore_embeddings(conn, _embedding_snapshot)
             except (ImportError, Exception):
                 pass
+
+        # Populate stances from stance files (in addition to inline stances from claims)
+        if repo is not None and claim_files is not None:
+            _populate_stances_from_files(conn, repo.stances_dir)
 
         conn.commit()
     except BaseException:

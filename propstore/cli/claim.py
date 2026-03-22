@@ -297,3 +297,60 @@ def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool
         summary = r.get("auto_summary") or r.get("statement") or ""
         paper = r.get("source_paper", "")
         click.echo(f"  {dist:.4f}  {cid}  [{paper}]  {summary[:120]}")
+
+
+@claim.command()
+@click.argument("claim_id", required=False, default=None)
+@click.option("--all", "relate_all_flag", is_flag=True, help="Relate all claims")
+@click.option("--model", required=True, help="LLM model for classification")
+@click.option("--embedding-model", default=None, help="Embedding model for similarity")
+@click.option("--top-k", default=5, type=int, help="Number of similar claims to classify")
+@click.pass_obj
+def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k):
+    """Classify epistemic relationships between similar claims via LLM."""
+    from propstore.relate import relate_claim, relate_all as relate_all_fn, write_stance_file
+    from propstore.embed import _load_vec_extension
+
+    repo = obj["repo"]
+    sidecar = repo.sidecar_path
+    if not sidecar.exists():
+        click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
+        raise SystemExit(1)
+
+    import sqlite3
+    conn = sqlite3.connect(sidecar)
+    conn.row_factory = sqlite3.Row
+    _load_vec_extension(conn)
+
+    stances_dir = repo.stances_dir
+
+    if claim_id and not relate_all_flag:
+        # Single claim
+        stances = relate_claim(conn, claim_id, model, embedding_model, top_k)
+        conn.close()
+
+        if stances:
+            write_stance_file(stances_dir, claim_id, stances, model)
+            for s in stances:
+                click.echo(f"  {s['type']:12s} {s.get('strength', ''):8s} -> {s['target']}  {s.get('note', '')}")
+            click.echo(f"\n{len(stances)} stances written to {stances_dir / f'{claim_id}.yaml'}")
+        else:
+            click.echo("No epistemic relationships found.")
+
+    elif relate_all_flag:
+        def progress(done, total):
+            if done % 10 == 0 or done == total:
+                click.echo(f"  {done}/{total} claims processed", err=True)
+
+        result = relate_all_fn(conn, model, embedding_model, top_k, on_progress=progress)
+        conn.close()
+
+        # Write stance files
+        for cid, stances in result.get("stances_by_claim", {}).items():
+            write_stance_file(stances_dir, cid, stances, model)
+
+        click.echo(f"\nProcessed: {result['claims_processed']}, Stances found: {result['stances_found']}, No relation: {result['no_relation']}")
+    else:
+        click.echo("Error: provide a claim ID or use --all", err=True)
+        conn.close()
+        raise SystemExit(1)
