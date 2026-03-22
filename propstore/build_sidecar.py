@@ -538,7 +538,9 @@ def _create_claim_tables(conn: sqlite3.Connection):
             stage TEXT,
             source_paper TEXT NOT NULL,
             provenance_page INTEGER NOT NULL,
-            provenance_json TEXT
+            provenance_json TEXT,
+            context_id TEXT,
+            FOREIGN KEY (context_id) REFERENCES context(id)
         );
 
         CREATE TABLE claim_stance (

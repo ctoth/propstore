@@ -174,12 +174,27 @@ def _value_of_from_active(
 
 
 class BoundWorld:
-    """The world under specific condition bindings."""
+    """The world under specific condition bindings, optionally scoped to a context."""
 
-    def __init__(self, world: WorldModel, bindings: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        world: WorldModel,
+        bindings: dict[str, Any],
+        context_id: str | None = None,
+        context_hierarchy: object | None = None,
+    ) -> None:
         self._world = world
         self._bindings = bindings
         self._binding_conds = self._bindings_to_cel(bindings)
+        self._context_id = context_id
+        self._context_hierarchy = context_hierarchy
+        # Pre-compute ancestor set for fast lookups
+        if context_id and context_hierarchy is not None:
+            self._context_visible: set[str] | None = {context_id}
+            for ancestor in context_hierarchy.ancestors(context_id):  # type: ignore[union-attr]
+                self._context_visible.add(ancestor)
+        else:
+            self._context_visible = None  # no context filtering
 
     @staticmethod
     def _bindings_to_cel(bindings: dict[str, Any]) -> list[str]:
@@ -195,7 +210,16 @@ class BoundWorld:
         return conds
 
     def _is_active(self, claim: dict) -> bool:
-        """Check if a claim is active under the current bindings."""
+        """Check if a claim is active under the current bindings and context."""
+        # Step 1: Context membership check
+        if self._context_visible is not None:
+            claim_ctx = claim.get("context_id")
+            if claim_ctx is not None:
+                if claim_ctx not in self._context_visible:
+                    return False
+            # Claims with no context (NULL) are always visible
+
+        # Step 2: Existing CEL condition check
         conds_json = claim.get("conditions_cel")
         if not conds_json:
             return True  # unconditional → always active

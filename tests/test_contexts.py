@@ -384,3 +384,135 @@ class TestClaimContextId:
         result = validate_claims([claim_file], registry, context_ids=set())
         ctx_errors = [e for e in result.errors if "context" in e.lower()]
         assert not ctx_errors, f"No-context claim rejected: {ctx_errors}"
+
+
+# ── Step 4: BoundWorld context filtering ─────────────────────────────
+
+
+class TestBoundWorldContext:
+    """Test context filtering in BoundWorld.
+
+    These tests build a minimal sidecar in-memory with contexts and claims,
+    then query through WorldModel + BoundWorld.
+    """
+
+    def _build_test_world(self):
+        """Build a test sidecar with contexts and claims, return (conn, hierarchy)."""
+        from propstore.build_sidecar import _create_tables, _create_claim_tables, _create_context_tables
+
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        _create_tables(conn)
+        _create_claim_tables(conn)
+        _create_context_tables(conn)
+
+        # Contexts: root -> child, plus unrelated (excludes root)
+        conn.execute("INSERT INTO context VALUES ('ctx_root', 'Root', 'Root ctx', NULL)")
+        conn.execute("INSERT INTO context VALUES ('ctx_child', 'Child', 'Child ctx', 'ctx_root')")
+        conn.execute("INSERT INTO context VALUES ('ctx_other', 'Other', 'Other ctx', NULL)")
+        conn.execute("INSERT INTO context_exclusion VALUES ('ctx_other', 'ctx_root')")
+
+        # Concepts
+        conn.execute(
+            "INSERT INTO concept (id, content_hash, seq, canonical_name, status, domain, "
+            "definition, kind_type, form, is_dimensionless) VALUES "
+            "('c1', 'h1', 1, 'test_concept', 'accepted', 'test', 'A test', 'structural', 'structural', 1)"
+        )
+
+        # Claims in different contexts
+        base_cols = ("id, content_hash, seq, type, concept_id, statement, "
+                     "source_paper, provenance_page, provenance_json, context_id")
+
+        # claim in root context
+        conn.execute(f"INSERT INTO claim ({base_cols}) VALUES "
+                     "('claim1', 'h1', 1, 'observation', 'c1', 'Root claim', 'paper1', 1, '{}', 'ctx_root')")
+        # claim in child context
+        conn.execute(f"INSERT INTO claim ({base_cols}) VALUES "
+                     "('claim2', 'h2', 2, 'observation', 'c1', 'Child claim', 'paper2', 2, '{}', 'ctx_child')")
+        # claim in other context
+        conn.execute(f"INSERT INTO claim ({base_cols}) VALUES "
+                     "('claim3', 'h3', 3, 'observation', 'c1', 'Other claim', 'paper3', 3, '{}', 'ctx_other')")
+        # universal claim (no context)
+        conn.execute(f"INSERT INTO claim ({base_cols}) VALUES "
+                     "('claim4', 'h4', 4, 'observation', 'c1', 'Universal claim', 'paper4', 4, '{}', NULL)")
+
+        conn.commit()
+
+        hierarchy = ContextHierarchy([
+            LoadedContext("root", None, make_context("ctx_root", "Root")),
+            LoadedContext("child", None, make_context("ctx_child", "Child", inherits="ctx_root")),
+            LoadedContext("other", None, make_context("ctx_other", "Other", excludes=["ctx_root"])),
+        ])
+
+        return conn, hierarchy
+
+    def test_bind_with_context_filters_unrelated(self):
+        """Claims in unrelated context are not active."""
+        conn, hierarchy = self._build_test_world()
+        from propstore.world.bound import BoundWorld
+
+        wm = self._make_wm(conn)
+        bound = BoundWorld(wm, {}, context_id="ctx_root", context_hierarchy=hierarchy)
+        active = bound.active_claims("c1")
+        active_ids = {c["id"] for c in active}
+
+        assert "claim1" in active_ids    # root's own claim
+        assert "claim4" in active_ids    # universal
+        assert "claim3" not in active_ids  # other context — filtered out
+        conn.close()
+
+    def _make_wm(self, conn):
+        """Build a minimal mock WorldModel with a live connection."""
+        class FakeWM:
+            def __init__(self, c):
+                self._conn = c
+                self._solver = None
+                self._registry = None
+            def claims_for(self, cid):
+                return [dict(r) for r in self._conn.execute(
+                    "SELECT * FROM claim WHERE concept_id = ?", (cid,)).fetchall()]
+            def _has_table(self, name):
+                return True
+            def _ensure_solver(self):
+                return None
+        return FakeWM(conn)
+
+    def test_bind_with_context_sees_parent(self):
+        """Claims in parent context are visible when querying child."""
+        conn, hierarchy = self._build_test_world()
+        from propstore.world.bound import BoundWorld
+
+        wm = self._make_wm(conn)
+        bound = BoundWorld(wm, {}, context_id="ctx_child", context_hierarchy=hierarchy)
+        active = bound.active_claims("c1")
+        active_ids = {c["id"] for c in active}
+
+        assert "claim1" in active_ids    # parent's claim — visible via inheritance
+        assert "claim2" in active_ids    # child's own
+        assert "claim4" in active_ids    # universal
+        assert "claim3" not in active_ids  # other — not visible
+        conn.close()
+
+    def test_universal_claims_visible_in_all_contexts(self):
+        """Claims with no context are visible everywhere."""
+        conn, hierarchy = self._build_test_world()
+        from propstore.world.bound import BoundWorld
+
+        wm = self._make_wm(conn)
+        for ctx in ["ctx_root", "ctx_child", "ctx_other"]:
+            bound = BoundWorld(wm, {}, context_id=ctx, context_hierarchy=hierarchy)
+            active = bound.active_claims("c1")
+            active_ids = {c["id"] for c in active}
+            assert "claim4" in active_ids, f"Universal claim not visible in {ctx}"
+        conn.close()
+
+    def test_bind_without_context_sees_everything(self):
+        """bind() without context= behaves exactly as before."""
+        conn, hierarchy = self._build_test_world()
+        from propstore.world.bound import BoundWorld
+
+        wm = self._make_wm(conn)
+        bound = BoundWorld(wm, {})  # no context
+        active = bound.active_claims("c1")
+        assert len(active) == 4  # all four claims visible
+        conn.close()
