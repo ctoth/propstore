@@ -303,7 +303,7 @@ This paper is foundational for the propstore's world model architecture. Argumen
 - [ ] How to extend the framework with argument strength/preference (addressed in Dung's later work [13])
 - [ ] How to handle self-defeating arguments systematically
 - [ ] Practical computational complexity of preferred/stable extension computation for real-world argumentation frameworks
-- [ ] Connection to structured argumentation frameworks (ASPIC+, ABA) that build on this abstract foundation
+- [ ] Connection to structured argumentation frameworks (ASPIC+, ABA) that build on this abstract foundation [Addressed by Modgil_2014_ASPICFrameworkStructuredArgumentation -- ASPIC+ builds structured arguments from strict/defeasible rules and knowledge bases, then generates Dung-style AFs and applies Dung's semantics]
 
 ## Related Work Worth Reading
 
@@ -330,7 +330,8 @@ This paper is foundational for the propstore's world model architecture. Argumen
 - (none)
 
 ### Cited By (in Collection)
-- (none found)
+- [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] — builds structured argumentation on top of Dung's abstract framework, generating Dung-style AFs from knowledge bases with strict/defeasible rules and applying Dung's semantics to determine justified arguments
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — extends Dung's framework with an independent support relation, defining bipolar argumentation frameworks (BAFs) with three new admissibility semantics (d-admissible, s-admissible, c-admissible) that generalize Dung's preferred and stable extensions by enforcing coherence between support and defeat
 
 ### Conceptual Links (not citation-based)
 - [[Doyle_1979_TruthMaintenanceSystem]] — **Strong.** Doyle's TMS maintains a single consistent belief set under contradictions; Dung's argumentation frameworks provide the abstract semantics for determining which beliefs (arguments) should be accepted. The TMS's dependency-directed backtracking when contradictions arise is an operational procedure for computing something like a grounded or preferred extension.
