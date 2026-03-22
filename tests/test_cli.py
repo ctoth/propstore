@@ -1125,3 +1125,55 @@ class TestConceptCategories:
         assert result.exit_code == 0
         # Either says "No category concepts" or outputs nothing
         assert "No category concepts" in result.output or result.output.strip() == ""
+
+
+# ── concept add-value ────────────────────────────────────────────────
+
+class TestConceptAddValue:
+    def test_add_value_appends_to_category(self, workspace: Path) -> None:
+        """pks concept add-value appends a new value to the category's values list."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add-value", "task", "--value", "reading",
+        ])
+        assert result.exit_code == 0, result.output
+
+        data = yaml.safe_load(
+            (workspace / "knowledge" / "concepts" / "task.yaml").read_text())
+        assert "reading" in data["form_parameters"]["values"]
+        # Original values preserved
+        assert "speech" in data["form_parameters"]["values"]
+        assert "singing" in data["form_parameters"]["values"]
+
+    def test_add_value_rejects_duplicate(self, workspace: Path) -> None:
+        """Adding an already-present value is rejected."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add-value", "task", "--value", "speech",
+        ])
+        assert result.exit_code != 0
+        assert "already" in result.output.lower()
+
+    def test_add_value_to_non_category_fails(self, workspace: Path) -> None:
+        """add-value on a non-category concept fails."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add-value", "fundamental_frequency", "--value", "nope",
+        ])
+        assert result.exit_code != 0
+        assert "category" in result.output.lower()
+
+    def test_add_value_to_non_extensible_fails(self, workspace: Path) -> None:
+        """add-value on a non-extensible category fails."""
+        # Create a non-extensible category concept
+        _write_concept(
+            workspace / "knowledge" / "concepts", "fixed_cat",
+            _make_concept("fixed_cat", "concept99", "test", form="category",
+                          form_parameters={"values": ["a", "b"], "extensible": False}))
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add-value", "fixed_cat", "--value", "c",
+        ])
+        assert result.exit_code != 0
+        assert "extensible" in result.output.lower()

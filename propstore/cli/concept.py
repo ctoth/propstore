@@ -567,6 +567,49 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
         click.echo(f"  {d.get('id', '?'):15s} {d.get('canonical_name', '?'):30s} [{c_status}]")
 
 
+# ── concept add-value ────────────────────────────────────────────────
+
+@concept.command("add-value")
+@click.argument("concept_name")
+@click.option("--value", required=True, help="Value to add to the category concept's value set")
+@click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
+@click.pass_obj
+def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
+    """Add a value to a category concept's value set."""
+    repo: Repository = obj["repo"]
+    filepath = find_concept(concept_name, repo.concepts_dir)
+    if filepath is None:
+        click.echo(f"ERROR: Concept '{concept_name}' not found", err=True)
+        sys.exit(EXIT_ERROR)
+
+    data = load_concept_file(filepath)
+
+    if data.get("form") != "category":
+        click.echo(f"ERROR: '{concept_name}' is not a category concept (form={data.get('form')})", err=True)
+        sys.exit(EXIT_ERROR)
+
+    fp = data.get("form_parameters", {}) or {}
+    extensible = fp.get("extensible", True)
+    if not extensible:
+        click.echo(f"ERROR: '{concept_name}' is not extensible — cannot add values", err=True)
+        sys.exit(EXIT_ERROR)
+
+    values = fp.get("values", [])
+    if value in values:
+        click.echo(f"ERROR: Value '{value}' already exists in '{concept_name}'", err=True)
+        sys.exit(EXIT_ERROR)
+
+    if dry_run:
+        click.echo(f"Would add '{value}' to {concept_name} values: {values + [value]}")
+        return
+
+    values.append(value)
+    fp["values"] = values
+    data["form_parameters"] = fp
+    write_concept_file(filepath, data)
+    click.echo(f"Added '{value}' to {concept_name} — values: {', '.join(values)}")
+
+
 # ── concept categories ───────────────────────────────────────────────
 
 @concept.command("categories")

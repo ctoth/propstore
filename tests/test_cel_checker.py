@@ -524,3 +524,21 @@ class TestBuildCelRegistry:
         ]
         result = build_cel_registry_from_loaded(concepts)
         assert len(result) == 0
+
+
+def test_category_from_cli_round_trip():
+    """Category concept created with values -> CEL checker validates against those values."""
+    registry = build_cel_registry({
+        "concept1": {
+            "canonical_name": "dataset",
+            "form": "category",
+            "form_parameters": {"values": ["ActivityNet", "YouCook2"], "extensible": False},
+        }
+    })
+    # Valid value -> no errors
+    errors = check_cel_expression("dataset == 'ActivityNet'", registry)
+    assert not any(not e.is_warning for e in errors)
+
+    # Invalid value on non-extensible -> error (not just warning)
+    errors = check_cel_expression("dataset == 'UNKNOWN'", registry)
+    assert any(not e.is_warning for e in errors)
