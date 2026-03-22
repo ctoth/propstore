@@ -98,13 +98,19 @@ def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
         s = next_s
 
 
-def complete_extensions(framework: ArgumentationFramework) -> list[frozenset[str]]:
+def complete_extensions(
+    framework: ArgumentationFramework, *, backend: str = "brute_force"
+) -> list[frozenset[str]]:
     """Compute all complete extensions.
 
     A complete extension is a fixed point of F that is admissible.
 
     Reference: Dung 1995, Definition 10.
     """
+    if backend == "z3":
+        from propstore.dung_z3 import z3_complete_extensions
+
+        return z3_complete_extensions(framework)
     args = framework.arguments
     defeats = framework.defeats
     results: list[frozenset[str]] = []
@@ -118,7 +124,9 @@ def complete_extensions(framework: ArgumentationFramework) -> list[frozenset[str
     return results
 
 
-def preferred_extensions(framework: ArgumentationFramework) -> list[frozenset[str]]:
+def preferred_extensions(
+    framework: ArgumentationFramework, *, backend: str = "brute_force"
+) -> list[frozenset[str]]:
     """Compute all preferred extensions.
 
     A preferred extension is a maximal (w.r.t. set inclusion) admissible set,
@@ -126,6 +134,10 @@ def preferred_extensions(framework: ArgumentationFramework) -> list[frozenset[st
 
     Reference: Dung 1995, Definition 8.
     """
+    if backend == "z3":
+        from propstore.dung_z3 import z3_preferred_extensions
+
+        return z3_preferred_extensions(framework)
     completes = complete_extensions(framework)
     maximal: list[frozenset[str]] = []
     for ext in completes:
@@ -134,7 +146,9 @@ def preferred_extensions(framework: ArgumentationFramework) -> list[frozenset[st
     return maximal
 
 
-def stable_extensions(framework: ArgumentationFramework) -> list[frozenset[str]]:
+def stable_extensions(
+    framework: ArgumentationFramework, *, backend: str = "brute_force"
+) -> list[frozenset[str]]:
     """Compute all stable extensions.
 
     A stable extension is conflict-free and defeats every argument not in it.
@@ -142,6 +156,10 @@ def stable_extensions(framework: ArgumentationFramework) -> list[frozenset[str]]
     Reference: Dung 1995, Definition 12.
     WARNING: Stable extensions may not exist.
     """
+    if backend == "z3":
+        from propstore.dung_z3 import z3_stable_extensions
+
+        return z3_stable_extensions(framework)
     args = framework.arguments
     defeats = framework.defeats
     results: list[frozenset[str]] = []
