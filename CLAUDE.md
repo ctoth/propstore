@@ -24,32 +24,6 @@ This principle governs every design decision. The system is lazy until rendering
 5. **Render layer** — Resolution strategies (recency, sample_size, argumentation, override), world queries, hypothetical reasoning. Multiple render policies over the same underlying corpus.
 6. **Agent workflow layer** — extract-claims, reconcile-vocabulary, relate, adjudicate. These produce proposals, not truth.
 
-## Current Known Issues (to be fixed in order)
-
-### Tranche 1: Everything flows, selection at render time
-- `relate.py` already writes stance files with full provenance (model, confidence, method) — these are proposal artifacts that carry their epistemic status as metadata
-- `build_sidecar.py:_populate_defeats()` materializes defeats at build time with hardcoded confidence_threshold=0.5 — this is a build-time collapse that must be removed
-- CLI does not expose confidence_threshold to users — render-time filtering exists in code but is invisible
-- Renders must explain which stances were used under what policy (confidence threshold, models, counts)
-
-### Tranche 2: Fix argumentation semantic correctness
-- Support relations (supports, explains) are discarded in AF construction (`argumentation.py:69`) — Cayrol 2005 proves support creates new defeat paths (supported defeat, indirect defeat)
-- `dung.py` uses defeat-based conflict-free — Modgil & Prakken 2018 requires attack-based conflict-free (Def 14) for rationality postulates to hold
-- Need tests on small canonical examples demonstrating changed extension behavior
-
-### Tranche 3: ATMS-style non-commitment core
-- Replace single context_id per claim with assumption-labeled environments (de Kleer 1986)
-- Multiple worlds coexist simultaneously; "rendering" = choosing an environment
-- Dixon 1993 proves ATMS context switching = AGM expansion + contraction
-
-### Tranche 4: Local theories and structured comparability
-- Replace naive global concept identity with local theories + views/morphisms + coercions
-- New YAML types: equivalence_edge, coercion, view, preserves, loses
-
-### Tranche 5: Incomplete information and entrenchment
-- Odekerken 2023: stability (robust to new info?) and relevance (which queries matter?)
-- Entrenchment from justification structure (Dixon 1993) PLUS declared external quality signals (study design, sample size, replication status) — neither subsumes the other
-
 ## Key Literature Grounding
 
 | Paper | What it grounds |
