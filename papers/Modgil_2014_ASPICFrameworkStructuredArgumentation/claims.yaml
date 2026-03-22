@@ -1,0 +1,190 @@
+source:
+  paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-21"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "ASPIC+ constructs structured arguments from strict and defeasible inference rules applied to a knowledge base partitioned into necessary (axiom) and ordinary (attackable) premises."
+    concepts:
+      - structured_argumentation
+      - defeasible_reasoning
+      - knowledge_base
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 5
+      section: "3. The framework defined"
+      quote_fragment: "An argumentation system is a triple AS = (L, R, n)"
+
+  - id: claim2
+    type: observation
+    statement: "There are exactly three types of attack in ASPIC+: undermining (attacking an ordinary premise), rebutting (attacking a defeasibly-derived conclusion), and undercutting (attacking the applicability of a defeasible inference rule)."
+    concepts:
+      - attack_relation
+      - undermining
+      - rebutting
+      - undercutting
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 9
+      section: "3.3. Attack and defeat"
+      quote_fragment: "A attacks B iff A undermines, rebuts, or undercuts B"
+
+  - id: claim3
+    type: observation
+    statement: "Undercutting attacks always succeed as defeats regardless of argument preference orderings, while undermining and rebutting attacks succeed as defeats only when the attacked sub-argument is not strictly preferred to the attacker."
+    concepts:
+      - undercutting
+      - defeat_relation
+      - preference_ordering
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 10
+      section: "3.3.2. Defeat"
+      quote_fragment: "only the success of undermining and rebutting attacks is contingent on preferences; undercutting attacks succeed as defeats independently"
+
+  - id: claim4
+    type: observation
+    statement: "A firm and strict argument (one using only strict rules and necessary premises) has no attackers and is therefore always justified."
+    concepts:
+      - strict_argument
+      - firm_argument
+      - justified_argument
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 8
+      section: "3.2. Argumentation systems, knowledge bases and arguments"
+
+  - id: claim5
+    type: observation
+    statement: "ASPIC+ satisfies the rationality postulates of sub-argument closure, closure under strict rules, direct consistency, and indirect consistency when: (1) the argumentation system is closed under transposition, (2) the axioms are consistent, and (3) the preference ordering is reasonable."
+    concepts:
+      - rationality_postulates
+      - transposition_closure
+      - consistency
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 20
+      section: "4.2. Satisfying rationality postulates"
+      quote_fragment: "conditions under which ASPIC+ satisfies logical consistency and closure properties"
+
+  - id: claim6
+    type: observation
+    statement: "An argumentation theory is closed under transposition if and only if for every strict rule with antecedents phi_1,...,phi_n and consequent phi, all transpositions (moving one antecedent to negated consequent and the negated consequent to antecedent position) are also strict rules."
+    concepts:
+      - transposition_closure
+      - strict_rules
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 17
+      section: "4.1.1. Domain-specific strict inference rules"
+
+  - id: claim7
+    type: observation
+    statement: "The last-link ordering compares arguments based only on the last defeasible rules applied, while the weakest-link ordering compares all defeasible rules and all ordinary premises. Last-link is more appropriate when conflicts arise between legal or institutional rules; weakest-link is better for empirical generalizations."
+    concepts:
+      - last_link_ordering
+      - weakest_link_ordering
+      - argument_comparison
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 14
+      section: "3.5. More on argument orderings"
+
+  - id: claim8
+    type: observation
+    statement: "Walton-style argument schemes can be modeled in ASPIC+ by representing schemes as defeasible inference rules and critical questions as potential undercutters or rebutters, with different types of critical questions mapping to different attack types."
+    concepts:
+      - argument_schemes
+      - critical_questions
+      - defeasible_rules
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 22
+      section: "4.3. Using ASPIC+ to model argument schemes"
+
+  - id: claim9
+    type: observation
+    statement: "The generalized ASPIC+ framework replaces ordinary negation with a contrariness function that distinguishes contraries (asymmetric conflict) from contradictories (symmetric conflict). Contrary-based attacks always succeed like undercutting, while contradictory-based attacks are preference-dependent like rebutting."
+    concepts:
+      - contrariness_function
+      - contrary
+      - contradictory
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 29
+      section: "5. Generalizing the framework"
+
+  - id: claim10
+    type: observation
+    statement: "Assumption-based argumentation (ABA) can be modeled within generalized ASPIC+ using the contrariness function, since ABA's assumption-based attacks correspond to contrary-based attacks that always succeed."
+    concepts:
+      - assumption_based_argumentation
+      - contrariness_function
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 29
+      section: "5. Generalizing the framework"
+
+  - id: claim11
+    type: model
+    name: "ASPIC+ argumentation system"
+    equations:
+      - "AS = (L, R_s \\cup R_d, n)"
+      - "K = (K_n, K_p)"
+      - "AT = (AS, K)"
+      - "SAF = (A, C, \\preceq)"
+    parameters:
+      - name: "L"
+        concept: "logical_language"
+        note: "Logical language closed under negation"
+      - name: "R_s"
+        concept: "strict_rules"
+        note: "Set of strict inference rules"
+      - name: "R_d"
+        concept: "defeasible_rules"
+        note: "Set of defeasible inference rules"
+      - name: "n"
+        concept: "naming_function"
+        note: "Maps defeasible rules to formulas in L"
+      - name: "K_n"
+        concept: "necessary_premises"
+        note: "Axioms that cannot be attacked"
+      - name: "K_p"
+        concept: "ordinary_premises"
+        note: "Premises that can be attacked"
+      - name: "A"
+        concept: "argument_set"
+        note: "Set of all finite arguments constructable from K in AS"
+      - name: "C"
+        concept: "defeat_relation"
+        note: "Defeat relation derived from attacks and preferences"
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 5
+      section: "3. The framework defined"
+
+  - id: claim12
+    type: observation
+    statement: "ASPIC+ is not a system but a framework for specifying systems: it leaves the user free to choose the logical language, the strict and defeasible inference rules, the premises, and the preference ordering."
+    concepts:
+      - structured_argumentation
+      - framework_design
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 2
+      section: "1. Introduction"
+      quote_fragment: "ASPIC+ is not a system but a framework for specifying systems"
+
+  - id: claim13
+    type: observation
+    statement: "Every ASPIC+ structured argumentation framework has a corresponding Dung-style abstract argumentation framework, obtained by taking the set of all arguments and the defeat relation as the attack relation."
+    concepts:
+      - abstract_argumentation
+      - structured_argumentation
+      - dung_framework
+    provenance:
+      paper: Modgil_2014_ASPICFrameworkStructuredArgumentation
+      page: 12
+      section: "3.4. Generating Dung-style abstract AFs"
