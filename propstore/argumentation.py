@@ -115,3 +115,63 @@ def compute_justified_claims(
         return [frozenset(e) for e in stable_extensions(af)]
     else:
         raise ValueError(f"Unknown semantics: {semantics}")
+
+
+def compute_consistent_beliefs(
+    conn: sqlite3.Connection,
+    active_claim_ids: set[str],
+) -> frozenset[str]:
+    """Find maximally consistent claim subset using MaxSMT.
+
+    Loads claims, detects conflicts via the conflict detector, computes
+    claim strengths, then calls the MaxSMT resolver to find the largest
+    weighted conflict-free subset.
+    """
+    from propstore.conflict_detector import ConflictClass, detect_conflicts
+    from propstore.maxsat_resolver import resolve_conflicts
+    from propstore.validate_claims import LoadedClaimFile
+
+    if not active_claim_ids:
+        return frozenset()
+
+    # Load claim rows from DB
+    placeholders = ",".join("?" for _ in active_claim_ids)
+    claim_rows = conn.execute(
+        f"SELECT * FROM claim WHERE id IN ({placeholders})",  # noqa: S608
+        list(active_claim_ids),
+    ).fetchall()
+    claims_by_id = {row["id"]: dict(row) for row in claim_rows}
+
+    # Compute strengths
+    strengths = {
+        cid: claim_strength(claims_by_id[cid])
+        for cid in active_claim_ids
+        if cid in claims_by_id
+    }
+
+    # Detect conflicts — build synthetic LoadedClaimFile wrappers
+    # We need the claim data in the format detect_conflicts expects
+    synthetic = LoadedClaimFile(
+        path="<in-memory>",
+        data={"claims": list(claims_by_id.values())},
+    )
+
+    # Build a minimal concept registry from claims
+    concept_ids = {
+        c.get("concept") or c.get("target_concept")
+        for c in claims_by_id.values()
+        if c.get("concept") or c.get("target_concept")
+    }
+    concept_registry = {cid: {} for cid in concept_ids if cid}
+
+    records = detect_conflicts([synthetic], concept_registry)
+
+    # Extract conflict pairs (only true conflicts, not phi-nodes)
+    conflict_types = {ConflictClass.CONFLICT, ConflictClass.OVERLAP, ConflictClass.PARAM_CONFLICT}
+    conflict_pairs = [
+        (r.claim_a_id, r.claim_b_id)
+        for r in records
+        if r.warning_class in conflict_types
+    ]
+
+    return resolve_conflicts(conflict_pairs, strengths)
