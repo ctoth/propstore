@@ -31,6 +31,12 @@ enums:
         description: "A perceptual or behavioral measurement (JND, threshold, rating) about a concept."
       algorithm:
         description: "A procedural computation (Python function body) that transforms inputs to outputs."
+      mechanism:
+        description: "A causal or architectural argument — how or why something works, design rationale."
+      comparison:
+        description: "A contrastive claim positioning this work against prior approaches."
+      limitation:
+        description: "An acknowledged scope boundary, failure mode, or unsolved problem."
 
   StanceType:
     description: >

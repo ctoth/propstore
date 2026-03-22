@@ -1368,3 +1368,44 @@ class TestValidateSingleFile:
 
         result = validate_single_claim_file(filepath, make_concept_registry())
         assert result.ok, f"Unexpected errors: {result.errors}"
+
+
+# ── New claim types: mechanism, comparison, limitation ───────────────
+
+
+class TestNewClaimTypes:
+    def test_mechanism_claim_valid(self, claims_dir):
+        """A mechanism claim with statement and concepts validates."""
+        claim = make_observation_claim("claim1", "X works by Y", ["concept1"])
+        claim["type"] = "mechanism"
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        type_errors = [e for e in result.errors if "unrecognized type" in e]
+        assert not type_errors, f"Mechanism type rejected: {type_errors}"
+
+    def test_comparison_claim_valid(self, claims_dir):
+        """A comparison claim with statement and concepts validates."""
+        claim = make_observation_claim("claim1", "X outperforms Y because Z", ["concept1"])
+        claim["type"] = "comparison"
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        type_errors = [e for e in result.errors if "unrecognized type" in e]
+        assert not type_errors, f"Comparison type rejected: {type_errors}"
+
+    def test_limitation_claim_valid(self, claims_dir):
+        """A limitation claim with statement and concepts validates."""
+        claim = make_observation_claim("claim1", "X cannot handle Y", ["concept1"])
+        claim["type"] = "limitation"
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        type_errors = [e for e in result.errors if "unrecognized type" in e]
+        assert not type_errors, f"Limitation type rejected: {type_errors}"

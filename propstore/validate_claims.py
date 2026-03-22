@@ -249,6 +249,8 @@ def validate_claims(
                 _validate_measurement(claim, cid, cf.filename, concept_registry, result)
             elif ctype == "algorithm":
                 _validate_algorithm(claim, cid, cf.filename, concept_registry, result)
+            elif ctype in ("mechanism", "comparison", "limitation"):
+                _validate_observation(claim, cid, cf.filename, concept_registry, result)
             else:
                 result.errors.append(
                     f"{cf.filename}: claim '{cid}' has unrecognized type '{ctype}'")
