@@ -195,7 +195,7 @@ def claim_files(concept_dir):
                 "conditions": ["task == 'speech'"],
                 "stances": [
                     {
-                        "type": "contradicts",
+                        "type": "rebuts",
                         "target": "claim1",
                         "strength": "strong",
                         "note": "same task, conflicting value",
@@ -397,7 +397,7 @@ class TestExplain:
         chain = world.explain("claim2")
         assert len(chain) >= 1
         assert chain[0]["target_claim_id"] == "claim1"
-        assert chain[0]["stance_type"] == "contradicts"
+        assert chain[0]["stance_type"] == "rebuts"
 
     def test_explain_no_stances(self, world):
         chain = world.explain("claim1")
@@ -735,16 +735,14 @@ class TestConflictResolution:
         # claim7 wins with n=50
         assert result.winning_claim_id == "claim7"
 
-    def test_resolve_stance_contradicts(self, world):
-        """Contradicted claim loses."""
+    def test_resolve_stance_rebuts(self, world):
+        """Rebutted claim scored via weighted stances."""
         bound = world.bind(task="speech")
         result = resolve(bound, "concept1", ResolutionStrategy.STANCE, world=world)
-        # claim2 contradicts claim1 → claim1 gets -1
-        # claim7 supports claim1 → claim1 gets +1 (net 0)
-        # claim2 has no support → 0, but is contradicted by claim2's stance? No...
-        # claim_stance: claim2 → claim1 (contradicts), claim7 → claim1 (supports)
-        # Net scores: claim1 = -1+1 = 0 (contradicted by claim2, supported by claim7)
-        # claim2 = 0, claim7 = 0
+        # claim2 rebuts claim1 → claim1 gets -1.0
+        # claim7 supports claim1 → claim1 gets +1.0 (net 0.0)
+        # claim_stance: claim2 → claim1 (rebuts), claim7 → claim1 (supports)
+        # Net scores: claim1 = 0.0, claim2 = 0.0, claim7 = 0.0
         # All tied → can't resolve
         assert result.status in ("resolved", "conflicted")
 
