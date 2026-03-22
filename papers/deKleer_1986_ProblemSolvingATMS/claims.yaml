@@ -1,297 +1,134 @@
 source:
   paper: deKleer_1986_ProblemSolvingATMS
-  extraction_model: "claude-opus-4-6"
-  extraction_date: "2026-03-17"
+  extraction_model: "claude-opus-4-20250514"
+  extraction_date: "2026-03-22"
 
 claims:
-
-  # --- Equations ---
-
   - id: claim1
-    type: equation
-    expression: "\\alpha_1, \\alpha_2, \\ldots \\Rightarrow \\beta"
-    sympy: "Implies(alpha_1 & alpha_2, beta)"
-    variables:
-      - symbol: "alpha_i"
-        concept: "atms_antecedent"
-        role: "independent"
-      - symbol: "beta"
-        concept: "atms_consequent"
-        role: "dependent"
+    type: observation
+    statement: "The consumer architecture encodes problem-solving steps as modular consumers attached to ATMS nodes that execute exactly once when antecedent labels become nonempty, producing new justifications and ensuring clean separation between problem-solving logic and ATMS maintenance."
+    concepts:
+      - consumer_architecture
+      - atms
+      - label
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 198
-      section: "2. Interfacing with the ATMS"
-      quote_fragment: "A justification is of the form alpha_1, alpha_2, ... => beta interpreted as material implication"
-    notes: "Fundamental justification form. Antecedents are data, assumptions, or falsity. Beta is the consequent node."
+      section: "3. Consumers"
 
   - id: claim2
-    type: equation
-    expression: "x_i = R_i^{-1}(x_1, \\ldots, x_{i-1}, x_{i+1}, \\ldots)"
-    sympy: "x_i - R_i_inv(x_1, x_2, x_3)"
-    variables:
-      - symbol: "x_i"
-        concept: "constraint_variable"
-        role: "dependent"
-      - symbol: "R_i_inv"
-        concept: "constraint_inverse"
-        role: "parameter"
+    type: observation
+    statement: "Consumers may not have internal state or make control decisions; all inferences are recorded as permanent ATMS justifications, ensuring the ATMS remains order-independent and sound."
+    concepts:
+      - consumer_architecture
+      - atms
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 207
-      section: "5.1. Constraint consumers"
-      quote_fragment: "Constraint consumers implement a constraint R(x_1, x_2, ...) on variables by invoking a problem-solver-supplied function with one variable x_i"
-    notes: "Generic constraint consumer inverse. Each constraint R generates n consumers, one per variable, computing the inverse when all other variables are known."
+      section: "3. Consumers"
 
   - id: claim3
-    type: equation
-    expression: "v_i = -\\sum_{j \\neq i} v_j"
-    sympy: "v_i + Sum(v_j, (j, 1, n)) - v_i"
-    variables:
-      - symbol: "v_i"
-        concept: "plus_constraint_variable"
-        role: "dependent"
-      - symbol: "v_j"
-        concept: "plus_constraint_variable"
-        role: "independent"
+    type: observation
+    statement: "Scheduling consumers by simplest-label-first (fewest assumptions in the environment) finds solutions with near-minimum effort by exploring the most constrained contexts first."
+    concepts:
+      - consumer_architecture
+      - environment
+      - atms
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 210
-      section: "5.3. A simple constraint language"
-      quote_fragment: "PLUS(v_1, v_2, ...). Sum v_i = 0. A constraint consumer is attached to the set {v, v_1, v_2, ...}. R_i^{-1} is defined as: v_i = -sum_{j != i} v_j"
-    notes: "Inverse for PLUS constraint. PLUS encodes sum-to-zero: all variables sum to 0, so any one variable equals the negation of the sum of the rest."
+      section: "4.1 Scheduling"
 
   - id: claim4
-    type: equation
-    expression: "v_i = \\frac{\\prod_{j \\neq i} v_j}{v}"
-    sympy: "v_i - Product(v_j, (j, 1, n)) / v"
-    variables:
-      - symbol: "v_i"
-        concept: "times_constraint_variable"
-        role: "dependent"
-      - symbol: "v_j"
-        concept: "times_constraint_variable"
-        role: "independent"
-      - symbol: "v"
-        concept: "times_constraint_product"
-        role: "parameter"
+    type: observation
+    statement: "Control disjunctions partition the search space by constraining the scheduler to explore only environments consistent with specified mutually exclusive choices, achieving at least the efficiency of chronological backtracking."
+    concepts:
+      - control_disjunction
+      - atms
+      - dependency_directed_backtracking
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 212
-      section: "5.3. A simple constraint language"
-      quote_fragment: "TIMES(v, v_1, v_2, ...). v = prod v_i. R_i^{-1} is defined as: v_i = (prod_{j != i} v_j) / v"
-    notes: "Inverse for TIMES constraint when v != 0. Zero case handled via class consumers creating oneof disjunction assumption sets."
-
-  # --- Model: Constraint Language ---
+      section: "4.2 Dependency-Directed Backtracking"
 
   - id: claim5
-    type: model
-    name: "ATMS constraint language primitives"
-    equations:
-      - "EQ(l, v1, v2): v1 = v2 iff l = TRUE"
-      - "NOT(l1, l2): l1 = TRUE iff l2 = FALSE"
-      - "MINUS(v1, v2): v1 = -v2"
-      - "PLUS(v1, v2, ...): sum(vi) = 0"
-      - "TIMES(v, v1, v2, ...): v = prod(vi)"
-      - "DIVIDE(v, v1, v2): if v2 != 0 then v1 = v * v2"
-      - "AND(l, l1, l2, ...): l = TRUE iff all li = TRUE"
-      - "OR(l, l1, l2, ...): l = TRUE iff at least one li = TRUE"
-      - "ONEOF(l, l1, l2, ...): l = TRUE iff exactly one li = TRUE"
-      - "ELEMENT(l, v, v1, v2, ...): equivalent to ONEOF + EQ"
-    parameters:
-      - name: "l"
-        concept: "logical_variable"
-        note: "Logical variable (TRUE/FALSE), represented by class with two nodes"
-      - name: "v"
-        concept: "numeric_variable"
-        note: "Numeric variable, represented by class with value nodes"
+    type: observation
+    statement: "The constraint language provides primitives (PLUS, TIMES, AND, OR, ONEOF, EQ, NOT, MINUS, DIVIDE, ELEMENT) built entirely on ATMS justifications and consumers for encoding arithmetic and logical constraints."
+    concepts:
+      - constraint_language
+      - consumer_architecture
+      - atms
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 209
-      section: "5.3. A simple constraint language"
-      quote_fragment: "Variables are represented by classes and their values by nodes. Each constraint-language expression is translated into a set of primitive constraints"
-    notes: "Complete constraint language built entirely on ATMS consumers and justifications. Each primitive is compiled into constraint consumers that propagate via R_i^{-1}. Logical variables are classes of {TRUE, FALSE}; numeric variables are classes of value nodes."
-
-  # --- Algorithm: Consumer scheduling ---
+      section: "5.3 Constraint Language"
 
   - id: claim6
-    type: algorithm
-    body: |
-      def schedule_consumers(agenda):
-          """ATMS consumer scheduling algorithm."""
-          while agenda.has_pending():
-              # Pick node with smallest environment (fewest assumptions)
-              node = agenda.pick_simplest_label()
-              # Execute before-consumers first (cheap checks)
-              for consumer in node.before_consumers:
-                  if consumer.antecedents_consistent():
-                      consumer.execute()
-                      consumer.discard()
-              # Then after-consumers (expensive computation)
-              for consumer in node.after_consumers:
-                  if consumer.antecedents_consistent():
-                      consumer.execute()
-                      consumer.discard()
-    stage: "control"
+    type: observation
+    statement: "Constraint consumers trigger when all but one variable in a relation are known, computing the unknown via the constraint's inverse function, and suppress spurious retriggering."
+    concepts:
+      - constraint_language
+      - consumer_architecture
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 204
-      section: "4.1. Scheduling"
-      quote_fragment: "The problem solver picks a consumer of one of these nodes, executes it, and discards it. This process repeats until there are no nodes with pending consumers and nonempty labels."
-    notes: "Simplest-label-first scheduling. Before/after ordering is optional efficiency optimization. Consumer queue is implicit in the database of nodes with pending consumers."
-
-  # --- Algorithm: Dependency-directed backtracking ---
+      section: "5.3 Constraint Language"
 
   - id: claim7
-    type: algorithm
-    body: |
-      def dependency_directed_backtracking(scheduler, control_disjunctions):
-          """Dependency-directed backtracking via control disjunctions."""
-          # Maintain current environment satisfying all control disjunctions
-          current_env = scheduler.find_consistent_environment(control_disjunctions)
-          while current_env is not None:
-              # Run consumers in current environment
-              scheduler.run_consumers_in(current_env)
-              if scheduler.found_contradiction():
-                  # ATMS records nogood; next consistent env found automatically
-                  current_env = scheduler.find_next_consistent(control_disjunctions)
-              elif scheduler.found_solution():
-                  return current_env
-              else:
-                  current_env = scheduler.find_next_consistent(control_disjunctions)
-          return None  # exhausted
-    stage: "control"
+    type: observation
+    statement: "For problems requiring all solutions, the ATMS has an inherent advantage over conventional TMSs by avoiding all dependency-directed backtracking and context switching overhead."
+    concepts:
+      - atms
+      - dependency_directed_backtracking
+      - context_switching
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 205
-      section: "4.2. Dependency-directed backtracking"
-      quote_fragment: "The scheduler maintains a single current environment which is always guaranteed to satisfy every control disjunction. A consumer is not run unless it has a consistent environment."
-    notes: "Control disjunctions partition the search space. The scheduler guarantees the next consistent environment avoids all known nogoods, achieving at least chronological backtracking efficiency."
-
-  # --- Observations ---
+      section: "6. Summary"
 
   - id: claim8
     type: observation
-    statement: "The environment lattice for n assumptions has exactly 2^n vertices, each representing a unique subset of assumptions."
+    statement: "Without control disjunctions, label sizes can grow exponentially: the i-bit parity problem produces 2^(i+2) + 2^i environments, but with control disjunctions the first solution is found after creating only 4i environments."
     concepts:
-      - "environment_lattice"
-      - "assumption_set"
+      - control_disjunction
+      - label
+      - atms
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 199
-      section: "2. Interfacing with the ATMS"
-      figure: "Fig. 1"
-      quote_fragment: "Fig. 1 shows the environment lattice for five assumptions"
+      section: "5.2 Parity Problem"
 
   - id: claim9
     type: observation
-    statement: "Consumers execute exactly once per node; rerunning a consumer on the same node produces no new justifications because ATMS node data cannot change."
+    statement: "The ATMS provides a weaker notion of control than Doyle's TMS data pool mechanism, because ATMS consumers cannot make control decisions or maintain internal state."
     concepts:
-      - "consumer_architecture"
-      - "atms_justification"
+      - consumer_architecture
+      - truth_maintenance_system
+      - atms
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 202
-      section: "3. Consumers"
-      quote_fragment: "Running a consumer is like a compilation process: the consumer is compiled into a set of justifications. Rerunning the consumer is as absurd as recompiling an unchanged procedure."
-    notes: "This is a core architectural invariant. Consumer idempotency is what enables order-insensitive and parallelizable execution."
+      section: "7. Comparison"
 
   - id: claim10
     type: observation
-    statement: "Adding arbitrary antecedents to a justification causes the ATMS to record the consequent in contexts containing those antecedents but not the required ones, corrupting soundness."
+    statement: "ATMS soundness, completeness, and consistency guarantees for default reasoning can be inadvertently lost if the problem solver does not interface correctly through the consumer architecture."
     concepts:
-      - "atms_justification"
-      - "atms_soundness"
+      - atms
+      - consumer_architecture
+      - non_monotonic_reasoning
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 200
-      section: "2.1. Interpretation"
-      quote_fragment: "Suppose the problem solver recorded a, b => c instead of a => c. The datum c will not hold in all contexts where it should, i.e., those contexts containing a but not b."
-    notes: "Critical correctness property. The problem solver must record justifications with exactly the correct antecedents — too few yields over-general labels; too many yields incomplete derivations."
+      section: "1. Introduction"
 
   - id: claim11
     type: observation
-    statement: "If a context is inconsistent (nogood), no datum should be derivable in that context alone; the ATMS guarantees this by crossing out nogood environments from all labels."
+    statement: "Conjunctive class consumers are invoked on the cross-product of antecedent class node sets, running once per tuple of nodes, enabling efficient encoding of multi-variable rules."
     concepts:
-      - "atms_nogood"
-      - "atms_consistency"
+      - consumer_architecture
+      - atms
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 199
-      section: "2. Interfacing with the ATMS"
-      quote_fragment: "A context is a subset of assumptions. The ATMS records nogoods which are minimal inconsistent sets of assumptions."
+      section: "3.2 Conjunctive Class Consumers"
 
   - id: claim12
     type: observation
-    statement: "For the n-bit parity problem without control disjunctions, label sizes grow as 2^(i+2) + 2^i environments; with control disjunctions, the first solution is found after creating only 4i environments (linear)."
+    statement: "Control is exercised only before running a consumer by selecting which environment to explore; once a consumer executes, its justifications are permanent and cannot be retracted without the defeasibility-assumption mechanism."
     concepts:
-      - "environment_lattice"
-      - "control_disjunction"
+      - consumer_architecture
+      - control_disjunction
+      - atms
     provenance:
       paper: deKleer_1986_ProblemSolvingATMS
-      page: 216
-      section: "6.1. Appropriate problem-solving tasks for ATMS vs. TMS"
-      quote_fragment: "For the i-bit number with odd parity each bit position two variables are created... the presence of disjunctions means employing the hyperresolution rules is useful."
-    notes: "Demonstrates exponential-to-linear improvement from control disjunctions on a well-defined benchmark. This is the paper's primary scalability result."
-
-  - id: claim13
-    type: observation
-    statement: "The ATMS has an inherent advantage over TMS for problems with many solutions where all are required, because it avoids all dependency-directed backtracking and context switching overhead."
-    concepts:
-      - "atms_efficiency"
-      - "truth_maintenance_comparison"
-    provenance:
-      paper: deKleer_1986_ProblemSolvingATMS
-      page: 215
-      section: "6.1. Appropriate problem-solving tasks for ATMS vs. TMS"
-      quote_fragment: "The ATMS has an inherent advantage on the first class of problems because it avoids all dependency-directed backtracking and context switching."
-
-  - id: claim14
-    type: observation
-    statement: "The ATMS is slower than conventional TMS for problems needing only one solution due to its inherent overhead on database accesses for label maintenance."
-    concepts:
-      - "atms_efficiency"
-      - "truth_maintenance_comparison"
-    provenance:
-      paper: deKleer_1986_ProblemSolvingATMS
-      page: 215
-      section: "6.1. Appropriate problem-solving tasks for ATMS vs. TMS"
-      quote_fragment: "The ATMS is less clear when there is only one solution. It all depends on how much dependency-directed backtracking is required to find the single solution."
-
-  - id: claim15
-    type: observation
-    statement: "The consumer architecture is inherently parallelizable: consumers are order-insensitive and status-insensitive, requiring no global retraction, so they can be scheduled on any processor without coordination."
-    concepts:
-      - "consumer_architecture"
-      - "parallel_execution"
-    provenance:
-      paper: deKleer_1986_ProblemSolvingATMS
-      page: 222
-      section: "7.1. Parallelism"
-      quote_fragment: "A consumer is nothing more than a process which can be scheduled at any time. The consumers are both order-insensitive and insensitive to the statuses of the nodes."
-
-  - id: claim16
-    type: observation
-    statement: "The ATMS extensions of assumption and environment correspond to default logic's use of assumption and admissible extension; counterfactuals can be evaluated by finding maximally consistent sets of true defaults."
-    concepts:
-      - "default_reasoning"
-      - "counterfactual_reasoning"
-    provenance:
-      paper: deKleer_1986_ProblemSolvingATMS
-      page: 222
-      section: "6.8. Counterfactuals"
-      quote_fragment: "The ATMS extensions of assumption and extension correspond to Doyle's use of assumption and admissible extension."
-    notes: "Links ATMS to Ginsberg's possible-world semantics and Reiter's default logic. Counterfactual 'if p then q' evaluated by finding minimal mutilations of the current world where p holds."
-
-  - id: claim17
-    type: observation
-    statement: "A constraint consumer triggers the constraint R whenever a conjunction of all but one antecedent holds in a consistent environment, and suppresses spurious retriggering by tracking which variable combinations have already been processed."
-    concepts:
-      - "constraint_consumer"
-      - "retriggering_suppression"
-    provenance:
-      paper: deKleer_1986_ProblemSolvingATMS
-      page: 207
-      section: "5.1. Constraint consumers"
-      quote_fragment: "A constraint consumer triggers the constraint R whenever a conjunction of all but one antecedents holds in a consistent environment, and suppresses subsequent spurious retriggering."
-    notes: "The retriggering suppression is critical for efficiency: without it, constraint R(x,y,z) with x+y=z would fire redundantly when all three variables already have consistent values."
+      section: "4. Control"

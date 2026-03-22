@@ -11,33 +11,40 @@ pages: "510-530"
 
 ## One-Sentence Summary
 
-Defines the axiomatic framework for rational belief change (the AGM postulates) and constructs explicit contraction and revision functions via partial meet operations on remainder sets, establishing the foundational theory that all subsequent belief revision work builds upon.
+Defines the axiomatic framework for rational belief change (the AGM postulates) and constructs explicit contraction and revision functions via partial meet operations on remainder sets, establishing the foundational theory that all subsequent belief revision work builds upon. *(p.510)*
 
 ## Problem Addressed
 
-How should a rational agent revise a body of beliefs (a theory, i.e. a deductively closed set of sentences) when new information contradicts the current theory? Prior to this paper, there was no agreed-upon formal framework specifying what properties a rational contraction or revision operation should satisfy. The authors address this by providing both axiomatic characterizations (postulates) and constructive definitions (partial meet functions) and proving their equivalence via representation theorems.
+How should a rational agent revise a body of beliefs (a theory, i.e. a deductively closed set of sentences) when new information contradicts the current theory? Prior to this paper, there was no agreed-upon formal framework specifying what properties a rational contraction or revision operation should satisfy. *(p.510)* The authors address this by providing both axiomatic characterizations (postulates) and constructive definitions (partial meet functions) and proving their equivalence via representation theorems. *(p.510-511)*
 
 ## Key Contributions
 
-- Defines the six basic AGM postulates for contraction (K-1 through K-6) and two supplementary postulates (K-7, K-8)
-- Defines the six basic AGM postulates for revision (K*1 through K*6) and two supplementary postulates (K*7, K*8)
-- Introduces the Levi identity connecting revision to contraction: K*x = (K-~x)+x
-- Introduces the Harper identity connecting contraction to revision: K-x = K intersect K*~x
-- Defines partial meet contraction via remainder sets and selection functions
-- Proves representation theorems: the basic postulates characterize exactly the class of partial meet contraction/revision functions
-- Proves the supplementary postulates characterize exactly the transitively relational partial meet functions
-- Establishes the duality between contraction and revision via the Levi and Harper identities
+- Defines the six basic AGM postulates for contraction (K-1 through K-6) and two supplementary postulates (K-7, K-8) *(p.513, p.515)*
+- Defines the six basic AGM postulates for revision (K*1 through K*6) and two supplementary postulates (K*7, K*8) *(p.513, p.515)*
+- Introduces the Levi identity connecting revision to contraction: K*x = (K-~x)+x *(p.511)*
+- Introduces the Harper identity connecting contraction to revision: K-x = K intersect K*~x *(p.513, stated as postulate (-6))*
+- Defines partial meet contraction via remainder sets and selection functions *(p.512)*
+- Proves representation theorems: the basic postulates characterize exactly the class of partial meet contraction/revision functions *(p.514, Observation 2.5)*
+- Proves the supplementary postulates characterize exactly the transitively relational partial meet functions *(p.520, Corollary 4.5)*
+- Establishes the duality between contraction and revision via the Levi and Harper identities *(p.513, Observation 2.3)*
+- Introduces relational and transitively relational selection functions as a way to constrain partial meet operations *(p.518)*
+- Provides a comprehensive implication diagram showing relationships between all conditions on contraction operations *(p.528)*
+- Shows that in the finite case, (gamma7:N) is equivalent to (gamma7:infinity), but (gamma7:1) does not imply (gamma7:2) *(p.522)*
+- Proves that connectivity adds nothing in the infinite case but matters in the finite case *(p.523, Observation 5.1)*
+- Establishes factoring conditions (Decomposition, Intersection, Ventilation) relating contraction of conjunctions to contraction of conjuncts *(p.525)*
 
 ## Methodology
 
-The paper operates within classical propositional logic, treating theories (belief sets) as deductively closed sets of sentences. The key construction proceeds in stages:
+The paper operates within classical propositional logic, treating theories (belief sets) as deductively closed sets of sentences. *(p.511-512)* The key construction proceeds in stages:
 
-1. **Remainder sets**: For a theory K and sentence x, the remainder set K_|_x is the set of all maximal subsets of K that do not imply x.
-2. **Selection functions**: A selection function gamma picks non-empty subsets of the remainder set.
-3. **Partial meet contraction**: K-x = intersection of gamma(K_|_x), the intersection of the selected remainders.
-4. **Full meet contraction**: When gamma always selects the entire remainder set (most conservative).
-5. **Maxichoice contraction**: When gamma always selects a singleton (most liberal).
-6. **Transitively relational partial meet**: When the selection function can be generated by a transitive relation over the remainder set.
+1. **Remainder sets**: For a theory K and sentence x, the remainder set K_|_x is the set of all maximal subsets of K that do not imply x. *(p.512)*
+2. **Selection functions**: A selection function gamma picks non-empty subsets of the remainder set. *(p.512)*
+3. **Partial meet contraction**: K-x = intersection of gamma(K_|_x), the intersection of the selected remainders. *(p.512)*
+4. **Full meet contraction**: When gamma always selects the entire remainder set (most conservative). *(p.512)*
+5. **Maxichoice contraction**: When gamma always selects a singleton (most liberal). *(p.512)*
+6. **Transitively relational partial meet**: When the selection function can be generated by a transitive relation over the remainder set. *(p.518)*
+
+The paper assumes the consequence operation Cn satisfies: inclusion (X is a subset of Cn(X)), idempotence (Cn(Cn(X)) = Cn(X)), monotonicity, classical tautological implication, compactness, and the rule of introduction of disjunctions in the premises. *(p.511-512)*
 
 ## Key Equations
 
@@ -48,6 +55,7 @@ K \dot{-} x = \bigcap \gamma(K \bot x)
 $$
 
 Where: $K$ is a theory (deductively closed set), $x$ is a sentence, $K \bot x$ is the remainder set (all maximal subsets of $K$ not implying $x$), $\gamma$ is a selection function choosing non-empty subsets of $K \bot x$.
+*(p.512)*
 
 ### Levi Identity (Revision from Contraction)
 
@@ -56,6 +64,7 @@ K * x = (K \dot{-} \neg x) + x
 $$
 
 Where: $K * x$ is the revision of $K$ by $x$, $K \dot{-} \neg x$ is the contraction of $K$ by $\neg x$, and $+$ denotes expansion (closure of $K \cup \{x\}$).
+*(p.511)*
 
 ### Harper Identity (Contraction from Revision)
 
@@ -64,6 +73,7 @@ K \dot{-} x = K \cap (K * \neg x)
 $$
 
 Where: contraction is recovered as the intersection of the original theory with the revision by the negation.
+*(p.513, postulate (-6))*
 
 ### Expansion
 
@@ -72,6 +82,7 @@ K + x = \text{Cn}(K \cup \{x\})
 $$
 
 Where: $\text{Cn}$ is the consequence operator (deductive closure).
+*(p.511)*
 
 ### Remainder Set
 
@@ -80,6 +91,16 @@ K \bot x = \{B \subseteq K : x \notin \text{Cn}(B) \text{ and } \forall B' (B \s
 $$
 
 Where: $K \bot x$ consists of all maximal subsets of $K$ that fail to imply $x$.
+*(p.512)*
+
+### Marking Off Identity
+
+$$
+\gamma(A \bot x) = \{B \in A \bot x : B' \leq B \text{ for all } B' \in A \bot x\}
+$$
+
+Where: the selection function is generated by a relation $\leq$ over $2^A$ that "marks off" the best elements of each remainder set.
+*(p.518)*
 
 ## Parameters
 
@@ -89,73 +110,120 @@ This is a purely logical/mathematical paper with no numerical parameters.
 
 ### AGM Contraction Postulates (Basic)
 
-- **(K-1)** K-x is a theory (closed under consequence)
-- **(K-2)** K-x is a subset of K (contraction does not add beliefs)
-- **(K-3)** If x is not in K, then K-x = K (vacuity)
-- **(K-4)** If x is not in Cn(empty), then x is not in K-x (success)
-- **(K-5)** K is a subset of (K-x)+x (recovery)
-- **(K-6)** If Cn(x) = Cn(y), then K-x = K-y (extensionality)
-
-### AGM Contraction Postulates (Supplementary)
-
-- **(K-7)** (K-x) intersect (K-y) is a subset of K-(x and y)
-- **(K-8)** If x is not in K-(x and y), then K-(x and y) is a subset of K-x
+- **(-1)** A - x is a theory whenever A is a theory (closure) *(p.513)*
+- **(-2)** A - x is a subset of A (inclusion) *(p.513)*
+- **(-3)** If x is not in Cn(A), then A - x = A (vacuity) *(p.513)*
+- **(-4)** If x is not in Cn(empty), then x is not in A - x (success) *(p.513)*
+- **(-5)** If Cn(x) = Cn(y), then A - x = A - y (preservation) *(p.513)*
+- **(-6)** A is a subset of Cn((A - x) union {x}) whenever A is a theory (recovery) *(p.513)*
 
 ### AGM Revision Postulates (Basic)
 
-- **(K*1)** K*x is a theory
-- **(K*2)** x is in K*x (success)
-- **(K*3)** K*x is a subset of K+x
-- **(K*4)** If ~x is not in K, then K+x is a subset of K*x
-- **(K*5)** K*x = K_absurd iff x is logically contradictory (consistency preservation)
-- **(K*6)** If Cn(x) = Cn(y), then K*x = K*y (extensionality)
+- **(+1)** A + x is always a theory *(p.513)*
+- **(+2)** x is in A + x (success) *(p.513)*
+- **(+3)** If not-x is not in Cn(A), then A + x = Cn(A union {x}) *(p.513)*
+- **(+4)** If not-x is not in Cn(empty), then A + x is consistent under Cn *(p.513)*
+- **(+5)** If Cn(x) = Cn(y), then A + x = A + y *(p.513)*
+- **(+6)** (A + x) intersect A = A - not-x, whenever A is a theory *(p.513)*
+
+### AGM Contraction Postulates (Supplementary)
+
+- **(-7)** (A - x) intersect (A - y) is a subset of A - (x & y) *(p.515)*
+- **(-8)** If x is not in A - (x & y), then A - (x & y) is a subset of A - x *(p.515)*
 
 ### AGM Revision Postulates (Supplementary)
 
-- **(K*7)** K*(x and y) is a subset of (K*x)+y
-- **(K*8)** If ~y is not in K*x, then (K*x)+y is a subset of K*(x and y)
+- **(+7)** A + (x & y) is a subset of Cn((A + x) union {y}) for any theory A *(p.515)*
+- **(+8)** Cn((A + x) union {y}) is a subset of A + (x & y) for any theory A, provided that not-y is not in A + x *(p.515)*
 
 ### Representation Theorems
 
-- **Observation 2.5**: K-x is a partial meet contraction iff it satisfies K-1 through K-6
-- **Observation 2.6**: The supplementary postulates K-7 and K-8 additionally characterize transitively relational partial meet contraction
-- **Observation 4.4**: K*x is a partial meet revision iff it satisfies K*1 through K*6
-- **Corollary 4.5**: The supplementary postulates K*7 and K*8 additionally characterize transitively relational partial meet revision
+- **Observation 2.3**: Every partial meet contraction function satisfies the Gardenfors postulates for contraction, and its associated partial meet revision function satisfies the Gardenfors postulates for revision *(p.513)*
+- **Observation 2.5**: A function - is a partial meet contraction operation over A iff it satisfies (-1) through (-6) *(p.514)*
+- **Observation 2.7**: A function - satisfying closure, vacuity, and recovery over A is bounded over A *(p.514)*
+- **Observation 3.1**: A partial meet contraction function over a theory A satisfies (-7) iff it satisfies (+7) *(p.515)*
+- **Observation 3.2**: A partial meet contraction function over a theory A satisfies (-8) iff it satisfies (+8) *(p.516)*
+- **Observation 4.2**: A partial meet contraction function over A determined by selection function gamma satisfies (gamma7) iff it satisfies (-7), and satisfies (gamma8) iff it satisfies (-8) *(p.518)*
+- **Observation 4.4**: A partial meet contraction function over A determined by a selection function gamma satisfies (-7) and (-8) iff gamma* is transitively relational over A *(p.519-520)*
+- **Corollary 4.5**: A partial meet contraction function satisfies both (-7) and (-8) iff it is transitively relational over A *(p.520)*
+- **Observation 4.6**: In the finite case, distinct selection functions can yield distinct partial meet contraction functions *(p.520)*
+- **Corollary 4.7**: In the finite case, if a partial meet contraction satisfies (-7) and (-8), then gamma is transitively relational *(p.521)*
+- **Observation 4.8**: In the finite case, a partial meet contraction satisfies (-7) iff gamma satisfies (gamma7), and (-8) iff gamma satisfies (gamma8) *(p.521)*
+- **Observation 4.9**: There exists a theory A finite modulo Cn, with a partial meet contraction satisfying (gamma7) but whose - is not relational over A *(p.521)*
+- **Observation 4.10**: gamma is relational over A iff (gamma7:infinity) is satisfied; moreover (gamma7:infinity) to (gamma7:N) to (gamma7:2) to (gamma7:1) are equivalent, but (gamma7:1) does not imply (gamma7:2) in the finite case *(p.521-522)*
+- **Observation 5.1**: A partial meet contraction function over A is transitively relational iff it is transitively and connectively relational *(p.523)*
+- **Observation 5.2**: In the finite case, if - is relational with the marking off identity, then <= is connected over U_A *(p.523)*
+- **Corollary 5.3**: In the finite case, - is relational iff it is connectively relational *(p.524)*
+- **Observation 6.1**: A partial meet contraction satisfies (-F) iff it is a maxichoice contraction function *(p.524)*
+- **Observation 6.2**: A partial meet contraction satisfies (-Q) iff it is a maxichoice contraction function *(p.524)*
+- **Observation 6.3**: Decomposition (-D), monotony (-M), intersection (-I), full meet contraction, and maxichoice with (-7) and (-8) are all equivalent under various conditions *(p.525-526)*
+- **Observation 6.5**: Ventilation (-V) is equivalent to satisfying both (-7) and (-8) *(p.526)*
 
 ### Special Cases
 
-- **Full meet contraction**: gamma(K_|_x) = K_|_x (always select everything). This is the most conservative option, removing too many beliefs.
-- **Maxichoice contraction**: gamma(K_|_x) is always a singleton. This is the most liberal option. Observation 1.4 shows maxichoice contraction always yields complete (maximal) theories.
+- **Full meet contraction**: gamma(K_|_x) = K_|_x (always select everything). This is the most conservative option, removing too many beliefs. Full meet contraction is always transitively relational since gamma is determined via the total relation over 2^A. *(p.512, p.525)*
+- **Maxichoice contraction**: gamma(K_|_x) is always a singleton. This is the most liberal option. Maxichoice contraction always yields complete (maximal) theories. *(p.512)* Observation 6.1 shows maxichoice contraction is characterized by the fullness condition (-F): if y in A and y not in A - x, then not-y v x in A - x. *(p.524)*
+
+### Factoring Conditions
+
+Three conditions on contraction of conjunctions *(p.525)*:
+
+- **Decomposition (-D)**: For all x and y, A - (x & y) = A - x or A - (x & y) = A - y *(p.525)*
+- **Intersection (-I)**: For all x and y in A, A - (x & y) = A - x intersect A - y *(p.525)*
+- **Ventilation (-V)**: For all x and y, A - (x & y) = A - x or A - (x & y) = A - y or A - (x & y) = (A - x) intersect (A - y) *(p.525)*
+
+### Conditions on Selection Functions
+
+- **(gamma7)**: gamma(A_|_x & y) is a subset of gamma(A_|_x) union gamma(A_|_y), for all x and y *(p.518)*
+- **(gamma8)**: gamma(A_|_x) is a subset of gamma(A_|_x & y) whenever A_|_x intersect gamma(A_|_x & y) is nonempty *(p.518)*
+- **(gammaP)**: gamma(A_|_x & y) intersect A_|_x is a subset of gamma(A_|_x) *(p.529)*
+- **(gammaC)**: The covering condition — gamma(A_|_x & y) is a subset of gamma(A_|_x) union gamma(A_|_y) and the selection hits at least one of the two remainder sets *(p.517)*
+- **(gamma7:1)**: A_|_x intersect gamma(A_|_y) is a subset of gamma(A_|_x), whenever A_|_x is a subset of A_|_y *(p.521)*
+- **(gamma7:N)** and **(gamma7:infinity)**: Progressively stronger versions requiring the condition to hold for intersections of N (or infinitely many) selected remainder sets *(p.521)*
 
 ## Figures of Interest
 
-No figures in this paper. It is entirely formal/mathematical.
+- **Implication diagram** (p.528): A comprehensive diagram showing the relationships between all the conditions on contraction operations (basic postulates, supplementary postulates, relational conditions, factoring conditions, etc.). Arrows indicate implications; conditions in the same dashed box are mutually equivalent in the finite case. The diagram summarizes the results of sections 4, 5, and 6.
 
 ## Results Summary
 
-The paper establishes a complete axiomatic characterization of rational theory change. The six basic postulates capture exactly the class of partial meet operations (representation theorem). The two supplementary postulates further narrow this to transitively relational partial meet operations. The Levi and Harper identities establish a tight duality between contraction and revision, showing either can be defined in terms of the other.
+The paper establishes a complete axiomatic characterization of rational theory change. The six basic postulates capture exactly the class of partial meet operations (representation theorem, Observation 2.5, p.514). The two supplementary postulates further narrow this to transitively relational partial meet operations (Corollary 4.5, p.520). The Levi and Harper identities establish a tight duality between contraction and revision, showing either can be defined in terms of the other (p.511, p.513).
+
+Additional results show that:
+- In the finite case, the hierarchy of conditions (gamma7:1) through (gamma7:infinity) collapses differently than in the infinite case *(p.522)*
+- Connectivity of the relation adds nothing beyond transitivity in the infinite case but matters finitely *(p.523)*
+- Maxichoice contraction is characterized by the fullness condition (-F) and equivalently by the primeness condition (-Q) *(p.524)*
+- Full meet contraction is characterized by the monotony condition (-M) and equivalently by the intersection condition (-I) *(p.526)*
+- Ventilation (-V) is equivalent to satisfying both supplementary postulates (-7) and (-8) *(p.526)*
 
 ## Limitations
 
-- The framework assumes a deductively closed set (infinite theory), which raises computability issues for implementation
-- The selection function is left abstract -- the paper does not specify how to choose among remainder sets in practice
-- No treatment of iterated revision (what happens when multiple changes occur in sequence)
-- The recovery postulate (K-5) has been controversial in subsequent literature
-- The framework is limited to propositional logic; extension to first-order or modal logics requires additional work
-- No treatment of prioritized or conditional beliefs
+- The framework assumes a deductively closed set (infinite theory), which raises computability issues for implementation *(p.511-512)*
+- The selection function is left abstract -- the paper does not specify how to choose among remainder sets in practice *(p.512)*
+- No treatment of iterated revision (what happens when multiple changes occur in sequence) *(p.510)*
+- The recovery postulate (K-5 / -6) has been controversial in subsequent literature *(p.513)*
+- The framework is limited to propositional logic; extension to first-order or modal logics requires additional work *(p.511-512)*
+- No treatment of prioritized or conditional beliefs *(p.510)*
+- The converse of Observation 3.4 fails: the covering condition (-C) does not imply (-8) even though (-8) implies the covering condition *(p.517)*
+- In the finite case, (gamma7:1) does not imply (gamma7:2), showing the descending chain of conditions is strictly ordered *(p.522)*
+- The paper leaves open whether relationality of gamma can be expressed as a condition on the contraction operation - determined by gamma (an open question stated at p.530) *(p.530)*
 
 ## Testable Properties
 
-- If x is not a tautology: x must not be in K-x (success of contraction)
-- K-x must be a subset of K (inclusion for contraction)
-- K must be a subset of (K-x)+x (recovery)
-- x must be in K*x (success of revision)
-- If ~x is not in K, then K*x = K+x (revision by consistent info = expansion)
-- K*x is consistent unless x itself is contradictory
-- The Levi identity: K*x must equal (K-~x)+x
-- The Harper identity: K-x must equal K intersect K*~x
-- Maxichoice contraction yields complete theories
-- Full meet contraction yields Cn(K - {x}) when x is not a tautology
+- If x is not a tautology: x must not be in K-x (success of contraction) *(p.513)*
+- K-x must be a subset of K (inclusion for contraction) *(p.513)*
+- K must be a subset of (K-x)+x (recovery) *(p.513)*
+- x must be in K*x (success of revision) *(p.513)*
+- If ~x is not in K, then K*x = K+x (revision by consistent info = expansion) *(p.513)*
+- K*x is consistent unless x itself is contradictory *(p.513)*
+- The Levi identity: K*x must equal (K-~x)+x *(p.511)*
+- The Harper identity: K-x must equal K intersect K*~x *(p.513)*
+- Maxichoice contraction yields complete theories *(p.512)*
+- Full meet contraction yields Cn(K - {x}) when x is not a tautology *(p.512)*
+- (gamma7): selection from remainder of conjunction distributes over selections from individual remainders *(p.518)*
+- (gamma8): if the selection from a conjunctive remainder intersects one of the component remainders, the component selection is a subset of the conjunctive selection *(p.518)*
+- Decomposition: contraction by a conjunction equals contraction by one conjunct or the other *(p.525)*
+- Ventilation: contraction by a conjunction equals contraction by one conjunct, or the other, or their intersection *(p.525)*
 
 ## Relevance to Project
 
@@ -166,34 +234,43 @@ This paper defines the theoretical foundation for the belief revision operations
 - [ ] How does the epistemic entrenchment ordering (from Gardenfors & Makinson 1988) relate to the ATMS label/nogood structure in our implementation?
 - [ ] Is the recovery postulate appropriate for our domain, or should we use a contraction without it?
 - [ ] Can the supplementary postulates (K-7, K-8) be naturally enforced by the ATMS's structural properties?
+- [ ] The paper notes that a different approach to "safe contraction" was developed by Alchourron and Makinson in *Studia Logica* vol. 44 (1985) *(p.530)* -- how does safe contraction relate to the ATMS approach?
+- [ ] The open question about expressing relationality of gamma as a condition on the contraction operation (p.530) -- has this been resolved in subsequent literature?
 
 ## Related Work Worth Reading
 
 - Gardenfors, P. (1988) "Knowledge in Flux" -- Book-length treatment expanding on this paper
 - Gardenfors, P. and Makinson, D. (1988) "Revisions of Knowledge Systems Using Epistemic Entrenchment" -- Introduces epistemic entrenchment, which provides a constructive mechanism for choosing selection functions
 - Hansson, S.O. (1999) "A Textbook of Belief Dynamics" -- Comprehensive textbook covering AGM and its extensions
-- Alchourron and Makinson (1982) "On the Logic of Theory Change: Contraction Functions and their Associated Revision Functions" -- Predecessor paper developing earlier ideas
+- Alchourron and Makinson (1982) "On the Logic of Theory Change: Contraction Functions and their Associated Revision Functions" -- Predecessor paper developing earlier ideas *(cited as [2], p.530)*
+- Alchourron and Makinson (1982) "Hierarchies of regulations and their logic" -- *(cited as [1], p.530)*
+- Gardenfors (1978) "Conditionals and changes of belief" -- *(cited as [3], p.530)*
+- Gardenfors (1982) "Rules for rational changes of belief" -- *(cited as [4], p.530)*
+- Gardenfors (1984) "Epistemic importance and minimal changes of belief" -- *(cited as [5], p.530)*
+- Makinson (to appear) "How to give it up: A survey of some formal aspects of the logic of theory change" -- *(cited as [6], p.530)*
+- Alchourron and Makinson, "On the logic of theory change: safe contraction" in *Studia Logica* vol. 44 (1985) *(p.530)*
+- Alchourron and Makinson, "Maps between some different kinds of contraction function: the finite case" in *Studia Logica* vol. 44 (1985) *(p.530)*
 
 ## Collection Cross-References
 
 ### Already in Collection
-- (none directly cited — this paper predates and is foundational to the TMS/belief revision literature in the collection)
+- (none directly cited -- this paper predates and is foundational to the TMS/belief revision literature in the collection)
 
 ### New Leads (Not Yet in Collection)
-- Gardenfors, P. (1988) — "Knowledge in Flux" — the book-length treatment expanding the AGM postulates
-- Gardenfors, P. and Makinson, D. (1988) — "Revisions of Knowledge Systems Using Epistemic Entrenchment" — introduces EE1-EE5 axioms used by Dixon (1993)
+- Gardenfors, P. (1988) -- "Knowledge in Flux" -- the book-length treatment expanding the AGM postulates
+- Gardenfors, P. and Makinson, D. (1988) -- "Revisions of Knowledge Systems Using Epistemic Entrenchment" -- introduces EE1-EE5 axioms used by Dixon (1993)
 
 ### Supersedes or Recontextualizes
 - (none)
 
 ### Cited By (in Collection)
-- [[Dixon_1993_ATMSandAGM]] — references Gardenfors (1988) which is the expanded version; the AGM postulates from this paper are the correctness criteria Dixon proves the ATMS satisfies
-- [[Shapiro_1998_BeliefRevisionTMS]] — cited as Alchourron, Gardenfors, and Makinson (1985); surveyed as the foundational AGM paper defining the belief revision tradition
+- [[Dixon_1993_ATMSandAGM]] -- references Gardenfors (1988) which is the expanded version; the AGM postulates from this paper are the correctness criteria Dixon proves the ATMS satisfies
+- [[Shapiro_1998_BeliefRevisionTMS]] -- cited as Alchourron, Gardenfors, and Makinson (1985); surveyed as the foundational AGM paper defining the belief revision tradition
 
 ### Conceptual Links (not citation-based)
-- [[Dixon_1993_ATMSandAGM]] — **Strong.** This paper defines the AGM postulates; Dixon proves that ATMS context switching satisfies them under appropriate entrenchment encoding. The partial meet contraction construction (selection over remainder sets) is the abstract mechanism that Dixon's entrenchment values implement concretely.
-- [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** The AGM postulates define what "rational" belief revision means; the ATMS provides a computational mechanism that (per Dixon 1993) satisfies these postulates. The ATMS's nogood-directed context switching implements AGM contraction, and adding assumptions implements AGM expansion.
-- [[Shapiro_1998_BeliefRevisionTMS]] — **Strong.** Shapiro surveys both TMS and AGM traditions, noting their near-complete isolation. This paper provides the axiomatic framework that Shapiro proposes TMSs should satisfy. Shapiro's proposal to build AGM-compliant SNeBR is a direct response to the gap between TMS implementations and AGM theory.
-- [[Martins_1988_BeliefRevision]] — **Moderate.** MBR's interactive culprit selection during contradiction recovery is an informal implementation of AGM contraction. The selection function over remainder sets (this paper's construction) corresponds to MBR's interactive choice of which hypothesis to discard.
-- [[Reiter_1980_DefaultReasoning]] — **Moderate.** Reiter's belief revision criteria (Section 6) address when default-derived beliefs safely persist, which is the same problem AGM contraction formalizes. Default logic creates exactly the kind of belief revision scenarios the AGM postulates govern.
-- [[Dung_1995_AcceptabilityArguments]] — **Moderate.** Both address rational management of contradictory beliefs. AGM provides axiomatic postulates for how belief sets should change; Dung provides semantics for which arguments to accept under conflict. Different formalizations converging on the same consistency-maintenance problem.
+- [[Dixon_1993_ATMSandAGM]] -- **Strong.** This paper defines the AGM postulates; Dixon proves that ATMS context switching satisfies them under appropriate entrenchment encoding. The partial meet contraction construction (selection over remainder sets) is the abstract mechanism that Dixon's entrenchment values implement concretely.
+- [[deKleer_1986_AssumptionBasedTMS]] -- **Strong.** The AGM postulates define what "rational" belief revision means; the ATMS provides a computational mechanism that (per Dixon 1993) satisfies these postulates. The ATMS's nogood-directed context switching implements AGM contraction, and adding assumptions implements AGM expansion.
+- [[Shapiro_1998_BeliefRevisionTMS]] -- **Strong.** Shapiro surveys both TMS and AGM traditions, noting their near-complete isolation. This paper provides the axiomatic framework that Shapiro proposes TMSs should satisfy. Shapiro's proposal to build AGM-compliant SNeBR is a direct response to the gap between TMS implementations and AGM theory.
+- [[Martins_1988_BeliefRevision]] -- **Moderate.** MBR's interactive culprit selection during contradiction recovery is an informal implementation of AGM contraction. The selection function over remainder sets (this paper's construction) corresponds to MBR's interactive choice of which hypothesis to discard.
+- [[Reiter_1980_DefaultReasoning]] -- **Moderate.** Reiter's belief revision criteria (Section 6) address when default-derived beliefs safely persist, which is the same problem AGM contraction formalizes. Default logic creates exactly the kind of belief revision scenarios the AGM postulates govern.
+- [[Dung_1995_AcceptabilityArguments]] -- **Moderate.** Both address rational management of contradictory beliefs. AGM provides axiomatic postulates for how belief sets should change; Dung provides semantics for which arguments to accept under conflict. Different formalizations converging on the same consistency-maintenance problem.

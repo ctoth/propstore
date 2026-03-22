@@ -1,213 +1,187 @@
 source:
   paper: Martins_1988_BeliefRevision
-  extraction_model: "claude-opus-4-6"
-  extraction_date: "2026-03-17"
+  extraction_model: "claude-opus-4-20250514"
+  extraction_date: "2026-03-22"
 
 claims:
   - id: claim1
     type: observation
-    statement: "The SWM logic uses the rules of inference to automatically compute the dependencies among propositions, rather than requiring the user to manually provide them."
+    statement: "SWM is a relevance logic that automatically computes propositional dependencies via origin sets and restriction sets, preventing the introduction of irrelevancies into derivations."
     concepts:
-      - dependency_tracking
-      - belief_revision
+      - swm_logic
+      - origin_set
+      - restriction_set
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 1
-      section: "Abstract"
-      quote_fragment: "it uses the rules of inference of the logic to automatically compute the dependencies among propositions rather than having to force the user to do this"
+      section: "Section 2"
 
   - id: claim2
     type: observation
-    statement: "SWM is the first belief revision system whose implementation relies on the manipulation of sets of assumptions (origin sets), not justifications."
+    statement: "A supported wff in SWM is a quadruple (A, tau, alpha, rho) consisting of a formula, an origin tag in {hyp, der, ext}, an origin set of hypotheses, and a restriction set of inconsistent hypothesis sets."
     concepts:
-      - assumption_based_reasoning
-      - belief_revision
+      - supported_wff
+      - origin_set
+      - restriction_set
+      - swm_logic
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 1
-      section: "Abstract"
-      quote_fragment: "it was the first belief revision system whose implementation relies on the manipulation of sets of assumptions, not justifications"
+      section: "Section 2"
 
   - id: claim3
     type: observation
-    statement: "In justification-based systems, the support of each proposition contains the propositions that directly produced it. In assumption-based systems, the support contains the hypotheses (nonderived propositions) that produced it."
+    statement: "The origin tag ext (extended) is used for special propositions to prevent smuggling hypotheses into conjunctions, distinct from hyp (hypothesis) and der (derived)."
     concepts:
-      - dependency_tracking
-      - assumption_based_reasoning
+      - supported_wff
+      - swm_logic
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 4
-      section: "1.4. Recording dependencies"
-      quote_fragment: "In justification-based systems, the support of each proposition contains the propositions that directly produced it... In assumption-based systems, the support of each proposition contains the hypotheses"
+      section: "Section 2"
 
   - id: claim4
-    type: model
-    name: "Supported Wff (SWM)"
-    equations:
-      - "\\langle A, \\tau, \\alpha, \\rho \\rangle"
-    parameters:
-      - name: "A"
-        concept: "well_formed_formula"
-        note: "The wff itself"
-      - name: "tau"
-        concept: "origin_tag"
-        note: "One of {hyp, der, ext}"
-      - name: "alpha"
-        concept: "origin_set"
-        note: "Set of hypotheses used in derivation"
-      - name: "rho"
-        concept: "restriction_set"
-        note: "Set of sets of hypotheses known to be inconsistent with the wff's OS"
+    type: observation
+    statement: "Theorem 4: All supported wffs in SWM have minimal restriction sets, meaning no element of a restriction set is a superset of another element."
+    concepts:
+      - restriction_set
+      - swm_logic
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 13
-      section: "2.3. Supported wffs"
-      quote_fragment: "A supported wff consists of a wff and an associated triple, its support, containing an origin tag (OT), an origin set (OS), and a restriction set (RS)"
+      section: "Appendix A"
 
   - id: claim5
     type: observation
-    statement: "The origin set (OS) of a supported wff contains every hypothesis that was actually used in the derivation of that wff, and only those hypotheses."
+    statement: "Theorem 5: If two supported wffs have the same origin set, they have the same restriction set."
     concepts:
       - origin_set
-      - dependency_tracking
+      - restriction_set
+      - swm_logic
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 13
-      section: "2.3. Supported wffs"
-      quote_fragment: "The OS of a supported wff contains those (and only those) hypotheses that were actually used in the derivation of that wff"
+      section: "Appendix A"
 
   - id: claim6
     type: observation
-    statement: "The restriction set (RS) of a supported wff records every set of hypotheses known to be inconsistent with the wff's origin set, and the RS is guaranteed to be minimal (no element is a superset of another)."
+    statement: "Corollary 5.1: Every origin set has recorded every known inconsistent set; the restriction set is complete with respect to discovered contradictions."
     concepts:
+      - origin_set
       - restriction_set
-      - inconsistency_tracking
+      - swm_logic
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 13
-      section: "2.3. Supported wffs"
-      quote_fragment: "The RS of a supported wff records every set known to be inconsistent with the wff's OS"
+      section: "Appendix A"
 
   - id: claim7
     type: observation
-    statement: "All supported wffs in the knowledge base resulting from the application of the rules of inference of SWM have minimal restriction sets."
+    statement: "Theorem 6 and Corollary 6.1: In a context not known to be inconsistent, for any two supported wffs defined by that context, the combinability predicate returns true, meaning combinability checking is unnecessary in consistent contexts."
     concepts:
-      - restriction_set
-      - minimality
+      - combinability
+      - context
+      - belief_space
+      - swm_logic
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 18
-      section: "2.4. The inference rules"
-      quote_fragment: "All the supported wffs in the knowledge base resulting from the application of the rules of inference of SWM have minimal RS"
-    notes: "Theorem 4, proved in Appendix A"
+      section: "Appendix A"
 
   - id: claim8
     type: observation
-    statement: "In the knowledge base resulting from the application of the rules of inference of SWM, if two supported wffs have the same origin set, then they have the same restriction set as well."
+    statement: "The mu function computes the restriction set for a derived wff from the restriction sets and origin sets of its parent wffs, filtering out elements overlapping with the new origin set and removing supersets."
     concepts:
-      - origin_set
       - restriction_set
+      - origin_set
+      - swm_logic
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 18
-      section: "2.4. The inference rules"
-      quote_fragment: "if two supported wffs have the same OS, then they have the same RS as well"
-    notes: "Theorem 5, proved in Appendix A"
+      section: "Section 2"
 
   - id: claim9
     type: observation
-    statement: "Every origin set has recorded with it every known inconsistent set."
+    statement: "MBR defines two levels of belief revision: revision within the current context (when both contradictory wffs are in the current belief space), and revision within a context strictly containing the current context (when only one is in the CBS)."
     concepts:
-      - origin_set
-      - inconsistency_tracking
+      - belief_space
+      - context
+      - restriction_set_update
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 18
-      section: "2.4. The inference rules"
-      quote_fragment: "Every OS has recorded with it every known inconsistent set"
-    notes: "Corollary 5.1"
+      section: "Section 4"
 
   - id: claim10
     type: observation
-    statement: "If a context is not known to be inconsistent, then for any two supported wffs A and B defined by the context, Combine(A, B) = true, meaning the system does not need to check combinability before applying rules of inference."
+    statement: "SNeBR implements MBR using SNePS semantic networks where each proposition is a unique node, supported wffs have supporting nodes with os/rs/ot arcs, and contradictory propositions P and not-P share network structure via and-or connective nodes."
     concepts:
-      - context_consistency
-      - combinability
+      - snebr
+      - supported_wff
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 26
-      section: "4.1. Contexts and belief spaces"
-      quote_fragment: "If one uses a context which is not known to be inconsistent, then MBR does not need to check for combinability between the supported wffs before the application of rules of inference"
-    notes: "Theorem 6 and Corollary 6.1"
+      section: "Section 5"
 
   - id: claim11
     type: observation
-    statement: "When a contradiction is detected within MBR, only two outcomes are possible: (1) only one of the contradictory wffs belongs to the current belief space, so URS is applied and nothing more happens; or (2) both contradictory wffs belong to the current BS, so URS is applied and additionally the rule of negation introduction may fire, producing disbelief in some hypotheses."
+    statement: "SNeBR uses bi-directional inference via active connection graphs, where inference processes are compiled into a multi-processing system and rules of inference compute OT, OS, and RS for derived results."
     concepts:
-      - belief_revision
-      - contradiction_handling
+      - snebr
+      - swm_logic
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 27
-      section: "4.2. The revision of beliefs"
-      quote_fragment: "when a contradiction is detected, one of two things will happen"
+      section: "Section 5"
 
   - id: claim12
     type: observation
-    statement: "The URS (Updating Restriction Sets) rule is obligatorily applied whenever a contradiction is detected. Its effect is to take every supported wff in the knowledge base whose OS is not disjoint from the newly discovered inconsistent set and update its restriction set accordingly."
+    statement: "Contradiction detection in SNeBR occurs in two ways: when building contradictory nodes into the network structure, and when an inference process gathers data that invalidates a rule."
     concepts:
-      - restriction_set
-      - contradiction_handling
+      - snebr
+      - negation_introduction
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 17
-      section: "2.4. The inference rules"
-      quote_fragment: "This is a special rule of inference. It is obligatorily applied whenever a contradiction is detected. Its effect is to take every supported wff in the knowledge base whose OS is not disjoint from the set just discovered to be inconsistent and update its restriction set accordingly."
+      section: "Section 5"
 
   - id: claim13
     type: observation
-    statement: "In the SNeBR implementation, contradictions are detected in two ways: (1) when contradictory wffs are built into the network (the negation node already exists), and (2) when a process gathering data for a rule discovers the rule is invalidated by the data."
+    statement: "The origin set of a supported wff contains only hypotheses that were genuinely used in its derivation, guaranteed by the relevance constraints of SWM logic."
     concepts:
-      - contradiction_detection
-      - implementation
+      - origin_set
+      - swm_logic
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 35
-      section: "5.5. Handling contradictions"
-      quote_fragment: "A contradiction will be detected by SNeBR when one of the following conditions occurs"
+      section: "Section 2"
 
   - id: claim14
     type: observation
-    statement: "The SWM formalism guarantees that removing exactly one hypothesis from a set of culprits for a contradiction will produce a context that is not known to be inconsistent."
+    statement: "SWM does not have a model-theoretic semantics; it has syntax and inference rules but no truth conditions or model theory."
     concepts:
-      - belief_revision
-      - context_consistency
+      - swm_logic
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 43
-      section: "6. Selecting among Alternatives"
-      quote_fragment: "the SWM formalism guarantees that removing exactly one of them will generate a context that is not known to be inconsistent"
+      section: "Section 2"
 
   - id: claim15
     type: observation
-    statement: "SNeBR uses the SNePS uniqueness principle: each concept is represented by a unique node in the network, so contradictory propositions P and not-P share network structure, enabling efficient contradiction detection."
+    statement: "Belief revision in SNeBR is interactive: when a contradiction is detected, the user must choose which culprit hypothesis to discard; the system does not automate culprit selection."
     concepts:
-      - uniqueness_principle
-      - network_representation
+      - snebr
+      - belief_space
+      - context
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 28
-      section: "5.2. Representation of propositions"
-      quote_fragment: "One of the assumptions underlying the SNePS network is the so-called uniqueness principle: each concept is represented in the network by a unique node"
+      section: "Section 5"
 
   - id: claim16
     type: observation
-    statement: "Relevance logic prevents the introduction of irrelevancies into derivations by restricting certain classical rules of inference. In SWM, this is used to ensure that the origin set of each derived wff contains only genuinely used hypotheses."
+    statement: "MBR's origin sets correspond functionally to ATMS labels (minimal environments), and MBR's restriction sets correspond to ATMS nogoods, but MBR computes dependencies automatically from inference rules while the ATMS receives justifications from an external problem solver."
     concepts:
-      - relevance_logic
       - origin_set
+      - restriction_set
+      - atms
+      - label
+      - nogood
     provenance:
       paper: Martins_1988_BeliefRevision
-      page: 9
-      section: "2.2. Relevance logic"
-      quote_fragment: "The main features of relevance logic used in SWM are the way it keeps track of which hypotheses were used in the derivation of a given wff and the way this is used to restrict the application of certain rules of inference"
+      section: "Section 1"
+
+  - id: claim17
+    type: observation
+    statement: "If a set A is inconsistent, then any set containing A is also inconsistent (Theorem 3), which is the foundation for the minimality property of restriction sets."
+    concepts:
+      - restriction_set
+      - swm_logic
+    provenance:
+      paper: Martins_1988_BeliefRevision
+      section: "Appendix A"

@@ -1,200 +1,132 @@
 source:
   paper: Shapiro_1998_BeliefRevisionTMS
-  extraction_model: "claude-opus-4-6-20260317"
-  extraction_date: "2026-03-17"
+  extraction_model: "claude-opus-4-20250514"
+  extraction_date: "2026-03-22"
 
 claims:
   - id: claim1
     type: observation
-    statement: "Belief Revision and Truth Maintenance are essentially equivalent terms referring to operations of subsystems of knowledge-based systems."
+    statement: >
+      A knowledge-based system consists of a knowledge base of assertions,
+      a set of inference methods, and a belief revision system (BRS/TMS)
+      responsible for maintaining consistency.
     concepts:
-      - belief_revision
-      - truth_maintenance
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 1
-      section: "1 Introduction"
-      quote_fragment: "'Belief Revision' and 'Truth Maintenance' are essentially equivalent terms referring to operations of subsystems of knowledge-based systems (KBSs)."
+      - belief_revision_system
+      - knowledge_base
+      - truth_maintenance_system
 
   - id: claim2
     type: observation
-    statement: "A belief revision system must perform three core tasks: find derivation support for an assertion, find assertions derived from an assumption, and delete an assertion along with all assertions derived from it."
+    statement: >
+      Every belief revision system must support three core tasks: (1) find
+      the derivation support for an assertion, (2) find all assertions derived
+      from a given assumption, and (3) delete an assertion and cascade the
+      deletion to all its dependents.
     concepts:
-      - belief_revision
-      - truth_maintenance
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 2
-      section: "1 Introduction"
-      quote_fragment: "a BRS should be able to perform the following tasks"
+      - belief_revision_system
+      - truth_maintenance_system
 
   - id: claim3
     type: observation
-    statement: "JTMSs use a dependency graph with two kinds of vertices (nodes for literals and justifications) and arcs between them, with nodes labeled 'in' or 'out' to indicate presence in the KB."
+    statement: >
+      A JTMS uses a dependency graph with nodes (labeled in/out) and
+      justifications, supporting non-monotonic rules via inverter arcs from
+      justifications to literals that must be out for the justification to hold.
     concepts:
-      - truth_maintenance
-      - justification_based_tms
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 4
-      section: "3 JTMSs"
-      quote_fragment: "JTMSs are implemented using a kind of dependency graph with two kinds of vertices: literals, called 'nodes'; and 'justifications'."
+      - truth_maintenance_system
+      - support_list_justification
 
   - id: claim4
     type: observation
-    statement: "Following chains of justifications in JTMSs can be inefficient, and chains of justifications might contain cycles, motivating the development of ATMSs."
+    statement: >
+      An ATMS associates each inferred assertion directly with its minimal
+      sets of supporting assumptions, eliminating the need to traverse
+      intermediate justification chains for derivation support queries.
     concepts:
-      - justification_based_tms
-      - assumption_based_tms
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 5
-      section: "3 JTMSs"
-      quote_fragment: "Following chains of justifications could be inefficient. Moreover, it was found that chains of justifications might contain cycles."
+      - atms
+      - belief_revision_system
 
   - id: claim5
     type: observation
-    statement: "Logic-based TMSs (LTMSs) add the rule in clause form to the justification, eliminating the directedness of the arcs, and allow three labels: true, false, and unknown."
+    statement: >
+      In an ATMS, the current knowledge base is determined by a current
+      context (a set of assumptions); deleting an assumption removes it
+      from the context and implicitly removes all assertions whose assumption
+      sets are no longer subsets of the context.
     concepts:
-      - logic_based_tms
-      - truth_maintenance
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 5
-      section: "4 Logic-Based TMSs"
-      quote_fragment: "Logic-based TMSs, or LTMSs (McAllester, 1978), add the rule, in clause form, to the justification, and eliminate the directedness of the arcs."
+      - atms
+      - environment
+      - belief_revision_system
 
   - id: claim6
     type: observation
-    statement: "In ATMSs, each inferred assertion is associated directly with the sets of assumptions it depends on, with no record of intermediate assertions in the derivation chain."
+    statement: >
+      SNeBR unites assumption-based tracking with the reasoner, computing
+      assumption sets directly from inference rules: for and-elimination
+      the assumptions equal the parent's, for modus ponens the assumptions
+      are the union of the parents'.
     concepts:
-      - assumption_based_tms
-      - truth_maintenance
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 5
-      section: "6 ATMSs"
-      quote_fragment: "each inferred assertion is associated directly with the assumptions it depends on"
+      - belief_revision_system
+      - belief_revision
+      - truth_maintenance_system
 
   - id: claim7
     type: observation
-    statement: "In an ATMS, the current KB is determined by a 'current context' consisting of a set of assumptions, and deleting an assumption means removing it from the current context."
+    statement: >
+      The TMS implementation tradition and the AGM belief revision formal
+      theory tradition developed in near-complete isolation, with almost
+      no cross-citations between the two bodies of literature as of 1998.
     concepts:
-      - assumption_based_tms
+      - truth_maintenance_system
+      - agm_postulates
       - belief_revision
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 6
-      section: "6 ATMSs"
-      quote_fragment: "The current KB is determined by a 'current context' consisting of a set of assumptions."
 
   - id: claim8
     type: observation
-    statement: "SNeBR unites the ATMS with the reasoner by calculating the assumptions of each inferred assertion directly from the inference rule associated with the rule of inference used to infer it."
+    statement: >
+      AGM belief revision imposes two key constraints on culprit selection
+      during contraction: (1) minimality of information loss, choosing the
+      culprit whose removal causes the fewest other assertions to be removed,
+      and (2) entrenchment-based priority, retracting the least entrenched
+      beliefs first.
     concepts:
-      - assumption_based_tms
-      - truth_maintenance
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 6
-      section: "6 ATMSs"
-      quote_fragment: "SNeBR, the ATMS of (Martins and Shapiro, 1988), however, unites the ATMS with the reasoner by calculating the assumptions of each inferred assertion directly"
+      - agm_postulates
+      - contraction
+      - epistemic_entrenchment
+      - belief_revision
 
   - id: claim9
     type: observation
-    statement: "The AGM belief revision tradition defines three operations on knowledge bases: expansion (adding an assertion), contraction (removing an assertion), and revision (adding an inconsistent assertion and restoring consistency)."
+    statement: >
+      No implemented TMS as of 1998 satisfies the AGM minimality constraint
+      of choosing the culprit whose removal causes the fewest other assertions
+      to be removed.
     concepts:
-      - belief_revision
+      - truth_maintenance_system
       - agm_postulates
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 6
-      section: "8 AGM Belief Revision"
-      quote_fragment: "AGM-BR is explicitly concerned with formulating postulates to characterize three operations of belief revision: adding a new assertion to a knowledge base ('expansion'); removing an assertion from a knowledge base ('contraction'); adding a new assertion to a knowledge base it is inconsistent with, and adjusting the result to restore consistency ('revision')."
+      - belief_revision_system
 
   - id: claim10
     type: observation
-    statement: "AGM revision can be decomposed as contraction followed by expansion."
+    statement: >
+      An LTMS adds clause-form rules to justifications, enabling three-valued
+      labeling (true, false, unknown) where the label of any literal can depend
+      on labels of others in the same clause.
     concepts:
-      - belief_revision
-      - agm_postulates
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 7
-      section: "8 AGM Belief Revision"
-      quote_fragment: "Revision can be accomplished by a step of contraction followed by a step of expansion."
+      - truth_maintenance_system
+      - three_valued_logic
 
   - id: claim11
-    type: observation
-    statement: "The AGM tradition imposes two basic constraints on belief revision operations: (i) the amount of information lost in a belief change should be kept minimal, and (ii) more entrenched beliefs should be retracted before less entrenched ones."
-    concepts:
-      - belief_revision
+    type: model
+    name: "Shapiro's unified BRS architecture"
+    statement: >
+      The proposed architecture builds a belief revision system on SNePS/SNeBR
+      that satisfies AGM constraints by combining ATMS-style assumption tracking
+      with entrenchment-based culprit selection using category-based importance
+      ordering.
+    equations: []
+    parameters:
+      - belief_revision_system
+      - atms
       - agm_postulates
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 7
-      section: "8 AGM Belief Revision"
-      quote_fragment: "(i) The amount of information lost in a belief change should be kept minimal. (ii) In so far as some beliefs are considered more important or entrenched than others, one should retract the least important ones."
-
-  - id: claim12
-    type: observation
-    statement: "The TMS literature and the AGM Belief Revision literature have developed in near-complete isolation, with almost no publication in one tradition citing any publication in the other."
-    concepts:
-      - truth_maintenance
-      - belief_revision
-      - agm_postulates
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 7
-      section: "8 AGM Belief Revision"
-      quote_fragment: "Most amazing is the fact that these two traditions seem to ignore each other. Almost no publication in one tradition cites any publication in the other tradition"
-
-  - id: claim13
-    type: observation
-    statement: "AGM constraint (i) on minimality can be implemented in a TMS by choosing the culprit whose removal from the KB causes the fewest other assertions to be removed."
-    concepts:
-      - belief_revision
-      - agm_postulates
-      - truth_maintenance
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 7
-      section: "9 Implementing AGM Constraints"
-      quote_fragment: "The advice of constraint (i) is to choose the culprit whose removal from the KB causes the fewest other assertions to be removed."
-    notes: "The author states he does not know of any implemented TMS that does this."
-
-  - id: claim14
-    type: observation
-    statement: "AGM constraint (ii) on entrenchment can be implemented by ranking assertions by importance and choosing the culprit whose removal causes the least important assertions to be removed."
-    concepts:
-      - belief_revision
-      - agm_postulates
-      - truth_maintenance
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 7
-      section: "9 Implementing AGM Constraints"
-      quote_fragment: "The advice of constraint (ii) is to rank the assertions by 'importance' or 'entrenchment', and to choose the culprit whose removal from the KB causes only the less important or less entrenched assertions to be removed."
-
-  - id: claim15
-    type: observation
-    statement: "SNePSwD allows users to give a partial importance ordering among assertions and uses that ordering for automatic culprit identification during belief revision."
-    concepts:
-      - truth_maintenance
-      - belief_revision
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 7
-      section: "9 Implementing AGM Constraints"
-      quote_fragment: "SNePSwD (Cravo and Martins, 1993) allows the user to give a partial importance ordering among the assertions, and uses that ordering for automatic culprit identification when possible."
-
-  - id: claim16
-    type: observation
-    statement: "SNePS uses a variant of relevance logic which is paraconsistent, meaning that a contradiction does not imply everything."
-    concepts:
-      - truth_maintenance
-    provenance:
-      paper: Shapiro_1998_BeliefRevisionTMS
-      page: 6
-      section: "6 ATMSs"
-      quote_fragment: "SNePS handles predicate logic using a variant of relevance logic (Anderson and Belnap, 1975; Anderson et al., 1992), which is a paraconsistent logic, meaning that a contradiction does not imply everything."
+      - epistemic_entrenchment

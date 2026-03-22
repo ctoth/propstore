@@ -1,256 +1,99 @@
 source:
   paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-  extraction_model: "claude-opus-4-6"
-  extraction_date: "2026-03-21"
+  extraction_model: "claude-opus-4-20250514"
+  extraction_date: "2026-03-22"
 
 claims:
-- id: claim1
-  type: parameter
-  concept: training_abstracts
-  value: 390
-  unit: count
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 3
-    section: "3.1 Annotation of argument components"
-    quote_fragment: "Training: 390 abstracts (neoplasm 155, glaucoma 100, mixed 135)"
-  notes: "Split across neoplasm (155), glaucoma (100), and mixed diseases (135)"
+  - id: claim1
+    type: observation
+    statement: "Argument mining for clinical trial abstracts can be decomposed into a two-stage pipeline: sequence tagging for argument component detection (evidence vs claims) followed by transformer-based relation classification (support, attack, no relation)."
+    concepts:
+      - argument_mining
+      - argument_component_detection
+      - argument_relation_prediction
 
-- id: claim2
-  type: parameter
-  concept: test_indomain_abstracts
-  value: 70
-  unit: count
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 3
-    section: "3.1 Annotation of argument components"
-    quote_fragment: "70 neoplasm test abstracts"
-  notes: "In-domain test set, neoplasm only"
+  - id: claim2
+    type: measurement
+    statement: "The best argument component detection model (SciBERT + GRU + CRF) achieves macro F1 of 0.87 on in-domain neoplasm RCT abstracts."
+    target_concept: argument_component_detection
+    measure: macro_f1_component_detection
+    value: 0.87
+    unit: f1_score
 
-- id: claim3
-  type: parameter
-  concept: test_outofdomain_abstracts
-  value: 40
-  unit: count
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 3
-    section: "3.1 Annotation of argument components"
-    quote_fragment: "40 glaucoma test abstracts"
-  notes: "Out-of-domain test set, glaucoma only, to evaluate cross-disease generalization"
+  - id: claim3
+    type: measurement
+    statement: "The best argument relation prediction model (RoBERTa SentClf) achieves macro F1 of 0.68 on in-domain neoplasm RCT abstracts."
+    target_concept: argument_relation_prediction
+    measure: macro_f1_relation_prediction
+    value: 0.68
+    unit: f1_score
 
-- id: claim4
-  type: parameter
-  concept: total_argument_components
-  value: 4198
-  unit: count
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 2
-    section: "Abstract / Table 1"
-    table: "Table 1"
-    quote_fragment: "4198 argument components"
-  notes: "Across 500 RCT abstracts covering 5 disease categories"
+  - id: claim4
+    type: measurement
+    statement: "The dataset contains 500 RCT abstracts from 5 disease categories with 4198 argument components and 2601 argument relations."
+    target_concept: argument_mining
+    measure: dataset_size
+    value: 500
+    unit: abstracts
 
-- id: claim5
-  type: parameter
-  concept: total_argument_relations
-  value: 2601
-  unit: count
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 2
-    section: "Abstract / Table 1"
-    table: "Table 1"
-    quote_fragment: "2601 argument relations"
-  notes: "Both support and attack relations across 500 RCT abstracts"
+  - id: claim5
+    type: observation
+    statement: "Fine-tuned transformer models (BERT, BioBERT, SciBERT, RoBERTa) significantly outperform static embeddings (GloVe, fastText, BPEmb) and contextualized non-transformer embeddings (ELMo, Flair) for argument component detection."
+    concepts:
+      - argument_component_detection
 
-- id: claim6
-  type: parameter
-  concept: total_annotated_abstracts
-  value: 500
-  unit: count
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 2
-    section: "Abstract"
-    quote_fragment: "annotating 500 abstracts of Randomized Controlled Trials (RCT) from the MEDLINE database"
+  - id: claim6
+    type: observation
+    statement: "The GRU + CRF combination generally produces the best sequence labeling architecture for argument component detection across transformer variants."
+    concepts:
+      - argument_component_detection
+      - bio_sequence_labeling
 
-- id: claim7
-  type: parameter
-  concept: component_detection_macro_f1_best
-  value: 0.87
-  unit: "-"
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 7
-    section: "5 Results"
-    table: "Table 2"
-    quote_fragment: "macro F1-score of .87 for component detection"
-  conditions:
-    - "model == 'SciBERT'"
-    - "sequence_layer == 'GRU+CRF'"
-    - "test_set == 'neoplasm'"
-  notes: "Best result for multi-class sequence tagging on in-domain test set"
+  - id: claim7
+    type: observation
+    statement: "RoBERTa shows more stable cross-domain performance than SciBERT for relation classification, dropping only 0.01 F1 on out-of-domain glaucoma abstracts compared to SciBERT's 0.06 drop."
+    concepts:
+      - argument_relation_prediction
 
-- id: claim8
-  type: parameter
-  concept: relation_prediction_macro_f1_best
-  value: 0.68
-  unit: "-"
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 7
-    section: "5 Results"
-    table: "Table 3"
-    quote_fragment: ".68 for relation prediction"
-  conditions:
-    - "model == 'RoBERTa'"
-    - "architecture == 'SentClf'"
-    - "test_set == 'neoplasm'"
-  notes: "Best result for relation classification on in-domain test set"
+  - id: claim8
+    type: observation
+    statement: "The MultiChoice architecture better respects the single-outgoing-edge constraint typical of clinical argument structures, while SentClf achieves slightly higher F1 but creates more false positive links."
+    concepts:
+      - multichoice_architecture
+      - argument_relation_prediction
 
-- id: claim9
-  type: parameter
-  concept: relation_prediction_multichoice_best
-  value: 0.67
-  unit: "-"
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 7
-    section: "5 Results"
-    table: "Table 3"
-    quote_fragment: "RoBERTa MultiChoice 0.67"
-  conditions:
-    - "model == 'RoBERTa'"
-    - "architecture == 'MultiChoice'"
-    - "test_set == 'neoplasm'"
+  - id: claim9
+    type: equation
+    statement: "The MultiChoice architecture computes link probability using softmax over dot products of a trainable weight vector with each candidate's representation."
+    expression: "P_i = exp(V * C_i) / sum_j(exp(V * C_j))"
+    sympy: "exp(MatMul(V, C_i)) / Sum(exp(MatMul(V, C_j)), (j, 1, n))"
+    variables:
+      V: "Trainable weight vector in R^H"
+      C_i: "Vector representation of choice i in R^H"
+      H: "Hidden size of encoder output (768 for BERT base)"
+      n: "Number of candidate choices"
+    concepts:
+      - multichoice_architecture
 
-- id: claim10
-  type: parameter
-  concept: end_to_end_baseline_f1
-  value: 0.55
-  unit: "-"
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 7
-    section: "5 Results"
-    table: "Table 3"
-    quote_fragment: "Tree-LSTM end-to-end baseline: 0.55 F1"
-  conditions:
-    - "model == 'Tree-LSTM'"
-    - "test_set == 'neoplasm'"
-  notes: "End-to-end system from Miwa and Bansal [28] as employed by Eger et al. [11]"
+  - id: claim10
+    type: measurement
+    statement: "The transformer-based pipeline significantly outperforms prior LSTM-based end-to-end argument mining systems which achieved only 0.55 F1 for relation prediction."
+    target_concept: argument_relation_prediction
+    measure: baseline_f1
+    value: 0.55
+    unit: f1_score
 
-- id: claim11
-  type: equation
-  expression: "P_i = \\frac{e^{V \\cdot C_i}}{\\sum_{j=1}^{n} e^{V \\cdot C_j}}"
-  sympy: "exp(V * C_i) / Sum(exp(V * C_j), (j, 1, n))"
-  variables:
-    - symbol: "V"
-      concept: trainable_weight_vector
-      role: "parameter"
-    - symbol: "C_i"
-      concept: choice_vector_representation
-      role: "independent"
-    - symbol: "P_i"
-      concept: choice_probability
-      role: "dependent"
-    - symbol: "n"
-      concept: number_of_choices
-      role: "parameter"
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 6
-    section: "4.2 Relation Classification"
-    quote_fragment: "The probability distribution over all possible choices is given by the softmax"
-  notes: "MultiChoice architecture softmax over link candidates. H is hidden size of encoder output (768 for BERT base)."
+  - id: claim11
+    type: observation
+    statement: "BIO sequence labeling is necessary for argument component detection because multiple components can be adjacent in text; without BIO labels, adjacent components merge into a single component."
+    concepts:
+      - bio_sequence_labeling
+      - argument_component_detection
 
-- id: claim12
-  type: observation
-  statement: "SciBERT with GRU+CRF achieves the best performance for argument component detection in clinical trial abstracts, outperforming general-domain BERT variants."
-  concepts:
-    - argument_component_detection
-    - domain_adapted_transformers
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 7
-    section: "5 Results"
-    quote_fragment: "SciBERT slightly better for sentence classification tasks"
-  conditions:
-    - "domain == 'clinical_trials'"
-
-- id: claim13
-  type: observation
-  statement: "RoBERTa shows more stable cross-domain performance than SciBERT for relation classification, dropping only 0.01 F1 on out-of-domain test sets versus SciBERT's 0.06 drop."
-  concepts:
-    - cross_domain_generalization
-    - relation_classification
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 8
-    section: "5 Results"
-    quote_fragment: "RoBERTa stays almost the same and only drops from .67 to .66 F1-score"
-
-- id: claim14
-  type: observation
-  statement: "The SentClf architecture achieves slightly higher F1 than MultiChoice but produces more false positive links, since it classifies each component pair independently and does not respect the single-outgoing-edge constraint."
-  concepts:
-    - relation_classification
-    - false_positive_rate
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 8
-    section: "5 Results"
-    quote_fragment: "SentClf delivers slightly better results, but the drawback is that this technique tends to link components to multiple components"
-
-- id: claim15
-  type: observation
-  statement: "The MultiChoice architecture loses predictive power when the number of argument components rises to the double-digit range, limiting its applicability to full-text articles."
-  concepts:
-    - relation_classification
-    - scalability
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 8
-    section: "5 Results"
-    quote_fragment: "with the number of components rising in the double-digit range, the multiple-choice architecture loses its predictive power"
-  notes: "Authors note increased false positives in relation classification on full articles"
-
-- id: claim16
-  type: observation
-  statement: "Polarity of medical measurements cannot be learned from textual features alone; external expert knowledge is needed to determine whether increasing or decreasing a measurement value is beneficial."
-  concepts:
-    - measurement_polarity
-    - external_knowledge
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 8
-    section: "Error Analysis"
-    quote_fragment: "The polarity of a measurement cannot be learnt from textual features alone"
-  notes: "Example: 'increased blood pressure' can be positive or negative depending on context"
-
-- id: claim17
-  type: observation
-  statement: "Fine-tuned transformer models significantly outperform static word embeddings (GloVe, fastText, BPEmb) for argument component detection in clinical text."
-  concepts:
-    - argument_component_detection
-    - transformer_embeddings
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 7
-    section: "5 Results"
-    table: "Table 2"
-
-- id: claim18
-  type: observation
-  statement: "BIO sequence tagging scheme is necessary for argument component detection because adjacent components would merge into a single component without it, but creates B-token vs I-token class imbalance."
-  concepts:
-    - sequence_tagging
-    - bio_scheme
-  provenance:
-    paper: Mayer_2020_Transformer-BasedArgumentMiningHealthcare
-    page: 8
-    section: "Error Analysis"
-    quote_fragment: "Training the sequence tagging without the BIO scheme using only claim and evidence as labels, poses problems when multiple components are following each other"
+  - id: claim12
+    type: parameter
+    statement: "The BERT base hidden dimension used across all transformer variants is 768."
+    target_concept: multichoice_architecture
+    concept: multichoice_architecture
+    value: 768
+    unit: dimensions

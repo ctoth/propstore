@@ -9,72 +9,72 @@ doi_url: "https://doi.org/10.1016/0004-3702(86)90082-2"
 # Problem Solving with the ATMS
 
 ## One-Sentence Summary
-Presents a complete control regime and constraint language for building problem solvers on top of the Assumption-based Truth Maintenance System (ATMS), including consumer architecture, scheduling, dependency-directed backtracking, and comparison with Doyle's TMS, McAllester's RUP, McDermott's system, and MBR.
+Presents a complete control regime and constraint language for building problem solvers on top of the Assumption-based Truth Maintenance System (ATMS), including consumer architecture, scheduling, dependency-directed backtracking, and comparison with Doyle's TMS, McAllester's RUP, McDermott's system, and MBR. *(p.197)*
 
 ## Problem Addressed
-The ATMS provides soundness, completeness, and consistency guarantees for default reasoning, but these can be inadvertently lost if the problem solver does not interface correctly. This paper addresses how to build problem solvers that preserve those guarantees through a disciplined control regime.
+The ATMS provides soundness, completeness, and consistency guarantees for default reasoning, but these can be inadvertently lost if the problem solver does not interface correctly. This paper addresses how to build problem solvers that preserve those guarantees through a disciplined control regime. *(p.197)*
 
 ## Key Contributions
-- Defines a **consumer architecture** for encoding problem-solving steps as modular units (consumers) attached to ATMS nodes
-- Introduces **class consumers**, **conjunctive class consumers**, and **constraint consumers** for efficient rule encoding
-- Presents scheduling strategies: simplest-label-first, before/after consumer ordering, dependency-directed backtracking via control disjunctions
-- Defines a **simple constraint language** (PLUS, TIMES, AND, OR, ONEOF, etc.) built entirely on ATMS primitives
-- Provides detailed comparison with Doyle's TMS, McAllester's RUP, McDermott's system, Martins' MBR, and Williams' ART
+- Defines a **consumer architecture** for encoding problem-solving steps as modular units (consumers) attached to ATMS nodes *(p.201--202)*
+- Introduces **class consumers**, **conjunctive class consumers**, and **constraint consumers** for efficient rule encoding *(p.207--208)*
+- Presents scheduling strategies: simplest-label-first, before/after consumer ordering, dependency-directed backtracking via control disjunctions *(p.204--206)*
+- Defines a **simple constraint language** (PLUS, TIMES, AND, OR, ONEOF, etc.) built entirely on ATMS primitives *(p.209--213)*
+- Provides detailed comparison with Doyle's TMS, McAllester's RUP, McDermott's system, Martins' MBR, and Williams' ART *(p.215--222)*
 
 ## Methodology
-The paper builds a layered architecture:
-1. **ATMS base**: nodes with labels (sets of environments), justifications, nogoods
-2. **Consumer layer**: rules that fire when antecedent nodes have nonempty labels; consumers run once per node, producing new justifications
-3. **Control layer**: scheduling (simplest environments first), dependency-directed backtracking (control disjunctions), delayed justifications, kernel environments
-4. **Constraint language**: translates arithmetic/logical constraints into sets of consumers and justifications
+The paper builds a layered architecture: *(p.197--198)*
+1. **ATMS base**: nodes with labels (sets of environments), justifications, nogoods *(p.198)*
+2. **Consumer layer**: rules that fire when antecedent nodes have nonempty labels; consumers run once per node, producing new justifications *(p.201--202)*
+3. **Control layer**: scheduling (simplest environments first), dependency-directed backtracking (control disjunctions), delayed justifications, kernel environments *(p.204--206)*
+4. **Constraint language**: translates arithmetic/logical constraints into sets of consumers and justifications *(p.209--213)*
 
 ## Key Equations
 
-Justification form:
+Justification form: *(p.198)*
 
 $$
 \alpha_1, \alpha_2, \ldots \Rightarrow \beta
 $$
 
-Where $\alpha_i$ are problem-solver data, assumptions, or falsity $\perp$. Interpreted as material implication:
+Where $\alpha_i$ are problem-solver data, assumptions, or falsity $\perp$. Interpreted as material implication: *(p.198)*
 
 $$
 \alpha_1 \wedge \alpha_2 \wedge \cdots \rightarrow \beta
 $$
 
-Node representation:
+Node representation: *(p.198)*
 
 $$
 \langle \text{datum}, \text{label}, \text{justifications} \rangle
 $$
 
-Environment lattice: for $n$ assumptions, $2^n$ environments, at most $2^n$ contexts.
+Environment lattice: for $n$ assumptions, $2^n$ environments, at most $2^n$ contexts. *(p.198)*
 
-Label for $x = 1$:
+Label for $x = 1$: *(p.198)*
 
 $$
 \langle x = 1, \{\{A, C\}, \{D, E\}\}, \{\ldots\} \rangle
 $$
 
-Constraint consumer inverse:
+Constraint consumer inverse: *(p.207--208)*
 
 $$
 x_i = R_i^{-1}(x_1, \ldots, x_{i-1}, x_{i+1}, \ldots)
 $$
 
-PLUS constraint inverse:
+PLUS constraint inverse: *(p.210)*
 
 $$
 v_i = -\sum_{j \neq i} v_j
 $$
 
-TIMES constraint inverse (when $v \neq 0$):
+TIMES constraint inverse (when $v \neq 0$): *(p.212)*
 
 $$
 v_i = \frac{\prod_{j \neq i} v_j}{v}
 $$
 
-Parity encoding with delayed justifications:
+Parity encoding with delayed justifications: *(p.216)*
 
 $$
 p_{i-1} = 0, b_i = 1 \implies p_i = 1
@@ -94,102 +94,201 @@ $$
 
 ## Parameters
 
-| Name | Symbol | Units | Default | Range | Notes |
-|------|--------|-------|---------|-------|-------|
-| Number of assumptions | $n$ | - | - | 1-$\infty$ | Determines environment lattice size $2^n$ |
-| Number of environments per label | - | - | - | 1-$2^n$ | Label is set of greatest lower bounds |
-| Consumer execution count | - | - | 1 | 1 | Consumers execute exactly once per node |
+| Name | Symbol | Units | Default | Range | Notes | Page |
+|------|--------|-------|---------|-------|-------|------|
+| Number of assumptions | $n$ | - | - | 1-$\infty$ | Determines environment lattice size $2^n$ | p.198 |
+| Number of environments per label | - | - | - | 1-$2^n$ | Label is set of greatest lower bounds | p.198 |
+| Consumer execution count | - | - | 1 | 1 | Consumers execute exactly once per node | p.202 |
 
 ## Implementation Details
 
 ### Data Structures
-- **Node**: (datum, label, justifications) triple
-- **Environment lattice**: $2^n$ vertices for $n$ assumptions; nogoods are crossed-out vertices
-- **Consumer queue**: nodes with pending consumers and nonempty labels; no separate agenda needed
-- **Control disjunctions**: `control{C1, C2, ...}` — scheduler maintains current environment satisfying all control disjunctions
+- **Node**: (datum, label, justifications) triple *(p.198)*
+- **Environment lattice**: $2^n$ vertices for $n$ assumptions; nogoods are crossed-out vertices *(p.198--199)*
+- **Consumer queue**: nodes with pending consumers and nonempty labels; no separate agenda needed *(p.203)*
+- **Control disjunctions**: `control{C1, C2, ...}` — scheduler maintains current environment satisfying all control disjunctions *(p.205)*
+
+### Consumer Restrictions
+Consumers must obey four restrictions *(p.202)*:
+1. Only examine data of nodes (not labels or justifications)
+2. Only examine antecedent nodes (those the consumer is attached to)
+3. Antecedents of every justification must be exactly the consumer's antecedents, no more and no less (may include additional assumptions; see Section 5.2)
+4. No internal state or control decisions
 
 ### Consumer Types
-1. **Basic consumer** $F$: attached to single node, runs once per node when label becomes nonempty
-2. **Conjunctive consumer**: attached to list of nodes, runs when conjunction of antecedent labels yields consistent environment; invoked on cross-product of antecedent-class node sets (tuple-based)
-3. **Class consumer**: attached to a class (generalized variable), runs once per node-class instance
-4. **Constraint consumer**: triggers constraint $R(x_1, x_2, \ldots)$ when all but one antecedent hold; suppresses spurious retriggering
-5. **Conditional constraint consumer**: like constraint consumer but conditional on a node being in a particular operating region
-6. **Implication consumer** (exclusive/inclusive): encodes $a \rightarrow b \oplus c$ using `choose{B', C'}` disjunction; builds environment consumers that delay until efficient
+1. **Basic consumer** $F$: attached to single node, runs once per node when label becomes nonempty *(p.202)*
+2. **Conjunctive consumer**: attached to list of nodes, runs when conjunction of antecedent labels yields consistent environment; invoked on cross-product of antecedent-class node sets (tuple-based) *(p.202)*
+3. **Class consumer**: attached to a class (generalized variable), runs once per node-class instance *(p.207)*
+4. **Conjunctive class consumer**: conjunctive consumer over multiple classes, invoked per cross-product tuple of member nodes *(p.207)*
+5. **Constraint consumer**: triggers constraint $R(x_1, x_2, \ldots)$ when all but one antecedent hold; suppresses spurious retriggering via type system *(p.207--208)*
+6. **Conditional constraint consumer**: like constraint consumer but conditional on a node being in a particular operating region (e.g., transistor ON/OFF/saturated/reverse-active) *(p.208)*
+7. **Implication consumer** (exclusive/inclusive): encodes $a \rightarrow b \oplus c$ using `choose{B', C'}` disjunction; builds environment consumers that delay until efficient *(p.208--209)*
+8. **Environment consumer**: runs when a new environment is added to a node's label; used internally by implication consumers *(p.209)*
+
+### Consumer Type System
+All typed consumers record their type in the informants of justifications they produce. A consumer will not execute until it receives a valid justification with another type, preventing retriggering on own outputs. *(p.202--203)*
+
+### Unouting Problem
+The consumer architecture automatically solves the unouting problem (what to do when multiple justifications contribute subset or disjoint environments to the same node's label). If antecedents do not yield a consistent environment, the consumer simply does not run; when a distant antecedent later becomes justified, the ATMS propagates label updates and the consumer fires automatically. *(p.203--204)*
 
 ### Scheduling Algorithm
-1. Pick node with smallest environment (fewest assumptions) from consumer queue
-2. Execute consumer, discard it
-3. Repeat until no pending consumers with nonempty labels
-- Before/after ordering: "before" consumers (cheap checks like contradiction detection) run first; "after" consumers (expensive computation) run last
+1. Pick node with smallest environment (fewest assumptions) from consumer queue *(p.204)*
+2. Execute consumer, discard it *(p.204)*
+3. Repeat until no pending consumers with nonempty labels *(p.204)*
+- Before/after ordering: "before" consumers (cheap checks like contradiction detection) run first; "after" consumers (expensive computation) run last *(p.205)*
+- The scheduler schedules environments, not consumers; a consumer will not execute until all consumers of its subset environments have been executed *(p.204)*
+
+### Dependency-Directed Backtracking
+- Control disjunctions `control{C1, C2, ...}` partition the search space *(p.205)*
+- The scheduler maintains a single current environment guaranteed consistent with all control disjunctions *(p.205)*
+- `control{A, B}` also expresses search preference: solutions containing A are found before solutions containing B *(p.205)*
+- When a contradiction is encountered, the scheduler finds the next consistent current environment; this achieves at least the efficiency of chronological backtracking but avoids contradictions from the current justification set (better than conventional DDB which only avoids past contradictions) *(p.205)*
+
+### Delayed Justifications
+A delayed justification (indicated with $\Longrightarrow$ instead of $\Rightarrow$) takes effect only when its antecedents hold in a consistent environment specified by the control strategy. Implemented by creating a temporary node with the delayed justification and attaching a basic consumer that installs a conventional justification to the actual consequent. *(p.205--206)*
+
+### Kernel Environment
+The problem solver can specify a kernel environment; a consumer is not run unless its antecedents hold in some consistent environment which is not inconsistent with the kernel. This allows specifying conditions that any solution must satisfy. If the kernel becomes inconsistent, problem solving halts. This is the control method the author uses most commonly. *(p.206)*
+
+### Incremental Interpretation Construction
+The scheduler can maintain a single current interpretation, updated after every problem-solver action. This is the third control method, combining ideas from kernel environments and interpretation tracking. *(p.206)*
+
+### Problem Solver Responsibility
+The advantage of all control schemes over ad-hoc tactics is that no solution will be missed if the control is later removed. Although control mechanisms purposely violate exhaustivity, the potential of exhaustivity is not surrendered. The problem solver can specify how focus should change when it becomes contradictory or inadequate. *(p.206)*
 
 ### Constraint Language Primitives
-- `EQ(l, v1, v2)`: $v_1 = v_2$ iff $l = \text{TRUE}$
-- `NOT(l1, l2)`: $l_1 = \text{TRUE}$ iff $l_2 = \text{FALSE}$ and vice versa
-- `MINUS(v1, v2)`: $v_1 = -v_2$
-- `PLUS(v1, v2, ...)`: $\sum v_i = 0$
-- `TIMES(v, v1, v2, ...)`: $v = \prod v_i$
-- `DIVIDE(v, v1, v2)`: if $v_2 \neq 0$ then $v_1 = v \times v_2$
-- `AND(l, l1, l2, ...)`: $l = \text{TRUE}$ iff all $l_i = \text{TRUE}$
-- `OR(l, l1, l2, ...)`: $l = \text{TRUE}$ iff at least one $l_i = \text{TRUE}$
-- `ONEOF(l, l1, l2, ...)`: $l = \text{TRUE}$ iff exactly one $l_i = \text{TRUE}$
-- `ELEMENT(l, v, v1, v2, ...)`: equivalent to ONEOF + EQ combinations
+- `EQ(l, v1, v2)`: $v_1 = v_2$ iff $l = \text{TRUE}$ *(p.209)*
+- `NOT(l1, l2)`: $l_1 = \text{TRUE}$ iff $l_2 = \text{FALSE}$ and vice versa *(p.209)*
+- `MINUS(v1, v2)`: $v_1 = -v_2$ *(p.209)*
+- `PLUS(v1, v2, ...)`: $\sum v_i = 0$ *(p.210)*
+- `TIMES(v, v1, v2, ...)`: $v = \prod v_i$ *(p.210)*
+- `DIVIDE(v, v1, v2)`: if $v_2 \neq 0$ then $v_1 = v \times v_2$ *(p.210)*
+- `E(v1, v2)`: $v_1 = (v_2 + 1000)!$ — generic expensive computation used in examples *(p.210)*
+- `AND(l, l1, l2, ...)`: $l = \text{TRUE}$ iff all $l_i = \text{TRUE}$ *(p.210)*
+- `OR(l, l1, l2, ...)`: $l = \text{TRUE}$ iff at least one $l_i = \text{TRUE}$ *(p.210)*
+- `ONEOF(l, l1, l2, ...)`: $l = \text{TRUE}$ iff exactly one $l_i = \text{TRUE}$ *(p.210)*
+- `ELEMENT(l, v, v1, v2, ...)`: equivalent to ONEOF + EQ combinations *(p.210)*
+
+### AND Implementation Detail
+AND is encoded by expanding $a \equiv b \wedge c$ into clauses: $a \rightarrow b$, $a \rightarrow c$, $b \wedge c \rightarrow a$, plus contrapositives using implication consumers with `choose` disjunctions. Four observations optimize this: (1) don't create $a \Rightarrow b$ unless $a$ is true somewhere, (2) don't create $\gamma_{\neg b} \Rightarrow \gamma_{\neg a}$ unless $a$ or $b$ are false somewhere, (3) don't create $a, b \Rightarrow c$ unless both are true, (4) assumptions $\Gamma'_{\neg b}$ and $\Gamma'_{\neg c}$ need not be created unless $a$ is false somewhere. *(p.210--211)*
+
+### TIMES Zero Handling
+When any $v_i = 0$, $v$ is assigned zero. When $v = 0$, a `oneof` disjunction assumption set is created: each $v_i$ is assigned 0 under the justification of the node $v = 0$ and one of the assumptions. The disjunction must consist of assumptions (not assumed data) — the strongest result of $v = 0$ is that one of the $v_i = 0$. Hyperresolution rule H5 is needed to detect inconsistency. *(p.212)*
+
+### ONEOF Implementation
+ONEOF is quite complex. One class consumer computes $l$ from the set $\{l_i\}$: if all but one $l_i$ is FALSE, then $l$ = TRUE iff the remaining $l_i$ is TRUE. Another class consumer acts when $l$ = TRUE: it creates a `oneof` disjunction and assigns each $l_i$ = TRUE under the conjunction of $l$ = TRUE and an assumption. *(p.213)*
+
+### Assertional Language Integration
+The ATMS integrates with assertional languages like AMORD. Every assertion is an ATMS node, every antecedent pattern is an ATMS class. For the rule human(x)/mortal(x): define class human(x), attach consumer mortal(x); when human(Turing) is asserted, it triggers the consumer producing mortal(Turing). The ATMS has no model of data structure — the problem solver identifies instances. *(p.213--214)*
+
+### Consequent Reasoning
+Although examples focus on antecedent reasoning, the ATMS applies to consequent reasoning as well. Consequent reasoners tend to require far more control since they specifically avoid finding all solutions. For consequent reasoning, interpretation construction is usually inappropriate and resolution should be used. *(p.214)*
+
+### Exclusivity of Variable Values
+The class-node architecture applies even when values are not exclusive. Example: a five-value system $x < 0$, $x \leq 0$, $x = 0$, $x \geq 0$, $x > 0$. If $x < 0$ holds in a more general environment than $x \leq 0$, a special process removes the more general environment from $x \leq 0$'s label. *(p.214)*
 
 ### Key Design Decisions
-- Consumers run exactly once, then are discarded (like compilation)
-- Consumer may not have internal state or make control decisions
-- All inferences recorded as ATMS justifications
-- ATMS is neutral to search order (depth-first, breadth-first, or mixed)
-- Control exercised only *before* running a consumer; once run, justifications are permanent
+- Consumers run exactly once, then are discarded (like compilation) *(p.202)*
+- Consumer may not have internal state or make control decisions *(p.202)*
+- All inferences recorded as ATMS justifications *(p.202)*
+- ATMS is neutral to search order (depth-first, breadth-first, or mixed) *(p.204)*
+- Control exercised only *before* running a consumer; once run, justifications are permanent *(p.204)*
+- The ATMS never modifies or adds a justification to avoid a contradiction *(p.219)*
 
 ## Figures of Interest
-- **Fig 1 (page 3/199):** Environment lattice for 5 assumptions {A,B,C,D,E} — shows all $2^5 = 32$ environments with nogoods crossed out and maximal consistent vertices boxed
+- **Fig 1 (p.199):** Environment lattice for 5 assumptions {A,B,C,D,E} — shows all $2^5 = 32$ environments with nogoods crossed out and maximal consistent vertices boxed
 
 ## Results Summary
-- The consumer architecture provides a clean separation between problem-solving logic and ATMS maintenance
-- Scheduling by simplest-label-first finds solutions with near-minimum effort
-- Dependency-directed backtracking via control disjunctions achieves at least the efficiency of chronological backtracking
-- For problems with many solutions where all are needed: ATMS has inherent advantage (avoids all dependency-directed backtracking and context switching)
-- For problems with one solution: advantage depends on whether dependency-directed backtracking cost exceeds ATMS overhead
-- For problems with many solutions but few needed: requires careful use of control disjunctions to avoid exponential label growth
+- The consumer architecture provides a clean separation between problem-solving logic and ATMS maintenance *(p.201--204)*
+- Scheduling by simplest-label-first finds solutions with near-minimum effort *(p.204)*
+- Dependency-directed backtracking via control disjunctions achieves at least the efficiency of chronological backtracking *(p.205)*
+- For problems with many solutions where all are needed: ATMS has inherent advantage (avoids all dependency-directed backtracking and context switching) *(p.215)*
+- For problems with one solution: advantage depends on whether dependency-directed backtracking cost exceeds ATMS overhead *(p.215)*
+- For problems with many solutions but few needed: requires careful use of control disjunctions to avoid exponential label growth *(p.215)*
+
+## Comparison to Other Systems
+
+### Doyle's TMS *(p.216--217)*
+- Doyle's TMS has two procedures: truth maintenance (constraint satisfaction) and dependency-directed backtracking (removes inconsistency by altering justifications) *(p.216)*
+- CP-justification (conditional-proof) is a mechanism for recording results determined in another database state; the ATMS considers all justifications as CP and translates them into SL-justifications in terms of assumptions, making the CP-justification unnecessary *(p.217)*
+- Both systems record contradictions the same way, but Doyle's additional justifications for search bookkeeping are unnecessary in the ATMS *(p.217)*
+
+### McAllester's RUP *(p.217--218)*
+- McAllester's system represents assumptions explicitly; easier to switch states, justifications not dominant, machinery streamlined *(p.218)*
+- RUP's notion of "noticer" corresponds roughly to ATMS consumer, with one difference: a noticer runs even if its antecedent becomes invalid (RUP users adopted requeuing convention) *(p.218)*
+- RUP's "intern-noticers" correspond to ATMS class consumers *(p.218)*
+- Disadvantage of RUP: noticers can do too much, and the designer may inadvertently give up exhaustivity *(p.218)*
+
+### McDermott's System *(p.218--220)*
+- Similar in spirit: both augment justifications with propositional expression in disjunctive normal form *(p.218)*
+- Equivalences: 'assertions' = 'data', 'premisses' = 'assumptions', 'data pool' = 'context' *(p.218)*
+- Key difference: McDermott uses negated assumptions in labels (requires general constraint-satisfaction for label update); ATMS uses nogood database instead (simple local propagator, set operations via bit-vectors) *(p.219)*
+- McDermott's insistence on single consistent data pool causes unnecessary complexity, inefficiency, and inadequate functionality *(p.219)*
+- The ATMS handles contradictions by simply recording nogoods, never modifying justifications; this gives completeness and consistency guarantees *(p.220)*
+- Data pool control can be approximately mimicked in the consumer architecture via current interpretation *(p.220)*
+
+### Martins' MBR *(p.220--221)*
+- MBR origin set = ATMS label, restriction set = ATMS nogoods *(p.220)*
+- MBR uses restriction sets as alternative nogood implementation (check union operations, not all nogoods) — turned out inefficient for the ATMS *(p.220)*
+- MBR's second derivation requires insertion of a supporting node with single origin set — cumbersome for disjunctive antecedents *(p.221)*
+- MBR contradiction handling and interpretation construction mechanisms are inadequate *(p.221)*
+- MBR insists on single current consistent context with no mechanism for changing or choosing another *(p.221)*
+- MBR's relevance logic for control is provocative; incorporating ATMS efficiency and functionality into MBR would be interesting *(p.221)*
+
+### Williams' ART *(p.221)*
+- ART 'extent' = 'label', 'constraint' = justification whose consequent is $\gamma_\perp$, 'poison' = 'contradiction', 'believe' = contradict all competing extensions *(p.221)*
+- ART allows negated assumptions (like McDermott), requiring dependency-directed backtracking *(p.221)*
+- Does not allow disjunctions of extents; multiple justifications for same datum cause problems *(p.221)*
+- ART is proprietary software with no detailed papers on internal architecture *(p.221)*
+
+### Counterfactuals (Ginsberg) *(p.222)*
+- Ginsberg's framework using David Lewis's possible-world semantics is very related to the ATMS *(p.222)*
+- The ATMS extensions (maximally consistent sets of true defaults) correspond to Ginsberg's most similar worlds *(p.222)*
+- Counterfactual "if p then q" corresponds to default $\neg p$ and $\neg p \rightarrow \neg q$; the ATMS or default logic represents this by maximally consistent sets of true defaults corresponding to minimal sets of false defaults *(p.222)*
 
 ## Limitations
-- ATMS is slower than conventional TMS for problems needing only one solution (due to database access overhead)
-- Label sizes can grow exponentially ($2^{i+2} + 2^i$ environments for $i$-bit parity problem without control)
-- No built-in support for time/action modeling (ATMS is purely inferential)
-- Weak notion of control compared to Doyle's TMS data pool mechanism
-- ONEOF implementation is quite complex
-- Symbolic algebra for infinite-valued variables not fully addressed (only covers finite domains cleanly)
+- ATMS is slower than conventional TMS for problems needing only one solution (due to database access overhead) *(p.215)*
+- Label sizes can grow exponentially ($2^{i+2} + 2^i$ environments for $i$-bit parity problem without control) *(p.216)*
+- No built-in support for time/action modeling (ATMS is purely inferential; problem solvers that change the world cannot be modeled, as there is no way to prevent inheritance of a fact into a daughter context) *(p.223)*
+- Weak notion of control compared to Doyle's TMS data pool mechanism *(p.220)*
+- ONEOF implementation is quite complex *(p.213)*
+- Symbolic algebra for infinite-valued variables not fully addressed (only covers finite domains cleanly); ONEOF/EQ/ONEOF(FALSE,...) undefined for infinite domains *(p.213)*
+- For problems with many solutions but few needed, control mechanisms are inadequate; more research is needed *(p.222--223)*
 
 ## Testable Properties
-- Environment lattice has exactly $2^n$ vertices for $n$ assumptions
-- A datum's label must be a subset of any of its environments
-- If a context is inconsistent (nogood), no datum should be derivable in that context alone
-- Consumers execute exactly once per node — rerunning produces no new justifications
-- Constraint consumer $R_i^{-1}$ must satisfy: if $R(x_1, \ldots, x_n)$ holds and all $x_j$ ($j \neq i$) are known, then $x_i = R_i^{-1}(x_1, \ldots, x_{i-1}, x_{i+1}, \ldots, x_n)$
-- Control disjunctions partition the search space: the next consistent current environment found is guaranteed consistent with all control disjunctions
-- Parity problem with control: first solution found after creating $4i$ environments (linear), vs $2^{i+2} + 2^i$ without control (exponential)
-- Adding arbitrary antecedents to a justification forces the ATMS to consider more contexts than intended (over-general labels if too few; inconsistent results if wrong antecedents)
+- Environment lattice has exactly $2^n$ vertices for $n$ assumptions *(p.198)*
+- A datum's label must be a subset of any of its environments *(p.198)*
+- If a context is inconsistent (nogood), no datum should be derivable in that context alone *(p.198)*
+- Consumers execute exactly once per node — rerunning produces no new justifications *(p.202)*
+- Constraint consumer $R_i^{-1}$ must satisfy: if $R(x_1, \ldots, x_n)$ holds and all $x_j$ ($j \neq i$) are known, then $x_i = R_i^{-1}(x_1, \ldots, x_{i-1}, x_{i+1}, \ldots, x_n)$ *(p.207--208)*
+- Control disjunctions partition the search space: the next consistent current environment found is guaranteed consistent with all control disjunctions *(p.205)*
+- Parity problem with control: first solution found after creating $4i$ environments (linear), vs $2^{i+2} + 2^i$ without control (exponential) *(p.216)*
+- Adding arbitrary antecedents to a justification forces the ATMS to consider more contexts than intended (over-general labels if too few; inconsistent results if wrong antecedents) *(p.200--201)*
+- Typed consumers: a consumer with type T will not fire on justifications whose informant type is also T (prevents self-triggering) *(p.202--203)*
+- Consumer architecture automatically solves the unouting problem: if antecedents do not yield a consistent environment, the consumer does not run *(p.203--204)*
+- `control{A, B}` guarantees solutions with A are found before solutions with B *(p.205)*
+- ATMS parallelism: consumers are order-insensitive and status-insensitive, so they can execute on parallel processors without coordination *(p.222)*
 
 ## Relevance to Project
-This paper is foundational for the propstore project's world model and assumption-based reasoning. The ATMS architecture directly maps to: environments as assumption sets, labels as minimal environments supporting a datum, nogoods as contradictory assumption sets, and consumers as forward-chaining rules. The constraint language (Section 5.3) provides a template for implementing numeric and logical constraints over ATMS-tracked variables. The control regime (Section 4) is directly applicable to the hypothetical world exploration in propstore.
+This paper is foundational for the propstore project's world model and assumption-based reasoning. The ATMS architecture directly maps to: environments as assumption sets, labels as minimal environments supporting a datum, nogoods as contradictory assumption sets, and consumers as forward-chaining rules. The constraint language (Section 5.3) provides a template for implementing numeric and logical constraints over ATMS-tracked variables. The control regime (Section 4) is directly applicable to the hypothetical world exploration in propstore. *(p.197--224)*
 
 ## Open Questions
 - [ ] How does the consumer architecture scale to very large numbers of assumptions (hundreds/thousands)?
-- [ ] Can the constraint language be extended to support continuous/real-valued domains without symbolic algebra?
+- [ ] Can the constraint language be extended to support continuous/real-valued domains without symbolic algebra? *(p.213)*
 - [ ] What is the practical overhead of the ATMS label-update algorithm compared to incremental constraint propagation?
-- [ ] How to model temporal actions within the purely inferential ATMS framework (Section 7.3)?
+- [ ] How to model temporal actions within the purely inferential ATMS framework (Section 7.3)? *(p.223)*
 
 ## Related Work Worth Reading
-- de Kleer, J., "An assumption-based TMS", Artificial Intelligence 28 (1986) 127-162 [companion paper, defines the ATMS itself]
-- de Kleer, J., "Extending the ATMS", Artificial Intelligence 28 (1986) 163-196 [extends ATMS with defaults, disjunctions, nonmonotonic justifications]
-- Doyle, J., "A truth maintenance system", Artificial Intelligence 12 (1979) 231-272 [original TMS]
-- McAllester, D., "A three-valued truth maintenance system" (1978) and "An outlook on truth maintenance" (1980) [RUP system]
-- McDermott, D., "Contexts and data dependencies: a synthesis", IEEE Trans. PAMI 5(3) (1983) 237-246
-- Martins, J.P. and Shapiro, S.C., "Reasoning in multiple belief spaces" (1983) [MBR]
-- Williams, C., "ART the advanced reasoning tool" (1984) [proprietary]
-- de Kleer, J. and Brown, J.S., "A qualitative physics based on confluences", Artificial Intelligence 24 (1984) 7-83
-- Reiter, R., "A logic for default reasoning", Artificial Intelligence 13 (1980) 81-132
-- Ginsberg, M.L., "Counterfactuals", Proc. IJCAI (1985) 107-110
+- de Kleer, J., "An assumption-based TMS", Artificial Intelligence 28 (1986) 127-162 [companion paper, defines the ATMS itself] *(ref [4], p.223)*
+- de Kleer, J., "Extending the ATMS", Artificial Intelligence 28 (1986) 163-196 [extends ATMS with defaults, disjunctions, nonmonotonic justifications] *(ref [5], p.223)*
+- Doyle, J., "A truth maintenance system", Artificial Intelligence 12 (1979) 231-272 [original TMS] *(ref [9], p.223)*
+- McAllester, D., "A three-valued truth maintenance system" (1978) and "An outlook on truth maintenance" (1980) [RUP system] *(refs [14, 15], p.223--224)*
+- McDermott, D., "Contexts and data dependencies: a synthesis", IEEE Trans. PAMI 5(3) (1983) 237-246 *(ref [18], p.224)*
+- Martins, J.P. and Shapiro, S.C., "Reasoning in multiple belief spaces" (1983) [MBR] *(refs [12, 13], p.223)*
+- Williams, C., "ART the advanced reasoning tool" (1984) [proprietary] *(ref [21], p.224)*
+- de Kleer, J. and Brown, J.S., "A qualitative physics based on confluences", Artificial Intelligence 24 (1984) 7-83 *(ref [6], p.223)*
+- Reiter, R., "A logic for default reasoning", Artificial Intelligence 13 (1980) 81-132 *(ref [19], p.224)*
+- Ginsberg, M.L., "Counterfactuals", Proc. IJCAI (1985) 107-110 *(ref [11], p.223)*
 
 ## Collection Cross-References
 

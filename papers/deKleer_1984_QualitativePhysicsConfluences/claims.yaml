@@ -1,219 +1,115 @@
 source:
   paper: deKleer_1984_QualitativePhysicsConfluences
-  extraction_model: "claude-opus-4-6-20250317"
-  extraction_date: "2026-03-17"
+  extraction_model: "claude-opus-4-20250514"
+  extraction_date: "2026-03-22"
 
 claims:
   - id: claim1
     type: observation
-    statement: "Physical device behavior can be predicted qualitatively using confluences (qualitative differential equations) where variables take values from {+, 0, -} and terms sum to a constant."
+    statement: "A confluence is a qualitative differential equation where variables take values from {+, 0, -} and terms sum to a constant, serving as the central modeling primitive for component behavior in qualitative physics."
     concepts:
-      - qualitative_reasoning
       - confluence
+      - qualitative_calculus
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 24
-      section: "3.4 Models"
-      quote_fragment: "Each model confluence consists of a set of terms which must sum to a constant"
+      section: "4. Confluences"
 
   - id: claim2
     type: observation
-    statement: "Qualitative addition over {+, 0, -} is not invertible: [+] + [-] can equal any of {+, 0, -}, making the qualitative value set fundamentally more ambiguous than quantitative analysis."
-    concepts:
-      - qualitative_reasoning
-      - ambiguity
-    provenance:
-      paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 22
-      section: "3.2 Qualitative variables"
-      quote_fragment: "although [xy] = [x][y], [x + y] != [x] + [y]"
-
-  - id: claim3
-    type: observation
-    statement: "The no-function-in-structure principle requires that component laws may not presume the functioning of the whole device, ensuring that models are context-free and reusable across different device configurations."
-    concepts:
-      - qualitative_reasoning
-      - no_function_in_structure
-    provenance:
-      paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 16
-      section: "2.4 No-function-in-structure"
-      quote_fragment: "the laws of the parts of the device may not presume the functioning of the whole"
-
-  - id: claim4
-    type: observation
-    statement: "Qualitative states partition a component's operating range into regions governed by different sets of confluences; state specifications are inequalities over non-derivative variables."
+    statement: "Each physical component's operating range is divided into qualitative states defined by inequalities over non-derivative variables, where each state is governed by a different set of confluences."
     concepts:
       - qualitative_state
       - confluence
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 25
-      section: "3.4.1 The notion of qualitative state"
-      quote_fragment: "the notion of state is absolutely necessary, since it is often not possible to formulate a single qualitative equation set"
+      section: "5. Qualitative States"
+
+  - id: claim3
+    type: observation
+    statement: "The no-function-in-structure principle requires that component laws may not presume the functioning of the whole device, ensuring component models are context-independent and reusable across different device configurations."
+    concepts:
+      - no_function_in_structure
+      - device_topology
+    provenance:
+      paper: deKleer_1984_QualitativePhysicsConfluences
+      section: "3.3 No Function in Structure"
+
+  - id: claim4
+    type: observation
+    statement: "Mythical causality determines device behavior through information-passing between neighboring components in mythical time, a partial ordering distinct from both physical time and logical derivation order."
+    concepts:
+      - mythical_causality
+      - device_topology
+    provenance:
+      paper: deKleer_1984_QualitativePhysicsConfluences
+      section: "10. Mythical Causality"
 
   - id: claim5
-    type: model
-    name: "Qualitative valve model (three-state)"
-    equations:
-      - "OPEN: [P] = 0, dP = 0 (when A = A_MAX)"
-      - "WORKING: [P] = [Q], dP + dA - dQ = 0 (when 0 < A < A_MAX)"
-      - "CLOSED: [Q] = 0, dQ = 0 (when A = 0)"
-    parameters:
-      - name: "A"
-        concept: "valve_area"
-        note: "Cross-sectional area available for flow"
-      - name: "P"
-        concept: "pressure_drop"
-        note: "Pressure drop across valve"
-      - name: "Q"
-        concept: "flow_rate"
-        note: "Volumetric flow rate through valve"
+    type: observation
+    statement: "Qualitative addition over {+, 0, -} does not form an algebraic group and is not invertible, inherently producing multiple valid interpretations where quantitative analysis yields a unique answer."
+    concepts:
+      - qualitative_ambiguity
+      - qualitative_calculus
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 25
-      section: "3.4 Models"
+      section: "4.1 Qualitative Calculus"
 
   - id: claim6
-    type: model
-    name: "Qualitative valve model (five-state pure)"
-    equations:
-      - "OPEN: [P] = 0, dP = 0"
-      - "WORKING-+: [P] = [Q], dP + dA - dQ = 0 (P > 0)"
-      - "WORKING-0: [P] = [Q], dP - dQ = 0 (P = 0)"
-      - "WORKING--: [P] = [Q], dP - dA - dQ = 0 (P < 0)"
-      - "CLOSED: [Q] = 0, dQ = 0"
-    parameters:
-      - name: "A"
-        concept: "valve_area"
-        note: "Cross-sectional area available for flow"
-      - name: "P"
-        concept: "pressure_drop"
-        note: "Pressure drop across valve"
-      - name: "Q"
-        concept: "flow_rate"
-        note: "Volumetric flow rate through valve"
+    type: observation
+    statement: "A physical system is modeled as a device topology graph where nodes are components and edges are conduits, with each conduit carrying a flowlike attribute per terminal and a pressurelike attribute per conduit."
+    concepts:
+      - device_topology
+      - confluence
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 26
-      section: "3.4.2 Pure and mixed models"
+      section: "3.1 Generalized Machines"
 
   - id: claim7
     type: observation
-    statement: "The qualitative mean value theorem holds: if [X(T)] = 0 and dX(T) = +, then [X(T')] = + where T' is immediately after T."
+    statement: "The qualitative mean value theorem states that if a variable's derivative is positive at time T, then the variable's qualitative value is positive immediately after T, providing a bridge between derivative and value reasoning."
     concepts:
       - qualitative_calculus
-      - mean_value_theorem
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 23
-      section: "3.3 Qualitative calculus"
-      quote_fragment: "if [X(T)] = + and dX(T) = +, then [X(T')] = +"
+      section: "4.2 Qualitative Mean Value Theorem"
 
   - id: claim8
     type: observation
-    statement: "Qualitative continuity requires that as a function of time, every variable changes continuously: between qualitative values A_k and A_m there exists every intermediate A_n."
+    statement: "State transitions are governed by five rules: ordering (continuous change), equality change (immediate termination at boundaries), epsilon ordering (infinitesimal changes first), contradiction avoidance, and continuity."
     concepts:
+      - qualitative_state
       - qualitative_calculus
-      - continuity
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 23
-      section: "3.3 Qualitative calculus"
-      quote_fragment: "As a function of time, every variable changes continuously"
+      section: "7. State Transition Rules"
 
   - id: claim9
     type: observation
-    statement: "Five state transition rules govern qualitative state changes: ordering rule, equality change rule, epsilon ordering rule, contradiction avoidance rule, and continuity rule."
+    statement: "The ENVISION system takes a device topology and component library as input and produces behavioral predictions with causal explanations, demonstrated successfully on hundreds of examples across electronic, translational, hydraulic, and acoustic devices."
     concepts:
-      - qualitative_state
-      - state_transition
+      - device_topology
+      - mythical_causality
+      - confluence
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 42
-      section: "4.2 Determining the next state"
+      section: "2. ENVISION"
 
   - id: claim10
     type: observation
-    statement: "Mythical causality describes device behavior as arising from time-ordered cause-effect interactions between neighboring component processors in mythical time, a partial (not total) ordering that captures the information-flow sequence of disturbance propagation."
+    statement: "Class-wide assumptions such as the quasistatic approximation apply to an entire class of devices rather than a specific device, and their violation signals that the qualitative model has reached the limits of its applicability."
     concepts:
-      - mythical_causality
-      - causal_reasoning
+      - qualitative_state
+      - no_function_in_structure
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 62
-      section: "6.3 The correspondence principle of mythical causality"
-      quote_fragment: "We introduce the idea of mythical time, which has most of the properties of conventional time, except that it imposes a partial not total order"
+      section: "6. Class-Wide Assumptions"
 
   - id: claim11
     type: observation
-    statement: "The ENVISION program has been run successfully on hundreds of examples of various types of devices including electronic, translational, hydraulic, and acoustic systems."
+    statement: "Pushing qualitative analysis to finer grain (e.g., mixed confluences with momentum and storage capacity) dramatically increases the state space, with 81 states arising from just two mixed confluences."
     concepts:
-      - envision
-      - qualitative_simulation
+      - qualitative_ambiguity
+      - qualitative_state
     provenance:
       paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 10
-      section: "1.1 ENVISION"
-      quote_fragment: "ENVISION has been run successfully on hundreds of examples of various types of devices"
-
-  - id: claim12
-    type: observation
-    statement: "Logical proof-based explanation of device behavior is unsatisfactory because it does not follow causal order; the proof explains what the behavior is but not how the device achieves it."
-    concepts:
-      - causal_reasoning
-      - explanation
-    provenance:
-      paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 57
-      section: "5/6 Explanation/Causality"
-      quote_fragment: "the explanation-proof explains why the device must behave not how it behaves"
-
-  - id: claim13
-    type: observation
-    statement: "The pressure-regulator qualitative model correctly predicts negative feedback homeostasis and identifies the possibility of oscillation due to phase delay in the sensing mechanism."
-    concepts:
-      - qualitative_reasoning
-      - feedback
-      - oscillation
-    provenance:
-      paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 10
-      section: "1. Introduction"
-      quote_fragment: "Systems that operate on this principle are subject to oscillation due to phase delay in the sensing"
-
-  - id: claim14
-    type: observation
-    statement: "Eight confluences with eight unknowns describing the pressure-regulator yield four solutions rather than a unique solution, because qualitative addition does not form an algebraic group."
-    concepts:
-      - ambiguity
-      - qualitative_reasoning
-    provenance:
-      paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 80
-      section: "Appendix A"
-      quote_fragment: "there are eight confluences in eight unknowns describing the pressure-regulator's behavior, yet there are four solutions"
-
-  - id: claim15
-    type: observation
-    statement: "Class-wide assumptions define the idealization level for a class of devices and determine the structural decomposition into components and conduits; the quasistatic approximation is the most fundamental such assumption."
-    concepts:
-      - class_wide_assumptions
-      - quasistatic_approximation
-    provenance:
-      paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 17
-      section: "2.5 Class-wide assumptions"
-      quote_fragment: "The most common kind of class-wide assumption is that behavior of short-enough duration can be ignored"
-
-  - id: claim16
-    type: observation
-    statement: "The locality principle demands that a component's laws can only reference its immediate neighbors; causal interactions are distributed and local, not governed by global constraints."
-    concepts:
-      - locality
-      - causal_reasoning
-    provenance:
-      paper: deKleer_1984_QualitativePhysicsConfluences
-      page: 18
-      section: "2.6 Locality"
-      quote_fragment: "The principle of locality demands that the laws for a part cannot specifically refer to any other part"
+      section: "12. Limitations"

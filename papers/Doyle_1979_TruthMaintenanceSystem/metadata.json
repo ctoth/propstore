@@ -1,0 +1,12 @@
+{
+  "title": "A Truth Maintenance System",
+  "authors": [
+    "J. Doyle"
+  ],
+  "year": "1979",
+  "arxiv_id": null,
+  "doi": "10.1016/0004-3702(79)90008-0",
+  "abstract": "Abstract To choose their actions, reasoning programs must be able to make assumptions and subsequently revise their beliefs when discoveries contradict these assumptions. The Truth Maintenance System (TMS) is a problem solver subsystem for performing these functions by recording and maintaining the reasons for program beliefs. Such recorded reasons are useful in constructing explanations of program actions and in guiding the course of action of a problem solver. This paper describes (1) the representations and structure of the tms , (2) the mechanisms used to revise the current set of beliefs, (3) how dependency-directed backtracking changes the current set of assumptions, (4) techniques for summarizing explanations of beliefs, (5) how to organize problem solvers into “dialectically arguing” modules, (6) how to revise models of the belief systems of others, and (7) methods for embedding control structures in patterns of assumptions. We stress the need of problem solvers to choose between alternative systems of beliefs, and outline a mechanism by which a problem solver can employ rules guiding choices of what to believe, what to want, and what to do.",
+  "url": "https://www.semanticscholar.org/paper/f08f699374a27cdbc2c1ecf050ae285b01bda723",
+  "pdf_url": "https://dspace.mit.edu/bitstream/1721.1/5733/2/AIM-521.pdf"
+}

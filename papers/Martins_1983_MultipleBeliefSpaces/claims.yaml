@@ -1,163 +1,154 @@
 source:
   paper: Martins_1983_MultipleBeliefSpaces
-  extraction_model: "claude-opus-4-6"
-  extraction_date: "2026-03-17"
+  extraction_model: "claude-opus-4-20250514"
+  extraction_date: "2026-03-22"
 
 claims:
   - id: claim1
     type: observation
-    statement: "A context (set of hypotheses) uniquely defines a Belief Space (BS) consisting of all propositions derivable from those hypotheses within SWM logic."
+    statement: "A context is a set of hypotheses that defines a belief space (BS), which is the set of all propositions derivable from those hypotheses in SWM logic."
     concepts:
-      - belief_space
       - context
-      - hypothesis
+      - belief_space
     provenance:
       paper: Martins_1983_MultipleBeliefSpaces
-      page: 2
-      section: "3. Contexts and Belief Spaces"
-      quote_fragment: "A context represents the set of assumptions of some user. A context determines a Belief Spaces (BS) which is the set of all the hypotheses defining the context and all the propositions which were derived from them."
+      section: "Section 3"
 
   - id: claim2
     type: observation
-    statement: "Once a proposition is derived, its origin tag (OT) and origin set (OS) remain constant; only the restriction set (RS) changes as new contradictions are discovered."
+    statement: "The Current Belief Space (CBS) is the belief space defined by the Current Context (CO), which is the set of all hypotheses currently believed by the user."
     concepts:
-      - origin_set
-      - restriction_set
-      - origin_tag
+      - belief_space
+      - context
     provenance:
       paper: Martins_1983_MultipleBeliefSpaces
-      page: 1
-      section: "Introduction"
-      quote_fragment: "Once a proposition is derived its OT and OS remain constant."
+      section: "Section 3"
 
   - id: claim3
     type: observation
-    statement: "The origin set (OS) of a proposition records the hypotheses actually used in its derivation, while the restriction set (RS) records sets of hypotheses that, combined with the OS, form inconsistent sets."
+    statement: "A supported wff is a 4-tuple F!:t,a,p consisting of a formula F, an origin tag t (hyp or der), an origin set a (hypotheses used in derivation), and a restriction set p (sets of hypotheses yielding inconsistency with the origin set)."
     concepts:
+      - supported_wff
       - origin_set
       - restriction_set
     provenance:
       paper: Martins_1983_MultipleBeliefSpaces
-      page: 1
-      section: "Introduction"
-      quote_fragment: "The origin set (OS) contains all the hypotheses which were actually used in the derivation of F. The restriction set (RS) contains sets of hypotheses, each of which when unfoned with the hypotheses in the OS forms a set which is known to be inconsistant."
+      section: "Section 2"
 
   - id: claim4
     type: observation
-    statement: "Contradiction detection in MBR requires following only two types of arcs in the SNePS network, without needing to explicitly mark propositions as believed or disbelieved, without worrying about circular proofs, and without a separate data structure for recording contradictions."
+    statement: "Once a proposition is derived, its origin tag and origin set remain constant; only the restriction set changes as new contradictions are discovered."
     concepts:
-      - contradiction_detection
-      - belief_space
+      - supported_wff
+      - origin_set
+      - restriction_set
     provenance:
       paper: Martins_1983_MultipleBeliefSpaces
-      page: 1
-      section: "Introduction"
-      quote_fragment: "the detection of the hypotheses underlying the contradiction is done by following only two types of arcs; there is no need to explicitly mark propositions as believed or disbelieved; there is no need to worry about circular proofs; there is no need to keep a separate data structure to record previous contradictions."
+      section: "Section 2"
 
   - id: claim5
     type: observation
-    statement: "When only one of two contradictory wffs belongs to the Current Belief Space (CBS), the contradiction is recorded via URS application but does not trigger belief revision — it merely records that some hypothesis set containing the current context is inconsistent."
+    statement: "The origin set records the set of hypotheses actually used to derive a proposition, tracking derivation provenance for each wff."
     concepts:
-      - contradiction_handling
-      - belief_space
-      - restriction_set
-    conditions:
-      - "contradictory_wffs_in_cbs == 1"
+      - origin_set
+      - supported_wff
     provenance:
       paper: Martins_1983_MultipleBeliefSpaces
-      page: 2
-      section: "4. The handling of contradictions"
-      quote_fragment: "If only one of the contradictory wffs belongs to the CBS, the contradiction is recorded (through the application of URS) but nothing more happens."
+      section: "Section 2"
 
   - id: claim6
     type: observation
-    statement: "When both contradictory wffs belong to the CBS, the URS rule is applied AND the negation introduction rule (~I) also fires, adding new wffs to the knowledge base and causing the current context (CC) to be revised."
+    statement: "Each element of a restriction set represents a set of hypotheses that, when combined with the hypotheses in the origin set, forms an inconsistent set."
     concepts:
-      - contradiction_handling
-      - belief_space
-      - negation_introduction
-    conditions:
-      - "contradictory_wffs_in_cbs == 2"
+      - restriction_set
+      - origin_set
     provenance:
       paper: Martins_1983_MultipleBeliefSpaces
-      page: 2
-      section: "4. The handling of contradictions"
-      quote_fragment: "If both contradictory wffs belong to the CBS. Then the rule of URS is applied but, in addition, the rule of 1 is also applied."
+      section: "Section 2"
 
   - id: claim7
-    type: model
-    name: "Supported Well-Formed Formula (supported wff)"
-    equations:
-      - "F!:t,a,p"
-    parameters:
-      - name: "F"
-        concept: "well_formed_formula"
-        note: "A wff (well-formed formula) in SWM logic"
-      - name: "t"
-        concept: "origin_tag"
-        note: "Origin tag: hyp (hypothesis), der (derived), or ext (extended)"
-      - name: "a"
-        concept: "origin_set"
-        note: "Origin set: the set of hypotheses used in derivation"
-      - name: "p"
-        concept: "restriction_set"
-        note: "Restriction set: set of hypothesis sets that combined with OS form inconsistent sets"
-    provenance:
-      paper: Martins_1983_MultipleBeliefSpaces
-      page: 1
-      section: "Introduction"
-      quote_fragment: "The SUM system deals with objects called supported wffs which are of the form F!:t,a,p"
-
-  - id: claim8
     type: observation
-    statement: "Restriction sets (RS) distributed across individual hypotheses eliminate the need for a centralized NOGOOD list (as in Doyle's TMS), because all inconsistency information is encoded locally in each hypothesis's RS."
+    statement: "Restriction sets replace the need for a separate NOGOOD data structure; all contradiction information is distributed across the restriction sets of individual hypotheses."
     concepts:
       - restriction_set
       - nogood
-    stances:
-      - type: contradicted_by
-        target: "Doyle_1979_TruthMaintenanceSystem"
-        strength: "moderate"
-        note: "MBR's distributed RS mechanism replaces Doyle's centralized NOGOOD list"
     provenance:
       paper: Martins_1983_MultipleBeliefSpaces
-      page: 4
-      section: "6. Concluding Remarks"
-      quote_fragment: "Finally the definition of RSs waives the need to keep a separate data strucure to record all the previous contradictions (e.g., the NOGOOD list ([2]))."
+      section: "Section 4"
+
+  - id: claim8
+    type: observation
+    statement: "The negation introduction rule (~I) fires when contradictory wffs A and not-A are both found in the current belief space, deriving that the conjunction of hypotheses in their combined origin sets is inconsistent."
+    concepts:
+      - negation_introduction
+      - belief_space
+      - origin_set
+    provenance:
+      paper: Martins_1983_MultipleBeliefSpaces
+      section: "Section 4"
 
   - id: claim9
     type: observation
-    statement: "MBR can support as many contexts (and therefore belief spaces) as the power set of the hypotheses in the system, since a context is defined simply as a set of hypotheses."
+    statement: "The URS (updating of restriction sets) rule updates the restriction set of every hypothesis in the combined origin sets when a contradiction is detected, recording the inconsistent combination."
     concepts:
-      - context
-      - belief_space
+      - restriction_set_update
+      - restriction_set
+      - origin_set
     provenance:
       paper: Martins_1983_MultipleBeliefSpaces
-      page: 4
-      section: "6. Concluding Remarks"
-      quote_fragment: "By defining a context as a set of hypotheses we can have as many contexts in tha system as the power set of the hypotheses introduced."
+      section: "Section 4"
 
   - id: claim10
     type: observation
-    statement: "In MBR, propositions are represented by network nodes linked by arcs, and the number of arcs that must be traversed to find all hypotheses underlying a contradiction is known a priori."
+    statement: "If only one of two contradictory wffs belongs to the CBS, only URS is applied (recording the contradiction); if both belong to the CBS, both URS and negation introduction fire, causing context revision."
     concepts:
-      - contradiction_detection
-      - network_representation
-    provenance:
-      paper: Martins_1983_MultipleBeliefSpaces
-      page: 4
-      section: "6. Concluding Remarks"
-      quote_fragment: "This way of representing propositions makes it possible to know a priori the number of arcs that has to be traversed to find out all the hypotheses underlying a contradiction."
-
-  - id: claim11
-    type: observation
-    statement: "When a contradiction is detected and a culprit hypothesis is selected, disbelief in all propositions depending on that hypothesis is achieved by simply dropping the hypothesis from the current context — no retraction or explicit disbelief marking is needed."
-    concepts:
-      - belief_revision
-      - contradiction_handling
+      - restriction_set_update
+      - negation_introduction
+      - belief_space
       - context
     provenance:
       paper: Martins_1983_MultipleBeliefSpaces
-      page: 4
-      section: "6. Concluding Remarks"
-      quote_fragment: "the disbelief in all tha propositions depending on such hypothesis (hypotheses) is done just by dropping it (them) from the CC."
+      section: "Section 4"
+
+  - id: claim11
+    type: observation
+    statement: "Contexts provide power-set-many belief spaces from a single knowledge base: each subset of hypotheses defines a distinct belief space."
+    concepts:
+      - context
+      - belief_space
+      - knowledge_base
+    provenance:
+      paper: Martins_1983_MultipleBeliefSpaces
+      section: "Section 3"
+
+  - id: claim12
+    type: observation
+    statement: "MBR's contradiction detection requires following only two types of arcs in the SNePS network, with no need to explicitly mark propositions as believed or disbelieved."
+    concepts:
+      - belief_space
+      - supported_wff
+    provenance:
+      paper: Martins_1983_MultipleBeliefSpaces
+      section: "Section 5"
+
+  - id: claim13
+    type: observation
+    statement: "Retrieval within a current belief space returns only propositions whose origin set is a subset of the current context, ignoring all other propositions in the knowledge base."
+    concepts:
+      - belief_space
+      - context
+      - origin_set
+    provenance:
+      paper: Martins_1983_MultipleBeliefSpaces
+      section: "Section 3"
+
+  - id: claim14
+    type: observation
+    statement: "Multiple agents' possibly contradictory beliefs can coexist in a single knowledge base by assigning each agent a separate context; contradictions are only detected within or across merged belief spaces."
+    concepts:
+      - context
+      - belief_space
+      - knowledge_base
+    provenance:
+      paper: Martins_1983_MultipleBeliefSpaces
+      section: "Section 5"

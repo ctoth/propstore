@@ -1,194 +1,137 @@
 source:
   paper: Walton_2015_ClassificationSystemArgumentationSchemes
-  extraction_model: "claude-opus-4-6"
-  extraction_date: "2026-03-21"
+  extraction_model: "claude-opus-4-20250514"
+  extraction_date: "2026-03-22"
 
 claims:
   - id: claim1
     type: observation
-    statement: "Argumentation schemes can be hierarchically classified into four top-level categories: source-independent epistemic reasoning, source-dependent schemes, practical reasoning, and applying rules to cases."
-    concepts:
-      - argumentation_scheme
-      - classification_system
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 22
-      section: "Table 1 / Section 9"
-      table: "Table 1"
-      quote_fragment: "Summary of classification of schemes"
-
-  - id: claim2
-    type: observation
-    statement: "The primary distinction in classifying argumentation schemes is between source-dependent and source-independent arguments, where source-dependent schemes derive their strength from the characteristics of the source."
-    concepts:
-      - argumentation_scheme
-      - source_dependency
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 8
-      section: "Section 4"
-      quote_fragment: "The first way is to classify schemes according to premise dependency"
-
-  - id: claim3
-    type: observation
-    statement: "Each argumentation scheme has a defeasible premise-conclusion structure paired with a set of critical questions, where the critical questions function as potential counterarguments that can defeat the argument."
+    statement: >
+      Argumentation schemes are stereotypical non-deductive patterns of
+      reasoning, each defined by a formal premise-conclusion structure and
+      associated critical questions that identify potential weaknesses.
     concepts:
       - argumentation_scheme
       - critical_question
       - defeasible_reasoning
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 2
-      section: "Section 1"
-      quote_fragment: "argumentation schemes that are set out as defeasible argument forms with a named set of critical questions matching each scheme"
+
+  - id: claim2
+    type: model
+    name: "Hierarchical classification of argumentation schemes"
+    statement: >
+      Argumentation schemes are organized into a hierarchical taxonomy with
+      three top-level categories: source-dependent schemes (depending on
+      source characteristics), source-independent epistemic schemes, and
+      practical reasoning schemes.
+    equations: []
+    parameters:
+      - argumentation_scheme
+
+  - id: claim3
+    type: observation
+    statement: >
+      Source-dependent schemes include arguments from expert opinion, arguments
+      from position to know, arguments from witness testimony, ad hominem
+      arguments, and arguments from popular acceptance, where argument strength
+      depends on the characteristics of the information source.
+    concepts:
+      - argumentation_scheme
 
   - id: claim4
     type: observation
-    statement: "Argumentation schemes are useful for argument mining because they provide templates that can be matched against natural language text to identify and classify argument types."
+    statement: >
+      The argument from expert opinion has the structure: if source E is an
+      expert in domain S containing proposition A, and E asserts A is true,
+      then A may plausibly be taken to be true.
     concepts:
       - argumentation_scheme
-      - argument_mining
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 4
-      section: "Section 2"
-      quote_fragment: "the classification system can be used as a tool for building argument mining tools"
+      - defeasible_reasoning
 
   - id: claim5
     type: observation
-    statement: "The argument from expert opinion scheme requires three components: a source identified as expert in a domain, an assertion by that source about a proposition in the domain, and a defeasible conclusion that the proposition may plausibly be taken as true."
+    statement: >
+      Source-independent epistemic schemes include discovery arguments
+      (argument from best explanation, argument from ignorance, argument
+      from sign) and arguments applying rules to cases (argument from
+      cause to effect, argument from established rule).
     concepts:
-      - argument_from_expert_opinion
       - argumentation_scheme
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 10
-      section: "Section 5"
-      quote_fragment: "Source E is an expert in subject domain S containing proposition A"
+      - abductive_reasoning
 
   - id: claim6
     type: observation
-    statement: "The argument from inconsistent commitment scheme identifies when an agent's commitments are contradictory, serving as the formal structure underlying the circumstantial ad hominem argument."
+    statement: >
+      Practical reasoning schemes are goal-directed: the instrumental form
+      concludes that an action ought to be carried out because it is a means
+      to realize a goal; the value-based form grounds the goal in positive
+      or negative values.
     concepts:
-      - argument_from_inconsistent_commitment
-      - ad_hominem
+      - practical_reasoning
       - argumentation_scheme
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 11
-      section: "Section 5"
-      quote_fragment: "argument from inconsistent commitment is also a defeasible form of argument"
 
   - id: claim7
     type: observation
-    statement: "Practical reasoning schemes are divided into instrumental arguments (goal-directed with means-end structure), value-based arguments (weighing positive and negative consequences), and arguments from commitment."
+    statement: >
+      Critical questions for an argumentation scheme map to potential
+      counterarguments: some challenge premises directly (analogous to
+      rebutting defeat) while others challenge the inferential link between
+      premises and conclusion (analogous to undercutting defeat).
     concepts:
-      - practical_reasoning
+      - critical_question
       - argumentation_scheme
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 13
-      section: "Section 6"
-      quote_fragment: "The internal sources of arguments can be divided according to two criteria"
+      - rebutting_defeater
+      - undercutting_defeater
 
   - id: claim8
     type: observation
-    statement: "The argument from waste (sunk cost argument) has the structure: if agent a stops pursuing A, previous efforts are wasted, therefore a should continue. This is classified as a sub-type of practical reasoning from commitment."
+    statement: >
+      Six desiderata for classification systems: helpfulness for scheme
+      identification, handling of borderline cases, extensibility for new
+      schemes, finer distinctions within groups, hierarchical structure beyond
+      simple lists, and differences reflecting differences in use.
     concepts:
-      - argument_from_waste
-      - sunk_cost
-      - practical_reasoning
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 13
-      section: "Section 6"
-      quote_fragment: "If a stops trying to realize A now, all a's previous efforts to realize A will be wasted"
+      - argumentation_scheme
 
   - id: claim9
-    type: observation
-    statement: "Some argumentation schemes are hybrid, combining elements of multiple categories. The sunk cost argument combines practical reasoning with argument from commitment."
-    concepts:
-      - argumentation_scheme
-      - hybrid_scheme
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 15
-      section: "Section 6"
-      quote_fragment: "the argumentation scheme for the argument from SC can be classified as a species of argument from commitment"
+    type: measurement
+    target_concept: argumentation_scheme
+    measure: "number of schemes in complete taxonomy"
+    value: 28
+    unit: "scheme types"
+    statement: >
+      The complete taxonomy classifies approximately 28 distinct argumentation
+      scheme types across the hierarchical tree structure.
 
   - id: claim10
-    type: observation
-    statement: "Arguments applying rules to cases divide into two broad categories: epistemic arguments based on features of objects (classification, cause-effect), and rule-based arguments based on established rules, precedents, and analogies."
-    concepts:
-      - rule_based_argument
-      - case_based_reasoning
-      - argumentation_scheme
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 17
-      section: "Section 7"
-      quote_fragment: "Epistemic arguments can be divided into two broad categories"
+    type: measurement
+    target_concept: argumentation_scheme
+    measure: "number of arguments classified in empirical study"
+    value: 388
+    unit: "arguments"
+    statement: >
+      Six participants classified 388 collected arguments from Ontario election
+      campaigns into the proposed scheme categories, demonstrating practical
+      applicability of the classification system.
 
   - id: claim11
     type: observation
-    statement: "Discovery arguments include argument from best explanation (abductive), argument from ignorance (lack of evidence), argument from sign, and argument from correlation to cause."
+    statement: >
+      Some argumentation schemes are hybrid, combining elements from multiple
+      categories; for example, the sunk cost argument combines practical
+      reasoning with argument from commitment.
     concepts:
-      - discovery_argument
-      - abductive_reasoning
       - argumentation_scheme
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 20
-      section: "Section 8"
-      quote_fragment: "Discovery arguments"
+      - practical_reasoning
 
   - id: claim12
     type: observation
-    statement: "A classification system for argumentation schemes should satisfy six desiderata: helping identify schemes, handling borderline cases, accommodating new schemes, supporting finer distinctions, providing hierarchical structure, and reflecting differences in use."
+    statement: >
+      Each argumentation scheme's premise-conclusion structure can be mapped
+      to a defeasible inference rule in ASPIC+, with the scheme's critical
+      questions mapping to the three ASPIC+ attack types: undermining,
+      rebutting, and undercutting.
     concepts:
-      - classification_system
       - argumentation_scheme
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 9
-      section: "Section 4"
-      quote_fragment: "desiderata for constructing a classification system"
-
-  - id: claim13
-    type: parameter
-    concept: total_scheme_count
-    value: 28
-    unit: "schemes"
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 22
-      section: "Table 1"
-      table: "Table 1"
-      quote_fragment: "Summary of classification of schemes"
-    notes: "Approximate count of distinct schemes in the complete taxonomy (Table 1 + Figure 4)"
-
-  - id: claim14
-    type: observation
-    statement: "Empirical testing on 388 arguments from political discourse (Ontario election campaigns) demonstrated that the classification system can handle real-world argument categorization, though the authors note that more extensive empirical validation is needed."
-    concepts:
-      - classification_system
-      - argument_mining
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 7
-      section: "Section 3"
-      quote_fragment: "six participants classified 388 collected arguments"
-    notes: "Six participants classified arguments. Some arguments did not fit the initial 14 schemes, requiring supplementary categories."
-
-  - id: claim15
-    type: observation
-    statement: "The argument from precedent and argument from analogy are closely related but distinct: precedent applies an existing rule to a new case, while analogy identifies shared features between cases to draw a parallel conclusion."
-    concepts:
-      - argument_from_precedent
-      - argument_from_analogy
-      - case_based_reasoning
-    provenance:
-      paper: Walton_2015_ClassificationSystemArgumentationSchemes
-      page: 19
-      section: "Section 7"
-      quote_fragment: "argument from precedent related to argument from analogy"
+      - aspic_plus
+      - critical_question
+      - attack_relation

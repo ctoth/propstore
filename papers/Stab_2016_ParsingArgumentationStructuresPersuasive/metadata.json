@@ -1,0 +1,13 @@
+{
+  "title": "Parsing Argumentation Structures in Persuasive Essays",
+  "authors": [
+    "Christian Stab",
+    "Iryna Gurevych"
+  ],
+  "year": "2016",
+  "arxiv_id": "1604.07370",
+  "doi": "10.1162/COLI_a_00295",
+  "abstract": "In this article, we present a novel approach for parsing argumentation structures. We identify argument components using sequence labeling at the token level and apply a new joint model for detecting argumentation structures. The proposed model globally optimizes argument component types and argumentative relations using integer linear programming. We show that our model considerably improves the performance of base classifiers and significantly outperforms challenging heuristic baselines. Moreover, we introduce a novel corpus of persuasive essays annotated with argumentation structures. We show that our annotation scheme and annotation guidelines successfully guide human annotators to substantial agreement. This corpus and the annotation guidelines are freely available for ensuring reproducibility and to encourage future research in computational argumentation.",
+  "url": "http://arxiv.org/abs/1604.07370v2",
+  "pdf_url": "https://arxiv.org/pdf/1604.07370v2"
+}

@@ -1,123 +1,111 @@
 source:
   paper: Prakken_2012_AppreciationJohnPollock'sWork
-  extraction_model: "claude-opus-4-6"
-  extraction_date: "2026-03-21"
+  extraction_model: "claude-opus-4-20250514"
+  extraction_date: "2026-03-22"
 
 claims:
   - id: claim1
     type: observation
-    statement: "Defeasible reasoning requires distinguishing two types of defeat: rebutting defeat (attacking the conclusion directly) and undercutting defeat (attacking the inferential connection between premises and conclusion)."
+    statement: >
+      Pollock distinguishes two types of defeat: rebutting defeat (an argument for
+      the negation of a conclusion) and undercutting defeat (an argument that the
+      connection between premises and conclusion does not hold).
     concepts:
+      - rebutting_defeater
+      - undercutting_defeater
       - defeasible_reasoning
-      - rebutting_defeat
-      - undercutting_defeat
-    provenance:
-      paper: Prakken_2012_AppreciationJohnPollock'sWork
-      page: 4
-      section: "3.1 Common features"
-      quote_fragment: "rebutting from undercutting defeaters"
 
   - id: claim2
     type: observation
-    statement: "Arguments should be represented as inference graphs with subargument sharing rather than as independent argument trees, because the same subargument may support multiple conclusions."
+    statement: >
+      Pollock's arguments are structured as inference graphs rather than trees,
+      where nodes represent propositions supported by inference steps and
+      subarguments can be shared across multiple arguments.
     concepts:
       - inference_graph
-      - argument_structure
-    provenance:
-      paper: Prakken_2012_AppreciationJohnPollock'sWork
-      page: 7
-      section: "3.2 Semantics"
-      quote_fragment: "inference graphs rather than argument trees"
+      - defeasible_reasoning
 
   - id: claim3
     type: observation
-    statement: "Self-defeating arguments (arguments that defeat themselves through a chain of reasoning) must not be able to defeat other non-self-defeating arguments."
+    statement: >
+      A partial defeat status assignment maps a subset of nodes in an inference
+      graph to in (undefeated) or out (defeated), where a node is in if all its
+      defeaters are out, and a node is out if it has a defeater that is in.
     concepts:
-      - self_defeating_argument
-      - argumentation_semantics
-    provenance:
-      paper: Prakken_2012_AppreciationJohnPollock'sWork
-      page: 8
-      section: "3.2 Semantics"
-      quote_fragment: "self-defeating arguments should not be able to prevent other argument lines from being ultimately undefeated"
+      - defeat_status
+      - inference_graph
 
   - id: claim4
     type: observation
-    statement: "Even defeat cycles (two arguments that defeat each other symmetrically) should result in neither argument being justified, with both remaining undecided."
+    statement: >
+      Self-defeating arguments (both parallel and serial forms) must not be able
+      to defeat non-self-defeating arguments; Pollock's semantics handles this
+      by preventing self-defeating arguments from being ultimately undefeated.
     concepts:
-      - defeat_cycle
-      - argumentation_semantics
-    provenance:
-      paper: Prakken_2012_AppreciationJohnPollock'sWork
-      page: 11
-      section: "3.2 Semantics"
+      - self_defeating_argument
+      - defeat_status
 
   - id: claim5
     type: observation
-    statement: "Pollock's system does not correctly handle odd defeat cycles (three or more arguments in a cycle), assigning all as ultimately undefeated when the correct result is undecided."
+    statement: >
+      In even defeat cycles, where two arguments defeat each other symmetrically,
+      neither argument should be ultimately undefeated and both should be
+      assigned undecided status.
     concepts:
-      - defeat_cycle
-      - argumentation_semantics
-    provenance:
-      paper: Prakken_2012_AppreciationJohnPollock'sWork
-      page: 11
-      section: "3.2 Semantics"
+      - defeat_status
+      - argumentation_framework
 
   - id: claim6
     type: observation
-    statement: "In defeat-based argumentation, the distinction between attack (structural conflict between arguments) and defeat (successful attack after considering argument strength) must be made explicit; conflating these leads to confusion."
+    statement: >
+      Pollock's defeasible inference rules (perception, memory, induction,
+      statistical syllogism, temporal persistence) are domain-specific epistemic
+      rules that serve as precursors to modern argumentation schemes.
     concepts:
-      - attack_relation
-      - defeat_relation
-      - argument_strength
-    provenance:
-      paper: Prakken_2012_AppreciationJohnPollock'sWork
-      page: 13
-      section: "4. A critique of current computational models of argument in light of Pollock's work"
-      quote_fragment: "Pollock never made a clear separation between attack and defeat"
+      - defeasible_reasoning
+      - argumentation_scheme
 
   - id: claim7
     type: observation
-    statement: "Pollock's defeasible inference rules (perception, memory, induction, statistical syllogism, temporal persistence) are domain-specific epistemic rules that can be modeled as argumentation schemes with associated critical questions."
-    concepts:
-      - defeasible_inference_rule
-      - argumentation_scheme
-    provenance:
-      paper: Prakken_2012_AppreciationJohnPollock'sWork
-      page: 12
-      section: "3.4 Defeasible inference rules and argumentation schemes"
-
-  - id: claim8
-    type: observation
-    statement: "Defeasible reasoning is better understood as argumentation (constructing and evaluating arguments) than as non-monotonic logic (deriving conclusions from incomplete theories)."
-    concepts:
-      - defeasible_reasoning
-      - argumentation
-      - non_monotonic_logic
-    provenance:
-      paper: Prakken_2012_AppreciationJohnPollock'sWork
-      page: 13
-      section: "4. A critique of current computational models of argument in light of Pollock's work"
-
-  - id: claim9
-    type: observation
-    statement: "Structured argumentation frameworks (like ASPIC+) that combine Pollock's ideas about defeasible rules and defeat types with Dung's abstract semantics provide a more complete foundation than either approach alone."
-    concepts:
-      - structured_argumentation
-      - aspic_plus
-      - abstract_argumentation
-    provenance:
-      paper: Prakken_2012_AppreciationJohnPollock'sWork
-      page: 13
-      section: "4. A critique of current computational models of argument in light of Pollock's work"
-
-  - id: claim10
-    type: observation
-    statement: "Argument strength in defeasible reasoning cannot be reduced to Bayesian probability; Pollock's approach uses degree of justification as a numerical value where the strength of a conclusion is the minimum of the strengths of its supporting lines."
+    statement: >
+      Argument strength in Pollock's system propagates such that the degree of
+      justification of a conclusion cannot exceed the minimum strength of its
+      supporting inference lines.
     concepts:
       - argument_strength
       - defeasible_reasoning
-    provenance:
-      paper: Prakken_2012_AppreciationJohnPollock'sWork
-      page: 11
-      section: "3.3 Argument strength"
+
+  - id: claim8
+    type: observation
+    statement: >
+      Pollock never clearly separated attack from defeat; in modern structured
+      argumentation (ASPIC+), attack is the abstract relation while defeat is
+      the result of applying preferences to resolve attacks.
+    concepts:
+      - attack_relation
+      - aspic_plus
+      - defeasible_reasoning
+
+  - id: claim9
+    type: observation
+    statement: >
+      Pollock's system is better understood as a structured argumentation
+      framework generating Dung-style abstract argumentation frameworks than
+      as a non-monotonic logic, since it constructs arguments from rules and
+      evaluates them via defeat relations.
+    concepts:
+      - argumentation_framework
+      - defeasible_reasoning
+      - aspic_plus
+
+  - id: claim10
+    type: observation
+    statement: >
+      Argumentation schemes are stereotypical non-deductive patterns of reasoning
+      with associated critical questions; they connect to Pollock's defeasible
+      inference rules by providing the same rebutting and undercutting defeat
+      distinctions in a more general framework.
+    concepts:
+      - argumentation_scheme
+      - rebutting_defeater
+      - undercutting_defeater

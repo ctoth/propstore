@@ -1,77 +1,104 @@
 source:
   paper: Greenberg_2009_CitationDistortions
-  extraction_model: "claude-opus-4-6"
-  extraction_date: "2026-03-17"
+  extraction_model: "claude-opus-4-20250514"
+  extraction_date: "2026-03-22"
 
 claims:
-- id: claim1
-  type: observation
-  statement: "Citation bias against critical primary data papers results in supportive papers receiving 94% of citations while papers containing weakening or refuting data receive only 6% (P=0.01)."
-  concepts:
-    - citation_bias
-    - claim_authority
-  provenance:
-    paper: Greenberg_2009_CitationDistortions
-    page: 3
-    section: "Citation bias against critical primary data"
-    quote_fragment: "The supportive papers received 94% of the 214 citations to these primary data, whereas only one citation (3%) was made to any of the six papers that presented data weakening or refuting these as valid models"
+  - id: claim1
+    type: observation
+    statement: "Citation distortions create unfounded authority for scientific claims through three distinct mechanisms: citation bias, amplification, and invention."
+    concepts:
+      - citation_distortion
+      - citation_bias
+      - citation_amplification
+      - citation_invention
 
-- id: claim2
-  type: observation
-  statement: "Amplification through non-data papers caused a sevenfold increase in supportive citations and 777-fold increase in citation paths between 1996 and 2007."
-  concepts:
-    - citation_amplification
-    - belief_system_growth
-  provenance:
-    paper: Greenberg_2009_CitationDistortions
-    page: 4
-    section: "Amplification through influential papers and citations"
-    quote_fragment: "Between 1996 and 2007 support for the claim grew exponentially, with the number of supportive citations and citation paths increasing sevenfold and 777-fold"
+  - id: claim2
+    type: observation
+    statement: "Citation bias is the systematic ignoring of papers containing content conflicting with a claim, resulting in differing citation frequency between supportive and critical primary data papers."
+    concepts:
+      - citation_bias
+      - claim_specific_citation_network
 
-- id: claim3
-  type: observation
-  statement: "97% of all network traffic flows through 8 key papers (7 from the same research group), creating a lens effect that focuses citation flow on supportive evidence."
-  concepts:
-    - network_authority
-    - citation_lens_effect
-  provenance:
-    paper: Greenberg_2009_CitationDistortions
-    page: 4
-    section: "Amplification through influential papers and citations"
-    quote_fragment: "95% of all citation paths flow through four review papers... by the same research group (8% through four randomly selected other papers)"
+  - id: claim3
+    type: observation
+    statement: "Amplification expands a belief system through papers presenting no primary data, increasing the number of supportive citations exponentially without adding new evidence."
+    concepts:
+      - citation_amplification
+      - claim_specific_citation_network
 
-- id: claim4
-  type: observation
-  statement: "Citation transmutation — the conversion of hypothesis into fact through citation alone — occurred in 9 of 37 citing papers (24%), transforming a subclaim from hypothesis to accepted fact."
-  concepts:
-    - citation_transmutation
-    - hypothesis_to_fact_conversion
-  provenance:
-    paper: Greenberg_2009_CitationDistortions
-    page: 5
-    section: "Invention"
-    quote_fragment: "Nine of these citations (24%), used to support text making these claims, in fact flowed to papers that contained no statement on the temporal relation"
+  - id: claim4
+    type: observation
+    statement: "Citation invention creates facts through the citation process itself via five subtypes: citation diversion, citation transmutation, back door invention, dead end citation, and title invention."
+    concepts:
+      - citation_invention
+      - citation_transmutation
 
-- id: claim5
-  type: observation
-  statement: "Computational removal of citation bias from the network produces balanced authority of both supporting and refuting evidence, indicating that the claim's authority status is entirely an artifact of citation distortion."
-  concepts:
-    - balanced_authority
-    - citation_bias_removal
-  provenance:
-    paper: Greenberg_2009_CitationDistortions
-    page: 5
-    section: "Network authority emerges through bias against critical content and amplification"
-    quote_fragment: "Removing bias against critical content in establishing authority... was sufficient to result in authority status for five of the six infrequently cited primary data papers"
+  - id: claim5
+    type: observation
+    statement: "Citation transmutation converts hypothesis into accepted fact through successive citations that progressively strengthen modal status from possibility to certainty."
+    concepts:
+      - citation_transmutation
+      - citation_distortion
 
-- id: claim6
-  type: observation
-  statement: "The same citation distortion phenomena (bias, amplification, invention) found in the published literature also appear in NIH-funded research grant proposals, with 8 of 9 proposals containing citation bias or invention."
-  concepts:
-    - grant_proposal_distortion
-    - citation_bias
-  provenance:
-    paper: Greenberg_2009_CitationDistortions
-    page: 5
-    section: "Bias and invention in National Institutes of Health funded research proposals"
-    quote_fragment: "Citation bias or invention was present in eight of nine of these proposals"
+  - id: claim6
+    type: measurement
+    statement: "In the beta-amyloid/IBM citation network, supportive primary data papers received 94% of 214 citations while six papers with weakening or refuting data received only 6%."
+    target_concept: citation_bias
+    measure: supportive_citation_share
+    value: 94
+    unit: percent
+
+  - id: claim7
+    type: measurement
+    statement: "The beta-amyloid/IBM claim-specific citation network contained 242 papers and 675 citations with 220,553 citation paths."
+    target_concept: claim_specific_citation_network
+    measure: network_size
+    value: 242
+    unit: papers
+
+  - id: claim8
+    type: measurement
+    statement: "Eight key authority papers (seven by the same lab) carried 97% of all network traffic in the beta-amyloid/IBM citation network."
+    target_concept: claim_specific_citation_network
+    measure: authority_concentration
+    value: 97
+    unit: percent
+
+  - id: claim9
+    type: measurement
+    statement: "Supportive citation paths grew 777-fold between 1996 and 2007 in the beta-amyloid/IBM network."
+    target_concept: citation_amplification
+    measure: citation_path_growth
+    value: 777
+    unit: fold
+
+  - id: claim10
+    type: measurement
+    statement: "Nine of 24% of citing papers exhibited citation transmutation, converting hypothesis statements into factual claims."
+    target_concept: citation_transmutation
+    measure: papers_with_transmutation
+    value: 9
+    unit: count
+
+  - id: claim11
+    type: measurement
+    statement: "Eight of nine NIH grant proposals examined contained citation bias or invention distortions."
+    target_concept: citation_distortion
+    measure: grant_proposals_with_distortions
+    value: 8
+    unit: "count (of 9)"
+
+  - id: claim12
+    type: observation
+    statement: "Network authority computed via social network theory centrality measures can diverge completely from data-supported truth when citation distortions are present."
+    concepts:
+      - claim_specific_citation_network
+      - citation_distortion
+
+  - id: claim13
+    type: observation
+    statement: "Computationally removing citation bias from a network produces balanced authority that reflects both supporting and refuting evidence."
+    concepts:
+      - citation_bias
+      - claim_specific_citation_network
