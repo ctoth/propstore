@@ -9,9 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-import yaml
-
-from propstore.validate import ValidationResult
+from propstore.validate import ValidationResult, load_yaml_dir
 
 
 @dataclass
@@ -26,17 +24,10 @@ def load_contexts(contexts_dir: Path) -> list[LoadedContext]:
     """Load all .yaml files from contexts directory."""
     if not contexts_dir.exists():
         return []
-    files = []
-    for entry in sorted(contexts_dir.iterdir()):
-        if entry.is_file() and entry.suffix == ".yaml":
-            with open(entry, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-            files.append(LoadedContext(
-                filename=entry.stem,
-                filepath=entry,
-                data=data if data else {},
-            ))
-    return files
+    return [
+        LoadedContext(filename=stem, filepath=path, data=data)
+        for stem, path, data in load_yaml_dir(contexts_dir)
+    ]
 
 
 def validate_contexts(contexts: list[LoadedContext]) -> ValidationResult:

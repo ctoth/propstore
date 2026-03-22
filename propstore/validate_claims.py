@@ -18,7 +18,7 @@ from typing import Any
 import jsonschema
 import yaml
 
-from propstore.validate import ValidationResult
+from propstore.validate import ValidationResult, load_yaml_dir
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
@@ -48,17 +48,10 @@ class LoadedClaimFile:
 
 def load_claim_files(claims_dir: Path) -> list[LoadedClaimFile]:
     """Load all .yaml files from claims directory (excluding .counters)."""
-    files = []
-    for entry in sorted(claims_dir.iterdir()):
-        if entry.is_file() and entry.suffix == ".yaml":
-            with open(entry, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-            files.append(LoadedClaimFile(
-                filename=entry.stem,
-                filepath=entry,
-                data=data if data else {},
-            ))
-    return files
+    return [
+        LoadedClaimFile(filename=stem, filepath=path, data=data)
+        for stem, path, data in load_yaml_dir(claims_dir)
+    ]
 
 
 

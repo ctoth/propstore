@@ -153,9 +153,17 @@ def load_concept_file(path: Path) -> dict:
     return data if data else {}
 
 
-def write_concept_file(path: Path, data: dict) -> None:
-    with open(path, "w") as f:
+def write_yaml_file(path: Path, data: dict) -> None:
+    """Write a dict to a YAML file with consistent formatting.
+
+    Uses block style, preserves key order, and writes unicode directly.
+    """
+    with open(path, "w", encoding="utf-8") as f:
         yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+
+def write_concept_file(path: Path, data: dict) -> None:
+    write_yaml_file(path, data)
 
 
 # ── Lookup helpers ───────────────────────────────────────────────────

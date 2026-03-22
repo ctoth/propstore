@@ -42,19 +42,27 @@ class ValidationResult:
         return len(self.errors) == 0
 
 
-def load_concepts(concept_dir: Path) -> list[LoadedConcept]:
-    """Load all .yaml files from the concept directory (excluding .counters)."""
-    concepts = []
-    for entry in sorted(concept_dir.iterdir()):
+def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict]]:
+    """Load all .yaml files from a directory, sorted by filename.
+
+    Returns a list of (stem, filepath, data) tuples.
+    Empty YAML files produce an empty dict.
+    """
+    results: list[tuple[str, Path, dict]] = []
+    for entry in sorted(directory.iterdir()):
         if entry.is_file() and entry.suffix == ".yaml":
             with open(entry, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
-            concepts.append(LoadedConcept(
-                filename=entry.stem,
-                filepath=entry,
-                data=data if data else {},
-            ))
-    return concepts
+            results.append((entry.stem, entry, data if data else {}))
+    return results
+
+
+def load_concepts(concept_dir: Path) -> list[LoadedConcept]:
+    """Load all .yaml files from the concept directory (excluding .counters)."""
+    return [
+        LoadedConcept(filename=stem, filepath=path, data=data)
+        for stem, path, data in load_yaml_dir(concept_dir)
+    ]
 
 
 _CONCEPT_ID_RE = re.compile(r'^concept\d+$')
@@ -73,15 +81,12 @@ def _load_all_claim_ids(claims_dir: Path) -> set[str]:
     claim_ids: set[str] = set()
     if not claims_dir.exists():
         return claim_ids
-    for entry in sorted(claims_dir.iterdir()):
-        if entry.is_file() and entry.suffix == ".yaml":
-            with open(entry, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-            if data and isinstance(data.get("claims"), list):
-                for claim in data["claims"]:
-                    cid = claim.get("id")
-                    if cid:
-                        claim_ids.add(cid)
+    for _stem, _path, data in load_yaml_dir(claims_dir):
+        if isinstance(data.get("claims"), list):
+            for claim in data["claims"]:
+                cid = claim.get("id")
+                if cid:
+                    claim_ids.add(cid)
     return claim_ids
 
 
