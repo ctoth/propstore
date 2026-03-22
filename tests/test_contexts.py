@@ -569,3 +569,108 @@ class TestContextAwareConflicts:
     def test_both_none_hierarchy_returns_none(self):
         """No hierarchy at all → None (backward compatible)."""
         assert _classify_pair_context("ctx_a", "ctx_b", None) is None
+
+
+# ── Step 6: CLI + Repository integration ─────────────────────────────
+
+
+from click.testing import CliRunner
+from propstore.cli import cli
+
+
+class TestContextCLIIntegration:
+    @staticmethod
+    def _make_workspace(tmp_path):
+        """Create a minimal workspace with concepts, forms, and contexts."""
+        knowledge = tmp_path / "knowledge"
+        concepts = knowledge / "concepts"
+        concepts.mkdir(parents=True)
+        forms = knowledge / "forms"
+        forms.mkdir()
+        contexts = knowledge / "contexts"
+        contexts.mkdir()
+        claims = knowledge / "claims"
+        claims.mkdir()
+        sidecar = knowledge / "sidecar"
+        sidecar.mkdir()
+        stances = knowledge / "stances"
+        stances.mkdir()
+
+        # Write a form
+        (forms / "structural.yaml").write_text(yaml.dump(
+            {"name": "structural", "dimensionless": True}, default_flow_style=False))
+
+        # Write a concept
+        counters = concepts / ".counters"
+        counters.mkdir()
+        (counters / "global.next").write_text("2\n")
+        (concepts / "test_concept.yaml").write_text(yaml.dump({
+            "id": "concept1", "canonical_name": "test_concept",
+            "status": "accepted", "definition": "A test concept",
+            "domain": "test", "form": "structural", "created_date": "2026-03-22",
+        }, default_flow_style=False))
+
+        return tmp_path
+
+    def test_build_with_contexts(self, tmp_path, monkeypatch):
+        """pks build processes context files and creates sidecar tables."""
+        ws = self._make_workspace(tmp_path)
+        monkeypatch.chdir(ws)
+        ctx_dir = ws / "knowledge" / "contexts"
+        write_context(ctx_dir, "ctx_test", make_context("ctx_test", "Test", "A test context"))
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["build"])
+        assert result.exit_code == 0, f"Build failed: {result.output}"
+
+        # Verify context table exists and is populated
+        import sqlite3
+        conn = sqlite3.connect(ws / "knowledge" / "sidecar" / "propstore.sqlite")
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT * FROM context").fetchall()
+        assert len(rows) == 1
+        assert rows[0]["id"] == "ctx_test"
+        conn.close()
+
+    def test_build_without_contexts_backward_compatible(self, tmp_path, monkeypatch):
+        """pks build with no contexts/ dir still works."""
+        ws = self._make_workspace(tmp_path)
+        monkeypatch.chdir(ws)
+        # Remove contexts dir
+        import shutil
+        shutil.rmtree(ws / "knowledge" / "contexts")
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["build"])
+        assert result.exit_code == 0, f"Build failed: {result.output}"
+
+    def test_build_with_context_on_claim(self, tmp_path, monkeypatch):
+        """A claim with context field gets context_id in sidecar."""
+        ws = self._make_workspace(tmp_path)
+        monkeypatch.chdir(ws)
+        ctx_dir = ws / "knowledge" / "contexts"
+        write_context(ctx_dir, "ctx_atms", make_context("ctx_atms", "ATMS"))
+
+        claims_dir = ws / "knowledge" / "claims"
+        (claims_dir / "test.yaml").write_text(yaml.dump({
+            "source": {"paper": "test"},
+            "claims": [{
+                "id": "claim1",
+                "type": "observation",
+                "statement": "Test in ATMS context",
+                "concepts": ["test_concept"],
+                "context": "ctx_atms",
+                "provenance": {"paper": "test", "page": 1},
+            }],
+        }, default_flow_style=False))
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["build"])
+        assert result.exit_code == 0, f"Build failed: {result.output}"
+
+        import sqlite3
+        conn = sqlite3.connect(ws / "knowledge" / "sidecar" / "propstore.sqlite")
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT context_id FROM claim WHERE id = 'claim1'").fetchone()
+        assert row["context_id"] == "ctx_atms"
+        conn.close()

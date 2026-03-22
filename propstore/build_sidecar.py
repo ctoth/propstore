@@ -142,6 +142,7 @@ def build_sidecar(
     concept_registry: dict | None = None,
     *,
     repo: object | None = None,
+    context_files: list | None = None,
 ) -> bool:
     """Build the SQLite sidecar from concept data.
 
@@ -192,12 +193,16 @@ def build_sidecar(
         conn.execute("PRAGMA journal_mode=WAL")
 
         _create_tables(conn)
+        _create_context_tables(conn)
         _populate_concepts(conn, concepts, repo=repo)
         _populate_aliases(conn, concepts)
         _populate_relationships(conn, concepts)
         _populate_parameterizations(conn, concepts)
         _populate_parameterization_groups(conn, concepts)
         _build_fts_index(conn, concepts)
+
+        if context_files:
+            _populate_contexts(conn, context_files)
 
         if claim_files is not None:
             _create_claim_tables(conn)
@@ -707,6 +712,8 @@ def _populate_claims(
 
             claim_seq += 1
 
+            claim_context = claim.get("context")
+
             conn.execute(
                 "INSERT INTO claim (id, content_hash, seq, type, concept_id, value, lower_bound, "
                 "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
@@ -714,8 +721,8 @@ def _populate_claims(
                 "target_concept, measure, listener_population, methodology, "
                 "notes, description, auto_summary, "
                 "body, canonical_ast, variables_json, stage, "
-                "source_paper, provenance_page, provenance_json) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "source_paper, provenance_page, provenance_json, context_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (cid, content_hash, claim_seq, ctype, concept_id, value, lower_bound,
                  upper_bound, uncertainty, uncertainty_type, sample_size, unit,
                  json.dumps(conditions) if conditions else None,
@@ -725,7 +732,8 @@ def _populate_claims(
                  body, canonical_ast, variables_json, stage,
                  prov.get("paper", source_paper),
                  prov.get("page", 0),
-                 json.dumps(prov)),
+                 json.dumps(prov),
+                 claim_context),
             )
 
             for stance in claim.get("stances", []) or []:

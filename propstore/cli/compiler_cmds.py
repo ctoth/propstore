@@ -127,6 +127,24 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         click.echo("Build aborted: concept validation failed.", err=True)
         sys.exit(EXIT_VALIDATION)
 
+    # Step 1b: Load and validate contexts (if any)
+    from propstore.validate_contexts import load_contexts, validate_contexts
+    context_files = None
+    context_ids: set[str] = set()
+    if repo.contexts_dir.exists():
+        ctx_list = load_contexts(repo.contexts_dir)
+        if ctx_list:
+            ctx_result = validate_contexts(ctx_list)
+            for w in ctx_result.warnings:
+                click.echo(f"WARNING (context): {w}", err=True)
+            if not ctx_result.ok:
+                for e in ctx_result.errors:
+                    click.echo(f"ERROR (context): {e}", err=True)
+                click.echo("Build aborted: context validation failed.", err=True)
+                sys.exit(EXIT_VALIDATION)
+            context_files = ctx_list
+            context_ids = {c.data["id"] for c in ctx_list if c.data.get("id")}
+
     # Step 2: Validate claims (if any)
     claim_files = None
     concept_registry = None
@@ -135,7 +153,10 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         files = load_claim_files(cd)
         if files:
             concept_registry = build_concept_registry(repo)
-            claim_result = validate_claims(files, concept_registry)
+            claim_result = validate_claims(
+                files, concept_registry,
+                context_ids=context_ids if context_ids else None,
+            )
             if not claim_result.ok:
                 for e in claim_result.errors:
                     click.echo(f"ERROR: {e}", err=True)
@@ -150,6 +171,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         claim_files=claim_files,
         concept_registry=concept_registry,
         repo=repo,
+        context_files=context_files,
     )
 
     # Step 4: Summary via WorldModel (proves the roundtrip)
