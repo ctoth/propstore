@@ -140,12 +140,14 @@ def validate_single_claim_file(
 def validate_claims(
     claim_files: list[LoadedClaimFile],
     concept_registry: dict[str, dict],
+    context_ids: set[str] | None = None,
 ) -> ValidationResult:
     """Validate claim files against schema and compiler contract.
 
     Args:
         claim_files: loaded claim YAML files
         concept_registry: mapping from concept ID to concept data dict
+        context_ids: set of valid context IDs (if None, skip context validation)
     """
     result = ValidationResult()
     cel_registry = _build_cel_registry_from_concepts(concept_registry)
@@ -211,6 +213,14 @@ def validate_claims(
                 if prov.get("page") is None:
                     result.errors.append(
                         f"{cf.filename}: claim '{cid}' provenance missing 'page'")
+
+            # ── Context reference ────────────────────────────
+            claim_context = claim.get("context")
+            if claim_context and context_ids is not None:
+                if claim_context not in context_ids:
+                    result.errors.append(
+                        f"{cf.filename}: claim '{cid}' references nonexistent "
+                        f"context '{claim_context}'")
 
             # ── CEL conditions ───────────────────────────────
             conditions = claim.get("conditions")

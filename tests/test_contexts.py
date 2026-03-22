@@ -305,3 +305,82 @@ class TestContextSidecar:
         _create_context_tables(conn)
         _populate_contexts(conn, [])
         assert conn.execute("SELECT COUNT(*) FROM context").fetchone()[0] == 0
+
+
+# ── Step 3: Claim context_id ────────────────────────────────────────
+
+
+class TestClaimContextId:
+    def test_claim_context_must_exist(self, tmp_path):
+        """Validation error if claim references nonexistent context."""
+        from propstore.validate_claims import LoadedClaimFile, validate_claims
+
+        claim_file = LoadedClaimFile("test", tmp_path / "test.yaml", {
+            "source": {"paper": "test"},
+            "claims": [{
+                "id": "claim1",
+                "type": "observation",
+                "statement": "Test statement.",
+                "concepts": ["fundamental_frequency"],
+                "context": "ctx_nonexistent",
+                "provenance": {"paper": "test", "page": 1},
+            }],
+        })
+        registry = {
+            "fundamental_frequency": {
+                "id": "concept1", "canonical_name": "fundamental_frequency",
+                "form": "frequency", "status": "accepted", "definition": "F0",
+            },
+        }
+        result = validate_claims([claim_file], registry, context_ids=set())
+        assert not result.ok
+        assert any("ctx_nonexistent" in e for e in result.errors)
+
+    def test_claim_context_valid_reference(self, tmp_path):
+        """No error when claim references an existing context."""
+        from propstore.validate_claims import LoadedClaimFile, validate_claims
+
+        claim_file = LoadedClaimFile("test", tmp_path / "test.yaml", {
+            "source": {"paper": "test"},
+            "claims": [{
+                "id": "claim1",
+                "type": "observation",
+                "statement": "Test statement.",
+                "concepts": ["fundamental_frequency"],
+                "context": "ctx_atms",
+                "provenance": {"paper": "test", "page": 1},
+            }],
+        })
+        registry = {
+            "fundamental_frequency": {
+                "id": "concept1", "canonical_name": "fundamental_frequency",
+                "form": "frequency", "status": "accepted", "definition": "F0",
+            },
+        }
+        result = validate_claims([claim_file], registry, context_ids={"ctx_atms"})
+        id_errors = [e for e in result.errors if "ctx_" in e]
+        assert not id_errors, f"Context ref rejected: {id_errors}"
+
+    def test_claim_without_context_ok(self, tmp_path):
+        """A claim without context field validates fine."""
+        from propstore.validate_claims import LoadedClaimFile, validate_claims
+
+        claim_file = LoadedClaimFile("test", tmp_path / "test.yaml", {
+            "source": {"paper": "test"},
+            "claims": [{
+                "id": "claim1",
+                "type": "observation",
+                "statement": "Test statement.",
+                "concepts": ["fundamental_frequency"],
+                "provenance": {"paper": "test", "page": 1},
+            }],
+        })
+        registry = {
+            "fundamental_frequency": {
+                "id": "concept1", "canonical_name": "fundamental_frequency",
+                "form": "frequency", "status": "accepted", "definition": "F0",
+            },
+        }
+        result = validate_claims([claim_file], registry, context_ids=set())
+        ctx_errors = [e for e in result.errors if "context" in e.lower()]
+        assert not ctx_errors, f"No-context claim rejected: {ctx_errors}"
