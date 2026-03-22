@@ -162,8 +162,16 @@ def build_sidecar(
             _load_vec_extension(_snap_conn)
             _embedding_snapshot = extract_embeddings(_snap_conn)
             _snap_conn.close()
-        except (ImportError, Exception):
-            pass  # sqlite-vec not installed or no embeddings
+            if _embedding_snapshot is not None:
+                import sys
+                _cv = sum(len(v) for v in _embedding_snapshot.claim_vectors.values())
+                _ccv = sum(len(v) for v in _embedding_snapshot.concept_vectors.values())
+                print(f"  Embedding snapshot: {len(_embedding_snapshot.models)} model(s), {_cv} claim vecs, {_ccv} concept vecs", file=sys.stderr)
+        except ImportError:
+            pass  # sqlite-vec not installed
+        except Exception as exc:
+            import sys
+            print(f"Warning: embedding snapshot failed: {exc}", file=sys.stderr)
 
     # Build fresh
     if sidecar_path.exists():
@@ -193,10 +201,14 @@ def build_sidecar(
         if _embedding_snapshot is not None:
             try:
                 from propstore.embed import restore_embeddings, _load_vec_extension
+                conn.row_factory = sqlite3.Row
                 _load_vec_extension(conn)
                 _restore_report = restore_embeddings(conn, _embedding_snapshot)
-            except (ImportError, Exception):
-                pass
+                conn.row_factory = None
+            except (ImportError, Exception) as exc:
+                import sys
+                print(f"Warning: embedding restore failed: {exc}", file=sys.stderr)
+                conn.row_factory = None
 
         # Populate stances from stance files (in addition to inline stances from claims)
         if repo is not None and claim_files is not None:
