@@ -1072,3 +1072,56 @@ class TestConceptCategoryValues:
         ])
         assert result.exit_code != 0
         assert not (workspace / "knowledge" / "concepts" / "test_freq.yaml").exists()
+
+
+class TestConceptCategories:
+    def test_categories_lists_category_concepts(self, workspace: Path) -> None:
+        """pks concept categories lists category concepts with their values."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["concept", "categories"])
+        assert result.exit_code == 0, result.output
+        # workspace fixture has 'task' as a category concept with values ["speech", "singing"]
+        assert "task" in result.output
+        assert "speech" in result.output
+        assert "singing" in result.output
+        # fundamental_frequency is form=frequency, must NOT appear
+        assert "fundamental_frequency" not in result.output
+
+    def test_categories_shows_extensible_flag(self, workspace: Path) -> None:
+        """Extensible categories are marked in output."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["concept", "categories"])
+        assert result.exit_code == 0, result.output
+        # 'task' is extensible: True
+        assert "extensible" in result.output
+
+    def test_categories_json_output(self, workspace: Path) -> None:
+        """--json produces parseable JSON with correct structure."""
+        import json
+        runner = CliRunner()
+        result = runner.invoke(cli, ["concept", "categories", "--json"])
+        assert result.exit_code == 0, result.output
+        data = json.loads(result.output)
+        assert "task" in data
+        assert data["task"]["values"] == ["speech", "singing"]
+        assert data["task"]["extensible"] is True
+
+    def test_categories_empty_when_no_category_concepts(self, tmp_path: Path, monkeypatch) -> None:
+        """Returns cleanly when no category concepts exist."""
+        monkeypatch.chdir(tmp_path)
+        knowledge = tmp_path / "knowledge"
+        concepts = knowledge / "concepts"
+        concepts.mkdir(parents=True)
+        forms = knowledge / "forms"
+        forms.mkdir()
+        (forms / "structural.yaml").write_text("name: structural\n")
+
+        _write_concept(concepts, "only_struct", _make_concept(
+            "only_struct", "concept1", "test", form="structural"))
+        _write_counter(concepts, "test", 2)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["concept", "categories"])
+        assert result.exit_code == 0
+        # Either says "No category concepts" or outputs nothing
+        assert "No category concepts" in result.output or result.output.strip() == ""

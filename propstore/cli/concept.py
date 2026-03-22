@@ -567,6 +567,43 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
         click.echo(f"  {d.get('id', '?'):15s} {d.get('canonical_name', '?'):30s} [{c_status}]")
 
 
+# ── concept categories ───────────────────────────────────────────────
+
+@concept.command("categories")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_obj
+def categories(obj: dict, as_json: bool) -> None:
+    """List all category concepts and their allowed values."""
+    repo: Repository = obj["repo"]
+    concepts = load_concepts(repo.concepts_dir)
+
+    cat_data = {}
+    for c in concepts:
+        if c.data.get("form") != "category":
+            continue
+        fp = c.data.get("form_parameters", {}) or {}
+        values = fp.get("values", [])
+        extensible = fp.get("extensible", True)
+        cat_data[c.data["canonical_name"]] = {
+            "values": values,
+            "extensible": extensible,
+        }
+
+    if as_json:
+        import json
+        click.echo(json.dumps(cat_data, indent=2))
+        return
+
+    if not cat_data:
+        click.echo("No category concepts found.")
+        return
+
+    for name, info in sorted(cat_data.items()):
+        ext = " (extensible)" if info["extensible"] else ""
+        vals = ", ".join(info["values"])
+        click.echo(f"{name}{ext}: {vals}")
+
+
 # ── concept show ─────────────────────────────────────────────────────
 
 @concept.command()
