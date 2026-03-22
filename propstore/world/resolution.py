@@ -50,25 +50,48 @@ def _resolve_sample_size(claims: list[dict]) -> tuple[str | None, str | None]:
     return best_id, f"largest sample_size: {best_n}"
 
 
+_STANCE_WEIGHTS: dict[str, float] = {
+    "supports": 1.0,
+    "explains": 0.5,
+    "rebuts": -1.0,
+    "undercuts": -1.0,
+    "undermines": -0.5,
+}
+
+
 def _resolve_stance(claims: list[dict], world: WorldModel) -> tuple[str | None, str | None]:
-    """Pick the claim with the highest net stance support (supports - contradicts)."""
-    scores: dict[str, int] = {c["id"]: 0 for c in claims}
+    """Pick the claim with the highest weighted stance score.
+
+    Stance types have different weights (see _STANCE_WEIGHTS).
+    Supersedes is handled specially: if claim A supersedes claim B
+    and both are in contention, A wins outright.
+    """
+    scores: dict[str, float] = {c["id"]: 0.0 for c in claims}
     claim_ids = set(scores.keys())
 
     if not world._has_table("claim_stance"):
         return None, "no stance data"
 
+    # Check for supersession first — trumps scoring
     for claim_id in claim_ids:
-        # Find stances pointing AT this claim
+        rows = world._conn.execute(
+            "SELECT claim_id FROM claim_stance "
+            "WHERE target_claim_id = ? AND stance_type = 'supersedes'",
+            (claim_id,),
+        ).fetchall()
+        for row in rows:
+            if row["claim_id"] in claim_ids:
+                return row["claim_id"], f"supersedes {claim_id}"
+
+    # Weighted scoring for remaining types
+    for claim_id in claim_ids:
         rows = world._conn.execute(
             "SELECT stance_type FROM claim_stance WHERE target_claim_id = ?",
             (claim_id,),
         ).fetchall()
         for row in rows:
-            if row["stance_type"] == "supports":
-                scores[claim_id] += 1
-            elif row["stance_type"] == "contradicts":
-                scores[claim_id] -= 1
+            weight = _STANCE_WEIGHTS.get(row["stance_type"], 0.0)
+            scores[claim_id] += weight
 
     if not scores:
         return None, "no stance data"

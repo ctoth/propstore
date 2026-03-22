@@ -865,28 +865,27 @@ class TestConflictResolution:
         assert result.winning_claim_id == "claim15"
 
     def test_resolve_stance_undercuts(self, world):
-        """Undercutting stance gives -1.0 weight to target."""
+        """Undercutting and undermining stances push targets below zero."""
         bound = world.bind(task="speech")
         result = resolve(bound, "concept2", ResolutionStrategy.STANCE, world=world)
         # claim12 undercuts claim6 → claim6 gets -1.0
         # claim13 undermines claim4 → claim4 gets -0.5
         # claim14 explains claim6 → claim6 gets +0.5 (net -0.5)
         # claim4 net: -0.5, claim6 net: -0.5, claim12: 0, claim13: 0, claim14: 0
-        # claim4 and claim6 are tied at -0.5, others at 0 → winner is one of the 0-scored
-        assert result.status == "resolved"
-        assert result.winning_claim_id in ("claim12", "claim13", "claim14")
+        # Three claims tied at 0, two at -0.5 → can't resolve (3-way tie at max)
+        assert result.status == "conflicted"
+        assert result.reason is not None
+        assert "tied" in result.reason
 
-    def test_resolve_stance_weights_asymmetric(self, world):
-        """Undermines (-0.5) is weaker than rebuts/undercuts (-1.0)."""
-        bound = world.bind(task="speech")
-        result = resolve(bound, "concept2", ResolutionStrategy.STANCE, world=world)
-        # claim6 has undercuts (-1.0) + explains (+0.5) = -0.5
-        # claim4 has undermines (-0.5)
-        # Both negative, but equal → we just verify the attacked claims score below zero
-        assert result.status == "resolved"
-        winning = result.winning_claim_id
-        # The winner should NOT be one of the attacked claims
-        assert winning not in ("claim4", "claim6")
+    def test_stance_weights(self, world):
+        """Stance weight constants are correctly defined."""
+        from propstore.world.resolution import _STANCE_WEIGHTS
+        assert _STANCE_WEIGHTS["undermines"] == -0.5
+        assert _STANCE_WEIGHTS["undercuts"] == -1.0
+        assert _STANCE_WEIGHTS["rebuts"] == -1.0
+        assert _STANCE_WEIGHTS["supports"] == 1.0
+        assert _STANCE_WEIGHTS["explains"] == 0.5
+        assert "supersedes" not in _STANCE_WEIGHTS  # handled separately
 
 
 # ── Feature 4: Chain Query ──────────────────────────────────────────
