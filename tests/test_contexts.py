@@ -516,3 +516,56 @@ class TestBoundWorldContext:
         active = bound.active_claims("c1")
         assert len(active) == 4  # all four claims visible
         conn.close()
+
+
+# ── Step 5: Context-aware conflict detection ─────────────────────────
+
+
+from propstore.conflict_detector import ConflictClass, _classify_pair_context
+
+
+class TestContextAwareConflicts:
+    def test_different_unrelated_context_is_context_phi_node(self):
+        """Different unrelated contexts = CONTEXT_PHI_NODE."""
+        result = _classify_pair_context(
+            context_a="ctx_atms", context_b="ctx_jtms",
+            hierarchy=ContextHierarchy([
+                LoadedContext("a", None, make_context("ctx_atms", "ATMS")),
+                LoadedContext("b", None, make_context("ctx_jtms", "JTMS")),
+            ]),
+        )
+        assert result == ConflictClass.CONTEXT_PHI_NODE
+
+    def test_same_context_returns_none(self):
+        """Same context → None (let normal classification proceed)."""
+        result = _classify_pair_context(
+            context_a="ctx_atms", context_b="ctx_atms",
+            hierarchy=ContextHierarchy([
+                LoadedContext("a", None, make_context("ctx_atms", "ATMS")),
+            ]),
+        )
+        assert result is None
+
+    def test_ancestor_descendant_returns_none(self):
+        """Parent/child contexts → None (both visible, normal classification)."""
+        h = ContextHierarchy([
+            LoadedContext("p", None, make_context("ctx_parent", "Parent")),
+            LoadedContext("c", None, make_context("ctx_child", "Child", inherits="ctx_parent")),
+        ])
+        result = _classify_pair_context(
+            context_a="ctx_parent", context_b="ctx_child", hierarchy=h,
+        )
+        assert result is None
+
+    def test_no_context_returns_none(self):
+        """One or both claims with no context → None (universal, normal classification)."""
+        h = ContextHierarchy([
+            LoadedContext("a", None, make_context("ctx_atms", "ATMS")),
+        ])
+        assert _classify_pair_context("ctx_atms", None, h) is None
+        assert _classify_pair_context(None, "ctx_atms", h) is None
+        assert _classify_pair_context(None, None, h) is None
+
+    def test_both_none_hierarchy_returns_none(self):
+        """No hierarchy at all → None (backward compatible)."""
+        assert _classify_pair_context("ctx_a", "ctx_b", None) is None

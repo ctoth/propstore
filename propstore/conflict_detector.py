@@ -35,6 +35,7 @@ class ConflictClass(Enum):
     CONFLICT = "CONFLICT"
     OVERLAP = "OVERLAP"
     PARAM_CONFLICT = "PARAM_CONFLICT"
+    CONTEXT_PHI_NODE = "CONTEXT_PHI_NODE"
 
 
 @dataclass
@@ -48,6 +49,37 @@ class ConflictRecord:
     value_a: str  # string representation
     value_b: str  # string representation
     derivation_chain: str | None = None  # for PARAM_CONFLICT only
+
+
+# ── Context-aware classification ─────────────────────────────────────
+
+
+def _classify_pair_context(
+    context_a: str | None,
+    context_b: str | None,
+    hierarchy: object | None,
+) -> ConflictClass | None:
+    """Check if two claims' contexts make them non-conflicting.
+
+    Returns CONTEXT_PHI_NODE if the claims are in different, unrelated contexts.
+    Returns None if normal classification should proceed (same context,
+    ancestor/descendant, one or both universal, or no hierarchy available).
+    """
+    if hierarchy is None:
+        return None
+    if context_a is None or context_b is None:
+        return None  # universal claims use normal classification
+    if context_a == context_b:
+        return None  # same context — normal classification
+
+    # Check if one is an ancestor of the other
+    if hierarchy.is_visible(context_a, context_b):  # type: ignore[union-attr]
+        return None  # ancestor/descendant — both visible, normal classification
+    if hierarchy.is_visible(context_b, context_a):  # type: ignore[union-attr]
+        return None
+
+    # Different, unrelated contexts — not a real conflict
+    return ConflictClass.CONTEXT_PHI_NODE
 
 
 # ── Value comparison ─────────────────────────────────────────────────
