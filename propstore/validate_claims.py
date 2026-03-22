@@ -99,7 +99,42 @@ def _build_cel_registry_from_concepts(concept_registry: dict[str, dict]) -> dict
     return registry
 
 
-_CLAIM_ID_RE = re.compile(r'^claim\d+$')
+# Claim ID format: optional <source>: prefix, then local ID
+# Local ID: claim<N> (numeric) or descriptive (alphanumeric + underscores)
+# Source can contain letters, digits, underscores, hyphens, apostrophes
+# Examples: claim1, Dung_1995:claim1, Prakken_2012_AppreciationJohnPollock'sWork:claim1
+_CLAIM_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_'\-]*:)?[A-Za-z][A-Za-z0-9_]*$")
+
+
+def parse_claim_id(cid: str) -> tuple[str | None, str]:
+    """Split a claim ID into (source, local_id).
+
+    'Dung_1995:claim1' -> ('Dung_1995', 'claim1')
+    'claim1' -> (None, 'claim1')
+    """
+    if ':' in cid:
+        source, local = cid.split(':', 1)
+        return source, local
+    return None, cid
+
+
+def validate_single_claim_file(
+    filepath: Path,
+    concept_registry: dict[str, dict],
+) -> ValidationResult:
+    """Validate a single claims YAML file.
+
+    Loads the file, wraps it in a LoadedClaimFile, and runs
+    validate_claims on just that one file.
+    """
+    with open(filepath, encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    loaded = LoadedClaimFile(
+        filename=filepath.stem,
+        filepath=filepath,
+        data=data if data else {},
+    )
+    return validate_claims([loaded], concept_registry)
 
 
 def validate_claims(
@@ -154,7 +189,8 @@ def validate_claims(
             # ── Claim ID format ──────────────────────────────
             if not _CLAIM_ID_RE.match(cid):
                 result.errors.append(
-                    f"{cf.filename}: claim ID '{cid}' does not match required format claimN (e.g. claim1, claim42)")
+                    f"{cf.filename}: claim ID '{cid}' does not match required format "
+                    f"[source:]claimN (e.g. claim1, Dung_1995:claim42)")
 
             # ── Claim ID uniqueness ──────────────────────────
             if cid in seen_ids:

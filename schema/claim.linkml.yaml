@@ -155,8 +155,10 @@ classes:
 
       id:
         description: >
-          Stable identifier. Format: claim + sequential integer
-          (e.g., claim1, claim12, claim103).
+          Stable identifier. Format: [source:]claim + sequential integer.
+          Paper-local files use bare IDs (claim1, claim42).
+          After import, IDs are prefixed with the knowledge source
+          (e.g., Dung_1995_AcceptabilityArguments:claim1).
         range: string
         required: true
 

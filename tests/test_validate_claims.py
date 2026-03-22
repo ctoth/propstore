@@ -17,7 +17,9 @@ import yaml
 
 from propstore.validate_claims import (
     load_claim_files,
+    parse_claim_id,
     validate_claims,
+    validate_single_claim_file,
 )
 
 
@@ -233,14 +235,14 @@ class TestClaimIdErrors:
         assert any("duplicate" in e.lower() for e in result.errors)
 
     def test_invalid_claim_id_format(self, claims_dir):
-        claim = make_parameter_claim("bad_id", "concept1", 440.0, "Hz")
+        claim = make_parameter_claim("123numeric", "concept1", 440.0, "Hz")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
-        assert any("format" in e.lower() or "claimN" in e.lower() for e in result.errors)
+        assert any("format" in e.lower() for e in result.errors)
 
 
 # ── Concept reference errors ─────────────────────────────────────────
@@ -1248,3 +1250,121 @@ def compute(x, ps, mystery):
         # Should pass (no errors) but have warnings
         assert result.ok, f"Unexpected errors: {result.errors}"
         assert any("mystery" in w and "not declared" in w for w in result.warnings)
+
+
+# ── Step 1: Source-prefixed claim IDs ────────────────────────────────
+
+
+class TestClaimIdFormat:
+    def test_source_prefixed_claim_id_valid(self, claims_dir):
+        """Dung_1995_AcceptabilityArguments:claim1 is a valid claim ID."""
+        claim = make_parameter_claim(
+            "Dung_1995_AcceptabilityArguments:claim1", "concept1", 440.0, "Hz"
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        id_errors = [e for e in result.errors if "format" in e.lower() or "claimN" in e.lower()]
+        assert not id_errors, f"Prefixed ID rejected: {id_errors}"
+
+    def test_bare_claim_id_still_valid(self, claims_dir):
+        """claim1 remains valid for paper-local files."""
+        claim = make_parameter_claim("claim1", "concept1", 440.0, "Hz")
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        id_errors = [e for e in result.errors if "format" in e.lower() or "claimN" in e.lower()]
+        assert not id_errors, f"Bare ID rejected: {id_errors}"
+
+    def test_invalid_claim_id_rejected(self, claims_dir):
+        """Empty string, spaces, bare numbers rejected."""
+        for bad_id in ["", " ", "123", "claim-1", "claim 1"]:
+            claim = make_parameter_claim(bad_id or "x", "concept1", 440.0, "Hz")
+            if bad_id == "":
+                claim["id"] = ""
+            else:
+                claim["id"] = bad_id
+            data = make_claim_file_data([claim])
+            write_claim_file(claims_dir, "test_paper.yaml", data)
+
+            files = load_claim_files(claims_dir)
+            result = validate_claims(files, make_concept_registry())
+            assert not result.ok, f"Bad ID '{bad_id}' was accepted"
+
+    def test_source_with_hyphens_valid(self, claims_dir):
+        """Source names can contain hyphens and underscores."""
+        claim = make_parameter_claim(
+            "de-Kleer_1986:claim1", "concept1", 440.0, "Hz"
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        id_errors = [e for e in result.errors if "format" in e.lower()]
+        assert not id_errors, f"Hyphenated source rejected: {id_errors}"
+
+
+class TestParseClaimId:
+    def test_parse_with_source(self):
+        source, local = parse_claim_id("Dung_1995:claim1")
+        assert source == "Dung_1995"
+        assert local == "claim1"
+
+    def test_parse_bare(self):
+        source, local = parse_claim_id("claim1")
+        assert source is None
+        assert local == "claim1"
+
+    def test_parse_complex_source(self):
+        source, local = parse_claim_id("deKleer_1986_AssumptionBasedTMS:claim42")
+        assert source == "deKleer_1986_AssumptionBasedTMS"
+        assert local == "claim42"
+
+
+# ── Step 2: Single-file validation ──────────────────────────────────
+
+
+class TestValidateSingleFile:
+    def test_catches_missing_provenance_page(self, claims_dir, tmp_path):
+        claim = {
+            "id": "claim1",
+            "type": "parameter",
+            "concept": "concept1",
+            "value": 440.0,
+            "unit": "Hz",
+            "provenance": {"paper": "test_paper"},  # missing page
+        }
+        data = make_claim_file_data([claim])
+        filepath = write_claim_file(tmp_path, "test.yaml", data)
+
+        result = validate_single_claim_file(filepath, make_concept_registry())
+        assert not result.ok
+        assert any("page" in e.lower() for e in result.errors)
+
+    def test_catches_missing_variables_on_equation(self, claims_dir, tmp_path):
+        claim = {
+            "id": "claim1",
+            "type": "equation",
+            "expression": "F0 = X * k",
+            "provenance": {"paper": "test_paper", "page": 1},
+            # missing variables
+        }
+        data = make_claim_file_data([claim])
+        filepath = write_claim_file(tmp_path, "test.yaml", data)
+
+        result = validate_single_claim_file(filepath, make_concept_registry())
+        assert not result.ok
+        assert any("variables" in e.lower() for e in result.errors)
+
+    def test_valid_file_passes(self, claims_dir, tmp_path):
+        claim = make_parameter_claim("claim1", "concept1", 440.0, "Hz")
+        data = make_claim_file_data([claim])
+        filepath = write_claim_file(tmp_path, "test.yaml", data)
+
+        result = validate_single_claim_file(filepath, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"

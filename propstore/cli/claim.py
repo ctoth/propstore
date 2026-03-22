@@ -62,6 +62,43 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
         sys.exit(EXIT_VALIDATION)
 
 
+@claim.command("validate-file")
+@click.argument("filepath", type=click.Path(exists=True, path_type=Path))
+@click.option("--concepts-dir", "concepts_path", default=None, help="Concepts directory")
+@click.pass_obj
+def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
+    """Validate a single claims YAML file."""
+    from propstore.validate_claims import (
+        build_concept_registry_from_paths,
+        validate_single_claim_file,
+    )
+
+    repo: Repository = obj["repo"]
+    cpd = Path(concepts_path) if concepts_path else repo.concepts_dir
+
+    if not cpd.exists():
+        click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
+        sys.exit(EXIT_ERROR)
+
+    forms_dir = cpd.parent / "forms"
+    if not forms_dir.exists():
+        forms_dir = repo.forms_dir
+
+    registry = build_concept_registry_from_paths(cpd, forms_dir)
+    result = validate_single_claim_file(filepath, registry)
+
+    for w in result.warnings:
+        click.echo(f"WARNING: {w}", err=True)
+    for e in result.errors:
+        click.echo(f"ERROR: {e}", err=True)
+
+    if result.ok:
+        click.echo(f"Valid: {filepath.name} ({len(result.warnings)} warning(s))")
+    else:
+        click.echo(f"FAILED: {filepath.name} ({len(result.errors)} error(s))", err=True)
+        sys.exit(EXIT_VALIDATION)
+
+
 @claim.command()
 @click.option("--concept", default=None, help="Filter by concept ID")
 @click.option("--class", "warning_class", default=None,

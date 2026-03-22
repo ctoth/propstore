@@ -607,7 +607,7 @@ class TestImportPapers:
         assert result.exit_code == 0, result.output
         imported = yaml.safe_load((workspace / "knowledge" / "claims" / "Smith_2024_TestPaper.yaml").read_text())
         assert imported["source"]["paper"] == "Smith_2024_TestPaper"
-        assert imported["claims"][0]["id"] == "claim1"
+        assert imported["claims"][0]["id"] == "Smith_2024_TestPaper:claim1"
 
     def test_import_papers_no_papers_dir(self, workspace: Path) -> None:
         """import-papers with nonexistent papers root should fail (Click path validation)."""
@@ -665,8 +665,8 @@ class TestImportPapers:
         imported = yaml.safe_load((workspace / "knowledge" / "claims" / "Author_2025_Title.yaml").read_text())
         assert imported["source"]["paper"] == "Author_2025_Title"
         assert len(imported["claims"]) == 2
-        assert imported["claims"][0]["id"] == "claim1"
-        assert imported["claims"][1]["id"] == "claim2"
+        assert imported["claims"][0]["id"] == "Author_2025_Title:claim1"
+        assert imported["claims"][1]["id"] == "Author_2025_Title:claim2"
 
 
 # ── build (extended) ────────────────────────────────────────────────
@@ -848,3 +848,154 @@ class TestConceptSearch:
         assert result.exit_code == 0, result.output
         assert "concept1" in result.output
         assert "fundamental_frequency" in result.output
+
+
+# ── Step 3: claim validate-file command ──────────────────────────────
+
+
+class TestClaimValidateFile:
+    def test_reports_errors_on_bad_file(self, workspace):
+        """pks claim validate-file on a bad file exits nonzero with errors."""
+        claims_dir = workspace / "knowledge" / "claims"
+        bad_claim = {
+            "source": {"paper": "test_paper"},
+            "claims": [{
+                "id": "claim1",
+                "type": "parameter",
+                "concept": "fundamental_frequency",
+                "value": 440.0,
+                "unit": "Hz",
+                "provenance": {"paper": "test_paper"},  # missing page
+            }],
+        }
+        filepath = _write_claim_file(claims_dir, "bad.yaml", bad_claim)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["claim", "validate-file", str(filepath)])
+        assert result.exit_code != 0
+        assert "page" in result.output.lower()
+
+    def test_clean_file_exits_zero(self, workspace):
+        """pks claim validate-file on a valid file exits zero."""
+        claims_dir = workspace / "knowledge" / "claims"
+        good_claim = {
+            "source": {"paper": "test_paper"},
+            "claims": [{
+                "id": "claim1",
+                "type": "parameter",
+                "concept": "fundamental_frequency",
+                "value": 440.0,
+                "unit": "Hz",
+                "provenance": {"paper": "test_paper", "page": 1},
+            }],
+        }
+        filepath = _write_claim_file(claims_dir, "good.yaml", good_claim)
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["claim", "validate-file", str(filepath)])
+        assert result.exit_code == 0, f"Unexpected failure: {result.output}"
+
+
+# ── Step 4: import-papers with source-prefixing ──────────────────────
+
+
+class TestImportPapersSourcePrefix:
+    def _make_papers_dir(self, tmp_path):
+        """Create a fake papers/ directory with two papers."""
+        papers = tmp_path / "papers"
+        paper_a = papers / "PaperA_2020_Foo"
+        paper_b = papers / "PaperB_2021_Bar"
+        paper_a.mkdir(parents=True)
+        paper_b.mkdir(parents=True)
+
+        claim_a = {
+            "source": {"paper": "PaperA_2020_Foo"},
+            "claims": [{
+                "id": "claim1",
+                "type": "observation",
+                "statement": "A observes X.",
+                "concepts": ["fundamental_frequency"],
+                "provenance": {"paper": "PaperA_2020_Foo", "page": 1},
+            }],
+        }
+        claim_b = {
+            "source": {"paper": "PaperB_2021_Bar"},
+            "claims": [{
+                "id": "claim1",
+                "type": "observation",
+                "statement": "B observes Y.",
+                "concepts": ["fundamental_frequency"],
+                "provenance": {"paper": "PaperB_2021_Bar", "page": 5},
+            }],
+        }
+        (paper_a / "claims.yaml").write_text(
+            yaml.dump(claim_a, default_flow_style=False))
+        (paper_b / "claims.yaml").write_text(
+            yaml.dump(claim_b, default_flow_style=False))
+        return papers
+
+    def test_prefixes_claim_ids(self, workspace):
+        """Claims imported from PaperA/ get IDs prefixed with 'PaperA_2020_Foo:'."""
+        papers = self._make_papers_dir(workspace)
+        runner = CliRunner()
+        result = runner.invoke(cli, ["import-papers", "--papers-root", str(papers)])
+        assert result.exit_code == 0, f"Import failed: {result.output}"
+
+        claims_dir = workspace / "knowledge" / "claims"
+        with open(claims_dir / "PaperA_2020_Foo.yaml") as f:
+            data = yaml.safe_load(f)
+        assert data["claims"][0]["id"] == "PaperA_2020_Foo:claim1"
+
+    def test_no_collisions(self, workspace):
+        """Two papers both having claim1 produce distinct prefixed IDs."""
+        papers = self._make_papers_dir(workspace)
+        runner = CliRunner()
+        result = runner.invoke(cli, ["import-papers", "--papers-root", str(papers)])
+        assert result.exit_code == 0, f"Import failed: {result.output}"
+
+        claims_dir = workspace / "knowledge" / "claims"
+        with open(claims_dir / "PaperA_2020_Foo.yaml") as f:
+            data_a = yaml.safe_load(f)
+        with open(claims_dir / "PaperB_2021_Bar.yaml") as f:
+            data_b = yaml.safe_load(f)
+
+        id_a = data_a["claims"][0]["id"]
+        id_b = data_b["claims"][0]["id"]
+        assert id_a != id_b
+        assert id_a == "PaperA_2020_Foo:claim1"
+        assert id_b == "PaperB_2021_Bar:claim1"
+
+    def test_prefixes_inline_stance_targets(self, workspace):
+        """Inline stance targets also get prefixed."""
+        papers = workspace / "papers"
+        paper = papers / "PaperC_2022_Baz"
+        paper.mkdir(parents=True)
+        claim_data = {
+            "source": {"paper": "PaperC_2022_Baz"},
+            "claims": [{
+                "id": "claim1",
+                "type": "observation",
+                "statement": "C rebuts A.",
+                "concepts": ["fundamental_frequency"],
+                "provenance": {"paper": "PaperC_2022_Baz", "page": 2},
+                "stances": [{"type": "rebuts", "target": "claim2"}],
+            }, {
+                "id": "claim2",
+                "type": "observation",
+                "statement": "C observes Z.",
+                "concepts": ["fundamental_frequency"],
+                "provenance": {"paper": "PaperC_2022_Baz", "page": 3},
+            }],
+        }
+        (paper / "claims.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False))
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["import-papers", "--papers-root", str(papers)])
+        assert result.exit_code == 0, f"Import failed: {result.output}"
+
+        claims_dir = workspace / "knowledge" / "claims"
+        with open(claims_dir / "PaperC_2022_Baz.yaml") as f:
+            data = yaml.safe_load(f)
+        stance = data["claims"][0]["stances"][0]
+        assert stance["target"] == "PaperC_2022_Baz:claim2"

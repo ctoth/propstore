@@ -285,7 +285,7 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
         return
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    global_counter = 1
+    total_claims = 0
     for source_path, destination_path in imports:
         with open(source_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
@@ -295,16 +295,24 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
         if not isinstance(source, dict):
             source = {}
             data["source"] = source
-        source["paper"] = source_path.parent.name
-        # Rewrite claim IDs to be globally unique
+        source_name = source_path.parent.name
+        source["paper"] = source_name
+        # Prefix claim IDs with knowledge source for global uniqueness
         for claim in data.get("claims", []) or []:
-            if isinstance(claim, dict) and "id" in claim:
-                claim["id"] = f"claim{global_counter}"
-                global_counter += 1
+            if isinstance(claim, dict):
+                if "id" in claim and ":" not in claim["id"]:
+                    claim["id"] = f"{source_name}:{claim['id']}"
+                total_claims += 1
+                # Also prefix inline stance targets
+                for stance in claim.get("stances", []) or []:
+                    if isinstance(stance, dict):
+                        target = stance.get("target")
+                        if target and ":" not in target:
+                            stance["target"] = f"{source_name}:{target}"
         with open(destination_path, "w", encoding="utf-8") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
-    click.echo(f"Imported {len(imports)} paper claim file(s) into {output_dir} ({global_counter - 1} claims)")
+    click.echo(f"Imported {len(imports)} paper claim file(s) into {output_dir} ({total_claims} claims)")
 
 
 # ── World command group ──────────────────────────────────────────────
