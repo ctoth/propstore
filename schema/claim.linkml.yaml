@@ -52,6 +52,21 @@ enums:
         description: "This claim provides a mechanistic or causal explanation for the target."
       supersedes:
         description: "This claim replaces the target (newer methodology, corrected data)."
+      none:
+        description: "No meaningful epistemic relationship (logged for analysis, not used in resolution)."
+
+  ResolutionMethod:
+    description: >
+      How a stance classification was produced.
+    permissible_values:
+      nli_first_pass:
+        description: "Standard NLI classification of top-K similar claims."
+      nli_second_pass:
+        description: "Re-classification of high-similarity none verdicts with enriched prompt."
+      human:
+        description: "Human-assigned stance."
+      extraction:
+        description: "Stance asserted during claim extraction from paper text."
 
   MeasureType:
     description: >
@@ -381,6 +396,35 @@ classes:
       note:
         description: "Free-text note about this stance relation."
         range: string
+      resolution:
+        description: "Provenance for how this stance was classified. Optional."
+        range: Resolution
+        inlined: true
+
+
+  Resolution:
+    description: >
+      Provenance metadata for how a stance was classified. Optional on Stance.
+    attributes:
+      method:
+        description: "How this stance was classified."
+        range: ResolutionMethod
+        required: true
+      model:
+        description: "LLM model used for classification (litellm model string)."
+        range: string
+      embedding_model:
+        description: "Embedding model used to find candidates."
+        range: string
+      embedding_distance:
+        description: "Cosine distance between source and target claim embeddings."
+        range: float
+      pass_number:
+        description: "Which NLI pass found this relationship (1 or 2)."
+        range: integer
+      confidence:
+        description: "Classification confidence 0.0-1.0, derived from pass and strength."
+        range: float
 
 
   VariableBinding:

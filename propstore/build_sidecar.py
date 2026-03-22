@@ -96,7 +96,7 @@ def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) ->
         return 0
 
     count = 0
-    valid_types = {"rebuts", "undercuts", "undermines", "supports", "explains", "supersedes"}
+    valid_types = {"rebuts", "undercuts", "undermines", "supports", "explains", "supersedes", "none"}
 
     # Build set of valid claim IDs for validation
     valid_claims = {r[0] for r in conn.execute("SELECT id FROM claim").fetchall()}
@@ -115,9 +115,16 @@ def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) ->
             if target not in valid_claims or stype not in valid_types:
                 continue
 
+            # Extract resolution provenance if present
+            res = s.get("resolution") or {}
+
             conn.execute(
-                "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, conditions_differ, note) VALUES (?, ?, ?, ?, ?, ?)",
-                (source_claim, target, stype, s.get("strength"), s.get("conditions_differ"), s.get("note"))
+                "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
+                "conditions_differ, note, resolution_method, resolution_model, embedding_model, "
+                "embedding_distance, pass_number, confidence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (source_claim, target, stype, s.get("strength"), s.get("conditions_differ"), s.get("note"),
+                 res.get("method"), res.get("model"), res.get("embedding_model"),
+                 res.get("embedding_distance"), res.get("pass_number"), res.get("confidence"))
             )
             count += 1
 
@@ -478,6 +485,12 @@ def _create_claim_tables(conn: sqlite3.Connection):
             strength TEXT,
             conditions_differ TEXT,
             note TEXT,
+            resolution_method TEXT,
+            resolution_model TEXT,
+            embedding_model TEXT,
+            embedding_distance REAL,
+            pass_number INTEGER,
+            confidence REAL,
             FOREIGN KEY (claim_id) REFERENCES claim(id),
             FOREIGN KEY (target_claim_id) REFERENCES claim(id)
         );
@@ -657,18 +670,22 @@ def _populate_claims(
                 stance_type = stance.get("type")
                 if not target_claim_id or not stance_type:
                     continue
+                res = stance.get("resolution") or {}
                 deferred_stances.append((
                     cid, target_claim_id, stance_type,
                     stance.get("strength"),
                     stance.get("conditions_differ"),
                     stance.get("note"),
+                    res.get("method"), res.get("model"), res.get("embedding_model"),
+                    res.get("embedding_distance"), res.get("pass_number"), res.get("confidence"),
                 ))
 
     # Insert stances after all claims are in, so target_claim_id FKs resolve
     for stance_row in deferred_stances:
         conn.execute(
             "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
-            "conditions_differ, note) VALUES (?, ?, ?, ?, ?, ?)",
+            "conditions_differ, note, resolution_method, resolution_model, embedding_model, "
+            "embedding_distance, pass_number, confidence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             stance_row,
         )
 

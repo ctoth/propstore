@@ -72,26 +72,32 @@ def _resolve_stance(claims: list[dict], world: WorldModel) -> tuple[str | None, 
     if not world._has_table("claim_stance"):
         return None, "no stance data"
 
-    # Check for supersession first — trumps scoring
+    # Check for supersession first — trumps scoring (only if confident)
     for claim_id in claim_ids:
         rows = world._conn.execute(
-            "SELECT claim_id FROM claim_stance "
+            "SELECT claim_id, confidence FROM claim_stance "
             "WHERE target_claim_id = ? AND stance_type = 'supersedes'",
             (claim_id,),
         ).fetchall()
         for row in rows:
             if row["claim_id"] in claim_ids:
-                return row["claim_id"], f"supersedes {claim_id}"
+                conf = row["confidence"]
+                if conf is None or conf >= 0.5:
+                    return row["claim_id"], f"supersedes {claim_id}"
+                # Low-confidence supersedes falls through to scoring
 
     # Weighted scoring for remaining types
     for claim_id in claim_ids:
         rows = world._conn.execute(
-            "SELECT stance_type FROM claim_stance WHERE target_claim_id = ?",
+            "SELECT stance_type, confidence FROM claim_stance WHERE target_claim_id = ?",
             (claim_id,),
         ).fetchall()
         for row in rows:
+            if row["stance_type"] == "none":
+                continue
             weight = _STANCE_WEIGHTS.get(row["stance_type"], 0.0)
-            scores[claim_id] += weight
+            conf = row["confidence"] if row["confidence"] is not None else 1.0
+            scores[claim_id] += weight * conf
 
     if not scores:
         return None, "no stance data"
