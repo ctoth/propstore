@@ -57,6 +57,16 @@ pks build
 # Query
 pks world status
 pks world query dense_video_captioning
+
+# Embed claims and concepts for similarity search (optional, requires propstore[embeddings])
+pks claim embed --all --model gemini/gemini-embedding-001
+pks concept embed --all --model gemini/gemini-embedding-001
+
+# Find similar claims across papers
+pks claim similar claim1 --top-k 5
+
+# Find similar concepts (potential duplicates to merge)
+pks concept similar dense_video_captioning --top-k 5
 ```
 
 ## Data model
@@ -363,7 +373,7 @@ Six stance types (ASPIC+ taxonomy, active voice — the claim holding the stance
 | `explains` | Support | +0.5 | Provides a mechanistic explanation |
 | `supersedes` | Preference | — | Replaces the target entirely (short-circuits resolution) |
 
-Based on ASPIC+ (Modgil & Prakken 2014) and Pollock's rebutting vs undercutting distinction.
+Based on ASPIC+ (Modgil & Prakken 2014) and Pollock's rebutting vs undercutting distinction (Prakken & Horty 2012).
 
 ## Compiler pipeline
 
@@ -413,6 +423,14 @@ pks claim similar claim1 --agree
 # Claims where models disagree (worth investigating)
 pks claim similar claim1 --disagree
 ```
+
+```bash
+# Concept embeddings — find duplicate or overlapping concepts
+pks concept embed --all --model gemini/gemini-embedding-001
+pks concept similar structured_decomposition --top-k 5
+```
+
+Concept embeddings use the concept's canonical name, aliases, and definition as embedding text. Similar concepts are candidates for merging via `pks concept deprecate`.
 
 Embeddings are stored in the sidecar SQLite database (one vector table per model) and survive `pks build` rebuilds. Re-running `pks claim embed --all` skips unchanged claims (incremental via content hash tracking). Use `--model all` to re-embed with every previously registered model.
 
@@ -556,6 +574,8 @@ pks concept link SRC TYPE TGT     Add a relationship between concepts
 pks concept search QUERY          Full-text search over concepts
 pks concept list [--domain D]     List concepts
 pks concept show ID               Show full concept YAML
+pks concept embed [ID] --all --model M  Generate concept embeddings via litellm
+pks concept similar ID [--model M]      Find similar concepts by embedding distance
 
 pks claim validate                Validate all claim files
 pks claim conflicts               Detect and report conflicts
