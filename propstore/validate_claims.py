@@ -11,25 +11,27 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import jsonschema
 import yaml
 
+from propstore.validate import ValidationResult, load_yaml_dir
+
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
 from propstore.cel_checker import (
     ConceptInfo,
     KindType,
+    build_cel_registry,
     check_cel_expression,
 )
 from propstore.form_utils import (
     FormDefinition,
     allowed_units_from_form_definition,
     json_safe,
-    kind_type_from_form_name,
     load_form,
     load_form_definition,
 )
@@ -43,60 +45,15 @@ class LoadedClaimFile:
     data: dict
 
 
-@dataclass
-class ValidationResult:
-    errors: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-
-    @property
-    def ok(self) -> bool:
-        return len(self.errors) == 0
-
 
 def load_claim_files(claims_dir: Path) -> list[LoadedClaimFile]:
     """Load all .yaml files from claims directory (excluding .counters)."""
-    files = []
-    for entry in sorted(claims_dir.iterdir()):
-        if entry.is_file() and entry.suffix == ".yaml":
-            with open(entry, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-            files.append(LoadedClaimFile(
-                filename=entry.stem,
-                filepath=entry,
-                data=data if data else {},
-            ))
-    return files
+    return [
+        LoadedClaimFile(filename=stem, filepath=path, data=data)
+        for stem, path, data in load_yaml_dir(claims_dir)
+    ]
 
 
-def _build_cel_registry_from_concepts(concept_registry: dict[str, dict]) -> dict[str, ConceptInfo]:
-    """Build a CEL type-checking registry from concept data dicts.
-
-    Maps canonical_name -> ConceptInfo, since CEL expressions use concept names.
-    """
-    registry: dict[str, ConceptInfo] = {}
-    for cid, data in concept_registry.items():
-        name = data.get("canonical_name", "")
-        kind_type = kind_type_from_form_name(data.get("form"))
-        if not name or kind_type is None:
-            continue
-
-        category_values: list[str] = []
-        category_extensible = True
-        if kind_type == KindType.CATEGORY:
-            fp = data.get("form_parameters", {}) or {}
-            if isinstance(fp.get("values"), list):
-                category_values = fp["values"]
-            ext = fp.get("extensible")
-            category_extensible = ext if ext is not None else True
-
-        registry[name] = ConceptInfo(
-            id=cid,
-            canonical_name=name,
-            kind=kind_type,
-            category_values=category_values,
-            category_extensible=category_extensible,
-        )
-    return registry
 
 
 # Claim ID format: optional <source>: prefix, then local ID
@@ -150,7 +107,7 @@ def validate_claims(
         context_ids: set of valid context IDs (if None, skip context validation)
     """
     result = ValidationResult()
-    cel_registry = _build_cel_registry_from_concepts(concept_registry)
+    cel_registry = build_cel_registry(concept_registry)
 
     # JSON Schema validation
     schema_path = Path(__file__).parent.parent / "schema" / "generated" / "claim.schema.json"

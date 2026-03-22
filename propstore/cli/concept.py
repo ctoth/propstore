@@ -14,11 +14,11 @@ import yaml
 from propstore.cli.helpers import (
     EXIT_ERROR,
     EXIT_VALIDATION,
+    CounterLock,
     find_concept,
     load_concept_file,
-    read_counter,
-    write_counter,
     write_concept_file,
+    write_yaml_file,
 )
 from propstore.cli.repository import Repository
 from propstore.validate import LoadedConcept, load_concepts, validate_concepts
@@ -151,41 +151,42 @@ def add(
         click.echo(f"ERROR: Concept file '{filepath}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
-    next_counter = read_counter(repo.counters_dir)
-    cid = f"concept{next_counter}"
+    with CounterLock(repo.counters_dir) as cl:
+        next_counter = cl.value
+        cid = f"concept{next_counter}"
 
-    data = {
-        "id": cid,
-        "canonical_name": name,
-        "status": "proposed",
-        "definition": definition,
-        "domain": domain,
-        "created_date": str(date.today()),
-        "form": form_name,
-    }
+        data = {
+            "id": cid,
+            "canonical_name": name,
+            "status": "proposed",
+            "definition": definition,
+            "domain": domain,
+            "created_date": str(date.today()),
+            "form": form_name,
+        }
 
-    if dry_run:
-        click.echo(f"Would create {filepath}")
-        click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
-        return
+        if dry_run:
+            click.echo(f"Would create {filepath}")
+            click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
+            return
 
-    repo.concepts_dir.mkdir(parents=True, exist_ok=True)
-    concepts = load_concepts(repo.concepts_dir)
-    concepts.append(LoadedConcept(filename=name, filepath=filepath, data=data))
+        repo.concepts_dir.mkdir(parents=True, exist_ok=True)
+        concepts = load_concepts(repo.concepts_dir)
+        concepts.append(LoadedConcept(filename=name, filepath=filepath, data=data))
 
-    result = validate_concepts(concepts, repo=repo)
-    if not result.ok:
-        for e in result.errors:
-            click.echo(f"ERROR: {e}", err=True)
-        click.echo("Validation failed. No changes written.", err=True)
-        sys.exit(EXIT_VALIDATION)
+        result = validate_concepts(concepts, repo=repo)
+        if not result.ok:
+            for e in result.errors:
+                click.echo(f"ERROR: {e}", err=True)
+            click.echo("Validation failed. No changes written.", err=True)
+            sys.exit(EXIT_VALIDATION)
 
-    for w in result.warnings:
-        click.echo(f"WARNING: {w}", err=True)
+        for w in result.warnings:
+            click.echo(f"WARNING: {w}", err=True)
 
-    write_concept_file(filepath, data)
-    write_counter(repo.counters_dir, next_counter + 1)
-    click.echo(f"Created {filepath} with ID {cid}")
+        write_concept_file(filepath, data)
+        cl.commit()
+        click.echo(f"Created {filepath} with ID {cid}")
 
 
 # ── concept alias ────────────────────────────────────────────────────
@@ -329,8 +330,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
 
     for claim_file in updated_claim_files:
         if claim_file.filepath in changed_claim_paths:
-            with open(claim_file.filepath, "w") as f:
-                yaml.dump(claim_file.data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            write_yaml_file(claim_file.filepath, claim_file.data)
 
     # Remove old file and track with git if available
     try:

@@ -9,7 +9,7 @@ from pathlib import Path
 import click
 import yaml
 
-from propstore.cli.helpers import EXIT_VALIDATION
+from propstore.cli.helpers import EXIT_VALIDATION, write_yaml_file
 from propstore.cli.repository import Repository
 
 
@@ -331,8 +331,7 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
                         target = stance.get("target")
                         if target and ":" not in target:
                             stance["target"] = f"{source_name}:{target}"
-        with open(destination_path, "w", encoding="utf-8") as f:
-            yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        write_yaml_file(destination_path, data)
 
     click.echo(f"Imported {len(imports)} paper claim file(s) into {output_dir} ({total_claims} claims)")
 

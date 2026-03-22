@@ -13,7 +13,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from propstore.validate import LoadedConcept
 
 
 class KindType(Enum):
@@ -32,6 +35,57 @@ class ConceptInfo:
     # For category kinds: the valid value set
     category_values: list[str] = field(default_factory=list)
     category_extensible: bool = True
+
+
+def build_cel_registry(concept_registry: dict[str, dict]) -> dict[str, ConceptInfo]:
+    """Build a concept registry for CEL type-checking.
+
+    Accepts a dict mapping concept_id -> concept data dict.
+    Returns a dict mapping canonical_name -> ConceptInfo.
+
+    For the LoadedConcept list input shape, use
+    ``build_cel_registry_from_loaded()``.
+    """
+    from propstore.form_utils import kind_type_from_form_name
+
+    registry: dict[str, ConceptInfo] = {}
+    for cid, data in concept_registry.items():
+        name = data.get("canonical_name", "")
+        kind_type = kind_type_from_form_name(data.get("form"))
+        if not name or kind_type is None:
+            continue
+
+        category_values: list[str] = []
+        category_extensible = True
+        if kind_type == KindType.CATEGORY:
+            fp = data.get("form_parameters", {}) or {}
+            if isinstance(fp.get("values"), list):
+                category_values = fp["values"]
+            ext = fp.get("extensible")
+            category_extensible = ext if ext is not None else True
+
+        registry[name] = ConceptInfo(
+            id=cid,
+            canonical_name=name,
+            kind=kind_type,
+            category_values=category_values,
+            category_extensible=category_extensible,
+        )
+    return registry
+
+
+def build_cel_registry_from_loaded(concepts: list[LoadedConcept]) -> dict[str, ConceptInfo]:
+    """Build a CEL registry from a list of LoadedConcept objects.
+
+    Thin wrapper that converts LoadedConcept list into the dict shape
+    expected by ``build_cel_registry()``.
+    """
+    concept_registry: dict[str, dict] = {}
+    for c in concepts:
+        cid = c.data.get("id", "")
+        if cid:
+            concept_registry[cid] = c.data
+    return build_cel_registry(concept_registry)
 
 
 @dataclass

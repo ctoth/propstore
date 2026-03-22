@@ -18,6 +18,7 @@ import yaml
 from propstore.cel_checker import (
     ConceptInfo,
     KindType,
+    build_cel_registry_from_loaded,
     check_cel_expression,
 )
 from propstore.form_utils import kind_type_from_form_name, load_form
@@ -41,53 +42,32 @@ class ValidationResult:
         return len(self.errors) == 0
 
 
-def load_concepts(concept_dir: Path) -> list[LoadedConcept]:
-    """Load all .yaml files from the concept directory (excluding .counters)."""
-    concepts = []
-    for entry in sorted(concept_dir.iterdir()):
+def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict]]:
+    """Load all .yaml files from a directory, sorted by filename.
+
+    Returns a list of (stem, filepath, data) tuples.
+    Empty YAML files produce an empty dict.
+    """
+    results: list[tuple[str, Path, dict]] = []
+    for entry in sorted(directory.iterdir()):
         if entry.is_file() and entry.suffix == ".yaml":
             with open(entry, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
-            concepts.append(LoadedConcept(
-                filename=entry.stem,
-                filepath=entry,
-                data=data if data else {},
-            ))
-    return concepts
+            results.append((entry.stem, entry, data if data else {}))
+    return results
+
+
+def load_concepts(concept_dir: Path) -> list[LoadedConcept]:
+    """Load all .yaml files from the concept directory (excluding .counters)."""
+    return [
+        LoadedConcept(filename=stem, filepath=path, data=data)
+        for stem, path, data in load_yaml_dir(concept_dir)
+    ]
 
 
 _CONCEPT_ID_RE = re.compile(r'^concept\d+$')
 
 
-def _build_cel_registry(concepts: list[LoadedConcept]) -> dict[str, ConceptInfo]:
-    """Build a concept registry for CEL type-checking from loaded concepts."""
-    registry: dict[str, ConceptInfo] = {}
-    for c in concepts:
-        data = c.data
-        cid = data.get("id", "")
-        name = data.get("canonical_name", "")
-        kind_type = kind_type_from_form_name(data.get("form"))
-        if not name or kind_type is None:
-            continue
-
-        category_values: list[str] = []
-        category_extensible = True
-        if kind_type == KindType.CATEGORY:
-            # Category values may be in form_parameters as structured data
-            fp = data.get("form_parameters", {}) or {}
-            if isinstance(fp.get("values"), list):
-                category_values = fp["values"]
-            ext = fp.get("extensible")
-            category_extensible = ext if ext is not None else True
-
-        registry[name] = ConceptInfo(
-            id=cid,
-            canonical_name=name,
-            kind=kind_type,
-            category_values=category_values,
-            category_extensible=category_extensible,
-        )
-    return registry
 
 
 VALID_RELATIONSHIP_TYPES = frozenset([
@@ -101,15 +81,12 @@ def _load_all_claim_ids(claims_dir: Path) -> set[str]:
     claim_ids: set[str] = set()
     if not claims_dir.exists():
         return claim_ids
-    for entry in sorted(claims_dir.iterdir()):
-        if entry.is_file() and entry.suffix == ".yaml":
-            with open(entry, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-            if data and isinstance(data.get("claims"), list):
-                for claim in data["claims"]:
-                    cid = claim.get("id")
-                    if cid:
-                        claim_ids.add(cid)
+    for _stem, _path, data in load_yaml_dir(claims_dir):
+        if isinstance(data.get("claims"), list):
+            for claim in data["claims"]:
+                cid = claim.get("id")
+                if cid:
+                    claim_ids.add(cid)
     return claim_ids
 
 
@@ -131,7 +108,7 @@ def validate_concepts(
     """
     result = ValidationResult()
     id_to_concept: dict[str, LoadedConcept] = {}
-    cel_registry = _build_cel_registry(concepts)
+    cel_registry = build_cel_registry_from_loaded(concepts)
 
     def _forms_dir(c: LoadedConcept) -> Path:
         if repo is not None:

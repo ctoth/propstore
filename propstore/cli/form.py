@@ -7,7 +7,7 @@ import sys
 import click
 import yaml
 
-from propstore.cli.helpers import EXIT_ERROR
+from propstore.cli.helpers import EXIT_ERROR, write_yaml_file
 from propstore.cli.repository import Repository
 
 
@@ -133,8 +133,7 @@ def add(
         return
 
     fdir.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+    write_yaml_file(path, data)
     click.echo(f"Created {path}")
 
 

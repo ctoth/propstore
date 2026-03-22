@@ -10,6 +10,8 @@ from pathlib import Path
 
 import yaml
 
+from propstore.cli.helpers import write_yaml_file
+
 
 def _require_litellm():
     try:
@@ -477,7 +479,6 @@ def write_stance_file(
     # Replace colons with double-underscores for Windows path compatibility
     safe_name = source_claim_id.replace(":", "__")
     path = stances_dir / f"{safe_name}.yaml"
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    write_yaml_file(path, data)
 
     return path

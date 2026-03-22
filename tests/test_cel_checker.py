@@ -16,10 +16,13 @@ from propstore.cel_checker import (
     KindType,
     TernaryNode,
     UnaryOpNode,
+    build_cel_registry,
+    build_cel_registry_from_loaded,
     check_cel_expression,
     parse_cel,
     tokenize,
 )
+from propstore.validate import LoadedConcept
 
 
 # ── Fixtures: concept registries ─────────────────────────────────────
@@ -408,3 +411,116 @@ def test_structural_always_errors(val):
     errors = check_cel_expression(expr, registry)
     hard_errors = [e for e in errors if not e.is_warning]
     assert len(hard_errors) >= 1
+
+
+# ── build_cel_registry tests ─────────────────────────────────────────
+
+
+class TestBuildCelRegistry:
+    """Tests for the consolidated build_cel_registry function."""
+
+    def test_dict_input_quantity(self):
+        concept_registry = {
+            "concept1": {
+                "canonical_name": "temperature",
+                "form": "quantity",
+            }
+        }
+        result = build_cel_registry(concept_registry)
+        assert "temperature" in result
+        info = result["temperature"]
+        assert info.id == "concept1"
+        assert info.kind == KindType.QUANTITY
+        assert info.category_values == []
+
+    def test_dict_input_category(self):
+        concept_registry = {
+            "concept2": {
+                "canonical_name": "color",
+                "form": "category",
+                "form_parameters": {
+                    "values": ["red", "green", "blue"],
+                    "extensible": False,
+                },
+            }
+        }
+        result = build_cel_registry(concept_registry)
+        assert "color" in result
+        info = result["color"]
+        assert info.kind == KindType.CATEGORY
+        assert info.category_values == ["red", "green", "blue"]
+        assert info.category_extensible is False
+
+    def test_skips_missing_name(self):
+        concept_registry = {
+            "concept3": {"form": "quantity"},  # no canonical_name
+        }
+        result = build_cel_registry(concept_registry)
+        assert len(result) == 0
+
+    def test_skips_missing_form(self):
+        concept_registry = {
+            "concept4": {"canonical_name": "pressure"},  # no form
+        }
+        result = build_cel_registry(concept_registry)
+        assert len(result) == 0
+
+    def test_category_extensible_defaults_true(self):
+        concept_registry = {
+            "concept5": {
+                "canonical_name": "status",
+                "form": "category",
+                "form_parameters": {"values": ["active"]},
+            }
+        }
+        result = build_cel_registry(concept_registry)
+        assert result["status"].category_extensible is True
+
+    def test_from_loaded_concepts(self):
+        from pathlib import Path
+
+        concepts = [
+            LoadedConcept(
+                filename="temperature",
+                filepath=Path("fake/temperature.yaml"),
+                data={
+                    "id": "concept1",
+                    "canonical_name": "temperature",
+                    "form": "quantity",
+                },
+            ),
+            LoadedConcept(
+                filename="color",
+                filepath=Path("fake/color.yaml"),
+                data={
+                    "id": "concept2",
+                    "canonical_name": "color",
+                    "form": "category",
+                    "form_parameters": {
+                        "values": ["red", "blue"],
+                        "extensible": False,
+                    },
+                },
+            ),
+        ]
+        result = build_cel_registry_from_loaded(concepts)
+        assert "temperature" in result
+        assert "color" in result
+        assert result["temperature"].kind == KindType.QUANTITY
+        assert result["color"].category_values == ["red", "blue"]
+
+    def test_from_loaded_skips_no_id(self):
+        from pathlib import Path
+
+        concepts = [
+            LoadedConcept(
+                filename="mystery",
+                filepath=Path("fake/mystery.yaml"),
+                data={
+                    "canonical_name": "mystery",
+                    "form": "quantity",
+                },
+            ),
+        ]
+        result = build_cel_registry_from_loaded(concepts)
+        assert len(result) == 0
