@@ -344,15 +344,26 @@ Claims can express epistemic relations to other claims:
 
 ```yaml
 stances:
-  - type: contradicted_by
+  - type: rebuts
     target: claim15
     strength: strong
-    note: "Different methodology; larger sample"
-  - type: superseded_by
+    note: "Contradicting conclusion with larger sample size"
+  - type: supersedes
     target: claim42
 ```
 
-Four stance types: `supported_by`, `contradicted_by`, `superseded_by`, `mechanism_for`.
+Six stance types (ASPIC+ taxonomy, active voice — the claim holding the stance acts on the target):
+
+| Type | Category | Weight | Meaning |
+|------|----------|--------|---------|
+| `rebuts` | Attack | -1.0 | Directly contradicts the target's conclusion |
+| `undercuts` | Attack | -1.0 | Attacks the inference method or reasoning |
+| `undermines` | Attack | -0.5 | Weakens a premise or evidence quality |
+| `supports` | Support | +1.0 | Provides corroborating evidence |
+| `explains` | Support | +0.5 | Provides a mechanistic explanation |
+| `supersedes` | Preference | — | Replaces the target entirely (short-circuits resolution) |
+
+Based on ASPIC+ (Modgil & Prakken 2014) and Pollock's rebutting vs undercutting distinction.
 
 ## Compiler pipeline
 
@@ -482,7 +493,7 @@ Resolve conflicting claims using a strategy:
 uv run pks world resolve concept1 task=speech --strategy sample_size
 ```
 
-Strategies: `recency` (most recent paper wins), `sample_size` (largest N wins), `stance` (follow superseded_by chains), `override` (specify a claim ID).
+Strategies: `recency` (most recent paper wins), `sample_size` (largest N wins), `stance` (follow supersedes chains), `override` (specify a claim ID).
 
 ### Chain queries
 
