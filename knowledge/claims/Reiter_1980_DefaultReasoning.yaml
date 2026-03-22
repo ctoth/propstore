@@ -1,0 +1,163 @@
+source:
+  paper: Reiter_1980_DefaultReasoning
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: Reiter_1980_DefaultReasoning:claim1
+  type: observation
+  statement: 'A default rule has the form alpha(x) : M*beta_1(x),...,M*beta_m(x) /
+    w(x), where alpha is the prerequisite, beta_1...beta_m are justifications (consistent
+    assumptions), and w is the consequent.
+
+    '
+  concepts:
+  - default_rule
+  - non_monotonic_reasoning
+- id: Reiter_1980_DefaultReasoning:claim2
+  type: observation
+  statement: 'A default theory is a pair (D, W) where D is a set of default rules
+    and W is a set of first-order sentences (axioms).
+
+    '
+  concepts:
+  - default_theory
+  - default_rule
+- id: Reiter_1980_DefaultReasoning:claim3
+  type: observation
+  statement: 'An extension of a default theory is a fixed point of the operator Gamma,
+    which closes under deduction, includes the axioms W, and applies defaults whose
+    prerequisites are in the set and whose justifications are consistent with the
+    set.
+
+    '
+  concepts:
+  - default_extension
+  - default_theory
+- id: Reiter_1980_DefaultReasoning:claim4
+  type: equation
+  statement: 'The extension operator Gamma(S) is the smallest set satisfying: (D1)
+    W is a subset of Gamma(S), (D2) Gamma(S) is deductively closed, and (D3) for each
+    default with prerequisite in Gamma(S) and justification negations not in S, the
+    consequent is in Gamma(S).
+
+    '
+  expression: Gamma(S) = smallest set satisfying D1, D2, D3
+  sympy: null
+  variables:
+    S: candidate extension (set of closed wffs)
+    W: axiom set
+    D: set of default rules
+- id: Reiter_1980_DefaultReasoning:claim5
+  type: observation
+  statement: 'A normal default has the form alpha(x) : Mw(x) / w(x), where the single
+    justification equals the consequent; this is the most important subclass of defaults.
+
+    '
+  concepts:
+  - normal_default
+  - default_rule
+- id: Reiter_1980_DefaultReasoning:claim6
+  type: observation
+  statement: 'Every closed normal default theory has at least one extension (Theorem
+    3.1), unlike general default theories which may have no extensions.
+
+    '
+  concepts:
+  - normal_default
+  - default_extension
+  - default_theory
+- id: Reiter_1980_DefaultReasoning:claim7
+  type: observation
+  statement: 'Extensions of a normal default theory are orthogonal: if E and F are
+    distinct extensions, then E union F is inconsistent (Theorem 3.3).
+
+    '
+  concepts:
+  - default_extension
+  - normal_default
+- id: Reiter_1980_DefaultReasoning:claim8
+  type: equation
+  statement: 'An extension E equals the deductive closure of the axioms W together
+    with the consequents of the generating defaults: E = Th(W union CONSEQUENTS(GD(E,
+    Delta))).
+
+    '
+  expression: E = Th(W union CONSEQUENTS(GD(E, Delta)))
+  sympy: null
+  variables:
+    E: extension
+    W: axiom set
+    GD: generating defaults for E
+    Delta: default theory (D, W)
+- id: Reiter_1980_DefaultReasoning:claim9
+  type: observation
+  statement: 'A consistent closed normal default theory where W union CONSEQUENTS(D)
+    is consistent has a unique extension (Corollary 3.4).
+
+    '
+  concepts:
+  - default_extension
+  - normal_default
+  - default_theory
+- id: Reiter_1980_DefaultReasoning:claim10
+  type: observation
+  statement: 'Semi-monotonicity holds for normal defaults: adding normal defaults
+    to a normal default theory never reduces the number of extensions (Theorem 3.2).
+
+    '
+  concepts:
+  - normal_default
+  - default_extension
+- id: Reiter_1980_DefaultReasoning:claim11
+  type: observation
+  statement: 'The proof theory for closed normal default theories is complete: a sentence
+    beta belongs to an extension E if and only if beta has a default proof with respect
+    to the default theory (Theorem 4.8).
+
+    '
+  concepts:
+  - normal_default
+  - default_extension
+  - default_theory
+- id: Reiter_1980_DefaultReasoning:claim12
+  type: observation
+  statement: 'The extension membership problem for closed normal default theories
+    is not semi-decidable (Theorem 4.9); no algorithm can enumerate all beliefs of
+    an arbitrary extension.
+
+    '
+  concepts:
+  - default_extension
+  - normal_default
+- id: Reiter_1980_DefaultReasoning:claim13
+  type: observation
+  statement: 'Derived beliefs safely persist under new observations if the union of
+    the consequents of all default supports used in their proofs remains consistent
+    with the axioms (Theorem 6.1).
+
+    '
+  concepts:
+  - belief_revision
+  - default_theory
+  - default_extension
+- id: Reiter_1980_DefaultReasoning:claim14
+  type: observation
+  statement: 'Reiter''s default logic extensions correspond exactly to Dung''s stable
+    extensions of argumentation frameworks, as later proved by Dung (1995, Theorem
+    43).
+
+    '
+  concepts:
+  - default_extension
+  - stable_extension
+  - argumentation_framework
+- id: Reiter_1980_DefaultReasoning:claim15
+  type: observation
+  statement: 'Open (non-closed) default theories are handled by Skolemization: replacing
+    wffs with Skolemized forms and grounding over the Herbrand universe, with all
+    results on normal defaults generalizing to open normal defaults.
+
+    '
+  concepts:
+  - default_theory
+  - normal_default

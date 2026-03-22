@@ -1,0 +1,127 @@
+source:
+  paper: deKleer_1984_QualitativePhysicsConfluences
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: deKleer_1984_QualitativePhysicsConfluences:claim1
+  type: observation
+  statement: A confluence is a qualitative differential equation where variables take
+    values from {+, 0, -} and terms sum to a constant, serving as the central modeling
+    primitive for component behavior in qualitative physics.
+  concepts:
+  - confluence
+  - qualitative_calculus
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 4. Confluences
+- id: deKleer_1984_QualitativePhysicsConfluences:claim2
+  type: observation
+  statement: Each physical component's operating range is divided into qualitative
+    states defined by inequalities over non-derivative variables, where each state
+    is governed by a different set of confluences.
+  concepts:
+  - qualitative_state
+  - confluence
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 5. Qualitative States
+- id: deKleer_1984_QualitativePhysicsConfluences:claim3
+  type: observation
+  statement: The no-function-in-structure principle requires that component laws may
+    not presume the functioning of the whole device, ensuring component models are
+    context-independent and reusable across different device configurations.
+  concepts:
+  - no_function_in_structure
+  - device_topology
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 3.3 No Function in Structure
+- id: deKleer_1984_QualitativePhysicsConfluences:claim4
+  type: observation
+  statement: Mythical causality determines device behavior through information-passing
+    between neighboring components in mythical time, a partial ordering distinct from
+    both physical time and logical derivation order.
+  concepts:
+  - mythical_causality
+  - device_topology
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 10. Mythical Causality
+- id: deKleer_1984_QualitativePhysicsConfluences:claim5
+  type: observation
+  statement: Qualitative addition over {+, 0, -} does not form an algebraic group
+    and is not invertible, inherently producing multiple valid interpretations where
+    quantitative analysis yields a unique answer.
+  concepts:
+  - qualitative_ambiguity
+  - qualitative_calculus
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 4.1 Qualitative Calculus
+- id: deKleer_1984_QualitativePhysicsConfluences:claim6
+  type: observation
+  statement: A physical system is modeled as a device topology graph where nodes are
+    components and edges are conduits, with each conduit carrying a flowlike attribute
+    per terminal and a pressurelike attribute per conduit.
+  concepts:
+  - device_topology
+  - confluence
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 3.1 Generalized Machines
+- id: deKleer_1984_QualitativePhysicsConfluences:claim7
+  type: observation
+  statement: The qualitative mean value theorem states that if a variable's derivative
+    is positive at time T, then the variable's qualitative value is positive immediately
+    after T, providing a bridge between derivative and value reasoning.
+  concepts:
+  - qualitative_calculus
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 4.2 Qualitative Mean Value Theorem
+- id: deKleer_1984_QualitativePhysicsConfluences:claim8
+  type: observation
+  statement: 'State transitions are governed by five rules: ordering (continuous change),
+    equality change (immediate termination at boundaries), epsilon ordering (infinitesimal
+    changes first), contradiction avoidance, and continuity.'
+  concepts:
+  - qualitative_state
+  - qualitative_calculus
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 7. State Transition Rules
+- id: deKleer_1984_QualitativePhysicsConfluences:claim9
+  type: observation
+  statement: The ENVISION system takes a device topology and component library as
+    input and produces behavioral predictions with causal explanations, demonstrated
+    successfully on hundreds of examples across electronic, translational, hydraulic,
+    and acoustic devices.
+  concepts:
+  - device_topology
+  - mythical_causality
+  - confluence
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 2. ENVISION
+- id: deKleer_1984_QualitativePhysicsConfluences:claim10
+  type: observation
+  statement: Class-wide assumptions such as the quasistatic approximation apply to
+    an entire class of devices rather than a specific device, and their violation
+    signals that the qualitative model has reached the limits of its applicability.
+  concepts:
+  - qualitative_state
+  - no_function_in_structure
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 6. Class-Wide Assumptions
+- id: deKleer_1984_QualitativePhysicsConfluences:claim11
+  type: observation
+  statement: Pushing qualitative analysis to finer grain (e.g., mixed confluences
+    with momentum and storage capacity) dramatically increases the state space, with
+    81 states arising from just two mixed confluences.
+  concepts:
+  - qualitative_ambiguity
+  - qualitative_state
+  provenance:
+    paper: deKleer_1984_QualitativePhysicsConfluences
+    section: 12. Limitations

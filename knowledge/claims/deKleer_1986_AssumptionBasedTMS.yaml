@@ -1,0 +1,143 @@
+source:
+  paper: deKleer_1986_AssumptionBasedTMS
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: deKleer_1986_AssumptionBasedTMS:claim1
+  type: observation
+  statement: The ATMS labels every datum with the minimal sets of assumptions (environments)
+    under which it holds, enabling simultaneous exploration of multiple problem-solving
+    contexts without backtracking or retraction.
+  concepts:
+  - atms
+  - label
+  - environment
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 4. The ATMS
+- id: deKleer_1986_AssumptionBasedTMS:claim2
+  type: observation
+  statement: 'ATMS labels satisfy four properties: consistency (no label environment
+    is a superset of any nogood), soundness (every label environment entails the node),
+    completeness (every consistent derivable environment is a superset of some label
+    environment), and minimality (no label environment subsumes another).'
+  concepts:
+  - label
+  - atms
+  - nogood
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 4. The ATMS
+- id: deKleer_1986_AssumptionBasedTMS:claim3
+  type: observation
+  statement: 'The ATMS eliminates seven limitations of Doyle''s justification-based
+    TMS: single-state operation, overzealous contradiction avoidance, expensive context
+    switching, justification dominance, cumbersome machinery, the unouting problem,
+    and circular support.'
+  concepts:
+  - atms
+  - truth_maintenance_system
+  - context_switching
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 3. Limitations of Conventional TMSs
+- id: deKleer_1986_AssumptionBasedTMS:claim4
+  type: observation
+  statement: The label update algorithm computes a node's label by taking the cross-product
+    of antecedent labels (union of one environment from each antecedent), removing
+    inconsistent environments via nogood check, and removing subsumed environments.
+  concepts:
+  - label_update
+  - label
+  - environment
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 4. The ATMS
+- id: deKleer_1986_AssumptionBasedTMS:claim5
+  type: observation
+  statement: ATMS environments are represented as bit-vectors with one bit per assumption,
+    enabling O(1) union (bitwise OR) and subset testing ((E1 AND NOT E2) == 0), with
+    hash tables for environment lookup and nogood checking.
+  concepts:
+  - environment
+  - atms
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 6. Implementation
+- id: deKleer_1986_AssumptionBasedTMS:claim6
+  type: observation
+  statement: 'The ATMS is order-independent: the same set of assumptions and justifications
+    produces the same labels regardless of the order in which they are introduced.'
+  concepts:
+  - atms
+  - label
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 7. Summary
+- id: deKleer_1986_AssumptionBasedTMS:claim7
+  type: observation
+  statement: 'Every ATMS node is classified into exactly one of four categories: true
+    (holds in every consistent context), in (holds in some but not all contexts),
+    out (holds in no context), or false (contradictory).'
+  concepts:
+  - atms
+  - support_status
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 4. The ATMS
+- id: deKleer_1986_AssumptionBasedTMS:claim8
+  type: observation
+  statement: Justification retraction in the ATMS is implemented by conjoining an
+    extra defeasibility assumption with the justification; retracting means contradicting
+    that assumption, avoiding expensive recursive label invalidation.
+  concepts:
+  - atms
+  - belief_revision
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 6. Implementation
+- id: deKleer_1986_AssumptionBasedTMS:claim9
+  type: observation
+  statement: Approximately 30% of ATMS assumptions can typically be garbage collected
+    because their singleton environments are nogood or all their consequent nodes
+    hold universally or are contradictory.
+  concepts:
+  - assumption_garbage_collection
+  - atms
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 6. Implementation
+- id: deKleer_1986_AssumptionBasedTMS:claim10
+  type: observation
+  statement: The ATMS is oriented toward finding all solutions simultaneously; extra
+    cost is incurred to find fewer solutions, which is the opposite tradeoff of conventional
+    single-context TMSs.
+  concepts:
+  - atms
+  - truth_maintenance_system
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 7. Summary
+- id: deKleer_1986_AssumptionBasedTMS:claim11
+  type: observation
+  statement: 'Chronological backtracking has four defects in search problems: futile
+    backtracking to irrelevant choice points, rediscovering known contradictions,
+    rediscovering known inferences, and sensitivity to choice ordering.'
+  concepts:
+  - dependency_directed_backtracking
+  - atms
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 2. Search
+- id: deKleer_1986_AssumptionBasedTMS:claim12
+  type: observation
+  statement: A context in the ATMS is a consistent environment together with all nodes
+    whose labels contain a subset of that environment, providing a complete coherent
+    problem-solving state without explicit construction.
+  concepts:
+  - context
+  - environment
+  - label
+  provenance:
+    paper: deKleer_1986_AssumptionBasedTMS
+    section: 4. The ATMS

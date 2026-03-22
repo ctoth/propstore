@@ -1,0 +1,198 @@
+source:
+  paper: Dixon_1993_ATMSandAGM
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: Dixon_1993_ATMSandAGM:claim1
+  type: observation
+  statement: The ATMS provability relation holds for proposition p in environment
+    E iff p is in E, or E contains a nogood, or there exists a non-empty set of foundational
+    beliefs for p in E.
+  concepts:
+  - atms
+  - environment
+  - nogood
+  - foundational_belief
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 2
+- id: Dixon_1993_ATMSandAGM:claim2
+  type: observation
+  statement: A justification in the ATMS is a pair (A, c) where A is a set of antecedent
+    atoms and c is the consequent, representing the rule that the conjunction of A
+    implies c.
+  concepts:
+  - justification
+  - atms
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 2
+- id: Dixon_1993_ATMSandAGM:claim3
+  type: observation
+  statement: 'The label of a proposition p consists of all assumption sets A such
+    that: A contains only assumptions, A supports p via ATMS provability, A is minimal
+    (no proper subset also supports p), and A is consistent (contains no nogood).'
+  concepts:
+  - label
+  - atms
+  - nogood
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 2
+- id: Dixon_1993_ATMSandAGM:claim4
+  type: observation
+  statement: The foundational beliefs FB(p,E) for proposition p in environment E is
+    the set of label elements for p that are subsets of E.
+  concepts:
+  - foundational_belief
+  - label
+  - environment
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 2
+- id: Dixon_1993_ATMSandAGM:claim5
+  type: equation
+  statement: Essential support is the intersection of all foundational belief sets
+    for a proposition in an environment.
+  expression: ES(p,E) = intersection of all X in FB(p,E)
+  sympy: Intersection(*FB(p,E))
+  variables:
+    p: proposition
+    E: environment
+  concepts:
+  - essential_support
+  - foundational_belief
+  - environment
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 2
+- id: Dixon_1993_ATMSandAGM:claim6
+  type: observation
+  statement: 'The five epistemic entrenchment axioms (EE1-EE5) define a partial ordering
+    over sentences that determines which beliefs to retract during AGM contraction:
+    transitivity, dominance by logical consequence, conjunctive coverage, minimality
+    of non-beliefs, and maximality of tautologies.'
+  concepts:
+  - epistemic_entrenchment
+  - agm_postulates
+  - contraction
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 3
+- id: Dixon_1993_ATMSandAGM:claim7
+  type: equation
+  statement: AGM contraction via entrenchment retains a sentence beta iff either beta
+    does not entail alpha, or alpha is strictly less entrenched than alpha-or-beta.
+  expression: 'K-_alpha = {beta in K : beta entails alpha or Ent(alpha) < Ent(alpha
+    or beta)}'
+  sympy: SetBuilder(beta, And(beta in K, Or(Not(Implies(beta, alpha)), Ent(alpha)
+    < Ent(Or(alpha, beta)))))
+  variables:
+    K: belief set
+    alpha: sentence to contract
+    beta: candidate sentence to retain
+  concepts:
+  - contraction
+  - epistemic_entrenchment
+  - belief_set
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 3
+- id: Dixon_1993_ATMSandAGM:claim8
+  type: observation
+  statement: The ATMS_to_AGM algorithm translates ATMS justificational information
+    into an epistemic entrenchment ordering using five distinct levels E1 < E2 < E3
+    < E4 < E5, where E1 is assigned to removed assumptions, E2 to new essential supports,
+    E3 to decreased old supports, E4 as default, and E5 to tautologies only.
+  concepts:
+  - atms
+  - epistemic_entrenchment
+  - essential_support
+  - context_switching
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 4.3
+- id: Dixon_1993_ATMSandAGM:claim9
+  type: observation
+  statement: 'Theorem 1: The ATMS and AGM systems are behaviourally equivalent under
+    the computed entrenchment: for all propositions p, E proves p in the ATMS if and
+    only if p is in the AGM belief set K.'
+  concepts:
+  - atms
+  - agm_postulates
+  - epistemic_entrenchment
+  - belief_set
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 5
+- id: Dixon_1993_ATMSandAGM:claim10
+  type: observation
+  statement: 'Lemma 1: For all assumptions a in E and all propositions b, the entrenchment
+    of a equals the entrenchment of (a or b) if and only if a is in the essential
+    support of b in E.'
+  concepts:
+  - epistemic_entrenchment
+  - essential_support
+  - environment
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 5
+- id: Dixon_1993_ATMSandAGM:claim11
+  type: observation
+  statement: 'Lemma 2: If E is a consistent environment and a is not equal to b, then
+    a is in the essential support of b in E iff E ATMS-proves b and (E minus {a})
+    does not ATMS-prove b.'
+  concepts:
+  - essential_support
+  - environment
+  - atms
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 5
+- id: Dixon_1993_ATMSandAGM:claim12
+  type: observation
+  statement: ATMS context switching (adding or removing assumptions from the current
+    environment) can be modelled as sequences of AGM expansion and contraction operations.
+  concepts:
+  - context_switching
+  - expansion
+  - contraction
+  - atms
+  - agm_postulates
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 4
+- id: Dixon_1993_ATMSandAGM:claim13
+  type: observation
+  statement: The default entrenchment for unrelated atoms x and y is Ent(x) < Ent(x
+    or y), encoding that removing x does not affect y; this independence is the ATMS's
+    default assumption about the problem domain.
+  concepts:
+  - epistemic_entrenchment
+  - atms
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 4
+- id: Dixon_1993_ATMSandAGM:claim14
+  type: observation
+  statement: The minimal change principle cannot apply to the entrenchment relation
+    itself; extensive revisions of entrenchment are often necessary to keep the system
+    effectively independent of its previous state.
+  concepts:
+  - epistemic_entrenchment
+  - revision
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 6
+- id: Dixon_1993_ATMSandAGM:claim15
+  type: observation
+  statement: Rule revision (modifying justifications) cannot be performed in the ATMS
+    without restarting, but could be implemented in the AGM framework by decreasing
+    the entrenchment of the corresponding justification.
+  concepts:
+  - justification
+  - atms
+  - epistemic_entrenchment
+  provenance:
+    paper: Dixon_1993_ATMSandAGM
+    section: Section 6

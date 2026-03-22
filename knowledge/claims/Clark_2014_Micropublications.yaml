@@ -1,0 +1,100 @@
+source:
+  paper: Clark_2014_Micropublications
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: Clark_2014_Micropublications:claim1
+  type: model
+  name: micropublication_model
+  statement: A micropublication MP_a is defined as the tuple (A_mpa, c, A_c, Phi,
+    R) where A_mpa is the attribution of the formalization, c is the principal claim,
+    A_c is the claim attribution, Phi is a finite non-empty set of representations,
+    and R is a nonempty disjoint union of supports (R+) and challenges (R-) relations
+    forming a strict partial order over the support graph with c as greatest element.
+  concepts:
+  - micropublication
+  - scientific_claim
+  - attribution
+  - support_relation
+  - challenge_relation
+  - support_graph
+  equations:
+  - MP_a = (A_mpa, c, A_c, Phi, R)
+  parameters:
+  - name: Phi
+    description: Finite non-empty set of Representations which are elements of the
+      Micropublication
+  - name: R
+    description: Nonempty disjoint union of supports (R+) and challenges (R-) relations
+  - name: c
+    description: Principal Claim, the greatest element of R+
+- id: Clark_2014_Micropublications:claim2
+  type: observation
+  statement: The minimal valid micropublication consists of exactly one Claim (the
+    principal Statement) and exactly one Attribution.
+  concepts:
+  - micropublication
+  - scientific_claim
+  - attribution
+- id: Clark_2014_Micropublications:claim3
+  type: observation
+  statement: The support relations within a micropublication must form a directed
+    acyclic graph (strict partial order) rooted at the principal claim.
+  concepts:
+  - support_relation
+  - support_graph
+  - scientific_claim
+- id: Clark_2014_Micropublications:claim4
+  type: observation
+  statement: 'Challenge relations are inferred from two sub-relations: directlyChallenges
+    (explicit opposition to a claim, analogous to rebutting defeat) and indirectlyChallenges
+    (undercutting a support element of a claim, analogous to undercutting defeat).'
+  concepts:
+  - challenge_relation
+  - micropublication
+- id: Clark_2014_Micropublications:claim5
+  type: observation
+  statement: A Representation can only be assertedBy one Micropublication (original
+    instantiation) but may be quotedBy multiple Micropublications, enabling proper
+    attribution tracking when claims are imported across publication boundaries.
+  concepts:
+  - micropublication
+  - attribution
+- id: Clark_2014_Micropublications:claim6
+  type: observation
+  statement: Claim lineages are chains of support relations resolved across micropublications,
+    tracing a claim back through citation chains to its original evidential sources,
+    by analogy with biological lineages.
+  concepts:
+  - claim_lineage
+  - support_relation
+  - micropublication
+- id: Clark_2014_Micropublications:claim7
+  type: observation
+  statement: Similarity groups are equivalence classes of statements judged sufficiently
+    close in meaning, each represented by a single holotype exemplar that serves as
+    the canonical natural-language representation, enabling normalization of diverse
+    statements without dropping qualifiers or hedging.
+  concepts:
+  - similarity_group
+  - holotype
+- id: Clark_2014_Micropublications:claim8
+  type: observation
+  statement: Statement-based models (SWAN 2008, Nanopublications 2010, BEL 2011) support
+    individual statements with provenance and backing references but do not represent
+    support claim networks or direct empirical scientific evidence; the micropublication
+    model extends these by adding argumentation structure.
+  concepts:
+  - micropublication
+  - support_relation
+  - scientific_claim
+- id: Clark_2014_Micropublications:claim9
+  type: observation
+  statement: The micropublication model accommodates a spectrum of ten representation
+    complexities from minimal (Statement + Attribution) through evidence-backed, digital
+    abstracts, cross-publication networks, similarity groups, formalized claims, annotations,
+    challenged claims, to fully contextualized documents.
+  concepts:
+  - micropublication
+  - scientific_claim
+  - support_graph

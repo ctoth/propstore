@@ -1,0 +1,158 @@
+source:
+  paper: Pollock_1987_DefeasibleReasoning
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: Pollock_1987_DefeasibleReasoning:pollock87_prima_facie_vs_conclusive
+  type: observation
+  statement: 'Reasons divide into two fundamental kinds: prima facie reasons (defeasible,
+    can be undermined by additional information) and conclusive reasons (non-defeasible,
+    deductive). A prima facie reason P for Q is one where there exists R consistent
+    with P such that (P & R) is not a reason for Q.
+
+    '
+  concepts:
+  - prima_facie_reason
+  - conclusive_reason
+  reference: Definitions 2.1, 2.2
+- id: Pollock_1987_DefeasibleReasoning:pollock87_rebutting_vs_undercutting
+  type: observation
+  statement: 'Defeaters divide into two fundamentally different kinds: rebutting defeaters
+    provide a reason to believe the negation of the conclusion, while undercutting
+    defeaters deny the connection between the premises and the conclusion without
+    attacking the conclusion itself. Undercutting defeat has been generally overlooked
+    in AI approaches to nonmonotonic reasoning.
+
+    '
+  concepts:
+  - rebutting_defeater
+  - undercutting_defeater
+  reference: Definitions 2.4, 2.5
+- id: Pollock_1987_DefeasibleReasoning:pollock87_warrant_definition
+  type: observation
+  statement: 'A proposition P is warranted relative to an epistemic basis iff P is
+    supported by an ultimately undefeated argument proceeding from that basis. An
+    argument is ultimately undefeated iff there exists some m such that the argument
+    is a level n argument for every n > m.
+
+    '
+  concepts:
+  - warrant
+  - defeat_level
+  reference: Principles 4.2, 4.3
+- id: Pollock_1987_DefeasibleReasoning:pollock87_defeat_levels
+  type: observation
+  statement: 'Arguments are stratified into levels: level 0 contains all arguments;
+    level n+1 contains those level 0 arguments not defeated by any level n argument.
+    An argument is ultimately undefeated if it persists at every sufficiently high
+    level. This mechanism handles reinstatement: if a defeater is itself defeated
+    at level n, the original argument reappears at level n+1.
+
+    '
+  concepts:
+  - defeat_level
+  - reinstatement
+  reference: Definition 4.2
+- id: Pollock_1987_DefeasibleReasoning:pollock87_self_defeating_exclusion
+  type: observation
+  statement: 'A self-defeating argument is one that supports a defeater for one of
+    its own defeasible steps. Self-defeating arguments should be excluded from competition
+    in the defeat level computation, as they cannot contribute to warrant. The lottery
+    paradox is resolved by this principle.
+
+    '
+  concepts:
+  - self_defeating_argument
+  - warrant
+  - defeat_level
+  reference: Definition 4.5, Section 4.5
+- id: Pollock_1987_DefeasibleReasoning:pollock87_collective_defeat
+  type: observation
+  statement: 'If a set of propositions is believed and each member has an equally
+    good defeasible argument, but the conjunction of their premises defeats the original
+    argument, then none of the propositions in the set is warranted on those defeasible
+    arguments. This principle handles cases of symmetrical rebutting defeat.
+
+    '
+  concepts:
+  - collective_defeat
+  - prima_facie_reason
+  - warrant
+  reference: Principle 4.4
+- id: Pollock_1987_DefeasibleReasoning:pollock87_warrant_consistency
+  type: observation
+  statement: 'The set of warranted propositions is deductively consistent: if propositions
+    P and Q are both warranted from the same epistemic basis, then P and Q cannot
+    be contradictory.
+
+    '
+  concepts:
+  - warrant
+  reference: Principle 5.4
+- id: Pollock_1987_DefeasibleReasoning:pollock87_warrant_closure
+  type: observation
+  statement: 'Warrant is closed under deductive consequence: if P1,...,Pn are all
+    warranted and Q is a deductive consequence of P1,...,Pn, then Q is warranted.
+
+    '
+  concepts:
+  - warrant
+  reference: Principles 5.5, 5.6
+- id: Pollock_1987_DefeasibleReasoning:pollock87_reinstatement_mechanism
+  type: observation
+  statement: 'Reinstatement occurs when a defeater of an argument is itself defeated:
+    the original argument is restored. This is captured both in the formal theory
+    (defeat levels oscillate and stabilize) and in OSCAR''s implementation (U-REINSTATE
+    and R-REINSTATE rules).
+
+    '
+  concepts:
+  - reinstatement
+  - rebutting_defeater
+  - undercutting_defeater
+  reference: Section 4.2, OSCAR rules
+- id: Pollock_1987_DefeasibleReasoning:pollock87_oscar_architecture
+  type: observation
+  statement: 'OSCAR implements defeasible reasoning via a cycle of adoption (adding
+    new beliefs from prima facie and conclusive reasons), defeat (undercutting and
+    rebutting retraction), and reinstatement, using data structures onset (defeasible
+    beliefs), conset (conclusive beliefs), and beliefs (all believed propositions).
+    The algorithm iterates until no new adoptions or retractions occur.
+
+    '
+  concepts:
+  - prima_facie_reason
+  - conclusive_reason
+  - rebutting_defeater
+  - undercutting_defeater
+  - reinstatement
+  reference: Figure 7, Section 7
+- id: Pollock_1987_DefeasibleReasoning:pollock87_undercutting_not_rebutting
+  type: observation
+  statement: 'Undercutting defeat is fundamentally different from rebutting defeat
+    and cannot be reduced to it. An undercutting defeater R for P as prima facie reason
+    for Q denies the connection P->Q without providing any reason to believe not-Q.
+    This distinction is essential for correctly handling statistical syllogism defeaters
+    and perception defeaters.
+
+    '
+  concepts:
+  - undercutting_defeater
+  - rebutting_defeater
+  - prima_facie_reason
+  reference: Section 2.3, Definition 2.5
+- id: Pollock_1987_DefeasibleReasoning:pollock87_defeasible_reasoning_as_argumentation
+  type: observation
+  statement: 'Defeasible reasoning can be modeled as constructing arguments from prima
+    facie and conclusive reasons, where defeat is a binary relation between argument
+    lines. This argument-based framework was later shown by Dung (1995) to be a special
+    case of abstract argumentation where Pollock''s indefeasible arguments correspond
+    to the grounded extension.
+
+    '
+  concepts:
+  - prima_facie_reason
+  - conclusive_reason
+  - argumentation_framework
+  - grounded_extension
+  reference: Sections 4-5, cf. Dung 1995 Theorem 47

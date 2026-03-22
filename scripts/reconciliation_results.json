@@ -1,0 +1,258 @@
+{
+  "before_count": 754,
+  "after_count": 742,
+  "merges": [
+    {
+      "canonical": "argumentation_scheme",
+      "alias": "argumentation_schemes",
+      "reason": "Plural variant of same concept; Walton uses singular, Prakken uses plural"
+    },
+    {
+      "canonical": "claim_lineage",
+      "alias": "claim_lineages",
+      "reason": "Plural variant of same concept in same paper (Clark 2014)"
+    },
+    {
+      "canonical": "belief_revision",
+      "alias": "agm_belief_revision",
+      "reason": "AGM belief revision IS belief revision - the AGM prefix just names the framework authors. Both refer to the same operation. Papers using 'agm_belief_revision' (Dixon, Shapiro) and 'belief_revision' (Martins, Reiter, Shapiro) discuss the same concept."
+    },
+    {
+      "canonical": "three_attack_types",
+      "alias": "three_attack_types_full",
+      "reason": "Modgil 2014 uses 'three_attack_types', Modgil 2018 uses 'three_attack_types_full' - same concept (undermining/rebutting/undercutting), the '_full' suffix is a paper-label artifact"
+    },
+    {
+      "canonical": "last_link_ordering",
+      "alias": "last_link_ordering_full",
+      "reason": "Modgil 2014 vs 2018 naming - same ordering principle, '_full' is label artifact"
+    },
+    {
+      "canonical": "weakest_link_ordering",
+      "alias": "weakest_link_ordering_full",
+      "reason": "Modgil 2014 vs 2018 naming - same ordering principle, '_full' is label artifact"
+    },
+    {
+      "canonical": "contrariness_function",
+      "alias": "contrariness_function_generalization",
+      "reason": "Modgil 2014 defines it, Modgil 2018 generalizes it - but the label refers to the same function concept"
+    },
+    {
+      "canonical": "rebutting_defeat",
+      "alias": "rebutting_defeater",
+      "reason": "Same concept - 'defeat' and 'defeater' both refer to the rebutting defeat relation. Prakken/Clark/Walton use 'defeat', Pollock uses 'defeater'"
+    },
+    {
+      "canonical": "undercutting_defeat",
+      "alias": "undercutting_defeater",
+      "reason": "Same concept - Prakken/Clark/Walton use 'defeat', Pollock uses 'defeater'"
+    },
+    {
+      "canonical": "aspic_plus",
+      "alias": "aspic_plus_full_system",
+      "reason": "Both refer to the ASPIC+ framework - Odekerken uses 'aspic_plus', Modgil 2018 uses 'aspic_plus_full_system' as a label for the complete definition"
+    },
+    {
+      "canonical": "fundamental_lemma",
+      "alias": "fundamental_lemma_holds",
+      "reason": "Same concept - Dung 1995 defines it as 'fundamental_lemma', Modgil 2018 labels the claim that it holds for their system"
+    },
+    {
+      "canonical": "context_switching",
+      "alias": "context_switching_elimination",
+      "reason": "Both discuss the same concept of context switching in TMS/ATMS. Dixon uses 'context_switching', deKleer uses 'context_switching_elimination' to describe how ATMS eliminates the need for it - but the concept referenced is the same"
+    }
+  ],
+  "kept_distinct": [
+    {
+      "a": "belief_maintenance_system",
+      "b": "belief_maintenance_system_architecture",
+      "reason": "BMS is the system concept; architecture is specifically about how it's structured"
+    },
+    {
+      "a": "non_monotonic_reasoning",
+      "b": "non_monotonic_reasoning_elegance",
+      "reason": "The 'elegance' variant refers to a specific claim about TMS handling NMR elegantly"
+    },
+    {
+      "a": "stable_extension",
+      "b": "stable_extension_baf",
+      "reason": "Different definitions - Dung's stable extension vs Cayrol's BAF-specific variant"
+    },
+    {
+      "a": "stable_extension",
+      "b": "stable_extension_characterization",
+      "reason": "Extension is the concept; characterization is a theorem about it"
+    },
+    {
+      "a": "characteristic_function",
+      "b": "admissible_characteristic_function",
+      "reason": "General F_AF vs admissible-specific variant in Dung's paper"
+    },
+    {
+      "a": "belief_revision",
+      "b": "belief_revision_system",
+      "reason": "The concept vs a system that implements it"
+    },
+    {
+      "a": "belief_space",
+      "b": "current_belief_space",
+      "reason": "General concept vs the specific active/current one"
+    },
+    {
+      "a": "knowledge_base",
+      "b": "knowledge_base_definition",
+      "reason": "The concept vs the formal definition claim label"
+    },
+    {
+      "a": "oscar_system",
+      "b": "oscar_system_architecture",
+      "reason": "The system vs its specific architecture"
+    },
+    {
+      "a": "truth_function",
+      "b": "closed_truth_function",
+      "reason": "General concept vs specific closed variant in Ginsberg"
+    },
+    {
+      "a": "truth_function",
+      "b": "reduced_truth_function",
+      "reason": "General concept vs specific reduced variant in Ginsberg"
+    },
+    {
+      "a": "well_founded",
+      "b": "well_founded_justification",
+      "reason": "General property vs specific TMS justification type"
+    },
+    {
+      "a": "well_founded",
+      "b": "well_founded_support",
+      "reason": "General property vs specific support relation"
+    },
+    {
+      "a": "well_founded",
+      "b": "well_founded_framework",
+      "reason": "General property vs Dung's specific framework type"
+    },
+    {
+      "a": "inference_rules",
+      "b": "defeasible_inference_rules",
+      "reason": "General inference rules vs specifically defeasible ones"
+    },
+    {
+      "a": "partial_order",
+      "b": "strict_partial_order",
+      "reason": "Partial order allows equality; strict does not - mathematically distinct"
+    },
+    {
+      "a": "and_operator",
+      "b": "and_operator_belief",
+      "reason": "The logical AND vs its belief-interval computation"
+    },
+    {
+      "a": "not_operator",
+      "b": "not_operator_belief",
+      "reason": "The logical NOT vs its belief-interval computation"
+    },
+    {
+      "a": "invertible_link",
+      "b": "invertible_support_link",
+      "reason": "These may be the same but appear in different contexts within Falkenhainer"
+    },
+    {
+      "a": "propagation_threshold",
+      "b": "propagation_delta_threshold",
+      "reason": "Different thresholds - one for absolute belief, one for change delta"
+    },
+    {
+      "a": "context_switching",
+      "b": "context_switching_cost",
+      "reason": "The mechanism vs its computational cost"
+    },
+    {
+      "a": "exponential_growth",
+      "b": "exponential_label_growth",
+      "reason": "General exponential growth vs specifically label-set growth in ATMS"
+    },
+    {
+      "a": "data_pool",
+      "b": "data_pool_mechanism",
+      "reason": "The data structure vs the mechanism that operates on it"
+    },
+    {
+      "a": "preferred_extension",
+      "b": "preferred_extension_existence",
+      "reason": "The concept vs the theorem that one always exists"
+    },
+    {
+      "a": "citation_network",
+      "b": "citation_network_size",
+      "reason": "The network vs a measurement of its size"
+    },
+    {
+      "a": "grant_proposal",
+      "b": "grant_proposal_distortions",
+      "reason": "The document type vs distortions found in them"
+    },
+    {
+      "a": "fixed_point",
+      "b": "fixed_point_operator",
+      "reason": "The mathematical object vs the operator that computes it"
+    },
+    {
+      "a": "statistical_syllogism",
+      "b": "statistical_syllogism_undercutter",
+      "reason": "The reasoning pattern vs its specific undercutter"
+    },
+    {
+      "a": "hard_support_link",
+      "b": "invertible_support_link",
+      "reason": "Genuinely different BMS link types - hard cannot retract, invertible can"
+    },
+    {
+      "a": "dempster_rule",
+      "b": "dempster_rule_simplified",
+      "reason": "Full Dempster's rule vs simplified version for BMS"
+    },
+    {
+      "a": "rationality_postulate_direct_consistency",
+      "b": "rationality_postulate_indirect_consistency",
+      "reason": "Two different rationality postulates - direct vs indirect"
+    },
+    {
+      "a": "last_link_ordering",
+      "b": "weakest_link_ordering",
+      "reason": "Different argument ordering principles in ASPIC+ - last link looks at top rule, weakest link at all rules"
+    },
+    {
+      "a": "argument_component",
+      "b": "argument_component_detection",
+      "reason": "The NLP entity type vs the detection task"
+    },
+    {
+      "a": "claim",
+      "b": "claim_lineage",
+      "reason": "A claim vs the provenance chain of a claim"
+    },
+    {
+      "a": "rct_dataset",
+      "b": "rct_dataset_statistics",
+      "reason": "The dataset vs descriptive statistics about it"
+    },
+    {
+      "a": "sequence_tagging",
+      "b": "sequence_tagging_hyperparameters",
+      "reason": "The NLP technique vs its specific hyperparameter settings"
+    }
+  ],
+  "modified_files": [
+    "C:\\Users\\Q\\code\\propstore\\papers\\Clark_2014_Micropublications\\claims.yaml",
+    "C:\\Users\\Q\\code\\propstore\\papers\\deKleer_1986_AssumptionBasedTMS\\claims.yaml",
+    "C:\\Users\\Q\\code\\propstore\\papers\\Dixon_1993_ATMSandAGM\\claims.yaml",
+    "C:\\Users\\Q\\code\\propstore\\papers\\Modgil_2014_ASPICFrameworkStructuredArgumentation\\claims.yaml",
+    "C:\\Users\\Q\\code\\propstore\\papers\\Modgil_2018_GeneralAccountArgumentationPreferences\\claims.yaml",
+    "C:\\Users\\Q\\code\\propstore\\papers\\Pollock_1987_DefeasibleReasoning\\claims.yaml",
+    "C:\\Users\\Q\\code\\propstore\\papers\\Prakken_2012_AppreciationJohnPollock'sWork\\claims.yaml",
+    "C:\\Users\\Q\\code\\propstore\\papers\\Shapiro_1998_BeliefRevisionTMS\\claims.yaml"
+  ]
+}

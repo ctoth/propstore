@@ -1,0 +1,157 @@
+source:
+  paper: Doyle_1979_TruthMaintenanceSystem
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: Doyle_1979_TruthMaintenanceSystem:claim1
+  type: observation
+  statement: A truth maintenance system is a problem-solver subsystem that records
+    justifications for beliefs and incrementally maintains the current set of believed
+    propositions, enabling non-monotonic reasoning and automatic belief revision.
+  concepts:
+  - truth_maintenance_system
+  - non_monotonic_reasoning
+  - belief_revision
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: Introduction
+- id: Doyle_1979_TruthMaintenanceSystem:claim2
+  type: observation
+  statement: Each TMS node has a support-status of in (believed) or out (not believed),
+    where in means there exists a valid well-founded justification, not that the proposition
+    is true.
+  concepts:
+  - truth_maintenance_system
+  - support_status
+  - well_founded_justification
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 3. Justifications and Support-Status
+- id: Doyle_1979_TruthMaintenanceSystem:claim3
+  type: observation
+  statement: A support-list justification (SL inlist outlist) is valid if and only
+    if every node in the inlist is in and every node in the outlist is out, enabling
+    both monotonic deductions (empty outlist) and non-monotonic deductions (non-empty
+    outlist).
+  concepts:
+  - support_list_justification
+  - support_status
+  - non_monotonic_reasoning
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 3. Justifications and Support-Status
+- id: Doyle_1979_TruthMaintenanceSystem:claim4
+  type: observation
+  statement: A well-founded justification requires that the justified node does not
+    appear in its own transitive foundations through the supporting-justification
+    chain, preventing circular self-support.
+  concepts:
+  - well_founded_justification
+  - truth_maintenance_system
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 4. The Truth Maintenance Process
+- id: Doyle_1979_TruthMaintenanceSystem:claim5
+  type: observation
+  statement: Conditional-proof justifications (CP consequent inhypotheses outhypotheses)
+    support hypothetical reasoning by deriving consequences from assumed premises,
+    and are converted to equivalent SL-justifications via the Find Independent Support
+    procedure.
+  concepts:
+  - conditional_proof_justification
+  - support_list_justification
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 3. Justifications and Support-Status
+- id: Doyle_1979_TruthMaintenanceSystem:claim6
+  type: observation
+  statement: Dependency-directed backtracking resolves contradictions by tracing the
+    maximal assumptions underlying the contradiction, creating a nogood record, selecting
+    a culprit assumption, and retracting it.
+  concepts:
+  - dependency_directed_backtracking
+  - nogood
+  - default_assumption
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 5. Dependency-Directed Backtracking
+- id: Doyle_1979_TruthMaintenanceSystem:claim7
+  type: observation
+  statement: A nogood records that a particular set of assumptions is jointly inconsistent,
+    justified as a CP-justification so it remains believed regardless of which assumption
+    is subsequently retracted.
+  concepts:
+  - nogood
+  - conditional_proof_justification
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 5. Dependency-Directed Backtracking
+- id: Doyle_1979_TruthMaintenanceSystem:claim8
+  type: observation
+  statement: 'Default assumptions are implemented via non-monotonic SL-justifications
+    that depend on the absence of competing alternatives: (SL (G)(A_1 ... A_{i-1}
+    A_{i+1} ... A_n)) selects A_i as default when other alternatives are out.'
+  concepts:
+  - default_assumption
+  - support_list_justification
+  - non_monotonic_reasoning
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 8. Control of Reasoning
+- id: Doyle_1979_TruthMaintenanceSystem:claim9
+  type: observation
+  statement: The truth maintenance process is a 7-step algorithm that incrementally
+    updates belief statuses when justifications are added, handling well-founded evaluation,
+    circularity relaxation, CP-justification derivation, and contradiction detection.
+  concepts:
+  - truth_maintenance_system
+  - well_founded_justification
+  - support_status
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 4. The Truth Maintenance Process
+- id: Doyle_1979_TruthMaintenanceSystem:claim10
+  type: observation
+  statement: 'Three types of circularity arise in TMS justification networks: consistent
+    circularities (nodes out consistently), choice circularities (at least one node
+    must be in), and unsatisfiable circularities (no consistent assignment exists).'
+  concepts:
+  - truth_maintenance_system
+  - well_founded_justification
+  - support_status
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 4. The Truth Maintenance Process
+- id: Doyle_1979_TruthMaintenanceSystem:claim11
+  type: observation
+  statement: Dialectical argumentation organizes modular problem-solving through explicit
+    argument and counterargument between reasoning components, using the TMS to track
+    the justification structure of the debate.
+  concepts:
+  - dialectical_argumentation
+  - truth_maintenance_system
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 6. Summarizing Arguments and Dialectical Argumentation
+- id: Doyle_1979_TruthMaintenanceSystem:claim12
+  type: observation
+  statement: The TMS makes binary in/out belief decisions with no notion of belief
+    strength, credibility, or confidence, limiting its ability to represent graded
+    or uncertain beliefs.
+  concepts:
+  - truth_maintenance_system
+  - support_status
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 9. Limitations
+- id: Doyle_1979_TruthMaintenanceSystem:claim13
+  type: observation
+  statement: The TMS culprit selection during dependency-directed backtracking is
+    blind, picking the culprit randomly from alternatives, which is inadequate for
+    all but the simplest problems.
+  concepts:
+  - dependency_directed_backtracking
+  - truth_maintenance_system
+  provenance:
+    paper: Doyle_1979_TruthMaintenanceSystem
+    section: 9. Limitations

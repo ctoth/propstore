@@ -1,0 +1,141 @@
+source:
+  paper: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim1
+  type: observation
+  statement: 'An argumentation system AS = (L, C, R, n) consists of a logical language
+    L closed under negation, a contrariness function C, strict and defeasible rules
+    R = R_s union R_d, and a naming function n for defeasible rules.
+
+    '
+  concepts:
+  - aspic_plus
+  - argumentation_framework
+  - knowledge_base
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim2
+  type: observation
+  statement: 'Under incomplete information in ASPIC+, literals are assigned one of
+    four justification statuses: unsatisfiable (no supporting argument exists), defended
+    (in the grounded extension), out (argument exists but is defeated), or blocked
+    (argument exists, not in grounded extension, not definitively defeated).
+
+    '
+  concepts:
+  - justification_status
+  - grounded_semantics
+  - incomplete_information
+  - aspic_plus
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim3
+  type: observation
+  statement: 'A literal l is j-stable with respect to a set of queryables Q if and
+    only if l has justification status j in every future argumentation theory obtained
+    by resolving queryables from Q.
+
+    '
+  concepts:
+  - stability
+  - justification_status
+  - queryable
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim4
+  type: observation
+  statement: 'A queryable q is j-relevant for a literal l if q or its contradictory
+    appears in the axiom additions of some minimal stable-j future theory for l.
+
+    '
+  concepts:
+  - relevance
+  - queryable
+  - stability
+  - justification_status
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim5
+  type: observation
+  statement: 'Computing the justification status of a literal in a complete argumentation
+    theory under grounded semantics is decidable in polynomial time via the characteristic
+    function''s least fixpoint.
+
+    '
+  concepts:
+  - justification_status
+  - grounded_semantics
+  - characteristic_function
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim6
+  type: parameter
+  concept: stability
+  value: coNP-complete
+  unit: computational complexity class
+  statement: 'Deciding whether a literal is j-stable in an argumentation theory with
+    respect to a set of queryables is coNP-complete for each justification status
+    j in {unsatisfiable, defended, out, blocked} (Proposition 7).
+
+    '
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim7
+  type: parameter
+  concept: relevance
+  value: Sigma_2^P-complete
+  unit: computational complexity class
+  statement: 'Deciding whether a queryable is j-relevant for a literal in an argumentation
+    theory is Sigma_2^P-complete for each justification status j in {unsatisfiable,
+    defended, out, blocked} (Theorem 2).
+
+    '
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim8
+  type: model
+  name: ASPIC+ under incomplete information
+  statement: 'The framework extends ASPIC+ with observation-based argumentation theories
+    (AT, O), queryable sets Q of unsettled literals, and future argumentation theories
+    representing possible completions of incomplete knowledge bases.
+
+    '
+  equations:
+  - future AT' = (AS, K') where K_n subset K'_n subset K_n union Q
+  parameters:
+  - aspic_plus
+  - queryable
+  - knowledge_base
+  - incomplete_information
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim9
+  type: observation
+  statement: 'If a literal is j-stable, adding more observations (resolving queryables)
+    cannot change its justification status, providing a monotonicity guarantee for
+    stability.
+
+    '
+  concepts:
+  - stability
+  - justification_status
+  - queryable
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim10
+  type: observation
+  statement: 'The ASP-based algorithms for computing justification status, stability,
+    and relevance use counterexample-guided abstraction refinement (CEGAR) and are
+    implemented using the Clingo solver.
+
+    '
+  concepts:
+  - answer_set_programming
+  - justification_status
+  - stability
+  - relevance
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim11
+  type: measurement
+  target_concept: justification_status
+  measure: mean computation time on real-world benchmarks without preferences
+  value: 0.26
+  unit: seconds
+  statement: 'The ASP-based justification status algorithm achieves a mean runtime
+    of 0.26 seconds on real-world argumentation benchmarks without preferences.
+
+    '
+- id: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim12
+  type: observation
+  statement: 'Arguments in ASPIC+ attack each other via three mechanisms: undermining
+    (attacking ordinary premises), rebutting (attacking defeasible conclusions), and
+    undercutting (attacking defeasible rule applicability).
+
+    '
+  concepts:
+  - aspic_plus
+  - attack_relation
+  - argumentation_framework

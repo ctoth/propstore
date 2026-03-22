@@ -1,0 +1,65 @@
+source:
+  paper: Groth_2010_AnatomyNanopublication
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: Groth_2010_AnatomyNanopublication:claim1
+  type: model
+  name: nanopublication_model
+  statement: 'A nanopublication is defined as a layered model consisting of six levels:
+    concept (smallest unambiguous unit of thought), triple (tuple of three concepts),
+    statement (uniquely identifiable triple), annotation (triple whose subject is
+    a statement), nanopublication (set of annotations referring to the same statement
+    with community-agreed minimum annotations), and S-Evidence (all nanopublications
+    referring to the same statement).'
+  concepts:
+  - nanopublication
+  - scientific_claim
+  - s_evidence
+- id: Groth_2010_AnatomyNanopublication:claim2
+  type: observation
+  statement: 'The simplest valid nanopublication requires exactly two Named Graphs:
+    one containing the statement and one containing the annotations on that statement.'
+  concepts:
+  - nanopublication
+  - named_graph
+- id: Groth_2010_AnatomyNanopublication:claim3
+  type: parameter
+  statement: The minimum number of Named Graphs per nanopublication is 2.
+  target_concept: nanopublication
+  measure: named_graphs_per_nanopub
+  value: 2
+  unit: count
+- id: Groth_2010_AnatomyNanopublication:claim4
+  type: observation
+  statement: The nanopublication model maps to RDF Named Graphs where each statement
+    is a separate Named Graph, each annotation has a statement URI as its subject,
+    and all annotations belonging to a nanopublication are part of the same Named
+    Graph.
+  concepts:
+  - nanopublication
+  - named_graph
+- id: Groth_2010_AnatomyNanopublication:claim5
+  type: observation
+  statement: S-Evidence aggregates all nanopublications referring to the same statement,
+    enabling collection and comparison of multiple sources of evidence and allowing
+    reasoning on statements versus condensed annotation views.
+  concepts:
+  - s_evidence
+  - nanopublication
+- id: Groth_2010_AnatomyNanopublication:claim6
+  type: observation
+  statement: 'Three levels of nanopublication compatibility are defined: Transformation
+    Compatible (data can be transformed to CWA format), Format Compatible (uses CWA
+    model and endorsed serialization), and Concept Wiki Compatible (format compatible
+    and uses only Concept Wiki identifiers).'
+  concepts:
+  - nanopublication
+- id: Groth_2010_AnatomyNanopublication:claim7
+  type: observation
+  statement: The nanopublication model is built entirely on existing Semantic Web
+    infrastructure (RDF Named Graphs, SWAN ontology, SWP ontology, FOAF) without requiring
+    new specifications.
+  concepts:
+  - nanopublication
+  - named_graph

@@ -1,0 +1,246 @@
+source:
+  paper: Dung_1995_AcceptabilityArguments
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: Dung_1995_AcceptabilityArguments:dung95_def_af
+  type: observation
+  statement: 'An argumentation framework is defined as an abstract pair AF = (AR,
+    attacks) where AR is a set of arguments and attacks is a binary relation on AR.
+    Arguments are abstract entities whose role is solely determined by their relations
+    to other arguments.
+
+    '
+  concepts:
+  - argumentation_framework
+  - attack_relation
+  reference: Definition 2
+- id: Dung_1995_AcceptabilityArguments:dung95_def_conflict_free
+  type: observation
+  statement: 'A set S of arguments is conflict-free if there are no arguments A and
+    B in S such that A attacks B.
+
+    '
+  concepts:
+  - conflict_free_set
+  - attack_relation
+  reference: Definition 5
+- id: Dung_1995_AcceptabilityArguments:dung95_def_acceptability
+  type: observation
+  statement: 'An argument A is acceptable with respect to a set S iff for each argument
+    B that attacks A, there exists an argument in S that attacks B.
+
+    '
+  concepts:
+  - acceptability
+  - attack_relation
+  reference: Definition 6(1)
+- id: Dung_1995_AcceptabilityArguments:dung95_def_admissible
+  type: observation
+  statement: 'A conflict-free set of arguments S is admissible iff each argument in
+    S is acceptable with respect to S.
+
+    '
+  concepts:
+  - admissible_set
+  - conflict_free_set
+  - acceptability
+  reference: Definition 6(2)
+- id: Dung_1995_AcceptabilityArguments:dung95_def_preferred
+  type: observation
+  statement: 'A preferred extension of an argumentation framework is a maximal (with
+    respect to set inclusion) admissible set.
+
+    '
+  concepts:
+  - preferred_extension
+  - admissible_set
+  reference: Definition 7
+- id: Dung_1995_AcceptabilityArguments:dung95_def_stable
+  type: observation
+  statement: 'A conflict-free set S is a stable extension iff S attacks each argument
+    which does not belong to S.
+
+    '
+  concepts:
+  - stable_extension
+  - conflict_free_set
+  reference: Definition 13
+- id: Dung_1995_AcceptabilityArguments:dung95_def_characteristic_fn
+  type: observation
+  statement: 'The characteristic function F_AF maps sets of arguments to sets of arguments,
+    where F_AF(S) = {A | A is acceptable with respect to S}.
+
+    '
+  concepts:
+  - characteristic_function
+  - acceptability
+  reference: Definition 16
+- id: Dung_1995_AcceptabilityArguments:dung95_def_grounded
+  type: observation
+  statement: 'The grounded extension is the least fixed point of the characteristic
+    function F_AF.
+
+    '
+  concepts:
+  - grounded_extension
+  - characteristic_function
+  reference: Definition 20
+- id: Dung_1995_AcceptabilityArguments:dung95_def_complete
+  type: observation
+  statement: 'An admissible set S is a complete extension iff each argument acceptable
+    with respect to S belongs to S. Equivalently, S is a complete extension iff S
+    = F_AF(S).
+
+    '
+  concepts:
+  - complete_extension
+  - admissible_set
+  - characteristic_function
+  reference: Definition 23, Lemma 24
+- id: Dung_1995_AcceptabilityArguments:dung95_fundamental_lemma
+  type: observation
+  statement: 'If S is an admissible set and A, A'' are acceptable with respect to
+    S, then S union {A} is admissible, and A'' remains acceptable with respect to
+    S union {A}.
+
+    '
+  concepts:
+  - admissible_set
+  - acceptability
+  reference: Lemma 10
+- id: Dung_1995_AcceptabilityArguments:dung95_preferred_existence
+  type: observation
+  statement: 'Every argumentation framework possesses at least one preferred extension.
+
+    '
+  concepts:
+  - argumentation_framework
+  - preferred_extension
+  reference: Corollary 12
+- id: Dung_1995_AcceptabilityArguments:dung95_stable_implies_preferred
+  type: observation
+  statement: 'Every stable extension is a preferred extension, but not every preferred
+    extension is stable. Counterexample: AF with AR={A} and attacks={(A,A)} has preferred
+    extension {} which is not stable.
+
+    '
+  concepts:
+  - stable_extension
+  - preferred_extension
+  reference: Lemma 15
+- id: Dung_1995_AcceptabilityArguments:dung95_preferred_implies_complete
+  type: observation
+  statement: 'Every preferred extension is a complete extension, but not vice versa.
+
+    '
+  concepts:
+  - preferred_extension
+  - complete_extension
+  reference: Theorem 25(1)
+- id: Dung_1995_AcceptabilityArguments:dung95_grounded_least_complete
+  type: observation
+  statement: 'The grounded extension is the least (with respect to set inclusion)
+    complete extension. The complete extensions form a complete semilattice with respect
+    to set inclusion.
+
+    '
+  concepts:
+  - grounded_extension
+  - complete_extension
+  reference: Theorem 25(2-3)
+- id: Dung_1995_AcceptabilityArguments:dung95_semantics_hierarchy
+  type: observation
+  statement: 'The semantics form a strict containment hierarchy: grounded is the least
+    complete extension; every stable extension is preferred; every preferred extension
+    is complete; but none of the reverse implications hold in general.
+
+    '
+  concepts:
+  - grounded_extension
+  - stable_extension
+  - preferred_extension
+  - complete_extension
+  reference: Theorem 25, Lemma 15
+- id: Dung_1995_AcceptabilityArguments:dung95_characteristic_fn_monotonic
+  type: observation
+  statement: 'The characteristic function F_AF is monotonic with respect to set inclusion.
+
+    '
+  concepts:
+  - characteristic_function
+  reference: Lemma 19
+- id: Dung_1995_AcceptabilityArguments:dung95_well_founded_unique
+  type: observation
+  statement: 'Every well-founded argumentation framework has exactly one complete
+    extension which is simultaneously grounded, preferred, and stable.
+
+    '
+  concepts:
+  - well_founded_framework
+  - complete_extension
+  - grounded_extension
+  - preferred_extension
+  - stable_extension
+  reference: Theorem 30
+- id: Dung_1995_AcceptabilityArguments:dung95_coherent_framework
+  type: observation
+  statement: 'An argumentation framework is coherent if every preferred extension
+    is stable. Every limited controversial framework is coherent and possesses at
+    least one stable extension.
+
+    '
+  concepts:
+  - coherent_framework
+  - preferred_extension
+  - stable_extension
+  reference: Definition 31, Theorem 33, Corollary 36
+- id: Dung_1995_AcceptabilityArguments:dung95_finitary_omega_continuous
+  type: observation
+  statement: 'If an argumentation framework is finitary (each argument has finitely
+    many attackers), then its characteristic function F_AF is omega-continuous.
+
+    '
+  concepts:
+  - finitary_framework
+  - characteristic_function
+  reference: Lemma 28
+- id: Dung_1995_AcceptabilityArguments:dung95_meta_interpreter
+  type: observation
+  statement: 'An argumentation system can be decomposed into an Argument Generation
+    Unit (AGU) that generates arguments and attack relations, and an Argument Processing
+    Unit (APU) consisting of two clauses: acc(X) <- not defeat(X) and defeat(X) <-
+    attack(Y,X), acc(Y). Stable extensions correspond to stable models and the grounded
+    extension corresponds to the well-founded model of this program.
+
+    '
+  concepts:
+  - meta_interpreter
+  - argumentation_framework
+  - stable_extension
+  - grounded_extension
+  reference: Theorem 62, Section 5
+- id: Dung_1995_AcceptabilityArguments:dung95_default_logic_correspondence
+  type: observation
+  statement: 'Reiter''s default logic extensions (R-extensions) correspond exactly
+    to stable extensions of the argumentation framework constructed from the default
+    theory.
+
+    '
+  concepts:
+  - argumentation_framework
+  - stable_extension
+  - non_monotonic_reasoning
+  reference: Theorem 43
+- id: Dung_1995_AcceptabilityArguments:dung95_logic_programming_correspondence
+  type: observation
+  statement: 'Stable models of a logic program correspond to stable extensions, and
+    the well-founded model corresponds to the grounded extension, of the argumentation
+    framework constructed from the program.
+
+    '
+  concepts:
+  - stable_extension
+  - grounded_extension
+  - argumentation_framework
+  reference: Theorems 49-50

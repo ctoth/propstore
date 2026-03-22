@@ -1,0 +1,147 @@
+source:
+  paper: deKleer_1986_ProblemSolvingATMS
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: deKleer_1986_ProblemSolvingATMS:claim1
+  type: observation
+  statement: The consumer architecture encodes problem-solving steps as modular consumers
+    attached to ATMS nodes that execute exactly once when antecedent labels become
+    nonempty, producing new justifications and ensuring clean separation between problem-solving
+    logic and ATMS maintenance.
+  concepts:
+  - consumer_architecture
+  - atms
+  - label
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 3. Consumers
+- id: deKleer_1986_ProblemSolvingATMS:claim2
+  type: observation
+  statement: Consumers may not have internal state or make control decisions; all
+    inferences are recorded as permanent ATMS justifications, ensuring the ATMS remains
+    order-independent and sound.
+  concepts:
+  - consumer_architecture
+  - atms
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 3. Consumers
+- id: deKleer_1986_ProblemSolvingATMS:claim3
+  type: observation
+  statement: Scheduling consumers by simplest-label-first (fewest assumptions in the
+    environment) finds solutions with near-minimum effort by exploring the most constrained
+    contexts first.
+  concepts:
+  - consumer_architecture
+  - environment
+  - atms
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 4.1 Scheduling
+- id: deKleer_1986_ProblemSolvingATMS:claim4
+  type: observation
+  statement: Control disjunctions partition the search space by constraining the scheduler
+    to explore only environments consistent with specified mutually exclusive choices,
+    achieving at least the efficiency of chronological backtracking.
+  concepts:
+  - control_disjunction
+  - atms
+  - dependency_directed_backtracking
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 4.2 Dependency-Directed Backtracking
+- id: deKleer_1986_ProblemSolvingATMS:claim5
+  type: observation
+  statement: The constraint language provides primitives (PLUS, TIMES, AND, OR, ONEOF,
+    EQ, NOT, MINUS, DIVIDE, ELEMENT) built entirely on ATMS justifications and consumers
+    for encoding arithmetic and logical constraints.
+  concepts:
+  - constraint_language
+  - consumer_architecture
+  - atms
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 5.3 Constraint Language
+- id: deKleer_1986_ProblemSolvingATMS:claim6
+  type: observation
+  statement: Constraint consumers trigger when all but one variable in a relation
+    are known, computing the unknown via the constraint's inverse function, and suppress
+    spurious retriggering.
+  concepts:
+  - constraint_language
+  - consumer_architecture
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 5.3 Constraint Language
+- id: deKleer_1986_ProblemSolvingATMS:claim7
+  type: observation
+  statement: For problems requiring all solutions, the ATMS has an inherent advantage
+    over conventional TMSs by avoiding all dependency-directed backtracking and context
+    switching overhead.
+  concepts:
+  - atms
+  - dependency_directed_backtracking
+  - context_switching
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 6. Summary
+- id: deKleer_1986_ProblemSolvingATMS:claim8
+  type: observation
+  statement: 'Without control disjunctions, label sizes can grow exponentially: the
+    i-bit parity problem produces 2^(i+2) + 2^i environments, but with control disjunctions
+    the first solution is found after creating only 4i environments.'
+  concepts:
+  - control_disjunction
+  - label
+  - atms
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 5.2 Parity Problem
+- id: deKleer_1986_ProblemSolvingATMS:claim9
+  type: observation
+  statement: The ATMS provides a weaker notion of control than Doyle's TMS data pool
+    mechanism, because ATMS consumers cannot make control decisions or maintain internal
+    state.
+  concepts:
+  - consumer_architecture
+  - truth_maintenance_system
+  - atms
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 7. Comparison
+- id: deKleer_1986_ProblemSolvingATMS:claim10
+  type: observation
+  statement: ATMS soundness, completeness, and consistency guarantees for default
+    reasoning can be inadvertently lost if the problem solver does not interface correctly
+    through the consumer architecture.
+  concepts:
+  - atms
+  - consumer_architecture
+  - non_monotonic_reasoning
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 1. Introduction
+- id: deKleer_1986_ProblemSolvingATMS:claim11
+  type: observation
+  statement: Conjunctive class consumers are invoked on the cross-product of antecedent
+    class node sets, running once per tuple of nodes, enabling efficient encoding
+    of multi-variable rules.
+  concepts:
+  - consumer_architecture
+  - atms
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 3.2 Conjunctive Class Consumers
+- id: deKleer_1986_ProblemSolvingATMS:claim12
+  type: observation
+  statement: Control is exercised only before running a consumer by selecting which
+    environment to explore; once a consumer executes, its justifications are permanent
+    and cannot be retracted without the defeasibility-assumption mechanism.
+  concepts:
+  - consumer_architecture
+  - control_disjunction
+  - atms
+  provenance:
+    paper: deKleer_1986_ProblemSolvingATMS
+    section: 4. Control

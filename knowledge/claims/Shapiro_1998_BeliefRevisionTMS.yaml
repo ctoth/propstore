@@ -1,0 +1,129 @@
+source:
+  paper: Shapiro_1998_BeliefRevisionTMS
+  extraction_model: claude-opus-4-20250514
+  extraction_date: '2026-03-22'
+claims:
+- id: Shapiro_1998_BeliefRevisionTMS:claim1
+  type: observation
+  statement: 'A knowledge-based system consists of a knowledge base of assertions,
+    a set of inference methods, and a belief revision system (BRS/TMS) responsible
+    for maintaining consistency.
+
+    '
+  concepts:
+  - belief_revision_system
+  - knowledge_base
+  - truth_maintenance_system
+- id: Shapiro_1998_BeliefRevisionTMS:claim2
+  type: observation
+  statement: 'Every belief revision system must support three core tasks: (1) find
+    the derivation support for an assertion, (2) find all assertions derived from
+    a given assumption, and (3) delete an assertion and cascade the deletion to all
+    its dependents.
+
+    '
+  concepts:
+  - belief_revision_system
+  - truth_maintenance_system
+- id: Shapiro_1998_BeliefRevisionTMS:claim3
+  type: observation
+  statement: 'A JTMS uses a dependency graph with nodes (labeled in/out) and justifications,
+    supporting non-monotonic rules via inverter arcs from justifications to literals
+    that must be out for the justification to hold.
+
+    '
+  concepts:
+  - truth_maintenance_system
+  - support_list_justification
+- id: Shapiro_1998_BeliefRevisionTMS:claim4
+  type: observation
+  statement: 'An ATMS associates each inferred assertion directly with its minimal
+    sets of supporting assumptions, eliminating the need to traverse intermediate
+    justification chains for derivation support queries.
+
+    '
+  concepts:
+  - atms
+  - belief_revision_system
+- id: Shapiro_1998_BeliefRevisionTMS:claim5
+  type: observation
+  statement: 'In an ATMS, the current knowledge base is determined by a current context
+    (a set of assumptions); deleting an assumption removes it from the context and
+    implicitly removes all assertions whose assumption sets are no longer subsets
+    of the context.
+
+    '
+  concepts:
+  - atms
+  - environment
+  - belief_revision_system
+- id: Shapiro_1998_BeliefRevisionTMS:claim6
+  type: observation
+  statement: 'SNeBR unites assumption-based tracking with the reasoner, computing
+    assumption sets directly from inference rules: for and-elimination the assumptions
+    equal the parent''s, for modus ponens the assumptions are the union of the parents''.
+
+    '
+  concepts:
+  - belief_revision_system
+  - belief_revision
+  - truth_maintenance_system
+- id: Shapiro_1998_BeliefRevisionTMS:claim7
+  type: observation
+  statement: 'The TMS implementation tradition and the AGM belief revision formal
+    theory tradition developed in near-complete isolation, with almost no cross-citations
+    between the two bodies of literature as of 1998.
+
+    '
+  concepts:
+  - truth_maintenance_system
+  - agm_postulates
+  - belief_revision
+- id: Shapiro_1998_BeliefRevisionTMS:claim8
+  type: observation
+  statement: 'AGM belief revision imposes two key constraints on culprit selection
+    during contraction: (1) minimality of information loss, choosing the culprit whose
+    removal causes the fewest other assertions to be removed, and (2) entrenchment-based
+    priority, retracting the least entrenched beliefs first.
+
+    '
+  concepts:
+  - agm_postulates
+  - contraction
+  - epistemic_entrenchment
+  - belief_revision
+- id: Shapiro_1998_BeliefRevisionTMS:claim9
+  type: observation
+  statement: 'No implemented TMS as of 1998 satisfies the AGM minimality constraint
+    of choosing the culprit whose removal causes the fewest other assertions to be
+    removed.
+
+    '
+  concepts:
+  - truth_maintenance_system
+  - agm_postulates
+  - belief_revision_system
+- id: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: observation
+  statement: 'An LTMS adds clause-form rules to justifications, enabling three-valued
+    labeling (true, false, unknown) where the label of any literal can depend on labels
+    of others in the same clause.
+
+    '
+  concepts:
+  - truth_maintenance_system
+  - three_valued_logic
+- id: Shapiro_1998_BeliefRevisionTMS:claim11
+  type: model
+  name: Shapiro's unified BRS architecture
+  statement: 'The proposed architecture builds a belief revision system on SNePS/SNeBR
+    that satisfies AGM constraints by combining ATMS-style assumption tracking with
+    entrenchment-based culprit selection using category-based importance ordering.
+
+    '
+  equations: []
+  parameters:
+  - belief_revision_system
+  - atms
+  - agm_postulates
+  - epistemic_entrenchment
