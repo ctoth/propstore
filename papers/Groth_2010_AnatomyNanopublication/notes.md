@@ -149,6 +149,50 @@ The paper mentions tools such as eLiXir (a simple conversion tool for representi
 ## Results Summary
 Conceptual paper; no empirical evaluation. Demonstrates feasibility through the Concept Wiki implementation and compatibility with existing Semantic Web standards. *(p.55--56)*
 
+## Arguments Against Prior Work
+
+### Against Traditional Publications as Unit of Scholarly Communication *(p.51)*
+- As the volume of scholarly communication grows, it becomes increasingly difficult to find specific core scientific statements within full publications *(p.51)*
+- The statement itself --- a scientific assertion --- exists many times over in the published literature, redundantly published across multiple sources, making attribution, quality assessment, and provenance tracking difficult *(p.51)*
+- Statements need to be taken into account in full view of their context, which increasingly becomes a practical impossibility as the number of relevant published articles keeps growing *(p.51)*
+
+### Against Ad-Hoc Statement Extraction *(p.51--52)*
+- It can be expected that the number of systems that facilitate the creation of statements will increase further, coming in the form of both processes designed to extract statements from existing material and systems that facilitate de novo statement creation *(p.52)*
+- Newer standards like RDFa also facilitate this and integrate with current third-party content *(p.52)*
+- However, these systems lack a common format for nanopublications that enables their aggregation and the correct preservation of associated provenance --- the paper argues for a standardized model rather than ad-hoc extraction *(p.52)*
+
+### Against Inventing New Specifications *(p.53, 56)*
+- The CWA working group aims not to develop new specifications but instead to identify existing technology and formats that can be used for aggregating nanopublications *(p.56)*
+- The paper deliberately reuses existing ontologies (SWAN, SWP, FOAF) rather than creating new vocabularies, arguing that community agreement on annotation vocabulary is more important than the specific format *(p.53)*
+- Named Graphs were specifically designed with use cases similar to nanopublications in mind --- provenance tracking and context definition --- so no new infrastructure is needed *(p.53)*
+
+### Against Uncontextualized Scientific Claims *(p.51)*
+- A statement can only be validated scientifically if you take into consideration its context *(p.51)*
+- Traditionally, the context of a scientific statement is implicit in its immediate environment (the scientific publication), but the paper argues this must be made explicit and machine-readable through structured annotations *(p.51)*
+
+## Design Rationale
+
+### Why the layered model (concept -> triple -> statement -> annotation -> nanopublication) *(p.52)*
+Each layer adds a new capability: concepts provide unambiguous identification, triples add relational structure, statements add unique identifiability (via URIs), annotations add metadata about statements, and nanopublications bundle annotations into citable units. The hierarchy ensures each layer is independently useful and composable. *(p.52)*
+
+### Why Named Graphs for serialization *(p.53)*
+Named Graphs provide exactly the capability needed: assigning a URI to an RDF graph so that statements about the graph (annotations) can reference it. Named Graphs were specifically designed for provenance tracking and context definition --- the same use cases nanopublications require. They are widely supported by existing quad stores (Virtuoso, 4store, NG4J) even though not yet a W3C standard. *(p.53)*
+
+### Why SWAN ontology for annotations *(p.54)*
+Rather than inventing new annotation terms, the paper adopts the SWAN (Semantic Web Applications in Neuromedicine) ontology, which already provides vocabulary for describing provenance, annotation, and versioning of research statements. SWAN also extends FOAF for representing people, organizations, and software agents. Reusing SWAN ensures compatibility with existing biomedical discourse tools. *(p.54)*
+
+### Why SWP for attribution *(p.54)*
+The Semantic Web Publishing (SWP) ontology provides an `assertedBy` relationship that relates a Named Graph to an authority. This enables multiple entities to independently assert the same nanopublication, and SWP supports digital signatures on each graph for verification. Attribution is essential to nanopublications --- it establishes who stands behind a claim. *(p.54)*
+
+### Why S-Evidence as an aggregation concept *(p.52, 55)*
+S-Evidence (all nanopublications about the same statement) enables evidence aggregation: finding, filtering, and combining multiple sources of support or challenge for a single scientific claim. Separating statements from annotations allows reasoning on statements alone, annotations alone, or condensed views. This is key to the nanopublication vision of enabling computational assessment of statement veracity. *(p.52, 55)*
+
+### Why three compatibility levels *(p.55--56)*
+Different publishers and communities have different levels of investment in Semantic Web infrastructure. The three levels (Transformation Compatible, Format Compatible, Concept Wiki Compatible) provide a gradual adoption path: even data that merely can be transformed into the format benefits from the ecosystem, while fully compatible nanopublications using Concept Wiki identifiers enable the richest aggregation and interoperability. *(p.55--56)*
+
+### Why Concept Wiki for shared identifiers *(p.55--56)*
+For nanopublication aggregation to work at scale, publishers must use the same identifiers for the same concepts and statements. The Concept Wiki provides a centralized repository of unambiguous concept URIs following Linked Data principles, solving the coordination problem of identifier alignment across publishers. *(p.55--56)*
+
 ## Limitations
 - No formal evaluation or user study *(p.56)*
 - Named Graphs were not yet a W3C standard at time of publication *(p.53)*

@@ -177,6 +177,38 @@ The system is demonstrated to handle:
 - Truth values deduced from clauses can only be removed by removing the premises or clauses from which they were deduced, not directly by the TMS user *(p.21)*
 - A clause node is always given a true truth value with PREMISE support upon creation; its ASSERTION property is CLAUSE *(p.20, 27)*
 
+## Arguments Against Prior Work
+
+1. **Against Stallman and Sussman's ARS (1976):** ARS has only two truth states ("believed" and "unknown"), and "since no assertion can be false in such a system, additional mechanisms are needed to prevent the belief of sets of assumptions known to be contradictory." *(p.15)* ARS uses NOGOOD assertions as a separate mechanism to prevent contradictory assumption sets from being re-believed. *(p.15)* McAllester's three-valued system handles this naturally through clause-based contradiction resolution. *(p.15-16)*
+
+2. **Against Doyle's TMS (1978a):** Doyle's system has only two truth states ("in" and "out"), requiring "two TMS nodes per assertion, one for the assertion and one for its negation." *(p.15)* Furthermore, in Doyle's system "the notion of a contradiction is completely separate from the justifications. A node must be created which is declared to be a contradiction and then a justification of this contradiction node is installed for each set of nodes which are mutually contradictory." *(p.15)* This creates "tremendous conceptual and programming simplicity" problems that the three-valued clause system avoids. *(p.16)*
+
+3. **Against Doyle's non-monotonic dependency structure:** Doyle's TMS "uses a non-monotonic dependency structure. This means that truth of a node can depend on another node being unknown." *(p.16)* While this provides non-monotonic power, McAllester argues his system "has most of the non-monotonic power of Doyle's system, but in a much simpler form" through defaults and clause-based contradiction resolution. *(p.16)*
+
+4. **Against Doyle's conditional proof mechanism:** The CP mechanism is "extremely difficult and computationally expensive to check the actual truth value of the conditional proof" because "CP nodes are 'in' in only the cases in which they could actually be shown true." *(p.16)* McAllester chose not to implement it because "I did not have any application to justify its existence." *(p.17)* The clause-based approach achieves similar backtracking results without the CP overhead.
+
+5. **Against backtracking mechanisms in earlier systems:** Earlier context mechanisms required "additional mechanisms" (NOGOOD lists) to track contradictory assumption sets. *(p.15)* McAllester's clause representation, where "a contradiction is only a clause which cannot be satisfied," directly enables deduction of negations without any separate bookkeeping. *(p.16)*
+
+## Design Rationale
+
+1. **Three truth states instead of two:** Using true, false, and unknown "eliminates the need of a separate entity to represent the negation of a proposition." *(p.4)* In Doyle's two-valued system, knowing something is false requires two nodes (assertion and its negation), one "in" and one "out". The three-valued system represents this directly with a single node set to FALSE. *(pp.4, 15)*
+
+2. **Disjunctive clause representation:** "All logical relations between propositions are represented in disjunctive clauses." *(p.3)* Implications of the form P1 ^ P2 ^ P3 -> Q become (-P1 v -P2 v -P3 v Q), eliminating "the distinction between antecedents and consequences" so that "the negation of an antecedent in the implication can be as easily deduced as the consequent." *(p.3-4)* This symmetric representation "eliminates much of the backtracking mechanisms which are present in other truth maintenance systems." *(p.3)*
+
+3. **One-step deductions only:** "To avoid NP-complete satisfiability checking, only deductions from a single clause (when PSAT = 1) are performed." *(p.7)* This keeps the algorithm polynomial while still capturing the most useful deductions -- when all terms of a clause are falsified except one unknown, that unknown's value is forced.
+
+4. **PSAT counter for efficient clause monitoring:** Each clause maintains a count (PSAT) of potentially satisfying terms. *(p.23)* Deductions happen exactly when PSAT reaches 1 (one unknown term remaining), and contradictions when PSAT reaches 0. *(p.6, 9)* This avoids scanning all terms of every clause on each update.
+
+5. **Contradiction as unsatisfiable clause:** "In my TMS a contradiction is only a clause which cannot be satisfied." *(p.16)* This is "the tremendous conceptual and programming simplicity advantage of this system" -- no separate contradiction nodes, no explicit NOGOOD lists, no per-pair mutual exclusion justifications. *(p.16)* When a clause reaches PSAT = 0, it directly enables deduction of the opposite truth value of whatever caused it.
+
+6. **Clause validity nodes instead of deletion:** Rather than physically deleting clauses, "a validity node is added; setting it false effectively removes the clause." *(p.13)* This serves dual purposes: it provides provenance tracking for clause origins, and it enables assumption hierarchies where clause validity can itself be a default assumption subject to backtracking. *(p.13)*
+
+7. **Minimum maximum distance heuristic for backtracking:** When selecting which default assumption to retract, the system picks "the assumption with the minimum maximum distance from the contradiction." *(p.13-14)* This ensures that "implied assumptions (further away in the support chain) are retracted before the assumptions they depend on," maintaining hierarchical consistency. *(p.13-14)*
+
+8. **No specific blame set for contradictions:** Unlike Doyle's system which identifies a specific set of assumptions to blame, McAllester's system "chooses no specific set of assumptions" to blame for contradictions. *(p.16)* This means "new assumptions which lead to old contradictions can also be proven false," and "the difference this makes in the number of contradictions encountered is small compared to the savings given by any form of dependency directed backtracking." *(p.16)*
+
+9. **Omission of conditional proof:** McAllester deliberately omitted conditional proof, noting "I did not have any application to justify its existence." *(p.17)* While CP is "useful in condensing explanations of beliefs," the clause-based algorithms "would be an interesting topic for further research" to combine with conditional proof techniques. *(p.17)*
+
 ## Relevance to Project
 This paper is the "RUP" (Reason, Unknown, Premiss) system referenced in de Kleer's 1986 ATMS papers. It represents an intermediate step between Doyle's original TMS (1979) and de Kleer's ATMS (1986). Key concepts that carry forward to the ATMS include: clause-based representation of justifications, support tracing for explanations, and contradiction-driven constraint propagation. The three-valued approach is simpler than Doyle's two-valued system with separate negation nodes, though de Kleer's ATMS takes a fundamentally different approach by tracking assumption sets (environments) rather than maintaining a single consistent state.
 

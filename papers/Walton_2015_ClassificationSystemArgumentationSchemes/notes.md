@@ -242,6 +242,29 @@ Epistemic arguments can be divided into two broad categories, depending on the r
 - **Fig 3 (p.15):** Two sides of the SC argument - shows conflict between argument from waste and argument from positive values, illustrating the hybrid nature of the SC scheme *(p.15)*
 - **Fig 4 (p.23):** Full classification tree of argumentation schemes - the main taxonomic contribution of the paper. Hierarchical tree from top-level categories (Defeasible Argumentation Schemes splits into Practical Reasoning, Source-based Epistemic Reasoning, Non-Source-based Schemes) down to individual schemes at the leaf level *(p.23)*
 
+## Arguments Against Prior Work
+
+1. **Prior classifications used inconsistent organizing principles.** Kienpointner (1992) used three main directions (descriptive/normative, domain-specific/general, schemes as rules) but the categories overlapped. Grennan (1997) classified into four groups but the groupings were not mutually exclusive. *(p.4)*
+2. **The "overriding" category was incoherent.** Walton, Reed, and Macagno (2008) identified five categories but the group "overriding" had a problematic "overriding common characteristic" that made the category structure unclear, requiring replacement with four better categories. *(p.4)*
+3. **Flat lists fail to capture sub-scheme relationships.** Prior catalogues of schemes presented them as simple lists without hierarchical structure, failing to capture that some schemes are sub-species of others (e.g., argument from expert opinion is a subspecies of argument from position to know). *(p.8-9)*
+4. **Existing classifications fail the six desiderata.** The paper identifies six criteria a classification system should satisfy (helpful for identification, handles borderline cases, accommodates new schemes, captures fine distinctions, is hierarchical not flat, reflects differences in use) and argues that no prior system fully satisfies all six. *(p.9)*
+5. **Lumer and Dove's epistemic approach is too narrow.** Their approach classifies schemes only as rules for establishing epistemic states, which does not adequately handle practical reasoning schemes or source-based arguments. *(p.5)*
+6. **Bex and Reed's classification serves a different purpose.** Their division into inference schemes, conflict schemes, and preference schemes is useful for formal argumentation systems but does not classify by argument type (what kind of reasoning is being used), which is what users need for identification. *(p.5-6)*
+7. **The AIF approach is formal but not a classification by type.** Rahwan et al. (2011) provide a formal representation of schemes in the Argument Interchange Format, but this addresses computational encoding rather than organizing schemes by their reasoning characteristics. *(p.5)*
+8. **Classical argument forms and figures of speech remain unintegrated.** Schemes from the classical Aristotelian tradition (argument from definition, argument from genus to species) and linguistic figures of speech from ancient Greek philosophy have not been systematically incorporated into modern classifications. *(p.24)*
+
+## Design Rationale
+
+1. **Hierarchical tree structure, not flat list.** The classification is organized as a tree (Figure 4, p.23) with multiple levels of specificity, allowing schemes to inherit properties of parent categories and making it easier to navigate from general to specific. *(p.1, p.9, p.22-23)*
+2. **Source-dependency as top-level organizing principle.** The most fundamental distinction is whether an argument's strength depends on the characteristics of its source (source-based) or is independent of the source (source-independent). This reflects a deep epistemological difference in how arguments derive their force. *(p.8-9, p.22)*
+3. **Practical vs. epistemic reasoning as fundamental division.** Source-independent schemes are further divided into epistemic reasoning (aimed at establishing what is true) and practical reasoning (aimed at deciding what to do). This reflects the Aristotelian distinction between theoretical and practical reason. *(p.13, p.22)*
+4. **Six explicit desiderata for evaluation.** Rather than building a classification ad hoc, the paper first establishes criteria that any good classification should satisfy, then designs the system to meet them. This makes the design choices transparent and evaluable. *(p.9)*
+5. **Sub-scheme inheritance.** Schemes are organized so that more specific schemes inherit the properties of their parent category. For example, argument from expert opinion inherits all the critical questions of argument from position to know, plus additional questions specific to expertise. *(p.8, p.10)*
+6. **Hybrid schemes bridge categories.** Some schemes (e.g., sunk cost argument) are recognized as hybrids that combine elements of multiple categories (practical reasoning + argument from commitment). Rather than forcing them into one category, the classification acknowledges their dual nature. *(p.15-16)*
+7. **Empirical grounding.** The classification was tested empirically by having six participants classify 388 collected arguments from political discourse, providing a reality check on whether the scheme types are identifiable in practice. *(p.7)*
+8. **Extensibility.** The system is explicitly designed to be extended as new schemes are identified or as existing categories need further subdivision. The authors acknowledge the classification is not yet complete. *(p.24)*
+9. **Connection to argument mining applications.** The classification is designed with computational argumentation in mind: automated argument mining systems need a taxonomy of argument types to classify detected arguments. *(p.3, p.24-25)*
+
 ## Results Summary
 - The classification system captures most of the important schemes studied in the argumentation literature *(p.24)*
 - The system is hierarchical and extensible (new schemes can be added) *(p.24)*

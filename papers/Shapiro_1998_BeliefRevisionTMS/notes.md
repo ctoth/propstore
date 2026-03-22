@@ -162,6 +162,50 @@ This paper contains no figures.
 ## Results Summary
 No experimental results. The contribution is a comparative taxonomy of TMS architectures and AGM theory, plus identification of the gap between the two traditions. *(p.1)*
 
+## Arguments Against Prior Work
+
+### Against JTMSs *(p.4--5)*
+- Following chains of justifications to find support can be inefficient, and those chains might contain cycles *(p.4--5)*
+- In a JTMS implemented as a service system, there is no logical principle connecting an assertion to its justifications --- any assertion can be sent with any justification, so the JTMS has no way to verify correctness *(p.5)*
+- The problems with JTMSs (inefficient chain-following, possible cycles) were among the motivations for ATMSs *(p.5)*
+
+### Against LTMSs *(p.5)*
+- LTMSs are generally based on propositional logic only, limiting their expressiveness *(p.5)*
+- While LTMSs eliminate arc directedness by adding the rule in clause form, they still share the fundamental chain-following limitations of JTMSs for finding support *(p.5)*
+
+### Against ATMSs *(p.5--6)*
+- ATMSs are implemented as service systems separate from the reasoner, so there is no record of intermediate assertions --- every assertion points directly to assumption sets but the derivation chain is lost *(p.5--6)*
+- Like JTMSs, ATMSs as service systems have no logical principle connecting assertions to their assumption sets *(p.5--6)*
+
+### Against Chronological Backtracking *(p.3)*
+- In chronological backtracking, if assertions $A_1, \ldots, A_n$ are asserted in order and $A_{n+1}$ yields a contradiction, the system backtracks to $A_n$, then $A_{n-1}$, etc. --- this is very inefficient because the actual culprit may be far back in the ordering *(p.3)*
+- Dependency-directed backtracking was invented specifically to address this inefficiency by pointing the contradiction directly to the assertions it actually depends on *(p.3)*
+
+### Against the Two-Tradition Divide *(p.7)*
+- The TMS tradition and the AGM belief revision tradition address the same fundamental problem but have developed in near-complete isolation, with almost no publication in either tradition citing any publication in the other *(p.7)*
+- This is "most stunning" because both traditions were motivated by the same problem: chronological backtracking. Friedman and Halpern (1996) explicitly note that both AGM postulates and TMS were motivated by chronological backtracking, yet their paper does not refer to any publication in the TMS tradition *(p.7)*
+- The AGM tradition assumes a logically closed, potentially infinite set of assertions and is "not concerned with implementation" --- a very high-level view that ignores practical engineering concerns *(p.7)*
+- The TMS tradition is concerned with implementation but ignores the formal constraints on culprit selection that AGM provides *(p.7)*
+
+### Against Existing Culprit Selection *(p.6--7)*
+- JTMSs, LTMSs, and ATMSs can all identify the set of possible culprits, but how to choose the actual culprit from that set is "much less clear" *(p.6)*
+- SNeBR's approach of presenting all possible culprits to the user to choose is a practical solution but does not automate the selection *(p.6)*
+- The author knows of no implemented TMS that satisfies AGM constraint (i) (minimality of information loss) *(p.7)*
+
+## Design Rationale
+
+### Why unify TMS and AGM *(p.7--8)*
+The two traditions address the same fundamental problem --- maintaining consistency when beliefs change --- but from opposite ends. The TMS tradition provides efficient implementation mechanisms (dependency graphs, assumption sets, label propagation) but lacks principled criteria for culprit selection. The AGM tradition provides formal constraints on what constitutes rational belief revision (minimality, entrenchment) but ignores implementation. A unified approach would provide both principled culprit selection and efficient implementation. *(p.7--8)*
+
+### Why SNeBR as the starting point *(p.6, 8)*
+SNeBR (Martins and Shapiro 1988) is unique among TMS architectures in uniting the ATMS with the reasoner: it calculates assumption sets directly from the inference rule used, rather than accepting arbitrary justifications from a separate reasoning system. This tighter coupling means the assumption-set computation is logically grounded rather than arbitrary. SNeBR also uses relevance logic, making it paraconsistent --- a contradiction does not imply everything. *(p.6)*
+
+### Why category-based importance ordering *(p.7--8)*
+AGM constraint (ii) requires ranking beliefs by "entrenchment" and choosing the least entrenched culprit. SNePSwD (Cravo and Martins 1993) implements this by allowing users to sort assertions into categories with importance orderings. Ehrlich (1995, 1997) extends this with vocabulary expansion and explicit ordering among specific assertions. Category-based ordering provides a practical mechanism for implementing the abstract AGM entrenchment requirement. *(p.7--8)*
+
+### Why three BRS tasks as the comparison framework *(p.2--3)*
+The three tasks --- (1) find derivation support, (2) find derived assertions, (3) delete and cascade --- are common to all BRS/TMS architectures and provide a uniform basis for comparison. Each TMS type (JTMS, LTMS, ATMS, SNeBR) can be evaluated by how efficiently and correctly it handles each task. *(p.2--3)*
+
 ## Limitations
 - Very high-level overview; does not go into algorithmic details of any TMS *(p.1)*
 - Does not present any formal comparison or proof relating TMS properties to AGM postulates *(p.7)*

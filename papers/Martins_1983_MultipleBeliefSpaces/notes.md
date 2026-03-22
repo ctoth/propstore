@@ -134,6 +134,32 @@ MBR successfully handles the meeting scheduling example with two users (Stu and 
 - The RS records inconsistency information without requiring a separate NOGOOD data structure *(p.373)*
 - The number of inconsistency checks is bounded by the cardinality of the RS of the derived proposition *(p.373)*
 
+## Arguments Against Prior Work
+
+1. **Against Doyle's TMS (1979):** Does not handle multiple agents with "possibly contradictory beliefs" represented simultaneously in the same knowledge base. *(p.370)* Doyle's system requires a separate NOGOOD list to record contradictions, whereas MBR distributes this information across restriction sets. *(p.373)* Doyle's architecture requires explicitly marking propositions as believed or disbelieved. *(p.373)*
+
+2. **Against McAllester's three-valued TMS (1980):** Like Doyle's TMS, it does not address the problem of multiple agents with different beliefs coexisting in a single knowledge base. *(p.370)* Listed alongside Doyle and McDermott as prior approaches that "did not handle" the multi-agent belief problem. *(p.370)*
+
+3. **Against McDermott's contexts (1982):** Also does not handle multiple agents' conflicting beliefs in a shared knowledge base. *(p.370)* McDermott's data dependency approach is cited as a related but insufficient predecessor. *(p.370)*
+
+4. **Against systems requiring explicit belief marking:** MBR eliminates the "need to explicitly mark propositions as believed or disbelieved." *(p.373)* Whether a proposition is believed is determined entirely by whether its origin set is a subset of the current context -- no separate bookkeeping required.
+
+5. **Against systems vulnerable to circular proofs:** MBR has "no need to worry about circular proofs" *(p.373)* -- the origin set tracking inherently prevents circular justification from inflating belief status, unlike systems where circular support chains can be problematic.
+
+## Design Rationale
+
+1. **SWM logic as foundation:** SWM is "loosely based on relevance logic" *(p.370)*, chosen because it records dependencies of wffs (tracking which hypotheses were actually used in derivation) while still allowing irrelevancies to be introduced when needed. *(p.370)* This provides the provenance tracking essential for multi-agent belief management.
+
+2. **Contexts as sets of hypotheses:** A context is simply a set of hypotheses, and the belief space is everything derivable from that set. *(p.371)* This gives exponential expressive power: from n hypotheses, up to 2^n distinct belief spaces can be defined. *(p.371)* Different agents or hypothetical scenarios are just different contexts over the same network.
+
+3. **Two-rule contradiction handling (~I and URS):** The entire contradiction detection and recovery mechanism uses only two inference rules. *(p.371)* The rule of negation introduction (~I) derives contradictions; the rule of URS updates restriction sets to record inconsistencies. *(p.371)* This minimality ensures the mechanism is easy to reason about formally.
+
+4. **Distributed inconsistency recording via restriction sets:** Rather than maintaining a centralized NOGOOD list, inconsistency information is distributed across the restriction sets of individual hypotheses. *(p.373)* Each hypothesis's RS records which combinations of hypotheses (including itself) lead to contradictions. This eliminates the need for a "separate data structure to record previous contradictions." *(p.373)*
+
+5. **Non-destructive contradiction recovery:** When a contradiction is detected, the culprit hypothesis is dropped from the current context rather than deleted from the knowledge base. *(p.373)* The network preserves all derivations -- "propositions are represented in the SNePS network" permanently. *(p.373)* This allows hypotheses to be reinstated later or used in other belief spaces.
+
+6. **CBS-filtered retrieval:** Retrieval operations only return propositions within the Current Belief Space, automatically filtering out propositions that depend on hypotheses outside the current context. *(p.371)* This makes context switching lightweight -- changing what an agent "believes" requires only changing which hypotheses are in the current context.
+
 ## Relevance to Project
 This paper is a direct precursor to de Kleer's ATMS work (1986) already in the collection. MBR's approach to multiple belief spaces, contexts, and contradiction handling via origin sets and restriction sets represents an alternative architecture for the same core problems the ATMS solves: maintaining multiple hypothetical worlds simultaneously and detecting/recording inconsistencies. The context/belief-space mechanism provides a different perspective on how to partition assumptions and manage per-agent reasoning, which is relevant to the propstore's assumption-tracking and multi-perspective belief management.
 

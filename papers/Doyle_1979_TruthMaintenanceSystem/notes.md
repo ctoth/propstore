@@ -211,6 +211,44 @@ The paper is based on a thesis submitted May 12, 1977; Sections 6 and 7 contain 
 - After culprit retraction, the nogood node remains *in* (justified by CP-justification independent of assumptions) *(p.251)*
 - Default assumptions: given alternatives {A_1, ..., A_n}, exactly one should be *in* at any time (unless external mechanism constructs a new default when all are ruled out) *(pp.261-262)*
 
+## Arguments Against Prior Work
+
+1. **Against the conventional monotonic view of reasoning:** The view that "reasoning is the process of deriving new knowledge from old, the process of discovering new truths contained in known truths" suffers from "several severe difficulties." *(p.232)* Monotonicity -- beliefs only grow, never shrink -- leads to three closely related problems: commonsense reasoning failures, the frame problem, and the control problem. *(p.232)*
+
+2. **Against atomicity in conventional reasoning:** The conventional view "encourages viewing each belief as an isolated statement, related to other beliefs only through its semantics." *(p.233)* Since semantics of beliefs are "usually not explicitly represented in the system," atomicity makes incremental changes in the set of current beliefs difficult to compute. *(p.233)*
+
+3. **Against the logistic approach to problem solving:** Amplifies Minsky's [36] criticisms: control inferences are "useless in monotonic systems" because "adding more inference rules or axioms just increases the number of inferences possible, rather than preventing some inferences from being made." *(p.233)* The approach of using control inferences to decide what to reason about next fails fundamentally in a monotonic framework. *(p.233)*
+
+4. **Against truth-seeking as the basis of AI reasoning:** "I propose another, quite different view about the nature of reasoning" -- rational thought is "the process of finding reasons for attitudes," not the process of discovering truth. *(p.234)* The paper argues that "truth enters into the study of extra-psychological rationality" only as commonsense truisms supplied to programs, and "truth does not enter into the narrowly psychological rationality by which our programs operate." *(p.234)*
+
+5. **Against unreasoned retraction of assumptions:** The "traditional notion of assumption" treats retraction as unreasoned -- the reasoner simply removes an assumption from the current belief set with no recorded reason. *(p.235)* The new approach introduces "reasoned retraction of assumptions" where the reasoner "retracts an assumption only by giving a reason for why it should be retracted." *(p.235)* If the reason later becomes invalid, "the retraction is no longer effective and the assumption is restored." *(p.235)*
+
+6. **Against three-valued belief sets:** "The literature contains many proposals for using three-element belief sets of *true*, *false*, and *unknown*." *(p.238)* Doyle argues these are insufficient because the in/out distinction is "not that between *true* and *false*" but between having and lacking valid reasons for belief. *(p.238)* A four-element belief set is needed: P is *in* and neg-P is *out* (true), P is *out* and neg-P is *in* (false), both *out* (unknown), both *in* (contradictory). *(pp.238-239)*
+
+7. **Against prior belief revision work:** "Most work on revising beliefs appears to have been restricted to the study of backtracking algorithms operating on rather simple systems of states and actions." *(p.267)* The exception is Colby [6] who "employed a belief system with reasons for some beliefs, as well as measures of credibility and emotional importance." *(p.267)*
+
+8. **Against context mechanisms that discard provenance:** MICRO-PLANNER, CONNIVER, and QA4's context mechanisms are criticized because "if we discard the sources of beliefs, we may make impossible the correction of errors in large, evolving data bases." *(p.269)* Discarding justification records "condemns ourselves to continually rederiving information in large searches caused by changing irrelevant assumptions." *(p.269)*
+
+## Design Rationale
+
+1. **TMS as subsystem, not standalone:** The TMS is designed as "a problem solver subsystem" that records and maintains justifications, not as a complete reasoning system. *(p.231)* The problem solver attaches statements to nodes and marks contradictions; the TMS manages belief statuses and performs backtracking. *(p.236)* This separation allows the TMS to be domain-independent.
+
+2. **Reasons-based rather than truth-based:** Support-status (in/out) reflects "current possession of valid reasons for belief," not truth or falsity. *(p.238)* This is a deliberate philosophical choice: "justified belief or reasoned argument" is studied instead of "truth." *(p.234)* The consequence is that the system tracks provenance and can revise beliefs when reasons change.
+
+3. **Three fundamental actions only:** The TMS interface consists of exactly three operations: (1) create a node, (2) add/retract a justification, (3) mark a contradiction. *(p.236)* This minimal interface keeps the TMS general-purpose while providing enough power for non-monotonic reasoning, backtracking, and contradiction handling.
+
+4. **Non-monotonic justification via outlists:** SL-justifications include an *outlist* -- nodes that must be *out* for the justification to be valid. *(p.237)* This single mechanism enables assumptions, default reasoning, and tentative guesses without special-purpose control structures. "A non-monotonic justification bases an argument for a node not only on current belief in other nodes, as occurs in the most familiar forms of deduction and reasoning, but also on lack of current belief in other nodes." *(p.237)*
+
+5. **Well-founded support requirement:** The TMS requires that supporting justifications be well-founded (non-circular) to prevent beliefs from bootstrapping themselves into existence. *(pp.244-245)* This resolves the philosophical problem of circular justification while still allowing circular structures to exist in the network (they are handled by the relaxation step).
+
+6. **Four-element belief set over three:** Rather than true/false/unknown, the system uses a four-element state space arising from separate tracking of P and neg-P, each of which can be in or out. *(pp.238-239)* This follows Belnap [2]'s recommendation and captures the contradictory state (both P and neg-P believed) that three-valued systems cannot represent.
+
+7. **Dependency-directed backtracking as least specialized procedure:** The backtracking procedure operates "on the reasons for beliefs, not on the form or content of the beliefs" -- it is "the least specialized procedure for revising the current set of assumptions when inconsistencies are discovered." *(pp.235-236)* More specialized revision procedures are needed for almost all practical applications, but dependency-directed backtracking provides the general template. *(p.236)*
+
+8. **Recording justifications despite overhead:** The paper acknowledges that "recording justifications for every program belief might seem excessive" but argues this burden is necessary because "if we throw away information about derivations, we may be condemning ourselves to continually rederiving information in large searches caused by changing irrelevant assumptions." *(p.269)* Summarization techniques and disciplined retention of essential records mitigate the overhead. *(p.269)*
+
+9. **CP-justifications for hypothetical reasoning:** Conditional-proof justifications enable reasoning about what would follow from hypothetical assumptions without permanently committing to those assumptions. *(pp.243-244)* However, the implementation complexity of continuous CP-checking led Doyle to suggest that "a simpler facility, namely the TMS without CP-justifications, but with the Find Independent Support procedure isolated as a separate, user-invoked facility" might be "more generally useful." *(p.266)*
+
 ## Relevance to Project
 This is the foundational paper for the entire truth maintenance / belief revision line of work that the propstore's world model is built on. It introduces the core concepts (justifications, support-status, dependency-directed backtracking, assumptions, nogoods) that de Kleer's ATMS later refines and improves. Understanding the original TMS design is essential for understanding the ATMS's design decisions and what problems it was solving. The control patterns (defaults, sequences, equivalence classes) described here are directly relevant to how the propstore manages competing claims and alternative hypotheses.
 

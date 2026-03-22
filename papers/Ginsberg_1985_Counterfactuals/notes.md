@@ -249,6 +249,44 @@ i.e., eliminate all but the first from the counterfactual results by restricting
 - Applied to automated diagnosis, the framework naturally encodes the single fault assumption and produces correct diagnostic conclusions for a full adder circuit *(p.85-86)*
 - Counterfactual analysis can handle cases where the single fault assumption is violated by generating new diagnoses involving minimal sets of faulty components *(p.86)*
 
+## Arguments Against Prior Work
+
+### Against Lewis's Possible Worlds Semantics *(p.81)*
+- From an AI perspective, the difficulty with Lewis's possible world semantics is that his notion of "similarity" is too vaguely defined to be computationally useful *(p.81)*
+- Lewis's approach treats counterfactuals as statements about the "most similar" possible world where the antecedent is true, but what "similar" means is left to intuition rather than formalized *(p.81)*
+- The paper provides a formal construction (Theorem 4) that is provably equivalent to Lewis's semantics but makes the similarity relation computationally tractable via truth function extension ordering *(p.84)*
+
+### Against Pure Predicate Calculus Diagnosis *(p.85--86)*
+- The standard predicate calculus approach to diagnosis can identify which components might be faulty (by finding which device assumptions must be denied), but it cannot establish which components are definitely *not* faulty *(p.85--86)*
+- Counterfactual reasoning goes further: it can conclude that the continued correct performance of non-faulty components is counterfactually implied by the observations, providing positive evidence of correct functioning rather than mere absence of fault indicators *(p.86)*
+
+### Against Unstructured Counterfactual Reasoning *(p.81)*
+- Previous approaches to counterfactual reasoning failed to make the context-dependent nature of counterfactuals explicit *(p.81)*
+- The paper argues that counterfactual evaluation requires separating context-dependent features (what may change) from context-independent ones (what is held fixed), and encoding this via sublanguage selection rather than leaving it implicit *(p.81, 83--84)*
+
+### Against Classical Logic for Counterfactuals *(p.81)*
+- Counterfactuals violate three properties that hold for classical material conditionals: contraposition fails, transitivity fails, and strengthening the antecedent fails (non-monotonicity) *(p.81)*
+- The power failure example: "if the electricity hadn't failed, dinner would have been on time" does NOT license "if dinner wasn't on time, the electricity failed" (contraposition fails because other causes are possible, such as laziness on the part of the cook) *(p.81)*
+- The Hoover example: "if Hoover had been born Russian, he'd have been a Communist" and "if he'd been a Communist, he'd have been a traitor" does NOT license "if he'd been born Russian, he'd have been a traitor" (transitivity fails) *(p.81)*
+- Any adequate formal treatment must therefore use a non-classical logic that permits these failures *(p.81)*
+
+## Design Rationale
+
+### Why three-valued logic *(p.82)*
+Two-valued logic (true/false) cannot represent uncertainty about propositions. By adding the truth value $u$ (unknown), the framework can represent partial knowledge: propositions whose truth value is genuinely unknown in the current state of knowledge. This is essential for counterfactual reasoning, where changing one proposition's truth value may leave others indeterminate. *(p.82)*
+
+### Why closure as the core operation *(p.82)*
+The closure of a truth function is the maximally extended consistent truth function — it assigns truth values to everything that can be determined from what is already known. This provides a unique, well-defined result for counterfactual evaluation: start with a partial truth function (after setting the counterfactual premise), compute its closure, and read off the consequences. The closure is always well-defined for consistent truth functions (Lemma 2). *(p.82)*
+
+### Why sublanguage selection for context *(p.81, 83--84)*
+Context dependence in counterfactual reasoning is encoded by choosing a sublanguage $V \subset L$. Propositions in $V$ are those whose truth values may change under counterfactual evaluation; propositions outside $V$ are held fixed. This makes the context-dependent/context-independent distinction explicit and formal, rather than relying on vague intuitions about "similarity." Different choices of $V$ correspond to different counterfactual evaluations of the same premise. *(p.81, 83--84)*
+
+### Why prove equivalence to Lewis (Theorem 4) *(p.84)*
+The equivalence to Lewis's possible worlds semantics establishes that the three-valued truth function framework is not a simplification or approximation but captures the full formal power of the philosophical theory. This licenses using the framework as a faithful computational implementation of counterfactual reasoning. *(p.84)*
+
+### Why apply to automated diagnosis *(p.84--86)*
+Diagnosis is a natural application domain because it inherently involves counterfactual reasoning: "if this component were functioning correctly, what would the output be?" The full adder example demonstrates that the framework subsumes the minimal fault assumption used in Genesereth's (1984) diagnosis methodology, while also providing stronger conclusions (exonerating non-faulty components). *(p.84--86)*
+
 ## Limitations
 
 - The choice of sublanguage $V$ (which encodes context) has no formal method for selection -- it must be chosen on a case-by-case basis *(p.81)*

@@ -246,6 +246,65 @@ The class-node architecture applies even when values are not exclusive. Example:
 - The ATMS extensions (maximally consistent sets of true defaults) correspond to Ginsberg's most similar worlds *(p.222)*
 - Counterfactual "if p then q" corresponds to default $\neg p$ and $\neg p \rightarrow \neg q$; the ATMS or default logic represents this by maximally consistent sets of true defaults corresponding to minimal sets of false defaults *(p.222)*
 
+## Arguments Against Prior Work
+
+### Against Doyle's TMS *(p.216--217)*
+- Doyle's TMS conflates two distinct procedures — truth maintenance (constraint satisfaction) and dependency-directed backtracking (removing inconsistency by altering justifications) — whereas the ATMS handles both uniformly through label propagation and nogood recording *(p.216)*
+- The CP-justification mechanism is unnecessary: the ATMS considers all justifications as conditional-proof and translates them into SL-justifications in terms of assumptions, making a separate CP mechanism redundant *(p.217)*
+- Doyle's additional justifications for search bookkeeping (recording where backtracking has been) are unnecessary in the ATMS, which implicitly computes all contexts *(p.217)*
+- The inherent complexity of Doyle's scheme results primarily from ensuring exhaustivity of its search; the ATMS avoids this entirely because it considers all contexts simultaneously *(p.217)*
+
+### Against McAllester's RUP *(p.217--218)*
+- Although McAllester's system represents assumptions explicitly and is easier to switch states, it is not very useful because it cannot conveniently tell whether two antecedents to an inference are inconsistent *(p.218)*
+- RUP's "noticer" runs even if its antecedent becomes invalid; RUP users adopted a requeuing convention to work around this, but the ATMS consumer architecture handles it automatically *(p.218)*
+- The fundamental disadvantage of RUP is that noticers are permitted to do too much, and the problem-solver designer may inadvertently give up exhaustivity *(p.218)*
+
+### Against McDermott's System *(p.218--220)*
+- McDermott clung to the idea of a single current consistent data pool, which resulted in unnecessary complexity, inefficiency, and inadequate functionality *(p.218)*
+- McDermott uses negated assumptions in labels, requiring a general constraint-satisfaction algorithm for label update; the ATMS uses a nogood database instead, enabling simple local propagation via set operations on bit-vectors *(p.219)*
+- McDermott's stipulation outlawing odd loops is not necessary because the ATMS automatically treats them as contradictions *(p.219)*
+- McDermott's erasure mechanism (erasing an assertion by conjoining its supporting justification with the negation of the characteristic premiss) is inelegant because it involves artificially modifying a problem-solver-supplied justification *(p.219)*
+- The ATMS *never* modifies or adds a justification to avoid a contradiction; it simply records nogoods — this gives completeness and consistency guarantees that McDermott's system cannot provide *(p.219--220)*
+- Without having specified a mechanism for handling contradictions, it is impossible to determine whether McDermott's scheme is exhaustive *(p.219)*
+- McDermott's data pool control is purely a control mechanism (domain-dependent), and using it to handle contradictions almost inevitably results in inexhaustivity *(p.219--220)*
+
+### Against Martins' MBR *(p.220--221)*
+- MBR's use of restriction sets as an alternative nogood implementation turned out to be inefficient for the ATMS *(p.220)*
+- MBR's handling of a second derivation requires insertion of a supporting node with a single origin set — a cumbersome data structure for representing disjunctive antecedents; one must presume all consequences of a multiply-derived datum are recorded this way, with no other way to represent disjunctive origin sets *(p.221)*
+- MBR's contradiction handling mechanisms are inadequate — there is nothing corresponding to interpretation construction, so there is no way to actually identify extensions *(p.221)*
+- MBR insists on a single current consistent context and provides neither a mechanism for changing the current context nor a method for choosing another one; the human user must query the overall problem solver *(p.221)*
+
+### Against Williams' ART *(p.221)*
+- ART allows negated assumptions (like McDermott), which necessarily requires dependency-directed backtracking *(p.221)*
+- ART does not allow disjunctions of extents; if a second justification is found for a datum in a different environment, a new node must be created, causing problems with multiple justifications for the same datum *(p.221)*
+- ART is proprietary software with no detailed papers on its internal architecture, making evaluation impossible *(p.221)*
+
+## Design Rationale
+
+### Why consumers run exactly once *(p.201--202)*
+Running a consumer is like a compilation process: the consumer is compiled into a set of justifications. Because consumers only examine data (not labels or justifications), and data never changes, rerunning a consumer cannot produce new results. This design eliminates the need to track which consumers have run in which contexts. *(p.202)*
+
+### Why consumers must not have internal state *(p.202)*
+The same consumer can be attached to multiple nodes. If it had internal state, it could make decisions based on previous executions, which would make it order-sensitive and destroy the ATMS's ability to treat all contexts simultaneously. *(p.202)*
+
+### Why consumer restrictions preserve ATMS guarantees *(p.200--202)*
+The four consumer restrictions (examine only data, only antecedent nodes, include all and only antecedent nodes in justifications, no internal state) exist because incorrect justifications are far more damaging in the ATMS than in conventional reasoning. Too few antecedents make labels too general (nodes appear in wrong contexts); too many antecedents make labels too specific (solutions are missed). In conventional reasoning, extra antecedents do not affect correctness. *(p.200--201)*
+
+### Why the ATMS uses a nogood database instead of negated assumptions *(p.219)*
+The ATMS represents contradictions via a nogood database rather than allowing negated assumptions in labels. This is a deliberate design choice: with negated assumptions, label update requires a general constraint-satisfaction algorithm; with nogoods, labels are computed by a simple local propagator using set operations implementable as bit-vectors. All propositional operations can be expressed as set operations, and odd-loop detection is automatic. *(p.219)*
+
+### Why the ATMS never modifies justifications *(p.219--220)*
+Unlike Doyle's TMS and McDermott's system, the ATMS never modifies or adds a justification to resolve a contradiction. A contradiction simply ensures that the ATMS will never construct any environment containing it. This design makes it possible to talk about completeness and consistency with respect to the overall problem-solving effort, and enables handling positive clauses (choose's) cleanly. *(p.219--220)*
+
+### Why scheduling is by simplest-label-first *(p.204)*
+The most general environment of a node's label and the most general version of a contradiction should be found as early as possible. Finding the most general contradiction first avoids useless problem-solving steps within ultimately inconsistent environments. Finding the simplest label first means the problem solver works on nodes with fewer assumptions first. A consumer that adds an assumption to an environment constructs a justification that is scheduled after all consumers of all subset environments. *(p.204)*
+
+### Why control is exercised before running consumers, not after *(p.204--206)*
+Once a consumer has run and constructed its justifications, all control over those justifications is lost — they are permanent. Control can only be exercised by choosing which consumers to run and in what order. This design means no solution will be missed if the control is later removed — the potential of exhaustivity is not surrendered even though control mechanisms purposely violate exhaustivity. *(p.206)*
+
+### Why parallelism is natural for the ATMS *(p.222)*
+Consumers are both order-insensitive and status-insensitive: they can execute in any order, and they do not depend on whether antecedent nodes are currently "in" or "out." There is no global retraction, so no coordination between parallel processors is needed. If too few consumers are ready, processors can speculatively execute consumers on nodes with empty labels in hope they will eventually hold in some environment. *(p.222)*
+
 ## Limitations
 - ATMS is slower than conventional TMS for problems needing only one solution (due to database access overhead) *(p.215)*
 - Label sizes can grow exponentially ($2^{i+2} + 2^i$ environments for $i$-bit parity problem without control) *(p.216)*

@@ -182,6 +182,47 @@ $$
 - Data pools provide the mechanism for switching between temporal viewpoints *(p.245)*
 - Gated lists are used to track which heuristics become applicable when temporal assertions change status *(p.245)*
 
+## Arguments Against Prior Work
+
+### Against Conniver/QA4 Data Pools *(p.237)*
+- Data pools (contexts) offer only coarse-grained control: switching between pools is fast, but they provide no way to track *why* something is believed or to do fine-grained dependency management *(p.237)*
+- Contexts had been neglected partly because they were supplemented by data dependencies, but neither alone provides adequate functionality *(p.237)*
+
+### Against Doyle's TMS *(p.237, 239, 241, 244)*
+- In Doyle's original algorithm, status assignments were never explicitly computed; they were determined directly from the justification set and had to be recomputed every time the pool was switched — the Boolean label approach summarizes all status computations simultaneously *(p.241)*
+- Doyle's well-founded support tree structure is not necessary; the same information is captured in Boolean expressions over premisses and OUT assertions *(p.244)*
+- Doyle's system does not provide a mechanism for efficiently managing multiple hypothetical database views (data pools); it focuses on single-context dependency tracking *(p.237)*
+
+### Against Simple Forward Chaining *(p.243)*
+- In a system with no data dependencies, forward chaining works trivially (if A and A->B are asserted, B is asserted). But in a data-pool system, dependencies create problems: an assertion can be indexed and still be OUT, and the generalized data-dependency system makes this more delicate since one can be removed from asserting an assertion by assigning it an IN or OUT status *(p.243)*
+- The solution of waiting until at least one data pool indexes an assertion before doing further chaining is insufficient because assertions need blocking beads to track which pools they should become active in *(p.243)*
+
+### Against Separate Treatment of Contexts and Dependencies *(p.237, 240)*
+- The AI community had treated contexts and data dependencies as separate mechanisms with different tradeoffs, but McDermott shows they are actually the same mechanism: a bead in a data pool is equivalent to a premiss justification, and pool membership is equivalent to a dependency label *(p.240)*
+
+## Design Rationale
+
+### Why Boolean labels over beads *(p.241)*
+Labels are Boolean combinations of beads (premisses) rather than simple IN/OUT truth values. This allows a single label to simultaneously encode an assertion's status in all possible data pools. The label tells you the assertion's status in any pool without recomputation. *(p.241)*
+
+### Why disjunctive normal form *(p.238, 242)*
+Labels are stored in disjunctive normal form (disjunctions of conjunctions of possibly-negated beads). This representation directly corresponds to the multiple justifications an assertion may have — each justification contributes one disjunct. The format also enables efficient subsumption checking. *(p.238)*
+
+### Why forbid odd loops *(p.242)*
+An odd loop (a cycle of justifications with an odd number of negative links) means an assertion's being OUT is sufficient reason for it to be IN, which is self-contradictory. Since finding a consistent labeling for networks with odd loops is NP-complete, the practical solution is to forbid them entirely. Even loops always have consistent labelings. *(p.242)*
+
+### Why the outest (most OUT) solution *(p.242)*
+When a self-referential equation A = f(A) has multiple solutions, the algorithm picks A = f(OUT) — the "outest" possible solution. This is the well-founded choice: an assertion should not be believed unless there is positive reason for it. The outest solution ensures no assertion is IN without grounded support. *(p.242)*
+
+### Why signal functions between KR and DD levels *(p.240)*
+The dependency system needs to communicate status changes to the knowledge-representation level without understanding KR semantics. Signal functions provide this decoupled interface: the DD system signals when an assertion changes status, and the KR system can respond by adding or removing justifications. This separation of concerns allows the same dependency machinery to serve different KR systems. *(p.240)*
+
+### Why blocking beads and latent assertions *(p.243)*
+Forward chaining across data pools creates a problem: assertions may need to be indexed in some pools but not others. Blocking beads are attached to "latent" (not-yet-indexed) assertions and checked every time a bead enters or leaves a data pool. When a blocking bead's transition causes a latent assertion to become present, it is indexed and forward chaining proceeds. This avoids the cost of eagerly computing all possible chains across all pools. *(p.243)*
+
+### Why subsumption optimization *(p.241--242)*
+When bead B1 is created by pushing from B2's pool, B1 subsumes B2 (B1 never occurs without B2). This means the label B1 V B2 simplifies to B2, helping prevent the exponential label growth that McAllester warned about (personal communication). In practice, most assertions are associated with only one or two beads, so the simplification keeps labels manageable. *(p.241--242)*
+
 ## Limitations
 - Odd loops must be forbidden; if they exist, no consistent labeling is possible *(p.242)*
 - Worst-case label size can grow exponentially (Fig. 11), though this is rare in practice *(p.242)*

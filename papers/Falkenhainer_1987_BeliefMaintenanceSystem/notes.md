@@ -232,6 +232,34 @@ The match hypothesis evidence table (Fig 3) shows 10 hypotheses: the highest-bel
 - The system must automatically propagate belief changes: asserting `(implies a b)` and `(a 0.5)` should propagate so b receives belief from the implication *(p.74)*
 - For frames of discernment, new evidence for one body node must automatically update beliefs for all nodes in the frame *(p.74)*
 
+## Arguments Against Prior Work
+
+1. **Against Doyle's non-monotonic TMS (1979):** The non-monotonic TMS attempts reasoning when not all facts are known, but "fails to account for degrees of belief" and cannot combine evidence from multiple uncertain sources. *(p.71)* Binary true/false/unknown states are insufficient for real-world AI problems requiring graded beliefs. *(p.71)*
+
+2. **Against static probabilistic networks (Pearl 1983; Buchanan et al 1984):** Previous probabilistic reasoning systems "used static networks that cannot be dynamically modified." *(p.71)* They lack the ability to add or retract nodes and links at runtime, which is essential for reasoning systems that discover new information. *(p.71)*
+
+3. **Against simple forward chaining:** Systems using "simple forward chaining techniques" do not "provide a complete reason maintenance capability." *(p.75)* Forward chaining alone cannot track the provenance of beliefs or retract consequences when premises change. *(p.71, 75)*
+
+4. **Against two/three-valued logic for non-monotonic reasoning:** The BMS handles non-monotonic reasoning "more elegantly than a two or three valued logic system" (citing Ginsberg 1984, 1985b). *(p.74)* The classic "birds fly" default can be represented naturally as `(bird ?x) -> (fly ?x)_{[0.90, 0.95]}` without requiring special control structure changes for exceptions. *(p.74)*
+
+5. **Against standard unification for analogical matching:** "A standard unifier would not be able to form the match hypotheses because the objects being matched may differ in their internal structures." *(p.74)* The rule-based pattern matcher handles asymmetric structures across domains. *(p.74-75)*
+
+## Design Rationale
+
+1. **Separation of belief formalism from network structure:** The basic design is "semi-independent of the specific belief system used" -- a simple parser translates user assertions into control primitives, and the particular Dempster-Shafer formalism "should be fairly easy to replace." *(p.71-72)* This modularity allows the network propagation machinery to be reused with alternative uncertainty calculi.
+
+2. **Two link types (hard vs invertible):** Hard support links provide direct computation of consequent belief from antecedents (used for AND, OR, NOT). *(p.72)* Invertible support links allow old evidence to be subtracted before new evidence is added, enabling proper belief retraction for implication and user-assertion links. *(p.72)* The distinction ensures that evidence combination via Dempster's rule only applies where subtraction is meaningful and well-defined.
+
+3. **Propagation-delta threshold:** A threshold (default 10^-3) below which belief changes are not propagated further. *(p.73)* This prevents infinite propagation cascades in large networks and ensures termination, following Ginsberg (1985a). *(p.73)*
+
+4. **Prohibition of circular support:** Rather than attempting a potentially unsound treatment of circular evidence, the system signals an error when circular structures are detected. *(p.73)* The paper explicitly acknowledges three problems with circular support -- evidence amplification, ambiguous source attribution, and quadratic retraction cost -- and argues these "require more sophisticated control structures" than the current system provides. *(p.73, 75)*
+
+5. **First-order predicate calculus interface:** "The system has been designed so that it will appear to the user as a first-order predicate calculus-based system." *(p.73)* This lowers the adoption barrier for users familiar with logic-based AI systems.
+
+6. **Three rule trigger types:** `:INTERN` fires on fact addition, `BELIEF+` and `BELIEF-` fire on threshold crossing. *(p.74)* This provides flexibility: `:INTERN` for structural pattern matching (every new fact), while `BELIEF+`/`BELIEF-` for belief-level-sensitive reasoning (fire only when evidence accumulates past a threshold). *(p.74)*
+
+7. **Generalization, not replacement, of TMS:** The BMS is designed to reduce to a standard TMS when all beliefs are absolute (0 or 1). *(p.71)* This ensures backward compatibility -- existing TMS applications work unchanged, while new applications can exploit continuous beliefs.
+
 ## Relevance to Project
 This paper presents a foundational approach to maintaining a network of beliefs with continuous confidence values and automatic propagation -- directly relevant to any propositional store that needs to track belief strengths, evidence combination, and dependency-driven updates across a knowledge base. The BMS design pattern of support links (hard vs invertible) and Dempster-Shafer belief intervals provides a concrete architecture for managing uncertain propositions. *(p.71-75)*
 

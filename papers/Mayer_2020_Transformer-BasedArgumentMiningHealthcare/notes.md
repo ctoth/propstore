@@ -186,6 +186,48 @@ Where: $V \in \mathbb{R}^H$ is a trainable weight vector, $C_i \in \mathbb{R}^H$
 - Two LSTM-based end-to-end systems from prior work perform at 0.55 F1
 - Transformer-based approach significantly outperforms these baselines
 
+## Arguments Against Prior Work
+
+### Against Feature-Engineered AM Pipelines *(p.2, 6)*
+- Prior AM approaches relied on hand-crafted features (lexical, syntactic, discourse) combined with traditional classifiers (SVM, logistic regression). Transformer-based models eliminate the need for feature engineering and achieve significantly higher F1 scores, particularly for relation classification *(p.2)*
+- Static embeddings (GloVe, fastText, BPEmb) are substantially worse than fine-tuned transformer models for both component detection and relation prediction, showing that contextual representations are essential for argument mining *(p.6)*
+
+### Against Tree-LSTM End-to-End Systems *(p.6)*
+- Two Tree-LSTM-based end-to-end systems from prior work achieved only 0.55 F1, compared to the transformer pipeline's 0.68 F1 on relation classification *(p.6)*
+- The NLI-based systems suffer "potential recoil" when classifying two fairly long text passages, which transformers handle better through self-attention over the full input *(p.6)*
+
+### Against Sentence-Pair Classification Alone *(p.5--6)*
+- The standard SentClf (sentence-pair classification) approach classifies each pair of components independently, which tends to create false positive links by predicting relations to multiple targets when most components have only one outgoing edge *(p.5--6)*
+- The MultiChoice architecture addresses this by selecting the single most probable target from the full candidate list, better respecting the structural constraint *(p.5)*
+
+### Against General-Domain Language Models *(p.4, 6)*
+- General BERT fine-tuned on clinical text performs reasonably, but domain-specific pretrained models (BioBERT on PubMed, SciBERT on Semantic Scholar) achieve slightly better performance on biomedical sequence tagging *(p.6)*
+- However, the margin is not huge --- RoBERTa (general-domain but with robustly optimized pretraining) delivers the most stable cross-domain performance, suggesting pretraining procedure may matter more than domain specificity *(p.6)*
+
+### Against Single-Stage AM Approaches *(p.4)*
+- End-to-end approaches that jointly predict components and relations lose the ability to independently optimize each stage, and perform worse on this dataset (0.55 vs 0.68+ F1) *(p.4, 6)*
+- The two-stage pipeline allows using different model architectures optimized for each task: sequence tagging with CRF for component detection, sentence-pair or multiple-choice classification for relation prediction *(p.4)*
+
+## Design Rationale
+
+### Why a two-stage pipeline *(p.4)*
+Component detection and relation classification are fundamentally different tasks (sequence labeling vs. classification), so a two-stage pipeline allows using the best architecture for each. Component detection benefits from CRF's sequential label dependencies, while relation classification benefits from transformer attention over component pairs. The pipeline also enables independent error analysis and optimization of each stage. *(p.4)*
+
+### Why BIO tagging scheme *(p.3)*
+Multiple argument components can be adjacent in text without any separating tokens (especially in concluding sentences with multiple claims). Without BIO tags, adjacent components would merge into a single component. The B-tag marks the beginning of a new component even when immediately following another. *(p.3)*
+
+### Why MultiChoice architecture *(p.5)*
+Most argument components have at most one outgoing edge to another component. The standard SentClf approach classifies each pair independently, which cannot enforce this constraint and tends to produce false positive links. MultiChoice presents all candidate targets simultaneously and selects the single most probable one (or "noLink"), naturally respecting the single-outgoing-edge structure observed in the data. *(p.5)*
+
+### Why GRU + CRF combination *(p.4, 6)*
+GRU captures bidirectional context around each token, while CRF captures label transition dependencies (e.g., I-Claim should follow B-Claim, not B-Evidence). The combination consistently outperforms either component alone across all embedding types tested. *(p.4, 6)*
+
+### Why multiple transformer variants tested *(p.4)*
+Different pretraining corpora and procedures may capture different aspects of language relevant to clinical argumentation. BioBERT (PubMed), SciBERT (Semantic Scholar, 82% biomedical), and RoBERTa (general domain, optimized procedure) each offer different tradeoffs between domain specificity and training robustness. Systematic comparison reveals that RoBERTa's stable cross-domain performance may outweigh domain-specific pretraining. *(p.4, 6)*
+
+### Why cross-disease evaluation *(p.2, 6)*
+Testing on an out-of-domain disease category (glaucoma, not seen during training) evaluates whether argument structures are disease-independent. The finding that performance drops only modestly suggests argumentative structure is more about rhetorical patterns than medical content, validating the approach's generalizability. *(p.2, 6)*
+
 ## Limitations
 - Only abstracts annotated (not full articles) due to practical constraints *(p.7)*
 - Full article application shows notable increase in false positives for relation classification *(p.7)*

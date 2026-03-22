@@ -210,6 +210,33 @@ This is a survey/review paper and does not introduce quantitative parameters.
 - Graduate students on Pollock's team helped with coding *(p.15)*
 - The system is monolithic and not easy to extend or modify *(p.15)*
 
+## Arguments Against Prior Work
+
+These are Prakken and Horty's critiques of Pollock's system and its limitations relative to modern structured argumentation:
+
+1. **Pollock never clearly distinguished attack from defeat.** In ASPIC+, attack is a structural relation (argument A attacks argument B), while defeat is attack that succeeds after considering preferences/strength. Pollock conflated these concepts, which leads to confusion when formalizing priority-based reasoning. *(p.14)*
+2. **Pollock did not include premise attack (undermining).** He was only interested in what can be defeasibly derived from a consistent base of information, meaning his system cannot handle attacks on strict premises. *(p.14)*
+3. **Pollock's argument strength approach was non-standard and unresolved.** He rejected Bayesian probability but his alternative (degree of justification as a numerical value, with strength of conclusion = minimum of support strengths) was not axiomatically grounded. Pollock himself acknowledged: "Let me stress that I do not regard this as a settled issue." *(p.11-12)*
+4. **Pollock worked in isolation from the AI argumentation community.** The relations between his work and Dung's (1995) abstract argumentation are not well understood because Pollock developed his formalism independently. His OSCAR system was monolithic and difficult for others to extend or modify. *(p.15)*
+5. **Pollock's formalism was designed for completeness rather than clarity.** His system aimed to model defeasible reasoning in its full complexity, making it overwhelmingly complex for outside readers. However, on subordinate aspects of his writing, Pollock was "always exceptionally clear and explicit about the reasons for and against his design choices." *(p.15)*
+6. **Pollock only addressed epistemic reasoning, not practical or deontic reasoning.** His work on argumentation only modeled epistemic reasoning. His decision-theoretic planning work was separate and not integrated into his argumentation framework. *(p.16)*
+7. **Suppositional reasoning was not adopted by others.** Pollock extended his system with suppositional reasoning (introducing and retracting suppositions as in natural deduction), but this feature has not been taken up by the argumentation community. *(p.13, p.16)*
+8. **Self-defeat and odd defeat cycles were not fully resolved.** Pollock took self-defeating arguments more seriously than anyone else, but his treatment of odd defeat cycles remained problematic. He revisited his semantics late in his career but did not arrive at a definitive solution. *(p.8-11)*
+
+## Design Rationale
+
+These are the design principles behind Pollock's system as identified by Prakken and Horty:
+
+1. **Defeasible reasoning is essential and omnipresent in cognitive life.** Pollock's foundational insight was that defeasible reasoning is not exotic or exceptional but is the dominant mode of real-world reasoning. We cannot get around "reasoning from plausible but unsure beliefs together with reasoning involving tentative (withdrawable) defeasible steps." *(p.2)*
+2. **Inference graphs rather than argument trees.** Arguments share subarguments, and a proposition can be supported by multiple independent arguments. The inference graph is the unit of evaluation, not individual arguments. This captures the structure of real reasoning more faithfully than tree-based representations. *(p.4-6)*
+3. **Rebutting and undercutting defeat as distinct types.** Pollock was the first to formalize undercutting defeat (attacking the inferential connection between premises and conclusion) as distinct from rebutting defeat (attacking the conclusion itself). This distinction became fundamental to all subsequent argumentation research. *(p.2, p.4, p.6)*
+4. **Defeasible inference rules grounded in epistemology.** Pollock's defeasible rules (perception, memory, induction, statistical syllogism, temporal persistence) are domain-specific epistemic principles, not arbitrary patterns. He grounded his formalism in his philosophical work on epistemology, providing principled justification for each rule. *(p.5, p.12)*
+5. **Partial defeat status assignments.** Rather than assigning a single global status to all arguments, Pollock developed partial defeat status assignments that label a subset of nodes as in/out, with preferred assignments maximizing the labelled set. This later evolved into a full labelling approach. *(p.7-8)*
+6. **Self-defeating arguments must not defeat others.** Pollock took the principled position that self-defeating arguments (both parallel and serial) should not be able to defeat non-self-defeating arguments. His semantics ensures this: a self-defeating argument is never ultimately undefeated at any level. *(p.8-9)*
+7. **Argument strength propagates via minimum.** The strength of a conclusion is the minimum of the strengths of its supporting lines and the strengths of the attacking/supporting arguments. While arguments can have various strengths, defeat is still all-or-nothing: a defeater that is weaker than its target cannot succeed. *(p.11)*
+8. **Defeasible reasoning is philosophically distinct from non-monotonic logic.** Pollock maintained that plausible reasoning (valid deductive reasoning from an uncertain basis) and defeasible reasoning (deductively invalid but rationally compelling) are genuinely different. Typical reductions of defeasible reasoning to non-monotonic reasoning handle exceptions by adding default assumptions, which misses this distinction. *(p.14)*
+9. **Willingness to revise fundamentals.** Pollock continuously re-examined and revised his own theories. "An admirable aspect of Pollock was his willingness to keep re-thinking and re-making his approach: he was always willing to re-think even the most fundamental aspects of his existing theories." *(p.15)*
+
 ## Results Summary
 This is a survey paper. The key finding is that Pollock's work anticipated many concepts that became central to computational argumentation (inference graphs, undercutting defeat, argument strength, self-defeat handling) but remained somewhat isolated from the mainstream AI argumentation community. *(p.15-16)*
 

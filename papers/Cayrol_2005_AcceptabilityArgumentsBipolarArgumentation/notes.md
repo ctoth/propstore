@@ -225,6 +225,25 @@ Three types of positive interaction identified in the literature: *(p.381)*
 2. $A_1$ confirms the conclusion of $A_2$ (same conclusion, different premises)
 3. $A_1$ is brought by $A_2$ (on one side, $A_1$ gets a support and on the other side, $A_1$ gives a confirmation)
 
+## Arguments Against Prior Work
+
+1. **Dung's framework models only one kind of interaction.** In most existing argumentation frameworks, only one kind of interaction between arguments is considered: the defeat (attack) relation. However, recent studies have shown that another kind of interaction may exist -- an argument can support another argument. *(p.378)*
+2. **Defence is not the same as support.** In Dung's framework, the concept of defence (A defeats the defeater of B) provides an implicit, indirect form of positive interaction. But direct support -- where an argument confirms the premises or conclusion of another, or is brought forward by another -- is a fundamentally different relationship that exists independently of any defeat chain. *(p.381)*
+3. **Cognitive psychology motivates bipolarity.** Studies in cognitive psychology have shown that positive and negative evaluations are assessed by independent systems, suggesting that argumentation frameworks should model support and defeat as independent relations rather than deriving one from the other. *(p.379)*
+4. **Conflict-free is insufficient for bipolar coherence.** Dung's notion of conflict-free (no direct defeat within a set) is too weak when support relations exist. A set can be conflict-free in Dung's sense yet still be incoherent because it simultaneously defeats and supports the same argument (external incoherence). *(p.384-385)*
+5. **Stable extensions can be unsafe.** In bipolar frameworks, the unique stable extension (which always exists for acyclic BAFs) may not be safe -- it may set-support an argument outside the extension while also set-defeating it. This means Dung's stable semantics alone does not guarantee coherent behavior when support relations are present. *(p.385-386)*
+6. **Classical frameworks cannot model supported and indirect defeat.** When support sequences combine with defeat, new types of conflict emerge: supported defeat (support chain ending in defeat) and indirect defeat (defeat followed by support chain). These cannot be represented in a framework with only a single defeat relation. *(p.383)*
+
+## Design Rationale
+
+1. **Support and defeat as independent, first-class relations.** The central design choice: the support relation is not defined in terms of the defeat relation, and vice-versa. Both are primitive binary relations on the set of arguments. This independence is motivated by cognitive psychology research on bipolar preferences. *(p.378, p.382)*
+2. **Abstract approach following Dung's methodology.** Like Dung, the paper abstracts from the internal structure of arguments and focuses on the relations between them. Arguments are treated as atomic entities whose role is determined entirely by the defeat and support relations. *(p.382, p.388)*
+3. **Derived interaction types from primitive relations.** Supported defeat (support chain + final defeat) and indirect defeat (initial defeat + support chain) are defined as composite interaction types derived from sequences of primitive defeat and support edges. This allows the framework to capture transitive effects of support on conflict. *(p.383)*
+4. **Two-level coherence: internal and external.** Internal coherence requires conflict-free (no set-defeat within the set). External coherence requires safety (no argument is simultaneously set-defeated and set-supported or contained by the set). This two-level design captures the distinct problems of self-contradiction (internal) and ambivalence (external). *(p.384-385)*
+5. **Three-tier admissibility hierarchy.** d-admissible (conflict-free + defence), s-admissible (safe + defence), and c-admissible (conflict-free + closed for R_sup + defence) form an increasing strength hierarchy. This gives users three levels of commitment to bipolar coherence, with c-admissible being the strongest (and most conservative). *(p.386)*
+6. **Restriction to acyclic frameworks for clean results.** The paper deliberately restricts its main structural results (Property 4) to acyclic bipolar interaction graphs, where unique stable extensions exist and the relationships between d-preferred, s-preferred, and c-preferred extensions can be precisely characterized. Cyclic frameworks are left for future work. *(p.385, p.387)*
+7. **Instantiation of Dung via set-defeats.** The framework generates a standard Dung-style AF by using set-defeats (which incorporate both supported and indirect defeats) as the attack relation. This ensures all of Dung's results about extension existence carry over to the bipolar setting. *(p.385, footnote 8)*
+
 ## Results Summary
 - Three levels of admissibility semantics of increasing strength: d-admissible (weakest), s-admissible, c-admissible (strongest) *(p.386)*
 - For acyclic BAFs: unique stable extension always exists; s-preferred and c-preferred are subsets of it *(pp.385, 387)*

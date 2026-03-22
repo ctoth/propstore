@@ -311,6 +311,25 @@ This paper is directly foundational for the propstore's world model architecture
 2. The epistemic entrenchment ordering provides a principled way to prioritize assumptions when contradictions arise *(p.536)*
 3. The ATMS_to_AGM algorithm provides a concrete mechanism for translating between context switching and belief revision operations *(p.537)*
 
+## Arguments Against Prior Work
+
+- The foundational and coherence traditions of belief management had developed in near-complete isolation from each other, with "no less agreement on what form" a philosophical approach to relating them should take *(p.534)*
+- Prior work by Reinfrank et al. (1989) attempted to bridge TMS and autoepistemic logic, but left the constructive relationship between the ATMS specifically and AGM belief revision unaddressed *(p.534)*
+- The AGM framework's operations all produce closed theories (deductive closures), which are usually infinite; existing solutions using finite theory bases (Nebel 1989, 1991; Williams 1993) "weaken the AGM postulates" *(p.535)*
+- The ATMS cannot perform rule revision: justifications cannot be altered once added without restarting the entire system, a rigidity the paper identifies as a limitation of the foundational approach *(p.537)*
+- A complete entrenchment ordering over all formulas would require specifying an exponential number of values (one for each disjunction of atoms), making a total ordering impractical; the paper criticizes this as unnecessary *(p.536)*
+- The minimal change principle, central to AGM's philosophy, "unfortunately cannot apply to the entrenchment relation itself" -- extensive revisions of entrenchment are often necessary to keep the system effectively independent of its previous state *(p.537)*
+
+## Design Rationale
+
+- **Partial rather than total entrenchment ordering:** A complete ordering would require exponentially many values. The paper shows that only a partial ordering is needed because many entrenchment values "need not be consulted" -- only relationships involving atoms in the current environment and their essential supports matter at any given step *(p.536)*
+- **Five discrete entrenchment levels ($E_1$ through $E_5$):** Rather than a continuous or fine-grained ordering, five levels suffice to encode all distinctions the ATMS needs: removed assumptions ($E_1$), new essential supports ($E_2$), decreased old supports ($E_3$), default unrelated atoms ($E_4$), and tautologies ($E_5$). The paper proves this is sufficient for behavioural equivalence *(p.536)*
+- **Encoding essential support via entrenchment equality:** The key design choice is that $Ent(a) = Ent(a \lor b)$ encodes "$a$ essentially supports $b$" while $Ent(a) < Ent(a \lor b)$ encodes "$a$ and $b$ are independent." This binary distinction maps directly onto the ATMS's foundational belief structure *(p.536-537)*
+- **Separation of TMS and problem solver concerns:** The paper explicitly assigns the determination of which atoms are related (and thus which entrenchment equalities hold) to the problem solver, not the TMS. The TMS provides justificational structure; the problem solver determines relevance. This preserves the ATMS's architectural separation *(p.537)*
+- **Modelling context switches as expansion/contraction sequences:** Rather than inventing a new operation, environment changes are decomposed into sequences of standard AGM operations (contraction for each removed assumption, expansion for each added assumption), reusing the AGM framework's existing formal guarantees *(p.537)*
+- **Rule revision via entrenchment decrease rather than ATMS restart:** The paper proposes that the AGM framework's ability to decrease entrenchment of any formula provides a natural mechanism for rule revision, which the ATMS cannot support without full restart. This is identified as a key advantage of the AGM encoding over the raw ATMS *(p.537)*
+- **Inductive proof structure over operation sequences:** The equivalence proof (Theorem 1) proceeds by induction on the number of expansion and contraction operations rather than on the structure of environments, ensuring the result holds for arbitrary sequences of context changes *(p.538-539)*
+
 ## Open Questions
 
 - [ ] How does the entrenchment relation interact with de Kleer's consumer architecture from the Problem Solving with ATMS paper?
