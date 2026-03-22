@@ -283,3 +283,38 @@ class Z3ConditionSolver:
         s2.add(expr_b)
         s2.add(z3.Not(expr_a))
         return s2.check() == z3.unsat
+
+    def partition_equivalence_classes(
+        self, condition_sets: list[list[str]]
+    ) -> list[list[int]]:
+        """Partition condition sets into equivalence classes.
+
+        Returns list of groups, where each group is a list of indices
+        into the input. Two condition sets are in the same group iff
+        they are logically equivalent.
+
+        Complexity: O(n * k) where k is the number of distinct classes,
+        compared to O(n²) for pairwise checking.
+        """
+        if not condition_sets:
+            return []
+
+        # Each class is represented by (representative_conditions, [indices])
+        representatives: list[list[str]] = [condition_sets[0]]
+        classes: list[list[int]] = [[0]]
+
+        for i in range(1, len(condition_sets)):
+            matched = False
+            for j, rep in enumerate(representatives):
+                try:
+                    if self.are_equivalent(condition_sets[i], rep):
+                        classes[j].append(i)
+                        matched = True
+                        break
+                except Exception:
+                    continue
+            if not matched:
+                representatives.append(condition_sets[i])
+                classes.append([i])
+
+        return classes

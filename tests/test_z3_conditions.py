@@ -436,3 +436,95 @@ class TestZ3IntegrationWithConflictDetector:
         records = detect_conflicts([cf], make_concept_registry())
         assert len(records) == 1
         assert records[0].warning_class == ConflictClass.CONFLICT
+
+
+@z3_only
+class TestBatchEquivalenceClasses:
+    """Tests for batch equivalence class partitioning."""
+
+    def _make_solver(self):
+        return Z3ConditionSolver(_make_cel_registry())
+
+    def test_single_condition_one_class(self):
+        """One condition set -> one class containing just index 0."""
+        solver = self._make_solver()
+        result = solver.partition_equivalence_classes(
+            [["fundamental_frequency > 100"]]
+        )
+        assert result == [[0]]
+
+    def test_identical_conditions_one_class(self):
+        """Three identical condition sets -> one class with indices [0, 1, 2]."""
+        solver = self._make_solver()
+        result = solver.partition_equivalence_classes([
+            ["fundamental_frequency > 100"],
+            ["fundamental_frequency > 100"],
+            ["fundamental_frequency > 100"],
+        ])
+        assert result == [[0, 1, 2]]
+
+    def test_all_different_conditions(self):
+        """Three distinct conditions -> three classes, one index each."""
+        solver = self._make_solver()
+        result = solver.partition_equivalence_classes([
+            ["fundamental_frequency > 100"],
+            ["fundamental_frequency > 200"],
+            ["fundamental_frequency > 300"],
+        ])
+        assert result == [[0], [1], [2]]
+
+    def test_mixed_equivalent_and_different(self):
+        """Some equivalent, some not -> correct partition."""
+        solver = self._make_solver()
+        result = solver.partition_equivalence_classes([
+            ["fundamental_frequency > 100"],                   # A
+            ["fundamental_frequency > 200"],                   # B
+            ["fundamental_frequency > 100"],                   # A' (same as A)
+            ["task == 'speech'"],                               # C
+        ])
+        assert result == [[0, 2], [1], [3]]
+
+    def test_logically_equivalent_different_form(self):
+        """Conditions that are syntactically different but logically equivalent
+        (e.g. '!(F0 <= 100)' vs 'F0 > 100') end up in same class."""
+        solver = self._make_solver()
+        result = solver.partition_equivalence_classes([
+            ["!(fundamental_frequency <= 100)"],
+            ["fundamental_frequency > 100"],
+        ])
+        assert result == [[0, 1]]
+
+    def test_empty_input_empty_output(self):
+        """No condition sets -> empty partition."""
+        solver = self._make_solver()
+        result = solver.partition_equivalence_classes([])
+        assert result == []
+
+    def test_matches_pairwise(self):
+        """Verify batch partition matches exhaustive pairwise are_equivalent() results."""
+        solver = self._make_solver()
+        condition_sets = [
+            ["fundamental_frequency > 100"],
+            ["fundamental_frequency > 200"],
+            ["!(fundamental_frequency <= 100)"],   # equiv to index 0
+            ["task == 'speech'"],
+            ["task == 'speech'"],                   # equiv to index 3
+            ["fundamental_frequency > 200"],        # equiv to index 1
+        ]
+        partition = solver.partition_equivalence_classes(condition_sets)
+
+        # Build set of equivalent pairs from partition
+        equiv_pairs = set()
+        for group in partition:
+            for ii in range(len(group)):
+                for jj in range(ii + 1, len(group)):
+                    equiv_pairs.add((group[ii], group[jj]))
+
+        # Build set of equivalent pairs from pairwise comparison
+        pairwise_pairs = set()
+        for ii in range(len(condition_sets)):
+            for jj in range(ii + 1, len(condition_sets)):
+                if solver.are_equivalent(condition_sets[ii], condition_sets[jj]):
+                    pairwise_pairs.add((ii, jj))
+
+        assert equiv_pairs == pairwise_pairs

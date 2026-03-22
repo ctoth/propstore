@@ -178,39 +178,118 @@ def detect_conflicts(
     # Step 1: Collect parameter claims grouped by concept_id
     by_concept = _collect_parameter_claims(claim_files)
 
-    # Step 2: For each concept with 2+ claims, compare every pair
+    # Step 2: For each concept with 2+ claims, compare using batch equivalence
+    # partitioning when possible (O(n*k) instead of O(n²) condition checks).
+    _z3_solver = None
+    try:
+        from propstore.z3_conditions import Z3ConditionSolver
+        _z3_solver = Z3ConditionSolver(cel_registry)
+    except ImportError:
+        pass
+
     for concept_id, claims in by_concept.items():
         if len(claims) < 2:
             continue
 
-        for i in range(len(claims)):
-            for j in range(i + 1, len(claims)):
-                claim_a = claims[i]
-                claim_b = claims[j]
+        # Pre-compute sorted conditions for each claim
+        all_conditions = [sorted(c.get("conditions") or []) for c in claims]
 
-                value_a = claim_a.get("value", [])
-                value_b = claim_b.get("value", [])
-                conditions_a = sorted(claim_a.get("conditions") or [])
-                conditions_b = sorted(claim_b.get("conditions") or [])
+        # Partition into equivalence classes if Z3 is available
+        if _z3_solver is not None and len(claims) > 2:
+            try:
+                eq_classes = _z3_solver.partition_equivalence_classes(all_conditions)
+            except Exception:
+                eq_classes = None
+        else:
+            eq_classes = None
 
-                # Step 3a: Compare values (named fields take priority)
-                if _values_compatible(value_a, value_b,
-                                      claim_a=claim_a, claim_b=claim_b):
-                    continue  # COMPATIBLE — skip
+        if eq_classes is not None:
+            # Batch path: use equivalence classes to reduce condition checks
+            # Within each class: conditions are equivalent -> CONFLICT if values differ
+            for group in eq_classes:
+                for ii in range(len(group)):
+                    for jj in range(ii + 1, len(group)):
+                        idx_a, idx_b = group[ii], group[jj]
+                        claim_a, claim_b = claims[idx_a], claims[idx_b]
+                        value_a = claim_a.get("value", [])
+                        value_b = claim_b.get("value", [])
+                        if _values_compatible(value_a, value_b,
+                                              claim_a=claim_a, claim_b=claim_b):
+                            continue
+                        records.append(ConflictRecord(
+                            concept_id=concept_id,
+                            claim_a_id=claim_a["id"],
+                            claim_b_id=claim_b["id"],
+                            warning_class=ConflictClass.CONFLICT,
+                            conditions_a=all_conditions[idx_a],
+                            conditions_b=all_conditions[idx_b],
+                            value_a=_value_str(value_a, claim=claim_a),
+                            value_b=_value_str(value_b, claim=claim_b),
+                        ))
 
-                # Step 3c: Values differ — classify based on conditions
-                warning_class = _classify_conditions(conditions_a, conditions_b, cel_registry)
+            # Between classes: check disjointness once per class pair
+            # Cache the representative conditions and disjointness result
+            for ci in range(len(eq_classes)):
+                for cj in range(ci + 1, len(eq_classes)):
+                    group_i = eq_classes[ci]
+                    group_j = eq_classes[cj]
+                    # Check disjointness using representatives (first element of each class)
+                    rep_i = all_conditions[group_i[0]]
+                    rep_j = all_conditions[group_j[0]]
+                    try:
+                        if _z3_solver.are_disjoint(rep_i, rep_j):
+                            cross_class = ConflictClass.PHI_NODE
+                        else:
+                            cross_class = ConflictClass.OVERLAP
+                    except Exception:
+                        cross_class = _classify_conditions(rep_i, rep_j, cel_registry)
 
-                records.append(ConflictRecord(
-                    concept_id=concept_id,
-                    claim_a_id=claim_a["id"],
-                    claim_b_id=claim_b["id"],
-                    warning_class=warning_class,
-                    conditions_a=conditions_a,
-                    conditions_b=conditions_b,
-                    value_a=_value_str(value_a, claim=claim_a),
-                    value_b=_value_str(value_b, claim=claim_b),
-                ))
+                    # Apply to all cross-class pairs
+                    for idx_a in group_i:
+                        for idx_b in group_j:
+                            claim_a, claim_b = claims[idx_a], claims[idx_b]
+                            value_a = claim_a.get("value", [])
+                            value_b = claim_b.get("value", [])
+                            if _values_compatible(value_a, value_b,
+                                                  claim_a=claim_a, claim_b=claim_b):
+                                continue
+                            records.append(ConflictRecord(
+                                concept_id=concept_id,
+                                claim_a_id=claim_a["id"],
+                                claim_b_id=claim_b["id"],
+                                warning_class=cross_class,
+                                conditions_a=all_conditions[idx_a],
+                                conditions_b=all_conditions[idx_b],
+                                value_a=_value_str(value_a, claim=claim_a),
+                                value_b=_value_str(value_b, claim=claim_b),
+                            ))
+        else:
+            # Fallback: original pairwise path (no Z3 or <= 2 claims)
+            for i in range(len(claims)):
+                for j in range(i + 1, len(claims)):
+                    claim_a = claims[i]
+                    claim_b = claims[j]
+
+                    value_a = claim_a.get("value", [])
+                    value_b = claim_b.get("value", [])
+
+                    if _values_compatible(value_a, value_b,
+                                          claim_a=claim_a, claim_b=claim_b):
+                        continue
+
+                    warning_class = _classify_conditions(
+                        all_conditions[i], all_conditions[j], cel_registry)
+
+                    records.append(ConflictRecord(
+                        concept_id=concept_id,
+                        claim_a_id=claim_a["id"],
+                        claim_b_id=claim_b["id"],
+                        warning_class=warning_class,
+                        conditions_a=all_conditions[i],
+                        conditions_b=all_conditions[j],
+                        value_a=_value_str(value_a, claim=claim_a),
+                        value_b=_value_str(value_b, claim=claim_b),
+                    ))
 
     # Step 3: Measurement claims — grouped separately by (target_concept, measure)
     by_measurement = _collect_measurement_claims(claim_files)
