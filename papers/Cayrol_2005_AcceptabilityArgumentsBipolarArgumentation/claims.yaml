@@ -1,0 +1,250 @@
+source:
+  paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-21"
+
+claims:
+  - id: claim1
+    type: model
+    name: "Bipolar Argumentation Framework (BAF)"
+    equations:
+      - "BAF = <A, R_def, R_sup>"
+    parameters:
+      - name: "A"
+        concept: argument_set
+        note: "Finite set of abstract arguments"
+      - name: "R_def"
+        concept: defeat_relation
+        note: "Binary defeat relation on arguments, subset of A x A"
+      - name: "R_sup"
+        concept: support_relation
+        note: "Binary support relation on arguments, subset of A x A, independent of R_def"
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 5
+      section: "3.2 An Abstract Bipolar Argumentation Framework"
+      quote_fragment: "An abstract bipolar argumentation framework is a 3-tuple <A, R_def, R_sup>"
+    notes: "Extends Dung's AF = <A, R> by adding an independent support relation"
+
+  - id: claim2
+    type: observation
+    statement: "A supported defeat for argument B is a sequence of support relations followed by a final defeat relation, requiring path length >= 3."
+    concepts:
+      - supported_defeat
+      - support_relation
+      - defeat_relation
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 6
+      section: "3.3"
+      quote_fragment: "A supported defeat for an argument B is a sequence A1 R1 ... Rn-1 An, n >= 3"
+
+  - id: claim3
+    type: observation
+    statement: "An indirect defeat for argument B is a sequence beginning with a defeat relation followed by support relations, requiring path length >= 3."
+    concepts:
+      - indirect_defeat
+      - support_relation
+      - defeat_relation
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 6
+      section: "3.3"
+      quote_fragment: "An indirect defeat for an argument B is a sequence A1 R1 ... Rn-1 An, n >= 3, with An = B, R1 = R_def"
+
+  - id: claim4
+    type: observation
+    statement: "S set-defeats A iff there exists a supported defeat or indirect defeat for A from an element of S."
+    concepts:
+      - set_defeat
+      - supported_defeat
+      - indirect_defeat
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 6
+      section: "3.3"
+      quote_fragment: "S set-defeats A iff there exists a supported defeat or an indirect defeat for A from an element of S"
+
+  - id: claim5
+    type: observation
+    statement: "In a bipolar argumentation framework, conflict-freeness is defined using set-defeats rather than direct defeats: S is conflict-free iff no A,B in S exist such that {A} set-defeats B."
+    concepts:
+      - conflict_free
+      - set_defeat
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 7
+      section: "4.1 Managing the Conflicts"
+      quote_fragment: "S is conflict-free iff there does not exist A, B in S such that {A} set-defeats B"
+    notes: "Generalizes Dung's conflict-free using set-defeats, which accounts for supported and indirect defeats"
+
+  - id: claim6
+    type: observation
+    statement: "A set S is safe iff there is no argument B such that S set-defeats B and either S set-supports B or B is in S."
+    concepts:
+      - safe_set
+      - set_defeat
+      - set_support
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 8
+      section: "4.1 Managing the Conflicts"
+      quote_fragment: "S is safe iff there does not exist B in A such that S set-defeats B and either S set-supports B, or B in S"
+    notes: "Captures external coherence: a set cannot simultaneously defeat and support the same argument"
+
+  - id: claim7
+    type: observation
+    statement: "If S is safe, then S is conflict-free. If S is conflict-free and closed for R_sup, then S is safe."
+    concepts:
+      - safe_set
+      - conflict_free
+      - support_closure
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 8
+      section: "4.1 Managing the Conflicts"
+      quote_fragment: "If S is safe, then S is conflict-free. If S is conflict-free and closed for R_sup then S is safe."
+    notes: "Property 1. Establishes the relationship between safety, conflict-freeness, and support-closure"
+
+  - id: claim8
+    type: observation
+    statement: "A stable extension of a BAF is a conflict-free set S such that for every argument A not in S, S set-defeats A."
+    concepts:
+      - stable_extension
+      - conflict_free
+      - set_defeat
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 8
+      section: "4.2 Extensions"
+      quote_fragment: "S is a stable extension iff S is conflict-free and for all A not in S, S set-defeats A"
+
+  - id: claim9
+    type: observation
+    statement: "d-admissibility requires conflict-freeness and defence of all elements; s-admissibility additionally requires safety; c-admissibility requires conflict-freeness, closure for R_sup, and defence of all elements."
+    concepts:
+      - d_admissible
+      - s_admissible
+      - c_admissible
+      - conflict_free
+      - safe_set
+      - support_closure
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 9
+      section: "4.2 Extensions"
+      quote_fragment: "Definitions 9, 10, 11"
+    notes: "Three levels of increasing strength: d-admissible (weakest) <= s-admissible <= c-admissible (strongest)"
+
+  - id: claim10
+    type: observation
+    statement: "c-admissible implies s-admissible, and s-admissible implies d-admissible."
+    concepts:
+      - c_admissible
+      - s_admissible
+      - d_admissible
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 9
+      section: "4.2 Extensions"
+    notes: "Follows from Property 1 (conflict-free + closed for R_sup implies safe) and the definitions"
+
+  - id: claim11
+    type: observation
+    statement: "In an acyclic bipolar argumentation framework, a unique stable extension always exists."
+    concepts:
+      - stable_extension
+      - acyclic_baf
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 9
+      section: "4.2 Extensions"
+      quote_fragment: "Definition 8 ensures the existence of a unique stable extension in an acyclic bipolar argumentation framework"
+    notes: "Obtained by instantiating Dung's framework with the set-defeat relation; the acyclic defeat graph guarantees uniqueness"
+
+  - id: claim12
+    type: observation
+    statement: "The unique stable extension of an acyclic BAF is not necessarily safe."
+    concepts:
+      - stable_extension
+      - safe_set
+      - acyclic_baf
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 8
+      section: "4.2 Extensions"
+      quote_fragment: "However, the unique stable extension is not always safe"
+    notes: "Example 3 demonstrates this: {A,H} is the unique stable extension but A supports B and H defeats B"
+
+  - id: claim13
+    type: observation
+    statement: "In acyclic BAFs, the s-preferred and c-preferred extensions are subsets of the unique stable extension."
+    concepts:
+      - s_preferred_extension
+      - c_preferred_extension
+      - stable_extension
+      - acyclic_baf
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 10
+      section: "4.2 Extensions"
+      quote_fragment: "The s-preferred extensions and the c-preferred extensions are subsets of S"
+    notes: "Property 4, point 1"
+
+  - id: claim14
+    type: observation
+    statement: "When the unique stable extension S of an acyclic BAF is safe, S is the unique s-preferred extension and is also a d-preferred extension."
+    concepts:
+      - stable_extension
+      - s_preferred_extension
+      - d_preferred_extension
+      - safe_set
+      - acyclic_baf
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 10
+      section: "4.2 Extensions"
+      quote_fragment: "If S is safe, there is a unique s-preferred extension which equals S"
+    notes: "Property 4, point 2"
+
+  - id: claim15
+    type: observation
+    statement: "An acyclic bipolar argumentation framework may have no safe stable extension, in which case the s-preferred extensions are the maximal safe subsets of the unique stable extension."
+    concepts:
+      - stable_extension
+      - s_preferred_extension
+      - safe_set
+      - acyclic_baf
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 10
+      section: "4.2 Extensions"
+      quote_fragment: "the s-preferred extensions are the subsets of S which are maximal for set-inclusion and safe"
+    notes: "Property 4, point 3"
+
+  - id: claim16
+    type: observation
+    statement: "Support and defeat are independent relations in a bipolar argumentation framework: neither is defined in terms of the other."
+    concepts:
+      - support_relation
+      - defeat_relation
+      - bipolar_argumentation_framework
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 1
+      section: "1 Introduction"
+      quote_fragment: "Both relations, defeat and support, are assumed to be independent"
+    notes: "This is a design choice; contrasts with frameworks where support is derived from shared conclusions"
+
+  - id: claim17
+    type: observation
+    statement: "Defence in a BAF uses set-defeat: S defends A iff for every B that set-defeats A, there exists C in S such that {C} set-defeats B."
+    concepts:
+      - defence
+      - set_defeat
+    provenance:
+      paper: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation
+      page: 6
+      section: "3.3"
+      quote_fragment: "S defends collectively A iff for all B in A, if {B} set-defeats A then there exists C in S such that {C} set-defeats B"
+    notes: "Generalizes Dung's defence using set-defeat instead of direct defeat"

@@ -1,0 +1,4 @@
+---
+tags: [argument-mining, healthcare, transformers, clinical-trials, relation-classification]
+---
+Proposes a complete argument mining pipeline for clinical trial abstracts, combining transformer-based sequence tagging (SciBERT/RoBERTa + GRU + CRF) for detecting argumentative components (evidence, claims) with transformer-based relation classification (SentClf and MultiChoice architectures) for predicting attack/support relations between components. Evaluates multiple pretrained language models on a newly annotated dataset of 500 RCT abstracts from MEDLINE covering 5 disease categories, achieving macro F1 of 0.87 for component detection and 0.68 for relation prediction, outperforming prior end-to-end AM systems. Demonstrates that domain-adapted transformers (SciBERT, BioBERT) and robustly pretrained models (RoBERTa) significantly improve argument mining in specialized medical text.
