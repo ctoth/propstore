@@ -2,7 +2,7 @@
 
 A compiler and query engine for propositional knowledge extracted from scientific papers across any research domain — speech science, video understanding, medicine, or any field where papers make empirical claims.
 
-propstore takes structured claims — parameter values, equations, measurements, algorithms, qualitative observations — extracted from papers, each tagged with the conditions under which they hold, and compiles them into a queryable SQLite database. The compiler validates everything, detects conflicts between claims, and the query engine supports condition-scoped lookups, derivation through parameterization chains, conflict resolution, sensitivity analysis, and counterfactual reasoning.
+propstore takes structured claims — parameter values, equations, measurements, algorithms, qualitative observations, mechanisms, comparisons, limitations — extracted from papers, each tagged with the conditions under which they hold, and compiles them into a queryable SQLite database. The compiler validates everything, detects conflicts between claims, and the query engine supports condition-scoped lookups, derivation through parameterization chains, conflict resolution via argumentation semantics, sensitivity analysis, and counterfactual reasoning.
 
 ## The problem
 
@@ -10,7 +10,7 @@ Scientific literature contains claims like "fundamental frequency averages 120 H
 
 - Distinguish genuine conflicts from claims that simply have different conditions
 - Derive values through algebraic relationships when direct measurements aren't available
-- Resolve genuine disagreements using explicit strategies (recency, sample size, stance chains)
+- Resolve genuine disagreements using argumentation semantics (Dung frameworks, ASPIC+ preference ordering, MaxSMT optimization)
 - Compare algorithm implementations that describe the same computation with different variable names and coding styles
 - Ask "what if" questions: what changes if you remove a claim or inject a synthetic one?
 
@@ -130,7 +130,7 @@ The compiler uses form definitions for unit validation via dimensional analysis,
 
 ### Claims
 
-Claims are extracted from papers and stored in `claims/<paper_name>.yaml`. Six claim types:
+Claims are extracted from papers and stored in `claims/<paper_name>.yaml`. Nine claim types:
 
 **parameter** — A numeric value binding for a concept under stated conditions:
 
@@ -336,6 +336,42 @@ Video understanding example:
     page: 5
 ```
 
+**mechanism** — A causal or explanatory process linking concepts:
+
+```yaml
+- id: claim60
+  type: mechanism
+  statement: "Undercutting defeat removes the connection between premise and conclusion without challenging the premise itself"
+  concepts: [undercutting_attack, defeasible_reasoning]
+  provenance:
+    paper: Pollock_1987
+    page: 485
+```
+
+**comparison** — A comparative claim between approaches, methods, or systems:
+
+```yaml
+- id: claim61
+  type: comparison
+  statement: "Preferred semantics produces more extensions than grounded semantics on frameworks with even-length cycles"
+  concepts: [preferred_extension, grounded_extension]
+  provenance:
+    paper: Dung_1995
+    page: 331
+```
+
+**limitation** — A known boundary, failure case, or applicability constraint:
+
+```yaml
+- id: claim62
+  type: limitation
+  statement: "Stable extensions are not guaranteed to exist for all argumentation frameworks"
+  concepts: [stable_extension, argumentation_framework]
+  provenance:
+    paper: Dung_1995
+    page: 328
+```
+
 ### Conditions
 
 Claims and relationships can be scoped by **conditions** — CEL (Common Expression Language) expressions that define when they hold:
@@ -375,15 +411,81 @@ Six stance types (ASPIC+ taxonomy, active voice — the claim holding the stance
 
 Based on ASPIC+ (Modgil & Prakken 2014) and Pollock's rebutting vs undercutting distinction (Prakken & Horty 2012).
 
+Stances feed into the argumentation framework (see below) — attacks become defeat candidates filtered through preference ordering, supports contribute to claim strength.
+
+### Contexts
+
+Contexts represent research traditions, theoretical frameworks, or experimental paradigms that scope groups of claims. One YAML file per context in `contexts/`:
+
+```yaml
+id: ctx_abstract_argumentation
+name: ctx_abstract_argumentation
+description: Dung's abstract argumentation framework tradition — arguments as abstract
+  entities with attack relations, multiple acceptability semantics
+```
+
+Claims reference their context via `context_id`. The compiler validates that all `context_id` references resolve to registered contexts. Contexts support hierarchy (`parent`), mutual exclusion (`excludes`), and visibility scoping — a BoundWorld can be filtered to show only claims from a given context and its descendants.
+
+```bash
+# Add a context
+pks context add --id ctx_belief_revision --name ctx_belief_revision \
+  --description "AGM-style belief revision tradition"
+
+# List contexts
+pks context list
+```
+
+## Argumentation
+
+propstore implements formal argumentation semantics for conflict resolution, following the ASPIC+ framework (Modgil & Prakken 2014).
+
+### Dung abstract argumentation
+
+The core engine implements Dung's abstract argumentation framework AF = (Args, Defeats). Given a set of arguments (claims) and a defeat relation (derived from stances filtered through preference ordering), it computes:
+
+- **Grounded extension** — the unique minimal complete extension (skeptical reasoning)
+- **Preferred extensions** — maximal admissible sets (credulous reasoning)
+- **Stable extensions** — conflict-free sets that defeat all external arguments
+
+Two backends: brute-force enumeration (`dung.py`) and Z3 SAT encoding (`dung_z3.py`) for scalability.
+
+### ASPIC+ bridge
+
+The bridge layer (`argumentation.py`) converts raw stances into a Dung AF:
+
+1. Load stances between active claims with confidence above threshold
+2. Undercutting and supersedes attacks always become defeats
+3. Rebutting and undermining attacks become defeats only if the attacker is at least as strong as the target (elitist comparison) or the attacking set is at least as strong (democratic comparison)
+4. Build the Dung AF from surviving defeats
+5. Compute extensions under chosen semantics
+
+### MaxSMT conflict resolution
+
+For large conflict sets, `maxsat_resolver.py` uses Z3's Optimize with weighted soft constraints to find the maximally consistent subset of claims. Each claim gets a soft constraint weighted by its strength score — the solver keeps as many strong claims as possible while eliminating all conflicts.
+
+### Extensions CLI
+
+```bash
+# Show the grounded extension (claims that survive all attacks)
+pks world extensions --semantics grounded
+
+# Preferred extensions under condition bindings
+pks world extensions domain=argumentation --semantics preferred
+
+# Stable extensions with democratic set comparison
+pks world extensions --semantics stable --set-comparison democratic
+```
+
 ## Compiler pipeline
 
 `pks build` runs the full pipeline:
 
 1. **Form validation** — JSON Schema check on all `forms/*.yaml`
 2. **Concept validation** — Required fields, ID format and uniqueness, filename-name match, deprecation chain integrity, CEL type-checking, form parameter compatibility, dimensional heuristics on parameterization inputs
-3. **Claim validation** — JSON Schema, concept reference resolution (by ID, canonical name, or alias), unit compatibility via dimensional analysis, algorithm body parsing with AST cross-check of declared variables against names used in the body
-4. **Sidecar build** — SQLite database with concept, alias, relationship, parameterization, parameterization_group, claim, claim_stance, and conflicts tables, plus FTS5 indexes over names/definitions/conditions
-5. **Conflict detection** — Direct conflicts between claims on the same concept, plus transitive conflicts through parameterization chains
+3. **Context validation** — Required fields, ID uniqueness, hierarchy cycle detection, exclusion consistency, parent reference resolution
+4. **Claim validation** — JSON Schema, concept reference resolution (by ID, canonical name, or alias), context reference validation, unit compatibility via dimensional analysis, algorithm body parsing with AST cross-check of declared variables against names used in the body
+5. **Sidecar build** — SQLite database with concept, alias, relationship, parameterization, parameterization_group, context, claim, claim_stance, defeat, and conflicts tables, plus FTS5 indexes over names/definitions/conditions
+6. **Conflict detection** — Batch equivalence classification of condition pairs, direct conflicts between claims on the same concept, plus transitive conflicts through parameterization chains
 
 Incremental: the sidecar is content-hash addressed and only rebuilt when source data changes.
 
@@ -399,7 +501,7 @@ When two claims bind to the same concept, the conflict detector classifies them:
 | `OVERLAP` | Values differ, conditions partially overlapping. Needs investigation. |
 | `PARAM_CONFLICT` | Conflict detected via parameterization chain: claim A and claim B individually consistent, but deriving through a shared formula produces contradictory outputs. |
 
-Condition disjointness is checked via Z3 satisfiability. Category concepts get EnumSorts, quantity concepts get Reals, boolean concepts get Bools.
+Condition disjointness is checked via Z3 satisfiability. Category concepts get EnumSorts, quantity concepts get Reals, boolean concepts get Bools. Condition pairs are first grouped into equivalence classes by structural similarity, so Z3 is only called once per unique condition pattern.
 
 ## Embeddings and similarity search
 
@@ -433,6 +535,25 @@ pks concept similar structured_decomposition --top-k 5
 Concept embeddings use the concept's canonical name, aliases, and definition as embedding text. Similar concepts are candidates for merging via `pks concept deprecate`.
 
 Embeddings are stored in the sidecar SQLite database (one vector table per model) and survive `pks build` rebuilds. Re-running `pks claim embed --all` skips unchanged claims (incremental via content hash tracking). Use `--model all` to re-embed with every previously registered model.
+
+## Stance classification (claim relate)
+
+Optional: requires `propstore[embeddings]`.
+
+`pks claim relate` uses an LLM to classify epistemic relationships between similar claims. It finds embedding-similar claim pairs, then prompts the model to classify each pair into one of the stance types (rebuts, undercuts, undermines, supports, explains, supersedes, or none). Results are written back as stances in the claim YAML files.
+
+```bash
+# Classify relationships for a single claim against its nearest neighbors
+pks claim relate claim1 --model gemini/gemini-2.0-flash --top-k 5
+
+# Relate all claims (batch mode with concurrency control)
+pks claim relate --all --model gemini/gemini-2.0-flash --concurrency 10
+
+# Two-pass: use a tighter embedding threshold for the second pass
+pks claim relate --all --model gemini/gemini-2.0-flash --second-pass-threshold 0.3
+```
+
+This feeds the argumentation framework — the classified stances become the attack and support relations that Dung extension computation operates on.
 
 ## Reconciliation workflow
 
@@ -511,7 +632,7 @@ Resolve conflicting claims using a strategy:
 uv run pks world resolve concept1 task=speech --strategy sample_size
 ```
 
-Strategies: `recency` (most recent paper wins), `sample_size` (largest N wins), `stance` (follow supersedes chains), `override` (specify a claim ID).
+Strategies: `recency` (most recent paper wins), `sample_size` (largest N wins), `argumentation` (resolve via Dung extensions — the grounded extension determines the winning claim), `override` (specify a claim ID).
 
 ### Chain queries
 
@@ -558,6 +679,18 @@ uv run pks world check-consistency task=speech
 uv run pks world check-consistency --transitive
 ```
 
+### Argumentation extensions
+
+Which claims survive scrutiny under formal argumentation semantics?
+
+```bash
+uv run pks world extensions --semantics grounded
+uv run pks world extensions domain=argumentation --semantics preferred
+uv run pks world extensions --semantics stable --set-comparison democratic
+```
+
+The grounded extension is unique and represents the skeptically justified claims. Preferred extensions are maximal admissible sets — each represents a credulous position. Stable extensions (when they exist) are the strongest: conflict-free sets that defeat every non-member.
+
 ## CLI reference
 
 ```
@@ -578,16 +711,21 @@ pks concept embed [ID] --all --model M  Generate concept embeddings via litellm
 pks concept similar ID [--model M]      Find similar concepts by embedding distance
 
 pks claim validate                Validate all claim files
+pks claim validate-file FILE      Validate a single claims YAML file
 pks claim conflicts               Detect and report conflicts
 pks claim compare A B             Compare two algorithm claims (ast-equiv)
-pks claim embed [ID] --all --model M  Generate claim embeddings via litellm
-pks claim similar ID [--model M]      Find similar claims by embedding distance
+pks claim relate [ID] --all --model M  Classify epistemic relationships via LLM
+pks claim embed [ID] --all --model M   Generate claim embeddings via litellm
+pks claim similar ID [--model M]       Find similar claims by embedding distance
 
 pks form list                     List available forms
 pks form show NAME                Show a form definition
 pks form add --name NAME          Add a new form
 pks form remove NAME              Remove a form
 pks form validate [NAME]          Validate form definitions
+
+pks context add                   Add a new context
+pks context list                  List all registered contexts
 
 pks import-papers --papers-root PATH   Import claims from a papers/ corpus
 pks export-aliases [--format json]     Export the alias lookup table
@@ -603,6 +741,7 @@ pks world explain CLAIM_ID        Show stance chain for a claim
 pks world export-graph [K=V]      Export knowledge graph (DOT or JSON)
 pks world sensitivity CONCEPT     Sensitivity analysis on derived quantities
 pks world check-consistency       Check for conflicts under bindings
+pks world extensions [K=V]        Show argumentation extensions (grounded/preferred/stable)
 pks world algorithms [--stage S]  List algorithm claims
 ```
 
@@ -631,10 +770,10 @@ The data model is defined in [LinkML](https://linkml.io/) at `schema/concept_reg
 - [LinkML](https://linkml.io/) — schema definition and JSON Schema generation
 - [PyYAML](https://pyyaml.org/) + [jsonschema](https://python-jsonschema.readthedocs.io/) — YAML loading and validation
 - [SymPy](https://www.sympy.org/) — symbolic math for parameterization evaluation, sensitivity analysis, and equation claim validation
-- [Z3](https://github.com/Z3Prover/z3) — SMT solver for condition disjointness and equivalence checking
+- [Z3](https://github.com/Z3Prover/z3) — SMT solver for condition disjointness, SAT-backed extension computation, and MaxSMT conflict resolution
 - [Graphviz](https://graphviz.readthedocs.io/) — DOT graph export
 - [ast-equiv](../ast-equiv) — algorithm canonicalization and equivalence comparison
 
 **Optional (for embeddings):**
-- [litellm](https://github.com/BerriAI/litellm) — unified LLM API for embedding generation
+- [litellm](https://github.com/BerriAI/litellm) — unified LLM API for embedding generation and stance classification
 - [sqlite-vec](https://github.com/asg017/sqlite-vec) — vector search in SQLite
