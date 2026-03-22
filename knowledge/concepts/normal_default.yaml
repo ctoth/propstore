@@ -1,0 +1,8 @@
+id: concept106
+canonical_name: normal_default
+status: proposed
+definition: 'A default rule where the single justification equals the consequent,
+  of the form alpha : Mw / w, guaranteeing existence of at least one extension'
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

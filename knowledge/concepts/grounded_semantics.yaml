@@ -1,0 +1,9 @@
+id: concept40
+canonical_name: grounded_semantics
+status: proposed
+definition: An argumentation semantics yielding a unique extension computed as the
+  least fixpoint of a characteristic function, providing the most skeptical credulous
+  acceptability
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

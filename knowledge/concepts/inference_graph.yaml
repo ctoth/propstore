@@ -1,0 +1,8 @@
+id: concept80
+canonical_name: inference_graph
+status: proposed
+definition: A directed graph structure where nodes are propositions supported by inference
+  steps, allowing subargument sharing unlike tree-based argument representations
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

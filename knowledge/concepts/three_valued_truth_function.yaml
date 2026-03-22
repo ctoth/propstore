@@ -1,0 +1,9 @@
+id: concept128
+canonical_name: three_valued_truth_function
+status: proposed
+definition: A mapping from sentences in a logical language to the set {true, false,
+  unknown}, enabling representation of partial knowledge and counterfactual reasoning
+  via closure operations
+domain: nonmonotonic_reasoning
+created_date: '2026-03-21'
+form: structural

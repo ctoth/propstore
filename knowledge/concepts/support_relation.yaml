@@ -1,0 +1,8 @@
+id: concept51
+canonical_name: support_relation
+status: proposed
+definition: A transitive relation between representations where one provides evidential
+  backing for another, forming a directed acyclic graph rooted at the principal claim
+domain: scientific_communication
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,9 @@
+id: concept146
+canonical_name: rationality_postulate
+status: proposed
+definition: A normative property that a well-behaved argumentation framework should
+  satisfy, including sub-argument closure, strict closure, direct consistency, and
+  indirect consistency
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

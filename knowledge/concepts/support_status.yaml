@@ -1,0 +1,8 @@
+id: concept23
+canonical_name: support_status
+status: proposed
+definition: 'The belief state of a TMS node: in (believed), out (not believed), or
+  nil (undetermined during truth maintenance)'
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

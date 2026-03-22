@@ -1,0 +1,9 @@
+id: concept149
+canonical_name: transposition_closure
+status: proposed
+definition: A property of an argumentation system where for every strict rule, all
+  its transpositions (moving a conclusion's negation to a premise and vice versa)
+  are also included
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

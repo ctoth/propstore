@@ -1,0 +1,8 @@
+id: concept15
+canonical_name: selection_function
+status: proposed
+definition: A function that picks a non-empty subset from a remainder set, determining
+  which maximal consistent subsets are retained during partial meet contraction
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

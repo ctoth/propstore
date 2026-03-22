@@ -1,0 +1,8 @@
+id: concept50
+canonical_name: answer_set_programming
+status: proposed
+definition: A declarative programming paradigm based on stable model semantics used
+  to encode and solve combinatorial search problems
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

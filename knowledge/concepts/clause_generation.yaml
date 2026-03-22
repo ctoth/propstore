@@ -1,0 +1,9 @@
+id: concept75
+canonical_name: clause_generation
+status: proposed
+definition: The process of creating new disjunctive clauses from contradictions by
+  resolving the contradicting clause with the support chain of the term that caused
+  the contradiction
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

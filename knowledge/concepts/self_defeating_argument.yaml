@@ -1,0 +1,8 @@
+id: concept69
+canonical_name: self_defeating_argument
+status: proposed
+definition: An argument that supports a defeater for one of its own defeasible steps,
+  rendering it unable to contribute to warrant
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

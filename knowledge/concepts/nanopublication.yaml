@@ -1,0 +1,9 @@
+id: concept73
+canonical_name: nanopublication
+status: proposed
+definition: A minimal citable unit of scientific assertion consisting of a set of
+  annotations referring to the same statement, containing community-agreed-upon minimum
+  annotations for provenance and attribution
+domain: scientific_communication
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,9 @@
+id: concept159
+canonical_name: boolean_label
+status: proposed
+definition: A Boolean expression over beads (context identifiers) representing the
+  conditions under which an assertion is believed; stored in disjunctive normal form
+  and used to unify data pools with data dependencies
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

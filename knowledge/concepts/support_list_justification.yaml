@@ -1,0 +1,9 @@
+id: concept2
+canonical_name: support_list_justification
+status: proposed
+definition: A justification of the form (SL inlist outlist) that is valid when all
+  inlist nodes are believed and all outlist nodes are not believed, supporting both
+  monotonic and non-monotonic deductions
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,9 @@
+id: concept129
+canonical_name: truth_function_closure
+status: proposed
+definition: The maximally extended truth function such that every consistent complete
+  extension of the original is also an extension of the closure, corresponding to
+  logical closure
+domain: nonmonotonic_reasoning
+created_date: '2026-03-21'
+form: structural

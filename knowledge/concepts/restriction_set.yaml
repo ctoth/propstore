@@ -1,0 +1,9 @@
+id: concept119
+canonical_name: restriction_set
+status: proposed
+definition: In MBR/SWM, a set of sets of hypotheses attached to each supported wff;
+  each element represents a set of hypotheses that combined with the origin set yields
+  inconsistency, replacing the need for a separate NOGOOD list
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

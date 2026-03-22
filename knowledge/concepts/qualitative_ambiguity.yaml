@@ -1,0 +1,9 @@
+id: concept94
+canonical_name: qualitative_ambiguity
+status: proposed
+definition: The inherent production of multiple valid interpretations in qualitative
+  reasoning because qualitative addition over {+, 0, -} does not form an algebraic
+  group and is not invertible
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

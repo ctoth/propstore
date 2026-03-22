@@ -1,0 +1,8 @@
+id: concept143
+canonical_name: strict_rule
+status: proposed
+definition: A deductive inference rule in ASPIC+ of the form phi1,...,phin -> psi
+  that cannot be attacked and preserves certainty
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

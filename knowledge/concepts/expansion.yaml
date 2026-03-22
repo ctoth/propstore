@@ -1,0 +1,8 @@
+id: concept9
+canonical_name: expansion
+status: proposed
+definition: A belief change operation that adds a new sentence to a belief set and
+  closes under logical consequence, without checking for consistency
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,8 @@
+id: concept91
+canonical_name: context_switching
+status: proposed
+definition: The ATMS operation of changing the current environment by adding or removing
+  assumptions, enabling exploration of alternative belief states without recomputation
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,8 @@
+id: concept32
+canonical_name: stable_extension
+status: proposed
+definition: A conflict-free set of arguments S that attacks every argument not in
+  S, providing a complete partition of arguments into accepted and rejected
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

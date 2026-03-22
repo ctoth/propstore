@@ -1,0 +1,9 @@
+id: concept90
+canonical_name: mythical_causality
+status: proposed
+definition: A notion of causality based on information-passing between neighboring
+  components in mythical time (a partial ordering), distinct from both physical time
+  and logical derivation order
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

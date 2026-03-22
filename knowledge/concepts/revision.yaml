@@ -1,0 +1,8 @@
+id: concept7
+canonical_name: revision
+status: proposed
+definition: A belief change operation that incorporates a new sentence into a belief
+  set while maintaining consistency, possibly removing existing beliefs that conflict
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

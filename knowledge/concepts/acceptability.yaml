@@ -1,0 +1,8 @@
+id: concept36
+canonical_name: acceptability
+status: proposed
+definition: An argument A is acceptable with respect to a set S iff for each argument
+  B that attacks A, B is attacked by some argument in S
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

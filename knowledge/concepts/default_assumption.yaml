@@ -1,0 +1,8 @@
+id: concept26
+canonical_name: default_assumption
+status: proposed
+definition: An assumption adopted in the absence of evidence to the contrary, implemented
+  via non-monotonic justifications that depend on the absence of competing beliefs
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

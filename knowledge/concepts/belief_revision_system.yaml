@@ -1,0 +1,9 @@
+id: concept126
+canonical_name: belief_revision_system
+status: proposed
+definition: A subsystem of a knowledge-based system responsible for finding derivation
+  support, identifying derived assertions, and deleting assertions while maintaining
+  consistency
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

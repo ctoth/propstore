@@ -1,0 +1,9 @@
+id: concept113
+canonical_name: multichoice_architecture
+status: proposed
+definition: A relation classification architecture where each source argument component
+  selects its most probable target from all other components as candidates, better
+  respecting single-outgoing-edge constraints
+domain: argument_mining
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,8 @@
+id: concept22
+canonical_name: deductive_closure
+status: proposed
+definition: The consequence operator Cn that computes the set of all logical consequences
+  of a given set of sentences, used to define belief sets as Cn-closed sets
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

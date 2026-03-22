@@ -1,0 +1,9 @@
+id: concept155
+canonical_name: frame_of_discernment
+status: proposed
+definition: A user-defined possibility space in Dempster-Shafer theory over which
+  basic probability functions are defined, enabling belief reasoning about mutually
+  exclusive hypotheses
+domain: belief_maintenance
+created_date: '2026-03-21'
+form: structural

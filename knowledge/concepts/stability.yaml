@@ -1,0 +1,8 @@
+id: concept45
+canonical_name: stability
+status: proposed
+definition: The property that a literal's justification status will not change regardless
+  of how unsettled observations are resolved
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,8 @@
+id: concept42
+canonical_name: justification_status
+status: proposed
+definition: 'A label assigned to a literal indicating its acceptability state: unsatisfiable,
+  defended, out, or blocked under grounded semantics'
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

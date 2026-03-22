@@ -1,0 +1,8 @@
+id: concept81
+canonical_name: label
+status: proposed
+definition: In an ATMS, the set of minimal consistent assumption sets (environments)
+  that support a given node, representing all independent ways to derive that node
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

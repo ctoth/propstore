@@ -1,0 +1,9 @@
+id: concept66
+canonical_name: warrant
+status: proposed
+definition: A proposition is warranted relative to an epistemic basis iff it is supported
+  by an ultimately undefeated argument from that basis, representing what an ideal
+  reasoner should believe
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

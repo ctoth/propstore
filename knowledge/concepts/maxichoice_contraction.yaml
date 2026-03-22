@@ -1,0 +1,9 @@
+id: concept20
+canonical_name: maxichoice_contraction
+status: proposed
+definition: A partial meet contraction where the selection function always picks exactly
+  one remainder, yielding the most liberal contraction that produces complete (maximal)
+  theories
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

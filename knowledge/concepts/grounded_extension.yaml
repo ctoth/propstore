@@ -1,0 +1,8 @@
+id: concept33
+canonical_name: grounded_extension
+status: proposed
+definition: The least fixed point of the characteristic function F_AF, representing
+  the most skeptical semantics that accepts only arguments that must be accepted
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

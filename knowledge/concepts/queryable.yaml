@@ -1,0 +1,8 @@
+id: concept48
+canonical_name: queryable
+status: proposed
+definition: An unsettled literal in an incomplete knowledge base whose truth value
+  could potentially be resolved by future observations
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,9 @@
+id: concept60
+canonical_name: epistemic_entrenchment
+status: proposed
+definition: An ordering over sentences in a belief set reflecting how firmly each
+  sentence is held; used by AGM theory to determine which beliefs to retract during
+  contraction, axiomatized by conditions EE1-EE5
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,9 @@
+id: concept86
+canonical_name: confluence
+status: proposed
+definition: A qualitative differential equation where variables take values from {+,
+  0, -} and terms sum to a constant, serving as the central modeling primitive for
+  component behavior in qualitative physics
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

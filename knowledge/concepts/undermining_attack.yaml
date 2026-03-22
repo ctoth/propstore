@@ -1,0 +1,8 @@
+id: concept138
+canonical_name: undermining_attack
+status: proposed
+definition: An attack in ASPIC+ where an argument's conclusion negates an ordinary
+  premise of the target argument
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

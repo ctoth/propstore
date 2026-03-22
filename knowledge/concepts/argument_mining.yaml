@@ -1,0 +1,8 @@
+id: concept108
+canonical_name: argument_mining
+status: proposed
+definition: The computational task of automatically extracting argumentative structures
+  (components and relations) from natural language text
+domain: argument_mining
+created_date: '2026-03-21'
+form: structural

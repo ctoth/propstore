@@ -1,0 +1,9 @@
+id: concept11
+canonical_name: agm_postulates
+status: proposed
+definition: The axiomatic rationality constraints on belief revision and contraction
+  operations defined by Alchourron, Gardenfors, and Makinson (1985), consisting of
+  six basic and two supplementary postulates each for contraction and revision
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

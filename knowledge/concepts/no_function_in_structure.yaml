@@ -1,0 +1,8 @@
+id: concept89
+canonical_name: no_function_in_structure
+status: proposed
+definition: The principle that component laws may not presume the functioning of the
+  whole device, ensuring component models are context-independent and reusable
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

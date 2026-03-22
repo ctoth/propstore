@@ -1,0 +1,8 @@
+id: concept12
+canonical_name: nogood
+status: proposed
+definition: A record that a particular set of assumptions is jointly inconsistent,
+  used to prevent the system from re-entering a known contradictory state
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

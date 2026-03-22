@@ -1,0 +1,8 @@
+id: concept34
+canonical_name: complete_extension
+status: proposed
+definition: An admissible set S where every argument acceptable with respect to S
+  belongs to S, forming a fixed point of the characteristic function
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,8 @@
+id: concept41
+canonical_name: finitary_framework
+status: proposed
+definition: An argumentation framework where each argument has only finitely many
+  attackers
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

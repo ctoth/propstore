@@ -1,0 +1,8 @@
+id: concept3
+canonical_name: belief_set
+status: proposed
+definition: A deductively closed set of sentences representing an agent's beliefs,
+  also called a theory; closed under logical consequence
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

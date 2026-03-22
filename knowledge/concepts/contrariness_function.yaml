@@ -1,0 +1,8 @@
+id: concept148
+canonical_name: contrariness_function
+status: proposed
+definition: A generalization of negation in ASPIC+ mapping formulas to sets of conflicting
+  formulas, allowing asymmetric conflict (contraries) and symmetric conflict (contradictories)
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

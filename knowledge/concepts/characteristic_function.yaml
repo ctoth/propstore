@@ -1,0 +1,8 @@
+id: concept35
+canonical_name: characteristic_function
+status: proposed
+definition: The function F_AF mapping sets of arguments to sets of arguments, where
+  F_AF(S) returns all arguments acceptable with respect to S
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,9 @@
+id: concept120
+canonical_name: supported_wff
+status: proposed
+definition: In MBR/SWM, a 4-tuple (formula, origin-tag, origin-set, restriction-set)
+  representing a well-formed formula together with its derivation provenance and known
+  inconsistencies
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

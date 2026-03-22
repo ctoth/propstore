@@ -1,0 +1,8 @@
+id: concept64
+canonical_name: rebutting_defeater
+status: proposed
+definition: A defeater that attacks the conclusion of an argument by providing a reason
+  to believe the negation of that conclusion
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,8 @@
+id: concept114
+canonical_name: safe_set
+status: proposed
+definition: A set S of arguments that does not simultaneously set-defeat and set-support
+  (or contain) any argument, ensuring external coherence between support and defeat
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

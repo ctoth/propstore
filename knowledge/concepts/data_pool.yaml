@@ -1,0 +1,9 @@
+id: concept154
+canonical_name: data_pool
+status: proposed
+definition: A pair (bead, set) representing a hypothetical database view or context;
+  assertions in a data pool are accessible when the pool's bead is active, enabling
+  fast switching between alternative belief states
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

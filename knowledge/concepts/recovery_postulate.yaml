@@ -1,0 +1,9 @@
+id: concept25
+canonical_name: recovery_postulate
+status: proposed
+definition: AGM contraction postulate K-5 stating that K is a subset of (K-x)+x, meaning
+  expansion by x after contracting x recovers the original theory; controversial in
+  subsequent literature
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,9 @@
+id: concept158
+canonical_name: reasonable_ordering
+status: proposed
+definition: A preference ordering on arguments satisfying conditions that firm+strict
+  arguments are maximal and never dominated, and strict continuation preserves preference
+  status, sufficient for rationality postulates
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

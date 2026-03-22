@@ -1,0 +1,8 @@
+id: concept87
+canonical_name: foundational_belief
+status: proposed
+definition: In the context of ATMS-AGM bridging, a support set for a proposition that
+  is a subset of the current environment, i.e. an active derivation path
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,9 @@
+id: concept152
+canonical_name: belief_propagation
+status: proposed
+definition: The process of automatically propagating belief changes through a dependency
+  network via support links when antecedent beliefs change, terminating when changes
+  fall below a propagation-delta threshold
+domain: belief_maintenance
+created_date: '2026-03-21'
+form: structural

@@ -1,0 +1,9 @@
+id: concept112
+canonical_name: bio_sequence_labeling
+status: proposed
+definition: A sequence tagging scheme using Begin-Inside-Outside labels to identify
+  spans of argument components in text, necessary when multiple components can be
+  adjacent
+domain: argument_mining
+created_date: '2026-03-21'
+form: structural

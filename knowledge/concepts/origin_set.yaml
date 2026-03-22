@@ -1,0 +1,8 @@
+id: concept117
+canonical_name: origin_set
+status: proposed
+definition: In MBR/SWM, the set of hypotheses actually used to derive a proposition;
+  once derived, a proposition's origin set remains constant
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

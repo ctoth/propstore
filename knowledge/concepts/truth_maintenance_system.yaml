@@ -1,0 +1,9 @@
+id: concept1
+canonical_name: truth_maintenance_system
+status: proposed
+definition: A problem-solver subsystem that records justifications for beliefs and
+  incrementally maintains the current set of believed propositions when justifications
+  change
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

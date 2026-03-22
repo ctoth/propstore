@@ -1,0 +1,8 @@
+id: concept52
+canonical_name: knowledge_base
+status: proposed
+definition: A triple (K_n, K_p, K_a) of axiom premises, ordinary premises, and assumption
+  premises forming the input to an argumentation theory
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

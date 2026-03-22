@@ -1,0 +1,9 @@
+id: concept59
+canonical_name: atms
+status: proposed
+definition: 'Assumption-based Truth Maintenance System: a foundational TMS that records
+  justifications as dependency links between assumptions and derived beliefs, maintaining
+  labels (minimal consistent support sets) for each node'
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

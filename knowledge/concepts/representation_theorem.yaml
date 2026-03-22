@@ -1,0 +1,9 @@
+id: concept19
+canonical_name: representation_theorem
+status: proposed
+definition: A theorem proving that a set of axiomatic postulates characterizes exactly
+  a class of constructively defined functions, establishing equivalence between axiomatic
+  and constructive approaches
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

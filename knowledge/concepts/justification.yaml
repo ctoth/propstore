@@ -1,0 +1,8 @@
+id: concept78
+canonical_name: justification
+status: proposed
+definition: In a TMS, a dependency record linking a set of antecedent nodes to a consequent
+  node, representing that the consequent is derived from the antecedents
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

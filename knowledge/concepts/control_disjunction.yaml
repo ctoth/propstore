@@ -1,0 +1,9 @@
+id: concept133
+canonical_name: control_disjunction
+status: proposed
+definition: An ATMS mechanism that partitions the search space by constraining the
+  scheduler to explore only environments consistent with specified mutually exclusive
+  choices
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

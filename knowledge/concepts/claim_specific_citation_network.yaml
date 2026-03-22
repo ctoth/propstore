@@ -1,0 +1,9 @@
+id: concept99
+canonical_name: claim_specific_citation_network
+status: proposed
+definition: A directed graph of all papers and citations pertaining to a single scientific
+  claim, enabling analysis of how authority for that claim is created through citation
+  patterns
+domain: scientific_communication
+created_date: '2026-03-21'
+form: structural

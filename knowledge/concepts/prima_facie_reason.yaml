@@ -1,0 +1,8 @@
+id: concept62
+canonical_name: prima_facie_reason
+status: proposed
+definition: A defeasible reason for belief where additional information can undermine
+  the reason-conclusion connection, as opposed to conclusive (deductive) reasons
+domain: argumentation
+created_date: '2026-03-21'
+form: structural

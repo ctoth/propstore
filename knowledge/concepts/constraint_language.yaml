@@ -1,0 +1,9 @@
+id: concept134
+canonical_name: constraint_language
+status: proposed
+definition: A set of primitives (PLUS, TIMES, AND, OR, ONEOF, EQ, NOT, etc.) built
+  on ATMS justifications and consumers that encode arithmetic and logical constraints
+  over ATMS-tracked variables
+domain: argumentation
+created_date: '2026-03-21'
+form: structural
