@@ -18,6 +18,7 @@ import yaml
 from propstore.cel_checker import (
     ConceptInfo,
     KindType,
+    build_cel_registry_from_loaded,
     check_cel_expression,
 )
 from propstore.form_utils import kind_type_from_form_name, load_form
@@ -59,35 +60,6 @@ def load_concepts(concept_dir: Path) -> list[LoadedConcept]:
 _CONCEPT_ID_RE = re.compile(r'^concept\d+$')
 
 
-def _build_cel_registry(concepts: list[LoadedConcept]) -> dict[str, ConceptInfo]:
-    """Build a concept registry for CEL type-checking from loaded concepts."""
-    registry: dict[str, ConceptInfo] = {}
-    for c in concepts:
-        data = c.data
-        cid = data.get("id", "")
-        name = data.get("canonical_name", "")
-        kind_type = kind_type_from_form_name(data.get("form"))
-        if not name or kind_type is None:
-            continue
-
-        category_values: list[str] = []
-        category_extensible = True
-        if kind_type == KindType.CATEGORY:
-            # Category values may be in form_parameters as structured data
-            fp = data.get("form_parameters", {}) or {}
-            if isinstance(fp.get("values"), list):
-                category_values = fp["values"]
-            ext = fp.get("extensible")
-            category_extensible = ext if ext is not None else True
-
-        registry[name] = ConceptInfo(
-            id=cid,
-            canonical_name=name,
-            kind=kind_type,
-            category_values=category_values,
-            category_extensible=category_extensible,
-        )
-    return registry
 
 
 VALID_RELATIONSHIP_TYPES = frozenset([
@@ -131,7 +103,7 @@ def validate_concepts(
     """
     result = ValidationResult()
     id_to_concept: dict[str, LoadedConcept] = {}
-    cel_registry = _build_cel_registry(concepts)
+    cel_registry = build_cel_registry_from_loaded(concepts)
 
     def _forms_dir(c: LoadedConcept) -> Path:
         if repo is not None:

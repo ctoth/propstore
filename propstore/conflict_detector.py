@@ -24,8 +24,7 @@ from typing import Any
 
 from ast_equiv import compare as ast_compare
 
-from propstore.cel_checker import ConceptInfo, KindType
-from propstore.form_utils import kind_type_from_form_name
+from propstore.cel_checker import ConceptInfo, KindType, build_cel_registry
 from propstore.validate_claims import LoadedClaimFile
 
 
@@ -241,29 +240,6 @@ def _values_compatible(value_a, value_b, tolerance: float = DEFAULT_TOLERANCE,
     return value_a == value_b
 
 
-# ── CEL registry conversion ──────────────────────────────────────────
-
-def _build_cel_registry(concept_registry: dict[str, dict]) -> dict[str, ConceptInfo]:
-    """Convert the raw concept registry to a dict[canonical_name, ConceptInfo]."""
-    cel_registry: dict[str, ConceptInfo] = {}
-    for concept_id, data in concept_registry.items():
-        canonical = data.get("canonical_name", concept_id)
-        form = data.get("form", "")
-        kind = kind_type_from_form_name(form) or KindType.QUANTITY
-        cat_values = []
-        cat_extensible = True
-        form_params = data.get("form_parameters", {})
-        if isinstance(form_params, dict):
-            cat_values = form_params.get("values", [])
-            cat_extensible = form_params.get("extensible", True)
-        cel_registry[canonical] = ConceptInfo(
-            id=concept_id,
-            canonical_name=canonical,
-            kind=kind,
-            category_values=cat_values,
-            category_extensible=cat_extensible,
-        )
-    return cel_registry
 
 
 # ── Z3 condition classification ──────────────────────────────────────
@@ -704,7 +680,7 @@ def detect_conflicts(
     COMPATIBLE pairs are detected but not returned (they're fine).
     """
     records: list[ConflictRecord] = []
-    cel_registry = _build_cel_registry(concept_registry)
+    cel_registry = build_cel_registry(concept_registry)
 
     # Step 1: Collect parameter claims grouped by concept_id
     by_concept = _collect_parameter_claims(claim_files)
