@@ -9,6 +9,7 @@ from pathlib import Path
 import click
 
 from propstore.cli.concept import concept
+from propstore.cli.context import context
 from propstore.cli.claim import claim
 from propstore.cli.compiler_cmds import validate, build, query, export_aliases, import_papers, world
 from propstore.cli.form import form
@@ -35,6 +36,7 @@ def cli(ctx: click.Context, directory: str | None) -> None:
 
 
 cli.add_command(concept)
+cli.add_command(context)
 cli.add_command(claim)
 cli.add_command(form)
 cli.add_command(validate)

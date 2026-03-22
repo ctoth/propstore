@@ -644,6 +644,66 @@ class TestContextCLIIntegration:
         result = runner.invoke(cli, ["build"])
         assert result.exit_code == 0, f"Build failed: {result.output}"
 
+    def test_context_add_creates_file(self, tmp_path, monkeypatch):
+        """pks context add creates a YAML file."""
+        ws = self._make_workspace(tmp_path)
+        monkeypatch.chdir(ws)
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "context", "add",
+            "--name", "ctx_test",
+            "--description", "A test context",
+        ])
+        assert result.exit_code == 0, f"Failed: {result.output}"
+        path = ws / "knowledge" / "contexts" / "ctx_test.yaml"
+        assert path.exists()
+        data = yaml.safe_load(path.read_text())
+        assert data["id"] == "ctx_test"
+        assert data["name"] == "ctx_test"
+        assert data["description"] == "A test context"
+
+    def test_context_add_with_inherits(self, tmp_path, monkeypatch):
+        """pks context add --inherits works."""
+        ws = self._make_workspace(tmp_path)
+        monkeypatch.chdir(ws)
+        ctx_dir = ws / "knowledge" / "contexts"
+        write_context(ctx_dir, "ctx_parent", make_context("ctx_parent", "Parent"))
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "context", "add",
+            "--name", "ctx_child",
+            "--description", "A child",
+            "--inherits", "ctx_parent",
+        ])
+        assert result.exit_code == 0, f"Failed: {result.output}"
+        data = yaml.safe_load((ctx_dir / "ctx_child.yaml").read_text())
+        assert data["inherits"] == "ctx_parent"
+
+    def test_context_add_duplicate_errors(self, tmp_path, monkeypatch):
+        """Error if context already exists."""
+        ws = self._make_workspace(tmp_path)
+        monkeypatch.chdir(ws)
+        ctx_dir = ws / "knowledge" / "contexts"
+        write_context(ctx_dir, "ctx_dup", make_context("ctx_dup", "Dup"))
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "context", "add", "--name", "ctx_dup", "--description", "Dup",
+        ])
+        assert result.exit_code != 0
+
+    def test_context_list(self, tmp_path, monkeypatch):
+        """pks context list shows registered contexts."""
+        ws = self._make_workspace(tmp_path)
+        monkeypatch.chdir(ws)
+        ctx_dir = ws / "knowledge" / "contexts"
+        write_context(ctx_dir, "ctx_a", make_context("ctx_a", "A"))
+        write_context(ctx_dir, "ctx_b", make_context("ctx_b", "B"))
+        runner = CliRunner()
+        result = runner.invoke(cli, ["context", "list"])
+        assert result.exit_code == 0
+        assert "ctx_a" in result.output
+        assert "ctx_b" in result.output
+
     def test_build_with_context_on_claim(self, tmp_path, monkeypatch):
         """A claim with context field gets context_id in sidecar."""
         ws = self._make_workspace(tmp_path)
