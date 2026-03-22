@@ -35,16 +35,23 @@ enums:
   StanceType:
     description: >
       The type of epistemic relation between two claims.
-      Populated during reconciliation, not extraction.
+      Active voice: the claim holding this stance performs the action on the target.
+      Attack: rebuts (conclusion), undercuts (inference), undermines (premise).
+      Support: supports (evidence), explains (mechanism).
+      Preference: supersedes (replaces).
     permissible_values:
-      supported_by:
-        description: "Target claim provides supporting evidence."
-      contradicted_by:
-        description: "Target claim contradicts this claim."
-      superseded_by:
-        description: "Target claim supersedes this claim (later, better methodology)."
-      mechanism_for:
-        description: "This claim provides a mechanistic explanation for the target."
+      rebuts:
+        description: "This claim attacks the target's conclusion (rebutting defeater)."
+      undercuts:
+        description: "This claim attacks the target's inference step (undercutting defeater)."
+      undermines:
+        description: "This claim attacks the target's premise or evidence."
+      supports:
+        description: "This claim provides supporting evidence for the target."
+      explains:
+        description: "This claim provides a mechanistic or causal explanation for the target."
+      supersedes:
+        description: "This claim replaces the target (newer methodology, corrected data)."
 
   MeasureType:
     description: >
@@ -351,8 +358,11 @@ classes:
 
   Stance:
     description: >
-      An epistemic relation between two claims, expressing support,
-      contradiction, supersession, or mechanistic explanation.
+      An epistemic relation between two claims. Active voice: the claim
+      holding this stance performs the action on the target.
+      Attack types: rebuts (conclusion), undercuts (inference), undermines (premise).
+      Support types: supports (evidence), explains (mechanism).
+      Preference: supersedes (replaces).
     attributes:
       type:
         description: "The stance relation type."

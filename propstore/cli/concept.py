@@ -565,3 +565,112 @@ def show(obj: dict, concept_id_or_name: str) -> None:
         sys.exit(EXIT_ERROR)
 
     click.echo(filepath.read_text())
+
+
+# ── concept embed ────────────────────────────────────────────────────
+
+@concept.command()
+@click.argument("concept_id", required=False, default=None)
+@click.option("--all", "embed_all", is_flag=True, help="Embed all concepts")
+@click.option("--model", required=True, help="litellm model string, or 'all'")
+@click.option("--batch-size", default=64, type=int, help="Concepts per API call")
+@click.pass_obj
+def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_size: int) -> None:
+    """Generate embeddings for concepts via litellm."""
+    if not concept_id and not embed_all:
+        click.echo("Error: provide a concept ID or use --all", err=True)
+        raise SystemExit(1)
+
+    from propstore.embed import embed_concepts, _load_vec_extension, get_registered_models
+
+    repo: Repository = obj["repo"]
+    sidecar = repo.sidecar_path
+    if not sidecar.exists():
+        click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
+        raise SystemExit(1)
+
+    conn = sqlite3.connect(sidecar)
+    conn.row_factory = sqlite3.Row
+    _load_vec_extension(conn)
+
+    ids = [concept_id] if concept_id else None
+
+    if model == "all":
+        models = get_registered_models(conn)
+        if not models:
+            click.echo("Error: no models registered. Run embed with a specific model first.", err=True)
+            conn.close()
+            raise SystemExit(1)
+        for m in models:
+            click.echo(f"Embedding with {m['model_name']}...")
+            result = embed_concepts(
+                conn, m["model_name"], concept_ids=ids, batch_size=batch_size,
+                on_progress=lambda done, total: click.echo(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None
+            )
+            click.echo(f"  embedded={result['embedded']} skipped={result['skipped']} errors={result['errors']}")
+    else:
+        def progress(done: int, total: int) -> None:
+            click.echo(f"  {done}/{total} concepts embedded", err=True)
+
+        result = embed_concepts(conn, model, concept_ids=ids, batch_size=batch_size, on_progress=progress)
+        click.echo(f"Embedded: {result['embedded']}, Skipped: {result['skipped']}, Errors: {result['errors']}")
+
+    conn.commit()
+    conn.close()
+
+
+# ── concept similar ──────────────────────────────────────────────────
+
+@concept.command()
+@click.argument("concept_id")
+@click.option("--model", default=None, help="litellm model string (default: first available)")
+@click.option("--top-k", default=10, type=int, help="Number of results")
+@click.option("--agree", is_flag=True, help="Similar under ALL stored models")
+@click.option("--disagree", is_flag=True, help="Similar under some models but not others")
+@click.pass_obj
+def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bool, disagree: bool) -> None:
+    """Find similar concepts by embedding distance."""
+    from propstore.embed import (
+        find_similar_concepts, find_similar_concepts_agree,
+        find_similar_concepts_disagree, _load_vec_extension, get_registered_models,
+    )
+
+    repo: Repository = obj["repo"]
+    sidecar = repo.sidecar_path
+    if not sidecar.exists():
+        click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
+        raise SystemExit(1)
+
+    conn = sqlite3.connect(sidecar)
+    conn.row_factory = sqlite3.Row
+    _load_vec_extension(conn)
+
+    try:
+        if agree:
+            results = find_similar_concepts_agree(conn, concept_id, top_k=top_k)
+        elif disagree:
+            results = find_similar_concepts_disagree(conn, concept_id, top_k=top_k)
+        else:
+            if model is None:
+                models = get_registered_models(conn)
+                if not models:
+                    click.echo("Error: no embeddings found. Run 'pks concept embed' first.", err=True)
+                    raise SystemExit(1)
+                model = models[0]["model_name"]
+            results = find_similar_concepts(conn, concept_id, model, top_k=top_k)
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
+    finally:
+        conn.close()
+
+    if not results:
+        click.echo("No similar concepts found.")
+        return
+
+    for r in results:
+        dist = r.get("distance", 0)
+        cid = r.get("id", "?")
+        name = r.get("canonical_name", "")
+        defn = (r.get("definition") or "")[:80]
+        click.echo(f"  {dist:.4f}  {cid}  {name}  — {defn}")
