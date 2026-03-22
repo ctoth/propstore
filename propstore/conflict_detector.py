@@ -25,6 +25,7 @@ from typing import Any
 from ast_equiv import compare as ast_compare
 
 from propstore.cel_checker import ConceptInfo, KindType, build_cel_registry
+from propstore.equation_comparison import canonicalize_equation, equation_signature
 from propstore.validate_claims import LoadedClaimFile
 
 
@@ -236,7 +237,7 @@ def _collect_equation_claims(
         for claim in cf.data.get("claims", []):
             if claim.get("type") != "equation":
                 continue
-            signature = _equation_signature(claim)
+            signature = equation_signature(claim)
             if signature is None:
                 continue
             by_signature[signature].append(claim)
@@ -459,81 +460,6 @@ def _conditions_disjoint(left: _ConditionSummary, right: _ConditionSummary) -> b
     return False
 
 
-def _equation_signature(claim: dict) -> tuple[str, tuple[str, ...]] | None:
-    variables = claim.get("variables")
-    if not isinstance(variables, list):
-        return None
-
-    dependent_concepts: list[str] = []
-    for var in variables:
-        if isinstance(var, dict) and var.get("role") == "dependent":
-            c = var.get("concept")
-            if isinstance(c, str) and c:
-                dependent_concepts.append(c)
-    if len(dependent_concepts) != 1:
-        return None
-
-    dependent_concept = dependent_concepts[0]
-    independent_list: list[str] = []
-    for var in variables:
-        if isinstance(var, dict):
-            c = var.get("concept")
-            if isinstance(c, str) and c and c != dependent_concept:
-                independent_list.append(c)
-    independents = sorted(independent_list)
-    return dependent_concept, tuple(independents)
-
-
-def _canonicalize_equation(claim: dict) -> str | None:
-    try:
-        from tokenize import TokenError
-
-        from sympy import Equality, SympifyError, Symbol, simplify
-        from sympy.parsing.sympy_parser import parse_expr
-    except ImportError:
-        return None
-
-    variables = claim.get("variables")
-    if not isinstance(variables, list):
-        return None
-
-    symbol_map = {}
-    for var in variables:
-        if not isinstance(var, dict):
-            continue
-        symbol = var.get("symbol")
-        concept_id = var.get("concept")
-        if isinstance(symbol, str) and symbol and isinstance(concept_id, str) and concept_id:
-            symbol_map[symbol] = Symbol(concept_id)
-    if not symbol_map:
-        return None
-
-    explicit_sympy = claim.get("sympy")
-    if isinstance(explicit_sympy, str) and explicit_sympy.strip():
-        text = explicit_sympy.strip().replace("^", "**")
-        try:
-            parsed = parse_expr(text, local_dict=symbol_map)
-            if isinstance(parsed, Equality):
-                lhs_val: Any = parsed.lhs
-                rhs_val: Any = parsed.rhs
-                return str(simplify(lhs_val - rhs_val))
-        except (SympifyError, SyntaxError, TypeError, ValueError):
-            pass
-
-    expression = claim.get("expression")
-    if not isinstance(expression, str) or "=" not in expression:
-        return None
-
-    lhs_text, rhs_text = expression.replace("^", "**").split("=", 1)
-    try:
-        lhs = parse_expr(lhs_text.strip(), local_dict=symbol_map)
-        rhs = parse_expr(rhs_text.strip(), local_dict=symbol_map)
-    except (SympifyError, SyntaxError, TypeError, ValueError, AttributeError, TokenError):
-        return None
-    diff_expr: Any = lhs - rhs
-    return str(simplify(diff_expr))
-
-
 
 
 def detect_conflicts(
@@ -623,13 +549,13 @@ def detect_conflicts(
                 ))
 
     # Step 4: Equation claims — compare claims for the same dependent relation
-    by_equation_signature = _collect_equation_claims(claim_files)
-    for (dependent_concept, _independent_concepts), equation_claims in by_equation_signature.items():
+    byequation_signature = _collect_equation_claims(claim_files)
+    for (dependent_concept, _independent_concepts), equation_claims in byequation_signature.items():
         if len(equation_claims) < 2:
             continue
 
         # Pre-compute canonical forms to avoid redundant SymPy parsing
-        canonicals = [_canonicalize_equation(c) for c in equation_claims]
+        canonicals = [canonicalize_equation(c) for c in equation_claims]
 
         for i in range(len(equation_claims)):
             for j in range(i + 1, len(equation_claims)):
