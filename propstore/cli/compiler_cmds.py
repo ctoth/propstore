@@ -582,14 +582,21 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
 @click.argument("concept_id")
 @click.argument("args", nargs=-1)
 @click.option("--strategy", required=True,
-              type=click.Choice(["recency", "sample_size", "stance", "override"]))
+              type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
 @click.option("--override", "override_id", default=None, help="Claim ID for override strategy")
+@click.option("--semantics", default="grounded",
+              type=click.Choice(["grounded", "preferred", "stable"]),
+              help="Argumentation semantics (default: grounded)")
+@click.option("--set-comparison", "set_comparison", default="elitist",
+              type=click.Choice(["elitist", "democratic"]),
+              help="Set comparison for preference ordering (default: elitist)")
 @click.pass_obj
 def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
-                  strategy: str, override_id: str | None) -> None:
+                  strategy: str, override_id: str | None,
+                  semantics: str, set_comparison: str) -> None:
     """Resolve a conflicted concept using a strategy.
 
-    Usage: pks world resolve concept1 domain=example --strategy sample_size
+    Usage: pks world resolve concept1 domain=example --strategy argumentation
     """
     from propstore.world_model import ResolutionStrategy, WorldModel, resolve
 
@@ -608,7 +615,10 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
     overrides = {resolved: override_id} if override_id else None
 
     try:
-        result = resolve(bound, resolved, strat, world=wm, overrides=overrides)
+        result = resolve(
+            bound, resolved, strat, world=wm, overrides=overrides,
+            semantics=semantics, comparison=set_comparison,
+        )
     except ValueError as e:
         click.echo(f"ERROR: {e}", err=True)
         wm.close()
@@ -678,7 +688,7 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
 @click.argument("concept_id")
 @click.argument("args", nargs=-1)
 @click.option("--strategy", default=None,
-              type=click.Choice(["recency", "sample_size", "stance", "override"]))
+              type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
 @click.pass_obj
 def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
                 strategy: str | None) -> None:

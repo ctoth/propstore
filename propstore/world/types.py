@@ -27,7 +27,7 @@ class DerivedResult:
 class ResolutionStrategy(Enum):
     RECENCY = "recency"
     SAMPLE_SIZE = "sample_size"
-    STANCE = "stance"
+    ARGUMENTATION = "argumentation"
     OVERRIDE = "override"
 
 

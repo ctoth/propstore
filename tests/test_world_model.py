@@ -809,16 +809,16 @@ class TestConflictResolution:
         # claim7 wins with n=50
         assert result.winning_claim_id == "claim7"
 
-    def test_resolve_stance_rebuts(self, world):
-        """Rebutted claim scored via weighted stances."""
+    def test_resolve_argumentation_rebuts(self, world):
+        """Argumentation: weak rebutter blocked by preference ordering."""
         bound = world.bind(task="speech")
-        result = resolve(bound, "concept1", ResolutionStrategy.STANCE, world=world)
-        # claim2 rebuts claim1 → claim1 gets -1.0
-        # claim7 supports claim1 → claim1 gets +1.0 (net 0.0)
-        # claim_stance: claim2 → claim1 (rebuts), claim7 → claim1 (supports)
-        # Net scores: claim1 = 0.0, claim2 = 0.0, claim7 = 0.0
-        # All tied → can't resolve
-        assert result.status in ("resolved", "conflicted")
+        result = resolve(bound, "concept1", ResolutionStrategy.ARGUMENTATION, world=world)
+        # claim2 (sample=10) rebuts claim1 (sample=30) → blocked (weaker)
+        # claim15 supersedes claim1 → always defeats
+        # claim7 supports claim1 → not an attack
+        # Grounded: {claim2, claim7, claim15} (claim1 defeated by claim15)
+        # Multiple survivors → conflicted
+        assert result.status == "conflicted"
 
     def test_resolve_override(self, world):
         """Specified claim wins."""
@@ -856,36 +856,27 @@ class TestConflictResolution:
         assert result.status == "resolved"
         assert result.winning_claim_id == "claim2"
 
-    def test_resolve_stance_supersedes(self, world):
-        """Superseding claim wins outright regardless of other scores."""
+    def test_resolve_argumentation_supersedes(self, world):
+        """Superseding claim defeats target in argumentation framework."""
         bound = world.bind(task="speech")
-        result = resolve(bound, "concept1", ResolutionStrategy.STANCE, world=world)
-        # claim15 supersedes claim1 → claim15 wins outright
-        assert result.status == "resolved"
-        assert result.winning_claim_id == "claim15"
-
-    def test_resolve_stance_undercuts(self, world):
-        """Undercutting and undermining stances push targets below zero."""
-        bound = world.bind(task="speech")
-        result = resolve(bound, "concept2", ResolutionStrategy.STANCE, world=world)
-        # claim12 undercuts claim6 → claim6 gets -1.0
-        # claim13 undermines claim4 → claim4 gets -0.5
-        # claim14 explains claim6 → claim6 gets +0.5 (net -0.5)
-        # claim4 net: -0.5, claim6 net: -0.5, claim12: 0, claim13: 0, claim14: 0
-        # Three claims tied at 0, two at -0.5 → can't resolve (3-way tie at max)
+        result = resolve(bound, "concept1", ResolutionStrategy.ARGUMENTATION, world=world)
+        # claim15 supersedes claim1 → claim1 defeated (out of grounded extension)
+        # Multiple other claims survive → still conflicted
         assert result.status == "conflicted"
         assert result.reason is not None
-        assert "tied" in result.reason
+        assert "survive" in result.reason
 
-    def test_stance_weights(self, world):
-        """Stance weight constants are correctly defined."""
-        from propstore.world.resolution import _STANCE_WEIGHTS
-        assert _STANCE_WEIGHTS["undermines"] == -0.5
-        assert _STANCE_WEIGHTS["undercuts"] == -1.0
-        assert _STANCE_WEIGHTS["rebuts"] == -1.0
-        assert _STANCE_WEIGHTS["supports"] == 1.0
-        assert _STANCE_WEIGHTS["explains"] == 0.5
-        assert "supersedes" not in _STANCE_WEIGHTS  # handled separately
+    def test_resolve_argumentation_undercuts(self, world):
+        """Undercutting eliminates target from grounded extension."""
+        bound = world.bind(task="speech")
+        result = resolve(bound, "concept2", ResolutionStrategy.ARGUMENTATION, world=world)
+        # claim12 undercuts claim6 → claim6 defeated
+        # claim13 undermines claim4 (equal strength) → claim4 defeated
+        # claim14 explains claim6 → not an attack
+        # Survivors: {claim12, claim13, claim14} → still conflicted
+        assert result.status == "conflicted"
+        assert result.reason is not None
+        assert "survive" in result.reason
 
 
 # ── Feature 4: Chain Query ──────────────────────────────────────────

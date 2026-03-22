@@ -50,63 +50,49 @@ def _resolve_sample_size(claims: list[dict]) -> tuple[str | None, str | None]:
     return best_id, f"largest sample_size: {best_n}"
 
 
-_STANCE_WEIGHTS: dict[str, float] = {
-    "supports": 1.0,
-    "explains": 0.5,
-    "rebuts": -1.0,
-    "undercuts": -1.0,
-    "undermines": -0.5,
-}
+def _resolve_argumentation(
+    claims: list[dict],
+    world: WorldModel,
+    *,
+    semantics: str = "grounded",
+    comparison: str = "elitist",
+    confidence_threshold: float = 0.5,
+) -> tuple[str | None, str | None]:
+    """Resolve using ASPIC+ argumentation semantics.
 
-
-def _resolve_stance(claims: list[dict], world: WorldModel) -> tuple[str | None, str | None]:
-    """Pick the claim with the highest weighted stance score.
-
-    Stance types have different weights (see _STANCE_WEIGHTS).
-    Supersedes is handled specially: if claim A supersedes claim B
-    and both are in contention, A wins outright.
+    Builds a Dung AF from the stance graph filtered through preference
+    ordering, computes the grounded extension, and picks the surviving
+    claim (if exactly one survives for this concept).
     """
-    scores: dict[str, float] = {c["id"]: 0.0 for c in claims}
-    claim_ids = set(scores.keys())
+    from propstore.argumentation import compute_justified_claims
 
     if not world._has_table("claim_stance"):
         return None, "no stance data"
 
-    # Check for supersession first — trumps scoring (only if confident)
-    for claim_id in claim_ids:
-        rows = world._conn.execute(
-            "SELECT claim_id, confidence FROM claim_stance "
-            "WHERE target_claim_id = ? AND stance_type = 'supersedes'",
-            (claim_id,),
-        ).fetchall()
-        for row in rows:
-            if row["claim_id"] in claim_ids:
-                conf = row["confidence"]
-                if conf is None or conf >= 0.5:
-                    return row["claim_id"], f"supersedes {claim_id}"
-                # Low-confidence supersedes falls through to scoring
+    claim_ids = {c["id"] for c in claims}
+    result = compute_justified_claims(
+        world._conn, claim_ids,
+        semantics=semantics,
+        comparison=comparison,
+        confidence_threshold=confidence_threshold,
+    )
 
-    # Weighted scoring for remaining types
-    for claim_id in claim_ids:
-        rows = world._conn.execute(
-            "SELECT stance_type, confidence FROM claim_stance WHERE target_claim_id = ?",
-            (claim_id,),
-        ).fetchall()
-        for row in rows:
-            if row["stance_type"] == "none":
-                continue
-            weight = _STANCE_WEIGHTS.get(row["stance_type"], 0.0)
-            conf = row["confidence"] if row["confidence"] is not None else 1.0
-            scores[claim_id] += weight * conf
+    if semantics == "grounded":
+        survivors = result & claim_ids
+    else:
+        # For preferred/stable, take intersection across all extensions
+        if not result:
+            survivors = frozenset()
+        else:
+            survivors = frozenset.intersection(*result) & claim_ids
 
-    if not scores:
-        return None, "no stance data"
+    if len(survivors) == 0:
+        return None, "all claims defeated"
+    if len(survivors) == 1:
+        winner = next(iter(survivors))
+        return winner, f"sole survivor in {semantics} extension"
 
-    max_score = max(scores.values())
-    winners = [cid for cid, s in scores.items() if s == max_score]
-    if len(winners) > 1:
-        return None, f"tied stance scores: {max_score}"
-    return winners[0], f"net stance score: {max_score}"
+    return None, f"{len(survivors)} claims survive in {semantics} extension"
 
 
 def resolve(
@@ -116,6 +102,9 @@ def resolve(
     *,
     world: WorldModel | None = None,
     overrides: dict[str, str] | None = None,
+    semantics: str = "grounded",
+    comparison: str = "elitist",
+    confidence_threshold: float = 0.5,
 ) -> ResolvedResult:
     """Apply a resolution strategy to a conflicted concept."""
     from propstore.world.bound import BoundWorld
@@ -164,9 +153,8 @@ def resolve(
     elif strategy == ResolutionStrategy.SAMPLE_SIZE:
         winner_id, reason = _resolve_sample_size(active)
 
-    elif strategy == ResolutionStrategy.STANCE:
+    elif strategy == ResolutionStrategy.ARGUMENTATION:
         if world is None:
-            # Try to get world from view
             if isinstance(view, BoundWorld):
                 world = view._world
             elif isinstance(view, HypotheticalWorld):
@@ -174,9 +162,14 @@ def resolve(
         if world is None:
             return ResolvedResult(
                 concept_id=concept_id, status="conflicted",
-                claims=active, reason="no world for stance resolution",
+                claims=active, reason="no world for argumentation",
             )
-        winner_id, reason = _resolve_stance(active, world)
+        winner_id, reason = _resolve_argumentation(
+            active, world,
+            semantics=semantics,
+            comparison=comparison,
+            confidence_threshold=confidence_threshold,
+        )
 
     if winner_id is None:
         return ResolvedResult(
