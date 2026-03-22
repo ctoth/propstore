@@ -469,6 +469,21 @@ def embed_concepts(
     return {"embedded": embedded, "skipped": skipped, "errors": errors}
 
 
+def _resolve_concept_id(conn: sqlite3.Connection, concept_id_or_name: str) -> tuple[str, int]:
+    """Resolve a concept ID or canonical_name to (id, seq).
+
+    Tries exact ID match first, then canonical_name lookup.
+    Raises ValueError if not found.
+    """
+    row = conn.execute(
+        "SELECT id, seq FROM concept WHERE id = ? OR canonical_name = ?",
+        (concept_id_or_name, concept_id_or_name),
+    ).fetchone()
+    if not row:
+        raise ValueError(f"Concept {concept_id_or_name} not found")
+    return row["id"], row["seq"]
+
+
 def find_similar_concepts(
     conn: sqlite3.Connection,
     concept_id: str,
@@ -479,18 +494,15 @@ def find_similar_concepts(
     model_key = _sanitize_model_key(model_name)
     table_name = f"concept_vec_{model_key}"
 
-    # Get concept's seq
-    row = conn.execute("SELECT seq FROM concept WHERE id = ?", (concept_id,)).fetchone()
-    if not row:
-        raise ValueError(f"Concept {concept_id} not found")
-    seq = row["seq"]
+    # Resolve concept ID or canonical_name
+    resolved_id, seq = _resolve_concept_id(conn, concept_id)
 
     # Get concept's embedding
     vec_row = conn.execute(
         f"SELECT embedding FROM [{table_name}] WHERE rowid = ?", (seq,)
     ).fetchone()
     if not vec_row:
-        raise ValueError(f"No embedding for {concept_id} under model {model_name}")
+        raise ValueError(f"No embedding for {resolved_id} under model {model_name}")
 
     # KNN search
     results = conn.execute(
@@ -502,7 +514,7 @@ def find_similar_concepts(
         (vec_row["embedding"], top_k + 1)
     ).fetchall()
 
-    return [dict(r) for r in results if r["id"] != concept_id][:top_k]
+    return [dict(r) for r in results if r["id"] != resolved_id][:top_k]
 
 
 def find_similar_concepts_agree(
