@@ -1,0 +1,72 @@
+source_claim: Walton_2015_ClassificationSystemArgumentationSchemes:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim12
+  type: none
+  strength: none
+  note: Claim A describes an empirical test of a classification system, while claim
+    B describes the design purpose of the classification system; they do not directly
+    bear on each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8518339395523071
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim13
+  type: none
+  strength: weak
+  note: Claim A describes an empirical test of a classification system, while Claim
+    B acknowledges the system is incomplete; they are not directly related in a way
+    that one affects the other's truth value.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9339661598205566
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim8
+  type: none
+  strength: none
+  note: Claim A describes an empirical test of a classification system, while Claim
+    B critiques prior classification approaches, so they don't have a direct epistemic
+    relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.971264123916626
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim5
+  type: none
+  strength: none
+  note: The claims are about distinct aspects of the classification system (empirical
+    testing vs. structural features), so A does not directly affect B's validity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0367354154586792
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim9
+  type: none
+  strength: weak
+  note: Claim A is about testing a classification system, while Claim B lists types
+    of source-based arguments, so there is little relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.043656349182129
+    pass_number: 1
+    confidence: 0.0

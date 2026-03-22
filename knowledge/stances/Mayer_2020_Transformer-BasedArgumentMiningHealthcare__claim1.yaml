@@ -1,0 +1,74 @@
+source_claim: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim14
+  type: none
+  strength: none
+  note: The claims address different aspects of argument mining performance; one compares
+    pipeline architecture, the other generalization across disease types.
+  conditions_differ: Different tasks and datasets
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8708267211914062
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim12
+  type: none
+  strength: none
+  note: Claim A is about the performance of a specific argument mining pipeline in
+    a specific domain, while Claim B discusses the general need for argument scheme
+    taxonomies to support argument mining, thus there isn't a direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9226182699203491
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim13
+  type: none
+  strength: none
+  note: The claims discuss different aspects of argument mining in clinical trial
+    abstracts; one focuses on pipeline performance, the other on the nature of argumentative
+    relations.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9329842925071716
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim7
+  type: none
+  strength: none
+  note: Claim A discusses an argument mining pipeline's performance on extracting
+    argumentative structures, while Claim B discusses a specific sequence labeling
+    architecture's performance in argument component detection; they address different
+    aspects of argument mining.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9403484463691711
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim6
+  type: supports
+  strength: moderate
+  note: Claim A's findings support the broader utility of transformer models in argument
+    mining, as shown in Claim B.
+  conditions_differ: Claim A focuses on a pipeline approach for argument mining, while
+    Claim B compares different types of embeddings and transformer models directly.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9404977560043335
+    pass_number: 1
+    confidence: 0.8

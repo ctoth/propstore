@@ -1,0 +1,73 @@
+source_claim: McAllester_1978_ThreeValuedTMS:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim6
+  type: none
+  strength: none
+  note: Claim A describes a general property of assumption-based systems, while Claim
+    B describes the features of a specific ATMS implementation; there's no direct
+    support, contradiction, or undermining.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9071562886238098
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim8
+  type: explains
+  strength: moderate
+  note: Claim A provides a mechanism (hierarchies of assumptions) that explains why
+    the backtracking algorithm in Claim B prioritizes assumptions based on distance
+    from contradiction.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9318563938140869
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim8
+  type: none
+  strength: none
+  note: Claim A and Claim B discuss different aspects of TMS systems (hierarchical
+    assumptions vs. dependency-directed backtracking), so there is no clear relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9640093445777893
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim2
+  type: supports
+  strength: moderate
+  note: Claim A describes a mechanism of dependency tracking within a TMS, while Claim
+    B outlines required tasks for a belief revision system, which would benefit from
+    such a mechanism.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9699599742889404
+    pass_number: 1
+    confidence: 0.8
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses hierarchical assumptions, while Claim B discusses problems
+    with explicit transitivity in a belief maintenance system; they concern different
+    aspects of reasoning systems.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9709131121635437
+    pass_number: 1
+    confidence: 0.0

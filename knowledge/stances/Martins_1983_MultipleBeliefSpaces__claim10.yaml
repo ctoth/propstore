@@ -1,0 +1,72 @@
+source_claim: Martins_1983_MultipleBeliefSpaces:claim10
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1988_BeliefRevision:claim8
+  type: explains
+  strength: moderate
+  note: Claim A provides an explanation for *how* MBR avoids explicitly marking beliefs,
+    which is relevant to the two levels of belief revision described in Claim B, as
+    these levels deal with context changes related to belief status.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8194946646690369
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1983_MultipleBeliefSpaces:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses how MBR handles belief status, while Claim B focuses on
+    the inference rules used for contradiction handling; they describe different aspects
+    of MBR.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8539637327194214
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim1
+  type: none
+  strength: weak
+  note: Claim A and Claim B address belief representation using different approaches
+    with little direct overlap or contradiction.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8995131850242615
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim14
+  type: none
+  strength: weak
+  note: Claim A and Claim B discuss different aspects of MBR, with Claim A addressing
+    belief status and Claim B addressing contradiction recovery.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9180709719657898
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses a different approach (Multiple Belief Spaces) than Claim
+    B (AGM belief revision), so they don't directly relate.
+  conditions_differ: Claim A focuses on a different belief representation than Claim
+    B.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9327391386032104
+    pass_number: 1
+    confidence: 0.0

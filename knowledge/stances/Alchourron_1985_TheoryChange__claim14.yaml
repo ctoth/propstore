@@ -1,0 +1,77 @@
+source_claim: Alchourron_1985_TheoryChange:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim9
+  type: none
+  strength: none
+  note: The claims are about different aspects of the theory of theory change, one
+    about conditions collapsing in finite vs. infinite cases and the other about characterizing
+    contraction functions; they don't directly relate to each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0204942226409912
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim15
+  type: supports
+  strength: moderate
+  note: Both claims highlight the difference between finite and infinite cases in
+    the context of orderings/hierarchies, which lends support to the broader point
+    that finiteness matters.
+  conditions_differ: Claim A focuses on the hierarchy of conditions collapsing, while
+    Claim B addresses the connectivity of the ordering relation.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0353784561157227
+    pass_number: 1
+    confidence: 0.8
+- target: Dung_1995_AcceptabilityArguments:claim30
+  type: none
+  strength: none
+  note: Claim A discusses the hierarchy of conditions in theory change, while Claim
+    B discusses the computability of arguments in argumentation frameworks; they are
+    unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0384249687194824
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses a specific formal property of theory change in finite vs.
+    infinite cases, while Claim B discusses counterfactuals violating properties of
+    material conditionals; there's no clear connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0390994548797607
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim14
+  type: none
+  strength: weak
+  note: Claim A discusses properties of theory change in finite vs. infinite cases
+    within the framework of hierarchies of conditions, while Claim B focuses on the
+    characteristics of AGM operations producing closed theories and the limitations
+    of using finite theory bases, suggesting they operate in distinct theoretical
+    domains.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0418905019760132
+    pass_number: 1
+    confidence: 0.0

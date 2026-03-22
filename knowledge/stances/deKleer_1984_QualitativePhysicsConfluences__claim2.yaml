@@ -1,0 +1,71 @@
+source_claim: deKleer_1984_QualitativePhysicsConfluences:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1984_QualitativePhysicsConfluences:claim1
+  type: none
+  strength: none
+  note: The claims are about different aspects of qualitative physics modeling, with
+    A describing state specification and B defining confluences.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8466448187828064
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim7
+  type: explains
+  strength: moderate
+  note: Claim A describes the qualitative nature of the approach, which explains why,
+    as stated in Claim B, it can yield multiple interpretations.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9914581775665283
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1984_QualitativePhysicsConfluences:claim9
+  type: none
+  strength: weak
+  note: Claim A describes a method for dividing a system into qualitative states,
+    while Claim B discusses the limitations of simple constraint propagation for solving
+    confluence systems, and they aren't meaningfully related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0124963521957397
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim3
+  type: none
+  strength: none
+  note: Claim A describes qualitative states defined by inequalities, while Claim
+    B discusses the ambiguity of qualitative addition; there's no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.025428295135498
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses qualitative states of components, while Claim B concerns
+    the qualitative mean value theorem; the two claims are related to qualitative
+    physics, but do not directly influence each other's validity or strength.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0288217067718506
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,70 @@
+source_claim: Greenberg_2009_CitationDistortions:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Greenberg_2009_CitationDistortions:claim6
+  type: none
+  strength: none
+  note: The size of the network doesn't inherently support, undermine, or otherwise
+    affect the citation count.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7868964672088623
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim2
+  type: supports
+  strength: weak
+  note: Claim A provides a concrete example (network size) that is relevant to understanding
+    the concept defined in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9887163639068604
+    pass_number: 1
+    confidence: 0.6
+- target: Greenberg_2009_CitationDistortions:claim13
+  type: none
+  strength: none
+  note: Claim A simply states the network size, while Claim B discusses the impact
+    of citation distortions on network authority; they address different aspects and
+    do not directly influence each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0840644836425781
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim10
+  type: none
+  strength: none
+  note: The claims describe different network properties and metrics; network size
+    does not directly impact or relate to authority traffic share.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0986515283584595
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim5
+  type: none
+  strength: none
+  note: The claims discuss different topics (network size vs. dataset relations) and
+    do not have a direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.09970223903656
+    pass_number: 1
+    confidence: 0.0

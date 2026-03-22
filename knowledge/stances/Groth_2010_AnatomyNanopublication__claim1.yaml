@@ -1,0 +1,71 @@
+source_claim: Groth_2010_AnatomyNanopublication:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Groth_2010_AnatomyNanopublication:claim2
+  type: supports
+  strength: moderate
+  note: Claim A introduces the concept of a nanopublication, while Claim B elaborates
+    on the structure and components of a nanopublication, thereby supporting the initial
+    definition by providing more detail.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6961318254470825
+    pass_number: 1
+    confidence: 0.8
+- target: Groth_2010_AnatomyNanopublication:claim4
+  type: explains
+  strength: moderate
+  note: Claim A explains the definition of a nanopublication, while Claim B specifies
+    the minimum structure of a nanopublication, thus A provides context to understand
+    B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7403197884559631
+    pass_number: 1
+    confidence: 0.8
+- target: Groth_2010_AnatomyNanopublication:claim7
+  type: none
+  strength: weak
+  note: Claim A defines nanopublications while Claim B discusses the ontologies used
+    within them, having little direct impact on each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7955358624458313
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim6
+  type: none
+  strength: none
+  note: The definition of a nanopublication in A is not directly related to the claim
+    about the importance of annotation vocabulary in B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8145986795425415
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim10
+  type: none
+  strength: none
+  note: Claim A defines nanopublications, while claim B discusses requirements for
+    large-scale nanopublication aggregation, and they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.868134617805481
+    pass_number: 1
+    confidence: 0.0

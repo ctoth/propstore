@@ -1,0 +1,70 @@
+source_claim: Reiter_1980_DefaultReasoning:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Reiter_1980_DefaultReasoning:claim4
+  type: supports
+  strength: strong
+  note: Claim A provides the general form of a default rule, and Claim B gives a specific
+    form (normal defaults), thus Claim A supports Claim B by defining the basis.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7632201313972473
+    pass_number: 1
+    confidence: 0.95
+- target: Reiter_1980_DefaultReasoning:claim2
+  type: supports
+  strength: moderate
+  note: Claim A helps to define a component (default rule) used in Claim B's definition
+    of a default theory, lending support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.896087110042572
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim14
+  type: none
+  strength: none
+  note: Claim A defines default rules, while Claim B discusses a preference principle
+    in argumentation, so they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9513304829597473
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim7
+  type: supports
+  strength: weak
+  note: Claim A defines the core concepts used in Claim B, thus indirectly supporting
+    the framework within which Claim B is asserted.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.968487560749054
+    pass_number: 1
+    confidence: 0.6
+- target: Reiter_1980_DefaultReasoning:claim9
+  type: none
+  strength: none
+  note: Claim A defines default rules, while Claim B discusses the completeness of
+    proof theory for a specific type of default theory; they don't directly relate
+    epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9687944054603577
+    pass_number: 1
+    confidence: 0.0

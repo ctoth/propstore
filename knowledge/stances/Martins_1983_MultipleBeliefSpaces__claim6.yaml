@@ -1,0 +1,72 @@
+source_claim: Martins_1983_MultipleBeliefSpaces:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1983_MultipleBeliefSpaces:claim10
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of MBR, one focusing on inference rules
+    for contradiction handling and the other on how belief status is determined, so
+    they're not directly related but potentially related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8539637327194214
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim8
+  type: none
+  strength: weak
+  note: Claim A and B discuss different aspects of MBR; A focuses on inference rules
+    for contradiction handling, while B talks about levels of belief revision, making
+    their direct relation minimal.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8965231776237488
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim14
+  type: explains
+  strength: moderate
+  note: Claim A explains a key mechanism (URS) that allows MBR to achieve the non-destructive
+    contradiction recovery described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8997539281845093
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim7
+  type: none
+  strength: weak
+  note: Claim A is about a specific system (MBR) and its contradiction handling, while
+    Claim B describes a different system (SNeBR) with a different approach; they don't
+    directly interact or relate in a meaningful epistemic way.
+  conditions_differ: MBR vs SNeBR
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9404500722885132
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim5
+  type: none
+  strength: weak
+  note: Claim A discusses a specific approach to contradiction handling (MBR), while
+    Claim B describes a different TMS approach (LTMS), so they are largely orthogonal.
+  conditions_differ: Different TMS systems with distinct goals and implementations.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9802049398422241
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,73 @@
+source_claim: Ginsberg_1985_Counterfactuals:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Ginsberg_1985_Counterfactuals:claim1
+  type: explains
+  strength: moderate
+  note: Claim A describes a specific procedure which can be seen as an implementation
+    or a mechanistic explanation of the general formalization described in claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8562332987785339
+    pass_number: 1
+    confidence: 0.8
+- target: Ginsberg_1985_Counterfactuals:claim10
+  type: none
+  strength: none
+  note: Claim A describes a procedure for counterfactual evaluation, while Claim B
+    discusses the comparative strength of counterfactual diagnosis versus predicate
+    calculus diagnosis; these claims are topically distinct and do not directly bear
+    on one another's validity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9781529307365417
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim7
+  type: explains
+  strength: moderate
+  note: Claim A, outlining the procedure for counterfactual evaluation, offers a mechanistic
+    account of how the context dependence described in Claim B is implemented by setting
+    the premise to different truth values.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9863159656524658
+    pass_number: 1
+    confidence: 0.8
+- target: Ginsberg_1985_Counterfactuals:claim3
+  type: none
+  strength: weak
+  note: Claim A describes a *process* of counterfactual evaluation, while Claim B
+    describes a property of 'closure' within truth functions; they are related as
+    parts of a larger system, but don't directly impact one another's truth value.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9885308146476746
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim11
+  type: none
+  strength: weak
+  note: Claim A describes a specific algorithm for counterfactual evaluation, while
+    Claim B states a general principle of deductive warrant, so there is little overlap.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9901489019393921
+    pass_number: 1
+    confidence: 0.0

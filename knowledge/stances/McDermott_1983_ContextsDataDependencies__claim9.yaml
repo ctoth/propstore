@@ -1,0 +1,73 @@
+source_claim: McDermott_1983_ContextsDataDependencies:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McDermott_1983_ContextsDataDependencies:claim5
+  type: none
+  strength: none
+  note: Claim A discusses computational complexity in worst and typical cases, while
+    Claim B focuses on the halting property of an algorithm; they address different
+    aspects of the system.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9553394913673401
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim14
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of computational complexity and label
+    growth; one focuses on substitutions while the other is about exponential label
+    growth with depth.
+  conditions_differ: Worst case vs. typical case; number of proofs
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9802558422088623
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses label computation complexity in general, while Claim B discusses
+    efficiency of ATMS, so there is no strong connection.
+  conditions_differ: Claim A focuses on assertion complexity in general contexts,
+    while Claim B discusses assumption-based truth maintenance systems.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0219669342041016
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim4
+  type: none
+  strength: none
+  note: Claim A discusses computational complexity while Claim B describes the structure
+    of labels, making them unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0304973125457764
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim15
+  type: supports
+  strength: weak
+  note: Claim A's discussion of complexity indirectly supports the feasibility suggested
+    by Claim B's benchmark results.
+  conditions_differ: Claim A refers to worst-case and typical scenarios, while Claim
+    B reports a specific test network implementation.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0397371053695679
+    pass_number: 1
+    confidence: 0.6

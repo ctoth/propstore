@@ -1,0 +1,73 @@
+source_claim: Pollock_1987_DefeasibleReasoning:claim4
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Pollock_1987_DefeasibleReasoning:claim3
+  type: none
+  strength: weak
+  note: While both define types of defeaters, A focuses on attacking the connection
+    between reason and conclusion, whereas B focuses on providing a reason to believe
+    the negation of the conclusion; they are different concepts.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6984813213348389
+    pass_number: 2
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim5
+  type: supports
+  strength: moderate
+  note: Claim A provides a definition of undercutting defeaters, which strengthens
+    Claim B's argument about their importance by providing context.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7713449597358704
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim4
+  type: undercuts
+  strength: moderate
+  note: Claim A defines undercutting in a general way while Claim B makes a specific
+    claim about the success of undercutting attacks, thus A challenges the generality
+    of B's claim about undercutting.
+  conditions_differ: Claim B is within the ASPIC framework of structured argumentation,
+    while claim A is about defeasible reasoning generally.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8190411925315857
+    pass_number: 1
+    confidence: 0.8
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim3
+  type: supports
+  strength: strong
+  note: Claim A provides a definition and explanation of undercutting defeaters, which
+    directly corroborates Claim B's description of Pollock's work and the importance
+    of undercutting defeat.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.827368438243866
+    pass_number: 1
+    confidence: 0.95
+- target: Pollock_1987_DefeasibleReasoning:claim8
+  type: none
+  strength: weak
+  note: 'The claims discuss different aspects of defeasible reasoning: undercutting
+    defeaters vs. self-defeating arguments.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8779498934745789
+    pass_number: 1
+    confidence: 0.0

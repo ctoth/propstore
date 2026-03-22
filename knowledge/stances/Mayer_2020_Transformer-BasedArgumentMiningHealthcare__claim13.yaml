@@ -1,0 +1,74 @@
+source_claim: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim1
+  type: none
+  strength: none
+  note: Claim A describes a pattern of argumentation, while Claim B describes a method
+    for argument mining; there's no direct epistemic link.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9329842925071716
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim14
+  type: none
+  strength: none
+  note: The claims are about different aspects of argument mining. Claim A discusses
+    the scope and patterns of argumentative relations, while Claim B discusses the
+    generalizability of argument mining models across disease types. They don't directly
+    relate to each other epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0248051881790161
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim28
+  type: none
+  strength: none
+  note: Claim A discusses argumentation in clinical trial abstracts, while Claim B
+    discusses a general framework for abstract arguments and their relationships,
+    thus there is no direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0341459512710571
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim1
+  type: none
+  strength: none
+  note: Claim A discusses argumentative relations in clinical trial abstracts, while
+    Claim B defines argumentation frameworks in a general, abstract sense, so there
+    is no direct epistemic connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.074464201927185
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim2
+  type: supports
+  strength: weak
+  note: Claim A provides a real-world example of "supports claim" which generally
+    aligns with the directed acyclic graph structure described in Claim B.
+  conditions_differ: Claim A focuses on clinical trial abstracts in healthcare, while
+    Claim B describes micropublications in a more general sense.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.083428144454956
+    pass_number: 1
+    confidence: 0.6

@@ -1,0 +1,74 @@
+source_claim: Dixon_1993_ATMSandAGM:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dixon_1993_ATMSandAGM:claim5
+  type: supports
+  strength: strong
+  note: Claim A directly supports Claim B by assigning the task of determining the
+    relationships between entrenchments to the problem solver, which aligns with Claim
+    B's encoding of these relationships.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8545695543289185
+    pass_number: 1
+    confidence: 0.95
+- target: Dixon_1993_ATMSandAGM:claim12
+  type: none
+  strength: none
+  note: Claim A discusses the *process* of determining essential support, while Claim
+    B states a *mathematical definition* of essential support, so they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9546026587486267
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim6
+  type: none
+  strength: none
+  note: Claim A discusses the role of the problem solver vs. the TMS in determining
+    essential support and independence, while Claim B defines essential support, so
+    they are not directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0232903957366943
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses the role of a problem solver vs. a TMS in determining relationships
+    between propositions, while Claim B describes an algorithm for handling self-referential
+    equations; these are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0493009090423584
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses the division of labor between a problem solver and a TMS
+    in determining essential support/independence of propositions, whereas Claim B
+    discusses the different focuses of AGM belief revision and TMS traditions (logical
+    closure vs. implementation).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0498237609863281
+    pass_number: 1
+    confidence: 0.0

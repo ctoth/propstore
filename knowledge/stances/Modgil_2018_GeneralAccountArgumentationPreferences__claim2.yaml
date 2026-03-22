@@ -1,0 +1,72 @@
+source_claim: Modgil_2018_GeneralAccountArgumentationPreferences:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim3
+  type: supports
+  strength: moderate
+  note: Both claims highlight desirable properties (closure principles) of ASPIC+
+    under similar conditions, suggesting a shared underlying strength of the system.
+  conditions_differ: 'null'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.4201238751411438
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim5
+  type: none
+  strength: weak
+  note: The claims discuss different properties (sub-argument closure vs. indirect
+    consistency) of the ASPIC+ framework under specific conditions; there's no direct
+    undermining, undercutting, or rebutting relationship, though they share premises.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.4873567819595337
+    pass_number: 2
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim4
+  type: none
+  strength: weak
+  note: The claims describe different properties (sub-argument closure vs. direct
+    consistency) of the ASPIC+ argumentation system under specific conditions; there
+    is no direct conflict or support.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5374556183815002
+    pass_number: 2
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim14
+  type: none
+  strength: weak
+  note: Claim A focuses on a formal property (sub-argument closure) of ASPIC+ under
+    specific conditions, while Claim B discusses the general motivation for ASPIC+'s
+    design to meet rationality postulates; they don't directly relate.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7434446215629578
+    pass_number: 2
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim15
+  type: supports
+  strength: moderate
+  note: Claim A shows a desirable formal property of ASPIC+, which supports claim
+    B's implication that ASPIC+ avoids issues with inconsistent extensions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7616437673568726
+    pass_number: 1
+    confidence: 0.8

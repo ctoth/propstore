@@ -1,0 +1,71 @@
+source_claim: Greenberg_2009_CitationDistortions:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Greenberg_2009_CitationDistortions:claim7
+  type: supports
+  strength: weak
+  note: Both claims relate to citation amplification and suggest it occurs frequently,
+    although they focus on different types of citations.
+  conditions_differ: Claim A considers critical citations, while Claim B considers
+    supportive citations.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.4795016944408417
+    pass_number: 1
+    confidence: 0.6
+- target: Greenberg_2009_CitationDistortions:claim9
+  type: supports
+  strength: moderate
+  note: The high number of critical citation paths in A lends credibility to the substantial
+    fold increase observed in B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7268126606941223
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim4
+  type: none
+  strength: none
+  note: The claims address different types of citation issues (amplification vs. bias)
+    and provide specific numerical data, but there is no direct logical connection
+    between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9195843935012817
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim6
+  type: none
+  strength: none
+  note: The two claims discuss different aspects of citation networks and do not have
+    a clear relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9700998067855835
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim3
+  type: none
+  strength: none
+  note: The claims describe different citation phenomena (amplification vs bias) and
+    their quantitative characteristics, so there's no direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0091816186904907
+    pass_number: 1
+    confidence: 0.0

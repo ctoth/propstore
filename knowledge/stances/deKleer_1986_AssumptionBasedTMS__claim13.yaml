@@ -1,0 +1,73 @@
+source_claim: deKleer_1986_AssumptionBasedTMS:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_ProblemSolvingATMS:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses the general functionality of the ATMS, while Claim B discusses
+    its performance characteristics in specific scenarios, which are not directly
+    related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8140900731086731
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim1
+  type: explains
+  strength: moderate
+  note: Claim A provides a mechanistic explanation for why the ATMS can perform the
+    function described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8481769561767578
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim9
+  type: explains
+  strength: moderate
+  note: Claim A explains how the ATMS's caching and compilation of inferences allows
+    it to avoid re-examination of rules, which provides a mechanistic basis for Claim
+    B's assertion that context switching costs are eliminated because no retraction
+    or reassertion is needed.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8499239683151245
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses the ATMS's caching and inference recording capabilities,
+    while Claim B focuses on its handling of contradictions and the resulting completeness
+    and consistency guarantees; there isn't a direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8619120717048645
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim6
+  type: supports
+  strength: moderate
+  note: Claim A describes how the ATMS avoids recomputation which supports Claim B's
+    description of the ATMS associating assertions with assumption sets.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8738152384757996
+    pass_number: 1
+    confidence: 0.8

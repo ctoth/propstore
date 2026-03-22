@@ -1,0 +1,76 @@
+source_claim: Martins_1988_BeliefRevision:claim17
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1983_MultipleBeliefSpaces:claim8
+  type: none
+  strength: none
+  note: The claims are about different aspects of belief spaces and do not directly
+    relate to each other's epistemic standing.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8896037340164185
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim9
+  type: none
+  strength: weak
+  note: Claim A discusses the sharing of information between belief spaces, while
+    Claim B focuses on the retrieval of propositions within a single, current belief
+    space, so they do not directly relate.
+  conditions_differ: Claim A discusses information sharing across spaces, while Claim
+    B focuses on retrieval within a single space.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8951606750488281
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim12
+  type: undermines
+  strength: weak
+  note: Claim A's argument for efficient information sharing challenges Claim B's
+    statement about the necessity of re-evaluating beliefs when support is retracted
+    in probabilistic systems.
+  conditions_differ: Claim A considers belief spaces with shared hypotheses, while
+    Claim B discusses general probabilistic architectures.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9241440892219543
+    pass_number: 1
+    confidence: 0.6
+- target: Reiter_1980_DefaultReasoning:claim14
+  type: none
+  strength: weak
+  note: Claim A discusses information sharing between belief spaces based on shared
+    hypotheses and supporting nodes, while Claim B focuses on the persistence of derived
+    beliefs under new observations and the need for belief revision when consistency
+    fails; they address different aspects of belief revision.
+  conditions_differ: Claim A considers relationships between belief spaces while Claim
+    B focuses on how new information influences an existing belief space.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9585093855857849
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim13
+  type: none
+  strength: weak
+  note: Claim A and B discuss different aspects of belief revision systems with no
+    clear logical connection or contradiction.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9587437510490417
+    pass_number: 1
+    confidence: 0.0

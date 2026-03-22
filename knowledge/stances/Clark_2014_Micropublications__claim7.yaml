@@ -1,0 +1,72 @@
+source_claim: Clark_2014_Micropublications:claim7
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Groth_2010_AnatomyNanopublication:claim5
+  type: none
+  strength: weak
+  note: Claim A discusses limitations of nanopublications in general, while Claim
+    B proposes a serialization method; they aren't directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8547200560569763
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim8
+  type: none
+  strength: none
+  note: Claim A discusses limitations of nanopublications regarding support graphs
+    and evidential backing, while Claim B focuses on the importance of attribution
+    within nanopublications, indicating different aspects without direct conflict.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8628129959106445
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim4
+  type: none
+  strength: weak
+  note: Claim A discusses limitations of nanopublications regarding support graphs
+    and evidential backing, while Claim B specifies the minimum required structure
+    of a nanopublication; they address different aspects.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9126607179641724
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim6
+  type: supports
+  strength: strong
+  note: Claim A is a more specific instance of the general observation made in Claim
+    B; A provides a concrete example that corroborates the broader point made in B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9257012605667114
+    pass_number: 1
+    confidence: 0.95
+- target: Groth_2010_AnatomyNanopublication:claim7
+  type: none
+  strength: weak
+  note: Claim A discusses limitations of nanopublications regarding support graphs,
+    while Claim B focuses on the ontologies used in nanopublications, making them
+    only weakly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9332200288772583
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,73 @@
+source_claim: Dung_1995_AcceptabilityArguments:claim10
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dung_1995_AcceptabilityArguments:claim20
+  type: undermines
+  strength: moderate
+  note: Claim A shows a more general result than Claim B, suggesting that Claim B's
+    condition (limited controversiality) might be unnecessary for guaranteeing an
+    extension's existence, thus undermining B's specific claim.
+  conditions_differ: limited controversial argumentation framework
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5748590230941772
+    pass_number: 2
+    confidence: 0.5
+- target: Dung_1995_AcceptabilityArguments:claim17
+  type: supports
+  strength: moderate
+  note: Claim A establishes a general property (existence of a preferred extension)
+    and Claim B provides a stronger claim under specific conditions (well-foundedness).
+  conditions_differ: Claim B is restricted to 'well-founded' frameworks
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5796874761581421
+    pass_number: 1
+    confidence: 0.8
+- target: Dung_1995_AcceptabilityArguments:claim18
+  type: none
+  strength: weak
+  note: While both claims relate to argumentation frameworks, claim A discusses the
+    existence of preferred extensions, while claim B discusses the relationship between
+    preferred and stable extensions under coherence, making them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6533448100090027
+    pass_number: 2
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim5
+  type: supports
+  strength: moderate
+  note: Claim A supports claim B by stating a foundational property of argumentation
+    frameworks that is used in defining preferred extensions.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.69162917137146
+    pass_number: 2
+    confidence: 0.5
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim10
+  type: supports
+  strength: weak
+  note: Claim A provides a general property of argumentation frameworks, while Claim
+    B demonstrates that this property holds true within the more specific context
+    of bipolar argumentation frameworks.
+  conditions_differ: Claim B is limited to bipolar argumentation frameworks whereas
+    claim A is general.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7005683183670044
+    pass_number: 1
+    confidence: 0.6

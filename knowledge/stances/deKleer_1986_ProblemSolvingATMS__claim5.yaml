@@ -1,0 +1,71 @@
+source_claim: deKleer_1986_ProblemSolvingATMS:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_ProblemSolvingATMS:claim4
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of the ATMS scheduler; A focuses on control
+    disjunctions and search preferences, while B focuses on node processing order
+    and contradiction avoidance.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9525864720344543
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim14
+  type: supports
+  strength: strong
+  note: Claim A introduces control disjunctions, while Claim B gives a concrete example
+    of their effectiveness which supports the utility of the feature mentioned in
+    A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9646925330162048
+    pass_number: 1
+    confidence: 0.95
+- target: deKleer_1986_ProblemSolvingATMS:claim9
+  type: explains
+  strength: moderate
+  note: Claim A explains how the control mechanism works such that the justifications
+    are permanent as stated in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0327266454696655
+    pass_number: 1
+    confidence: 0.8
+- target: McDermott_1983_ContextsDataDependencies:claim16
+  type: none
+  strength: none
+  note: The claims are about different aspects of problem-solving and reasoning systems
+    (search control vs. data dependencies) and don't directly interact epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.055254340171814
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim11
+  type: none
+  strength: none
+  note: The claims describe different aspects of the ATMS architecture; one describes
+    control strategies and the other describes implementation details.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0622668266296387
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,73 @@
+source_claim: Martins_1983_MultipleBeliefSpaces:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1983_MultipleBeliefSpaces:claim2
+  type: explains
+  strength: moderate
+  note: Claim A defines the general concept of a Belief Space, which provides a framework
+    that explains how the Current Belief Space (CBS) in Claim B is formed.
+  conditions_differ: Claim A is a general definition, while Claim B applies the definition
+    to the 'current' state of beliefs.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7477255463600159
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1983_MultipleBeliefSpaces:claim8
+  type: supports
+  strength: moderate
+  note: Claim A defines the basis for belief spaces, which is necessary to understand
+    the scope described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8045057654380798
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1983_MultipleBeliefSpaces:claim9
+  type: explains
+  strength: moderate
+  note: Claim A explains how belief spaces are defined, which provides a foundation
+    for understanding why retrieval operations in Claim B are restricted to the current
+    belief space.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9376662373542786
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim1
+  type: supports
+  strength: moderate
+  note: Claim A defines a belief space based on hypotheses and derivable propositions,
+    which aligns with Claim B's definition of a theory as a deductively closed set,
+    providing a general framework that supports the specific details in B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.961184561252594
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim17
+  type: supports
+  strength: moderate
+  note: Claim A defines the concept of Belief Spaces (BS) and how propositions are
+    derived within them, which provides a foundation for Claim B's argument about
+    sharing information between belief spaces derived from the same hypotheses.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.981563150882721
+    pass_number: 1
+    confidence: 0.8

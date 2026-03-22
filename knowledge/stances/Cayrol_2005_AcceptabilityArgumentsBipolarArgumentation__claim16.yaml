@@ -1,0 +1,75 @@
+source_claim: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim16
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim14
+  type: undermines
+  strength: moderate
+  note: Claim A shows Dung's framework, which Claim B criticizes as incomplete, can
+    be adapted to accommodate some of the bipolarity that Claim B emphasizes.
+  conditions_differ: Claim A focuses on a modified version of Dung's framework; Claim
+    B concerns the original framework.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6880930066108704
+    pass_number: 1
+    confidence: 0.8
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim1
+  type: none
+  strength: none
+  note: Claim A discusses a property of bipolar argumentation frameworks and their
+    reduction to Dung frameworks, while claim B defines the framework itself; there's
+    no direct rebutting, supporting, or explanatory relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7584351301193237
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim10
+  type: none
+  strength: weak
+  note: These claims address different aspects of argumentation frameworks (bipolar
+    vs. preferences and standard semantics), and their conditions/assumptions appear
+    unrelated, so there's no clear epistemic relationship.
+  conditions_differ: bipolar argumentation vs argumentation with preferences
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.815863311290741
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim6
+  type: supports
+  strength: moderate
+  note: Claim A and Claim B both describe mechanisms for converting more complex argumentation
+    frameworks into standard Dung frameworks, which provides corroborating evidence
+    for the usefulness and applicability of Dung frameworks in argumentation.
+  conditions_differ: Claim A concerns bipolar argumentation frameworks, whereas Claim
+    B discusses ASPIC+ structured frameworks.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8220723271369934
+    pass_number: 1
+    confidence: 0.8
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim15
+  type: none
+  strength: weak
+  note: Claim A discusses a reduction to Dung's framework, while Claim B critiques
+    Dung's notion of conflict-free in the context of bipolar argumentation, so they
+    are largely independent.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8402608633041382
+    pass_number: 1
+    confidence: 0.0

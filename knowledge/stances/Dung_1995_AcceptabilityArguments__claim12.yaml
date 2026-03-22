@@ -1,0 +1,73 @@
+source_claim: Dung_1995_AcceptabilityArguments:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dung_1995_AcceptabilityArguments:claim7
+  type: explains
+  strength: moderate
+  note: Claim A explains why Claim B is true by specifying the monotonicity of the
+    characteristic function, which is fundamental to understanding its mapping behavior.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.764978289604187
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim7
+  type: none
+  strength: weak
+  note: 'The claims are in different domains: Claim A discusses characteristic functions
+    in the context of argumentation frameworks, while Claim B discusses theory change
+    and contraction operations.'
+  conditions_differ: Claim A concerns argumentation frameworks, while Claim B concerns
+    theory change in logic.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.950034499168396
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim8
+  type: supports
+  strength: moderate
+  note: The monotonicity of the characteristic function (Claim A) is a property that
+    contributes to establishing the existence and properties of fixed points, including
+    the grounded extension as the least fixed point (Claim B).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9958100318908691
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim11
+  type: supports
+  strength: weak
+  note: Claim A, stating a property of the characteristic function, provides a foundational
+    aspect that, while not directly implying Claim B, is leveraged for argumentation
+    frameworks that utilize Dung's lemma as stated in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0236246585845947
+    pass_number: 1
+    confidence: 0.6
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim8
+  type: none
+  strength: weak
+  note: The claims are about different aspects of argumentation theory and don't directly
+    relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0297664403915405
+    pass_number: 1
+    confidence: 0.0

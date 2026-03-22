@@ -1,0 +1,76 @@
+source_claim: McAllester_1978_ThreeValuedTMS:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McAllester_1978_ThreeValuedTMS:claim1
+  type: supports
+  strength: weak
+  note: Claim A implies that by avoiding contradiction nodes in a three-valued TMS,
+    you can deduce opposite truth values, which somewhat aligns with Claim B's assertion
+    that three-valued systems eliminate the need for negation nodes found in two-valued
+    systems, suggesting a shared benefit of three-valued logic.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7074368596076965
+    pass_number: 1
+    confidence: 0.6
+- target: McAllester_1978_ThreeValuedTMS:claim5
+  type: supports
+  strength: strong
+  note: Claim A provides a more general and abstract description of contradiction
+    handling in the three-valued TMS, and Claim B provides a more detailed explanation
+    of how that contradiction handling is implemented.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.759814441204071
+    pass_number: 1
+    confidence: 0.95
+- target: Martins_1983_MultipleBeliefSpaces:claim12
+  type: undermines
+  strength: moderate
+  note: Claim A describes the capabilities of McAllester's TMS, which undermines Claim
+    B's premise that McAllester's TMS (and others) do not handle multiple agents with
+    contradictory beliefs, as it suggests the TMS already has some contradiction handling
+    capability.
+  conditions_differ: Claim B refers to handling multiple agents' beliefs, whereas
+    Claim A does not specify the number of agents.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8042202591896057
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim6
+  type: explains
+  strength: moderate
+  note: Claim A explains why contradictions arise in the three-valued TMS, providing
+    a mechanistic explanation for Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8112488985061646
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim12
+  type: supports
+  strength: weak
+  note: Claim A highlights the advantages of its approach in relation to Doyle's TMS
+    which uses non-monotonic dependency structures (Claim B), essentially supporting
+    the need for alternative methods like the one proposed in Claim A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8620144128799438
+    pass_number: 1
+    confidence: 0.6

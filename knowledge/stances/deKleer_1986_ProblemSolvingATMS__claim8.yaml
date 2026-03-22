@@ -1,0 +1,74 @@
+source_claim: deKleer_1986_ProblemSolvingATMS:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_ProblemSolvingATMS:claim1
+  type: none
+  strength: none
+  note: The claims describe different aspects of the ATMS; A discusses the role of
+    the kernel and its effect on consumer execution, while B focuses on the consumer
+    architecture and its characteristics.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8917225003242493
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim6
+  type: supports
+  strength: strong
+  note: Claim A provides a general principle about consumer execution that corroborates
+    the specific behavior described in Claim B, suggesting the architecture automatically
+    solves the unrouting problem.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.933404266834259
+    pass_number: 1
+    confidence: 0.95
+- target: deKleer_1986_ProblemSolvingATMS:claim9
+  type: none
+  strength: weak
+  note: The claims are about different aspects of the ATMS, concerning consumer execution
+    and control mechanisms, so there's no direct epistemic relationship.
+  conditions_differ: Claim A discusses the kernel environment and consumer execution
+    constraints, while Claim B focuses on control mechanisms and justification permanence.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9517660140991211
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim15
+  type: none
+  strength: weak
+  note: The claims are about different aspects of the ATMS system; A focuses on the
+    kernel environment's role in controlling execution, while B discusses constraint
+    consumers and triggering mechanisms, with minimal direct overlap.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.000874400138855
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim4
+  type: none
+  strength: none
+  note: Claim A describes the constraint of the kernel environment, and claim B describes
+    a scheduling mechanism; they are related to different aspects of the ATMS system
+    and do not directly influence each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0577375888824463
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,72 @@
+source_claim: Greenberg_2009_CitationDistortions:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Greenberg_2009_CitationDistortions:claim15
+  type: explains
+  strength: moderate
+  note: Claim A explains how citation distortions (mentioned in Claim B) can arise
+    and affect network authority.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9846413731575012
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim1
+  type: explains
+  strength: strong
+  note: Claim A explains why citation distortions, as described in Claim B, can lead
+    to divergence from data-supported truth, making the problem mentioned in A more
+    understandable.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9870342016220093
+    pass_number: 1
+    confidence: 0.95
+- target: Greenberg_2009_CitationDistortions:claim14
+  type: explains
+  strength: moderate
+  note: Claim A explains how citation distortions (as mentioned in Claim B) can lead
+    to divergence from truth, which is the mechanism underlying the observation in
+    Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0212864875793457
+    pass_number: 1
+    confidence: 0.8
+- target: Groth_2010_AnatomyNanopublication:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses how network authority can diverge from truth when citations
+    are distorted, while Claim B discusses nanopublications and the importance of
+    attribution, and there isn't much overlap.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0387448072433472
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses a theoretical vulnerability, while Claim B presents a specific
+    empirical finding; they aren't directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0395597219467163
+    pass_number: 1
+    confidence: 0.0

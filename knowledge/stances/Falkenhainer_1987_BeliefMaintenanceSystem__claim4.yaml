@@ -1,0 +1,72 @@
+source_claim: Falkenhainer_1987_BeliefMaintenanceSystem:claim4
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: none
+  strength: none
+  note: The claims are unrelated; one describes a termination condition in a belief
+    propagation system, and the other defines constraints on belief revision.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0173627138137817
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim14
+  type: none
+  strength: none
+  note: 'The claims discuss different topics: Claim A focuses on termination conditions
+    in belief propagation, while Claim B addresses belief persistence and revision
+    in default reasoning. There is no clear connection between the two.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.033414602279663
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim12
+  type: none
+  strength: none
+  note: The two claims discuss different aspects of belief maintenance systems; one
+    addresses termination conditions, while the other contrasts probabilistic and
+    binary approaches to belief updates.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0429567098617554
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim1
+  type: none
+  strength: none
+  note: Claim A discusses belief propagation termination, while Claim B describes
+    the overall functionality and features of the Belief Maintenance System; they
+    don't directly relate to each other's epistemic content.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0581300258636475
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim10
+  type: none
+  strength: none
+  note: The claims discuss different aspects of belief management systems and do not
+    directly relate to each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0758764743804932
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,71 @@
+source_claim: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim2
+  type: none
+  strength: weak
+  note: Both claims report macro F1 scores for different tasks (argument relation
+    vs. argument component), so one does not directly affect the other's validity.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5603112578392029
+    pass_number: 2
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim11
+  type: supersedes
+  strength: strong
+  note: Claim A's higher F1 score using a transformer-based method suggests it provides
+    a more accurate or improved assessment of the argument relation than the baseline
+    method in Claim B.
+  conditions_differ: A uses a transformer-based model whereas B uses a baseline model.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5935267210006714
+    pass_number: 1
+    confidence: 0.95
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim9
+  type: supports
+  strength: weak
+  note: Claim A gives a macro_f1 score, which can be seen as general evidence that
+    argument relation classification can work well, which claim B elaborates on.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0530239343643188
+    pass_number: 1
+    confidence: 0.6
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim5
+  type: none
+  strength: none
+  note: Claim A reports a macro_f1 score, while Claim B describes the size of a dataset,
+    so they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.059826135635376
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim7
+  type: none
+  strength: none
+  note: Claim A is an empirical performance metric in a specific argument mining task
+    within healthcare, while Claim B is a theoretical definition in abstract argumentation
+    theory; they don't directly relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.072627067565918
+    pass_number: 1
+    confidence: 0.0

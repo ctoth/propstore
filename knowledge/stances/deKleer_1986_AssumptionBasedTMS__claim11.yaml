@@ -1,0 +1,72 @@
+source_claim: deKleer_1986_AssumptionBasedTMS:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_AssumptionBasedTMS:claim4
+  type: explains
+  strength: moderate
+  note: Claim A describes the implementation of environments, providing a mechanistic
+    explanation for how the abstract concept of environments in Claim B can be realized
+    computationally.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9170498251914978
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim15
+  type: supports
+  strength: weak
+  note: Claim A provides implementation details of environments, which are used in
+    Claim B's garbage collection process, thus offering some support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9771718382835388
+    pass_number: 1
+    confidence: 0.6
+- target: deKleer_1986_AssumptionBasedTMS:claim10
+  type: explains
+  strength: moderate
+  note: Claim A describes the implementation of ATMS, which helps explain why the
+    number of environments actually considered is smaller than the total potential
+    space size (Claim B).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.98328697681427
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim5
+  type: none
+  strength: none
+  note: The claims discuss different aspects of the ATMS; A discusses implementation
+    details while B discusses search control.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0622668266296387
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim7
+  type: none
+  strength: weak
+  note: Claim A describes the implementation details of environments using bit-vectors,
+    while Claim B describes how label updates are computed, these are related as components
+    of the same system, but don't directly affect each other's validity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0700864791870117
+    pass_number: 1
+    confidence: 0.0

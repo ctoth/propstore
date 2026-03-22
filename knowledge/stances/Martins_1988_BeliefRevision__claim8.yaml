@@ -1,0 +1,75 @@
+source_claim: Martins_1988_BeliefRevision:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1983_MultipleBeliefSpaces:claim10
+  type: none
+  strength: weak
+  note: Claim A describes MBR's belief revision levels, while Claim B highlights a
+    feature of MBR related to belief status determination; they are about distinct
+    aspects of the same system.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8194946646690369
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim14
+  type: explains
+  strength: moderate
+  note: Claim A provides a high-level description of MBR, which explains why Claim
+    B's more specific contradiction recovery method is non-destructive.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8849319219589233
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1983_MultipleBeliefSpaces:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses the levels of belief revision within MBR, while Claim B
+    focuses on the inference rules used for contradiction handling in MBR; they describe
+    different aspects of the same general system but don't directly influence each
+    other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8965231776237488
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim14
+  type: none
+  strength: weak
+  note: While both discuss belief revision, they operate at different levels of abstraction
+    and focus on different aspects (MBR model levels vs. persistence of default-derived
+    beliefs).
+  conditions_differ: Martins focuses on levels of belief revision within a model,
+    while Reiter focuses on persistence of default-derived beliefs under new observations.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9252503514289856
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses the levels of belief revision within the MBR model, while
+    Claim B discusses the constraints on culprit selection in AGM belief revision,
+    making them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9546854496002197
+    pass_number: 1
+    confidence: 0.0

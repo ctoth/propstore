@@ -1,0 +1,72 @@
+source_claim: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim7
+  type: supports
+  strength: moderate
+  note: Claim A explains why a sequence labeling approach, which Claim B uses, is
+    necessary for argument component detection due to the nature of adjacent components.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.929632306098938
+    pass_number: 1
+    confidence: 0.8
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim1
+  type: supports
+  strength: weak
+  note: Claim A provides a rationale for a specific argument mining pipeline design,
+    which Claim B finds to be effective, thus providing weak support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0364145040512085
+    pass_number: 1
+    confidence: 0.6
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim6
+  type: none
+  strength: none
+  note: 'The claims address different aspects of argument mining: Claim A focuses
+    on BIO tagging for component detection, while Claim B compares transformer models
+    to static embeddings for detection and relation prediction, so they are not directly
+    related.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0598275661468506
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim9
+  type: none
+  strength: none
+  note: 'The claims are about different topics: argument component detection vs. separating
+    statements from annotations.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0756105184555054
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim3
+  type: none
+  strength: none
+  note: 'The claims discuss unrelated topics: Claim A focuses on BIO tagging for argument
+    component detection, while Claim B discusses the impact of incorrect justifications
+    within the ATMS.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.084884524345398
+    pass_number: 1
+    confidence: 0.0

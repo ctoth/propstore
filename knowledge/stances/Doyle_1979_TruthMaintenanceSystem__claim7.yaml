@@ -1,0 +1,72 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim7
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Doyle_1979_TruthMaintenanceSystem:claim6
+  type: explains
+  strength: moderate
+  note: Claim A explains a mechanism (non-monotonic justifications using outlists)
+    that helps realize the conditions described in Claim B (how nodes are in or out
+    based on justification validity).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7707366347312927
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim12
+  type: supports
+  strength: moderate
+  note: Claim A describes the outlist mechanism, which is used in the SL-justifications
+    mentioned in Claim B, thus supporting the claim that default assumptions use this
+    mechanism.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.82430499792099
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim2
+  type: explains
+  strength: moderate
+  note: Claim A explains the mechanism (outlist) for non-monotonic deductions mentioned
+    in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8280131220817566
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim4
+  type: explains
+  strength: moderate
+  note: Claim A explains the 'outlist mechanism' which is essential for understanding
+    how SL-justifications, described in Claim B, work.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8312293291091919
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim5
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of truth maintenance systems, with claim
+    A focusing on non-monotonicity and claim B on well-founded justifications; they're
+    related through the shared context but don't directly influence each other's truth.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8423141241073608
+    pass_number: 1
+    confidence: 0.0

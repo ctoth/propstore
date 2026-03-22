@@ -1,0 +1,71 @@
+source_claim: Shapiro_1998_BeliefRevisionTMS:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim3
+  type: none
+  strength: weak
+  note: The claims describe different types of truth maintenance systems, but neither
+    directly supports, attacks, or explains the other; they are simply different approaches.
+  conditions_differ: They describe different types of truth maintenance systems (LTMS
+    vs JTMS).
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8661165833473206
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim2
+  type: none
+  strength: weak
+  note: Claim A describes an LTMS, and Claim B describes a TMS, and while both are
+    truth maintenance systems, they have different properties and are not directly
+    related in this way.
+  conditions_differ: type of TMS
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8866172432899475
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim1
+  type: supports
+  strength: moderate
+  note: Claim A's description of LTMS using three labels (true, false, unknown) corroborates
+    Claim B's description of a three-valued TMS.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9659810066223145
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim1
+  type: none
+  strength: weak
+  note: Claim A describes an LTMS, while Claim B describes a TMS; although related
+    as belief revision systems, there is no direct support, rebuttal, or undermining.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9720271229743958
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim1
+  type: none
+  strength: weak
+  note: The two claims are about different topics (TMS vs Argumentation Systems) and
+    don't directly interact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9777241349220276
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,72 @@
+source_claim: Alchourron_1985_TheoryChange:claim4
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim5
+  type: supports
+  strength: strong
+  note: Claim A provides a formulation that, when combined with logical manipulation,
+    can be used to derive Claim B, indicating strong support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7802355885505676
+    pass_number: 1
+    confidence: 0.95
+- target: Alchourron_1985_TheoryChange:claim12
+  type: supports
+  strength: moderate
+  note: Claim A utilizes the concept of expansion defined in Claim B, thus indirectly
+    supporting its validity through its application.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8635357618331909
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim18
+  type: none
+  strength: none
+  note: The claims are about different aspects of theory change and contraction, with
+    no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0220279693603516
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim8
+  type: supports
+  strength: moderate
+  note: Claim A defines a specific type of revision (Levi identity), and Claim B states
+    that a broader class of contraction/revision functions (partial meet) satisfies
+    certain desirable properties, thus Claim A's specific instance can be seen as
+    part of the class mentioned in B.
+  conditions_differ: Claim A focuses on Levi identity, while Claim B is more general
+    about partial meet contraction.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0301268100738525
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim3
+  type: none
+  strength: weak
+  note: The claims are related to theory revision but do not have a clear epistemic
+    relationship from A to B; they define different concepts.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0490578413009644
+    pass_number: 1
+    confidence: 0.0

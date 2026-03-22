@@ -1,0 +1,73 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McAllester_1978_ThreeValuedTMS:claim8
+  type: none
+  strength: weak
+  note: While both claims relate to backtracking in truth maintenance systems, they
+    focus on different aspects - one on the general steps, the other on a specific
+    selection criterion, so no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7049658298492432
+    pass_number: 2
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim12
+  type: supports
+  strength: moderate
+  note: Claim A's description of dependency-directed backtracking corroborates Claim
+    B's statement about its purpose and function in avoiding inefficiency.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7156404256820679
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses dependency-directed backtracking steps, while Claim B describes
+    core tasks for a belief revision system; they address related but distinct aspects
+    of reasoning systems.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8852195739746094
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim17
+  type: none
+  strength: weak
+  note: Claim A is about the steps of dependency-directed backtracking, while Claim
+    B is about the general nature of the backtracker's operation, so they are largely
+    unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.893198549747467
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim12
+  type: none
+  strength: weak
+  note: Claim A describes a different system (TMS) and a general process, while Claim
+    B discusses an implementation detail (justification retraction) within a specific
+    system (ATMS).
+  conditions_differ: 'different AI systems: TMS vs ATMS'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9071237444877625
+    pass_number: 1
+    confidence: 0.0

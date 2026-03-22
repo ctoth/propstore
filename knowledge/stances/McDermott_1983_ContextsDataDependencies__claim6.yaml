@@ -1,0 +1,73 @@
+source_claim: McDermott_1983_ContextsDataDependencies:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McDermott_1983_ContextsDataDependencies:claim7
+  type: supports
+  strength: strong
+  note: Claim A provides a specific mechanism (odd loops causing inconsistency) that
+    supports Claim B's assertion about even vs. odd loops and consistent labelings.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9111284613609314
+    pass_number: 1
+    confidence: 0.95
+- target: Doyle_1979_TruthMaintenanceSystem:claim14
+  type: supports
+  strength: moderate
+  note: Claim A's description of odd loops as preventing consistent labeling supports
+    Claim B's assertion that unsatisfiable circularities exist where no consistent
+    assignment is possible.
+  conditions_differ: Claim A focuses specifically on 'odd loops' within justification
+    cycles, while Claim B refers to broader categories of circularity.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9960899949073792
+    pass_number: 1
+    confidence: 0.8
+- target: McDermott_1983_ContextsDataDependencies:claim3
+  type: none
+  strength: weak
+  note: Claim A defines a specific type of loop and its properties, while Claim B
+    defines what a justification is; they aren't directly related but share the context
+    of justification systems.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0059115886688232
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim7
+  type: supports
+  strength: moderate
+  note: Claim A defines odd loops, which provides background that supports Claim B's
+    statement about the problematic nature of odd defeat cycles in Pollock's work.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.015296459197998
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim7
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of non-monotonic reasoning, with Claim
+    A focusing on a specific technical aspect of justification cycles and Claim B
+    describing a broader mechanism for non-monotonic justification.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0467991828918457
+    pass_number: 1
+    confidence: 0.0

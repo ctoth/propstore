@@ -1,0 +1,73 @@
+source_claim: Falkenhainer_1987_BeliefMaintenanceSystem:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim1
+  type: supports
+  strength: moderate
+  note: Claim A discusses the general architecture and potential for modification
+    of the Belief Maintenance System, which aligns with Claim B's description of the
+    system's features and functionality.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7965664863586426
+    pass_number: 1
+    confidence: 0.8
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses the flexibility of the Belief Maintenance System's design,
+    while Claim B discusses its backward compatibility with TMS applications under
+    specific conditions, these are distinct concepts.
+  conditions_differ: Claim B requires beliefs to be absolute (0 or 1)
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.869917631149292
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses the BMS design and replaceability of its uncertainty calculi,
+    while Claim B discusses how the BMS handles non-monotonic reasoning, making them
+    weakly related at best.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9082911014556885
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim9
+  type: none
+  strength: weak
+  note: Claim A discusses the system's design and flexibility, while Claim B describes
+    the rule engine's trigger types, with no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9152476191520691
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses the design of a Belief Maintenance System, while Claim B
+    discusses the differences between AGM belief revision and TMS, with no direct
+    connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.928920328617096
+    pass_number: 1
+    confidence: 0.0

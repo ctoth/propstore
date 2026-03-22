@@ -1,0 +1,73 @@
+source_claim: Greenberg_2009_CitationDistortions:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Greenberg_2009_CitationDistortions:claim1
+  type: supports
+  strength: strong
+  note: Claim A provides specific evidence (NIH grant proposals) that citation distortions,
+    as described in Claim B, lead to unfounded authority.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6771664619445801
+    pass_number: 1
+    confidence: 0.95
+- target: Greenberg_2009_CitationDistortions:claim15
+  type: supports
+  strength: moderate
+  note: Claim A provides evidence that citation distortions exist and propagate, which
+    supports Claim B's argument that citation distortions function as information
+    cascades.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7837238311767578
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim17
+  type: supports
+  strength: moderate
+  note: Claim A's finding of citation bias propagating into grant proposals lends
+    weight to Claim B's assertion that peer review fails to prevent citation distortions
+    in journals.
+  conditions_differ: Claim A focuses on NIH grant proposals, while Claim B discusses
+    peer-reviewed journals.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8774986863136292
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim12
+  type: supports
+  strength: moderate
+  note: Claim A provides evidence for the phenomenon of citation distortion, which
+    Claim B uses as a premise.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8794129490852356
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim11
+  type: none
+  strength: none
+  note: Claim A discusses the propagation of citation distortions in grant proposals,
+    while Claim B defines the subtypes of citation invention, so they aren't strongly
+    related from A's perspective.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8938256502151489
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,71 @@
+source_claim: Falkenhainer_1987_BeliefMaintenanceSystem:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim8
+  type: none
+  strength: none
+  note: The claims discuss different aspects of the Belief Maintenance System; claim
+    A focuses on non-monotonic reasoning, while claim B discusses the system's design
+    and flexibility.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9082911014556885
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim16
+  type: supports
+  strength: moderate
+  note: Claim A supports Claim B by providing an example of a non-monotonic reasoning
+    system that addresses the need for retracting beliefs in light of new information,
+    which is a key characteristic of default reasoning as described by Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9391912817955017
+    pass_number: 1
+    confidence: 0.8
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim1
+  type: supports
+  strength: weak
+  note: Claim A describes a specific feature of the BMS, which aligns with Claim B's
+    broader description of the system.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9581984281539917
+    pass_number: 1
+    confidence: 0.6
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses handling non-monotonic reasoning while Claim B discusses
+    backward compatibility, indicating they are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9686620235443115
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim9
+  type: none
+  strength: weak
+  note: Claim A discusses the elegance of BMS in handling non-monotonic reasoning,
+    while Claim B describes the rule engine's trigger types, making them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9694632291793823
+    pass_number: 1
+    confidence: 0.0

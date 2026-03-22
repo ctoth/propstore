@@ -1,0 +1,74 @@
+source_claim: Falkenhainer_1987_BeliefMaintenanceSystem:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim12
+  type: explains
+  strength: moderate
+  note: Claim A explains the mechanism of support links in the Belief Maintenance
+    System (BMS), providing context for understanding why retracting a support link
+    in a probabilistic architecture (as discussed in Claim B) doesn't necessarily
+    change a node's status.
+  conditions_differ: Claim A focuses on the types of support links within the BMS,
+    whereas Claim B focuses on how support links affect node status.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8638252019882202
+    pass_number: 1
+    confidence: 0.8
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim1
+  type: supports
+  strength: moderate
+  note: Claim A provides details about the workings of the Belief Maintenance System,
+    thus supporting Claim B's description of the system.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9314825534820557
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim2
+  type: none
+  strength: weak
+  note: Claim A and Claim B describe different Truth Maintenance Systems (TMS) with
+    different features, so there is no direct epistemic relationship.
+  conditions_differ: Claim A describes a Belief Maintenance System (BMS), while Claim
+    B describes a Truth Maintenance System (TMS).
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9531705975532532
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses belief maintenance systems and support links, while Claim
+    B discusses justification-based and assumption-based systems, with little direct
+    overlap.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9754977226257324
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim11
+  type: none
+  strength: none
+  note: Claim A discusses belief maintenance system support links, while Claim B focuses
+    on well-founded support tracing in a three-valued TMS, indicating unrelated topics.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9895296096801758
+    pass_number: 1
+    confidence: 0.0

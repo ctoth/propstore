@@ -1,0 +1,71 @@
+source_claim: Alchourron_1985_TheoryChange:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim2
+  type: supports
+  strength: moderate
+  note: Claim A defines a concept (remainder set) that is used in the definition of
+    partial meet contraction in Claim B, thus supporting it.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9570585489273071
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim17
+  type: none
+  strength: weak
+  note: Claim A defines a concept, while Claim B discusses the abstract nature of
+    a related function; they are largely independent.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9859773516654968
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim11
+  type: supports
+  strength: weak
+  note: Claim A defines a concept (remainder set) used in Claim B, suggesting that
+    A lays some foundational groundwork for B's claim.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0417141914367676
+    pass_number: 1
+    confidence: 0.6
+- target: Alchourron_1985_TheoryChange:claim4
+  type: none
+  strength: weak
+  note: Claim A defines a concept (remainder set), while Claim B defines an identity
+    for revision; they are related to theory change but neither directly supports,
+    rebuts, or otherwise directly impacts the other's core assertion.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0490578413009644
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim12
+  type: none
+  strength: weak
+  note: The claims are both definitions within the same domain (theory change) but
+    are about distinct concepts (remainder sets vs. expansion) so neither directly
+    impacts the other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.053160309791565
+    pass_number: 1
+    confidence: 0.0

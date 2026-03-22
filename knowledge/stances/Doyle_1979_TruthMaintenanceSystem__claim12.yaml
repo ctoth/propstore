@@ -1,0 +1,71 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Doyle_1979_TruthMaintenanceSystem:claim7
+  type: explains
+  strength: moderate
+  note: Claim A explains how SL-justifications ensure one alternative is believed,
+    providing a mechanism for the non-monotonic reasoning described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.82430499792099
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim2
+  type: explains
+  strength: moderate
+  note: Claim A explains how a type of justification (SL) mentioned in Claim B works.
+  conditions_differ: 'null'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.890007495880127
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim4
+  type: none
+  strength: none
+  note: The claims discuss distinct aspects of SL-justifications, one describing their
+    use in selecting alternatives and the other their validity conditions, without
+    any direct epistemic impact between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9094815850257874
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: none
+  strength: none
+  note: Claim A discusses default assumptions using SL-justifications, while Claim
+    B discusses AGM belief revision and culprit selection; these are distinct topics
+    in knowledge representation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9096809029579163
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim8
+  type: none
+  strength: none
+  note: Claim A discusses default assumptions selection among alternatives, while
+    Claim B discusses a backtracking algorithm for default assumptions; they are about
+    different aspects of reasoning with defaults.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9192043542861938
+    pass_number: 1
+    confidence: 0.0

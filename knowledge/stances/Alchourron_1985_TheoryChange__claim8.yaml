@@ -1,0 +1,75 @@
+source_claim: Alchourron_1985_TheoryChange:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim7
+  type: supports
+  strength: moderate
+  note: Claim A provides some support by demonstrating that partial meet contraction
+    functions, which are related to the functions discussed in Claim B, satisfy desirable
+    properties, strengthening the plausibility of Claim B's characterization.
+  conditions_differ: 'null'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7696920037269592
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim9
+  type: none
+  strength: weak
+  note: Claim A and B address different aspects of partial meet contraction functions,
+    where A focuses on the relationship between partial meet contraction/revision
+    and Gardenfors postulates while B focuses on characterization of transitively
+    relational partial meet contraction functions.
+  conditions_differ: different aspects of partial meet contraction functions
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7917414307594299
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses properties of partial meet contraction functions, while
+    Claim B defines partial meet contraction itself. Thus they are distinct aspects
+    of theory.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8930804133415222
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses general properties of partial meet contraction, while Claim
+    B focuses on the specific instance of full meet contraction and its conservativeness,
+    with no direct conflict or dependence.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8997460007667542
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim6
+  type: none
+  strength: weak
+  note: Claim A and Claim B discuss distinct aspects of the AGM theory; Claim A focuses
+    on the properties of partial meet contraction and revision, while Claim B lists
+    the basic AGM contraction postulates.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9829246997833252
+    pass_number: 1
+    confidence: 0.0

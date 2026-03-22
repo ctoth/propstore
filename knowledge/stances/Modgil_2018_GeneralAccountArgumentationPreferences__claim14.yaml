@@ -1,0 +1,74 @@
+source_claim: Modgil_2018_GeneralAccountArgumentationPreferences:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim11
+  type: undermines
+  strength: moderate
+  note: Claim A suggests Prakken 2010 (basis for Claim B's comparisons) has an anomaly,
+    weakening the justification for Claim B's claim about weakest-link ordering.
+  conditions_differ: Claim A involves a specific revision of a definition, while Claim
+    B provides general guidelines for using different orderings.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7717470526695251
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim7
+  type: none
+  strength: weak
+  note: Claim A discusses a specific correction to a previous work, while Claim B
+    talks about the broader outcome of applying different preference principles, the
+    two don't significantly interact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8392717838287354
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim12
+  type: none
+  strength: weak
+  note: Claim A is about resolving an anomaly in a different paper (Prakken 2010)
+    related to preferences, while claim B is about the correspondence between ASPIC+
+    and Brewka's Preferred Subtheories, so they are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8982765674591064
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim6
+  type: none
+  strength: none
+  note: Claim A discusses a specific correction to a previous work, while Claim B
+    outlines the criteria for a reasonable preference ordering on arguments; these
+    are different topics and thus do not have a clear epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8986191153526306
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim8
+  type: undermines
+  strength: moderate
+  note: Claim A suggests that Prakken 2010 (likely related to Claim B's author and
+    possibly approach) had an anomaly, thus weakening confidence in its earlier work.
+  conditions_differ: The specific contexts are different argumentation formalisms
+    or principles.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9472817182540894
+    pass_number: 1
+    confidence: 0.8

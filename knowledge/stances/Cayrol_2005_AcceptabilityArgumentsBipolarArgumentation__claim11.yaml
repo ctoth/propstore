@@ -1,0 +1,77 @@
+source_claim: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim10
+  type: none
+  strength: weak
+  note: The claims are about different properties of bipolar argumentation frameworks;
+    one concerns the relationship between preferred and stable extensions in acyclic
+    frameworks, while the other concerns the existence of preferred extensions in
+    any bipolar argumentation framework, so there's not a strong epistemic relationship.
+  conditions_differ: acyclic vs any
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5295394659042358
+    pass_number: 2
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim10
+  type: none
+  strength: weak
+  note: Claim A focuses on a specific type of argumentation framework (acyclic bipolar)
+    while Claim B discusses a general property of all argumentation frameworks, making
+    them largely unrelated.
+  conditions_differ: acyclic bipolar vs all
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7302926778793335
+    pass_number: 2
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim18
+  type: supports
+  strength: moderate
+  note: Claim A provides a specific condition (acyclic bipolar argumentation frameworks)
+    under which Claim B (preferred extensions being stable) holds, offering corroborating
+    evidence.
+  conditions_differ: Claim A focuses on acyclic bipolar argumentation frameworks,
+    while Claim B is a general statement about argumentation frameworks.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7322788238525391
+    pass_number: 1
+    confidence: 0.8
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim13
+  type: none
+  strength: none
+  note: The claims are about different aspects of bipolar argumentation frameworks
+    and do not have a direct epistemic relationship.
+  conditions_differ: A concerns acyclic frameworks and preferred extensions; B concerns
+    stable extensions and safety.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7643774151802063
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim17
+  type: none
+  strength: weak
+  note: The claims concern different types of argumentation frameworks (bipolar vs.
+    well-founded), so there is no direct logical relationship, but both contribute
+    to argumentation theory.
+  conditions_differ: Claim A concerns 'acyclic bipolar argumentation frameworks,'
+    while Claim B concerns 'well-founded argumentation frameworks.'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7780803442001343
+    pass_number: 1
+    confidence: 0.0

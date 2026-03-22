@@ -1,0 +1,72 @@
+source_claim: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim10
+  type: none
+  strength: weak
+  note: Claim A describes a hierarchy of admissibility, while Claim B concerns the
+    existence of preferred extensions; there's no direct connection but both operate
+    within the same argumentation framework context.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8307492733001709
+    pass_number: 1
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim8
+  type: supports
+  strength: strong
+  note: Claim A provides a hierarchy where c-admissibility (mentioned in Claim B)
+    is at the top, supporting the idea that it is the strongest.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8321171998977661
+    pass_number: 1
+    confidence: 0.95
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim11
+  type: none
+  strength: weak
+  note: The claims discuss different properties of bipolar argumentation frameworks;
+    admissibility hierarchy vs. preferred extensions and stable extension subsets.
+  conditions_differ: acyclic bipolar argumentation frameworks vs. general bipolar
+    frameworks
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9239450097084045
+    pass_number: 1
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim16
+  type: none
+  strength: weak
+  note: Claim A concerns the admissibility hierarchy, while Claim B concerns a reduction
+    to Dung's framework; they address different aspects of bipolar argumentation frameworks.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9465852975845337
+    pass_number: 1
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim1
+  type: none
+  strength: none
+  note: Claim A discusses the admissibility hierarchy of bipolar frameworks, while
+    Claim B defines the components of a bipolar argumentation framework; there's no
+    direct conflict or support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9563028216362
+    pass_number: 1
+    confidence: 0.0

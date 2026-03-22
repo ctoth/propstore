@@ -1,0 +1,74 @@
+source_claim: Walton_2015_ClassificationSystemArgumentationSchemes:claim7
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim1
+  type: supports
+  strength: strong
+  note: Claim A provides a general desideratum for classification systems (being hierarchical),
+    which Claim B exemplifies in the specific context of argumentation schemes.
+  conditions_differ: Claim A concerns classification systems in general, Claim B specifically
+    applies to argumentation schemes.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0300891399383545
+    pass_number: 1
+    confidence: 0.95
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim8
+  type: undermines
+  strength: moderate
+  note: Claim A outlines desiderata for classification systems, and Claim B suggests
+    that previous classifications (that presumably didn't meet the desiderata) were
+    flawed, implying Claim A undermines prior classification attempts.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0533392429351807
+    pass_number: 1
+    confidence: 0.8
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim11
+  type: none
+  strength: none
+  note: Claim A describes desired properties of a classification system, while Claim
+    B describes an empirical test of a specific classification system; they are about
+    different things.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0650928020477295
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses desiderata for evaluating classification systems, while
+    Claim B discusses the incompleteness of a specific classification, implying a
+    tangential relationship at best.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0671486854553223
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim7
+  type: none
+  strength: weak
+  note: Claim A discusses desiderata for classification systems in general, while
+    Claim B discusses ASPIC+'s rationality postulates - these are on different topics
+    with very little overlap.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0807437896728516
+    pass_number: 1
+    confidence: 0.0

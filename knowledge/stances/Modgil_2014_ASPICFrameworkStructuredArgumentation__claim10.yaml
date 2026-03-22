@@ -1,0 +1,71 @@
+source_claim: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim10
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim3
+  type: supports
+  strength: strong
+  note: Claim A provides a specific example of how ASPIC+ works, thereby supporting
+    Claim B's general definition of attack types within ASPIC+.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.750195324420929
+    pass_number: 1
+    confidence: 0.95
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim2
+  type: none
+  strength: none
+  note: Claim A discusses modeling argument schemes in ASPIC+, while Claim B describes
+    the general structure of arguments in ASPIC+; they don't directly influence each
+    other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.785188615322113
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim14
+  type: none
+  strength: weak
+  note: Claim A and B are about different aspects of ASPIC+ and structured argumentation;
+    there's no direct attack, support, or explanation between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8395253419876099
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim15
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of the ASPIC+ framework (argument schemes
+    vs. negation handling), so they don't directly relate epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8464093208312988
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim5
+  type: none
+  strength: weak
+  note: Claim A discusses modeling argument schemes in ASPIC+, while Claim B discusses
+    the properties of firm and strict arguments within ASPIC+, but they don't directly
+    relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8532074689865112
+    pass_number: 1
+    confidence: 0.0

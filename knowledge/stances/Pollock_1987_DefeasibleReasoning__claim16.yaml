@@ -1,0 +1,73 @@
+source_claim: Pollock_1987_DefeasibleReasoning:claim16
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Pollock_1987_DefeasibleReasoning:claim8
+  type: supports
+  strength: moderate
+  note: Claim A relies on the concept of self-defeating arguments to resolve the lottery
+    paradox, and Claim B provides a definition for that concept, thus supporting Claim
+    A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.948283314704895
+    pass_number: 1
+    confidence: 0.8
+- target: Pollock_1987_DefeasibleReasoning:claim9
+  type: explains
+  strength: moderate
+  note: Claim A provides a specific instantiation (lottery paradox resolution) of
+    the general principle described in Claim B (collective defeat), acting as an explanatory
+    example.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9489113092422485
+    pass_number: 1
+    confidence: 0.8
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim5
+  type: explains
+  strength: moderate
+  note: Claim A explains how Pollock's semantics, which is a core component of Claim
+    B, operates regarding self-defeating arguments.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9679984450340271
+    pass_number: 1
+    confidence: 0.8
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses a solution to the lottery paradox through self-defeating
+    arguments, while Claim B describes Pollock's argument strength approach, and they
+    appear to address unrelated topics.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9890539646148682
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses a specific solution to the lottery paradox, while Claim
+    B introduces a general classification of self-defeat, weakly related but not directly
+    impacting each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0106672048568726
+    pass_number: 1
+    confidence: 0.0

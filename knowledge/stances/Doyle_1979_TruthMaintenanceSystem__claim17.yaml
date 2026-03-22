@@ -1,0 +1,73 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim17
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Doyle_1979_TruthMaintenanceSystem:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses the general nature of backtracking, while Claim B describes
+    the specific steps of dependency-directed backtracking; there isn't a clear support,
+    contradiction, or undermining relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.893198549747467
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses the general nature of backtrackers, while Claim B focuses
+    on a specific backtracking algorithm, so they are only tangentially related.
+  conditions_differ: Claim A refers to a broad class of backtracker, claim B specifies
+    'the backtracking algorithm'.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9115353226661682
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim12
+  type: none
+  strength: weak
+  note: Claim A discusses the generality of truth maintenance systems, while Claim
+    B discusses the historical motivation for dependency-directed backtracking, which
+    is a precursor to TMS, so the claims are only weakly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.928799033164978
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses a general approach to belief revision, while Claim B describes
+    constraints on belief revision within the AGM framework; they are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9476338028907776
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim1
+  type: none
+  strength: weak
+  note: Claim A discusses the backtracker's operation in relation to belief revision,
+    while Claim B describes the Truth Maintenance System's function; they don't directly
+    relate in terms of support, contradiction, or explanation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9775209426879883
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,76 @@
+source_claim: Dung_1995_AcceptabilityArguments:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dung_1995_AcceptabilityArguments:claim2
+  type: supports
+  strength: strong
+  note: Claim A uses the concept of conflict-free sets, which is defined in Claim
+    B, thus A relies on B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5956735610961914
+    pass_number: 1
+    confidence: 0.95
+- target: Dung_1995_AcceptabilityArguments:claim4
+  type: none
+  strength: weak
+  note: While both define properties of argument sets in the context of abstract argumentation,
+    they address different concepts (stable extension vs. admissible set) and don't
+    directly relate in a way that A undermines, undercuts, rebuts, supports, or supersedes
+    B.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7344679236412048
+    pass_number: 2
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim4
+  type: none
+  strength: weak
+  note: The claims are about different concepts (stable extensions vs. safe sets)
+    within argumentation theory, making any direct epistemic relationship weak.
+  conditions_differ: Claim A concerns conflict-free sets and stable extensions in
+    abstract argumentation frameworks, while Claim B defines safe sets within the
+    context of bipolar argumentation frameworks where both support and defeat relations
+    exist.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7607579231262207
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim3
+  type: none
+  strength: weak
+  note: The claims describe different concepts in argumentation theory (stable extension
+    vs. acceptability), so neither rebuts, undercuts, undermines, supports, explains
+    or supersedes.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7649158239364624
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim9
+  type: none
+  strength: weak
+  note: The claims are about different concepts within argumentation theory, so there
+    isn't a direct epistemic relationship.
+  conditions_differ: The claims relate to stable and complete extensions, which are
+    distinct concepts in argumentation theory.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7779200077056885
+    pass_number: 1
+    confidence: 0.0

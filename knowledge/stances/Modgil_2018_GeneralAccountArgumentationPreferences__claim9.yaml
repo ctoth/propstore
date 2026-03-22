@@ -1,0 +1,73 @@
+source_claim: Modgil_2018_GeneralAccountArgumentationPreferences:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim18
+  type: none
+  strength: weak
+  note: While both claims relate to stable extensions and classical-logic c-SAFs,
+    they discuss different scenarios (with/without preferences) and have distinct
+    conclusions, lacking a direct epistemic relationship.
+  conditions_differ: The presence or absence of preferences
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6832414269447327
+    pass_number: 2
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim12
+  type: supports
+  strength: strong
+  note: Claim A strengthens Claim B by generalizing it and embedding it within a broader
+    framework (ASPIC+ with preferences subsumes Brewka's Preferred Subtheories, whereas
+    Claim B only shows correspondence without defeasible rules).
+  conditions_differ: Claim A includes defeasible rules and preferences, while Claim
+    B excludes defeasible rules.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7268733382225037
+    pass_number: 1
+    confidence: 0.95
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim5
+  type: none
+  strength: none
+  note: The claims address different aspects of ASPIC+; one focuses on its relationship
+    to preferred subtheories, while the other discusses its consistency properties,
+    so they don't directly relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.778558075428009
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim4
+  type: none
+  strength: weak
+  note: The claims address different properties of ASPIC+ without a clear dependency.
+  conditions_differ: attack-based conflict-free vs classical-logic c-SAFs with preferences
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7821078896522522
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim13
+  type: supports
+  strength: moderate
+  note: Claim A and B both highlight ASPIC+'s ability to encompass other formalisms;
+    Claim A strengthens the case by showing it subsumes another formalism, indirectly
+    supporting claim B by showing that ASPIC+ is indeed as powerful and general.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8008495569229126
+    pass_number: 1
+    confidence: 0.8

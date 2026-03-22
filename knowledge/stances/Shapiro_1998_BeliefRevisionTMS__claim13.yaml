@@ -1,0 +1,75 @@
+source_claim: Shapiro_1998_BeliefRevisionTMS:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: undercuts
+  strength: moderate
+  note: Claim A asserts that the AGM framework, as understood in belief revision literature,
+    is *not* concerned with implementation details, while Claim B presents specific
+    constraints *within* that framework, which undermines the general applicability
+    of Claim B if the broader point of Claim A is true.
+  conditions_differ: Claim A is making a broad statement about the *typical* focus
+    of the AGM approach, while Claim B is describing a specific *aspect* of the approach.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7199335098266602
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim9
+  type: explains
+  strength: moderate
+  note: Claim A explains why there are few citations between the AGM belief revision
+    tradition and the TMS tradition, as described in Claim B, by pointing out their
+    distinct foci and approaches.
+  conditions_differ: 'null'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7840936183929443
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim11
+  type: supports
+  strength: moderate
+  note: Claim A provides context for the known limitations of TMS implementations
+    which supports Claim B's specific statement.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8317700624465942
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim16
+  type: supports
+  strength: moderate
+  note: Claim A corroborates Claim B by stating that the AGM framework, as mentioned
+    in Claim B, assumes a logically closed and potentially infinite set of assertions,
+    echoing Claim B's assertion about deductively closed (infinite) theories in the
+    AGM framework.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8328740000724792
+    pass_number: 1
+    confidence: 0.8
+- target: Dixon_1993_ATMSandAGM:claim14
+  type: supports
+  strength: moderate
+  note: Claim A reinforces Claim B's description of AGM operations dealing with potentially
+    infinite theories.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.841961145401001
+    pass_number: 1
+    confidence: 0.8

@@ -1,0 +1,72 @@
+source_claim: Alchourron_1985_TheoryChange:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim10
+  type: supports
+  strength: weak
+  note: Claim A provides a definition related to contraction, which generally aligns
+    with Claim B's discussion of conservative contraction options, although it's not
+    a direct support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7462483048439026
+    pass_number: 1
+    confidence: 0.6
+- target: Alchourron_1985_TheoryChange:claim8
+  type: supports
+  strength: moderate
+  note: Claim A provides the definition of partial meet contraction, which is then
+    used in Claim B to show that it satisfies certain postulates, thus supporting
+    Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8930804133415222
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim7
+  type: supports
+  strength: moderate
+  note: Claim A defines a concept used in Claim B, suggesting A provides a foundation
+    for understanding or establishing B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9001129269599915
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim3
+  type: explains
+  strength: moderate
+  note: Claim A explains how partial meet contraction is defined, using the concept
+    of a remainder set defined in Claim B, thus explaining how the former builds on
+    the latter.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9570585489273071
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim9
+  type: supports
+  strength: moderate
+  note: Claim A defines a concept (partial meet contraction) used in Claim B, thus
+    supporting its understanding and potentially its validity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.969914436340332
+    pass_number: 1
+    confidence: 0.8

@@ -1,0 +1,74 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McDermott_1983_ContextsDataDependencies:claim3
+  type: supersedes
+  strength: moderate
+  note: Claim B replaces a concept from Claim A, indicating a shift in how justifications
+    are understood.
+  conditions_differ: Claim B's justification is defined as a tuple, while Claim A
+    describes support-list justifications with inlist and outlist.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7934120893478394
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim2
+  type: none
+  strength: weak
+  note: Claim A describes the workings of a TMS, while Claim B critiques limitations
+    of conventional justification-based TMSs, indicating no direct relationship between
+    the claims.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.818864107131958
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim7
+  type: explains
+  strength: moderate
+  note: Claim A explains the mechanism (SL-justifications and outlist) by which the
+    non-monotonic justifications mentioned in Claim B operate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8280131220817566
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim1
+  type: supports
+  strength: moderate
+  note: Claim A describes the justification types used in the TMS, which is the subject
+    of Claim B, thereby supporting Claim B's description of the TMS.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.839888870716095
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim4
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of TMS implementations, with A focusing
+    on justification types within a TMS and B discussing the separation of a JTMS
+    from the reasoner and the lack of logical connection between assertions and justifications
+    in that specific architecture.
+  conditions_differ: A describes a general TMS, while B describes a JTMS implemented
+    as a service.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.857906699180603
+    pass_number: 1
+    confidence: 0.0

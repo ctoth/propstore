@@ -1,0 +1,72 @@
+source_claim: Modgil_2018_GeneralAccountArgumentationPreferences:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim15
+  type: supports
+  strength: strong
+  note: Claim A strongly supports claim B, as both describe the contrariness function
+    within ASPIC+ and its function.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.49156221747398376
+    pass_number: 1
+    confidence: 0.95
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim13
+  type: none
+  strength: none
+  note: The claims are about different aspects of ASPIC+ and its applications, with
+    no clear dependence or conflict between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8523839712142944
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim14
+  type: none
+  strength: weak
+  note: 'Claim A and Claim B discuss different aspects of ASPIC+: Claim A describes
+    the general framework''s functionality, while Claim B explains the motivation
+    behind ASPIC+''s design.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8616581559181213
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim1
+  type: none
+  strength: weak
+  note: Claim A describes a general feature of ASPIC+, while Claim B proposes a specific
+    modification, so there is no direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.86171954870224
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim5
+  type: none
+  strength: weak
+  note: Claim A describes a component of ASPIC+, while claim B describes a desirable
+    property (consistency) of ASPIC+ under certain conditions; they are related through
+    the general framework of ASPIC+, but A does not directly impact the veracity of
+    B.
+  conditions_differ: Claim B requires specific ordering and SAFs.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8691914677619934
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,77 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim18
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim2
+  type: supports
+  strength: moderate
+  note: Claim A argues for the importance of maintaining justifications and derivation
+    sources to prevent rederivation and enable error correction, while Claim B outlines
+    the core tasks of a belief revision system, including finding derivation support
+    and deleting assertions with dependents, thus the need for these functions supports
+    the broader importance of maintaining derivation sources.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9484142065048218
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim12
+  type: none
+  strength: none
+  note: 'The claims address different aspects of truth maintenance systems: Claim
+    A discusses the importance of recording justifications for error correction, while
+    Claim B focuses on the efficiency of justification retraction in ATMS, indicating
+    no direct epistemic relationship.'
+  conditions_differ: Claim A refers to general belief maintenance while Claim B focuses
+    on Assumption-based Truth Maintenance Systems (ATMS).
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.958364725112915
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim15
+  type: supports
+  strength: moderate
+  note: Claim A argues for the importance of recorded justifications for beliefs,
+    which supports Claim B's point about requiring recorded reasons for assumption
+    retractions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9953626394271851
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim12
+  type: supports
+  strength: moderate
+  note: Claim A describes the benefits of TMS, which reinforces the value of its precursor,
+    dependency-directed backtracking, as described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0019302368164062
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim13
+  type: supports
+  strength: moderate
+  note: Claim A's argument that recording justifications prevents re-derivation supports
+    Claim B's assertion that the ATMS acts as an intelligent cache, preventing repeated
+    inferences.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.015141487121582
+    pass_number: 1
+    confidence: 0.8

@@ -1,0 +1,70 @@
+source_claim: Dung_1995_AcceptabilityArguments:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dung_1995_AcceptabilityArguments:claim6
+  type: supports
+  strength: strong
+  note: Claim A defines a condition (conflict-free) that is necessary for Claim B's
+    definition of a stable extension.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5956735610961914
+    pass_number: 1
+    confidence: 0.95
+- target: Dung_1995_AcceptabilityArguments:claim3
+  type: none
+  strength: weak
+  note: Claim A defines conflict-free sets, while Claim B defines acceptability, distinct
+    concepts, though both are fundamental to argumentation theory.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7394402027130127
+    pass_number: 2
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim4
+  type: supports
+  strength: strong
+  note: Claim A provides a necessary concept (conflict-free set) that is then used
+    as a premise in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.74595707654953
+    pass_number: 1
+    confidence: 0.95
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim4
+  type: none
+  strength: weak
+  note: The claims address different concepts within argumentation theory, with Claim
+    A defining conflict-freeness and Claim B defining safety; these are separate properties.
+  conditions_differ: Claim A focuses on the attack relation, while Claim B incorporates
+    both support and attack relations, and involves external coherence conditions.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8234369158744812
+    pass_number: 1
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim5
+  type: supports
+  strength: strong
+  note: Claim A defines "conflict-free", a concept used as a premise in Claim B, thus
+    supporting claim B by establishing a foundation for the argument presented.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8510496616363525
+    pass_number: 1
+    confidence: 0.95

@@ -1,0 +1,73 @@
+source_claim: deKleer_1986_ProblemSolvingATMS:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_ProblemSolvingATMS:claim6
+  type: explains
+  strength: moderate
+  note: Claim A explains how the consumer architecture works, providing a basis for
+    understanding why it solves the unrouting problem as described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6770427227020264
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim9
+  type: supports
+  strength: moderate
+  note: Claim A provides a mechanistic explanation of how consumers work, which reinforces
+    Claim B's assertion about the permanence of justifications once a consumer has
+    run.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8853309154510498
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim8
+  type: none
+  strength: none
+  note: The claims describe different aspects of the ATMS system, one focusing on
+    consumer behavior and the other on kernel environment constraints; they do not
+    directly relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8917225003242493
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim2
+  type: explains
+  strength: moderate
+  note: Claim A explains why Claim B's restrictions are necessary for the consumer
+    architecture to function as intended.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9314641356468201
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim15
+  type: none
+  strength: weak
+  note: Both claims discuss consumers within the ATMS framework, but they focus on
+    different aspects (general functionality vs. constraint handling) and do not directly
+    interact.
+  conditions_differ: Claim A describes general consumer architecture and behavior,
+    while Claim B focuses on constraint consumers specifically.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9674624800682068
+    pass_number: 1
+    confidence: 0.0

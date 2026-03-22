@@ -1,0 +1,72 @@
+source_claim: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim10
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim9
+  type: none
+  strength: weak
+  note: The claims are about computational complexity, but address different properties
+    (j-relevance vs j-stable) and complexity classes (Sigma_2^P-complete vs coNP-complete).
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6945666670799255
+    pass_number: 2
+    confidence: 0.0
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim7
+  type: explains
+  strength: moderate
+  note: Claim A, by establishing the computational complexity of j-relevance, explains
+    the difficulty inherent in determining the property described in Claim B.
+  conditions_differ: Claim A deals with complexity, while Claim B deals with the definition
+    of j-relevance.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.753866970539093
+    pass_number: 1
+    confidence: 0.8
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses the computational complexity of deciding relevance, while
+    Claim B defines a concept of stability; they are related to the same overall research
+    area but do not have a direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7807427644729614
+    pass_number: 1
+    confidence: 0.0
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim13
+  type: explains
+  strength: moderate
+  note: Claim A's complexity result partially explains why Claim B is possible, by
+    highlighting the difficulty in determining relevance.
+  conditions_differ: 'null'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7830400466918945
+    pass_number: 1
+    confidence: 0.8
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim11
+  type: none
+  strength: weak
+  note: Claim A discusses the computational complexity, while Claim B focuses on the
+    practical performance of algorithms; they address different aspects of the same
+    system but don't directly relate epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9726629257202148
+    pass_number: 1
+    confidence: 0.0

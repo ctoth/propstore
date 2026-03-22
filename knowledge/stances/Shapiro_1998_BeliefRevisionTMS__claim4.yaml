@@ -1,0 +1,75 @@
+source_claim: Shapiro_1998_BeliefRevisionTMS:claim4
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim3
+  type: none
+  strength: none
+  note: Claim A discusses the implementation of a JTMS, focusing on the lack of enforced
+    logical connections, while Claim B describes the basic structure and operation
+    of a JTMS, so they don't have a direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8405937552452087
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses the lack of logical connection between assertions and justifications
+    in a JTMS implemented as a service, while Claim B describes the justification
+    types within a TMS, so they describe different aspects of TMS systems.
+  conditions_differ: Claim A speaks to a specific *implementation* of a JTMS, as a
+    service, while Claim B describes the core structure of *any* TMS.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.857906699180603
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim3
+  type: none
+  strength: weak
+  note: Claim A discusses the implementation of a JTMS as a service, while claim B
+    defines a justification structure; they are conceptually separate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8693763017654419
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim11
+  type: none
+  strength: weak
+  note: Claim A discusses the lack of logical connection between assertions and justifications
+    in a JTMS service system, while Claim B discusses the redundancy of CP-justifications
+    in an ATMS, so they are largely unrelated.
+  conditions_differ: JTMS vs ATMS
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9099417924880981
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses the decoupling of assertions and justifications in a service-oriented
+    JTMS, while Claim B critiques the limitations of conventional justification-based
+    TMSs, showing little overlap.
+  conditions_differ: Claim A focuses on a specific implementation of JTMS (as a service),
+    while Claim B critiques a broader class of TMSs.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.917954683303833
+    pass_number: 1
+    confidence: 0.0

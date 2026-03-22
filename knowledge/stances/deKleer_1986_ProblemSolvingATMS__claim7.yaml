@@ -1,0 +1,74 @@
+source_claim: deKleer_1986_ProblemSolvingATMS:claim7
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim6
+  type: none
+  strength: weak
+  note: Claim A describes the capabilities of the ATMS constraint language, while
+    Claim B details the ATMS's functionality regarding belief revision and dependency
+    tracking; they are topically related but not directly supporting, refuting, or
+    undermining each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9518882036209106
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim6
+  type: none
+  strength: weak
+  note: The claims describe different aspects of the ATMS; one describes the constraint
+    language operations, while the other describes the primitive operations, and their
+    relationship is minimal.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9544477462768555
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim1
+  type: none
+  strength: none
+  note: Claim A describes a constraint language built on ATMS primitives, while claim
+    B describes what the ATMS does; there is no direct relationship beyond that.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9921721816062927
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim9
+  type: none
+  strength: none
+  note: Claim A describes a constraint language and its features, while Claim B discusses
+    the limitations of constraint propagation in qualitative physics, with no direct
+    or indirect relation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0226507186889648
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim5
+  type: none
+  strength: weak
+  note: Claim A discusses a constraint language built on ATMS primitives, while Claim
+    B discusses an LTMS based on propositional logic, so they are distinct systems
+    and not closely related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0242559909820557
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,74 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim10
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Reiter_1980_DefaultReasoning:claim16
+  type: supports
+  strength: strong
+  note: Claim A argues that monotonic reasoning fails in some cases, and Claim B provides
+    an example of a non-monotonic reasoning approach as a response.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7612866759300232
+    pass_number: 1
+    confidence: 0.95
+- target: Pollock_1987_DefeasibleReasoning:claim15
+  type: none
+  strength: weak
+  note: While both discuss limitations in reasoning, A focuses on monotonicity and
+    reasoning challenges, while B criticizes AI's nonmonotonic approaches from an
+    epistemological perspective; their topics are related but the claims do not directly
+    affect each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8616319894790649
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim12
+  type: none
+  strength: weak
+  note: Claim A discusses the limitations of monotonic reasoning and the need for
+    non-monotonic approaches, while Claim B focuses on the philosophical distinction
+    between plausible and defeasible reasoning and its relation to non-monotonic logic,
+    making them only weakly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8915345072746277
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses the limitations of monotonic reasoning, while Claim B discusses
+    foundational states of reasoning; these are largely orthogonal topics, although
+    both touch on the nature of reasoning itself.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8941709399223328
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim10
+  type: undercuts
+  strength: moderate
+  note: Claim A challenges the conventional monotonic view of reasoning, which serves
+    as a backdrop or implicit motivation for Doyle's TMS that Claim B critiques.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9563096761703491
+    pass_number: 1
+    confidence: 0.8

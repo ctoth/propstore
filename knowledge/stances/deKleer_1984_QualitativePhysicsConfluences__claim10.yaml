@@ -1,0 +1,72 @@
+source_claim: deKleer_1984_QualitativePhysicsConfluences:claim10
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1984_QualitativePhysicsConfluences:claim1
+  type: none
+  strength: none
+  note: Claim A and Claim B, while both from the same paper, describe different concepts
+    within qualitative physics without a direct relationship of support, explanation,
+    or contradiction between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9763181805610657
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim3
+  type: none
+  strength: none
+  note: Claim A concerns the qualitative mean value theorem, while Claim B discusses
+    qualitative multiplication and addition ambiguities, so they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9920834302902222
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim2
+  type: none
+  strength: weak
+  note: The claims are about different aspects of qualitative physics, one about a
+    specific theorem and the other about state specifications; there's no direct epistemic
+    connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0288217067718506
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim10
+  type: none
+  strength: none
+  note: Claim A is about qualitative reasoning in physics, while Claim B discusses
+    limitations of a truth maintenance system; they address different domains.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.124206781387329
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim7
+  type: none
+  strength: none
+  note: Claim A discusses the qualitative mean value theorem while Claim B discusses
+    constraint satisfaction and multiple interpretations in a pressure regulator,
+    with no clear relationship between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1318140029907227
+    pass_number: 1
+    confidence: 0.0

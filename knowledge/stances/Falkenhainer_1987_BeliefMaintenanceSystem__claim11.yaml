@@ -1,0 +1,78 @@
+source_claim: Falkenhainer_1987_BeliefMaintenanceSystem:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim12
+  type: none
+  strength: weak
+  note: Claim A discusses limitations of previous probabilistic systems while Claim
+    B compares probabilistic architectures with binary TMS, only indirectly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9810599088668823
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim10
+  type: none
+  strength: weak
+  note: The claims address different aspects of reasoning systems; A focuses on dynamic
+    modification of networks in probabilistic systems, while B focuses on combining
+    logic-based dependencies, assumption-based support, and set manipulation, so their
+    relationship is weak.
+  conditions_differ: A concerns probabilistic reasoning systems, while B considers
+    logic-based systems.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9886953830718994
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses limitations of early probabilistic systems, while Claim
+    B discusses Pollock's system and its adoption by the argumentation community;
+    they operate on different domains.
+  conditions_differ: different systems, different communities
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9939621686935425
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim12
+  type: none
+  strength: none
+  note: The claims discuss different aspects of reasoning systems, with A focusing
+    on the limitations of probabilistic networks and B describing alternative approaches
+    to non-monotonic reasoning in TMS systems.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0112571716308594
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim16
+  type: none
+  strength: weak
+  note: Claim A discusses limitations of probabilistic reasoning systems regarding
+    dynamic modification of networks, while Claim B addresses the non-monotonic nature
+    of default reasoning compared to first-order logic; they operate in distinct problem
+    spaces.
+  conditions_differ: Claim A concerns probabilistic reasoning systems and dynamic
+    network modification, while Claim B addresses default reasoning and non-monotonicity
+    of logical systems.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0159432888031006
+    pass_number: 1
+    confidence: 0.0

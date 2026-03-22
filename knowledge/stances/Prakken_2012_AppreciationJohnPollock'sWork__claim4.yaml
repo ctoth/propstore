@@ -1,0 +1,73 @@
+source_claim: Prakken_2012_AppreciationJohnPollock'sWork:claim4
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim3
+  type: none
+  strength: none
+  note: The claims discuss different aspects of argumentation theory, one about status
+    assignment and labeling, and the other about indirect defeat; they are largely
+    unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9799290895462036
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim10
+  type: none
+  strength: weak
+  note: Claim A describes definitions within argumentation frameworks, while Claim
+    B discusses Pollock's approach and the importance of distinguishing attack and
+    defeat, making them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9873344898223877
+    pass_number: 1
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim2
+  type: none
+  strength: none
+  note: Claim A concerns abstract argumentation frameworks and their properties, while
+    Claim B concerns bipolar argumentation and supported defeats, meaning there is
+    no direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0130988359451294
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim3
+  type: none
+  strength: none
+  note: Claim A discusses argument status assignments, while Claim B discusses types
+    of defeat; they do not have a clear epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0136507749557495
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim4
+  type: none
+  strength: weak
+  note: Claim A defines concepts related to argumentation frameworks, while Claim
+    B discusses specific types of attacks and their success conditions within argumentation,
+    showing a weak, tangential relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0269705057144165
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,73 @@
+source_claim: Reiter_1980_DefaultReasoning:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Reiter_1980_DefaultReasoning:claim12
+  type: none
+  strength: weak
+  note: The claims are related to default logic, but A defines an extension while
+    B discusses the implications of multiple extensions, suggesting no direct epistemic
+    relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7268492579460144
+    pass_number: 2
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim2
+  type: supports
+  strength: strong
+  note: Claim A relies on the definition of a default theory provided in Claim B,
+    supporting B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7675698399543762
+    pass_number: 1
+    confidence: 0.95
+- target: Reiter_1980_DefaultReasoning:claim8
+  type: none
+  strength: weak
+  note: The claims are related to default logic, but one defines an extension and
+    the other discusses properties of normal default theories, without direct support,
+    refutation, or explanation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7788585424423218
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim5
+  type: supports
+  strength: moderate
+  note: Claim A lays the groundwork and defines the core concepts that Claim B relies
+    on, providing a theoretical basis.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7974737286567688
+    pass_number: 1
+    confidence: 0.8
+- target: Reiter_1980_DefaultReasoning:claim6
+  type: none
+  strength: weak
+  note: Claim A defines the concept of an extension in default theory, while Claim
+    B describes a property of normal default theories' extensions; they are related
+    through the common topic of default logic but don't directly support, undermine,
+    or contradict each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7987595796585083
+    pass_number: 1
+    confidence: 0.0

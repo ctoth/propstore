@@ -1,0 +1,74 @@
+source_claim: Prakken_2012_AppreciationJohnPollock'sWork:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim1
+  type: supports
+  strength: moderate
+  note: Claim A mentions defeasible inference rules as domain-specific epistemic principles,
+    which aligns with Claim B's distinction between conclusive and defeasible reasons
+    and the importance of defeasible reasoning.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7223843932151794
+    pass_number: 1
+    confidence: 0.8
+- target: Dung_1995_AcceptabilityArguments:claim22
+  type: none
+  strength: weak
+  note: Claim A discusses the nature and grounding of Pollock's defeasible inference
+    rules, while Claim B focuses on the properties of Pollock's indefeasible arguments
+    in argumentation frameworks, they are related through Pollock's work, but A does
+    not directly interact with B's claim.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7518541216850281
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim13
+  type: none
+  strength: weak
+  note: The claims are about different aspects of Pollock's work, with no clear conflict
+    or support relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7750886082649231
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses Pollock's defeasible inference rules and their grounding,
+    while Claim B focuses on Pollock's use of inference graphs, so they are only weakly
+    related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7980667352676392
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim11
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of Pollock's work, with A focusing on
+    his positive contributions and B on a limitation, not directly contradicting each
+    other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8657892942428589
+    pass_number: 1
+    confidence: 0.0

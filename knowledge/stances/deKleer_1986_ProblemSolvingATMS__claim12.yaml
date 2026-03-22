@@ -1,0 +1,72 @@
+source_claim: deKleer_1986_ProblemSolvingATMS:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_ProblemSolvingATMS:claim13
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of the ATMS system, one about its parallelism
+    and the other about its performance advantages and disadvantages.
+  conditions_differ: One focuses on parallel processing capability, the other on overall
+    performance relative to other systems under varying solution requirements.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.917247474193573
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim9
+  type: explains
+  strength: moderate
+  note: Claim A explains why context switching costs are eliminated in Claim B, by
+    detailing the properties of ATMS consumers that allow for parallelism and independence
+    of antecedent nodes.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9244370460510254
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim6
+  type: explains
+  strength: moderate
+  note: Claim A explains how the ATMS consumers' properties (order-insensitive and
+    status-insensitive) contribute to solving the unouting problem described in Claim
+    B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9312527179718018
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim1
+  type: explains
+  strength: moderate
+  note: Claim A explains *why* the consumers described in Claim B can have the properties
+    they do (firing once, etc.) - order and status insensitivity enable that.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9692509174346924
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim6
+  type: supports
+  strength: moderate
+  note: Claim A's assertion about order-insensitivity of ATMS consumers lends support
+    to Claim B's point about order-insensitivity in assumption/justification introduction.
+  conditions_differ: Claim A discusses consumers, while Claim B covers primitive operations.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9748631715774536
+    pass_number: 1
+    confidence: 0.8

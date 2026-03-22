@@ -1,0 +1,70 @@
+source_claim: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim9
+  type: supports
+  strength: moderate
+  note: A provides a definition that is used by B, enabling B to perform its analysis,
+    thereby supporting the overall research direction.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.69737708568573
+    pass_number: 1
+    confidence: 0.8
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim7
+  type: explains
+  strength: moderate
+  note: Claim A defines a condition for stability, which is then leveraged in Claim
+    B to define relevance based on the potential to affect that stability.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7647956609725952
+    pass_number: 1
+    confidence: 0.8
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim13
+  type: explains
+  strength: moderate
+  note: Claim A provides a definition of j-stability, which helps explain why Claim
+    B is possible.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7766128778457642
+    pass_number: 1
+    confidence: 0.8
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim10
+  type: none
+  strength: none
+  note: Claim A defines a concept, while Claim B discusses computational complexity,
+    making them unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7807427644729614
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim4
+  type: none
+  strength: weak
+  note: Claim A defines a property of literals in a specific argumentation framework,
+    while Claim B discusses the implementation of a Truth Maintenance System; they
+    operate in different domains of knowledge representation.
+  conditions_differ: different domains
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9590853452682495
+    pass_number: 1
+    confidence: 0.0

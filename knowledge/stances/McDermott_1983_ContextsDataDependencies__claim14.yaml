@@ -1,0 +1,73 @@
+source_claim: McDermott_1983_ContextsDataDependencies:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McDermott_1983_ContextsDataDependencies:claim4
+  type: none
+  strength: weak
+  note: Claim A discusses the growth of labels, while Claim B describes the structure
+    of labels, with limited overlap.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9322589039802551
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim11
+  type: none
+  strength: weak
+  note: Claim A is about the potential exponential growth of labels in a system, while
+    Claim B is about the well-foundedness of support tracing, and they don't directly
+    interact, although indirectly one could argue that potentially large labels from
+    A might make the tracing from B harder.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9607431888580322
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim9
+  type: none
+  strength: weak
+  note: Claim A discusses the rarity of exponential label growth, while Claim B discusses
+    computational complexity, with a slight overlap that the `worst case` is rare,
+    but not a strong connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9802558422088623
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim13
+  type: none
+  strength: none
+  note: 'The claims are about different topics: claim A discusses the growth of labels
+    in assertions with multiple proofs, while claim B contrasts justification-based
+    and assumption-based systems for belief revision.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0127956867218018
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim8
+  type: none
+  strength: none
+  note: Claim A discusses label growth in general, while Claim B discusses circular
+    justifications within a specific system (ATMS), making them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0153685808181763
+    pass_number: 1
+    confidence: 0.0

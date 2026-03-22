@@ -1,0 +1,72 @@
+source_claim: Dixon_1993_ATMSandAGM:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dixon_1993_ATMSandAGM:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses revisions of entrenchment, while Claim B discusses the nature
+    of entrenchment ordering, and their connection is not strong.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8717672824859619
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim5
+  type: none
+  strength: weak
+  note: Claim A discusses the general application of the minimal change principle
+    to entrenchment relations, while Claim B describes the meaning of specific entrenchment
+    equalities and inequalities, making their connection tangential.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0027809143066406
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim11
+  type: undercuts
+  strength: moderate
+  note: Claim A suggests a limitation in applying minimal change to entrenchment,
+    which weakens the foundation upon which Claim B bases the AGM framework's revision
+    mechanism.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.003401756286621
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: undermines
+  strength: moderate
+  note: Claim A suggests that entrenchment relations (used in Claim B) are unstable,
+    which undermines Claim B's reliance on the entrenchment based priority constraint.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.024888277053833
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses limitations of the minimal change principle in belief revision
+    regarding entrenchment relations, while Claim B outlines a two-level belief revision
+    model, so they are not directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0294352769851685
+    pass_number: 1
+    confidence: 0.0

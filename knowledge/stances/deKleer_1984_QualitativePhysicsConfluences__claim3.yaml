@@ -1,0 +1,71 @@
+source_claim: deKleer_1984_QualitativePhysicsConfluences:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1984_QualitativePhysicsConfluences:claim1
+  type: none
+  strength: weak
+  note: Claim A discusses ambiguity in qualitative addition, while Claim B defines
+    confluence as a modeling primitive, and the connection is not strong.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9843072295188904
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim10
+  type: none
+  strength: none
+  note: 'The claims are about different topics: qualitative arithmetic properties
+    vs. the qualitative mean value theorem.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9920834302902222
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses qualitative arithmetic and its limitations, while Claim
+    B describes the use of qualitative states and inequalities; they don't have a
+    direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.025428295135498
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim7
+  type: explains
+  strength: moderate
+  note: A explains why B is true, as the ambiguity introduced by qualitative addition
+    (as described in A) leads to multiple interpretations (as described in B).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0495296716690063
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1984_QualitativePhysicsConfluences:claim9
+  type: undermines
+  strength: weak
+  note: Claim A identifies a limitation of qualitative reasoning (ambiguity in addition),
+    which indirectly weakens the potential for constraint propagation (used in B)
+    to fully solve qualitative confluence systems, but it is a minor factor.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0966345071792603
+    pass_number: 1
+    confidence: 0.6

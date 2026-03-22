@@ -1,0 +1,71 @@
+source_claim: Clark_2014_Micropublications:claim10
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1983_MultipleBeliefSpaces:claim7
+  type: none
+  strength: weak
+  note: The claims are in different domains (knowledge representation vs. belief revision)
+    and do not directly interact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0793802738189697
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim4
+  type: none
+  strength: none
+  note: These claims are from different fields (scientific statement normalization
+    vs. hypothesis derivation in belief spaces) and do not address the same topic.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0930415391921997
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim17
+  type: supports
+  strength: weak
+  note: Claim A suggests a method for normalizing diverse statements, potentially
+    facilitating the sharing of information across belief spaces, which aligns with
+    Claim B's assertion about sharing information without re-derivation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1015663146972656
+    pass_number: 1
+    confidence: 0.6
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim7
+  type: none
+  strength: weak
+  note: Claim A discusses similarity groups of scientific statements while Claim B
+    presents desiderata for evaluating classification systems; they address different
+    topics with minimal overlap.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1061166524887085
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim5
+  type: none
+  strength: weak
+  note: The claims discuss different topics (scientific statement normalization vs.
+    inconsistent hypothesis sets) making a direct epistemic relationship unlikely.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1109888553619385
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,72 @@
+source_claim: Pollock_1987_DefeasibleReasoning:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Doyle_1979_TruthMaintenanceSystem:claim7
+  type: none
+  strength: weak
+  note: Claim A discusses the nature of justified belief in practical reasoning, while
+    Claim B describes a feature of non-monotonic justification in belief maintenance
+    systems; they address different topics.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9158181548118591
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim13
+  type: none
+  strength: weak
+  note: While both relate to reasoning, A focuses on the nature of justified belief
+    and resource constraints, whereas B focuses on the foundations of reasoning and
+    avoiding infinite regress, making them largely independent.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9304763674736023
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim3
+  type: none
+  strength: weak
+  note: Claim A discusses the nature of justified belief and rational reasoning, while
+    Claim B presents a specific implementation detail for justification in an AI system,
+    with a tenuous relationship between the two.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9404845833778381
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim12
+  type: none
+  strength: weak
+  note: Claim A discusses justified belief in general, while claim B discusses a specific
+    distinction within reasoning types, so there isn't a strong direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.940722644329071
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim1
+  type: none
+  strength: weak
+  note: Claim A is about justified belief in general, while claim B is about a specific
+    type of reason (prima facie), so their relation is tangential.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9441499710083008
+    pass_number: 1
+    confidence: 0.0

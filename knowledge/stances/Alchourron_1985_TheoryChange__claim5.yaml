@@ -1,0 +1,72 @@
+source_claim: Alchourron_1985_TheoryChange:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim4
+  type: supports
+  strength: moderate
+  note: Both claims define one operator in terms of the other, indicating a reciprocal
+    and supporting relationship between revision and contraction within a logical
+    framework.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7802355885505676
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim2
+  type: none
+  strength: weak
+  note: The claims present different definitions of contraction, but neither directly
+    impacts the validity of the other, as they are distinct approaches.
+  conditions_differ: They present different formalisms for belief revision, one using
+    revision and the other using a selection function.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9888121485710144
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim8
+  type: supports
+  strength: weak
+  note: Claim A provides a definition which is used in Claim B, providing some conceptual
+    support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0226746797561646
+    pass_number: 1
+    confidence: 0.6
+- target: Alchourron_1985_TheoryChange:claim12
+  type: none
+  strength: weak
+  note: The claims define different theoretical operations, contraction and expansion,
+    and thus have a weak relationship.
+  conditions_differ: contraction vs. expansion
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0231314897537231
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim18
+  type: none
+  strength: weak
+  note: Claim A defines contraction using the Harper identity, while Claim B characterizes
+    maxichoice contraction using the fullness condition, and they don't directly relate
+    to or contradict each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0313630104064941
+    pass_number: 1
+    confidence: 0.0

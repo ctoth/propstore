@@ -1,0 +1,73 @@
+source_claim: Groth_2010_AnatomyNanopublication:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Groth_2010_AnatomyNanopublication:claim10
+  type: explains
+  strength: moderate
+  note: Claim A explains the need for Concept Wiki identifiers by stating that they
+    are one of the compatibility levels for nanopublication adoption, clarifying why
+    Claim B advocates for their use in large-scale aggregation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8173168301582336
+    pass_number: 1
+    confidence: 0.8
+- target: Groth_2010_AnatomyNanopublication:claim7
+  type: none
+  strength: weak
+  note: Claim A describes compatibility levels of the nanopublication model, while
+    Claim B describes the ontology used, and there's only a weak relationship between
+    them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8784655332565308
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim2
+  type: none
+  strength: weak
+  note: 'The claims discuss different aspects of the nanopublication model: compatibility
+    levels versus the conceptual model''s structure; they are largely independent.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9142658114433289
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim6
+  type: none
+  strength: weak
+  note: Claim A is about the compatibility levels for adopting the nanopublication
+    model, while Claim B discusses the importance of annotation vocabulary over serialization
+    format, making the relationship weak and not directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9180782437324524
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim1
+  type: none
+  strength: none
+  note: The claims discuss different aspects of nanopublications - Claim A discusses
+    compatibility levels for adoption, while Claim B defines what a nanopublication
+    is, so they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9299725294113159
+    pass_number: 1
+    confidence: 0.0

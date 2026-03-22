@@ -1,0 +1,69 @@
+source_claim: Dixon_1993_ATMSandAGM:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dixon_1993_ATMSandAGM:claim12
+  type: supports
+  strength: moderate
+  note: Claim A defines the essential support which is then used in Claim B's lemma,
+    providing a basis for understanding its terms.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9253289699554443
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim4
+  type: none
+  strength: weak
+  note: Claim A defines 'essential support' while Claim B defines 'environment', and
+    they don't directly interact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9967585206031799
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim5
+  type: explains
+  strength: moderate
+  note: Claim A defines the concept of essential support, which Claim B uses to explain
+    entrenchment equality, thus A explains B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9994573593139648
+    pass_number: 1
+    confidence: 0.8
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim7
+  type: none
+  strength: none
+  note: The claims are on different topics within argumentation theory, with one defining
+    essential support and the other defining s-admissible sets.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.016629695892334
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim13
+  type: none
+  strength: weak
+  note: Claim A defines a term while claim B discusses how to use the term, so the
+    relationship is minimal.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0232903957366943
+    pass_number: 1
+    confidence: 0.0

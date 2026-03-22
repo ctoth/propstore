@@ -1,0 +1,71 @@
+source_claim: Greenberg_2009_CitationDistortions:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Greenberg_2009_CitationDistortions:claim15
+  type: explains
+  strength: moderate
+  note: Claim A explains the mechanisms by which citation distortions, described in
+    Claim B, can occur.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6571236848831177
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim14
+  type: supports
+  strength: moderate
+  note: Claim B offers a specific instance (NIH grants) that reinforces the general
+    phenomenon of citation distortions described in Claim A.
+  conditions_differ: Claim A is a general theoretical overview, while Claim B focuses
+    on a specific application in NIH grant proposals.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6771664619445801
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim11
+  type: explains
+  strength: moderate
+  note: Claim B gives subtypes of one of the "distinct mechanisms" (citation invention)
+    described in Claim A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8553094863891602
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim17
+  type: supports
+  strength: moderate
+  note: Claim A describes mechanisms by which citation distortions happen, and Claim
+    B provides examples of those distortions happening in peer-reviewed journals,
+    supporting the idea that citation distortions occur.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.890975296497345
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim12
+  type: supports
+  strength: strong
+  note: Claim B directly cites Claim A and provides an example study that corroborates
+    Claim A's central argument about citation distortions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8923571109771729
+    pass_number: 1
+    confidence: 0.95

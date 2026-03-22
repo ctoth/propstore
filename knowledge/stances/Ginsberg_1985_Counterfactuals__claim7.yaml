@@ -1,0 +1,72 @@
+source_claim: Ginsberg_1985_Counterfactuals:claim7
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Ginsberg_1985_Counterfactuals:claim6
+  type: none
+  strength: weak
+  note: The two claims discuss different aspects of counterfactual reasoning, with
+    Claim A addressing context dependence and Claim B focusing on the formal equivalence
+    to Lewis's possible world interpretation.
+  conditions_differ: Claim A discusses context dependence while Claim B focuses on
+    formal equivalence to Lewis's theory.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8784831166267395
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim1
+  type: none
+  strength: weak
+  note: The claims are about different aspects of counterfactual reasoning; Claim
+    A discusses context dependence, while Claim B focuses on formalization using three-valued
+    logic.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8965471982955933
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim8
+  type: explains
+  strength: moderate
+  note: Claim A provides a framework for understanding counterfactual reasoning, which
+    can explain why the properties mentioned in Claim B are violated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9612197279930115
+    pass_number: 1
+    confidence: 0.8
+- target: Ginsberg_1985_Counterfactuals:claim5
+  type: explains
+  strength: moderate
+  note: Claim A explains how the context dependence is handled, which is relevant
+    to the procedure outlined in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9863159656524658
+    pass_number: 1
+    confidence: 0.8
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses counterfactual reasoning and sublanguages, while Claim B
+    discusses argumentation with incomplete information, so they are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9921748638153076
+    pass_number: 1
+    confidence: 0.0

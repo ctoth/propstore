@@ -1,0 +1,69 @@
+source_claim: Greenberg_2009_CitationDistortions:claim4
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Greenberg_2009_CitationDistortions:claim3
+  type: supports
+  strength: moderate
+  note: Claim A and B together provide a breakdown of citation bias, supporting that
+    it is primarily supportive and negligibly critical.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5954880118370056
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim8
+  type: none
+  strength: weak
+  note: The claims discuss different citation phenomena (bias vs amplification) and
+    metrics, so there's no direct epistemic connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9195843935012817
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim14
+  type: supports
+  strength: weak
+  note: The 6% citation bias suggests a mechanism that can lead to distortions in
+    grant proposals as mentioned in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9573192596435547
+    pass_number: 1
+    confidence: 0.6
+- target: Greenberg_2009_CitationDistortions:claim9
+  type: none
+  strength: weak
+  note: The claims address different aspects of citation behavior (bias vs amplification)
+    and have no clear relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9574206471443176
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim7
+  type: none
+  strength: none
+  note: The claims concern different aspects of citation dynamics and do not directly
+    relate to or affect each other's validity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9764665365219116
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,74 @@
+source_claim: Ginsberg_1985_Counterfactuals:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Ginsberg_1985_Counterfactuals:claim6
+  type: supports
+  strength: strong
+  note: Claim A provides the foundation by describing the three-valued truth function
+    approach, which Claim B then shows is formally equivalent to a well-established
+    alternative (Lewis's possible world interpretation), thereby bolstering the validity
+    and applicability of the three-valued truth function approach.
+  conditions_differ: Claim B restricts the result to a countably infinite language,
+    while A makes no explicit restriction on language size.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6389524936676025
+    pass_number: 1
+    confidence: 0.95
+- target: Ginsberg_1985_Counterfactuals:claim5
+  type: explains
+  strength: moderate
+  note: Claim A, describing a formalization using three-valued logic and closure operations,
+    provides a theoretical framework that explains how Claim B's counterfactual evaluation
+    process can be implemented.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8562332987785339
+    pass_number: 1
+    confidence: 0.8
+- target: Ginsberg_1985_Counterfactuals:claim7
+  type: explains
+  strength: moderate
+  note: Claim A explains a method of formalizing counterfactual reasoning, while Claim
+    B details how context dependence is handled within that formalization.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8965471982955933
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim1
+  type: supports
+  strength: moderate
+  note: Both claims discuss the use of three-valued logic (true/false/unknown) in
+    reasoning systems.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9052584767341614
+    pass_number: 1
+    confidence: 0.8
+- target: Ginsberg_1985_Counterfactuals:claim8
+  type: none
+  strength: weak
+  note: Claim A proposes a method for formalizing counterfactual reasoning, while
+    Claim B describes properties of counterfactuals that distinguish them from material
+    conditionals, making them largely orthogonal concerns.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9480622410774231
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,69 @@
+source_claim: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim4
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Pollock_1987_DefeasibleReasoning:claim4
+  type: none
+  strength: weak
+  note: Claim A discusses the success of different types of attacks in argumentation,
+    while Claim B defines undercutting defeaters; they don't directly relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8190411925315857
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim5
+  type: none
+  strength: weak
+  note: The claims are only weakly related, as one discusses the nature of undercutting
+    defeaters and the other discusses their importance.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8250203728675842
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim3
+  type: supports
+  strength: moderate
+  note: Claim A supports claim B because it elaborates on the conditions under which
+    undercutting defeat (mentioned in claim B) is effective.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8316172361373901
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim3
+  type: none
+  strength: weak
+  note: Claim A describes the outcome of different attack types based on preferences
+    while claim B simply defines those attack types.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8508363962173462
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim12
+  type: none
+  strength: weak
+  note: Claim A discusses conditions for successful attacks, while Claim B discusses
+    which elements of an argument *should* be attacked, so they have different aims.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8720100522041321
+    pass_number: 1
+    confidence: 0.0

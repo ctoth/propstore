@@ -1,0 +1,70 @@
+source_claim: deKleer_1986_AssumptionBasedTMS:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_AssumptionBasedTMS:claim9
+  type: explains
+  strength: moderate
+  note: Claim A explains the mechanism by which the ATMS eliminates context switching
+    costs, as described in Claim B, by highlighting how contexts exist simultaneously.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9541174173355103
+    pass_number: 1
+    confidence: 0.8
+- target: Dixon_1993_ATMSandAGM:claim1
+  type: none
+  strength: weak
+  note: Claim A describes the general functioning of an ATMS, while Claim B proposes
+    a model relating ATMS context switching to AGM operations, and they don't directly
+    interact with each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9554830193519592
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim3
+  type: none
+  strength: weak
+  note: The claims describe different aspects of ATMS; A describes how ATMS partitions
+    nodes, while B lists properties of ATMS labels.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9658815860748291
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim12
+  type: none
+  strength: weak
+  note: Claim A describes ATMS context categories, while Claim B discusses ATMS consumer
+    properties, making them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9790840744972229
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim6
+  type: none
+  strength: weak
+  note: Claim A describes the categories of nodes in an ATMS, while Claim B describes
+    primitive operations; they are not directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9844338297843933
+    pass_number: 1
+    confidence: 0.0

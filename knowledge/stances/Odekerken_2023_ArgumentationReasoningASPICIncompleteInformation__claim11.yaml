@@ -1,0 +1,73 @@
+source_claim: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim9
+  type: none
+  strength: weak
+  note: Claim A discusses practical performance while Claim B discusses computational
+    complexity, so they are largely unrelated, but A could weakly undermine belief
+    in B's practical impact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9254944324493408
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim15
+  type: none
+  strength: weak
+  note: Claim A discusses the practical performance of ASP-based algorithms, while
+    Claim B gives benchmark results of a justification system, but the claims are
+    about different systems and metrics making the connection weak.
+  conditions_differ: Different argumentation systems, different hardware, different
+    evaluation metrics.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9484447836875916
+    pass_number: 1
+    confidence: 0.0
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses practical performance while Claim B focuses on computational
+    complexity, indicating unrelated aspects of the same system.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9726629257202148
+    pass_number: 1
+    confidence: 0.0
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim1
+  type: none
+  strength: weak
+  note: Claim A discusses the practical performance of ASP-based algorithms, while
+    Claim B describes an extension of ASPIC+ to handle incomplete information; the
+    connection is limited to their shared use of ASP techniques.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9790321588516235
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim1
+  type: none
+  strength: weak
+  note: Claim A discusses the practicality of ASP-based algorithms, while Claim B
+    describes a belief maintenance system; they address different topics.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.001461386680603
+    pass_number: 1
+    confidence: 0.0

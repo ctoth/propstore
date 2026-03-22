@@ -1,0 +1,73 @@
+source_claim: Martins_1983_MultipleBeliefSpaces:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1988_BeliefRevision:claim17
+  type: undermines
+  strength: moderate
+  note: Claim A suggests propositions are filtered by belief space, implying sharing
+    information between belief spaces (as suggested by B) would be limited or require
+    significant mechanisms to avoid context issues, thus weakening Claim B's feasibility.
+  conditions_differ: Claim A focuses on immediate retrieval, while Claim B discusses
+    sharing already-derived information.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8951606750488281
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1983_MultipleBeliefSpaces:claim1
+  type: explains
+  strength: moderate
+  note: Claim A explains how belief spaces, as defined in Claim B, are used in retrieval
+    operations.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9376662373542786
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1983_MultipleBeliefSpaces:claim10
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of belief management in the context of
+    multiple belief spaces; Claim A focuses on retrieval, while Claim B focuses on
+    marking belief status, thus they are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9536336660385132
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim8
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of belief spaces; Claim A focuses on
+    retrieval within a belief space, while Claim B quantifies the potential number
+    of belief spaces.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9624220132827759
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim2
+  type: explains
+  strength: moderate
+  note: Claim A explains how the Current Belief Space (CBS) operates, given Claim
+    B's definition of CBS based on the Current Context.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.968805730342865
+    pass_number: 1
+    confidence: 0.8

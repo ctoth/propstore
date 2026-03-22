@@ -1,0 +1,71 @@
+source_claim: Dixon_1993_ATMSandAGM:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dixon_1993_ATMSandAGM:claim10
+  type: supports
+  strength: strong
+  note: Claim A directly relies on and is motivated by Claim B being true.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.847300112247467
+    pass_number: 1
+    confidence: 0.95
+- target: Dixon_1993_ATMSandAGM:claim3
+  type: undercuts
+  strength: moderate
+  note: Claim A argues that ATMS lacks a natural rule revision mechanism, undercutting
+    the motivation or significance of Claim B's algorithm which aims to simulate ATMS
+    behavior within the AGM model.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8546289801597595
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses a specific capability of AGM vs ATMS, while Claim B compares
+    AGM and TMS traditions more broadly.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9294097423553467
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim16
+  type: none
+  strength: weak
+  note: The claims are about different aspects of the AGM framework; one discusses
+    its ability to revise rules, while the other mentions the computability issues
+    due to deductive closure.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9336273670196533
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim1
+  type: undermines
+  strength: moderate
+  note: Claim A implies a limitation of the ATMS, suggesting it cannot naturally handle
+    rule revision like AGM, while Claim B suggests ATMS can be modelled with AGM operations,
+    so A weakens the justification for modelling ATMS with AGM.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9416313171386719
+    pass_number: 1
+    confidence: 0.8

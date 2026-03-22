@@ -1,0 +1,72 @@
+source_claim: Walton_2015_ClassificationSystemArgumentationSchemes:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim1
+  type: supports
+  strength: strong
+  note: Claim A identifies a problem with prior approaches, which Claim B offers a
+    solution to, thus Claim A strongly supports the need for Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7201078534126282
+    pass_number: 1
+    confidence: 0.95
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses flaws in previous classification systems, while Claim B
+    introduces a new organizing principle, but Claim A does not directly affect the
+    validity or strength of Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8849618434906006
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim5
+  type: none
+  strength: weak
+  note: Claim A discusses limitations of previous classification systems, while Claim
+    B presents a characteristic of argumentation schemes; they address different aspects
+    of argumentation scheme research without direct conflict or support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.915567934513092
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim14
+  type: none
+  strength: weak
+  note: 'The claims address distinct issues: A concerns argumentation scheme classifications,
+    while B addresses formal argumentation system design; therefore, there is no direct
+    epistemic relationship.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9216771125793457
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses prior classifications' structure, while Claim B concerns
+    critical questions and counterarguments, making them largely independent.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9244876503944397
+    pass_number: 1
+    confidence: 0.0

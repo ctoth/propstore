@@ -1,0 +1,70 @@
+source_claim: Shapiro_1998_BeliefRevisionTMS:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim13
+  type: explains
+  strength: strong
+  note: Claim A explains *why* the two fields are disconnected, which is the observation
+    made in Claim B; Claim A provides a reason for Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7840936183929443
+    pass_number: 1
+    confidence: 0.95
+- target: Doyle_1979_TruthMaintenanceSystem:claim1
+  type: none
+  strength: weak
+  note: Claim A describes the relationship between two research areas, while Claim
+    B describes the TMS itself; they don't directly bear on each other's truth.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8855598568916321
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim12
+  type: none
+  strength: weak
+  note: Claim A discusses a lack of cross-citation between two fields studying belief
+    revision, while Claim B discusses limitations of previous contradiction handling
+    approaches, they are not directly epistemically related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9102025032043457
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: none
+  strength: weak
+  note: Claim A is a meta-analysis of the field, while claim B is a specific claim
+    within that field, and they don't have a direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9111374020576477
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim15
+  type: supports
+  strength: strong
+  note: Claim A provides corroborating evidence for claim B, stating that the two
+    traditions developed in isolation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9519129991531372
+    pass_number: 1
+    confidence: 0.95

@@ -1,0 +1,71 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses a different aspect of argumentation (problem solving organization)
+    than Claim B (argument structure).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8908649682998657
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim5
+  type: none
+  strength: weak
+  note: Claim A discusses a general problem-solving architecture, while Claim B describes
+    argumentation schemes; they are weakly related but don't directly interact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9234268069267273
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim1
+  type: none
+  strength: none
+  note: Claim A discusses a general approach to problem-solving using argumentation,
+    while Claim B defines an argumentation system, suggesting different focuses.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9536441564559937
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim6
+  type: none
+  strength: none
+  note: Claim A discusses a general framework for argumentation and belief systems,
+    while Claim B focuses on a specific classification of argumentation schemes, making
+    them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9563305974006653
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses a general problem-solving approach with belief systems,
+    whereas Claim B discusses argumentation schemes and counterarguments, so they
+    don't directly relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9681177735328674
+    pass_number: 1
+    confidence: 0.0

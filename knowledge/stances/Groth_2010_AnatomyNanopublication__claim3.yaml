@@ -1,0 +1,72 @@
+source_claim: Groth_2010_AnatomyNanopublication:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Groth_2010_AnatomyNanopublication:claim1
+  type: none
+  strength: weak
+  note: The claims are related to nanopublications but define different aspects; Claim
+    A discusses aggregating evidence, while Claim B defines the structure of a nanopublication
+    itself.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9855472445487976
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim2
+  type: supports
+  strength: moderate
+  note: Both claims describe mechanisms for aggregating and tracking information related
+    to a single scientific claim within scientific literature.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.041405439376831
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim7
+  type: undermines
+  strength: moderate
+  note: 'Claim A emphasizes the aggregation of evidence using nanopublications, while
+    Claim B points out a limitation: the lack of mechanisms for representing support
+    graphs or evidential backing, thus questioning the completeness of the ''aggregation''.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0610790252685547
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim13
+  type: supports
+  strength: weak
+  note: Claim A's focus on aggregating evidence for claims weakly supports Claim B's
+    approach to accommodating complexity in claim representation, as both address
+    the need for organized evidence in scientific knowledge.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.062916874885559
+    pass_number: 1
+    confidence: 0.6
+- target: Clark_2014_Micropublications:claim6
+  type: undermines
+  strength: moderate
+  note: Claim A undermines Claim B's implication that nanopublications have limited
+    backing evidence by defining them as aggregators of evidence for a single claim.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.065903663635254
+    pass_number: 1
+    confidence: 0.8

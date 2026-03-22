@@ -1,0 +1,72 @@
+source_claim: Pollock_1987_DefeasibleReasoning:claim20
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Pollock_1987_DefeasibleReasoning:claim11
+  type: supports
+  strength: moderate
+  note: The deduction theorem provides a mechanism by which warrant can be extended,
+    indirectly supporting the idea that warrant is closed under deductive consequence.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8057664632797241
+    pass_number: 1
+    confidence: 0.8
+- target: Pollock_1987_DefeasibleReasoning:claim6
+  type: none
+  strength: weak
+  note: Claim A and Claim B discuss distinct aspects of warrant, with A focusing on
+    the deduction theorem and B on the relationship between warrant and undefeated
+    arguments, showing a weak relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8571426868438721
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim10
+  type: supports
+  strength: moderate
+  note: If the deduction theorem holds for warrant, this provides some support for
+    the idea that warranted propositions will be consistent, as deductive systems
+    tend to maintain consistency.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8658117055892944
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim3
+  type: none
+  strength: weak
+  note: Claim A concerns the deduction theorem and warrants, while Claim B concerns
+    symmetric deduction for TMS and backtracking, so they are not related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9710979461669922
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses the deduction theorem and warrant, while Claim B describes
+    justification types in a Truth Maintenance System; they operate in different domains
+    of reasoning.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9974133372306824
+    pass_number: 1
+    confidence: 0.0

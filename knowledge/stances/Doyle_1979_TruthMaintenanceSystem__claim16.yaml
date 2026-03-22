@@ -1,0 +1,78 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim16
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McAllester_1978_ThreeValuedTMS:claim1
+  type: rebuts
+  strength: moderate
+  note: Claim A argues for the necessity of a four-valued system to represent contradictory
+    states, while Claim B proposes a three-valued system, implicitly denying the necessity
+    argued for in Claim A.
+  conditions_differ: Different TMS system design and purpose.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.875731885433197
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim13
+  type: rebuts
+  strength: moderate
+  note: Claim A directly contradicts Claim B by stating that three-valued systems
+    cannot represent contradictory states, while Claim B explicitly describes a three-valued
+    TMS.
+  conditions_differ: Claim A discusses the general limitations of three-valued systems
+    in representing belief states; Claim B discusses a specific implementation of
+    a three-valued TMS.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9294334650039673
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses a four-valued system's ability to represent contradictory
+    states, while Claim B concerns transitions between truth values in a three-valued
+    system, so there's no direct relationship, though both concern truth-maintenance
+    systems.
+  conditions_differ: Claim A concerns a four-valued belief state, while Claim B concerns
+    a three-valued belief state.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9469724893569946
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim6
+  type: undermines
+  strength: moderate
+  note: Claim A questions the completeness of three-valued systems, which is a foundation
+    for Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9651950001716614
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim6
+  type: undermines
+  strength: moderate
+  note: Claim A suggests that three-valued systems, like that proposed by McAllester,
+    are inherently incapable of representing contradictions fully, thus weakening
+    a premise of Claim B.
+  conditions_differ: Claim A concerns the representational power of belief states,
+    while Claim B concerns the origin of contradictions within a TMS.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9864919185638428
+    pass_number: 1
+    confidence: 0.8

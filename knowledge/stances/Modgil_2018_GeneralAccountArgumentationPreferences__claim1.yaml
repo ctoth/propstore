@@ -1,0 +1,72 @@
+source_claim: Modgil_2018_GeneralAccountArgumentationPreferences:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim15
+  type: none
+  strength: weak
+  note: Claim A discusses a specific change to conflict-free definitions within ASPIC+,
+    while Claim B describes a general feature of the ASPIC+ framework; there isn't
+    a direct contradiction or support, but both touch on the ASPIC+ framework.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.757127583026886
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim10
+  type: rebuts
+  strength: moderate
+  note: Claim A suggests a way to resolve the lack of separation between attack and
+    defeat mentioned in Claim B, implying B's concern is addressed by A's proposal.
+  conditions_differ: ASPIC+ definitions and their implications for rationality postulates
+    are considered under different assumptions.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7716732025146484
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim2
+  type: supports
+  strength: moderate
+  note: Claim A, by advocating for a new definition, provides the foundation under
+    which Claim B's sub-argument closure property can hold.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7896748185157776
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim3
+  type: supports
+  strength: moderate
+  note: Claim A proposes a change to ASPIC+, and Claim B shows a positive consequence
+    of that change, thus supporting the value of Claim A's proposal.
+  conditions_differ: Claim A focuses on definitions, while Claim B focuses on closure
+    under strict rules under attack-based conflict-free
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7927179336547852
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim5
+  type: supports
+  strength: moderate
+  note: Claim A provides a modification to ASPIC+ that allows Claim B to hold, lending
+    support to the modified ASPIC+.
+  conditions_differ: Claim A modifies the conflict-free definition in ASPIC+.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8085847496986389
+    pass_number: 1
+    confidence: 0.8

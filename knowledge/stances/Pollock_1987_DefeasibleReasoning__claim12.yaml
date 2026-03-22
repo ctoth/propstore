@@ -1,0 +1,71 @@
+source_claim: Pollock_1987_DefeasibleReasoning:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Pollock_1987_DefeasibleReasoning:claim3
+  type: none
+  strength: weak
+  note: 'The claims are about distinct aspects of defeasible reasoning: reinstatement
+    vs. rebutting defeaters.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8657047748565674
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim8
+  type: none
+  strength: weak
+  note: The claims are both about defeasible reasoning, but address different aspects
+    (reinstatement vs. self-defeat), so they aren't strongly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8893290758132935
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim4
+  type: none
+  strength: weak
+  note: Claim A discusses reinstatement of conclusions after defeaters are defeated,
+    while Claim B defines undercutting defeaters; they address different aspects of
+    defeasible reasoning but don't directly interact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9025519490242004
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim19
+  type: supports
+  strength: moderate
+  note: Claim A implies that defeaters can be defeated (reinstatement only makes sense
+    if defeaters can be defeated), thereby providing support to B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9114040732383728
+    pass_number: 1
+    confidence: 0.8
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim3
+  type: none
+  strength: weak
+  note: Claim A discusses reinstatement in defeasible reasoning, while Claim B discusses
+    Pollock's work on rebutting and undercutting defeat, and they do not directly
+    relate to each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9269930720329285
+    pass_number: 1
+    confidence: 0.0

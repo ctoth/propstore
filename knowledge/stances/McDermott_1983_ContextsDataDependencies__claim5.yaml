@@ -1,0 +1,70 @@
+source_claim: McDermott_1983_ContextsDataDependencies:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McDermott_1983_ContextsDataDependencies:claim9
+  type: none
+  strength: none
+  note: 'The claims discuss different aspects of the algorithm''s behavior: Claim
+    A focuses on termination, while Claim B analyzes complexity.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9553394913673401
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim7
+  type: none
+  strength: none
+  note: Claim A discusses the halting of a Boolean substitution algorithm, while Claim
+    B discusses the properties of loops in dependency networks, and they don't seem
+    related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9739779829978943
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim4
+  type: none
+  strength: weak
+  note: The claims are about different aspects of the system, one about an algorithm's
+    termination and the other about data representation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0029197931289673
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim3
+  type: none
+  strength: none
+  note: Claim A concerns the halting property of a Boolean substitution algorithm,
+    while Claim B describes properties of ATMS labels, and these are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0178110599517822
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim7
+  type: none
+  strength: weak
+  note: Claim A is about a specific algorithm's termination, while Claim B describes
+    a label update process, suggesting little direct overlap or influence.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0254437923431396
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,70 @@
+source_claim: Alchourron_1985_TheoryChange:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim9
+  type: supports
+  strength: moderate
+  note: Claim A provides an alternative characterization for the conjunction of supplementary
+    postulates -7 and -8, which supports the role that these postulates play in Claim
+    B's characterization of transitively relational partial meet contraction functions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0044976472854614
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim7
+  type: none
+  strength: weak
+  note: Claim A and Claim B discuss different aspects of logical systems and postulates,
+    with no direct connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0789544582366943
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim8
+  type: none
+  strength: none
+  note: The claims are about different aspects of theory change and contraction functions,
+    with no direct logical connection or conflict.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0979247093200684
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim6
+  type: none
+  strength: none
+  note: The claims discuss different aspects of belief revision theory and are not
+    directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1003730297088623
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim7
+  type: none
+  strength: none
+  note: Claim A is about logical equivalence in theory change, while Claim B concerns
+    ambiguity in qualitative physics, indicating no direct epistemic link.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1050325632095337
+    pass_number: 1
+    confidence: 0.0

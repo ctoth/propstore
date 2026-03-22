@@ -1,0 +1,73 @@
+source_claim: Martins_1983_MultipleBeliefSpaces:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1983_MultipleBeliefSpaces:claim7
+  type: supports
+  strength: moderate
+  note: Claim A describes the function of Restriction Sets, which supports Claim B's
+    statement about them distributing inconsistency information.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8608137965202332
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1983_MultipleBeliefSpaces:claim4
+  type: none
+  strength: weak
+  note: The claims define different concepts (RS and OS) within a belief revision
+    system, but don't directly bear on each other's validity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9179525971412659
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim4
+  type: none
+  strength: weak
+  note: Claim A defines a concept (RS) in the context of inconsistency, while Claim
+    B states a property (minimality) of RS within a different context (supported wffs),
+    making them largely independent.
+  conditions_differ: Claim A discusses RS in relation to inconsistent sets, while
+    Claim B discusses RS in the context of supported wffs.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9223188757896423
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim13
+  type: supports
+  strength: weak
+  note: Claim A provides context for understanding the purpose and function of a restriction
+    set, which is a component of the derived proposition mentioned in Claim B, thereby
+    providing some indirect support for claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9773128032684326
+    pass_number: 1
+    confidence: 0.6
+- target: Martins_1988_BeliefRevision:claim18
+  type: explains
+  strength: moderate
+  note: Claim A provides a definition of restriction sets (RS), which Claim B uses
+    as a basis for explaining how a mu function computes restriction sets, detailing
+    a mechanism for how RS are used.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9896941184997559
+    pass_number: 1
+    confidence: 0.8

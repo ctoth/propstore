@@ -1,0 +1,73 @@
+source_claim: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim10
+  type: none
+  strength: weak
+  note: The claims discuss different computational complexity results related to ASPIC+
+    argumentation, but neither directly weakens, attacks, contradicts, or supports
+    the other; they address separate aspects of the system's behavior.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6945666670799255
+    pass_number: 2
+    confidence: 0.0
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses the computational complexity of determining j-stability,
+    while Claim B defines what j-stability means; they are related concepts but A
+    doesn't directly affect the truth or validity of B.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.69737708568573
+    pass_number: 2
+    confidence: 0.0
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim1
+  type: none
+  strength: weak
+  note: Claim A discusses computational complexity, while Claim B describes an extension
+    of ASPIC+ to handle incomplete information; they are related by topic but neither
+    supports, attacks, nor explains the other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.832991361618042
+    pass_number: 1
+    confidence: 0.0
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim13
+  type: none
+  strength: none
+  note: Claim A is about computational complexity, while Claim B discusses j-relevance
+    and stabilization of literals; they address different aspects of ASPIC+.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8701710104942322
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim2
+  type: none
+  strength: none
+  note: Claim A discusses the computational complexity of ASPIC+, while Claim B discusses
+    properties of justified arguments within ASPIC+ under specific conditions, indicating
+    unrelated topics.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8779144287109375
+    pass_number: 1
+    confidence: 0.0

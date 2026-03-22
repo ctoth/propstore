@@ -1,0 +1,74 @@
+source_claim: Ginsberg_1985_Counterfactuals:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Ginsberg_1985_Counterfactuals:claim1
+  type: supports
+  strength: strong
+  note: Claim A's formal equivalence between the three-valued truth function and Lewis's
+    possible world interpretation, when restricted to a countably infinite language,
+    supports Claim B's formalization of counterfactual reasoning with three-valued
+    truth functions.
+  conditions_differ: Claim A is restricted to a countably infinite language.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6389524936676025
+    pass_number: 1
+    confidence: 0.95
+- target: Ginsberg_1985_Counterfactuals:claim11
+  type: none
+  strength: none
+  note: Claim A focuses on formal equivalence, while Claim B critiques Lewis's semantics
+    for its vagueness in AI applications; the claims operate on different aspects
+    of the same topic without directly impacting each other's validity.
+  conditions_differ: perspective (theoretical vs. AI application)
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8449057340621948
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim1
+  type: none
+  strength: weak
+  note: Claim A discusses the formal equivalence of two counterfactual approaches,
+    while Claim B describes a three-valued truth maintenance system, showing no direct
+    connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8715154528617859
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim7
+  type: none
+  strength: weak
+  note: 'The claims are about different aspects of counterfactuals: A is about formal
+    equivalence to Lewis''s interpretation, while B is about context dependence.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8784831166267395
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses counterfactuals and their formal equivalence to Lewis's
+    interpretation, while Claim B discusses a three-valued truth maintenance system
+    and its contradiction handling, and their topics are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9411822557449341
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,71 @@
+source_claim: Shapiro_1998_BeliefRevisionTMS:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim4
+  type: undermines
+  strength: moderate
+  note: Claim A, describing a standard JTMS, undermines Claim B by presenting a contrasting
+    scenario where logical connections *do* exist, implying the lack of connection
+    in Claim B is a specific implementation choice rather than a general property.
+  conditions_differ: Claim A is about a standard JTMS, while Claim B discusses a JTMS
+    implemented as a service system.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8405937552452087
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim13
+  type: explains
+  strength: moderate
+  note: Claim A explains the mechanism of a JTMS, which helps clarify how justification-based
+    systems, described in claim B, function.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8652666211128235
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim5
+  type: none
+  strength: weak
+  note: The claims describe different TMS systems, so there isn't a clear epistemic
+    relationship beyond them both being kinds of TMS.
+  conditions_differ: A describes a JTMS while B describes an LTMS.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8661165833473206
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim2
+  type: none
+  strength: weak
+  note: Claim A and Claim B discuss different aspects of TMS architecture, and A neither
+    supports nor contradicts B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8778916597366333
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim12
+  type: none
+  strength: weak
+  note: The claims discuss different TMS implementations with different approaches
+    to non-monotonicity; they don't directly interact.
+  conditions_differ: Different TMS architectures (JTMS vs Doyle's and McAllester's).
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9036634564399719
+    pass_number: 1
+    confidence: 0.0

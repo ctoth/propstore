@@ -1,0 +1,73 @@
+source_claim: Walton_2015_ClassificationSystemArgumentationSchemes:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim11
+  type: supports
+  strength: moderate
+  note: Claim A states the purpose of the classification system, while claim B describes
+    empirical testing of that system, thus supporting the relevance of A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8518339395523071
+    pass_number: 1
+    confidence: 0.8
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses the purpose of the classification, while Claim B discusses
+    its limitations and future development, so they are only weakly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8985927700996399
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim1
+  type: supports
+  strength: weak
+  note: Claim A describes the need for argument mining applications, which claim B
+    attempts to address with a specific method, suggesting claim B is a contribution
+    in the area outlined in claim A.
+  conditions_differ: Claim A is a design objective while Claim B reports an experimental
+    result in a specific domain (clinical trial abstracts).
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9226182699203491
+    pass_number: 1
+    confidence: 0.6
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim14
+  type: none
+  strength: weak
+  note: Claim A discusses the general application of argument mining classification,
+    while Claim B presents a specific finding about argument mining in healthcare;
+    there is no direct epistemic link.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0050431489944458
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim25
+  type: none
+  strength: none
+  note: Claim A discusses the design of a classification system for argument mining,
+    while Claim B describes the architecture of an argumentation system with AGU and
+    APU components, so there is no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0236473083496094
+    pass_number: 1
+    confidence: 0.0

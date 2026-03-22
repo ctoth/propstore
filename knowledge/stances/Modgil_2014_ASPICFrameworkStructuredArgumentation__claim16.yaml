@@ -1,0 +1,74 @@
+source_claim: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim16
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim12
+  type: supports
+  strength: strong
+  note: Claim A strongly supports claim B by outlining the distinction between attackable
+    and unattackable premises, which directly reflects the principle in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9001994729042053
+    pass_number: 1
+    confidence: 0.95
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim11
+  type: undermines
+  strength: moderate
+  note: Claim A proposes a system that allows for premise attack, while Claim B states
+    Pollock's system did not, implying a weakness in systems that don't allow premise
+    attack as Claim A suggests is useful.
+  conditions_differ: Claim A discusses a general ASPIC framework, while Claim B focuses
+    specifically on Pollock's work.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9070016741752625
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim1
+  type: none
+  strength: weak
+  note: The claims are about different aspects of knowledge representation and reasoning
+    systems, with A focusing on the structure of a knowledge base and B on the overall
+    architecture of a knowledge-based system.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9413994550704956
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim9
+  type: none
+  strength: weak
+  note: The two claims discuss different aspects of argumentation and knowledge representation,
+    with no clear direct connection or conflict.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9748266339302063
+    pass_number: 1
+    confidence: 0.0
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses the general partitioning of a knowledge base, while Claim
+    B discusses a possible future state of an argumentation theory, and they are only
+    very weakly related through the usage of axioms.
+  conditions_differ: Claim A addresses the structure of a knowledge base, while Claim
+    B deals with the evolution of an argumentation theory under incomplete information.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9756128191947937
+    pass_number: 1
+    confidence: 0.0

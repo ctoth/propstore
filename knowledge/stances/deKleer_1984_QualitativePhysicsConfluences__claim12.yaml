@@ -1,0 +1,70 @@
+source_claim: deKleer_1984_QualitativePhysicsConfluences:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1984_QualitativePhysicsConfluences:claim13
+  type: none
+  strength: none
+  note: The claims discuss different aspects of physical systems; A focuses on oscillation
+    in feedback systems, while B describes a digital physics view of component interaction,
+    making them unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0806974172592163
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim11
+  type: none
+  strength: weak
+  note: Claim A and B discuss different aspects of feedback systems (oscillation vs.
+    causal analysis) and have no strong logical relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1362206935882568
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim1
+  type: none
+  strength: none
+  note: The claims discuss different aspects of qualitative physics; A concerns feedback
+    and oscillation, while B defines confluence, showing no clear relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1471002101898193
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim9
+  type: none
+  strength: none
+  note: The claims discuss different aspects of qualitative reasoning and don't directly
+    relate to or affect each other's validity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.157394289970398
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim4
+  type: none
+  strength: none
+  note: The claims discuss unrelated aspects of qualitative reasoning; one is about
+    oscillations in feedback systems, the other about principles for component modeling.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1626942157745361
+    pass_number: 1
+    confidence: 0.0

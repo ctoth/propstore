@@ -1,0 +1,71 @@
+source_claim: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim13
+  type: supports
+  strength: weak
+  note: Claim A defines ASPIC+, which provides context and background for Claim B's
+    statement about ASPIC+ instantiation with another logic.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7005195021629333
+    pass_number: 1
+    confidence: 0.6
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim14
+  type: none
+  strength: weak
+  note: Claim A describes the components of ASPIC+ while Claim B discusses the motivations
+    behind its design, so A does not directly impact B.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7494858503341675
+    pass_number: 2
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim5
+  type: none
+  strength: none
+  note: Claim A describes the structure of arguments in ASPIC+, while claim B makes
+    a specific assertion about firm arguments; they are related, but A doesn't directly
+    support, contradict, or explain B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7783154249191284
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim10
+  type: supports
+  strength: moderate
+  note: Claim A describes the general ASPIC+ framework, which provides the foundation
+    for Claim B's specific application of ASPIC+ to Walton-style argument schemes.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.785188615322113
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim12
+  type: none
+  strength: weak
+  note: Claim A describes the general structure of ASPIC+, while Claim B describes
+    a specific case and its correspondence to another framework, so they are only
+    weakly related.
+  conditions_differ: 'null'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7926129698753357
+    pass_number: 1
+    confidence: 0.0

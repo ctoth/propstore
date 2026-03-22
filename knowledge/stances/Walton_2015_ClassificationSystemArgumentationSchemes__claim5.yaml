@@ -1,0 +1,73 @@
+source_claim: Walton_2015_ClassificationSystemArgumentationSchemes:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim10
+  type: supports
+  strength: moderate
+  note: Claim A provides context for understanding the role of critical questions,
+    which is then elaborated upon in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7502349615097046
+    pass_number: 1
+    confidence: 0.8
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim6
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of argumentation schemes, with A focusing
+    on structure and critical questions, and B focusing on hybrid schemes, so they
+    don't directly relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8937050700187683
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim2
+  type: none
+  strength: none
+  note: The claims discuss different aspects of argumentation schemes; A describes
+    the structure and critical questions associated with schemes, while B discusses
+    the source-dependency classification of schemes; they don't directly interact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9015345573425293
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim9
+  type: none
+  strength: weak
+  note: Claim A describes the structure of argumentation schemes in general, while
+    Claim B lists specific types; they are related but not strongly epistemically
+    dependent.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9115957617759705
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim8
+  type: none
+  strength: weak
+  note: Claim A describes argumentation schemes and their structure, while Claim B
+    discusses the limitations of prior classifications, indicating minimal direct
+    relation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.915567934513092
+    pass_number: 1
+    confidence: 0.0

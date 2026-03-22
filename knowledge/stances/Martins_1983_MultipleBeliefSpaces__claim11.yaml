@@ -1,0 +1,72 @@
+source_claim: Martins_1983_MultipleBeliefSpaces:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1988_BeliefRevision:claim16
+  type: supports
+  strength: moderate
+  note: Claim A outlines the necessity of resolving contradictions by removing hypotheses,
+    while Claim B confirms that removing a single culprit from a set of contradictory
+    hypotheses does lead to consistency.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.862782895565033
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim15
+  type: supports
+  strength: strong
+  note: Claim A and Claim B both describe a similar process for handling contradictions
+    through culprit selection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.933068573474884
+    pass_number: 1
+    confidence: 0.95
+- target: Shapiro_1998_BeliefRevisionTMS:claim8
+  type: supports
+  strength: moderate
+  note: Claim A describes the necessity of culprit selection to restore consistency,
+    which is also acknowledged as a problem in Claim B.
+  conditions_differ: Claim A is situated within a CBS system, while Claim B covers
+    JTMS, LTMS, and ATMS systems.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9629818201065063
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim8
+  type: supports
+  strength: moderate
+  note: Claim A supports Claim B by describing the necessity of culprit selection
+    when contradictions arise, which is a key aspect of dependency-directed backtracking
+    as outlined in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9744466543197632
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim7
+  type: none
+  strength: none
+  note: 'The claims discuss different aspects of belief revision: A concerns contradiction
+    resolution, while B concerns combinability in consistent contexts.'
+  conditions_differ: Context consistency.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9766202569007874
+    pass_number: 1
+    confidence: 0.0

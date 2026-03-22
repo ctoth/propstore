@@ -1,0 +1,73 @@
+source_claim: Dixon_1993_ATMSandAGM:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dixon_1993_ATMSandAGM:claim5
+  type: supports
+  strength: strong
+  note: Claim A (Lemma 1) mathematically defines conditions under which entrenchment
+    equality holds, which directly supports Claim B's interpretation of the meaning
+    of this equality.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7810840606689453
+    pass_number: 1
+    confidence: 0.95
+- target: Dixon_1993_ATMSandAGM:claim6
+  type: explains
+  strength: moderate
+  note: Claim A, via Lemma 1, explains a specific property related to the concept
+    of essential support (ES) defined in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9253289699554443
+    pass_number: 1
+    confidence: 0.8
+- target: Dixon_1993_ATMSandAGM:claim13
+  type: none
+  strength: none
+  note: Claim A is a mathematical lemma establishing an equivalence, while Claim B
+    discusses the role of the problem solver versus the TMS, and they do not meaningfully
+    interact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9546026587486267
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim4
+  type: none
+  strength: weak
+  note: Claim A and Claim B are both lemmas relating to abstract mathematical or logical
+    concepts within their respective fields (belief revision and counterfactuals,
+    respectively), but they concern different formal systems and concepts with no
+    obvious or direct relationship.
+  conditions_differ: different domains and formalisms (belief revision vs counterfactuals)
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.078775405883789
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim8
+  type: none
+  strength: none
+  note: Claim A is a formal lemma, and Claim B is a heuristic observation about the
+    practical application of entrenchment orderings, so they are not directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0799015760421753
+    pass_number: 1
+    confidence: 0.0

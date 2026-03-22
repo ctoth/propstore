@@ -1,0 +1,71 @@
+source_claim: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim9
+  type: explains
+  strength: moderate
+  note: Claim A defines 'closed under transposition,' which is then used in Claim
+    B to explain why inconsistency can occur if this property is absent.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7387101650238037
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim17
+  type: supports
+  strength: weak
+  note: Claim A defines transposition, which is a concept required in Claim B for
+    a well-defined structured argumentation framework.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8375440239906311
+    pass_number: 1
+    confidence: 0.6
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim1
+  type: none
+  strength: weak
+  note: Claim A defines a property of argumentation theories related to transposition,
+    while Claim B defines the structure of an argumentation system; they are different
+    aspects of the same general field but not directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9234539270401001
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim14
+  type: none
+  strength: none
+  note: Claim A defines a property of argumentation theories, while Claim B discusses
+    motivations for ASPIC+'s design; there's no direct epistemic link.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9570878744125366
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim1
+  type: none
+  strength: weak
+  note: 'Claim A and Claim B discuss different concepts: argumentation theory closure
+    under transposition versus deductive closure in belief revision.'
+  conditions_differ: Claim A relates to argumentation frameworks with strict rules,
+    whereas Claim B concerns belief sets closed under a consequence operation.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.961642861366272
+    pass_number: 1
+    confidence: 0.0

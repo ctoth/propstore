@@ -1,0 +1,71 @@
+source_claim: deKleer_1986_AssumptionBasedTMS:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim6
+  type: supports
+  strength: moderate
+  note: Claim A describes the functionality of the ATMS, providing a basis for understanding
+    the assertions made in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7934191226959229
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim11
+  type: supports
+  strength: moderate
+  note: Claim A corroborates Claim B by describing a similar set of operations for
+    a related system, strengthening the idea of a core set of operations.
+  conditions_differ: Claim A is for an ATMS, while Claim B is for a TMS, systems with
+    overlapping but distinct functionality.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.834581732749939
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim10
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of the ATMS; Claim A discusses ATMS operations,
+    while Claim B discusses contradiction handling and its implications.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8357831835746765
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim1
+  type: explains
+  strength: moderate
+  note: Claim A describes primitive operations of the ATMS, which helps explain how
+    Claim B's claim of simultaneous exploration without backtracking is possible.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8641856908798218
+    pass_number: 1
+    confidence: 0.8
+- target: Dixon_1993_ATMSandAGM:claim3
+  type: none
+  strength: weak
+  note: Claim A discusses the operations of ATMS, while Claim B discusses an algorithm
+    to translate ATMS information to AGM; there's no direct relationship but the former
+    sets the stage for latter.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8961042761802673
+    pass_number: 1
+    confidence: 0.0

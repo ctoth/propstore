@@ -1,0 +1,74 @@
+source_claim: Dixon_1993_ATMSandAGM:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dixon_1993_ATMSandAGM:claim3
+  type: supports
+  strength: strong
+  note: Claim A, by establishing the behavioral equivalence of the ATMS and AGM systems,
+    strongly supports Claim B's assertion that an algorithm can translate ATMS information
+    into an entrenchment ordering simulating ATMS behavior in the AGM model.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.747259259223938
+    pass_number: 1
+    confidence: 0.95
+- target: Shapiro_1998_BeliefRevisionTMS:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses equivalence between ATMS and AGM systems in terms of theorem
+    proving, whereas Claim B discusses the differences in assumptions and focuses
+    of AGM belief revision and TMS traditions, so they are not directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8613297939300537
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses behavioral equivalence of ATMS and AGM systems, while claim
+    B describes a characteristic feature of ATMS, with no direct relationship between
+    them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9290187954902649
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim14
+  type: none
+  strength: weak
+  note: Claim A discusses the equivalence of ATMS and AGM systems, while Claim B focuses
+    on the properties of AGM operations and their potential limitations with finite
+    theory bases; they do not directly interact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9312942028045654
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses the behavioral equivalence of ATMS and AGM, while Claim
+    B focuses on the ATMS's contradiction handling and consistency guarantees, so
+    they're quite unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9340620636940002
+    pass_number: 1
+    confidence: 0.0

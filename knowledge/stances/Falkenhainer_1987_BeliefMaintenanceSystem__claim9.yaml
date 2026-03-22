@@ -1,0 +1,71 @@
+source_claim: Falkenhainer_1987_BeliefMaintenanceSystem:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim1
+  type: supports
+  strength: moderate
+  note: Claim A supports Claim B by elaborating on the functionality of the Belief
+    Maintenance System, which is described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8750376105308533
+    pass_number: 1
+    confidence: 0.8
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim8
+  type: none
+  strength: weak
+  note: The claims describe different aspects of the BMS; A focuses on trigger types,
+    while B concerns design independence and replaceability of the uncertainty formalism.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9152476191520691
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim2
+  type: explains
+  strength: moderate
+  note: Claim A explains the functionalities of the BMS rule engine, which is used
+    to show how it is backward compatible with standard TMS applications as in claim
+    B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9597321152687073
+    pass_number: 1
+    confidence: 0.8
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim6
+  type: none
+  strength: none
+  note: Claim A describes the capabilities of the Belief Maintenance System (BMS),
+    while Claim B illustrates its advantage over other logic systems, so they aren't
+    directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9694632291793823
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim3
+  type: none
+  strength: weak
+  note: The claims describe different aspects of the Belief Maintenance System (BMS);
+    one describes trigger types, the other describes support links.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9932202100753784
+    pass_number: 1
+    confidence: 0.0

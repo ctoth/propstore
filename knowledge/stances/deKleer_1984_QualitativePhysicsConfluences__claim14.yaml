@@ -1,0 +1,77 @@
+source_claim: deKleer_1984_QualitativePhysicsConfluences:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Pollock_1987_DefeasibleReasoning:claim2
+  type: supports
+  strength: moderate
+  note: Claim A's definition of 'explanation-proof' aligns with Claim B's description
+    of 'conclusive reason', suggesting a similar concept of logical entailment and
+    lack of defeasibility.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9744181632995605
+    pass_number: 1
+    confidence: 0.8
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim12
+  type: none
+  strength: weak
+  note: Claim A discusses explanation-proofs in a logical deduction system, while
+    Claim B discusses the distinction between plausible and defeasible reasoning;
+    they are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9905720949172974
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim9
+  type: none
+  strength: weak
+  note: Claim A discusses explanation-proofs within a qualitative physics context,
+    while Claim B focuses on default reasoning and proof theory in a more general
+    knowledge representation setting, leading to little direct overlap.
+  conditions_differ: Different domains; Claim A concerns qualitative physics, Claim
+    B concerns default reasoning.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9906081557273865
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses the requirements of explanation-proofs in a natural deduction
+    system while Claim B describes Pollock's system and its lack of adoption within
+    the argumentation community; these topics are somewhat related due to both concerning
+    aspects of reasoning and deduction, but do not directly influence each other's
+    validity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0179686546325684
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses explanation-proofs and their characteristics, while Claim
+    B focuses on the consistency of warranted propositions, with only a tenuous connection
+    via the notion of logical validity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0246150493621826
+    pass_number: 1
+    confidence: 0.0

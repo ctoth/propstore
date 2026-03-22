@@ -1,0 +1,72 @@
+source_claim: Clark_2014_Micropublications:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Clark_2014_Micropublications:claim13
+  type: supports
+  strength: weak
+  note: Claim A defines the micropublication model, and Claim B describes an advantage
+    of using this model, thus A supports B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7766709923744202
+    pass_number: 1
+    confidence: 0.6
+- target: Clark_2014_Micropublications:claim8
+  type: supports
+  strength: moderate
+  note: Claim A defines the structure of micropublications, which is the model that
+    Claim B describes as being grounded in argumentation theory, thereby giving some
+    support to Claim B by defining its model.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7871989011764526
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim2
+  type: supports
+  strength: strong
+  note: Claim A provides the definition of a micropublication, within which Claim
+    B is a constraint on the support relations; therefore, A supports B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8013896346092224
+    pass_number: 1
+    confidence: 0.95
+- target: Clark_2014_Micropublications:claim3
+  type: supports
+  strength: moderate
+  note: Claim A defines the structure of a micropublication, which includes a principal
+    claim, thus supporting the idea that a micropublication has one principal claim
+    (as stated in Claim B).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8150961995124817
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim4
+  type: undermines
+  strength: moderate
+  note: Claim A defines a micropublication as a complex structure while claim B claims
+    it can be a single statement, thus A undermines B by suggesting B is an oversimplification.
+  conditions_differ: A describes formal, validated micropublications, while B refers
+    to minimal micropublications, possibly not yet validated.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.873904287815094
+    pass_number: 1
+    confidence: 0.8

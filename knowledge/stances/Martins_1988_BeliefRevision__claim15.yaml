@@ -1,0 +1,75 @@
+source_claim: Martins_1988_BeliefRevision:claim15
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1988_BeliefRevision:claim9
+  type: none
+  strength: none
+  note: 'The claims are about different aspects of SNeBR: one about its interactive
+    nature, the other about its historical position as the first assumption-based
+    system.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7682310938835144
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: none
+  strength: weak
+  note: Claim A describes a specific belief revision system (SNeBR) where the user
+    makes the culprit selection, while Claim B describes constraints on culprit selection
+    in AGM belief revision, a more abstract framework, suggesting a difference in
+    focus rather than a direct relationship.
+  conditions_differ: SNeBR vs. AGM belief revision
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.878174364566803
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim7
+  type: none
+  strength: none
+  note: The claims are about different aspects of SNeBR and do not directly relate
+    to each other epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9242210984230042
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim11
+  type: supports
+  strength: strong
+  note: Claim A strongly supports Claim B because it describes the implementation
+    of the culprit selection process, which is also described in Claim B, confirming
+    its existence and importance.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.933068573474884
+    pass_number: 1
+    confidence: 0.95
+- target: Reiter_1980_DefaultReasoning:claim14
+  type: none
+  strength: weak
+  note: The two claims discuss belief revision in different contexts and don't directly
+    relate to or contradict each other; A is about interactive belief revision in
+    SNeBR, while B concerns persistence of derived beliefs in default reasoning.
+  conditions_differ: A discusses a specific system (SNeBR) and user interaction, B
+    discusses general principles in default reasoning.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9701343178749084
+    pass_number: 1
+    confidence: 0.0

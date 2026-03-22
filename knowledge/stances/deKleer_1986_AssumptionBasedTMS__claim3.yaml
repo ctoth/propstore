@@ -1,0 +1,71 @@
+source_claim: deKleer_1986_AssumptionBasedTMS:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_AssumptionBasedTMS:claim10
+  type: explains
+  strength: moderate
+  note: Claim A, which describes the properties of ATMS labels including consistency,
+    explains why Claim B's assertion about manageable label sizes is true, even with
+    a large potential environment space.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8656994700431824
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim10
+  type: supports
+  strength: moderate
+  note: Claim A defines properties of an ATMS label, which supports Claim B's assertion
+    about the ATMS guaranteeing consistency.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8796298503875732
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim1
+  type: explains
+  strength: moderate
+  note: Claim A explains the properties of ATMS labels, which are fundamental to how
+    the ATMS (described in Claim B) functions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9458371996879578
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim6
+  type: explains
+  strength: moderate
+  note: Claim A describes the properties of ATMS labels, which explains why the consumer
+    architecture in Claim B can automatically solve the unrouting problem.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9554348587989807
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim3
+  type: none
+  strength: weak
+  note: Claim A describes the properties of ATMS labels, while Claim B discusses the
+    impact of incorrect justifications on the performance of the ATMS, indicating
+    a weak relation due to discussing the same system but different aspects.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9563325643539429
+    pass_number: 1
+    confidence: 0.0

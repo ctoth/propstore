@@ -1,0 +1,70 @@
+source_claim: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim16
+  type: undercuts
+  strength: moderate
+  note: Claim A argues that support cannot be reduced to defeat, while Claim B proposes
+    precisely such a reduction.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6880930066108704
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim13
+  type: none
+  strength: weak
+  note: A and B address limitations of Dung's framework, but on different aspects
+    (support vs. structure), making them weakly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8461617231369019
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim6
+  type: undermines
+  strength: moderate
+  note: Claim A suggests Dung's framework (used by ASPIC+) is limited because it doesn't
+    model support, potentially weakening the applicability of ASPIC+'s approach that
+    relies on Dung's framework.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.869743287563324
+    pass_number: 1
+    confidence: 0.8
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim1
+  type: supports
+  strength: strong
+  note: Claim A directly motivates and supports the need for the framework defined
+    in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8754374980926514
+    pass_number: 1
+    confidence: 0.95
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim2
+  type: explains
+  strength: moderate
+  note: Claim A explains why incorporating support is important, which Claim B attempts
+    to do by describing supported defeats.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8809835910797119
+    pass_number: 1
+    confidence: 0.8

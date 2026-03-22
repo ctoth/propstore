@@ -1,0 +1,73 @@
+source_claim: Martins_1988_BeliefRevision:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1988_BeliefRevision:claim1
+  type: supports
+  strength: strong
+  note: Claim A directly provides justification for claim B by stating that the SWM
+    blocks irrelevancies by tracking origin sets, which is a key aspect of the SWM
+    deductive system described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7867304086685181
+    pass_number: 1
+    confidence: 0.95
+- target: Dung_1995_AcceptabilityArguments:claim24
+  type: none
+  strength: weak
+  note: These claims are about different topics; one is about logic and irrelevancies,
+    the other about logic programming and argumentation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9473334550857544
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses a general problem with classical logic and how SWM addresses
+    it, while Claim B discusses contradiction in a specific TMS and how they arise.
+  conditions_differ: Claim A is about classical logic in general, while Claim B discusses
+    three-valued TMS.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9494667649269104
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses logic systems and irrelevancies, while Claim B discusses
+    Pollock's system and suppositional reasoning, so there is no direct epistemic
+    relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9500375390052795
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim23
+  type: none
+  strength: weak
+  note: Claim A discusses a logic system for belief revision and blocking irrelevancies,
+    while Claim B concerns stable models and argumentation frameworks, with only a
+    very weak potential connection through the broader area of logic.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9509917497634888
+    pass_number: 1
+    confidence: 0.0

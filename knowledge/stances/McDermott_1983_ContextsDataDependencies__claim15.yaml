@@ -1,0 +1,79 @@
+source_claim: McDermott_1983_ContextsDataDependencies:claim15
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim11
+  type: supports
+  strength: weak
+  note: Claim A provides a benchmark for justification label computation that is consistent
+    with Claim B's claim of sub-second performance, although the conditions and scale
+    differ.
+  conditions_differ: Claim A uses a 200-node network and measures performance in milliseconds,
+    while Claim B discusses moderate-sized real-world benchmarks and measures performance
+    in seconds.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9484447836875916
+    pass_number: 1
+    confidence: 0.6
+- target: deKleer_1986_AssumptionBasedTMS:claim7
+  type: none
+  strength: weak
+  note: Claim A provides implementation details that aren't directly related to Claim
+    B's description of label updates, but it does show that label computations can
+    be fast.
+  conditions_differ: Claim A gives performance numbers for a specific implementation
+    and test network, while Claim B describes the general label update algorithm.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0166772603988647
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim9
+  type: undermines
+  strength: moderate
+  note: Claim A provides performance data that suggests the typical case is much better
+    than the worst-case scenario mentioned in Claim B, thus weakening the practical
+    relevance of the worst-case complexity claim.
+  conditions_differ: Claim A is based on a 200-node network, while Claim B describes
+    a theoretical worst-case scenario where every assertion is directly connected
+    to every other.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0397371053695679
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim11
+  type: supports
+  strength: weak
+  note: Claim A provides an implementation detail related to the operations described
+    abstractly in Claim B.
+  conditions_differ: Claim A refers to a specific implementation and network size,
+    while Claim B is a general description of the TMS interface.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.047093391418457
+    pass_number: 1
+    confidence: 0.6
+- target: deKleer_1986_AssumptionBasedTMS:claim6
+  type: supports
+  strength: weak
+  note: Claim A provides an implementation detail relevant to the operations mentioned
+    in Claim B, providing weak support.
+  conditions_differ: Claim A is about performance on a specific implementation, while
+    Claim B is a general statement about the ATMS.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0581775903701782
+    pass_number: 1
+    confidence: 0.6

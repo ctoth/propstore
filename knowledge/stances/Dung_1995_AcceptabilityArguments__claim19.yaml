@@ -1,0 +1,73 @@
+source_claim: Dung_1995_AcceptabilityArguments:claim19
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dung_1995_AcceptabilityArguments:claim20
+  type: supports
+  strength: moderate
+  note: Coherence (Claim A) is a desirable property that can increase confidence in
+    the existence of a stable extension (Claim B).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6998471021652222
+    pass_number: 1
+    confidence: 0.8
+- target: Dung_1995_AcceptabilityArguments:claim18
+  type: none
+  strength: weak
+  note: While both discuss 'coherent' argumentation frameworks, A's claim is about
+    'limited controversial' frameworks, while B defines coherence itself; they address
+    subtly different aspects.
+  conditions_differ: A specifies 'limited controversial' frameworks.
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7414960861206055
+    pass_number: 2
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim17
+  type: none
+  strength: weak
+  note: The claims are about different properties of argumentation frameworks (coherence
+    vs. existence of specific extensions), so they are largely unrelated.
+  conditions_differ: The conditions differ in terms of the properties of the argumentation
+    frameworks being considered (limited controversial vs. well-founded).
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8011634349822998
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim10
+  type: none
+  strength: weak
+  note: Coherence of limited controversial argumentation frameworks doesn't directly
+    relate to the existence of preferred extensions in all argumentation frameworks.
+  conditions_differ: argumentation framework vs limited controversial argumentation
+    framework
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8267542719841003
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim17
+  type: none
+  strength: weak
+  note: Claim A discusses the coherence of argumentation frameworks, while Claim B
+    outlines requirements for a well-defined structured argumentation framework, and
+    they seem unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8569410443305969
+    pass_number: 1
+    confidence: 0.0

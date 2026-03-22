@@ -1,0 +1,71 @@
+source_claim: Reiter_1980_DefaultReasoning:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Reiter_1980_DefaultReasoning:claim7
+  type: supports
+  strength: moderate
+  note: Claim A provides a weaker, more general guarantee of existence of extensions
+    that is satisfied in the more specific context of claim B.
+  conditions_differ: Claim B requires W union CONSEQUENTS(D) to be consistent, in
+    addition to W being consistent.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6242181658744812
+    pass_number: 1
+    confidence: 0.8
+- target: Reiter_1980_DefaultReasoning:claim6
+  type: none
+  strength: weak
+  note: Claim A concerns the existence of extensions, while Claim B concerns the relationship
+    between *distinct* extensions; they don't directly interact.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7451789975166321
+    pass_number: 2
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim11
+  type: undermines
+  strength: moderate
+  note: Claim A shows that Claim B's example is a special case, weakening its generality.
+  conditions_differ: Claim A considers *normal* default theories, while Claim B concerns
+    *general* (non-normal) default theories.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7807654142379761
+    pass_number: 1
+    confidence: 0.8
+- target: Reiter_1980_DefaultReasoning:claim3
+  type: none
+  strength: weak
+  note: Claim A is about the existence of extensions in default theories, while claim
+    B defines what an extension is, so they are related in the domain but not epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7974737286567688
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim10
+  type: none
+  strength: none
+  note: 'Claim A and Claim B concern different aspects of default theories: existence
+    of extensions vs. decidability of extension membership.'
+  conditions_differ: Claim A concerns the existence of an extension, and Claim B concerns
+    the complexity of computing the extension.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8053903579711914
+    pass_number: 1
+    confidence: 0.0

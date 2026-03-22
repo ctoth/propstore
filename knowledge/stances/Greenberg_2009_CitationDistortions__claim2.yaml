@@ -1,0 +1,72 @@
+source_claim: Greenberg_2009_CitationDistortions:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Greenberg_2009_CitationDistortions:claim6
+  type: supports
+  strength: weak
+  note: Claim A defines a claim-specific citation network and Claim B gives an example
+    of the size of such a network, thereby supporting Claim A's general definition
+    by providing a potential scale of such networks.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8809298872947693
+    pass_number: 1
+    confidence: 0.6
+- target: Greenberg_2009_CitationDistortions:claim5
+  type: supports
+  strength: weak
+  note: Claim B provides an example of a claim-specific citation network mentioned
+    in Claim A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9887163639068604
+    pass_number: 1
+    confidence: 0.6
+- target: Clark_2014_Micropublications:claim9
+  type: supports
+  strength: moderate
+  note: Claim A introduces the concept of tracing claims through literature, which
+    is conceptually similar to Claim B's claim lineages.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0174777507781982
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim16
+  type: none
+  strength: weak
+  note: Claim A defines a concept (claim-specific citation network), while Claim B
+    points out a limitation of paper-level analysis, so there's no direct epistemic
+    relationship, though claim A could potentially be used to solve the issue raised
+    by claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.019765853881836
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim15
+  type: none
+  strength: none
+  note: Claim A defines a concept, while Claim B discusses a phenomenon related to
+    citations; they do not directly relate epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0311528444290161
+    pass_number: 1
+    confidence: 0.0

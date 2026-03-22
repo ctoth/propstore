@@ -1,0 +1,74 @@
+source_claim: Alchourron_1985_TheoryChange:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim7
+  type: none
+  strength: weak
+  note: The claims address different aspects of partial meet contraction functions,
+    with A focusing on transitivity and postulates -7 and -8, while B focuses on postulates
+    -1 through -6 and a representation theorem, making them largely independent.
+  conditions_differ: The claims concern different sets of postulates and properties
+    of partial meet contraction functions.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7700693607330322
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim8
+  type: none
+  strength: weak
+  note: Claim A and Claim B discuss different aspects of the theory and do not have
+    a strong epistemic connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7917414307594299
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim2
+  type: supports
+  strength: moderate
+  note: Claim A uses the concept of partial meet contraction, defined in Claim B,
+    to characterize a class of functions, thus providing support by applying the concept
+    to derive a new result.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.969914436340332
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim15
+  type: none
+  strength: weak
+  note: Claim A discusses characterization of contraction functions, while Claim B
+    discusses the role of connectivity versus transitivity in ordering relations,
+    so there is no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9782971739768982
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses properties of contraction functions within a theory change
+    framework, while Claim B discusses a closure property in argumentation theory;
+    there isn't a direct epistemic relationship between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9797340631484985
+    pass_number: 1
+    confidence: 0.0

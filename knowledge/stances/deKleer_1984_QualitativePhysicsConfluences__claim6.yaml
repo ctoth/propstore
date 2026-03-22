@@ -1,0 +1,72 @@
+source_claim: deKleer_1984_QualitativePhysicsConfluences:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1984_QualitativePhysicsConfluences:claim11
+  type: explains
+  strength: moderate
+  note: Claim A explains the theoretical basis (mythical causality) that makes Claim
+    B possible (detecting feedback without explicit component models).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7935861945152283
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1984_QualitativePhysicsConfluences:claim8
+  type: none
+  strength: none
+  note: Claim A defines a concept of mythical causality, while Claim B introduces
+    canonicality heuristics; they address different aspects of qualitative reasoning.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9789657592773438
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim1
+  type: none
+  strength: none
+  note: Claim A discusses mythical causality in qualitative physics, while Claim B
+    discusses counterfactual reasoning using three-valued truth functions, indicating
+    no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.109520673751831
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses mythical causality in qualitative physics, while Claim B
+    discusses counterfactual diagnosis, and they don't appear to have a direct epistemic
+    relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1265556812286377
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim12
+  type: none
+  strength: none
+  note: Claim A discusses mythical causality in quasistatic models, while Claim B
+    discusses a philosophical distinction between plausible and defeasible reasoning,
+    showing no clear relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1322567462921143
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,74 @@
+source_claim: Clark_2014_Micropublications:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Clark_2014_Micropublications:claim13
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of the micropublications model, with
+    A focusing on integration and B on representational complexity, implying a very
+    weak, tangential connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.847554624080658
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim7
+  type: supports
+  strength: weak
+  note: Both claims advocate for using existing standards (W3C Open Annotation and
+    SWAN ontology) for annotation and contextualization of research statements, showing
+    a similar approach.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8665888905525208
+    pass_number: 1
+    confidence: 0.6
+- target: Groth_2010_AnatomyNanopublication:claim1
+  type: none
+  strength: none
+  note: 'The two claims discuss distinct aspects of representing scientific claims:
+    micropublications (contextualization) and nanopublications (minimal set of annotations).'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8876495361328125
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses the integration of a micropublications model with W3C Open
+    Annotation Model, while Claim B describes the nanopublication conceptual model's
+    hierarchy; they operate in different conceptual spaces with only a slight overlap
+    regarding annotation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9189654588699341
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim8
+  type: none
+  strength: weak
+  note: Claim A and Claim B describe different aspects of the micropublications model;
+    one discusses integration with the Open Annotation Model, while the other discusses
+    the theoretical grounding in defeasible argumentation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9208810329437256
+    pass_number: 1
+    confidence: 0.0

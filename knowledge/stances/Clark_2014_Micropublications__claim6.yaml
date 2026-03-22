@@ -1,0 +1,74 @@
+source_claim: Clark_2014_Micropublications:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Groth_2010_AnatomyNanopublication:claim7
+  type: none
+  strength: weak
+  note: Claim A discusses the limitations of statement-based models, while Claim B
+    discusses the nanopublication model's adoption of existing ontologies; there's
+    no direct relationship of support, rebuttal, or explanation between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8705136179924011
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim7
+  type: supports
+  strength: strong
+  note: Claim A makes a generalization about nanopublications that Claim B provides
+    a specific instance of, thereby corroborating Claim A's assessment.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9257012605667114
+    pass_number: 1
+    confidence: 0.95
+- target: Martins_1988_BeliefRevision:claim14
+  type: none
+  strength: weak
+  note: Claim A discusses a general class of statement-based models, while Claim B
+    refers to a specific SWM model that might not be included in the class described
+    in Claim A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9295284748077393
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim13
+  type: rebuts
+  strength: strong
+  note: Claim A states that existing models have limited representation of backing
+    evidence, while Claim B states that the micropublications model accommodates a
+    spectrum of representational complexity including full claim-evidence networks,
+    thus directly contradicting the limitations described in A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.955134928226471
+    pass_number: 1
+    confidence: 0.95
+- target: Groth_2010_AnatomyNanopublication:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses limitations of statement-based models generally, while Claim
+    B describes a specific aspect of nanopublications (attribution) without directly
+    contradicting A's general observation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9851810932159424
+    pass_number: 1
+    confidence: 0.0

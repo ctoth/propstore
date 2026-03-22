@@ -1,0 +1,72 @@
+source_claim: deKleer_1984_QualitativePhysicsConfluences:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1984_QualitativePhysicsConfluences:claim2
+  type: explains
+  strength: moderate
+  note: Claim A explains the nature of confluences, which are then utilized in Claim
+    B for defining component operating ranges and qualitative states.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8466448187828064
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1984_QualitativePhysicsConfluences:claim9
+  type: none
+  strength: weak
+  note: Claim A defines a core concept, and Claim B discusses a limitation and solution
+    related to using that concept; they are weakly related, but not in a directly
+    supportive or contradictory way.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.924945056438446
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim10
+  type: explains
+  strength: weak
+  note: Claim A introduces the concept of qualitative physics and confluences, which
+    provides context for understanding Claim B's qualitative mean value theorem.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9763181805610657
+    pass_number: 1
+    confidence: 0.6
+- target: deKleer_1984_QualitativePhysicsConfluences:claim7
+  type: explains
+  strength: moderate
+  note: Claim A provides context for understanding the nature and limitations of the
+    "qualitative approach" mentioned in Claim B, and thus why Claim B arrives at multiple
+    interpretations.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9777864813804626
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1984_QualitativePhysicsConfluences:claim3
+  type: explains
+  strength: moderate
+  note: Claim A explains why qualitative addition introduces ambiguity (as mentioned
+    in Claim B) by stating that a confluence is a qualitative differential equation
+    where terms sum to a constant.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9843072295188904
+    pass_number: 1
+    confidence: 0.8

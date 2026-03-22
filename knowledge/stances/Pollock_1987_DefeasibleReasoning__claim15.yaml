@@ -1,0 +1,71 @@
+source_claim: Pollock_1987_DefeasibleReasoning:claim15
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim12
+  type: supports
+  strength: moderate
+  note: Claim A supports claim B by agreeing that AI theories (specifically non-monotonic
+    logic) often miss important distinctions regarding defeasible reasoning.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7604420781135559
+    pass_number: 1
+    confidence: 0.8
+- target: Pollock_1987_DefeasibleReasoning:claim5
+  type: supports
+  strength: strong
+  note: Claim A supports Claim B by highlighting the lack of attention to undercutting
+    defeaters in AI and philosophy, thus emphasizing the importance of Claim B's assertion.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7632624506950378
+    pass_number: 1
+    confidence: 0.95
+- target: Doyle_1979_TruthMaintenanceSystem:claim10
+  type: supports
+  strength: moderate
+  note: Claim A corroborates Claim B by pointing out the limitations of conventional
+    monotonic reasoning in AI, aligning with Claim B's critique of the monotonic view.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8616319894790649
+    pass_number: 1
+    confidence: 0.8
+- target: Reiter_1980_DefaultReasoning:claim16
+  type: none
+  strength: weak
+  note: Claim A critiques AI's approach to non-monotonic reasoning in light of epistemological
+    distinctions, while Claim B defines and advocates for the necessity of non-monotonic
+    reasoning itself, so they address different aspects of the topic.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8850100636482239
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim4
+  type: supports
+  strength: moderate
+  note: Claim A asserts that AI theories are too simplistic and miss distinctions
+    like rebutting and undercutting defeaters, and Claim B describes undercutting
+    defeaters, supporting A's call for more nuanced approaches.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8963565826416016
+    pass_number: 1
+    confidence: 0.8

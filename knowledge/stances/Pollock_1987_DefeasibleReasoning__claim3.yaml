@@ -1,0 +1,69 @@
+source_claim: Pollock_1987_DefeasibleReasoning:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Pollock_1987_DefeasibleReasoning:claim4
+  type: none
+  strength: weak
+  note: The claims discuss different types of defeaters, rebutting vs. undercutting,
+    so there's no direct relationship from A's perspective.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6984813213348389
+    pass_number: 2
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim8
+  type: none
+  strength: weak
+  note: Claim A defines a rebutting defeater, while Claim B defines a self-defeating
+    argument; they are definitions of distinct concepts and do not directly interact.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8145651817321777
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim12
+  type: none
+  strength: weak
+  note: Claim A defines a concept while Claim B discusses the effect of defeating
+    a defeater; they are only weakly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8657047748565674
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim5
+  type: none
+  strength: weak
+  note: Claim A defines a type of defeater, while Claim B discusses the importance
+    of another type of defeater, so there isn't a strong connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.874652624130249
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim3
+  type: supports
+  strength: strong
+  note: Claim A provides a definition of rebutting defeater, which is then used and
+    explained further in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8831232190132141
+    pass_number: 1
+    confidence: 0.95

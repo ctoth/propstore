@@ -1,0 +1,72 @@
+source_claim: Prakken_2012_AppreciationJohnPollock'sWork:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Pollock_1987_DefeasibleReasoning:claim8
+  type: supports
+  strength: strong
+  note: Claim A strongly supports claim B as it describes Pollock's semantics where
+    self-defeating arguments cannot defeat others because they are never ultimately
+    undefeated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6655633449554443
+    pass_number: 1
+    confidence: 0.95
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim6
+  type: none
+  strength: weak
+  note: Claim A and Claim B discuss different aspects of self-defeat in argumentation,
+    so they are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7888253331184387
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim7
+  type: supports
+  strength: strong
+  note: Claim A relies on Claim B's definition of 'ultimately undefeated' to justify
+    why self-defeating arguments cannot defeat other arguments.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8366343379020691
+    pass_number: 1
+    confidence: 0.95
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim3
+  type: none
+  strength: weak
+  note: Claim A discusses self-defeating arguments and their inability to defeat others,
+    while Claim B defines two types of defeat, and they do not have a strong epistemic
+    relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8570969700813293
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses the treatment of self-defeating arguments in Pollock's semantics,
+    while Claim B focuses on the propagation of argument strength and the all-or-nothing
+    nature of defeat, with no direct conflict or support between the two.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8756716251373291
+    pass_number: 1
+    confidence: 0.0

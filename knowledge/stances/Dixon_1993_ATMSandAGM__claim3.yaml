@@ -1,0 +1,73 @@
+source_claim: Dixon_1993_ATMSandAGM:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dixon_1993_ATMSandAGM:claim2
+  type: supports
+  strength: strong
+  note: Claim A describes a specific algorithm that translates ATMS information into
+    an epistemic entrenchment, which strongly supports Claim B's assertion of behavioural
+    equivalence between ATMS and AGM systems.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.747259259223938
+    pass_number: 1
+    confidence: 0.95
+- target: Dixon_1993_ATMSandAGM:claim11
+  type: undermines
+  strength: moderate
+  note: Claim A suggests the ATMS *can* simulate AGM behavior, which weakens Claim
+    B's assertion that the ATMS *cannot* support rule revision without a full restart.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8546289801597595
+    pass_number: 1
+    confidence: 0.8
+- target: Dixon_1993_ATMSandAGM:claim1
+  type: supports
+  strength: moderate
+  note: Claim A, by showing the ATMS to AGM translation, provides some support to
+    Claim B's assertion that ATMS context switching can be modeled as AGM operations.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.867255687713623
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses a translation algorithm and its simulation of behavior,
+    while Claim B describes the ATMS's primitive operations, indicating little direct
+    overlap or dependency.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8961042761802673
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim1
+  type: explains
+  strength: moderate
+  note: Claim A explains how the ATMS system (described in Claim B) can be simulated
+    within a different framework (AGM), thus providing a mechanistic explanation for
+    its behavior.
+  conditions_differ: Claim A focuses on the translation of ATMS to AGM, while Claim
+    B describes ATMS functionality generally.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9071174263954163
+    pass_number: 1
+    confidence: 0.8

@@ -1,0 +1,71 @@
+source_claim: deKleer_1986_ProblemSolvingATMS:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_ProblemSolvingATMS:claim10
+  type: none
+  strength: weak
+  note: Claim A and Claim B discuss different aspects of the ATMS, with no clear direct
+    conflict or support between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7918612360954285
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim12
+  type: none
+  strength: weak
+  note: Claim A discusses the redundancy of a specific justification mechanism, while
+    Claim B addresses the efficiency of justification retraction, suggesting a tangential
+    relationship at best.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8541235327720642
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim2
+  type: rebuts
+  strength: strong
+  note: Claim A directly contradicts Claim B by stating that CP-justifications are
+    unnecessary, whereas Claim B states that CP-justifications are a defined type.
+  conditions_differ: Claim A is in the context of the ATMS, and Claim B is in the
+    context of the TMS.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9000754356384277
+    pass_number: 1
+    confidence: 0.95
+- target: deKleer_1986_ProblemSolvingATMS:claim3
+  type: none
+  strength: none
+  note: Claim A discusses the redundancy of CP-justification, while Claim B discusses
+    the impact of incorrect justifications. They are unrelated topics.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9095082879066467
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim4
+  type: none
+  strength: weak
+  note: The claims discuss different TMS architectures (ATMS vs. JTMS as a service)
+    making direct comparison difficult.
+  conditions_differ: ATMS vs. JTMS as a service
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9099417924880981
+    pass_number: 1
+    confidence: 0.0

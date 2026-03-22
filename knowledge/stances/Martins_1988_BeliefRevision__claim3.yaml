@@ -1,0 +1,70 @@
+source_claim: Martins_1988_BeliefRevision:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1983_MultipleBeliefSpaces:claim4
+  type: explains
+  strength: moderate
+  note: Claim A explains the meaning of 'hypothesis' as a proposition type, which
+    is part of the origin set mentioned in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8929022550582886
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim13
+  type: none
+  strength: weak
+  note: Claim A describes proposition types in belief revision, while Claim B compares
+    justification and assumption-based systems, with only a tangential relationship
+    regarding the origin of propositions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0273975133895874
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim17
+  type: explains
+  strength: weak
+  note: Claim A defines the types of propositions, including "derived", which is used
+    in Claim B, providing some context for understanding its meaning.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0531038045883179
+    pass_number: 1
+    confidence: 0.6
+- target: Shapiro_1998_BeliefRevisionTMS:claim3
+  type: none
+  strength: weak
+  note: Claim A defines proposition types, while Claim B describes a TMS architecture;
+    they address different aspects of reasoning systems.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0650665760040283
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim2
+  type: none
+  strength: weak
+  note: Claim A is about proposition types in belief revision, and Claim B is about
+    representing logical relations; they operate in different contexts.
+  conditions_differ: belief revision vs. logical relations
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0750014781951904
+    pass_number: 1
+    confidence: 0.0

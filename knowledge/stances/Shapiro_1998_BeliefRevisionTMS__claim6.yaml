@@ -1,0 +1,69 @@
+source_claim: Shapiro_1998_BeliefRevisionTMS:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_AssumptionBasedTMS:claim1
+  type: supports
+  strength: moderate
+  note: Claim A provides a description of ATMS functionality that is consistent with
+    the high-level description provided in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7497485876083374
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim6
+  type: none
+  strength: weak
+  note: The claims are about different aspects of ATMS functionality, A focuses on
+    the inference recording and B focuses on the primitive operations.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7934191226959229
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim10
+  type: supports
+  strength: moderate
+  note: Claim A's description of the ATMS mechanism corroborates Claim B's claims
+    about its properties and capabilities.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8056537508964539
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim9
+  type: explains
+  strength: moderate
+  note: Claim A explains why Claim B is true, by detailing how the ATMS works to eliminate
+    context switching costs.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8360846638679504
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim7
+  type: none
+  strength: weak
+  note: The claims describe different systems (ATMS vs. SNeBR) and their features,
+    with no direct conflict or support.
+  conditions_differ: Claim A describes ATMS, while Claim B describes SNeBR.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8498797416687012
+    pass_number: 1
+    confidence: 0.0

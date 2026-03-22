@@ -1,0 +1,78 @@
+source_claim: Modgil_2018_GeneralAccountArgumentationPreferences:claim18
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim9
+  type: supports
+  strength: moderate
+  note: Claim A establishes a baseline connection between argumentation and maximal
+    consistent subsets, and Claim B builds on that foundation to connect to preferred
+    subtheories, thus corroborating the framework's expressiveness.
+  conditions_differ: Claim B considers preferences, while Claim A does not.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6832414269447327
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim11
+  type: supports
+  strength: weak
+  note: Claim A establishes a baseline about the relationship between extensions and
+    consistency, which lends very general support to the idea that Claim B's focus
+    on Dung's lemma and orderings maintains some consistency.
+  conditions_differ: Claim A is for classical-logic c-SAFs without preferences, while
+    Claim B considers c-SAFs under reasonable orderings.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8550829887390137
+    pass_number: 1
+    confidence: 0.6
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim11
+  type: none
+  strength: weak
+  note: The claims discuss different argumentation frameworks (classical-logic c-SAFs
+    vs. acyclic bipolar argumentation frameworks) and concepts (maximal consistent
+    subsets vs. s-preferred/c-preferred/stable extensions), making direct comparison
+    difficult.
+  conditions_differ: Claim A focuses on classical-logic c-SAFs without preferences,
+    while Claim B considers acyclic bipolar argumentation frameworks.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8798770308494568
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim4
+  type: none
+  strength: weak
+  note: The claims discuss different argumentation frameworks (classical-logic c-SAFs
+    vs ASPIC+) and properties (correspondence to maximal consistent subsets vs. direct
+    consistency).
+  conditions_differ: Different argumentation frameworks and properties
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8877812027931213
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim5
+  type: none
+  strength: weak
+  note: The claims are on different topics (classical-logic c-SAFs vs. ASPIC+), so
+    there's no clear relationship between them.
+  conditions_differ: Claim A concerns classical-logic c-SAFs without preferences,
+    while Claim B concerns ASPIC+ with attack-based conflict-free conditions and reasonable
+    orderings.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8958504796028137
+    pass_number: 1
+    confidence: 0.0

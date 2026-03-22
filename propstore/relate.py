@@ -474,7 +474,9 @@ def write_stance_file(
         "stances": stances,
     }
 
-    path = stances_dir / f"{source_claim_id}.yaml"
+    # Replace colons with double-underscores for Windows path compatibility
+    safe_name = source_claim_id.replace(":", "__")
+    path = stances_dir / f"{safe_name}.yaml"
     with open(path, "w", encoding="utf-8") as f:
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 

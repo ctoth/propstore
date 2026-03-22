@@ -1,0 +1,76 @@
+source_claim: Reiter_1980_DefaultReasoning:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Shapiro_1998_BeliefRevisionTMS:claim2
+  type: none
+  strength: weak
+  note: Claim A and Claim B concern different aspects of belief revision; A focuses
+    on persistence and consistency while B details computational tasks.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8855929374694824
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim12
+  type: undercuts
+  strength: moderate
+  note: Claim A, emphasizing the need for belief revision when consistency fails,
+    undercuts Claim B's approach of additive belief support and the persistence of
+    beliefs despite retracted supports by highlighting a different philosophical approach
+    to belief revision.
+  conditions_differ: Claim A deals with default reasoning and logical consistency,
+    while Claim B deals with probabilistic belief maintenance.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9251870512962341
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim8
+  type: none
+  strength: weak
+  note: 'The claims address belief revision but concern distinct aspects: A focuses
+    on persistence and consistency of derived beliefs, while B presents a model with
+    two levels of revision, their focus doesn''t connect strongly.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9252503514289856
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses default reasoning and belief revision in general, while
+    Claim B focuses on specific constraints within the AGM belief revision framework,
+    indicating a lack of direct connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9319020509719849
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim17
+  type: none
+  strength: weak
+  note: Claim A and B discuss different aspects of belief revision; A focuses on belief
+    persistence and revision under inconsistency, while B focuses on efficient information
+    sharing across belief spaces, so they don't directly relate.
+  conditions_differ: Claim A focuses on handling inconsistent information while Claim
+    B focuses on efficient information sharing when consistency is presumed.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9585093855857849
+    pass_number: 1
+    confidence: 0.0

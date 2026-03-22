@@ -1,0 +1,70 @@
+source_claim: Greenberg_2009_CitationDistortions:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Greenberg_2009_CitationDistortions:claim1
+  type: supports
+  strength: moderate
+  note: Claim A provides a specific type of citation distortion (invention), which
+    is part of the broader concept of citation distortions creating unfounded authority,
+    as discussed in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8553094863891602
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim14
+  type: explains
+  strength: moderate
+  note: Claim A explains the specific types of citation distortion that could lead
+    to the propagation described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8938256502151489
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim17
+  type: supports
+  strength: moderate
+  note: Claim A defines citation transmutation and back door invention, while Claim
+    B provides evidence of their existence even after peer review.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9093948006629944
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim15
+  type: none
+  strength: none
+  note: Claim A lists types of citation invention, while Claim B discusses information
+    cascades and belief systems, so they are not directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.94615638256073
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim16
+  type: supports
+  strength: moderate
+  note: Claim A, by describing specific ways citations can be distorted at the claim
+    level, supports the idea that paper-level analysis is insufficient.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.044456958770752
+    pass_number: 1
+    confidence: 0.8

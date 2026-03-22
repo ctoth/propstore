@@ -1,0 +1,74 @@
+source_claim: Clark_2014_Micropublications:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Clark_2014_Micropublications:claim8
+  type: supports
+  strength: moderate
+  note: Claim A supports Claim B by suggesting that the micropublications model can
+    support complex relationships, which aligns with Claim B's assertion that it incorporates
+    argumentation theory.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7542020678520203
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim4
+  type: supports
+  strength: strong
+  note: Claim A states that the micropublications model accommodates a spectrum, with
+    the minimal case being a single statement + attribution, directly supporting Claim
+    B's definition of the minimal valid micropublication.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7717838287353516
+    pass_number: 1
+    confidence: 0.95
+- target: Clark_2014_Micropublications:claim1
+  type: none
+  strength: none
+  note: Claim A discusses the spectrum of complexity in the micropublication model,
+    while Claim B defines the structure of a micropublication; they are related but
+    A doesn't directly affect the validity of B's definition.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7766709923744202
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim11
+  type: none
+  strength: none
+  note: The claims discuss different aspects of the micropublications model; claim
+    A discusses the spectrum of representational complexity while claim B discusses
+    attribution tracking.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8310217261314392
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim14
+  type: supports
+  strength: weak
+  note: Claim A's statement about the micropublication model's flexibility supports
+    Claim B's assertion about integration with the W3C Open Annotation Model by suggesting
+    the model is designed to be adaptable.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.847554624080658
+    pass_number: 1
+    confidence: 0.6

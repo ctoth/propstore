@@ -1,0 +1,72 @@
+source_claim: Pollock_1987_DefeasibleReasoning:claim19
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Pollock_1987_DefeasibleReasoning:claim8
+  type: none
+  strength: weak
+  note: 'While both claims discuss defeaters, they focus on different aspects: Claim
+    A on the hierarchical handling of defeated defeaters, and Claim B on self-defeating
+    arguments, with minimal overlap.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9067731499671936
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim12
+  type: supports
+  strength: strong
+  note: Claim A describes the mechanism that makes Claim B plausible.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9114040732383728
+    pass_number: 1
+    confidence: 0.95
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim6
+  type: supports
+  strength: weak
+  note: Claim A suggests the possibility of complex defeater chains, which is echoed
+    by Claim B's specific example of self-defeat through a chain.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9395356774330139
+    pass_number: 1
+    confidence: 0.6
+- target: Pollock_1987_DefeasibleReasoning:claim5
+  type: none
+  strength: weak
+  note: While both claims relate to defeasible reasoning, A focuses on the defeat
+    level hierarchy, and B highlights the importance of undercutting defeaters, making
+    them only tangentially related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9420896768569946
+    pass_number: 1
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim3
+  type: supports
+  strength: weak
+  note: Both claims discuss the concept of defeat in argumentation, although they
+    come from different contexts; A's claim about chains of defeat applies to the
+    indirect defeat concept in B.
+  conditions_differ: Pollock's context is defeasible reasoning, while Cayrol's context
+    is bipolar argumentation.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9843196272850037
+    pass_number: 1
+    confidence: 0.6

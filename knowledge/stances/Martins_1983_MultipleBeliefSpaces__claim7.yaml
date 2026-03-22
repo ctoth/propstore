@@ -1,0 +1,73 @@
+source_claim: Martins_1983_MultipleBeliefSpaces:claim7
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1983_MultipleBeliefSpaces:claim5
+  type: none
+  strength: weak
+  note: Claim A focuses on the practical implications of using restriction sets, while
+    Claim B defines what a restriction set *is*; they do not directly relate in a
+    way that supports, rebuts, or undermines.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8608137965202332
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim13
+  type: none
+  strength: weak
+  note: The claims are related to efficiency of a system, but they don't directly
+    support, contradict, or explain each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9667451977729797
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim5
+  type: rebuts
+  strength: moderate
+  note: Claim A states there is no *need* for a nogood data structure, whereas Claim
+    B centers on the definition and management of nogoods, suggesting that Claim A
+    directly rebuts Claim B's central premise.
+  conditions_differ: The systems in which the claims are applicable may differ.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9757827520370483
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim16
+  type: none
+  strength: weak
+  note: The claims are about different aspects of belief revision and consistency
+    maintenance. Claim A focuses on restriction sets and inconsistency information
+    distribution, while Claim B deals with removing hypotheses to resolve contradictions,
+    suggesting little direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9873031973838806
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim9
+  type: rebuts
+  strength: moderate
+  note: Claim A states that a separate NOGOOD data structure is unnecessary, directly
+    contradicting Claim B's description and use of NOGOODs.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0140236616134644
+    pass_number: 1
+    confidence: 0.8

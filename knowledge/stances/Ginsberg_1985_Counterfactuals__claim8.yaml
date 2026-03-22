@@ -1,0 +1,75 @@
+source_claim: Ginsberg_1985_Counterfactuals:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Ginsberg_1985_Counterfactuals:claim1
+  type: none
+  strength: weak
+  note: Claim A discusses the failure of classical logic for counterfactuals, while
+    claim B proposes a specific method for formalizing counterfactuals, representing
+    different aspects of counterfactuals.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9480622410774231
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim7
+  type: none
+  strength: weak
+  note: Claim A discusses failures of classical logic for counterfactuals, while Claim
+    B proposes a method for encoding context dependence, they are weakly related as
+    both concern counterfactuals, but not directly related epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9612197279930115
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim10
+  type: none
+  strength: none
+  note: Claim A discusses the properties of counterfactuals compared to material conditionals,
+    while Claim B discusses the applications of counterfactual diagnosis, so there
+    is no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9695043563842773
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses the violation of classical logic properties by counterfactuals,
+    while Claim B concerns a formal equivalence between two different constructions
+    of counterfactuals, so there is no strong epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9730587005615234
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses counterfactuals and their relation to material conditionals,
+    while Claim B discusses representing logical relations in a TMS, these topics
+    are somewhat related as counterfactuals can be seen as involving implication but
+    not directly.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9848073124885559
+    pass_number: 1
+    confidence: 0.0

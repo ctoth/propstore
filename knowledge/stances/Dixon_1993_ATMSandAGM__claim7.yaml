@@ -1,0 +1,74 @@
+source_claim: Dixon_1993_ATMSandAGM:claim7
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dixon_1993_ATMSandAGM:claim15
+  type: undermines
+  strength: moderate
+  note: A weakens the idea that the foundational and coherence traditions developed
+    in complete isolation, suggesting a bridge exists.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9428969025611877
+    pass_number: 1
+    confidence: 0.8
+- target: Dung_1995_AcceptabilityArguments:claim19
+  type: none
+  strength: weak
+  note: Claim A is about bridging a divide in belief revision, while claim B is about
+    the coherence of argumentation frameworks, meaning there's a weak or non-existent
+    connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9516615867614746
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim13
+  type: none
+  strength: weak
+  note: Claim A focuses on bridging a divide through a specific choice of epistemic
+    entrenchment, while Claim B discusses the different assumptions and focuses of
+    AGM belief revision and TMS tradition, indicating different scopes and goals,
+    making them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9530492424964905
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses bridging foundational and coherence approaches in AGM, while
+    Claim B describes constraints on culprit selection in AGM belief revision; they
+    address different aspects of AGM belief revision.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.958831250667572
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim14
+  type: none
+  strength: none
+  note: These claims discuss different aspects of AGM logic, one about its capabilities
+    and the other about its limitations when applied to finite theory bases, and are
+    not directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.981019914150238
+    pass_number: 1
+    confidence: 0.0

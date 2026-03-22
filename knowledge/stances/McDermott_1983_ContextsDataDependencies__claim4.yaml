@@ -1,0 +1,69 @@
+source_claim: McDermott_1983_ContextsDataDependencies:claim4
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McDermott_1983_ContextsDataDependencies:claim11
+  type: none
+  strength: weak
+  note: Claim A describes the structure of labels in the system, while Claim B describes
+    the function of blocking beads, making them largely independent.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8847975134849548
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim14
+  type: none
+  strength: weak
+  note: Claim A describes a representation scheme, while Claim B discusses a potential
+    performance issue with that scheme, without a direct bearing on each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9322589039802551
+    pass_number: 1
+    confidence: 0.0
+- target: McDermott_1983_ContextsDataDependencies:claim13
+  type: explains
+  strength: moderate
+  note: Claim A explains the mechanism by which Claim B's "Boolean label approach
+    summarizes all status computations simultaneously".
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9408490061759949
+    pass_number: 1
+    confidence: 0.8
+- target: McDermott_1983_ContextsDataDependencies:claim1
+  type: explains
+  strength: moderate
+  note: Claim A explains how 'labels' are implemented, which provides a mechanistic
+    explanation for Claim B's claim that data pools and data dependencies are equivalent.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9502555727958679
+    pass_number: 1
+    confidence: 0.8
+- target: McDermott_1983_ContextsDataDependencies:claim2
+  type: none
+  strength: weak
+  note: Claim A and Claim B introduce distinct concepts related to data management,
+    but one does not directly affect the other's validity or justification.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9527120590209961
+    pass_number: 1
+    confidence: 0.0

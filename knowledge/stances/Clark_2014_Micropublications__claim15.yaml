@@ -1,0 +1,74 @@
+source_claim: Clark_2014_Micropublications:claim15
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Greenberg_2009_CitationDistortions:claim16
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of scholarly communication; A focuses
+    on the limitations of the journal article format, while B focuses on the limitations
+    of paper-level citation analysis for detecting claim-level distortions, so their
+    relationship is minimal.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0164070129394531
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim7
+  type: supports
+  strength: moderate
+  note: Both claims highlight limitations in existing formats for representing and
+    managing scientific knowledge, where A points out issues with the traditional
+    article format, and B points out issues with nanopublications.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0191631317138672
+    pass_number: 1
+    confidence: 0.8
+- target: Groth_2010_AnatomyNanopublication:claim11
+  type: supports
+  strength: moderate
+  note: Claim A describes limitations of the traditional journal article format, which
+    supports Claim B's statement that finding and validating scientific statements
+    in full publications is becoming impractical.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0314321517944336
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim13
+  type: rebuts
+  strength: strong
+  note: Claim A asserts the inability of the traditional format to support certain
+    functionalities, while Claim B claims the micropublications model *does* accommodate
+    these functionalities, directly contradicting A.
+  conditions_differ: different publication models
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0555305480957031
+    pass_number: 1
+    confidence: 0.95
+- target: Clark_2014_Micropublications:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses limitations of journal articles, while Claim B discusses
+    limitations of statement-based models, and there is no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0582287311553955
+    pass_number: 1
+    confidence: 0.0

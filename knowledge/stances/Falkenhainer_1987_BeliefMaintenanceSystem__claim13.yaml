@@ -1,0 +1,74 @@
+source_claim: Falkenhainer_1987_BeliefMaintenanceSystem:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McAllester_1978_ThreeValuedTMS:claim12
+  type: none
+  strength: weak
+  note: Claim A discusses belief maintenance systems and the impact of explicit transitivity,
+    while Claim B focuses on non-monotonic reasoning in TMS systems and alternative
+    methods to achieve similar functionality; there is no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9688007831573486
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim9
+  type: none
+  strength: none
+  note: Claim A discusses belief maintenance problems with explicit transitivity,
+    while Claim B describes a hierarchical assumption system; these do not directly
+    relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9709131121635437
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim8
+  type: none
+  strength: none
+  note: Claim A discusses belief propagation in a Belief Maintenance System (BMS)
+    with explicit transitivity, while Claim B discusses circular justifications in
+    an Assumption-based Truth Maintenance System (ATMS); they concern different TMS
+    architectures and reasoning challenges.
+  conditions_differ: BMS vs. ATMS architectures, handling of transitivity vs. circular
+    justifications
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9779397249221802
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim3
+  type: none
+  strength: none
+  note: Claim A discusses issues with transitivity, while Claim B describes support
+    link types, and they do not seem to be related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.99781733751297
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim8
+  type: none
+  strength: none
+  note: Claim A discusses belief maintenance systems and transitivity, while Claim
+    B describes dependency-directed backtracking; they address different problems.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0079271793365479
+    pass_number: 1
+    confidence: 0.0

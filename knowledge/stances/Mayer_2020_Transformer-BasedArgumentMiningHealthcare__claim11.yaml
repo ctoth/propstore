@@ -1,0 +1,70 @@
+source_claim: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim3
+  type: supports
+  strength: weak
+  note: Both claims report F1 scores for argument relation, and a higher score supports
+    the overall performance, but they use different metrics, making it a weak support.
+  conditions_differ: Claim A uses 'baseline_f1' while Claim B uses 'macro_f1'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5935267210006714
+    pass_number: 1
+    confidence: 0.6
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim2
+  type: none
+  strength: weak
+  note: The claims discuss different aspects (relation vs component) within an argument
+    mining context, lacking a clear epistemic connection.
+  conditions_differ: argument_relation vs argument_component
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8051519393920898
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim9
+  type: supports
+  strength: weak
+  note: Claim A provides a baseline F1 score, against which Claim B's performance
+    can be compared, thus providing some context that supports the importance of Claim
+    B's result.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.998638391494751
+    pass_number: 1
+    confidence: 0.6
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim5
+  type: none
+  strength: weak
+  note: These claims are about different aspects of argument mining and do not directly
+    influence each other's truth.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0443435907363892
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim7
+  type: none
+  strength: weak
+  note: Claim A discusses a baseline F1 score in argument mining, while Claim B describes
+    a characteristic function in abstract argumentation theory; they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0600452423095703
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,70 @@
+source_claim: Alchourron_1985_TheoryChange:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dixon_1993_ATMSandAGM:claim14
+  type: supports
+  strength: weak
+  note: Claim A establishes the AGM framework, which is then critiqued in Claim B,
+    implying that A is a necessary component that underpins B's argument.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9465221762657166
+    pass_number: 1
+    confidence: 0.6
+- target: Alchourron_1985_TheoryChange:claim8
+  type: none
+  strength: none
+  note: Claim A discusses the basic postulates of AGM contraction, while Claim B discusses
+    the relationship between partial meet contraction and Gardenfors postulates; they
+    are about different aspects of the theory.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9829246997833252
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim9
+  type: none
+  strength: weak
+  note: While both claims are about AGM contraction postulates, they concern different
+    aspects (basic vs. supplementary) and thus are only weakly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.015592336654663
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim13
+  type: none
+  strength: weak
+  note: Claim A is about the definition of AGM postulates while Claim B is about the
+    high level assumptions of AGM belief revision.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0192962884902954
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim7
+  type: supports
+  strength: strong
+  note: Claim A defines the postulates that Claim B states are satisfied by partial
+    meet contraction, thus strongly supporting Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0210750102996826
+    pass_number: 1
+    confidence: 0.95

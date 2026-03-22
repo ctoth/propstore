@@ -1,0 +1,72 @@
+source_claim: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim3
+  type: none
+  strength: weak
+  note: The claims report macro_f1 scores for different argument components (argument_component
+    vs. argument_relation), suggesting different tasks or aspects of argument mining
+    and no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.5603112578392029
+    pass_number: 2
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim11
+  type: none
+  strength: none
+  note: The claims report performance metrics for different tasks (argument component
+    vs. argument relation classification), making a direct comparison or relationship
+    difficult to establish.
+  conditions_differ: 'Different tasks: argument component vs. argument relation classification.'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8051519393920898
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim4
+  type: none
+  strength: none
+  note: The claims are about different aspects of the argument mining task; one describes
+    performance and the other the dataset size.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0708080530166626
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim7
+  type: none
+  strength: none
+  note: Claim A reports a performance metric of a specific model, while Claim B defines
+    a theoretical concept in argumentation, so there is no direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0828839540481567
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim12
+  type: none
+  strength: none
+  note: Claim A is a performance metric for a healthcare argument mining system, while
+    Claim B is a theoretical property of abstract argumentation frameworks, and they
+    are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.1228246688842773
+    pass_number: 1
+    confidence: 0.0

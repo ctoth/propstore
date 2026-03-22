@@ -1,0 +1,72 @@
+source_claim: Reiter_1980_DefaultReasoning:claim15
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Reiter_1980_DefaultReasoning:claim10
+  type: rebuts
+  strength: strong
+  note: Claim A states decidability in certain cases, while Claim B asserts the *lack*
+    of semi-decidability for a specific type of default theory, directly contradicting
+    the possibility of a general decision procedure.
+  conditions_differ: Claim A concerns sentential and monadic cases, while Claim B
+    focuses on closed normal default theories.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7651641964912415
+    pass_number: 1
+    confidence: 0.95
+- target: Reiter_1980_DefaultReasoning:claim3
+  type: none
+  strength: none
+  note: Claim A discusses the decidability of the extension membership problem, while
+    Claim B defines the concept of an extension of a default theory, making them unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9433979392051697
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim5
+  type: none
+  strength: weak
+  note: Claim A discusses decidability of a problem, while Claim B concerns the existence
+    of extensions in default theories, so they're only loosely related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9490053653717041
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim8
+  type: none
+  strength: weak
+  note: These claims are about distinct aspects of default logic; decidability of
+    extension membership does not directly impact semi-monotonicity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9526766538619995
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim21
+  type: none
+  strength: none
+  note: Claim A discusses the decidability of extension membership in default logic,
+    while Claim B connects default logic to abstract argumentation, addressing different
+    aspects of the logic's properties.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9573943018913269
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,73 @@
+source_claim: Walton_2015_ClassificationSystemArgumentationSchemes:claim4
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim9
+  type: supports
+  strength: moderate
+  note: Claim A supports Claim B by further detailing the argument from expert opinion
+    as a specific type of argument from position to know, which is included in B's
+    list of source-based argumentation schemes.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8451933860778809
+    pass_number: 1
+    confidence: 0.8
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim6
+  type: none
+  strength: none
+  note: Claim A discusses the relationship between argument from expert opinion and
+    argument from position to know, while Claim B discusses hybrid argumentation schemes;
+    there's no direct epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.900073230266571
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim1
+  type: supports
+  strength: strong
+  note: Claim A provides a rationale (hierarchical organization allows inheritance)
+    for Claim B's advocacy of a hierarchical structure for argumentation schemes.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9362913966178894
+    pass_number: 1
+    confidence: 0.95
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses the relationship between argument from expert opinion and
+    argument from position to know, while Claim B discusses the most fundamental organizing
+    principle for argumentation schemes. They seem to be about different aspects of
+    argumentation schemes, though they are in the same paper.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9604018926620483
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim8
+  type: none
+  strength: weak
+  note: Claim A describes a hierarchical classification, while claim B describes a
+    problem with prior classifications, which are only weakly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0014293193817139
+    pass_number: 1
+    confidence: 0.0

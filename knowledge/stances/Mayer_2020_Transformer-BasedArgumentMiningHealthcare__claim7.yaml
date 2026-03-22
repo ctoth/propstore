@@ -1,0 +1,73 @@
+source_claim: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim7
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim12
+  type: none
+  strength: none
+  note: The claims are about different things. A discusses a method for argument component
+    detection, while B justifies the need for BIO tagging in argument component detection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.929632306098938
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim1
+  type: none
+  strength: weak
+  note: Claim A discusses sequence labeling architecture for argument component detection,
+    while Claim B discusses an entire argument mining pipeline and its performance
+    compared to end-to-end systems, making them only weakly related.
+  conditions_differ: Claim A focuses on component detection within a sequence, Claim
+    B considers the entire argumentative structure.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9403484463691711
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim8
+  type: none
+  strength: none
+  note: 'The claims discuss different aspects of argument mining architecture: sequence
+    labeling for component detection vs. relation classification, so there is no clear
+    relationship.'
+  conditions_differ: 'different task: argument component detection vs relation classification'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0014901161193848
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim6
+  type: none
+  strength: none
+  note: The claims address different aspects of argument mining; A focuses on sequence
+    labeling architecture (GRU+CRF), while B focuses on the superiority of transformer
+    models over static embeddings.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0389790534973145
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim6
+  type: none
+  strength: none
+  note: Claim A discusses sequence labeling architecture in argument mining, while
+    Claim B discusses inference rules for contradiction handling; they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0673677921295166
+    pass_number: 1
+    confidence: 0.0

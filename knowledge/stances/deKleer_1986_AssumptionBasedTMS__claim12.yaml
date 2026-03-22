@@ -1,0 +1,76 @@
+source_claim: deKleer_1986_AssumptionBasedTMS:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_ProblemSolvingATMS:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses efficiency of justification retraction, while Claim B focuses
+    on the ATMS's mechanism for handling contradictions without modifying justifications,
+    so there is no direct contradiction or support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8281668424606323
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim8
+  type: none
+  strength: weak
+  note: Claim A discusses efficiency of justification retraction in ATMS, while claim
+    B discusses backtracking algorithm for retraction in a three-valued TMS, topics
+    are only weakly related.
+  conditions_differ: Different types of Truth Maintenance Systems (ATMS vs. Three-Valued
+    TMS).
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8479639887809753
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim11
+  type: none
+  strength: weak
+  note: 'The claims discuss different aspects of the ATMS: A discusses efficiency
+    of retraction, while B discusses the necessity of a CP-justification mechanism,
+    showing only a weak relationship.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8541235327720642
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim15
+  type: undercuts
+  strength: moderate
+  note: Claim A proposes a different, more efficient method for assumption retraction
+    that avoids the need for recorded reasons, undercutting the rationale for Claim
+    B's approach.
+  conditions_differ: Claim A focuses on efficiency in ATMS, while Claim B describes
+    a general approach for reasoned retraction in TMS.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8680779933929443
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_ProblemSolvingATMS:claim3
+  type: none
+  strength: none
+  note: Claim A discusses implementation details (justification retraction cost),
+    while Claim B discusses the impact of incorrect justifications on the ATMS's reasoning
+    process; thus, they are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8704921007156372
+    pass_number: 1
+    confidence: 0.0

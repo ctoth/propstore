@@ -1,0 +1,72 @@
+source_claim: Modgil_2018_GeneralAccountArgumentationPreferences:claim15
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses preventing inconsistent extensions via sub-argument attacks,
+    while Claim B describes the generation of a Dung-style framework from structured
+    arguments; they address different aspects of ASPIC+.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7328967452049255
+    pass_number: 2
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim3
+  type: none
+  strength: weak
+  note: The claims are about different aspects of ASPIC+; A focuses on its ability
+    to prevent inconsistent extensions, while B describes the types of attack defined
+    within ASPIC+.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.743872880935669
+    pass_number: 2
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim2
+  type: supports
+  strength: moderate
+  note: Claim A provides a reason why ASPIC+ is robust, which lends credibility to
+    Claim B's claim about ASPIC+'s sub-argument closure property.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7616437673568726
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim14
+  type: supports
+  strength: moderate
+  note: Claim A provides a specific mechanism by which ASPIC+ addresses problems highlighted
+    in Claim B regarding prior formalisms.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7813431620597839
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim15
+  type: none
+  strength: weak
+  note: Claim A and B are somewhat related because they both discuss ASPIC+, but A
+    focuses on the benefit of its sub-argument structure, whereas B explains a more
+    general feature.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7862390279769897
+    pass_number: 1
+    confidence: 0.0

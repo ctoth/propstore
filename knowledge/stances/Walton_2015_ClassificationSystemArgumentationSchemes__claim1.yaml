@@ -1,0 +1,70 @@
+source_claim: Walton_2015_ClassificationSystemArgumentationSchemes:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim8
+  type: rebuts
+  strength: moderate
+  note: Claim A advocates for hierarchical organization, directly contrasting Claim
+    B's description of previous classifications as flat lists.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7201078534126282
+    pass_number: 1
+    confidence: 0.8
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim2
+  type: none
+  strength: weak
+  note: Claim A concerns the organization of argumentation schemes, while claim B
+    concerns a principle for their organization, so they are only weakly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8919308185577393
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim6
+  type: undermines
+  strength: weak
+  note: Claim B suggests that some argumentation schemes don't fit neatly into a hierarchical
+    tree structure as Claim A suggests, weakening A's claim.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8978282809257507
+    pass_number: 1
+    confidence: 0.6
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim5
+  type: none
+  strength: none
+  note: 'The claims are about different aspects of argumentation schemes: one about
+    structure, the other about content.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9288747906684875
+    pass_number: 1
+    confidence: 0.0
+- target: Walton_2015_ClassificationSystemArgumentationSchemes:claim4
+  type: supports
+  strength: strong
+  note: Claim A's advocacy for hierarchical organization provides a structural rationale
+    that directly supports Claim B's assertion that 'argument from expert opinion'
+    inherits properties from 'argument from position to know' within such a hierarchy.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9362913966178894
+    pass_number: 1
+    confidence: 0.95

@@ -1,0 +1,71 @@
+source_claim: Shapiro_1998_BeliefRevisionTMS:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_AssumptionBasedTMS:claim1
+  type: none
+  strength: none
+  note: Claim A discusses a limitation of TMSs (including ATMS), while Claim B describes
+    the functionality of ATMS, so they don't directly interact epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9380556344985962
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim13
+  type: none
+  strength: none
+  note: The claims discuss different aspects of TMS approaches; A focuses on culprit
+    identification in contradiction resolution, while B discusses the ATMS's performance
+    advantages/disadvantages in different problem-solving scenarios.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9531888365745544
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim13
+  type: none
+  strength: weak
+  note: Claim A and Claim B discuss different aspects of belief revision systems,
+    with no direct conflict or support between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9550967812538147
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim11
+  type: supports
+  strength: moderate
+  note: Claim A acknowledges the problem of culprit selection in TMS systems, which
+    is the same problem that Claim B addresses in the context of CBS.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9629818201065063
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim13
+  type: none
+  strength: weak
+  note: Claim A discusses culprit identification in TMSs while Claim B discusses the
+    ATMS serving as an intelligent cache; they are only weakly related through the
+    general topic of TMS.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9703199863433838
+    pass_number: 1
+    confidence: 0.0

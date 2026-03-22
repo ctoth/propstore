@@ -1,0 +1,72 @@
+source_claim: Dixon_1993_ATMSandAGM:claim15
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dixon_1993_ATMSandAGM:claim7
+  type: rebuts
+  strength: strong
+  note: Claim A states that the foundational and coherence traditions developed in
+    isolation, while Claim B claims that coherence-based AGM logic can bridge this
+    divide, directly contradicting A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9428969025611877
+    pass_number: 1
+    confidence: 0.95
+- target: Shapiro_1998_BeliefRevisionTMS:claim9
+  type: supports
+  strength: strong
+  note: Claim A strongly supports Claim B by providing prior evidence for the observed
+    lack of cross-citation and isolated development of the two traditions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9519129991531372
+    pass_number: 1
+    confidence: 0.95
+- target: Martins_1983_MultipleBeliefSpaces:claim12
+  type: none
+  strength: weak
+  note: Claim A is about the isolation of two belief management traditions, while
+    Claim B discusses the limitations of contradiction handling methods in the context
+    of multiple agents, making them only tangentially related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.992648720741272
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim10
+  type: none
+  strength: none
+  note: 'These claims discuss different topics: belief management traditions vs. properties
+    of a belief revision system.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.030645728111267
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim19
+  type: none
+  strength: none
+  note: Claim A is about the historical development of belief management traditions,
+    while Claim B is a formal statement about argumentation frameworks, so they are
+    unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0360417366027832
+    pass_number: 1
+    confidence: 0.0

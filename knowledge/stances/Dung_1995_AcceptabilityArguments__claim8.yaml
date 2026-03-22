@@ -1,0 +1,73 @@
+source_claim: Dung_1995_AcceptabilityArguments:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dung_1995_AcceptabilityArguments:claim14
+  type: supports
+  strength: strong
+  note: Both claims characterize the grounded extension, so A provides further understanding
+    and support for B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8206439018249512
+    pass_number: 1
+    confidence: 0.95
+- target: Dung_1995_AcceptabilityArguments:claim12
+  type: supports
+  strength: strong
+  note: The monotonicity of the characteristic function (B) is a fundamental property
+    that underpins the fixed-point semantics and the grounded extension definition
+    (A).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9958100318908691
+    pass_number: 1
+    confidence: 0.95
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim12
+  type: none
+  strength: none
+  note: The claims are related to different frameworks, so there's no direct epistemic
+    relationship.
+  conditions_differ: Claim A deals with abstract argumentation frameworks, while Claim
+    B concerns bipolar argumentation frameworks.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0179747343063354
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim3
+  type: none
+  strength: weak
+  note: Claim A discusses the grounded extension in the context of argumentation frameworks,
+    while Claim B discusses extensions in the context of default logic; these are
+    distinct formalisms with distinct underlying mechanisms.
+  conditions_differ: 'Different logical formalisms: argumentation frameworks vs. default
+    logic.'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.019145131111145
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim7
+  type: explains
+  strength: moderate
+  note: Claim A explains how the grounded extension is derived using the characteristic
+    function described in Claim B, providing a mechanistic explanation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0232845544815063
+    pass_number: 1
+    confidence: 0.8

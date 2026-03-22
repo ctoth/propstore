@@ -1,0 +1,71 @@
+source_claim: Shapiro_1998_BeliefRevisionTMS:claim7
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1988_BeliefRevision:claim9
+  type: supports
+  strength: moderate
+  note: Claim A describes SNeBR's features, supporting Claim B's assertion that it
+    was implemented as an assumption-based belief revision system.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7897456288337708
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim6
+  type: none
+  strength: weak
+  note: While both claims describe aspects of ATMS, they are distinct features rather
+    than directly supporting, undermining, or contradicting each other; they mostly
+    provide background context for belief revision.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8498797416687012
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim6
+  type: none
+  strength: weak
+  note: Claim A describes SNeBR while Claim B describes the ATMS, they are distinct
+    but related technologies, but A doesn't directly interact with B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9108332991600037
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim15
+  type: explains
+  strength: moderate
+  note: A explains a key feature of SNeBR mentioned in B (interactive belief revision)
+    by describing how SNeBR calculates assumption sets and uses relevance logic.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9242210984230042
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim13
+  type: none
+  strength: none
+  note: Claim A describes the SNeBR system and its use of relevance logic, while Claim
+    B describes the ATMS as an intelligent cache. They are about different specific
+    aspects of TMS systems.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9275738596916199
+    pass_number: 1
+    confidence: 0.0

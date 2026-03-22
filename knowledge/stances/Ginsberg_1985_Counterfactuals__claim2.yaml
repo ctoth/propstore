@@ -1,0 +1,74 @@
+source_claim: Ginsberg_1985_Counterfactuals:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Ginsberg_1985_Counterfactuals:claim12
+  type: supports
+  strength: strong
+  note: 'Claim A provides a foundation for understanding why Claim B is true: if inconsistent
+    truth functions have no consistent complete extensions, then no extension of an
+    inconsistent truth function can be consistent.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7404469847679138
+    pass_number: 1
+    confidence: 0.95
+- target: Ginsberg_1985_Counterfactuals:claim4
+  type: none
+  strength: weak
+  note: These claims define different concepts (consistency, complete extension vs
+    reduced, closed) and have distinct focuses, so they don't bear directly on each
+    other's truth or reasoning.
+  conditions_differ: Different concepts and lemmas are involved in each claim.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7606232166290283
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim3
+  type: supports
+  strength: weak
+  note: Claim A provides a foundational concept about consistency and complete extensions,
+    which are used in Claim B's definition, thereby offering some conceptual support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8280859589576721
+    pass_number: 1
+    confidence: 0.6
+- target: Reiter_1980_DefaultReasoning:claim7
+  type: none
+  strength: weak
+  note: While both deal with consistency, Claim A discusses truth functions and complete
+    extensions, while Claim B focuses on default logic and consistent closed normal
+    default theories, so they're largely unrelated.
+  conditions_differ: Claim A concerns truth functions; Claim B concerns default logic.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9928008913993835
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim6
+  type: none
+  strength: weak
+  note: 'The claims are about different topics: claim A concerns the consistency of
+    truth functions, while claim B discusses the relationship between a three-valued
+    truth function construction for counterfactuals and Lewis''s possible world interpretation;
+    they do not directly bear on each other.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9954542517662048
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,75 @@
+source_claim: Groth_2010_AnatomyNanopublication:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Groth_2010_AnatomyNanopublication:claim4
+  type: supports
+  strength: moderate
+  note: Claim A highlights the utility of separating statements and annotations, which
+    aligns with Claim B's assertion about the structure of a nanopublication with
+    statement and annotation graphs.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0022414922714233
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses the modularity of statements and annotations, while Claim
+    B describes the functionality of an Assumption-based Truth Maintenance System
+    (ATMS), showing very little overlap.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0351145267486572
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim6
+  type: undermines
+  strength: moderate
+  note: Claim A suggests that separating statements and annotations *allows* different
+    types of reasoning (including on statements alone), whereas Claim B implies that
+    statement-based models like nanopublications *only* model statements with limited
+    or no backing evidence.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.066656470298767
+    pass_number: 1
+    confidence: 0.8
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim12
+  type: none
+  strength: none
+  note: Claim A and Claim B address completely different topics, one dealing with
+    representation of scientific statements and the other dealing with argument component
+    detection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0756105184555054
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses the separation of statements and annotations for reasoning,
+    while Claim B outlines restrictions for consumers in a problem-solving context,
+    indicating only a tangential relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0793977975845337
+    pass_number: 1
+    confidence: 0.0

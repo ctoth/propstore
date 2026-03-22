@@ -1,0 +1,72 @@
+source_claim: Groth_2010_AnatomyNanopublication:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Groth_2010_AnatomyNanopublication:claim1
+  type: none
+  strength: weak
+  note: The claims are related to nanopublications but do not directly support, contradict,
+    or explain each other; Claim A emphasizes vocabulary agreement, while Claim B
+    defines a nanopublication.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8145986795425415
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim7
+  type: supports
+  strength: moderate
+  note: Claim A supports the importance of vocabulary agreement, and claim B explains
+    how the nanopublication model adheres to this principle by adopting the SWAN ontology.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8899962306022644
+    pass_number: 1
+    confidence: 0.8
+- target: Groth_2010_AnatomyNanopublication:claim4
+  type: none
+  strength: weak
+  note: Claim A discusses the importance of vocabulary agreement, while Claim B describes
+    the basic structure of a nanopublication; they are topically related, but there
+    is no direct support, rebuttal, or other strong epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9164312481880188
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim12
+  type: none
+  strength: none
+  note: Claim A is about the importance of community agreement on vocabulary, while
+    Claim B defines compatibility levels; they don't directly relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9180782437324524
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim14
+  type: none
+  strength: weak
+  note: Claim A is about the importance of vocabulary in nanopublications, while claim
+    B is about the integration of micropublications with the W3C Open Annotation Model,
+    making them effectively unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9403868913650513
+    pass_number: 1
+    confidence: 0.0

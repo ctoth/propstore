@@ -1,0 +1,75 @@
+source_claim: Ginsberg_1985_Counterfactuals:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Ginsberg_1985_Counterfactuals:claim4
+  type: none
+  strength: weak
+  note: The claims are about properties of inconsistent and consistent truth functions,
+    but one concerns extensions and the other concerns reduction and closure, and
+    there is no clear undermining, undercutting, rebutting, support or superseding
+    relationship between them.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6652628183364868
+    pass_number: 2
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim2
+  type: supports
+  strength: moderate
+  note: Claim A provides a constraint on what consistency requires, which is relevant
+    to Claim B's characterization of consistency via complete extensions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7404469847679138
+    pass_number: 1
+    confidence: 0.8
+- target: Ginsberg_1985_Counterfactuals:claim3
+  type: none
+  strength: weak
+  note: Claim A discusses inconsistent truth functions and their extensions, while
+    Claim B describes the closure of consistent truth functions; therefore, the claims
+    are largely independent.
+  conditions_differ: Claim A concerns inconsistent truth functions, while Claim B
+    concerns consistent ones.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7828349471092224
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim6
+  type: supports
+  strength: moderate
+  note: Claim A, stating no extension of an inconsistent function is consistent, lends
+    credence to Claim B by touching upon the consistency of extensions.
+  conditions_differ: Claim A deals with general inconsistent truth functions, while
+    Claim B concerns extensions of closed normal default theories.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9168517589569092
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim6
+  type: none
+  strength: weak
+  note: Claim A is about truth functions in general, while Claim B concerns a specific
+    TMS implementation, making their relationship minimal.
+  conditions_differ: Claim A is about general truth functions, Claim B is about a
+    specific TMS system.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9411102533340454
+    pass_number: 1
+    confidence: 0.0

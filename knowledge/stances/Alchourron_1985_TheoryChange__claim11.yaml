@@ -1,0 +1,72 @@
+source_claim: Alchourron_1985_TheoryChange:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim18
+  type: supports
+  strength: moderate
+  note: Claim A provides a property of maxichoice contraction that is relevant to
+    Claim B's characterization of it, offering a link between the outcome (complete
+    theories) and the defining condition of maxichoice contraction.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8276404738426208
+    pass_number: 1
+    confidence: 0.8
+- target: Alchourron_1985_TheoryChange:claim10
+  type: none
+  strength: none
+  note: The claims discuss different types of contraction (maxichoice and full meet),
+    and their individual properties; they do not directly interact epistemically.
+  conditions_differ: The type of contraction used
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8542833924293518
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim11
+  type: none
+  strength: weak
+  note: These claims are from different domains (theory change vs. default logic)
+    and do not directly interact or contradict each other.
+  conditions_differ: Claim A is about maxichoice contraction in theory change, and
+    Claim B concerns the existence of extensions in default logic; they do not share
+    the same underlying assumptions or contexts.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9590173363685608
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim7
+  type: none
+  strength: none
+  note: These claims are in different domains (theory change vs default reasoning)
+    and do not have a clear epistemic relationship.
+  conditions_differ: different domains
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9702783226966858
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim6
+  type: none
+  strength: weak
+  note: The claims are in different domains (theory change vs default reasoning) and
+    do not have any obvious epistemic relationship.
+  conditions_differ: different formal systems
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9768153429031372
+    pass_number: 1
+    confidence: 0.0

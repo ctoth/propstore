@@ -1,0 +1,69 @@
+source_claim: Greenberg_2009_CitationDistortions:claim10
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Greenberg_2009_CitationDistortions:claim4
+  type: none
+  strength: none
+  note: The claims discuss unrelated concepts (network authority vs citation bias).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0351310968399048
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim13
+  type: undermines
+  strength: moderate
+  note: Claim A, stating the authority traffic share is high, suggests that the network
+    authority measure might still be useful or relevant, undermining Claim B's assertion
+    that it can completely diverge from truth.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0395597219467163
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim3
+  type: none
+  strength: none
+  note: These claims address different topics (authority traffic share vs. citation
+    bias share) and have no clear epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.043107271194458
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim6
+  type: none
+  strength: weak
+  note: The claims are about different aspects of the network and do not directly
+    relate to each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.090885043144226
+    pass_number: 1
+    confidence: 0.0
+- target: Greenberg_2009_CitationDistortions:claim5
+  type: none
+  strength: none
+  note: Claim A and Claim B discuss different properties of the network, authority
+    traffic share and size, and do not have a direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0986515283584595
+    pass_number: 1
+    confidence: 0.0

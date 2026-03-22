@@ -1,0 +1,73 @@
+source_claim: Dung_1995_AcceptabilityArguments:claim23
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dung_1995_AcceptabilityArguments:claim24
+  type: supports
+  strength: strong
+  note: Both claims connect logic programming semantics with argumentation frameworks,
+    with Claim A regarding stable models and Claim B regarding the well-founded model,
+    establishing a pattern of correspondence.
+  conditions_differ: Claim A is about stable models while Claim B is about well-founded
+    models.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.4395190477371216
+    pass_number: 1
+    confidence: 0.95
+- target: Dung_1995_AcceptabilityArguments:claim30
+  type: explains
+  strength: moderate
+  note: Claim A explains why claim B's incomputability is plausible given the correspondence
+    between stable models and stable extensions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7327734231948853
+    pass_number: 1
+    confidence: 0.8
+- target: Dung_1995_AcceptabilityArguments:claim21
+  type: supports
+  strength: moderate
+  note: Both claims relate different logic systems to stable extensions of argumentation
+    frameworks, suggesting a general relationship and thus corroborating each other.
+  conditions_differ: Claim A relates logic programs, while Claim B relates default
+    logic.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8289623856544495
+    pass_number: 1
+    confidence: 0.8
+- target: Dung_1995_AcceptabilityArguments:claim18
+  type: none
+  strength: weak
+  note: Claim A relates logic programs and argumentation frameworks, while Claim B
+    concerns properties of argumentation frameworks, with minimal overlap.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8730734586715698
+    pass_number: 1
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim13
+  type: none
+  strength: weak
+  note: The claims discuss different argumentation frameworks (standard vs bipolar),
+    and thus A neither directly supports nor contradicts B.
+  conditions_differ: A concerns standard argumentation frameworks and stable models
+    of logic programs, while B concerns bipolar argumentation frameworks.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8776769638061523
+    pass_number: 1
+    confidence: 0.0

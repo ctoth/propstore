@@ -1,0 +1,72 @@
+source_claim: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim6
+  type: none
+  strength: weak
+  note: The claims describe different types of admissibility in argumentation frameworks,
+    with no clear direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6879603266716003
+    pass_number: 2
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim7
+  type: none
+  strength: weak
+  note: The claims discuss different types of admissibility within a specific argumentation
+    framework, focusing on different criteria (conflict-free, closed under support
+    vs. safe).
+  conditions_differ: null
+  resolution:
+    method: nli_second_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7020659446716309
+    pass_number: 2
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim9
+  type: supports
+  strength: moderate
+  note: Claim A defines a key concept (c-admissibility) used in Claim B, thus supporting
+    the claim by grounding it.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8321171998977661
+    pass_number: 1
+    confidence: 0.8
+- target: Dung_1995_AcceptabilityArguments:claim4
+  type: none
+  strength: weak
+  note: The claims are related to argumentation theory but discuss different concepts
+    (bipolar admissibility vs. basic admissibility), and the definitions do not directly
+    interact or contradict each other.
+  conditions_differ: Claim A discusses c-admissibility in bipolar argumentation frameworks,
+    while Claim B discusses admissibility in standard argumentation frameworks.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8444845676422119
+    pass_number: 1
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim5
+  type: none
+  strength: weak
+  note: Claim A defines 'c-admissible' sets and Claim B relates 'safe' sets to conflict-free
+    sets and support relations, with no clear direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8798090815544128
+    pass_number: 1
+    confidence: 0.0

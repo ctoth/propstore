@@ -1,0 +1,74 @@
+source_claim: Ginsberg_1985_Counterfactuals:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Ginsberg_1985_Counterfactuals:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses computational usefulness and vagueness, while Claim B discusses
+    formal equivalence under specific conditions, indicating they address different
+    aspects and don't directly relate.
+  conditions_differ: Claim B is restricted to a countably infinite language, whereas
+    Claim A does not specify language constraints.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8449057340621948
+    pass_number: 1
+    confidence: 0.0
+- target: Ginsberg_1985_Counterfactuals:claim1
+  type: rebuts
+  strength: strong
+  note: Claim B provides an alternative, formalized method for counterfactual reasoning
+    specifically to address the vagueness problem identified in Claim A regarding
+    Lewis's approach.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.961205780506134
+    pass_number: 1
+    confidence: 0.95
+- target: Ginsberg_1985_Counterfactuals:claim7
+  type: none
+  strength: weak
+  note: Claim A critiques Lewis' semantics for counterfactuals, while Claim B proposes
+    an alternative approach to handling context dependence, so they are largely unrelated,
+    though both address counterfactuals.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0016201734542847
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim12
+  type: none
+  strength: weak
+  note: The claims address distinct problems (counterfactual semantics vs. multi-agent
+    belief management), and there's no clear conflict or synergy between them.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0377333164215088
+    pass_number: 1
+    confidence: 0.0
+- target: Pollock_1987_DefeasibleReasoning:claim15
+  type: none
+  strength: weak
+  note: Claim A discusses the limitations of possible worlds semantics in AI, while
+    Claim B criticizes AI theories of nonmonotonic reasoning for being simplistic;
+    they address different aspects of AI and reasoning.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.046435832977295
+    pass_number: 1
+    confidence: 0.0

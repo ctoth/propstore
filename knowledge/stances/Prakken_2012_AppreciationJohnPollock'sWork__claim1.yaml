@@ -1,0 +1,75 @@
+source_claim: Prakken_2012_AppreciationJohnPollock'sWork:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim9
+  type: supports
+  strength: moderate
+  note: Claim A introduces the concept of defeasible reasoning, which claim B then
+    elaborates on by providing specific examples and grounding it in Pollock's work.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7223843932151794
+    pass_number: 1
+    confidence: 0.8
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim12
+  type: none
+  strength: none
+  note: Claim A focuses on Pollock's distinction between conclusive and defeasible
+    reasoning, while Claim B discusses a philosophical distinction between plausible
+    and defeasible reasoning, which are distinct topics with no direct conflict or
+    support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7605739235877991
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim22
+  type: supports
+  strength: moderate
+  note: Claim A introduces defeasible reasoning as a broad concept, which Claim B
+    then contextualizes within a formal argumentation framework, thus supporting A's
+    general notion by providing a specific, formalized instantiation of defeasible
+    reasoning.
+  conditions_differ: Claim B applies specifically to finitary frameworks, whereas
+    Claim A is more general.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8140778541564941
+    pass_number: 1
+    confidence: 0.8
+- target: Pollock_1987_DefeasibleReasoning:claim2
+  type: supports
+  strength: strong
+  note: Claim A affirms and reiterates Claim B's definition of a conclusive reason
+    as nondefeasible and logically entailing its conclusion.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8567652702331543
+    pass_number: 1
+    confidence: 0.95
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim2
+  type: none
+  strength: none
+  note: Claim A discusses types of inference rules (conclusive and defeasible) and
+    their importance, while Claim B discusses Pollock's use of inference graphs instead
+    of argument trees, so they are largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8836047053337097
+    pass_number: 1
+    confidence: 0.0

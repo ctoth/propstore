@@ -1,0 +1,71 @@
+source_claim: Clark_2014_Micropublications:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Clark_2014_Micropublications:claim2
+  type: supports
+  strength: moderate
+  note: Claim A introduces the idea of tracing support relations, which gives context
+    to the structural requirement in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8961860537528992
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim13
+  type: supports
+  strength: weak
+  note: Claim A describes a system for tracing support relations, which somewhat supports
+    Claim B's assertion about the model accommodating claim-evidence networks.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9860017895698547
+    pass_number: 1
+    confidence: 0.6
+- target: Clark_2014_Micropublications:claim7
+  type: undermines
+  strength: moderate
+  note: Claim A suggests a solution to a problem that Claim B states exists, thus
+    weakening the perceived severity of the problem.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9894328117370605
+    pass_number: 1
+    confidence: 0.8
+- target: Greenberg_2009_CitationDistortions:claim2
+  type: supports
+  strength: weak
+  note: Claim A and Claim B both describe methods for tracking scientific claims across
+    documents; Claim A uses the concept of lineages, and Claim B utilizes citation
+    networks.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0174777507781982
+    pass_number: 1
+    confidence: 0.6
+- target: McAllester_1978_ThreeValuedTMS:claim11
+  type: none
+  strength: weak
+  note: Claim A discusses claim lineages and support relations in micropublications,
+    while Claim B discusses support tracing in a three-valued truth maintenance system,
+    and there's no clear overlap or conflict.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.020777940750122
+    pass_number: 1
+    confidence: 0.0

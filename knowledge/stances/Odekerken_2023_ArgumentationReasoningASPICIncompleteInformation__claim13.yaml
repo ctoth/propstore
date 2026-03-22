@@ -1,0 +1,73 @@
+source_claim: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim7
+  type: explains
+  strength: strong
+  note: Claim A explains why Claim B is true, by giving the mechanism of how both
+    a query and its contradictory can be relevant.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6119396686553955
+    pass_number: 1
+    confidence: 0.95
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim6
+  type: explains
+  strength: moderate
+  note: Claim A explains how a literal's status can be stable by referring to how
+    different resolutions of queryables can stabilize its status.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7766128778457642
+    pass_number: 1
+    confidence: 0.8
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim10
+  type: none
+  strength: weak
+  note: Claim A discusses relevance in the context of query resolution, while Claim
+    B discusses the computational complexity of determining relevance; they operate
+    at different levels of analysis with a tenuous connection.
+  conditions_differ: Claim A considers query resolution and minimal future theories,
+    while Claim B focuses on computational complexity.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7830400466918945
+    pass_number: 1
+    confidence: 0.0
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim9
+  type: none
+  strength: none
+  note: Claim A discusses relevance and stabilization of literals, while Claim B discusses
+    the computational complexity of determining literal stability, thus they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8701710104942322
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses j-relevance and future theories in the context of incomplete
+    information, whereas Claim B discusses contradictions arising from truth value
+    addition in a quiescent state, thus there isn't a clear epistemic link.
+  conditions_differ: Claim A deals with incomplete information and future theories,
+    while Claim B deals with quiescent states and truth value addition.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9497097730636597
+    pass_number: 1
+    confidence: 0.0

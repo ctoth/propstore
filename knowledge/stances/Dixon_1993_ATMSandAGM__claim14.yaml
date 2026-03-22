@@ -1,0 +1,73 @@
+source_claim: Dixon_1993_ATMSandAGM:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim16
+  type: supports
+  strength: moderate
+  note: Claim A's statement about AGM operations producing infinite theories corroborates
+    Claim B's assumption of deductively closed (infinite) theories in the AGM framework.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6927369832992554
+    pass_number: 1
+    confidence: 0.8
+- target: Shapiro_1998_BeliefRevisionTMS:claim13
+  type: supports
+  strength: moderate
+  note: Claim A supports Claim B by providing corroborating evidence regarding the
+    nature of AGM operations and their potential infiniteness.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.841961145401001
+    pass_number: 1
+    confidence: 0.8
+- target: Dixon_1993_ATMSandAGM:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses properties of AGM operations generally and finite bases,
+    while claim B equates ATMS and AGM in a specific behavioral way; there's no direct
+    conflict or support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9312942028045654
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim6
+  type: none
+  strength: weak
+  note: Claim A discusses the properties and limitations of AGM operations and finite
+    theory bases, while claim B lists the basic AGM contraction postulates; they are
+    related to the same general theory but neither supports nor contradicts the other
+    directly.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9465221762657166
+    pass_number: 1
+    confidence: 0.0
+- target: Dixon_1993_ATMSandAGM:claim11
+  type: none
+  strength: weak
+  note: Claim A discusses properties of AGM operations and their implications on finite
+    theory bases, while Claim B discusses the advantage of the AGM framework for rule
+    revision compared to the ATMS, indicating limited direct epistemic connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9555931091308594
+    pass_number: 1
+    confidence: 0.0

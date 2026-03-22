@@ -1,0 +1,71 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_AssumptionBasedTMS:claim5
+  type: supports
+  strength: moderate
+  note: Claim A's description of a nogood as representing an inconsistent set of assumptions
+    aligns with Claim B's identification of a nogood as an inconsistent environment.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9143775105476379
+    pass_number: 1
+    confidence: 0.8
+- target: Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation:claim9
+  type: none
+  strength: none
+  note: Claim A is about truth maintenance systems while Claim B is about computational
+    complexity in argumentation theory, so they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9368066191673279
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim8
+  type: explains
+  strength: moderate
+  note: Claim A explains the concept of a nogood, which is a key component in the
+    dependency-directed backtracking process described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9369326233863831
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim7
+  type: none
+  strength: weak
+  note: 'The claims discuss different aspects of Truth Maintenance Systems: Claim
+    A focuses on ''nogoods'' and their persistence, while Claim B describes non-monotonic
+    justifications via the ''outlist mechanism.'''
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9410936236381531
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim12
+  type: none
+  strength: none
+  note: The claims describe different aspects of the Truth Maintenance System (TMS)
+    without directly relating to each other; A focuses on 'nogoods' and inconsistency,
+    while B focuses on 'default assumptions' and selecting alternatives.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9503749012947083
+    pass_number: 1
+    confidence: 0.0

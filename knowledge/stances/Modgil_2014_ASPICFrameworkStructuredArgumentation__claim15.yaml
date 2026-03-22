@@ -1,0 +1,72 @@
+source_claim: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim15
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim8
+  type: supports
+  strength: strong
+  note: Claim A describes a core feature of the ASPIC+ framework which is elaborated
+    further in Claim B, acting as support.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.49156221747398376
+    pass_number: 1
+    confidence: 0.95
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim1
+  type: none
+  strength: weak
+  note: Claim A and Claim B discuss different aspects of the ASPIC+ framework, with
+    Claim A focusing on negation and conflict relations, and Claim B focusing on conflict-free
+    definitions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.757127583026886
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim15
+  type: none
+  strength: weak
+  note: The claims are about different aspects of ASPIC+ without directly impacting
+    each other's core arguments.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7862390279769897
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim3
+  type: none
+  strength: weak
+  note: Claim A discusses the general ASPIC+ framework's negation handling, while
+    Claim B details the types of attack within ASPIC+, and these are different aspects
+    of the same framework without direct conflict.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7936903238296509
+    pass_number: 1
+    confidence: 0.0
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim2
+  type: none
+  strength: none
+  note: Claim A describes the general structure of ASPIC+, while Claim B describes
+    a specific property satisfied by ASPIC+ under certain conditions, so they're not
+    directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8260761499404907
+    pass_number: 1
+    confidence: 0.0

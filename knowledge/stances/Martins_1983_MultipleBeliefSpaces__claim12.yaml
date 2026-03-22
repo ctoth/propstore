@@ -1,0 +1,78 @@
+source_claim: Martins_1983_MultipleBeliefSpaces:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McAllester_1978_ThreeValuedTMS:claim13
+  type: undercuts
+  strength: moderate
+  note: Claim A argues that existing approaches, including Claim B's, lack the capability
+    to handle multiple agents with contradictory beliefs in a single knowledge base,
+    thus weakening the generality of Claim B's approach.
+  conditions_differ: Claim A considers multiple agents with possibly contradictory
+    beliefs, while Claim B does not explicitly mention that aspect.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8042202591896057
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim12
+  type: undermines
+  strength: moderate
+  note: Claim A states that prior approaches didn't handle multiple agents with contradictory
+    beliefs, which undermines the general applicability of McAllester's TMS which
+    is a prior approach.
+  conditions_differ: Claim A concerns multi-agent systems while Claim B discusses
+    single-agent systems.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8444118499755859
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim1
+  type: undercuts
+  strength: moderate
+  note: Claim A suggests limitations of approaches like Claim B's (McAllester's TMS)
+    by pointing out they don't handle multiple agents, thus attacking its overall
+    applicability.
+  conditions_differ: The condition is whether the system needs to handle multiple
+    agents with contradictory beliefs.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8586234450340271
+    pass_number: 1
+    confidence: 0.8
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim10
+  type: supports
+  strength: moderate
+  note: Claim A provides context indicating that existing TMS systems at the time
+    had limitations, which aligns with and supports Claim B's criticism of Doyle's
+    TMS.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.860479474067688
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1986_AssumptionBasedTMS:claim2
+  type: none
+  strength: weak
+  note: Claim A focuses on handling multiple agents with conflicting beliefs, while
+    Claim B addresses limitations of single-state TMSs, indicating different problem
+    domains.
+  conditions_differ: Claim A deals with multiple agents; Claim B is on limitations
+    of a single consistent database.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8811272382736206
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,72 @@
+source_claim: Martins_1988_BeliefRevision:claim2
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1983_MultipleBeliefSpaces:claim3
+  type: supports
+  strength: moderate
+  note: Claim A and Claim B are very similar definitions of a supported wff, with
+    Claim A being a slightly more formal definition using a quadruple.
+  conditions_differ: 'null'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.6613461971282959
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim5
+  type: none
+  strength: weak
+  note: Claim A defines a supported wff, while Claim B states a theorem about supported
+    wffs; Claim A provides context but doesn't directly influence the validity or
+    acceptance of Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7981796860694885
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim4
+  type: supports
+  strength: weak
+  note: Claim A introduces the concept of restriction sets within supported wffs,
+    which is a prerequisite for understanding the claim about minimal restriction
+    sets in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8573065996170044
+    pass_number: 1
+    confidence: 0.6
+- target: Martins_1988_BeliefRevision:claim7
+  type: none
+  strength: none
+  note: Claim A defines a supported wff, while Claim B discusses a combinability predicate
+    for such wffs; there is no direct epistemic relationship between the two.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9496618509292603
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1988_BeliefRevision:claim18
+  type: none
+  strength: none
+  note: Claim A defines a data structure; Claim B describes a function operating on
+    such structures; they are related but not in a way that A directly supports, rebuts,
+    etc. B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9686123132705688
+    pass_number: 1
+    confidence: 0.0

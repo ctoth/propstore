@@ -1,0 +1,73 @@
+source_claim: Prakken_2012_AppreciationJohnPollock'sWork:claim6
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Pollock_1987_DefeasibleReasoning:claim8
+  type: explains
+  strength: moderate
+  note: Claim A provides a more detailed categorization (parallel and serial) of self-defeat,
+    which explains the mechanism behind Claim B's general concept of self-defeating
+    arguments.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7659449577331543
+    pass_number: 1
+    confidence: 0.8
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim5
+  type: supports
+  strength: moderate
+  note: Claim A introduces the concept of self-defeat, while Claim B builds upon this
+    concept by stating the implications of self-defeating arguments, thus Claim A
+    supports Claim B by establishing the foundation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7888253331184387
+    pass_number: 1
+    confidence: 0.8
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim3
+  type: none
+  strength: weak
+  note: Claim A discusses types of self-defeat, while Claim B addresses indirect defeat
+    through support edges, making them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9030539989471436
+    pass_number: 1
+    confidence: 0.0
+- target: Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses types of self-defeat in general argumentation, while Claim
+    B describes a specific type of defeat ('supported defeat') within a bipolar argumentation
+    framework, so they're weakly related but don't directly interact.
+  conditions_differ: Claim A discusses general argumentation while Claim B is about
+    bipolar argumentation.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9064520001411438
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim3
+  type: none
+  strength: none
+  note: The claims discuss different aspects of argumentation theory; one discusses
+    self-defeat, while the other discusses types of defeat.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9190620183944702
+    pass_number: 1
+    confidence: 0.0

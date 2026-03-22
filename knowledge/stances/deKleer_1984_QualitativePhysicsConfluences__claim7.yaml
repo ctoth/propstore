@@ -1,0 +1,71 @@
+source_claim: deKleer_1984_QualitativePhysicsConfluences:claim7
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1984_QualitativePhysicsConfluences:claim9
+  type: explains
+  strength: moderate
+  note: Claim A's ambiguity due to the qualitative approach explains why constraint
+    propagation alone (as mentioned in Claim B) is insufficient.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.915100634098053
+    pass_number: 1
+    confidence: 0.8
+- target: deKleer_1984_QualitativePhysicsConfluences:claim1
+  type: none
+  strength: weak
+  note: Claim A discusses the ambiguity in qualitative modeling while Claim B defines
+    a core concept, they aren't strongly related but knowing the definition helps
+    understand the problem in claim A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9777864813804626
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim2
+  type: none
+  strength: none
+  note: The claims discuss different aspects of qualitative reasoning; one discusses
+    ambiguity in solutions, the other describes how state specifications are created.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9914581775665283
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_ProblemSolvingATMS:claim15
+  type: none
+  strength: none
+  note: The claims discuss different aspects of qualitative reasoning and constraint
+    satisfaction; there is no direct relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0490249395370483
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1984_QualitativePhysicsConfluences:claim3
+  type: explains
+  strength: moderate
+  note: Claim A explains why qualitative approaches, as mentioned in Claim B, introduce
+    ambiguity in reasoning due to the nature of qualitative constraint satisfaction
+    and the lack of unique solutions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0495296716690063
+    pass_number: 1
+    confidence: 0.8

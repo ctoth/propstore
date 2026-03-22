@@ -1,0 +1,71 @@
+source_claim: Martins_1988_BeliefRevision:claim9
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1988_BeliefRevision:claim15
+  type: none
+  strength: none
+  note: Claim A discusses the novelty of SNeBR as an implemented system, while Claim
+    B describes an interactive feature of the SNeBR system, and they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7682310938835144
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim7
+  type: none
+  strength: weak
+  note: Claim A simply states SNeBR was the first implemented assumption-based system.
+    Claim B describes the functionality of SNeBR, but doesn't relate to when it was
+    created, so no direct epistemic relationship exists.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7897456288337708
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim2
+  type: none
+  strength: none
+  note: Claim A discusses the historical precedence of a specific belief revision
+    system, while Claim B outlines the core functionalities of a belief revision system
+    in general; they are unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9801371097564697
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim1
+  type: none
+  strength: weak
+  note: Claim A discusses a system for belief revision, while Claim B discusses a
+    different system for belief maintenance, with little apparent overlap.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.988738477230072
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim14
+  type: none
+  strength: weak
+  note: Claim A describes a specific system, while Claim B discusses general principles
+    of belief revision, making them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9994109869003296
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,72 @@
+source_claim: Martins_1988_BeliefRevision:claim1
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1988_BeliefRevision:claim11
+  type: supports
+  strength: strong
+  note: Claim A strongly corroborates Claim B by providing a specific mechanism (origin
+    sets and restriction sets) by which SWM blocks the introduction of irrelevancies
+    as described in Claim B.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7867304086685181
+    pass_number: 1
+    confidence: 0.95
+- target: Martins_1988_BeliefRevision:claim14
+  type: undermines
+  strength: moderate
+  note: Claim A undermines Claim B by suggesting that SWM, despite lacking formal
+    semantics, possesses features that manage relevance, implicitly hinting at a form
+    of meaning or constraint beyond pure syntax.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9373332858085632
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim18
+  type: explains
+  strength: moderate
+  note: Claim B describes the mechanism (the mu function) by which Claim A's system
+    (SWM) prevents introduction of irrelevancies, thereby explaining how the system
+    works.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9682602286338806
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim16
+  type: explains
+  strength: moderate
+  note: A describes the mechanism by which SWM works, which explains why B (a property
+    of SWM) holds true.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9794775247573853
+    pass_number: 1
+    confidence: 0.8
+- target: Martins_1988_BeliefRevision:claim10
+  type: none
+  strength: weak
+  note: A and B discuss different aspects of the SWM system, so there isn't a strong
+    connection.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9904609322547913
+    pass_number: 1
+    confidence: 0.0

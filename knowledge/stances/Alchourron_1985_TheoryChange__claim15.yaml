@@ -1,0 +1,74 @@
+source_claim: Alchourron_1985_TheoryChange:claim15
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Alchourron_1985_TheoryChange:claim9
+  type: none
+  strength: weak
+  note: These claims relate to technical properties within a specific formal framework
+    of theory change, but A doesn't directly bear on B's validity or vice versa; they
+    concern different aspects of the formal system.
+  conditions_differ: The claims address different properties of relational structures
+    and contraction functions within the formal system of theory change.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9782971739768982
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim13
+  type: none
+  strength: weak
+  note: Claim A is about properties of ordering relations in theory change, while
+    Claim B is about problems of explicit transitivity in belief maintenance systems,
+    and the ideas are too different.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0312740802764893
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim14
+  type: supports
+  strength: moderate
+  note: Claim A highlights the importance of finiteness in the ordering relation,
+    which supports Claim B's observation that the hierarchy collapses differently
+    in the finite case, demonstrating a contrasting behavior compared to the infinite
+    case.
+  conditions_differ: finiteness vs. infiniteness
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0353784561157227
+    pass_number: 1
+    confidence: 0.8
+- target: Ginsberg_1985_Counterfactuals:claim12
+  type: none
+  strength: weak
+  note: The claims address different topics within logic and knowledge representation,
+    with no clear dependency or relevance to each other.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0496392250061035
+    pass_number: 1
+    confidence: 0.0
+- target: Reiter_1980_DefaultReasoning:claim8
+  type: none
+  strength: none
+  note: Claim A and Claim B discuss unrelated topics (orderings in theory change and
+    properties of default reasoning, respectively).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0627076625823975
+    pass_number: 1
+    confidence: 0.0

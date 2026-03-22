@@ -1,0 +1,77 @@
+source_claim: Modgil_2018_GeneralAccountArgumentationPreferences:claim11
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim4
+  type: supports
+  strength: moderate
+  note: Claim A offers theoretical properties of argumentation frameworks that provide
+    a general setting within which ASPIC+ operates, thus lending support to the consistency
+    result in Claim B.
+  conditions_differ: Claim A speaks about c-SAFs, while Claim B is about ASPIC+ under
+    specific conditions.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8474352359771729
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim18
+  type: none
+  strength: weak
+  note: Claim A discusses general properties of c-SAFs under orderings, while Claim
+    B discusses classical-logic c-SAFs without preferences, so they are only weakly
+    related.
+  conditions_differ: Claim A considers general c-SAFs under reasonable orderings,
+    while Claim B considers classical-logic c-SAFs *without* preferences.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8550829887390137
+    pass_number: 1
+    confidence: 0.0
+- target: Dung_1995_AcceptabilityArguments:claim9
+  type: supports
+  strength: weak
+  note: Claim A utilizes and builds upon concepts related to admissible extensions,
+    which are defined and explained in Claim B.
+  conditions_differ: Claim A discusses c-SAFs under reasonable orderings while Claim
+    B concerns general argumentation frameworks.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.855514407157898
+    pass_number: 1
+    confidence: 0.6
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim5
+  type: supports
+  strength: moderate
+  note: Claim A establishes fundamental properties of argumentation frameworks, which
+    can be seen as supporting the more specific consistency result in Claim B within
+    the ASPIC+ framework.
+  conditions_differ: Claim A concerns general properties of c-SAFs, while Claim B
+    focuses on the specific ASPIC+ framework.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8584401607513428
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2018_GeneralAccountArgumentationPreferences:claim9
+  type: supports
+  strength: moderate
+  note: Claim A's result about admissibility and preferred extensions provides a theoretical
+    foundation that indirectly supports Claim B's claim about the relationship between
+    stable extensions and preferred subtheories.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8927062153816223
+    pass_number: 1
+    confidence: 0.8

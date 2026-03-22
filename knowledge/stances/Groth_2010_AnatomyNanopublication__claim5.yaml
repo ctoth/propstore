@@ -1,0 +1,73 @@
+source_claim: Groth_2010_AnatomyNanopublication:claim5
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Groth_2010_AnatomyNanopublication:claim4
+  type: explains
+  strength: moderate
+  note: Claim A explains how nanopublications are serialized using Named Graphs, which
+    provides a mechanistic explanation for why Claim B states the minimum requirement
+    is two Named Graphs.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7224519848823547
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim7
+  type: none
+  strength: weak
+  note: Claim A describes the serialization of nanopublications using named graphs,
+    while Claim B discusses limitations of nanopublications, specifically regarding
+    representing support graphs and evidential chains, so they are not directly related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8547200560569763
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim1
+  type: none
+  strength: weak
+  note: Claim A describes a technical aspect of how nanopublications are serialized,
+    while Claim B defines what constitutes a nanopublication, so there is no strong
+    epistemic relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9049116373062134
+    pass_number: 1
+    confidence: 0.0
+- target: Groth_2010_AnatomyNanopublication:claim8
+  type: supports
+  strength: weak
+  note: Claim A provides a technological mechanism (Named Graphs with URIs) that could
+    be used in Claim B's assertion that attribution is essential via linking graphs
+    to authorities.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.915066123008728
+    pass_number: 1
+    confidence: 0.6
+- target: Groth_2010_AnatomyNanopublication:claim2
+  type: none
+  strength: none
+  note: Claim A and Claim B describe different aspects of nanopublications, so neither
+    claim bears directly on the other's justification or truth.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.936597466468811
+    pass_number: 1
+    confidence: 0.0

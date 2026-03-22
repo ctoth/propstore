@@ -1,0 +1,70 @@
+source_claim: Clark_2014_Micropublications:claim3
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Clark_2014_Micropublications:claim4
+  type: supports
+  strength: strong
+  note: Claim A provides further definition and structure that is consistent with
+    Claim B's more general description of a minimal micropublication.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7276387214660645
+    pass_number: 1
+    confidence: 0.95
+- target: Clark_2014_Micropublications:claim1
+  type: supports
+  strength: moderate
+  note: Claim A provides a general structural constraint on micropublications, while
+    Claim B elaborates on that structure.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8150961995124817
+    pass_number: 1
+    confidence: 0.8
+- target: Clark_2014_Micropublications:claim13
+  type: none
+  strength: weak
+  note: Claim A describes the required components of a micropublication, while Claim
+    B describes the representational complexity that the micropublication model can
+    accommodate, showing a weak, non-conflicting, but not directly supportive, relation.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8798192739486694
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim11
+  type: none
+  strength: none
+  note: The claims are about different aspects of micropublications, one concerning
+    structure and the other about attribution tracking.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8813453316688538
+    pass_number: 1
+    confidence: 0.0
+- target: Clark_2014_Micropublications:claim2
+  type: supports
+  strength: weak
+  note: Claim A defines the structure of a micropublication, which implicitly supports
+    Claim B's assertion about the support relation within that defined structure.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.919759213924408
+    pass_number: 1
+    confidence: 0.6

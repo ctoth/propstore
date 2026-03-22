@@ -1,0 +1,75 @@
+source_claim: Modgil_2018_GeneralAccountArgumentationPreferences:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim3
+  type: supports
+  strength: strong
+  note: Claim A provides justification and context for the types of attacks defined
+    in Claim B, essentially explaining why those are the valid forms of attack.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7824705243110657
+    pass_number: 1
+    confidence: 0.95
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim11
+  type: explains
+  strength: moderate
+  note: 'Claim A provides a reason why Pollock''s work (Claim B) didn''t include premise
+    attack: because Pollock''s system focuses on defeasible derivations from consistent
+    bases, whereas premise attacks target strict premises.'
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.832897424697876
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim4
+  type: undermines
+  strength: moderate
+  note: Claim A undermines Claim B by stating that conclusions derived from strict
+    rules and axioms cannot be attacked, contradicting the idea of successful undercutting
+    attacks in all scenarios.
+  conditions_differ: Claim A focuses on attacks on arguments with strict rules and
+    axioms, while Claim B does not explicitly exclude such arguments when describing
+    undercutting attacks.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8720100522041321
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim10
+  type: supports
+  strength: moderate
+  note: Claim A provides a constraint on attacks, while Claim B provides a framework
+    (ASPIC+) for modeling argument schemes and attacks, which aligns with the spirit
+    of Claim A.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8738491535186768
+    pass_number: 1
+    confidence: 0.8
+- target: Modgil_2014_ASPICFrameworkStructuredArgumentation:claim13
+  type: none
+  strength: weak
+  note: Claim A and Claim B address different aspects of argumentation; A discusses
+    attack strategies based on argument elements, while B highlights the need for
+    structured arguments over atomic ones.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.891217827796936
+    pass_number: 1
+    confidence: 0.0

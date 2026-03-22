@@ -1,0 +1,74 @@
+source_claim: Prakken_2012_AppreciationJohnPollock'sWork:claim13
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Dung_1995_AcceptabilityArguments:claim22
+  type: none
+  strength: weak
+  note: Claim A and Claim B are largely unrelated, with A discussing the adoption
+    of Pollock's suppositional reasoning, while B focuses on the relationship between
+    Pollock's indefeasible arguments and grounded extensions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7559763193130493
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim9
+  type: none
+  strength: weak
+  note: Claim A discusses the adoption of suppositional reasoning from Pollock's work,
+    while Claim B focuses on Pollock's defeasible inference rules and their connection
+    to epistemology, suggesting little direct overlap or interaction.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7750886082649231
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim2
+  type: none
+  strength: weak
+  note: Claim A discusses the adoption of a specific feature (suppositional reasoning)
+    of Pollock's system by the argumentation community, while Claim B describes the
+    structure of Pollock's arguments (inference graphs).
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.7871859669685364
+    pass_number: 1
+    confidence: 0.0
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim14
+  type: explains
+  strength: moderate
+  note: Claim A explains why Pollock may have worked in relative isolation, as stated
+    in Claim B, because the feature of suppositional reasoning was not taken up by
+    the argumentation community.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8106738924980164
+    pass_number: 1
+    confidence: 0.8
+- target: Prakken_2012_AppreciationJohnPollock'sWork:claim11
+  type: none
+  strength: weak
+  note: Claim A discusses suppositional reasoning, while Claim B concerns the absence
+    of premise attack in Pollock's work; these are distinct aspects of his system
+    and don't directly relate epistemically.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.820952296257019
+    pass_number: 1
+    confidence: 0.0

@@ -1,0 +1,72 @@
+source_claim: McAllester_1978_ThreeValuedTMS:claim4
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: McAllester_1978_ThreeValuedTMS:claim5
+  type: none
+  strength: weak
+  note: Claim A discusses the method of deduction, while Claim B discusses how contradictions
+    are handled, which are different aspects of the same system, but not directly
+    related.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9320521950721741
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim6
+  type: explains
+  strength: moderate
+  note: Claim A explains why contradictions only arise from truth value additions
+    (as stated in Claim B) by detailing the one-step deduction process that ensures
+    all possible deductions are made before additions.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9564114809036255
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim3
+  type: none
+  strength: weak
+  note: Claim A discusses deduction efficiency and avoiding NP-completeness, while
+    Claim B describes a symmetric deduction method for contradiction resolution, with
+    a weak relationship, if any, between the two.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9895994663238525
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim13
+  type: supports
+  strength: moderate
+  note: Claim A provides details about the TMS, which implicitly supports claim B
+    about contradictions within that system.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0227209329605103
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim7
+  type: none
+  strength: weak
+  note: Claim A discusses deduction strategies, while Claim B describes clause management;
+    they are largely unrelated, though both pertain to the overall TMS system.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0420359373092651
+    pass_number: 1
+    confidence: 0.0

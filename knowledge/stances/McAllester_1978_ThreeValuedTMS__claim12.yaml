@@ -1,0 +1,73 @@
+source_claim: McAllester_1978_ThreeValuedTMS:claim12
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Martins_1983_MultipleBeliefSpaces:claim12
+  type: undermines
+  strength: moderate
+  note: Claim A describes the functionality of McAllester's TMS, while Claim B claims
+    that McAllester's TMS (among others) *didn't* handle multiple contradictory beliefs,
+    implying a limitation that Claim A does not highlight or seem to accommodate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8444118499755859
+    pass_number: 1
+    confidence: 0.8
+- target: McAllester_1978_ThreeValuedTMS:claim1
+  type: none
+  strength: weak
+  note: Claim A and Claim B are related as both refer to Doyle's TMS, but they discuss
+    different aspects, so A does not directly affect B's validity.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8533366322517395
+    pass_number: 1
+    confidence: 0.0
+- target: McAllester_1978_ThreeValuedTMS:claim13
+  type: none
+  strength: weak
+  note: The claims discuss different aspects of TMS systems and their implementation,
+    with A focusing on non-monotonicity and B focusing on contradiction resolution,
+    but they are not directly opposed.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8620144128799438
+    pass_number: 1
+    confidence: 0.0
+- target: Falkenhainer_1987_BeliefMaintenanceSystem:claim10
+  type: none
+  strength: none
+  note: Claim A describes the functionality of Doyle's TMS and McAllester's system,
+    while claim B points out a limitation of Doyle's TMS without any direct relation
+    to Claim A's central topic.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8786460757255554
+    pass_number: 1
+    confidence: 0.0
+- target: Shapiro_1998_BeliefRevisionTMS:claim12
+  type: none
+  strength: none
+  note: Claim A discusses truth maintenance systems and non-monotonic reasoning, while
+    Claim B discusses dependency-directed backtracking as a precursor to TMS, but
+    they don't directly interact epistemicly.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8842145800590515
+    pass_number: 1
+    confidence: 0.0

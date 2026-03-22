@@ -1,0 +1,72 @@
+source_claim: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim8
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim7
+  type: none
+  strength: none
+  note: Claim A discusses relation classification architecture (MultiChoice), while
+    Claim B discusses sequence labeling for argument component detection (GRU + CRF);
+    they address distinct tasks.
+  conditions_differ: 'task: relation classification vs. argument component detection'
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0014901161193848
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim12
+  type: none
+  strength: weak
+  note: Claim A discusses a neural architecture for argument mining, while Claim B
+    is about default assumptions in a truth maintenance system; they address different
+    problems.
+  conditions_differ: Different domains and methodologies.
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0130970478057861
+    pass_number: 1
+    confidence: 0.0
+- target: Alchourron_1985_TheoryChange:claim11
+  type: none
+  strength: none
+  note: 'These claims discuss completely different topics: argument mining architectures
+    and theory change.'
+  conditions_differ: different domains of study
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0293676853179932
+    pass_number: 1
+    confidence: 0.0
+- target: Mayer_2020_Transformer-BasedArgumentMiningHealthcare:claim1
+  type: none
+  strength: none
+  note: Claim A discusses a relation classification architecture, while Claim B discusses
+    a complete argument mining pipeline. They don't directly relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.03093421459198
+    pass_number: 1
+    confidence: 0.0
+- target: Martins_1983_MultipleBeliefSpaces:claim11
+  type: none
+  strength: none
+  note: Claim A concerns argument mining architecture and relation classification,
+    while Claim B discusses belief revision in the context of handling contradictions,
+    so they have no meaningful relationship.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 1.0425280332565308
+    pass_number: 1
+    confidence: 0.0

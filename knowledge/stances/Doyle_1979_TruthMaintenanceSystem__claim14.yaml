@@ -1,0 +1,71 @@
+source_claim: Doyle_1979_TruthMaintenanceSystem:claim14
+classification_model: gemini/gemini-2.0-flash
+classification_date: '2026-03-22'
+stances:
+- target: deKleer_1986_AssumptionBasedTMS:claim2
+  type: none
+  strength: none
+  note: Claim A discusses types of circularity in TMS, while Claim B discusses limitations
+    of justification-based TMSs; they don't directly relate.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8758019208908081
+    pass_number: 1
+    confidence: 0.0
+- target: Doyle_1979_TruthMaintenanceSystem:claim2
+  type: none
+  strength: none
+  note: Claim A discusses circularity in justification networks, while Claim B describes
+    justification types, making them largely unrelated.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.8765565156936646
+    pass_number: 1
+    confidence: 0.0
+- target: deKleer_1986_AssumptionBasedTMS:claim8
+  type: rebuts
+  strength: strong
+  note: Claim A asserts the existence of significant circularities in justification
+    networks, while Claim B claims circular justifications are harmless.
+  conditions_differ: Claim A discusses TMS justification networks in general, while
+    Claim B specifically refers to Assumption-Based TMS (ATMS).
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.895943820476532
+    pass_number: 1
+    confidence: 0.95
+- target: Doyle_1979_TruthMaintenanceSystem:claim6
+  type: explains
+  strength: moderate
+  note: Claim A explains some possible complex scenarios in TMS justification networks,
+    which gives a context to understand Claim B, regarding how node statuses relate
+    to their justifications.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9009354114532471
+    pass_number: 1
+    confidence: 0.8
+- target: Doyle_1979_TruthMaintenanceSystem:claim5
+  type: explains
+  strength: weak
+  note: Claim A's discussion of circularity provides a context that weakly explains
+    why Claim B would want to avoid circular justifications.
+  conditions_differ: null
+  resolution:
+    method: nli_first_pass
+    model: gemini/gemini-2.0-flash
+    embedding_model: text-embedding-3-small
+    embedding_distance: 0.9166343212127686
+    pass_number: 1
+    confidence: 0.6
