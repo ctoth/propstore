@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from ast_equiv import compare as ast_compare
+from propstore.world.value_resolver import ActiveClaimResolver
 from propstore.world.types import (
     BeliefSpace,
     DerivedResult,
@@ -18,167 +18,6 @@ from propstore.world.types import (
 
 if TYPE_CHECKING:
     from propstore.world.model import WorldModel
-
-
-def _derived_value_impl(
-    concept_id: str,
-    world,
-    is_param_compatible,
-    value_of_fn,
-    override_values: dict[str, float | str | None] | None = None,
-) -> DerivedResult:
-    """Shared implementation for derived_value() — used by BoundWorld and HypotheticalWorld."""
-    from propstore.propagation import evaluate_parameterization
-
-    params = world.parameterizations_for(concept_id)
-    if not params:
-        return DerivedResult(concept_id=concept_id, status="no_relationship")
-
-    for param in params:
-        if not is_param_compatible(param.get("conditions_cel")):
-            continue
-
-        sympy_expr = param.get("sympy")
-        if not sympy_expr:
-            continue
-
-        input_ids = json.loads(param["concept_ids"])
-        effective_inputs = [iid for iid in input_ids if iid != concept_id]
-
-        input_values: dict[str, float] = {}
-        all_determined = True
-        any_conflicted = False
-
-        for iid in effective_inputs:
-            if override_values and iid in override_values:
-                ov = override_values[iid]
-                if ov is not None:
-                    try:
-                        input_values[iid] = float(ov)
-                        continue
-                    except (TypeError, ValueError):
-                        pass
-
-            vr = value_of_fn(iid)
-            if vr.status == "determined":
-                val = vr.claims[0].get("value") if vr.claims else None
-                if val is not None:
-                    input_values[iid] = float(val)
-                else:
-                    all_determined = False
-            elif vr.status == "conflicted":
-                any_conflicted = True
-                all_determined = False
-            else:
-                all_determined = False
-
-        if any_conflicted:
-            return DerivedResult(concept_id=concept_id, status="conflicted")
-
-        if not all_determined or len(input_values) != len(effective_inputs):
-            continue
-
-        result = evaluate_parameterization(sympy_expr, input_values, concept_id)
-        if result is not None:
-            return DerivedResult(
-                concept_id=concept_id,
-                status="derived",
-                value=result,
-                formula=param.get("formula"),
-                input_values=input_values,
-                exactness=param.get("exactness"),
-            )
-
-    # No parameterization succeeded
-    if any(not is_param_compatible(p.get("conditions_cel")) for p in params):
-        return DerivedResult(concept_id=concept_id, status="no_relationship")
-
-    return DerivedResult(concept_id=concept_id, status="underspecified")
-
-
-def _value_of_from_active(
-    active: list[dict], concept_id: str, helpers: BoundWorld,
-) -> ValueResult:
-    """Shared implementation for value_of() — used by BoundWorld and HypotheticalWorld.
-
-    ``helpers`` is always a BoundWorld instance (HypotheticalWorld passes self._base).
-    It provides _extract_variable_concepts, _collect_known_values, _extract_bindings.
-    """
-    if not active:
-        return ValueResult(concept_id=concept_id, status="no_claims")
-
-    # Separate algorithm claims from value-bearing claims
-    algo_claims = [c for c in active if c.get("type") == "algorithm"]
-    value_claims = [c for c in active if c.get("type") != "algorithm"]
-
-    # Mixed: algorithms are separate channel, resolve value claims only
-    if value_claims and algo_claims:
-        values = set()
-        for c in value_claims:
-            v = c.get("value")
-            if v is not None:
-                values.add(v)
-        if not values:
-            return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
-        if len(values) == 1:
-            return ValueResult(concept_id=concept_id, status="determined", claims=active)
-        return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
-
-    # Algorithm-only claims
-    if algo_claims and not value_claims:
-        if len(algo_claims) == 1:
-            return ValueResult(concept_id=concept_id, status="determined", claims=algo_claims)
-
-        # Multiple algorithms — compare pairwise using ast_compare
-        all_var_concepts: set[str] = set()
-        for ac in algo_claims:
-            all_var_concepts.update(helpers._extract_variable_concepts(ac))
-        all_var_concepts.discard(concept_id)
-
-        known_values = helpers._collect_known_values(list(all_var_concepts))
-
-        all_equivalent = True
-        for i in range(len(algo_claims)):
-            for j in range(i + 1, len(algo_claims)):
-                body_a = algo_claims[i].get("body", "")
-                body_b = algo_claims[j].get("body", "")
-                if not body_a or not body_b:
-                    all_equivalent = False
-                    break
-                bindings_a = helpers._extract_bindings(algo_claims[i])
-                bindings_b = helpers._extract_bindings(algo_claims[j])
-                try:
-                    result = ast_compare(
-                        body_a, bindings_a, body_b, bindings_b,
-                        known_values=known_values if known_values else None,
-                    )
-                except Exception:
-                    all_equivalent = False
-                    break
-                if not result.equivalent:
-                    all_equivalent = False
-                    break
-            if not all_equivalent:
-                break
-
-        if all_equivalent:
-            return ValueResult(concept_id=concept_id, status="determined", claims=algo_claims)
-        return ValueResult(concept_id=concept_id, status="conflicted", claims=algo_claims)
-
-    # Standard value-based resolution
-    values = set()
-    for c in active:
-        v = c.get("value")
-        if v is not None:
-            values.add(v)
-
-    if not values:
-        return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
-
-    if len(values) == 1:
-        return ValueResult(concept_id=concept_id, status="determined", claims=active)
-
-    return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
 
 
 def _concept_registry_for_store(world) -> dict[str, dict]:
@@ -293,6 +132,14 @@ class BoundWorld(BeliefSpace):
                 self._context_visible.add(ancestor)
         else:
             self._context_visible = None  # no context filtering
+        self._resolver = ActiveClaimResolver(
+            parameterizations_for=getattr(self._store, "parameterizations_for", lambda _cid: []),
+            is_param_compatible=self._is_param_compatible,
+            value_of=self.value_of,
+            extract_variable_concepts=self._extract_variable_concepts,
+            collect_known_values=self._collect_known_values,
+            extract_bindings=self._extract_bindings,
+        )
 
     @staticmethod
     def _bindings_to_cel(bindings: dict[str, Any]) -> list[str]:
@@ -406,7 +253,7 @@ class BoundWorld(BeliefSpace):
 
     def value_of(self, concept_id: str) -> ValueResult:
         active = self.active_claims(concept_id)
-        return _value_of_from_active(active, concept_id, self)
+        return self._resolver.value_of_from_active(active, concept_id)
 
     def derived_value(
         self,
@@ -415,11 +262,8 @@ class BoundWorld(BeliefSpace):
         override_values: dict[str, float | str | None] | None = None,
     ) -> DerivedResult:
         """Derive a value for concept_id via parameterization relationships."""
-        return _derived_value_impl(
+        return self._resolver.derived_value(
             concept_id,
-            self._store,
-            self._is_param_compatible,
-            self.value_of,
             override_values=override_values,
         )
 

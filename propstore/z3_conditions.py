@@ -42,6 +42,9 @@ class Z3ConditionSolver:
         self._reals: dict[str, z3.ArithRef] = {}
         self._bools: dict[str, z3.BoolRef] = {}
         self._strings: dict[str, z3.SeqRef] = {}
+        self._ast_cache: dict[str, ASTNode] = {}
+        self._condition_expr_cache: dict[str, Any] = {}
+        self._condition_set_cache: dict[tuple[str, ...], Any] = {}
         # For categories: one EnumSort per concept, with a z3 const
         self._enum_sorts: dict[str, z3.DatatypeSortRef] = {}
         self._enum_consts: dict[str, z3.ExprRef] = {}
@@ -249,17 +252,37 @@ class Z3ConditionSolver:
         false_br = self._translate(node.false_branch)
         return z3.If(cond, true_br, false_br)
 
+    @staticmethod
+    def _normalize_conditions(conditions: list[str]) -> tuple[str, ...]:
+        return tuple(sorted(conditions))
+
+    def _condition_ast(self, condition: str) -> ASTNode:
+        ast = self._ast_cache.get(condition)
+        if ast is None:
+            ast = parse_cel(condition)
+            self._ast_cache[condition] = ast
+        return ast
+
+    def _condition_to_z3(self, condition: str) -> Any:
+        expr = self._condition_expr_cache.get(condition)
+        if expr is None:
+            expr = self._translate(self._condition_ast(condition))
+            self._condition_expr_cache[condition] = expr
+        return expr
+
     def _conditions_to_z3(self, conditions: list[str]) -> Any:
         """Parse and translate a list of CEL condition strings, conjuncting them."""
-        if not conditions:
-            return z3.BoolVal(True, self._ctx)
-        z3_exprs = []
-        for cond_str in conditions:
-            ast = parse_cel(cond_str)
-            z3_exprs.append(self._translate(ast))
-        if len(z3_exprs) == 1:
-            return z3_exprs[0]
-        return z3.And(*z3_exprs)
+        normalized = self._normalize_conditions(conditions)
+        expr = self._condition_set_cache.get(normalized)
+        if expr is not None:
+            return expr
+        if not normalized:
+            expr = z3.BoolVal(True, self._ctx)
+        else:
+            z3_exprs = [self._condition_to_z3(cond_str) for cond_str in normalized]
+            expr = z3_exprs[0] if len(z3_exprs) == 1 else z3.And(*z3_exprs)
+        self._condition_set_cache[normalized] = expr
+        return expr
 
     def are_disjoint(self, conditions_a: list[str], conditions_b: list[str]) -> bool:
         """Check if two condition sets are disjoint (their conjunction is UNSAT)."""

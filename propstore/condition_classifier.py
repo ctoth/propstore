@@ -11,9 +11,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field as dataclass_field
+from typing import TYPE_CHECKING
 
 from propstore.cel_checker import ConceptInfo
-from propstore.conflict_detector import ConflictClass
+from propstore.conflict_detector.models import ConflictClass
+
+if TYPE_CHECKING:
+    from propstore.z3_conditions import Z3ConditionSolver
 
 
 # ── Regex constants ───────────────────────────────────────────────────
@@ -62,16 +66,17 @@ def _try_z3_classify(
     conditions_a: list[str],
     conditions_b: list[str],
     cel_registry: dict[str, ConceptInfo] | None,
+    solver: Z3ConditionSolver | None = None,
 ) -> ConflictClass | None:
     """Try to classify conditions using Z3. Returns None if Z3 unavailable."""
-    if cel_registry is None:
-        return None
-    try:
-        from propstore.z3_conditions import Z3ConditionSolver
-    except ImportError:
-        return None
-
-    solver = Z3ConditionSolver(cel_registry)
+    if solver is None:
+        if cel_registry is None:
+            return None
+        try:
+            from propstore.z3_conditions import Z3ConditionSolver
+        except ImportError:
+            return None
+        solver = Z3ConditionSolver(cel_registry)
     try:
         if solver.are_equivalent(conditions_a, conditions_b):
             return ConflictClass.CONFLICT
@@ -89,6 +94,8 @@ def classify_conditions(
     conditions_a: list[str],
     conditions_b: list[str],
     cel_registry: dict[str, ConceptInfo] | None = None,
+    *,
+    solver: Z3ConditionSolver | None = None,
 ) -> ConflictClass:
     """Classify a pair of differing-value claims based on their conditions.
 
@@ -104,7 +111,12 @@ def classify_conditions(
         return ConflictClass.CONFLICT
 
     # Primary path: Z3
-    z3_result = _try_z3_classify(conditions_a, conditions_b, cel_registry)
+    z3_result = _try_z3_classify(
+        conditions_a,
+        conditions_b,
+        cel_registry,
+        solver=solver,
+    )
     if z3_result is not None:
         return z3_result
 

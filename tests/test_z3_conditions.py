@@ -528,3 +528,84 @@ class TestBatchEquivalenceClasses:
                     pairwise_pairs.add((ii, jj))
 
         assert equiv_pairs == pairwise_pairs
+
+
+@z3_only
+class TestZ3Caching:
+    """Cache parsed and translated condition expressions across repeated queries."""
+
+    def test_reuses_parsed_conditions_across_repeated_disjoint_queries(self, monkeypatch):
+        import propstore.z3_conditions as z3_conditions_module
+
+        registry = _make_cel_registry()
+        solver = Z3ConditionSolver(registry)
+        real_parse = z3_conditions_module.parse_cel
+        parse_calls: list[str] = []
+
+        def counting_parse(expr: str):
+            parse_calls.append(expr)
+            return real_parse(expr)
+
+        monkeypatch.setattr(z3_conditions_module, "parse_cel", counting_parse)
+
+        left = ["fundamental_frequency > 100", "task == 'speech'"]
+        right = ["task == 'singing'"]
+
+        assert solver.are_disjoint(left, right)
+        assert solver.are_disjoint(list(reversed(left)), right)
+
+        assert parse_calls == [
+            "fundamental_frequency > 100",
+            "task == 'speech'",
+            "task == 'singing'",
+        ]
+
+    def test_reuses_translated_condition_sets_across_repeated_queries(self, monkeypatch):
+        registry = _make_cel_registry()
+        solver = Z3ConditionSolver(registry)
+        real_translate = solver._translate
+        translate_calls = 0
+
+        def counting_translate(node):
+            nonlocal translate_calls
+            translate_calls += 1
+            return real_translate(node)
+
+        monkeypatch.setattr(solver, "_translate", counting_translate)
+
+        left = ["fundamental_frequency > 100 && fundamental_frequency < 300"]
+        right = ["fundamental_frequency > 200 && fundamental_frequency < 400"]
+
+        assert not solver.are_disjoint(left, right)
+        first_call_count = translate_calls
+
+        assert not solver.are_disjoint(left, right)
+
+        assert first_call_count > 0
+        assert translate_calls == first_call_count
+
+    def test_classify_conditions_can_reuse_supplied_solver(self, monkeypatch):
+        import propstore.z3_conditions as z3_conditions_module
+
+        registry = _make_cel_registry()
+        solver = Z3ConditionSolver(registry)
+        real_parse = z3_conditions_module.parse_cel
+        parse_calls: list[str] = []
+
+        def counting_parse(expr: str):
+            parse_calls.append(expr)
+            return real_parse(expr)
+
+        monkeypatch.setattr(z3_conditions_module, "parse_cel", counting_parse)
+
+        left = ["fundamental_frequency > 100", "task == 'speech'"]
+        right = ["fundamental_frequency > 200", "task == 'speech'"]
+
+        assert _classify_conditions(left, right, registry, solver=solver) == ConflictClass.OVERLAP
+        assert _classify_conditions(list(reversed(left)), right, registry, solver=solver) == ConflictClass.OVERLAP
+
+        assert parse_calls == [
+            "fundamental_frequency > 100",
+            "task == 'speech'",
+            "fundamental_frequency > 200",
+        ]

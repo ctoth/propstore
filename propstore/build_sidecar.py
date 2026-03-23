@@ -678,10 +678,42 @@ def _populate_claims(
     claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict | None = None,
 ):
-    from propstore.description_generator import generate_description
-
     claim_seq = 0
     deferred_stances: list[tuple] = []
+    valid_claim_ids = _collect_valid_claim_ids(claim_files)
+    for cf in claim_files:
+        source_paper = cf.data.get("source", {}).get("paper", cf.filename)
+        for claim in cf.data.get("claims", []):
+            claim_seq += 1
+            conn.execute(
+                "INSERT INTO claim (id, content_hash, seq, type, concept_id, value, lower_bound, "
+                "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
+                "conditions_cel, statement, expression, sympy_generated, sympy_error, name, "
+                "target_concept, measure, listener_population, methodology, "
+                "notes, description, auto_summary, "
+                "body, canonical_ast, variables_json, stage, "
+                "source_paper, provenance_page, provenance_json, context_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                _prepare_claim_insert_row(
+                    claim,
+                    source_paper,
+                    claim_seq=claim_seq,
+                    concept_registry=concept_registry,
+                ),
+            )
+            deferred_stances.extend(_extract_deferred_stance_rows(claim, valid_claim_ids))
+
+    # Insert stances after all claims are in, so target_claim_id FKs resolve
+    for stance_row in deferred_stances:
+        conn.execute(
+            "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
+            "conditions_differ, note, resolution_method, resolution_model, embedding_model, "
+            "embedding_distance, pass_number, confidence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            stance_row,
+        )
+
+
+def _collect_valid_claim_ids(claim_files: Sequence[LoadedClaimFile]) -> set[str]:
     valid_claim_ids: set[str] = set()
     for cf in claim_files:
         claims = cf.data.get("claims", [])
@@ -693,170 +725,191 @@ def _populate_claims(
             claim_id = claim.get("id")
             if isinstance(claim_id, str) and claim_id:
                 valid_claim_ids.add(claim_id)
-    for cf in claim_files:
-        source_paper = cf.data.get("source", {}).get("paper", cf.filename)
-        for claim in cf.data.get("claims", []):
-            cid = claim.get("id")
-            ctype = claim.get("type")
-            prov = claim.get("provenance", {})
-            conditions = claim.get("conditions")
+    return valid_claim_ids
 
-            # Type-specific fields
-            concept_id = None
-            value = None
-            unit = None
-            statement = None
-            expression = None
-            name = None
-            target_concept = None
-            measure = None
-            listener_population = None
-            methodology = None
 
-            lower_bound = None
-            upper_bound = None
-            uncertainty = None
-            uncertainty_type = None
-            sample_size = None
+def _prepare_claim_insert_row(
+    claim: dict,
+    source_paper: str,
+    *,
+    claim_seq: int,
+    concept_registry: dict | None = None,
+) -> tuple:
+    from propstore.description_generator import generate_description
 
-            if ctype == "parameter":
-                concept_id = claim.get("concept")
-                raw_value = claim.get("value")
-                if raw_value is not None:
-                    value = float(raw_value)
-                lower_bound = claim.get("lower_bound")
-                upper_bound = claim.get("upper_bound")
-                uncertainty = claim.get("uncertainty")
-                uncertainty_type = claim.get("uncertainty_type")
-                sample_size = claim.get("sample_size")
-                unit = claim.get("unit")
-            elif ctype == "measurement":
-                target_concept = claim.get("target_concept")
-                measure = claim.get("measure")
-                listener_population = claim.get("listener_population")
-                methodology = claim.get("methodology")
-                # Value fields: same structure as parameter
-                raw_value = claim.get("value")
-                if raw_value is not None:
-                    value = float(raw_value)
-                lower_bound = claim.get("lower_bound")
-                upper_bound = claim.get("upper_bound")
-                uncertainty = claim.get("uncertainty")
-                uncertainty_type = claim.get("uncertainty_type")
-                sample_size = claim.get("sample_size")
-                unit = claim.get("unit")
-            elif ctype == "observation":
-                statement = claim.get("statement")
-            elif ctype == "equation":
-                expression = claim.get("expression")
-            elif ctype == "model":
-                name = claim.get("name")
-            elif ctype == "algorithm":
-                concept_id = claim.get("concept")
-                # body, canonical_ast, variables_json, stage handled below
+    ctype = claim.get("type")
+    prov = claim.get("provenance", {})
+    conditions = claim.get("conditions")
+    typed_fields = _extract_typed_claim_fields(claim)
+    sympy_generated, sympy_error = _resolve_equation_sympy(
+        ctype,
+        typed_fields["expression"],
+        claim,
+    )
+    body, canonical_ast, variables_json, stage = _resolve_algorithm_storage(claim)
 
-            # For equation claims, resolve sympy: explicit > auto-generated
-            sympy_generated = None
-            sympy_error = None
-            if ctype == "equation":
-                explicit_sympy = claim.get("sympy")
-                if explicit_sympy:
-                    sympy_generated = explicit_sympy
-                elif expression:
-                    from propstore.sympy_generator import generate_sympy_with_error
-                    sympy_result = generate_sympy_with_error(expression)
-                    sympy_generated = sympy_result.expression
-                    sympy_error = sympy_result.error
+    return (
+        claim.get("id"),
+        _claim_content_hash(claim, source_paper),
+        claim_seq,
+        ctype,
+        typed_fields["concept_id"],
+        typed_fields["value"],
+        typed_fields["lower_bound"],
+        typed_fields["upper_bound"],
+        typed_fields["uncertainty"],
+        typed_fields["uncertainty_type"],
+        typed_fields["sample_size"],
+        typed_fields["unit"],
+        json.dumps(conditions) if conditions else None,
+        typed_fields["statement"],
+        typed_fields["expression"],
+        sympy_generated,
+        sympy_error,
+        typed_fields["name"],
+        typed_fields["target_concept"],
+        typed_fields["measure"],
+        typed_fields["listener_population"],
+        typed_fields["methodology"],
+        claim.get("notes"),
+        claim.get("description"),
+        generate_description(claim, concept_registry or {}),
+        body,
+        canonical_ast,
+        variables_json,
+        stage,
+        prov.get("paper", source_paper),
+        prov.get("page", 0),
+        json.dumps(prov),
+        claim.get("context"),
+    )
 
-            # For algorithm claims, compute body and canonical_ast
-            body = None
-            canonical_ast = None
-            variables_json = None
-            stage = None
-            if ctype == "algorithm":
-                body = claim.get("body")
-                stage = claim.get("stage")
-                if body:
-                    variables = claim.get("variables", {}) or {}
-                    # variables maps variable names to concept names — this IS the bindings dict
-                    bindings = variables if isinstance(variables, dict) else {}
-                    canonical_ast = canonical_dump(body, bindings)
-                # Store variables as JSON for world model queries
-                raw_vars = claim.get("variables")
-                if raw_vars:
-                    variables_json = json.dumps(raw_vars)
 
-            # Auto-generate summary label from structured fields
-            auto_summary = generate_description(claim, concept_registry or {})
+def _extract_typed_claim_fields(claim: dict) -> dict[str, object | None]:
+    fields: dict[str, object | None] = {
+        "concept_id": None,
+        "value": None,
+        "unit": None,
+        "statement": None,
+        "expression": None,
+        "name": None,
+        "target_concept": None,
+        "measure": None,
+        "listener_population": None,
+        "methodology": None,
+        "lower_bound": None,
+        "upper_bound": None,
+        "uncertainty": None,
+        "uncertainty_type": None,
+        "sample_size": None,
+    }
+    ctype = claim.get("type")
+    if ctype == "parameter":
+        fields["concept_id"] = claim.get("concept")
+        fields.update(_extract_numeric_claim_fields(claim))
+    elif ctype == "measurement":
+        fields["target_concept"] = claim.get("target_concept")
+        fields["measure"] = claim.get("measure")
+        fields["listener_population"] = claim.get("listener_population")
+        fields["methodology"] = claim.get("methodology")
+        fields.update(_extract_numeric_claim_fields(claim))
+    elif ctype == "observation":
+        fields["statement"] = claim.get("statement")
+    elif ctype == "equation":
+        fields["expression"] = claim.get("expression")
+    elif ctype == "model":
+        fields["name"] = claim.get("name")
+    elif ctype == "algorithm":
+        fields["concept_id"] = claim.get("concept")
+    return fields
 
-            # LLM-written description from YAML (if present)
-            description = claim.get("description")
 
-            # Human-written annotation (if present)
-            notes = claim.get("notes")
+def _extract_numeric_claim_fields(claim: dict) -> dict[str, object | None]:
+    raw_value = claim.get("value")
+    value = float(raw_value) if raw_value is not None else None
+    return {
+        "value": value,
+        "lower_bound": claim.get("lower_bound"),
+        "upper_bound": claim.get("upper_bound"),
+        "uncertainty": claim.get("uncertainty"),
+        "uncertainty_type": claim.get("uncertainty_type"),
+        "sample_size": claim.get("sample_size"),
+        "unit": claim.get("unit"),
+    }
 
-            # Content-addressed hash for dedup and integrity
-            content_hash = _claim_content_hash(claim, source_paper)
 
-            claim_seq += 1
+def _resolve_equation_sympy(
+    claim_type: object,
+    expression: object,
+    claim: dict,
+) -> tuple[str | None, str | None]:
+    if claim_type != "equation":
+        return None, None
+    explicit_sympy = claim.get("sympy")
+    if explicit_sympy:
+        return explicit_sympy, None
+    if not expression:
+        return None, None
+    from propstore.sympy_generator import generate_sympy_with_error
 
-            claim_context = claim.get("context")
+    sympy_result = generate_sympy_with_error(expression)
+    return sympy_result.expression, sympy_result.error
 
-            conn.execute(
-                "INSERT INTO claim (id, content_hash, seq, type, concept_id, value, lower_bound, "
-                "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
-                "conditions_cel, statement, expression, sympy_generated, sympy_error, name, "
-                "target_concept, measure, listener_population, methodology, "
-                "notes, description, auto_summary, "
-                "body, canonical_ast, variables_json, stage, "
-                "source_paper, provenance_page, provenance_json, context_id) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (cid, content_hash, claim_seq, ctype, concept_id, value, lower_bound,
-                 upper_bound, uncertainty, uncertainty_type, sample_size, unit,
-                 json.dumps(conditions) if conditions else None,
-                 statement, expression, sympy_generated, sympy_error, name,
-                 target_concept, measure, listener_population, methodology,
-                 notes, description, auto_summary,
-                 body, canonical_ast, variables_json, stage,
-                 prov.get("paper", source_paper),
-                 prov.get("page", 0),
-                 json.dumps(prov),
-                 claim_context),
+
+def _resolve_algorithm_storage(
+    claim: dict,
+) -> tuple[str | None, str | None, str | None, str | None]:
+    if claim.get("type") != "algorithm":
+        return None, None, None, None
+    body = claim.get("body")
+    stage = claim.get("stage")
+    canonical_ast = None
+    if body:
+        variables = claim.get("variables", {}) or {}
+        bindings = variables if isinstance(variables, dict) else {}
+        canonical_ast = canonical_dump(body, bindings)
+    raw_vars = claim.get("variables")
+    variables_json = json.dumps(raw_vars) if raw_vars else None
+    return body, canonical_ast, variables_json, stage
+
+
+def _extract_deferred_stance_rows(
+    claim: dict,
+    valid_claim_ids: set[str],
+) -> list[tuple]:
+    cid = claim.get("id")
+    rows: list[tuple] = []
+    for stance in claim.get("stances", []) or []:
+        if not isinstance(stance, dict):
+            continue
+        target_claim_id = stance.get("target")
+        stance_type = stance.get("type")
+        if not target_claim_id or not stance_type:
+            continue
+        if stance_type not in VALID_STANCE_TYPES:
+            raise ValueError(
+                f"claim '{cid}' uses unrecognized stance type '{stance_type}'"
             )
-
-            for stance in claim.get("stances", []) or []:
-                if not isinstance(stance, dict):
-                    continue
-                target_claim_id = stance.get("target")
-                stance_type = stance.get("type")
-                if not target_claim_id or not stance_type:
-                    continue
-                if stance_type not in VALID_STANCE_TYPES:
-                    raise ValueError(
-                        f"claim '{cid}' uses unrecognized stance type '{stance_type}'"
-                    )
-                if target_claim_id not in valid_claim_ids:
-                    raise sqlite3.IntegrityError(
-                        f"claim '{cid}' references nonexistent target claim '{target_claim_id}'"
-                    )
-                res = stance.get("resolution") or {}
-                deferred_stances.append((
-                    cid, target_claim_id, stance_type,
-                    stance.get("strength"),
-                    stance.get("conditions_differ"),
-                    stance.get("note"),
-                    res.get("method"), res.get("model"), res.get("embedding_model"),
-                    res.get("embedding_distance"), res.get("pass_number"), res.get("confidence"),
-                ))
-
-    # Insert stances after all claims are in, so target_claim_id FKs resolve
-    for stance_row in deferred_stances:
-        conn.execute(
-            "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
-            "conditions_differ, note, resolution_method, resolution_model, embedding_model, "
-            "embedding_distance, pass_number, confidence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            stance_row,
-        )
+        if target_claim_id not in valid_claim_ids:
+            raise sqlite3.IntegrityError(
+                f"claim '{cid}' references nonexistent target claim '{target_claim_id}'"
+            )
+        resolution = stance.get("resolution") or {}
+        rows.append((
+            cid,
+            target_claim_id,
+            stance_type,
+            stance.get("strength"),
+            stance.get("conditions_differ"),
+            stance.get("note"),
+            resolution.get("method"),
+            resolution.get("model"),
+            resolution.get("embedding_model"),
+            resolution.get("embedding_distance"),
+            resolution.get("pass_number"),
+            resolution.get("confidence"),
+        ))
+    return rows
 
 
 def _populate_conflicts(

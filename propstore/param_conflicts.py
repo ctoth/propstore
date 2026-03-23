@@ -13,13 +13,9 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.conflict_detector import (
-    ConflictClass,
-    ConflictRecord,
-    _collect_parameter_claims,
-    _claim_context,
-    _classify_pair_context,
-)
+from propstore.conflict_detector.collectors import _collect_parameter_claims
+from propstore.conflict_detector.context import _claim_context, _classify_pair_context
+from propstore.conflict_detector.models import ConflictClass, ConflictRecord
 from propstore.validate_claims import LoadedClaimFile
 from propstore.value_comparison import (
     DEFAULT_TOLERANCE,

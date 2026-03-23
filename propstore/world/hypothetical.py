@@ -6,10 +6,9 @@ import json
 
 from propstore.world.bound import (
     BoundWorld,
-    _derived_value_impl,
     _recomputed_conflicts,
-    _value_of_from_active,
 )
+from propstore.world.value_resolver import ActiveClaimResolver
 from propstore.world.types import BeliefSpace, DerivedResult, ResolvedResult, SyntheticClaim, ValueResult
 
 
@@ -25,6 +24,14 @@ class HypotheticalWorld(BeliefSpace):
         self._base = base
         self._removed_ids = set(remove or [])
         self._synthetics = list(add or [])
+        self._resolver = ActiveClaimResolver(
+            parameterizations_for=getattr(self._base._store, "parameterizations_for", lambda _cid: []),
+            is_param_compatible=self._base._is_param_compatible,
+            value_of=self.value_of,
+            extract_variable_concepts=self._base._extract_variable_concepts,
+            collect_known_values=self._base._collect_known_values,
+            extract_bindings=self._base._extract_bindings,
+        )
 
     def _synthetic_to_dict(self, sc: SyntheticClaim) -> dict:
         """Convert a SyntheticClaim to the dict format used by claims."""
@@ -60,7 +67,7 @@ class HypotheticalWorld(BeliefSpace):
 
     def value_of(self, concept_id: str) -> ValueResult:
         active = self.active_claims(concept_id)
-        return _value_of_from_active(active, concept_id, self._base)
+        return self._resolver.value_of_from_active(active, concept_id)
 
     def derived_value(
         self,
@@ -69,11 +76,8 @@ class HypotheticalWorld(BeliefSpace):
         override_values: dict[str, float | str | None] | None = None,
     ) -> DerivedResult:
         """Derive using this hypothetical world's active claims."""
-        return _derived_value_impl(
+        return self._resolver.derived_value(
             concept_id,
-            self._base._store,
-            self._base._is_param_compatible,
-            self.value_of,
             override_values=override_values,
         )
 
