@@ -159,8 +159,10 @@ This paper describes optimization extensions to SMT solving, which is tangential
 - (none — no cited papers are in the collection)
 
 ### New Leads (Not Yet in Collection)
-- Cimatti et al. (2013/2015) — "OptiMathSAT" — competing approach to optimization in SMT, relevant for comparison
 - de Moura & Bjørner (2008) — "Z3: An Efficient SMT Solver" — foundational SMT solver that νZ extends
+
+### Now in Collection (previously listed as leads)
+- [[Sebastiani_2015_OptiMathSATToolOptimizationModulo]] — Competing OMT tool extending MathSAT5. Encodes MaxSMT as Pseudo-Boolean optimization over linear arithmetic (unlike νZ's specialized MaxSAT module). Supports lexicographic, Pareto, and minmax multi-objective optimization. νZ's notes describe it as having an "OptiMathSAT module" — this is actually the standalone tool that νZ's linear arithmetic optimization component was inspired by/compared against.
 
 ### Cited By (in Collection)
 - (none found)
