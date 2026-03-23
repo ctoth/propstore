@@ -1,0 +1,9 @@
+id: concept427
+canonical_name: constraint_satisfaction
+status: proposed
+definition: A computational framework where problems are modeled as sets of variables
+  with domains and constraints, solved by finding assignments satisfying all constraints
+  simultaneously
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

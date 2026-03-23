@@ -1,0 +1,9 @@
+id: concept425
+canonical_name: solver_competition
+status: proposed
+definition: A structured evaluation event where computational solvers for a specific
+  problem domain compete on standardized benchmarks with fixed resource limits and
+  automated correctness verification
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

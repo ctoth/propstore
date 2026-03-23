@@ -1,0 +1,9 @@
+id: concept406
+canonical_name: normal_encoding
+status: proposed
+definition: An encoding ec1 mapping an argumentation framework to a propositional
+  formula where each argument is biconditional with the conjunction of negations of
+  its attackers
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

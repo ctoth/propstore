@@ -1,0 +1,9 @@
+id: concept426
+canonical_name: benchmark_generator
+status: proposed
+definition: An algorithm or tool that generates structured problem instances for evaluating
+  solver performance, parameterized by graph properties such as density, size, and
+  connectivity patterns
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

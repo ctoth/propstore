@@ -1,0 +1,9 @@
+id: concept440
+canonical_name: primal_graph
+status: proposed
+definition: The undirected graph derived from a formula or argumentation framework
+  where vertices are variables or arguments and edges connect variables sharing a
+  clause or arguments sharing an attack relation
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

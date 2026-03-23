@@ -1,0 +1,9 @@
+id: concept435
+canonical_name: logic_based_argumentation
+status: proposed
+definition: An argumentation framework where arguments are pairs of a consistent subset
+  of formulas (support) that entails a claim, as formalized by Besnard and Hunter,
+  with decision problems ARG, ARG-Check, and ARG-Rel
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

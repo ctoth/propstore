@@ -1,0 +1,9 @@
+id: concept405
+canonical_name: propositional_logic_system
+status: proposed
+definition: A formal system consisting of a language (atomic formulas and connectives)
+  and a structure (truth value domain and connective interpretations), used to evaluate
+  formulas under assignments
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

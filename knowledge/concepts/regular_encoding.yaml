@@ -1,0 +1,9 @@
+id: concept407
+canonical_name: regular_encoding
+status: proposed
+definition: An encoding ec2 mapping an argumentation framework to a propositional
+  formula combining a defense condition (argument implies negation of attackers) with
+  a reinstatement condition (argument iff all attackers are counter-attacked)
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

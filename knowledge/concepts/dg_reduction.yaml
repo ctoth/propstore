@@ -1,0 +1,9 @@
+id: concept434
+canonical_name: dg_reduction
+status: proposed
+definition: A decomposition-guided reduction that compiles a computational problem
+  into SAT or QBF by constructing the formula node-by-node along a tree decomposition,
+  ensuring the resulting formula has treewidth linearly bounded by the input treewidth
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

@@ -1,0 +1,9 @@
+id: concept439
+canonical_name: quantified_boolean_formula
+status: proposed
+definition: A Boolean formula preceded by a sequence of alternating universal and
+  existential quantifiers over disjoint variable sets, generalizing SAT to higher
+  levels of the polynomial hierarchy
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

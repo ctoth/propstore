@@ -1,0 +1,9 @@
+id: concept413
+canonical_name: smt_solver
+status: proposed
+definition: A satisfiability modulo theories solver that determines whether formulas
+  over combinations of background theories (arithmetic, arrays, bit-vectors) are satisfiable,
+  and if so produces satisfying models
+domain: formal-methods
+created_date: '2026-03-22'
+form: structural

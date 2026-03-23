@@ -1,0 +1,9 @@
+id: concept398
+canonical_name: semi_stable_extension
+status: proposed
+definition: An extension of an argumentation framework that is a complete extension
+  with maximal range (arguments in the extension or attacked by it), guaranteeing
+  existence unlike stable extensions
+domain: argumentation
+created_date: '2026-03-22'
+form: structural

@@ -1,0 +1,9 @@
+id: concept422
+canonical_name: dual_simplex
+status: proposed
+definition: A variant of the Simplex method for linear programming that maintains
+  dual feasibility while working toward primal feasibility, commonly used in SMT solvers
+  for incremental optimization
+domain: optimization
+created_date: '2026-03-22'
+form: structural

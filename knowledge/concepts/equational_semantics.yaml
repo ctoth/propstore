@@ -1,0 +1,9 @@
+id: concept410
+canonical_name: equational_semantics
+status: proposed
+definition: An approach to argumentation semantics where each argument's acceptance
+  value is determined by a real equational function of its attackers' values, as introduced
+  by Gabbay's equational approach to argumentation networks
+domain: argumentation
+created_date: '2026-03-22'
+form: structural
