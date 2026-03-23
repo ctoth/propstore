@@ -159,7 +159,11 @@ This paper describes optimization extensions to SMT solving, which is tangential
 - (none — no cited papers are in the collection)
 
 ### New Leads (Not Yet in Collection)
-- de Moura & Bjørner (2008) — "Z3: An Efficient SMT Solver" — foundational SMT solver that νZ extends
+- (none remaining)
+
+### Now in Collection (previously listed as leads)
+- [[Sebastiani_2015_OptiMathSATToolOptimizationModulo]] — Competing OMT tool extending MathSAT5. Encodes MaxSMT as Pseudo-Boolean optimization over linear arithmetic (unlike νZ's specialized MaxSAT module). Supports lexicographic, Pareto, and minmax multi-objective optimization.
+- [[Moura_2008_Z3EfficientSMTSolver]] — The foundational Z3 SMT solver that νZ extends. Describes the DPLL-based SAT solver + congruence closure core + satellite theory solvers architecture.
 
 ### Now in Collection (previously listed as leads)
 - [[Sebastiani_2015_OptiMathSATToolOptimizationModulo]] — Competing OMT tool extending MathSAT5. Encodes MaxSMT as Pseudo-Boolean optimization over linear arithmetic (unlike νZ's specialized MaxSAT module). Supports lexicographic, Pareto, and minmax multi-objective optimization. νZ's notes describe it as having an "OptiMathSAT module" — this is actually the standalone tool that νZ's linear arithmetic optimization component was inspired by/compared against.
