@@ -1,0 +1,12 @@
+{
+  "title": "On the existence and multiplicity of extensions in dialectical argumentation",
+  "authors": [
+    "Bart Verheij"
+  ],
+  "year": "2002",
+  "arxiv_id": "cs/0207067",
+  "doi": null,
+  "abstract": "In the present paper, the existence and multiplicity problems of extensions are addressed. The focus is on extension of the stable type. The main result of the paper is an elegant characterization of the existence and multiplicity of extensions in terms of the notion of dialectical justification, a close cousin of the notion of admissibility. The characterization is given in the context of the particular logic for dialectical argumentation DEFLOG. The results are of direct relevance for several well-established models of defeasible reasoning (like default logic, logic programming and argumentation frameworks), since elsewhere dialectical argumentation has been shown to have close formal connections with these models.",
+  "url": "https://www.semanticscholar.org/paper/952c31a0670922a43aa7725244f1086ba63f5213",
+  "pdf_url": ""
+}
