@@ -1318,3 +1318,43 @@ class TestAlgorithmClaim:
         )
         assert cursor.fetchone() is not None
         conn.close()
+
+
+class TestClaimInsertRow:
+    def test_prepare_claim_insert_row_returns_dict(self):
+        """_prepare_claim_insert_row should return a dict with named columns."""
+        from propstore.build_sidecar import _prepare_claim_insert_row
+
+        claim = {
+            "id": "test_claim1",
+            "type": "parameter",
+            "concept": "concept1",
+            "value": "42",
+            "unit": "Hz",
+            "provenance": {"paper": "test.yaml", "page": 1},
+        }
+        row = _prepare_claim_insert_row(
+            claim, "test_paper.yaml", claim_seq=1, concept_registry={}
+        )
+        assert isinstance(row, dict), f"Expected dict, got {type(row).__name__}"
+
+    def test_prepare_claim_insert_row_has_all_columns(self):
+        """The returned dict should have entries for every claim table column."""
+        from propstore.build_sidecar import _prepare_claim_insert_row
+
+        claim = {
+            "id": "test_claim1",
+            "type": "parameter",
+            "concept": "concept1",
+            "value": "42",
+            "unit": "Hz",
+            "provenance": {"paper": "test.yaml", "page": 1},
+        }
+        row = _prepare_claim_insert_row(
+            claim, "test_paper.yaml", claim_seq=1, concept_registry={}
+        )
+        assert "id" in row
+        assert "concept_id" in row
+        assert "type" in row
+        assert "source_paper" in row
+        assert "context_id" in row

@@ -685,21 +685,17 @@ def _populate_claims(
         source_paper = cf.data.get("source", {}).get("paper", cf.filename)
         for claim in cf.data.get("claims", []):
             claim_seq += 1
+            row = _prepare_claim_insert_row(
+                claim,
+                source_paper,
+                claim_seq=claim_seq,
+                concept_registry=concept_registry,
+            )
+            cols = ", ".join(row.keys())
+            placeholders = ", ".join("?" * len(row))
             conn.execute(
-                "INSERT INTO claim (id, content_hash, seq, type, concept_id, value, lower_bound, "
-                "upper_bound, uncertainty, uncertainty_type, sample_size, unit, "
-                "conditions_cel, statement, expression, sympy_generated, sympy_error, name, "
-                "target_concept, measure, listener_population, methodology, "
-                "notes, description, auto_summary, "
-                "body, canonical_ast, variables_json, stage, "
-                "source_paper, provenance_page, provenance_json, context_id) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                _prepare_claim_insert_row(
-                    claim,
-                    source_paper,
-                    claim_seq=claim_seq,
-                    concept_registry=concept_registry,
-                ),
+                f"INSERT INTO claim ({cols}) VALUES ({placeholders})",
+                tuple(row.values()),
             )
             deferred_stances.extend(_extract_deferred_stance_rows(claim, valid_claim_ids))
 
@@ -734,7 +730,7 @@ def _prepare_claim_insert_row(
     *,
     claim_seq: int,
     concept_registry: dict | None = None,
-) -> tuple:
+) -> dict[str, object]:
     from propstore.description_generator import generate_description
 
     ctype = claim.get("type")
@@ -748,41 +744,41 @@ def _prepare_claim_insert_row(
     )
     body, canonical_ast, variables_json, stage = _resolve_algorithm_storage(claim)
 
-    return (
-        claim.get("id"),
-        _claim_content_hash(claim, source_paper),
-        claim_seq,
-        ctype,
-        typed_fields["concept_id"],
-        typed_fields["value"],
-        typed_fields["lower_bound"],
-        typed_fields["upper_bound"],
-        typed_fields["uncertainty"],
-        typed_fields["uncertainty_type"],
-        typed_fields["sample_size"],
-        typed_fields["unit"],
-        json.dumps(conditions) if conditions else None,
-        typed_fields["statement"],
-        typed_fields["expression"],
-        sympy_generated,
-        sympy_error,
-        typed_fields["name"],
-        typed_fields["target_concept"],
-        typed_fields["measure"],
-        typed_fields["listener_population"],
-        typed_fields["methodology"],
-        claim.get("notes"),
-        claim.get("description"),
-        generate_description(claim, concept_registry or {}),
-        body,
-        canonical_ast,
-        variables_json,
-        stage,
-        prov.get("paper", source_paper),
-        prov.get("page", 0),
-        json.dumps(prov),
-        claim.get("context"),
-    )
+    return {
+        "id": claim.get("id"),
+        "content_hash": _claim_content_hash(claim, source_paper),
+        "seq": claim_seq,
+        "type": ctype,
+        "concept_id": typed_fields["concept_id"],
+        "value": typed_fields["value"],
+        "lower_bound": typed_fields["lower_bound"],
+        "upper_bound": typed_fields["upper_bound"],
+        "uncertainty": typed_fields["uncertainty"],
+        "uncertainty_type": typed_fields["uncertainty_type"],
+        "sample_size": typed_fields["sample_size"],
+        "unit": typed_fields["unit"],
+        "conditions_cel": json.dumps(conditions) if conditions else None,
+        "statement": typed_fields["statement"],
+        "expression": typed_fields["expression"],
+        "sympy_generated": sympy_generated,
+        "sympy_error": sympy_error,
+        "name": typed_fields["name"],
+        "target_concept": typed_fields["target_concept"],
+        "measure": typed_fields["measure"],
+        "listener_population": typed_fields["listener_population"],
+        "methodology": typed_fields["methodology"],
+        "notes": claim.get("notes"),
+        "description": claim.get("description"),
+        "auto_summary": generate_description(claim, concept_registry or {}),
+        "body": body,
+        "canonical_ast": canonical_ast,
+        "variables_json": variables_json,
+        "stage": stage,
+        "source_paper": prov.get("paper", source_paper),
+        "provenance_page": prov.get("page", 0),
+        "provenance_json": json.dumps(prov),
+        "context_id": claim.get("context"),
+    }
 
 
 def _extract_typed_claim_fields(claim: dict) -> dict[str, object | None]:
