@@ -29,6 +29,7 @@ from propstore.validate_claims import LoadedClaimFile
 from ast_equiv import canonical_dump
 
 if TYPE_CHECKING:
+    from propstore.cli.repository import Repository
     from propstore.validate_contexts import ContextHierarchy
 
 _SEMANTIC_INPUT_VERSION = "semantic-input-v1"
@@ -38,7 +39,7 @@ def _content_hash(
     concepts: list[LoadedConcept],
     claim_files: Sequence[LoadedClaimFile] | None = None,
     *,
-    repo: object | None = None,
+    repo: Repository | None = None,
     context_files: Sequence[object] | None = None,
 ) -> str:
     """Hash all semantic inputs that define the compiled sidecar."""
@@ -64,7 +65,7 @@ def _content_hash(
 
     forms_dirs: set[Path] = set()
     if repo is not None:
-        forms_dirs.add(repo.forms_dir)  # type: ignore[union-attr]
+        forms_dirs.add(repo.forms_dir)
     else:
         for concept in concepts:
             if concept.filepath is not None:
@@ -77,7 +78,7 @@ def _content_hash(
             h.update(form_path.read_bytes())
 
     if repo is not None and claim_files is not None:
-        stances_dir = repo.stances_dir  # type: ignore[union-attr]
+        stances_dir = repo.stances_dir
         if stances_dir.exists():
             for stance_path in sorted(stances_dir.glob("*.yaml")):
                 h.update(str(stance_path.name).encode())
@@ -202,7 +203,7 @@ def build_sidecar(
     claim_files: Sequence[LoadedClaimFile] | None = None,
     concept_registry: dict | None = None,
     *,
-    repo: object | None = None,
+    repo: Repository | None = None,
     context_files: list | None = None,
 ) -> bool:
     """Build the SQLite sidecar from concept data.
@@ -385,7 +386,7 @@ def _populate_concepts(
     conn: sqlite3.Connection,
     concepts: list[LoadedConcept],
     *,
-    repo: object | None = None,
+    repo: Repository | None = None,
 ):
     for seq, c in enumerate(concepts, 1):
         d = c.data
@@ -412,7 +413,7 @@ def _populate_concepts(
 
         # Load form definition for is_dimensionless and unit_symbol
         if repo is not None:
-            forms_dir = repo.forms_dir  # type: ignore[union-attr]
+            forms_dir = repo.forms_dir
         else:
             forms_dir = c.filepath.parent.parent / "forms"
         form_def = load_form(forms_dir, d.get("form"))

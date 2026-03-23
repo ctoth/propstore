@@ -23,6 +23,11 @@ from propstore.cel_checker import (
 )
 from propstore.form_utils import kind_type_from_form_name, load_form
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from propstore.cli.repository import Repository
+
 
 @dataclass
 class LoadedConcept:
@@ -94,7 +99,7 @@ def validate_concepts(
     concepts: list[LoadedConcept],
     claims_dir: Path | None = None,
     *,
-    repo: object | None = None,
+    repo: Repository | None = None,
 ) -> ValidationResult:
     """Run all compiler contract validation checks.
 
@@ -112,7 +117,7 @@ def validate_concepts(
 
     def _forms_dir(c: LoadedConcept) -> Path:
         if repo is not None:
-            return repo.forms_dir  # type: ignore[union-attr]
+            return repo.forms_dir
         return c.filepath.parent.parent / "forms"
 
     # Load claim IDs for canonical_claim validation
