@@ -17,14 +17,24 @@ from itertools import combinations
 
 @dataclass(frozen=True)
 class ArgumentationFramework:
-    """Dung's abstract argumentation framework AF = (Args, Defeats).
+    """Argumentation framework with attack and defeat relations.
 
     Arguments are string identifiers. Defeats is a set of
-    (attacker, target) pairs representing the defeat relation.
+    (attacker, target) pairs representing the defeat relation
+    (attacks surviving preference filter). Attacks is the full
+    set of attacks before preference filtering.
+
+    When attacks is None (pure Dung AF without preferences),
+    the defeat relation is used for both conflict-free and defense.
+
+    References:
+        Dung 1995: AF = (Args, Defeats)
+        Modgil & Prakken 2018 Def 14: conflict-free uses attacks, not defeats
     """
 
     arguments: frozenset[str]
     defeats: frozenset[tuple[str, str]]
+    attacks: frozenset[tuple[str, str]] | None = None
 
 
 def attackers_of(arg: str, defeats: frozenset[tuple[str, str]]) -> frozenset[str]:
@@ -32,9 +42,15 @@ def attackers_of(arg: str, defeats: frozenset[tuple[str, str]]) -> frozenset[str
     return frozenset(a for a, t in defeats if t == arg)
 
 
-def conflict_free(s: frozenset[str], defeats: frozenset[tuple[str, str]]) -> bool:
-    """Check if s is conflict-free: no argument in s defeats another in s."""
-    for a, t in defeats:
+def conflict_free(s: frozenset[str], relation: frozenset[tuple[str, str]]) -> bool:
+    """Check if s is conflict-free w.r.t. a binary relation.
+
+    No argument in s is related to another in s under the given relation.
+    Per Modgil & Prakken 2018 Def 14, this should be the attack relation
+    (pre-preference), not the defeat relation. When only defeats are
+    available (pure Dung AF), pass defeats.
+    """
+    for a, t in relation:
         if a in s and t in s:
             return False
     return True
@@ -69,12 +85,17 @@ def admissible(
     s: frozenset[str],
     all_args: frozenset[str],
     defeats: frozenset[tuple[str, str]],
+    *,
+    attacks: frozenset[tuple[str, str]] | None = None,
 ) -> bool:
     """Check if s is admissible: conflict-free and defends all its members.
 
-    Reference: Dung 1995, Definition 6.
+    Conflict-free is checked against attacks (Modgil & Prakken 2018 Def 14).
+    Defense is checked against defeats (Dung 1995 Def 6).
+    When attacks is None, defeats is used for both.
     """
-    if not conflict_free(s, defeats):
+    cf_relation = attacks if attacks is not None else defeats
+    if not conflict_free(s, cf_relation):
         return False
     for a in s:
         if not defends(s, a, all_args, defeats):
@@ -113,12 +134,15 @@ def complete_extensions(
         return z3_complete_extensions(framework)
     args = framework.arguments
     defeats = framework.defeats
+    attacks = framework.attacks
     results: list[frozenset[str]] = []
 
     for size in range(len(args) + 1):
         for subset in combinations(sorted(args), size):
             s = frozenset(subset)
-            if characteristic_fn(s, args, defeats) == s and admissible(s, args, defeats):
+            if characteristic_fn(s, args, defeats) == s and admissible(
+                s, args, defeats, attacks=attacks
+            ):
                 results.append(s)
 
     return results
@@ -162,12 +186,13 @@ def stable_extensions(
         return z3_stable_extensions(framework)
     args = framework.arguments
     defeats = framework.defeats
+    cf_relation = framework.attacks if framework.attacks is not None else defeats
     results: list[frozenset[str]] = []
 
     for size in range(len(args) + 1):
         for subset in combinations(sorted(args), size):
             s = frozenset(subset)
-            if not conflict_free(s, defeats):
+            if not conflict_free(s, cf_relation):
                 continue
             outsiders = args - s
             if all(any((d, out) in defeats for d in s) for out in outsiders):

@@ -28,8 +28,13 @@ def _conflict_free_constraints(
     framework: ArgumentationFramework,
     v: dict[str, Bool],
 ) -> list:
-    """Conflict-free: no two args in the set defeat each other."""
-    return [Not(And(v[a], v[b])) for a, b in framework.defeats]
+    """Conflict-free: no two args in the set attack each other.
+
+    Per Modgil & Prakken 2018 Def 14, uses attacks (pre-preference)
+    when available, falls back to defeats for pure Dung AFs.
+    """
+    cf_relation = framework.attacks if framework.attacks is not None else framework.defeats
+    return [Not(And(v[a], v[b])) for a, b in cf_relation]
 
 
 def _extract_extension(

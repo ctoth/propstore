@@ -23,7 +23,60 @@ from propstore.preference import claim_strength, defeat_holds
 _ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
 _UNCONDITIONAL_TYPES = frozenset({"undercuts", "supersedes"})
 _PREFERENCE_TYPES = frozenset({"rebuts", "undermines"})
+_SUPPORT_TYPES = frozenset({"supports", "explains"})
 _NON_ATTACK_TYPES = frozenset({"supports", "explains", "none"})
+
+
+def _transitive_support_targets(
+    source: str,
+    supports: set[tuple[str, str]],
+    visited: set[str] | None = None,
+) -> set[str]:
+    """Compute all arguments reachable from source via support edges."""
+    if visited is None:
+        visited = set()
+    visited.add(source)
+    targets: set[str] = set()
+    for a, b in supports:
+        if a == source and b not in visited:
+            targets.add(b)
+            targets |= _transitive_support_targets(b, supports, visited)
+    return targets
+
+
+def _cayrol_derived_defeats(
+    defeats: set[tuple[str, str]],
+    supports: set[tuple[str, str]],
+) -> set[tuple[str, str]]:
+    """Compute derived defeats per Cayrol 2005 Definition 3.
+
+    Supported defeat: A →sup ... →sup B →def C  ⟹  (A, C)
+      A supports B (transitively), B defeats C.
+
+    Indirect defeat: A →def B →sup ... →sup C  ⟹  (A, C)
+      A defeats B, B supports C (transitively).
+    """
+    derived: set[tuple[str, str]] = set()
+
+    # Pre-compute transitive support reachability for each argument
+    all_support_sources = {a for a, _ in supports}
+    support_reach: dict[str, set[str]] = {}
+    for src in all_support_sources:
+        support_reach[src] = _transitive_support_targets(src, supports)
+
+    # Supported defeat: A supports* B, B defeats C → (A, C)
+    for b, c in defeats:
+        for a, targets in support_reach.items():
+            if b in targets:
+                derived.add((a, c))
+
+    # Indirect defeat: A defeats B, B supports* C → (A, C)
+    for a, b in defeats:
+        if b in support_reach:
+            for c in support_reach[b]:
+                derived.add((a, c))
+
+    return derived
 
 
 def build_argumentation_framework(
@@ -33,13 +86,14 @@ def build_argumentation_framework(
     comparison: str = "elitist",
     confidence_threshold: float = 0.5,
 ) -> ArgumentationFramework:
-    """Build a Dung AF from the stance graph filtered through preferences.
+    """Build a bipolar AF from the stance graph.
 
-    Steps (per Def 9, p.12):
-      1. Load stances between active claims with confidence >= threshold
-      2. Undercutting/supersedes → always defeat
-      3. Rebuts/undermines → defeat iff attacker NOT strictly weaker
-      4. Supports/explains → excluded (not attacks)
+    Steps:
+      1. Load all stances between active claims with confidence >= threshold
+      2. Classify into attacks and supports
+      3. Filter attacks through preferences to get defeats (Modgil 2018 Def 9)
+      4. Compute derived defeats from support chains (Cayrol 2005 Def 3)
+      5. Return AF with attacks (pre-preference) and defeats (post-preference + derived)
     """
     # Load claim metadata for strength computation
     placeholders = ",".join("?" for _ in active_claim_ids)
@@ -58,33 +112,50 @@ def build_argumentation_framework(
         list(active_claim_ids) + list(active_claim_ids),
     ).fetchall()
 
+    attacks: set[tuple[str, str]] = set()
     defeats: set[tuple[str, str]] = set()
+    supports: set[tuple[str, str]] = set()
 
     for stance in stances:
-        attacker_id = stance["claim_id"]
+        source_id = stance["claim_id"]
         target_id = stance["target_claim_id"]
         stance_type = stance["stance_type"]
         confidence = stance["confidence"]
 
-        if stance_type in _NON_ATTACK_TYPES:
-            continue
-
         if confidence is not None and confidence < confidence_threshold:
             continue
 
+        # Collect support relations for Cayrol derived defeats
+        if stance_type in _SUPPORT_TYPES:
+            supports.add((source_id, target_id))
+            continue
+
+        if stance_type not in _ATTACK_TYPES:
+            continue
+
+        # All attack-type stances go into attacks (pre-preference)
+        attacks.add((source_id, target_id))
+
+        # Filter through preferences to determine defeats
         if stance_type in _UNCONDITIONAL_TYPES:
-            defeats.add((attacker_id, target_id))
+            defeats.add((source_id, target_id))
         elif stance_type in _PREFERENCE_TYPES:
-            attacker_claim = claims_by_id.get(attacker_id, {})
+            attacker_claim = claims_by_id.get(source_id, {})
             target_claim = claims_by_id.get(target_id, {})
             attacker_s = [claim_strength(attacker_claim)]
             target_s = [claim_strength(target_claim)]
             if defeat_holds(stance_type, attacker_s, target_s, comparison):
-                defeats.add((attacker_id, target_id))
+                defeats.add((source_id, target_id))
+
+    # Compute Cayrol 2005 derived defeats from support chains
+    if supports:
+        derived = _cayrol_derived_defeats(defeats, supports)
+        defeats |= derived
 
     return ArgumentationFramework(
         arguments=frozenset(active_claim_ids),
         defeats=frozenset(defeats),
+        attacks=frozenset(attacks),
     )
 
 
