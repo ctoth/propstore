@@ -306,6 +306,10 @@ class BoundWorld(BeliefSpace):
         if claim is None or not self.is_active(claim):
             return []
 
-        active_ids = {c["id"] for c in self.active_claims()}
         full_chain = self._store.explain(claim_id)
-        return [s for s in full_chain if s["target_claim_id"] in active_ids]
+        result = []
+        for s in full_chain:
+            target = self._store.get_claim(s["target_claim_id"])
+            if target is not None and self.is_active(target):
+                result.append(s)
+        return result
