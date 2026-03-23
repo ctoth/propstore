@@ -19,44 +19,10 @@ from propstore.argumentation import (
 from propstore.dung import conflict_free, grounded_extension
 from propstore.preference import claim_strength
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
+from tests.conftest import create_argumentation_schema
 
 
 # ── SQLite fixture ──────────────────────────────────────────────────
-
-
-def _create_schema(conn: sqlite3.Connection) -> None:
-    """Create minimal claim + claim_stance tables for testing."""
-    conn.executescript("""
-        CREATE TABLE claim (
-            id TEXT PRIMARY KEY,
-            type TEXT,
-            concept_id TEXT,
-            value REAL,
-            sample_size INTEGER,
-            uncertainty REAL,
-            uncertainty_type TEXT,
-            unit TEXT,
-            conditions_cel TEXT,
-            source_paper TEXT NOT NULL DEFAULT 'test',
-            provenance_page INTEGER NOT NULL DEFAULT 1
-        );
-        CREATE TABLE claim_stance (
-            claim_id TEXT NOT NULL,
-            target_claim_id TEXT NOT NULL,
-            stance_type TEXT NOT NULL,
-            strength TEXT,
-            conditions_differ TEXT,
-            note TEXT,
-            resolution_method TEXT,
-            resolution_model TEXT,
-            embedding_model TEXT,
-            embedding_distance REAL,
-            pass_number INTEGER,
-            confidence REAL,
-            FOREIGN KEY (claim_id) REFERENCES claim(id),
-            FOREIGN KEY (target_claim_id) REFERENCES claim(id)
-        );
-    """)
 
 
 def _insert_claim(conn: sqlite3.Connection, claim_id: str, concept_id: str,
@@ -84,7 +50,7 @@ def conn():
     """In-memory SQLite with schema."""
     c = sqlite3.connect(":memory:")
     c.row_factory = sqlite3.Row
-    _create_schema(c)
+    create_argumentation_schema(c)
     return c
 
 
@@ -300,7 +266,7 @@ def _build_scenario_db(claim_ids, stances, sample_sizes):
     """Build an in-memory SQLite from generated scenario."""
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
-    _create_schema(conn)
+    create_argumentation_schema(conn)
     for cid in claim_ids:
         _insert_claim(conn, cid, "concept", float(hash(cid) % 1000),
                        sample_size=sample_sizes[cid])

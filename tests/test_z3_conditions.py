@@ -16,6 +16,7 @@ from propstore.conflict_detector import (
     detect_conflicts,
 )
 from propstore.validate_claims import LoadedClaimFile
+from tests.conftest import make_concept_registry
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -40,33 +41,6 @@ def make_claim_file(claims, filename="test_paper"):
         filepath=Path(f"/fake/{filename}.yaml"),
         data={"source": {"paper": filename}, "claims": claims},
     )
-
-
-def make_concept_registry():
-    return {
-        "concept1": {
-            "id": "concept1",
-            "canonical_name": "fundamental_frequency",
-            "form": "frequency",
-            "status": "accepted",
-            "definition": "F0",
-        },
-        "concept2": {
-            "id": "concept2",
-            "canonical_name": "subglottal_pressure",
-            "form": "pressure",
-            "status": "accepted",
-            "definition": "Ps",
-        },
-        "concept3": {
-            "id": "concept3",
-            "canonical_name": "task",
-            "form": "category",
-            "form_parameters": {"values": ["speech", "singing"], "extensible": True},
-            "status": "accepted",
-            "definition": "Task type",
-        },
-    }
 
 
 # ── Soundness bug regression ─────────────────────────────────────────

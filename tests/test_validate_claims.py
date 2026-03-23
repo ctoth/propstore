@@ -22,6 +22,7 @@ from propstore.validate_claims import (
     validate_claims,
     validate_single_claim_file,
 )
+from tests.conftest import make_parameter_claim, make_concept_registry
 
 
 @pytest.fixture
@@ -39,20 +40,6 @@ def write_claim_file(claims_dir, filename, data):
 
 def make_source(paper="test_paper"):
     return {"paper": paper}
-
-
-def make_parameter_claim(id, concept, value, unit, page=1, **kwargs):
-    """Helper: make a minimal valid parameter claim."""
-    c = {
-        "id": id,
-        "type": "parameter",
-        "concept": concept,
-        "value": value,
-        "unit": unit,
-        "provenance": {"paper": "test_paper", "page": page},
-    }
-    c.update(kwargs)
-    return c
 
 
 def make_equation_claim(id, expression, variables, page=1, **kwargs):
@@ -94,34 +81,6 @@ def make_model_claim(id, name, equations, parameters, page=1, **kwargs):
     }
     c.update(kwargs)
     return c
-
-
-def make_concept_registry():
-    """Build a mock concept registry for testing."""
-    return {
-        "concept1": {
-            "id": "concept1",
-            "canonical_name": "fundamental_frequency",
-            "form": "frequency",
-            "status": "accepted",
-            "definition": "F0",
-        },
-        "concept2": {
-            "id": "concept2",
-            "canonical_name": "subglottal_pressure",
-            "form": "pressure",
-            "status": "accepted",
-            "definition": "Ps",
-        },
-        "concept3": {
-            "id": "concept3",
-            "canonical_name": "task",
-            "form": "category",
-            "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True},
-            "status": "accepted",
-            "definition": "Task type",
-        },
-    }
 
 
 def make_claim_file_data(claims, paper="test_paper"):

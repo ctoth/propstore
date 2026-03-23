@@ -389,11 +389,14 @@ class TestRebuildSkipping:
     def test_skip_rebuild_when_unchanged(self, concept_dir, sidecar_path):
         concepts = load_concepts(concept_dir)
         build_sidecar(concepts, sidecar_path)
+
+        # Set mtime 2 seconds in the past so any rewrite would be detectable
+        import os
+        stat = sidecar_path.stat()
+        os.utime(sidecar_path, (stat.st_atime, stat.st_mtime - 2))
         mtime1 = sidecar_path.stat().st_mtime
 
         # Build again — should skip
-        import time
-        time.sleep(0.1)  # ensure different mtime if rebuilt
         build_sidecar(concepts, sidecar_path)
         mtime2 = sidecar_path.stat().st_mtime
         assert mtime1 == mtime2
@@ -401,10 +404,13 @@ class TestRebuildSkipping:
     def test_rebuild_when_forced(self, concept_dir, sidecar_path):
         concepts = load_concepts(concept_dir)
         build_sidecar(concepts, sidecar_path)
+
+        # Set mtime 2 seconds in the past so forced rebuild produces a newer mtime
+        import os
+        stat = sidecar_path.stat()
+        os.utime(sidecar_path, (stat.st_atime, stat.st_mtime - 2))
         mtime1 = sidecar_path.stat().st_mtime
 
-        import time
-        time.sleep(0.1)
         build_sidecar(concepts, sidecar_path, force=True)
         mtime2 = sidecar_path.stat().st_mtime
         assert mtime2 > mtime1

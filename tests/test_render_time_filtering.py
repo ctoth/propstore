@@ -19,43 +19,7 @@ from propstore.argumentation import (
     stance_summary,
 )
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
-
-
-# ── SQLite fixture ──────────────────────────────────────────────────
-
-
-def _create_schema(conn: sqlite3.Connection) -> None:
-    conn.executescript("""
-        CREATE TABLE claim (
-            id TEXT PRIMARY KEY,
-            type TEXT,
-            concept_id TEXT,
-            value REAL,
-            sample_size INTEGER,
-            uncertainty REAL,
-            uncertainty_type TEXT,
-            unit TEXT,
-            conditions_cel TEXT,
-            source_paper TEXT NOT NULL DEFAULT 'test',
-            provenance_page INTEGER NOT NULL DEFAULT 1
-        );
-        CREATE TABLE claim_stance (
-            claim_id TEXT NOT NULL,
-            target_claim_id TEXT NOT NULL,
-            stance_type TEXT NOT NULL,
-            strength TEXT,
-            conditions_differ TEXT,
-            note TEXT,
-            resolution_method TEXT,
-            resolution_model TEXT,
-            embedding_model TEXT,
-            embedding_distance REAL,
-            pass_number INTEGER,
-            confidence REAL,
-            FOREIGN KEY (claim_id) REFERENCES claim(id),
-            FOREIGN KEY (target_claim_id) REFERENCES claim(id)
-        );
-    """)
+from tests.conftest import create_argumentation_schema
 
 
 def _insert_claim(conn, claim_id, concept_id, value, sample_size=None):
@@ -78,7 +42,7 @@ def _insert_stance(conn, claim_id, target, stype, confidence=0.9, model=None):
 def conn():
     c = sqlite3.connect(":memory:")
     c.row_factory = sqlite3.Row
-    _create_schema(c)
+    create_argumentation_schema(c)
     return c
 
 

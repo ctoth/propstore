@@ -17,23 +17,7 @@ from propstore.build_sidecar import build_sidecar
 from propstore.validate import load_concepts
 from propstore.validate_claims import load_claim_files, validate_claims
 from propstore.world import WorldModel
-
-
-# ── Helpers (reused patterns from test_validate_claims) ──────────────
-
-
-def make_parameter_claim(id, concept, value, unit, page=1, **kwargs):
-    """Helper: make a minimal valid parameter claim."""
-    c = {
-        "id": id,
-        "type": "parameter",
-        "concept": concept,
-        "value": value,
-        "unit": unit,
-        "provenance": {"paper": "test_paper", "page": page},
-    }
-    c.update(kwargs)
-    return c
+from tests.conftest import make_parameter_claim, make_concept_registry
 
 
 def make_claim_file_data(claims, paper="test_paper"):
@@ -49,26 +33,6 @@ def write_claim_file(claims_dir, filename, data):
     path = claims_dir / filename
     path.write_text(yaml.dump(data, default_flow_style=False))
     return path
-
-
-def make_concept_registry():
-    """Build a mock concept registry for testing."""
-    return {
-        "concept1": {
-            "id": "concept1",
-            "canonical_name": "fundamental_frequency",
-            "form": "frequency",
-            "status": "accepted",
-            "definition": "F0",
-        },
-        "concept2": {
-            "id": "concept2",
-            "canonical_name": "subglottal_pressure",
-            "form": "pressure",
-            "status": "accepted",
-            "definition": "Ps",
-        },
-    }
 
 
 # ── Fixtures (reused patterns from test_build_sidecar) ──────────────
