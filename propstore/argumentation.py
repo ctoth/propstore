@@ -115,6 +115,11 @@ def build_argumentation_framework(
         if confidence is not None and confidence < confidence_threshold:
             continue
 
+        # Skip stances referencing claims not in the active set — these are
+        # stale references that should not participate in the AF.
+        if source_id not in claims_by_id or target_id not in claims_by_id:
+            continue
+
         # Collect support relations for Cayrol derived defeats
         if stance_type in _SUPPORT_TYPES:
             supports.add((source_id, target_id))

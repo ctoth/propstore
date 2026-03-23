@@ -167,6 +167,34 @@ class TestBuildAF:
         af = build_argumentation_framework(SQLiteArgumentationStore(basic_scenario), ids)
         assert af.arguments == frozenset(ids)
 
+    def test_stances_referencing_inactive_claims_skipped(self, conn):
+        """Stances whose source or target is not in active_claim_ids are silently skipped.
+
+        Regression: .get(id, {}) created phantom attackers with neutral strength
+        instead of skipping stale references.
+        """
+        _insert_claim(conn, "active_a", "c1", 100.0, sample_size=100)
+        _insert_claim(conn, "active_b", "c1", 200.0, sample_size=100)
+        _insert_claim(conn, "inactive_c", "c1", 300.0, sample_size=100)
+        # Stances referencing inactive_c (not in active set)
+        _insert_stance(conn, "inactive_c", "active_a", "rebuts")   # source inactive
+        _insert_stance(conn, "active_b", "inactive_c", "rebuts")   # target inactive
+        _insert_stance(conn, "inactive_c", "active_b", "supports") # support, source inactive
+        # One valid stance between active claims
+        _insert_stance(conn, "active_a", "active_b", "rebuts")
+        conn.commit()
+
+        active_ids = {"active_a", "active_b"}
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), active_ids)
+
+        # Only the valid stance between active claims should appear
+        assert af.arguments == frozenset(active_ids)
+        # Stances involving inactive_c must not appear anywhere
+        for src, tgt in af.attacks:
+            assert src in active_ids and tgt in active_ids
+        for src, tgt in af.defeats:
+            assert src in active_ids and tgt in active_ids
+
 
 # ── Tests: compute_justified_claims ─────────────────────────────────
 
