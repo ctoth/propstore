@@ -10,10 +10,10 @@ from propstore.world.bound import (
     _recomputed_conflicts,
     _value_of_from_active,
 )
-from propstore.world.types import DerivedResult, ResolvedResult, SyntheticClaim, ValueResult
+from propstore.world.types import BeliefSpace, DerivedResult, ResolvedResult, SyntheticClaim, ValueResult
 
 
-class HypotheticalWorld:
+class HypotheticalWorld(BeliefSpace):
     """In-memory overlay on a BoundWorld — removes/adds claims without mutation."""
 
     def __init__(
@@ -91,7 +91,8 @@ class HypotheticalWorld:
         seen = {(c["claim_a_id"], c["claim_b_id"], c.get("concept_id")) for c in filtered}
         for conflict in recomputed:
             key = (conflict["claim_a_id"], conflict["claim_b_id"], conflict.get("concept_id"))
-            if key not in seen:
+            reverse_key = (conflict["claim_b_id"], conflict["claim_a_id"], conflict.get("concept_id"))
+            if key not in seen and reverse_key not in seen:
                 filtered.append(conflict)
                 seen.add(key)
         return filtered

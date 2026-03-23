@@ -11,7 +11,6 @@ def test_render_policy_defaults():
     assert policy.semantics == "grounded"
     assert policy.comparison == "elitist"
     assert policy.confidence_threshold == 0.5
-    assert policy.proposal_policy == "source_only"
 
 
 def test_environment_defaults():

@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from propstore.world.bound import BoundWorld
 from propstore.world.resolution import resolve
 from propstore.world.types import (
+    ArtifactStore,
     Environment,
     ChainResult,
     ChainStep,
@@ -32,7 +33,7 @@ _KIND_TYPE_MAP = {
 }
 
 
-class WorldModel:
+class WorldModel(ArtifactStore):
     """Read-only reasoner over a compiled sidecar."""
 
     def __init__(self, repo: object) -> None:

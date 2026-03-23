@@ -824,11 +824,20 @@ class TestConflictResolution:
         result = resolve(
             bound,
             "concept1",
+            world=world,
             policy=bound._policy,
             confidence_threshold=0.0,
         )
         assert result.status == "conflicted"
         assert "survive" in (result.reason or "")
+
+    def test_resolve_argumentation_requires_explicit_store(self, world):
+        bound = world.bind(task="speech")
+
+        result = resolve(bound, "concept1", ResolutionStrategy.ARGUMENTATION)
+
+        assert result.status == "conflicted"
+        assert result.reason == "argumentation strategy requires an explicit artifact store"
 
     def test_resolve_not_conflicted(self, world):
         """Determined → returns same, no resolution."""
@@ -1326,6 +1335,29 @@ class TestTransitiveConsistency:
             } == {"claim6", "synth_conflict"}
             for conflict in conflicts
         )
+
+    def test_hypothetical_conflicts_dedup_reverse_pairs(self, world, monkeypatch):
+        bound = world.bind(task="speech")
+
+        monkeypatch.setattr(
+            "propstore.world.hypothetical._recomputed_conflicts",
+            lambda store, claims: [
+                {
+                    "concept_id": "concept1",
+                    "claim_a_id": "claim2",
+                    "claim_b_id": "claim1",
+                    "warning_class": "CONFLICT",
+                }
+            ],
+        )
+
+        conflicts = HypotheticalWorld(bound).conflicts("concept1")
+        pairs = {
+            frozenset((conflict["claim_a_id"], conflict["claim_b_id"]))
+            for conflict in conflicts
+        }
+
+        assert len(pairs) == len(conflicts)
 
     def test_hypothetical_recompute_remove(self, world):
         """Remove conflicting claim → recompute clean."""

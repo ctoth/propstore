@@ -7,7 +7,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from ast_equiv import compare as ast_compare
-from propstore.world.types import DerivedResult, Environment, RenderPolicy, ResolvedResult, ValueResult
+from propstore.world.types import (
+    BeliefSpace,
+    DerivedResult,
+    Environment,
+    RenderPolicy,
+    ResolvedResult,
+    ValueResult,
+)
 
 if TYPE_CHECKING:
     from propstore.world.model import WorldModel
@@ -246,7 +253,7 @@ def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
     ]
 
 
-class BoundWorld:
+class BoundWorld(BeliefSpace):
     """The world under specific condition bindings, optionally scoped to a context."""
 
     def __init__(

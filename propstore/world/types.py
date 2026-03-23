@@ -5,7 +5,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from propstore.z3_conditions import Z3ConditionSolver
 
 
 @dataclass
@@ -81,7 +84,6 @@ class RenderPolicy:
     confidence_threshold: float = 0.5
     overrides: Mapping[str, str] = field(default_factory=dict)
     concept_strategies: Mapping[str, ResolutionStrategy] = field(default_factory=dict)
-    proposal_policy: str = "source_only"
 
 
 @runtime_checkable
@@ -113,7 +115,7 @@ class ArtifactStore(Protocol):
     ) -> list[dict]: ...
     def stats(self) -> dict: ...
     def explain(self, claim_id: str) -> list[dict]: ...
-    def condition_solver(self): ...
+    def condition_solver(self) -> Z3ConditionSolver: ...
     def has_table(self, name: str) -> bool: ...
     def parameterizations_for(self, concept_id: str) -> list[dict]: ...
     def group_members(self, concept_id: str) -> list[str]: ...

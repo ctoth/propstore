@@ -11,7 +11,7 @@ Date: 2026-03-23
 - R3: Completed
 - R4: Completed
 - R4.5: Completed
-- R5: In progress
+- R5: Completed
 
 Baseline verification before implementation:
 
@@ -40,14 +40,20 @@ R4/R4.5 verification:
 - argumentation now targets store methods instead of raw SQLite connection input
 - graph export now uses public store methods instead of `_conn`
 
-R5 verification so far:
+R5 verification:
 
 - `uv run pytest -q`
-- Current result: `789 passed, 200 warnings`
+- Result after migration closeout: `796 passed, 212 warnings`
 - Cleanup checks:
   - no `ClaimView` references
   - no imports from `propstore.world_model`
   - no `_world._`, `_base._world`, `sqlite3.Connection`, or `wm._conn` references in the targeted render/analyzer files
+  - `RenderPolicy` cleanup completed; dead `proposal_policy` removed
+  - Claude review follow-up fixes landed:
+    - `resolve()` no longer breaks abstraction with `isinstance` fallback
+    - `HypotheticalWorld.conflicts()` dedups reverse-order pairs
+    - `ArtifactStore.condition_solver()` is typed
+    - validator dead fallback removed
 
 ## Purpose
 

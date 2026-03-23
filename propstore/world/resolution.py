@@ -106,9 +106,6 @@ def resolve(
     policy: RenderPolicy | None = None,
 ) -> ResolvedResult:
     """Apply a resolution strategy to a conflicted concept."""
-    from propstore.world.bound import BoundWorld
-    from propstore.world.hypothetical import HypotheticalWorld
-
     vr = view.value_of(concept_id)
 
     if vr.status == "no_claims":
@@ -179,14 +176,9 @@ def resolve(
 
     elif strategy == ResolutionStrategy.ARGUMENTATION:
         if world is None:
-            if isinstance(view, BoundWorld):
-                world = view._store
-            elif isinstance(view, HypotheticalWorld):
-                world = view._base._store
-        if world is None:
             return ResolvedResult(
                 concept_id=concept_id, status="conflicted",
-                claims=active, reason="no world for argumentation",
+                claims=active, reason="argumentation strategy requires an explicit artifact store",
             )
         winner_id, reason = _resolve_argumentation(
             active, world,

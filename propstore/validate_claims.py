@@ -132,7 +132,7 @@ def validate_claims(
             result.errors.append(f"{cf.filename}: missing required 'claims' key")
             continue
 
-        claims = data.get("claims", [])
+        claims = data["claims"]
         if not isinstance(claims, list):
             result.errors.append(f"{cf.filename}: 'claims' must be a list")
             continue
