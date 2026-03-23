@@ -35,6 +35,7 @@ from propstore.form_utils import (
     load_form,
     load_form_definition,
 )
+from propstore.stances import VALID_STANCE_TYPES
 
 
 @dataclass
@@ -117,9 +118,28 @@ def validate_claims(
             json_schema = json.load(f)
 
     seen_ids: dict[str, str] = {}  # claim_id -> filename
+    all_claim_ids: set[str] = set()
+
+    for cf in claim_files:
+        claims = cf.data.get("claims")
+        if not isinstance(claims, list):
+            continue
+        for claim in claims:
+            if not isinstance(claim, dict):
+                continue
+            claim_id = claim.get("id")
+            if isinstance(claim_id, str) and claim_id:
+                all_claim_ids.add(claim_id)
 
     for cf in claim_files:
         data = cf.data
+
+        if data.get("stage") == "draft":
+            result.errors.append(
+                f"{cf.filename}: draft artifacts are not accepted in the final claim "
+                "validation path"
+            )
+            continue
 
         # JSON Schema validation
         if json_schema is not None:
@@ -216,7 +236,52 @@ def validate_claims(
                 result.errors.append(
                     f"{cf.filename}: claim '{cid}' has unrecognized type '{ctype}'")
 
+            _validate_stances(claim, cid, cf.filename, all_claim_ids, result)
+
     return result
+
+
+def _validate_stances(
+    claim: dict,
+    cid: str,
+    filename: str,
+    extant_claim_ids: set[str],
+    result: ValidationResult,
+) -> None:
+    stances = claim.get("stances") or []
+    if not isinstance(stances, list):
+        result.errors.append(f"{filename}: claim '{cid}' stances must be a list")
+        return
+
+    for index, stance in enumerate(stances, start=1):
+        if not isinstance(stance, dict):
+            result.errors.append(
+                f"{filename}: claim '{cid}' stance #{index} must be a mapping"
+            )
+            continue
+
+        stance_type = stance.get("type")
+        target_claim_id = stance.get("target")
+
+        if not stance_type:
+            result.errors.append(
+                f"{filename}: claim '{cid}' stance #{index} missing type"
+            )
+        elif stance_type not in VALID_STANCE_TYPES:
+            result.errors.append(
+                f"{filename}: claim '{cid}' stance #{index} uses unrecognized "
+                f"type '{stance_type}'"
+            )
+
+        if not target_claim_id:
+            result.errors.append(
+                f"{filename}: claim '{cid}' stance #{index} missing target"
+            )
+        elif target_claim_id not in extant_claim_ids:
+            result.errors.append(
+                f"{filename}: claim '{cid}' stance #{index} references "
+                f"nonexistent target claim '{target_claim_id}'"
+            )
 
 
 def _validate_value_fields(

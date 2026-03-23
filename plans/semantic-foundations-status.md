@@ -1,0 +1,122 @@
+# Semantic Foundations Implementation Status
+
+- Branch: `semantic-foundations-impl`
+- Plan: `plans/semantic-foundations-and-atms-plan.md`
+- Contract: `plans/semantic-contract.md`
+- Status date: `2026-03-23`
+
+## Rounds
+
+- R0: completed
+  - Deliverables:
+    - `plans/semantic-contract.md`
+    - `plans/semantic-foundations-and-atms-plan.md`
+- R1: completed
+  - Scope:
+    - context-aware `WorldModel.bind()`
+    - effective assumptions in runtime environment
+    - context-aware conflict classification exit
+  - TDD status:
+    - failing tests added in `tests/test_contexts.py`
+    - focused gate passed: `uv run pytest tests/test_contexts.py -q`
+    - round gate passed: `uv run pytest tests/test_build_sidecar.py tests/test_contexts.py tests/test_world_model.py tests/test_conflict_detector.py -q`
+  - Code changed:
+    - `propstore/world/types.py`
+    - `propstore/world/model.py`
+    - `propstore/world/bound.py`
+    - `propstore/conflict_detector.py`
+    - `propstore/build_sidecar.py`
+    - `propstore/z3_conditions.py`
+- R2: completed
+  - Scope:
+    - stance target validation against extant claims
+    - stance-type validation against the accepted vocabulary
+    - actual foreign-key enforcement in sidecar build
+    - stale `contradicts` fixtures aligned to `rebuts`
+  - TDD status:
+    - focused gate passed: `uv run pytest tests/test_validate_claims.py tests/test_build_sidecar.py -q`
+    - round gate passed: `uv run pytest tests/test_validate_claims.py tests/test_build_sidecar.py tests/test_world_model.py tests/test_graph_export.py tests/test_sensitivity.py tests/test_argumentation_integration.py tests/test_bipolar_argumentation.py tests/test_render_time_filtering.py -q`
+  - Code changed:
+    - `propstore/stances.py`
+    - `propstore/validate_claims.py`
+    - `propstore/build_sidecar.py`
+    - `propstore/relate.py`
+    - `tests/test_validate_claims.py`
+    - `tests/test_build_sidecar.py`
+    - `tests/test_graph_export.py`
+    - `tests/test_sensitivity.py`
+- R3: completed
+  - Scope:
+    - measurement visibility through `target_concept`
+    - graph-export claim ownership for measurement claims
+    - algorithm conflict ownership keyed to declared output concept
+  - TDD status:
+    - focused gate passed: `uv run pytest tests/test_world_model.py tests/test_conflict_detector.py tests/test_graph_export.py -q`
+    - round gate passed: `uv run pytest tests/test_build_sidecar.py tests/test_contexts.py tests/test_world_model.py tests/test_conflict_detector.py tests/test_graph_export.py -q`
+  - Code changed:
+    - `propstore/world/model.py`
+    - `propstore/world/bound.py`
+    - `propstore/conflict_detector.py`
+    - `propstore/graph_export.py`
+    - `tests/test_world_model.py`
+    - `tests/test_conflict_detector.py`
+    - `tests/test_graph_export.py`
+- R4: completed
+  - Scope:
+    - explicit draft/final boundary for deterministic plugin extraction
+    - final claim validation rejects draft artifacts intentionally
+  - TDD status:
+    - focused gate passed: `uv run pytest tests/test_validate_claims.py ..\research-papers-plugin\plugins\research-papers\tests\test_generate_claims.py -q`
+    - round gate passed: `uv run pytest tests/test_validate_claims.py ..\research-papers-plugin\plugins\research-papers\tests\test_generate_claims.py ..\research-papers-plugin\plugins\research-papers\tests\test_bootstrap_concepts.py ..\research-papers-plugin\plugins\research-papers\tests\test_generate_paper_index.py -q`
+  - Code changed:
+    - `propstore/validate_claims.py`
+    - `tests/test_validate_claims.py`
+    - `..\research-papers-plugin\plugins\research-papers\scripts\generate_claims.py`
+    - `..\research-papers-plugin\plugins\research-papers\tests\test_generate_claims.py`
+    - `..\research-papers-plugin\README.md`
+- R5: completed
+  - Scope:
+    - sidecar invalidation covers contexts, forms, stances, generated schema files, and semantic version marker
+  - TDD status:
+    - focused gate passed: `uv run pytest tests/test_build_sidecar.py -k "rebuild_when_contexts_change or rebuild_when_form_files_change or rebuild_when_stance_files_change or rebuild_when_semantic_version_changes" -q`
+    - round gate passed: `uv run pytest tests/test_build_sidecar.py tests/test_validate_claims.py ..\research-papers-plugin\plugins\research-papers\tests\test_generate_claims.py ..\research-papers-plugin\plugins\research-papers\tests\test_bootstrap_concepts.py ..\research-papers-plugin\plugins\research-papers\tests\test_generate_paper_index.py -q`
+  - Code changed:
+    - `propstore/build_sidecar.py`
+    - `tests/test_build_sidecar.py`
+- R6: completed
+  - Scope:
+    - multiple Hypothesis proofs for the new context semantics
+  - TDD status:
+    - focused gate passed: `uv run pytest tests/test_contexts.py -q`
+    - broad repo gate passed: `uv run pytest -q`
+    - plugin repo gate passed: `uv run pytest ..\research-papers-plugin\plugins\research-papers\tests -q`
+  - Code changed:
+    - `tests/test_contexts.py`
+
+## Current Gate
+
+- Target:
+  - Completed: implementation, local verification, live `pks build`, and Claude post-fix review
+
+## Notes
+
+- Track only semantic-foundations implementation work here.
+- Record each completed round with tests added, code changed, and gate results.
+- Known warnings in the R1 gate came from existing parameterization-conflict evaluation paths in `tests/test_world_model.py`.
+- Final local verification before external review:
+  - `uv run pytest -q` -> `814 passed, 212 warnings`
+  - `uv run pytest ..\research-papers-plugin\plugins\research-papers\tests -q` -> `50 passed`
+- Claude review and post-review follow-up:
+  - initial branch review report: `reports/semantic-foundations-branch-review.md`
+  - acted on valid findings:
+    - fixed transitive conflict context semantics
+    - fixed the unrelated-context Hypothesis tolerance guard
+    - added additional Hypothesis coverage for AF closure, stance persistence, hash invalidation, and algorithm ownership
+  - post-fix review report: `reports/semantic-foundations-postfix-review.md`
+  - final Claude follow-up findings acted on:
+    - cached `target_concept` schema detection in `WorldModel.claims_for()`
+    - synchronized the execution-status block in `plans/semantic-foundations-and-atms-plan.md`
+- Final verification after Claude follow-up:
+  - `uv run pytest -q` -> `821 passed, 212 warnings`
+  - `uv run pytest ..\research-papers-plugin\plugins\research-papers\tests -q` -> `50 passed`
+  - `uv run pks build` -> `Build unchanged: 250 concepts, 410 claims, 0 conflicts, 0 warnings`

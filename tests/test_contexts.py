@@ -1,7 +1,13 @@
 """Tests for context loading, validation, hierarchy, and sidecar integration."""
 
+import json
+import sqlite3
+from pathlib import Path
+
 import pytest
 import yaml
+from hypothesis import assume, given, settings
+from hypothesis import strategies as st
 
 from propstore.validate_contexts import (
     ContextHierarchy,
@@ -9,6 +15,7 @@ from propstore.validate_contexts import (
     load_contexts,
     validate_contexts,
 )
+from propstore.value_comparison import DEFAULT_TOLERANCE
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -25,6 +32,15 @@ def make_context(id, name, description="", **kwargs):
     d = {"id": id, "name": name, "description": description}
     d.update(kwargs)
     return d
+
+
+_ASSUMPTION_POOL = [
+    "framework == 'general'",
+    "framework == 'specialized'",
+    "variant == 'baseline'",
+    "variant == 'specific'",
+    "task == 'speech'",
+]
 
 
 # ── Step 1: Loading ──────────────────────────────────────────────────
@@ -215,6 +231,113 @@ class TestContextHierarchy:
         assert h.is_visible("ctx_leaf", "ctx_root")    # grandparent
         assert not h.is_visible("ctx_leaf", "ctx_other")  # unrelated
         assert not h.is_visible("ctx_root", "ctx_leaf")   # child not visible from parent
+
+
+class TestContextProperties:
+    @given(
+        parent_assumptions=st.lists(st.sampled_from(_ASSUMPTION_POOL), unique=True, max_size=3),
+        child_assumptions=st.lists(st.sampled_from(_ASSUMPTION_POOL), unique=True, max_size=3),
+    )
+    @settings(max_examples=40)
+    def test_effective_assumptions_monotone_under_inheritance(
+        self,
+        parent_assumptions,
+        child_assumptions,
+    ):
+        hierarchy = ContextHierarchy([
+            LoadedContext(
+                "root",
+                None,
+                make_context("ctx_root", "Root", assumptions=parent_assumptions),
+            ),
+            LoadedContext(
+                "child",
+                None,
+                make_context(
+                    "ctx_child",
+                    "Child",
+                    inherits="ctx_root",
+                    assumptions=child_assumptions,
+                ),
+            ),
+        ])
+
+        effective = hierarchy.effective_assumptions("ctx_child")
+        assert set(parent_assumptions).issubset(set(effective))
+        assert set(child_assumptions).issubset(set(effective))
+
+    @given(
+        effective_assumptions=st.lists(
+            st.sampled_from(_ASSUMPTION_POOL),
+            unique=True,
+            max_size=len(_ASSUMPTION_POOL),
+        )
+    )
+    @settings(max_examples=40, deadline=None)
+    def test_visibility_depends_on_effective_assumptions_not_context_identity(
+        self,
+        effective_assumptions,
+    ):
+        from propstore.world.bound import BoundWorld
+        from propstore.world.types import Environment
+        from propstore.z3_conditions import Z3ConditionSolver
+
+        class _Store:
+            def __init__(self, claims):
+                self._claims = claims
+                self._solver = Z3ConditionSolver({})
+
+            def claims_for(self, concept_id):
+                return [
+                    claim for claim in self._claims
+                    if concept_id is None or claim.get("concept_id") == concept_id
+                ]
+
+            def condition_solver(self):
+                return self._solver
+
+        claims = [
+            {
+                "id": "claim_universal",
+                "concept_id": "concept1",
+                "conditions_cel": None,
+                "context_id": None,
+            }
+        ]
+        for index, assumption in enumerate(_ASSUMPTION_POOL, start=1):
+            claims.append({
+                "id": f"claim_{index}",
+                "concept_id": "concept1",
+                "conditions_cel": json.dumps([assumption]),
+                "context_id": None,
+            })
+
+        hierarchy = ContextHierarchy([
+            LoadedContext("a", None, make_context("ctx_a", "A")),
+            LoadedContext("b", None, make_context("ctx_b", "B")),
+        ])
+        store = _Store(claims)
+
+        bound_a = BoundWorld(
+            store,
+            environment=Environment(
+                context_id="ctx_a",
+                effective_assumptions=tuple(effective_assumptions),
+            ),
+            context_hierarchy=hierarchy,
+        )
+        bound_b = BoundWorld(
+            store,
+            environment=Environment(
+                context_id="ctx_b",
+                effective_assumptions=tuple(effective_assumptions),
+            ),
+            context_hierarchy=hierarchy,
+        )
+
+        active_a = {claim["id"] for claim in bound_a.active_claims("concept1")}
+        active_b = {claim["id"] for claim in bound_b.active_claims("concept1")}
+        assert active_a == active_b
 
 
 # ── Step 2: Context tables in sidecar ────────────────────────────────
@@ -517,6 +640,129 @@ class TestBoundWorldContext:
         assert len(active) == 4  # all four claims visible
         conn.close()
 
+    def test_world_model_bind_uses_sidecar_context_hierarchy(self, tmp_path):
+        """WorldModel.bind() should load and apply context hierarchy from sidecar tables."""
+        sidecar = tmp_path / "propstore.sqlite"
+        conn = sqlite3.connect(sidecar)
+        conn.executescript("""
+            CREATE TABLE claim (
+                id TEXT PRIMARY KEY,
+                concept_id TEXT,
+                conditions_cel TEXT,
+                context_id TEXT
+            );
+            CREATE TABLE context (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                inherits TEXT
+            );
+            CREATE TABLE context_assumption (
+                context_id TEXT NOT NULL,
+                assumption_cel TEXT NOT NULL,
+                seq INTEGER NOT NULL
+            );
+            CREATE TABLE context_exclusion (
+                context_a TEXT NOT NULL,
+                context_b TEXT NOT NULL
+            );
+        """)
+        conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_root', 'Root', NULL)")
+        conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_child', 'Child', 'ctx_root')")
+        conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_other', 'Other', NULL)")
+        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_root', 'c1', NULL, 'ctx_root')")
+        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_child', 'c1', NULL, 'ctx_child')")
+        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_other', 'c1', NULL, 'ctx_other')")
+        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_universal', 'c1', NULL, NULL)")
+        conn.commit()
+        conn.close()
+
+        class _Repo:
+            sidecar_path = sidecar
+
+        from propstore.world import WorldModel
+        from propstore.world.types import Environment
+
+        wm = WorldModel(_Repo())
+        try:
+            bound = wm.bind(Environment(context_id="ctx_root"))
+            active_ids = {c["id"] for c in bound.active_claims("c1")}
+            assert active_ids == {"claim_root", "claim_universal"}
+        finally:
+            wm.close()
+
+    def test_world_model_bind_exposes_effective_assumptions_and_uses_them(self, tmp_path):
+        """Binding through a sidecar context should expose and apply effective assumptions."""
+        sidecar = tmp_path / "propstore.sqlite"
+        conn = sqlite3.connect(sidecar)
+        conn.executescript("""
+            CREATE TABLE claim (
+                id TEXT PRIMARY KEY,
+                concept_id TEXT,
+                conditions_cel TEXT,
+                context_id TEXT
+            );
+            CREATE TABLE context (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                inherits TEXT
+            );
+            CREATE TABLE context_assumption (
+                context_id TEXT NOT NULL,
+                assumption_cel TEXT NOT NULL,
+                seq INTEGER NOT NULL
+            );
+            CREATE TABLE context_exclusion (
+                context_a TEXT NOT NULL,
+                context_b TEXT NOT NULL
+            );
+        """)
+        conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_root', 'Root', NULL)")
+        conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_child', 'Child', 'ctx_root')")
+        conn.execute(
+            "INSERT INTO context_assumption (context_id, assumption_cel, seq) VALUES (?, ?, ?)",
+            ("ctx_root", "framework == 'general'", 1),
+        )
+        conn.execute(
+            "INSERT INTO context_assumption (context_id, assumption_cel, seq) VALUES (?, ?, ?)",
+            ("ctx_child", "variant == 'specific'", 1),
+        )
+        conn.execute(
+            "INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES (?, ?, ?, ?)",
+            ("claim_general", "c1", "[\"framework == 'general'\"]", None),
+        )
+        conn.execute(
+            "INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES (?, ?, ?, ?)",
+            ("claim_specific", "c1", "[\"variant == 'specific'\"]", None),
+        )
+        conn.execute(
+            "INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES (?, ?, ?, ?)",
+            ("claim_other", "c1", "[\"framework == 'other'\"]", None),
+        )
+        conn.commit()
+        conn.close()
+
+        class _Repo:
+            sidecar_path = sidecar
+
+        from propstore.world import WorldModel
+        from propstore.world.types import Environment
+
+        wm = WorldModel(_Repo())
+        try:
+            bound = wm.bind(Environment(context_id="ctx_child"))
+            assert set(bound._environment.effective_assumptions) == {
+                "framework == 'general'",
+                "variant == 'specific'",
+            }
+            active_ids = {c["id"] for c in bound.active_claims("c1")}
+            assert "claim_general" in active_ids
+            assert "claim_specific" in active_ids
+            assert "claim_other" not in active_ids
+        finally:
+            wm.close()
+
 
 # ── Step 5: Context-aware conflict detection ─────────────────────────
 
@@ -557,6 +803,23 @@ class TestContextAwareConflicts:
         )
         assert result is None
 
+    def test_excluded_contexts_return_context_phi_node(self):
+        """Mutually excluded contexts classify as CONTEXT_PHI_NODE."""
+        h = ContextHierarchy([
+            LoadedContext("root", None, make_context("ctx_root", "Root")),
+            LoadedContext(
+                "other",
+                None,
+                make_context("ctx_other", "Other", excludes=["ctx_root"]),
+            ),
+        ])
+        result = _classify_pair_context(
+            context_a="ctx_root",
+            context_b="ctx_other",
+            hierarchy=h,
+        )
+        assert result == ConflictClass.CONTEXT_PHI_NODE
+
     def test_no_context_returns_none(self):
         """One or both claims with no context → None (universal, normal classification)."""
         h = ContextHierarchy([
@@ -569,6 +832,110 @@ class TestContextAwareConflicts:
     def test_both_none_hierarchy_returns_none(self):
         """No hierarchy at all → None (backward compatible)."""
         assert _classify_pair_context("ctx_a", "ctx_b", None) is None
+
+    def test_detect_conflicts_uses_context_phi_node_as_classification_exit(self):
+        """Unrelated-context claims should classify as CONTEXT_PHI_NODE, not ordinary conflict."""
+        from propstore.conflict_detector import detect_conflicts
+        from propstore.validate_claims import LoadedClaimFile
+
+        cf = LoadedClaimFile(
+            filename="test",
+            filepath=Path("test.yaml"),
+            data={"claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 1.0,
+                    "unit": "Hz",
+                    "context": "ctx_root",
+                    "provenance": {"paper": "test", "page": 1},
+                },
+                {
+                    "id": "claim2",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 2.0,
+                    "unit": "Hz",
+                    "context": "ctx_other",
+                    "provenance": {"paper": "test", "page": 1},
+                },
+            ]},
+        )
+        hierarchy = ContextHierarchy([
+            LoadedContext("root", None, make_context("ctx_root", "Root")),
+            LoadedContext("other", None, make_context("ctx_other", "Other")),
+        ])
+        registry = {
+            "concept1": {
+                "id": "concept1",
+                "canonical_name": "concept1",
+                "form": "frequency",
+                "status": "accepted",
+                "definition": "test concept",
+            },
+        }
+
+        records = detect_conflicts([cf], registry, context_hierarchy=hierarchy)
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
+
+    @given(
+        value_a=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
+        value_b=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
+    )
+    @settings(max_examples=40)
+    def test_unrelated_context_conflicts_always_exit_as_context_phi_node(
+        self,
+        value_a,
+        value_b,
+    ):
+        from propstore.conflict_detector import detect_conflicts
+        from propstore.validate_claims import LoadedClaimFile
+
+        assume(abs(value_a - value_b) > DEFAULT_TOLERANCE)
+
+        cf = LoadedClaimFile(
+            filename="test",
+            filepath=Path("test.yaml"),
+            data={"claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": value_a,
+                    "unit": "Hz",
+                    "context": "ctx_root",
+                    "provenance": {"paper": "test", "page": 1},
+                },
+                {
+                    "id": "claim2",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": value_b,
+                    "unit": "Hz",
+                    "context": "ctx_other",
+                    "provenance": {"paper": "test", "page": 1},
+                },
+            ]},
+        )
+        hierarchy = ContextHierarchy([
+            LoadedContext("root", None, make_context("ctx_root", "Root")),
+            LoadedContext("other", None, make_context("ctx_other", "Other")),
+        ])
+        registry = {
+            "concept1": {
+                "id": "concept1",
+                "canonical_name": "concept1",
+                "form": "frequency",
+                "status": "accepted",
+                "definition": "test concept",
+            },
+        }
+
+        records = detect_conflicts([cf], registry, context_hierarchy=hierarchy)
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
 
 
 # ── Step 6: CLI + Repository integration ─────────────────────────────

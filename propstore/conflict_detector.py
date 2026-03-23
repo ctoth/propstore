@@ -17,13 +17,16 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ast_equiv import compare as ast_compare
 
 from propstore.cel_checker import build_cel_registry
 from propstore.equation_comparison import canonicalize_equation, equation_signature
 from propstore.validate_claims import LoadedClaimFile
+
+if TYPE_CHECKING:
+    from propstore.validate_contexts import ContextHierarchy
 
 
 class ConflictClass(Enum):
@@ -54,7 +57,7 @@ class ConflictRecord:
 def _classify_pair_context(
     context_a: str | None,
     context_b: str | None,
-    hierarchy: object | None,
+    hierarchy: ContextHierarchy | None,
 ) -> ConflictClass | None:
     """Check if two claims' contexts make them non-conflicting.
 
@@ -68,15 +71,59 @@ def _classify_pair_context(
         return None  # universal claims use normal classification
     if context_a == context_b:
         return None  # same context — normal classification
+    if hierarchy.are_excluded(context_a, context_b):
+        return ConflictClass.CONTEXT_PHI_NODE
 
     # Check if one is an ancestor of the other
-    if hierarchy.is_visible(context_a, context_b):  # type: ignore[union-attr]
+    if hierarchy.is_visible(context_a, context_b):
         return None  # ancestor/descendant — both visible, normal classification
-    if hierarchy.is_visible(context_b, context_a):  # type: ignore[union-attr]
+    if hierarchy.is_visible(context_b, context_a):
         return None
 
     # Different, unrelated contexts — not a real conflict
     return ConflictClass.CONTEXT_PHI_NODE
+
+
+def _claim_context(claim: dict[str, Any]) -> str | None:
+    context = claim.get("context")
+    if isinstance(context, str) and context:
+        return context
+    context_id = claim.get("context_id")
+    if isinstance(context_id, str) and context_id:
+        return context_id
+    return None
+
+
+def _append_context_classified_record(
+    records: list[ConflictRecord],
+    *,
+    concept_id: str,
+    claim_a_id: str,
+    claim_b_id: str,
+    conditions_a: list[str],
+    conditions_b: list[str],
+    value_a: str,
+    value_b: str,
+    context_a: str | None,
+    context_b: str | None,
+    context_hierarchy: ContextHierarchy | None,
+    derivation_chain: str | None = None,
+) -> bool:
+    context_class = _classify_pair_context(context_a, context_b, context_hierarchy)
+    if context_class is None:
+        return False
+    records.append(ConflictRecord(
+        concept_id=concept_id,
+        claim_a_id=claim_a_id,
+        claim_b_id=claim_b_id,
+        warning_class=context_class,
+        conditions_a=conditions_a,
+        conditions_b=conditions_b,
+        value_a=value_a,
+        value_b=value_b,
+        derivation_chain=derivation_chain,
+    ))
+    return True
 
 
 # ── Value comparison ─────────────────────────────────────────────────
@@ -135,19 +182,23 @@ def _collect_equation_claims(
 def _collect_algorithm_claims(
     claim_files: Sequence[LoadedClaimFile],
 ) -> dict[str, list[dict]]:
-    """Group algorithm claims by their primary concept (first concept in variables list).
+    """Group algorithm claims by their declared output concept.
 
-    Returns dict mapping concept_id to list of algorithm claim dicts.
+    Falls back to the first variable concept only for legacy claims that do not
+    carry an explicit ``concept`` field.
     """
     by_concept: dict[str, list[dict]] = defaultdict(list)
     for cf in claim_files:
         for claim in cf.data.get("claims", []):
             if claim.get("type") != "algorithm":
                 continue
+            declared_concept = claim.get("concept")
+            if isinstance(declared_concept, str) and declared_concept:
+                by_concept[declared_concept].append(claim)
+                continue
             variables = claim.get("variables")
             if not isinstance(variables, list) or not variables:
                 continue
-            # Primary concept is the first variable's concept
             first_concept = None
             for var in variables:
                 if isinstance(var, dict):
@@ -166,6 +217,7 @@ def _collect_algorithm_claims(
 def detect_conflicts(
     claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict[str, dict],
+    context_hierarchy: ContextHierarchy | None = None,
 ) -> list[ConflictRecord]:
     """Detect conflicts between claims binding to the same concept.
 
@@ -216,6 +268,20 @@ def detect_conflicts(
                         if _values_compatible(value_a, value_b,
                                               claim_a=claim_a, claim_b=claim_b):
                             continue
+                        if _append_context_classified_record(
+                            records,
+                            concept_id=concept_id,
+                            claim_a_id=claim_a["id"],
+                            claim_b_id=claim_b["id"],
+                            conditions_a=all_conditions[idx_a],
+                            conditions_b=all_conditions[idx_b],
+                            value_a=_value_str(value_a, claim=claim_a),
+                            value_b=_value_str(value_b, claim=claim_b),
+                            context_a=_claim_context(claim_a),
+                            context_b=_claim_context(claim_b),
+                            context_hierarchy=context_hierarchy,
+                        ):
+                            continue
                         records.append(ConflictRecord(
                             concept_id=concept_id,
                             claim_a_id=claim_a["id"],
@@ -253,6 +319,20 @@ def detect_conflicts(
                             if _values_compatible(value_a, value_b,
                                                   claim_a=claim_a, claim_b=claim_b):
                                 continue
+                            if _append_context_classified_record(
+                                records,
+                                concept_id=concept_id,
+                                claim_a_id=claim_a["id"],
+                                claim_b_id=claim_b["id"],
+                                conditions_a=all_conditions[idx_a],
+                                conditions_b=all_conditions[idx_b],
+                                value_a=_value_str(value_a, claim=claim_a),
+                                value_b=_value_str(value_b, claim=claim_b),
+                                context_a=_claim_context(claim_a),
+                                context_b=_claim_context(claim_b),
+                                context_hierarchy=context_hierarchy,
+                            ):
+                                continue
                             records.append(ConflictRecord(
                                 concept_id=concept_id,
                                 claim_a_id=claim_a["id"],
@@ -275,6 +355,20 @@ def detect_conflicts(
 
                     if _values_compatible(value_a, value_b,
                                           claim_a=claim_a, claim_b=claim_b):
+                        continue
+                    if _append_context_classified_record(
+                        records,
+                        concept_id=concept_id,
+                        claim_a_id=claim_a["id"],
+                        claim_b_id=claim_b["id"],
+                        conditions_a=all_conditions[i],
+                        conditions_b=all_conditions[j],
+                        value_a=_value_str(value_a, claim=claim_a),
+                        value_b=_value_str(value_b, claim=claim_b),
+                        context_a=_claim_context(claim_a),
+                        context_b=_claim_context(claim_b),
+                        context_hierarchy=context_hierarchy,
+                    ):
                         continue
 
                     warning_class = _classify_conditions(
@@ -306,6 +400,20 @@ def detect_conflicts(
                 # Check value compatibility using _extract_interval
                 if _values_compatible(None, None, claim_a=claim_a, claim_b=claim_b):
                     continue  # COMPATIBLE — skip
+                if _append_context_classified_record(
+                    records,
+                    concept_id=target_concept,
+                    claim_a_id=claim_a["id"],
+                    claim_b_id=claim_b["id"],
+                    conditions_a=sorted(claim_a.get("conditions") or []),
+                    conditions_b=sorted(claim_b.get("conditions") or []),
+                    value_a=_value_str(None, claim=claim_a),
+                    value_b=_value_str(None, claim=claim_b),
+                    context_a=_claim_context(claim_a),
+                    context_b=_claim_context(claim_b),
+                    context_hierarchy=context_hierarchy,
+                ):
+                    continue
 
                 # Check listener_population: if different, PHI_NODE
                 pop_a = claim_a.get("listener_population", "")
@@ -349,6 +457,20 @@ def detect_conflicts(
 
                 conditions_a = sorted(claim_a.get("conditions") or [])
                 conditions_b = sorted(claim_b.get("conditions") or [])
+                if _append_context_classified_record(
+                    records,
+                    concept_id=dependent_concept,
+                    claim_a_id=claim_a["id"],
+                    claim_b_id=claim_b["id"],
+                    conditions_a=conditions_a,
+                    conditions_b=conditions_b,
+                    value_a=claim_a.get("expression") or claim_a.get("sympy") or canonical_a,
+                    value_b=claim_b.get("expression") or claim_b.get("sympy") or canonical_b,
+                    context_a=_claim_context(claim_a),
+                    context_b=_claim_context(claim_b),
+                    context_hierarchy=context_hierarchy,
+                ):
+                    continue
                 warning_class = _classify_conditions(conditions_a, conditions_b, cel_registry)
 
                 records.append(ConflictRecord(
@@ -407,6 +529,21 @@ def detect_conflicts(
                 # Not equivalent — classify conditions
                 conditions_a = sorted(claim_a.get("conditions") or [])
                 conditions_b = sorted(claim_b.get("conditions") or [])
+                if _append_context_classified_record(
+                    records,
+                    concept_id=concept_id,
+                    claim_a_id=claim_a["id"],
+                    claim_b_id=claim_b["id"],
+                    conditions_a=conditions_a,
+                    conditions_b=conditions_b,
+                    value_a=f"algorithm:{claim_a['id']}",
+                    value_b=f"algorithm:{claim_b['id']}",
+                    context_a=_claim_context(claim_a),
+                    context_b=_claim_context(claim_b),
+                    context_hierarchy=context_hierarchy,
+                    derivation_chain=f"similarity:{result.similarity:.3f} tier:{result.tier}",
+                ):
+                    continue
                 warning_class = _classify_conditions(conditions_a, conditions_b, cel_registry)
 
                 records.append(ConflictRecord(

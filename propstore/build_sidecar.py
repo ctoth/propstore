@@ -17,23 +17,33 @@ import hashlib
 import json
 import sqlite3
 from pathlib import Path
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import yaml
 
 from propstore.parameterization_groups import build_groups
 from propstore.form_utils import kind_value_from_form_name, load_form
+from propstore.stances import VALID_STANCE_TYPES
 from propstore.validate import LoadedConcept
 from propstore.validate_claims import LoadedClaimFile
 from ast_equiv import canonical_dump
+
+if TYPE_CHECKING:
+    from propstore.validate_contexts import ContextHierarchy
+
+_SEMANTIC_INPUT_VERSION = "semantic-input-v1"
 
 
 def _content_hash(
     concepts: list[LoadedConcept],
     claim_files: Sequence[LoadedClaimFile] | None = None,
+    *,
+    repo: object | None = None,
+    context_files: Sequence[object] | None = None,
 ) -> str:
-    """Hash all concept and claim file contents to detect changes."""
+    """Hash all semantic inputs that define the compiled sidecar."""
     h = hashlib.sha256()
+    h.update(_SEMANTIC_INPUT_VERSION.encode())
     for c in sorted(concepts, key=lambda x: x.filename):
         h.update(c.filename.encode())
         h.update(json.dumps(c.data, sort_keys=True, default=str).encode())
@@ -41,6 +51,43 @@ def _content_hash(
         for cf in sorted(claim_files, key=lambda x: x.filename):
             h.update(cf.filename.encode())
             h.update(json.dumps(cf.data, sort_keys=True, default=str).encode())
+    if context_files:
+        for ctx in sorted(context_files, key=lambda x: getattr(x, "filename", "")):
+            filename = getattr(ctx, "filename", "")
+            filepath = getattr(ctx, "filepath", None)
+            data = getattr(ctx, "data", {})
+            h.update(str(filename).encode())
+            if filepath is not None and Path(filepath).exists():
+                h.update(Path(filepath).read_bytes())
+            else:
+                h.update(json.dumps(data, sort_keys=True, default=str).encode())
+
+    forms_dirs: set[Path] = set()
+    if repo is not None:
+        forms_dirs.add(repo.forms_dir)  # type: ignore[union-attr]
+    else:
+        for concept in concepts:
+            if concept.filepath is not None:
+                forms_dirs.add(concept.filepath.parent.parent / "forms")
+    for forms_dir in sorted(forms_dirs):
+        if not forms_dir.exists():
+            continue
+        for form_path in sorted(forms_dir.glob("*.yaml")):
+            h.update(str(form_path.name).encode())
+            h.update(form_path.read_bytes())
+
+    if repo is not None and claim_files is not None:
+        stances_dir = repo.stances_dir  # type: ignore[union-attr]
+        if stances_dir.exists():
+            for stance_path in sorted(stances_dir.glob("*.yaml")):
+                h.update(str(stance_path.name).encode())
+                h.update(stance_path.read_bytes())
+
+    schema_dir = Path(__file__).parent.parent / "schema" / "generated"
+    if schema_dir.exists():
+        for schema_path in sorted(schema_dir.glob("*.json")):
+            h.update(str(schema_path.name).encode())
+            h.update(schema_path.read_bytes())
     return h.hexdigest()
 
 
@@ -96,7 +143,6 @@ def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) ->
         return 0
 
     count = 0
-    valid_types = {"rebuts", "undercuts", "undermines", "supports", "explains", "supersedes", "none"}
 
     # Build set of valid claim IDs for validation
     valid_claims = {r[0] for r in conn.execute("SELECT id FROM claim").fetchall()}
@@ -107,13 +153,27 @@ def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) ->
 
         source_claim = data.get("source_claim", "")
         if source_claim not in valid_claims:
-            continue
+            raise sqlite3.IntegrityError(
+                f"stance file {f.name} references nonexistent source claim '{source_claim}'"
+            )
 
-        for s in data.get("stances", []):
+        stances = data.get("stances", [])
+        if not isinstance(stances, list):
+            raise ValueError(f"stance file {f.name} has non-list 'stances'")
+
+        for index, s in enumerate(stances, start=1):
+            if not isinstance(s, dict):
+                raise ValueError(f"stance file {f.name} stance #{index} must be a mapping")
             target = s.get("target", "")
             stype = s.get("type", "")
-            if target not in valid_claims or stype not in valid_types:
-                continue
+            if target not in valid_claims:
+                raise sqlite3.IntegrityError(
+                    f"stance file {f.name} references nonexistent target claim '{target}'"
+                )
+            if stype not in VALID_STANCE_TYPES:
+                raise ValueError(
+                    f"stance file {f.name} uses unrecognized stance type '{stype}'"
+                )
 
             # Extract resolution provenance if present
             res = s.get("resolution") or {}
@@ -156,7 +216,12 @@ def build_sidecar(
     sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Check if rebuild is needed
-    content_hash = _content_hash(concepts, claim_files)
+    content_hash = _content_hash(
+        concepts,
+        claim_files,
+        repo=repo,
+        context_files=context_files,
+    )
     hash_path = sidecar_path.with_suffix(".hash")
 
     if not force and sidecar_path.exists() and hash_path.exists():
@@ -191,6 +256,7 @@ def build_sidecar(
 
     conn = sqlite3.connect(sidecar_path)
     try:
+        conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA journal_mode=WAL")
 
         _create_tables(conn)
@@ -210,7 +276,15 @@ def build_sidecar(
             if concept_registry is None:
                 concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
             _populate_claims(conn, claim_files, concept_registry)
-            _populate_conflicts(conn, claim_files, concept_registry)
+            from propstore.validate_contexts import ContextHierarchy
+
+            context_hierarchy = ContextHierarchy(context_files) if context_files else None
+            _populate_conflicts(
+                conn,
+                claim_files,
+                concept_registry,
+                context_hierarchy=context_hierarchy,
+            )
             _build_claim_fts_index(conn, claim_files)
 
         # Restore embeddings after rebuild
@@ -608,6 +682,17 @@ def _populate_claims(
 
     claim_seq = 0
     deferred_stances: list[tuple] = []
+    valid_claim_ids: set[str] = set()
+    for cf in claim_files:
+        claims = cf.data.get("claims", [])
+        if not isinstance(claims, list):
+            continue
+        for claim in claims:
+            if not isinstance(claim, dict):
+                continue
+            claim_id = claim.get("id")
+            if isinstance(claim_id, str) and claim_id:
+                valid_claim_ids.add(claim_id)
     for cf in claim_files:
         source_paper = cf.data.get("source", {}).get("paper", cf.filename)
         for claim in cf.data.get("claims", []):
@@ -746,6 +831,14 @@ def _populate_claims(
                 stance_type = stance.get("type")
                 if not target_claim_id or not stance_type:
                     continue
+                if stance_type not in VALID_STANCE_TYPES:
+                    raise ValueError(
+                        f"claim '{cid}' uses unrecognized stance type '{stance_type}'"
+                    )
+                if target_claim_id not in valid_claim_ids:
+                    raise sqlite3.IntegrityError(
+                        f"claim '{cid}' references nonexistent target claim '{target_claim_id}'"
+                    )
                 res = stance.get("resolution") or {}
                 deferred_stances.append((
                     cid, target_claim_id, stance_type,
@@ -770,11 +863,20 @@ def _populate_conflicts(
     conn: sqlite3.Connection,
     claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict,
+    context_hierarchy: ContextHierarchy | None = None,
 ):
     from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 
-    records = detect_conflicts(claim_files, concept_registry)
-    transitive_records = detect_transitive_conflicts(claim_files, concept_registry)
+    records = detect_conflicts(
+        claim_files,
+        concept_registry,
+        context_hierarchy=context_hierarchy,
+    )
+    transitive_records = detect_transitive_conflicts(
+        claim_files,
+        concept_registry,
+        context_hierarchy=context_hierarchy,
+    )
     records.extend(transitive_records)
     for r in records:
         conn.execute(
@@ -805,5 +907,3 @@ def _build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[Loade
                 "VALUES (?, ?, ?, ?)",
                 (cid, statement, conditions_text, expression),
             )
-
-

@@ -16,6 +16,7 @@ import pytest
 import yaml
 
 from propstore.validate_claims import (
+    LoadedClaimFile,
     load_claim_files,
     parse_claim_id,
     validate_claims,
@@ -525,6 +526,75 @@ class TestModelClaimErrors:
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
         assert any("equation" in e.lower() for e in result.errors)
+
+
+# ── Stance graph integrity ───────────────────────────────────────────
+
+
+class TestStanceGraphIntegrity:
+    def test_inline_stance_target_must_exist(self, claims_dir):
+        data = make_claim_file_data([
+            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+            make_parameter_claim(
+                "claim2",
+                "concept1",
+                450.0,
+                "Hz",
+                stances=[{"type": "rebuts", "target": "missing_claim"}],
+            ),
+        ])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("missing_claim" in e and "stance" in e.lower() for e in result.errors)
+
+    def test_inline_stance_type_must_be_recognized(self, claims_dir):
+        data = make_claim_file_data([
+            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+            make_parameter_claim(
+                "claim2",
+                "concept1",
+                450.0,
+                "Hz",
+                stances=[{"type": "contradicts", "target": "claim1"}],
+            ),
+        ])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("contradicts" in e and "stance" in e.lower() for e in result.errors)
+
+
+class TestDraftArtifactBoundary:
+    def test_draft_claim_file_rejected_from_final_validation(self, tmp_path):
+        draft_file = LoadedClaimFile(
+            filename="draft_claims",
+            filepath=tmp_path / "draft_claims.yaml",
+            data={
+                "stage": "draft",
+                "source": make_source(),
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "statement": "Unlinked draft observation",
+                        "concepts": [],
+                        "provenance": {"paper": "test_paper", "page": 0},
+                    }
+                ],
+            },
+        )
+
+        result = validate_claims([draft_file], make_concept_registry())
+        assert not result.ok
+        assert any(
+            "draft artifacts are not accepted" in error.lower()
+            for error in result.errors
+        )
 
     def test_model_missing_parameters_error(self, claims_dir):
         claim = {
