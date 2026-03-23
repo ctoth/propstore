@@ -11,6 +11,7 @@ from propstore.cel_checker import ConceptInfo, KindType
 
 if TYPE_CHECKING:
     from propstore.world.bound import BoundWorld
+    from propstore.validate_contexts import ContextHierarchy
 from propstore.world.resolution import resolve
 from propstore.world.types import (
     ArtifactStore,
@@ -46,6 +47,9 @@ class WorldModel(ArtifactStore):
         self._conn.row_factory = sqlite3.Row
         self._solver: Z3ConditionSolver | None = None
         self._registry: dict[str, ConceptInfo] | None = None
+        self._context_hierarchy: ContextHierarchy | None = None
+        self._context_hierarchy_loaded = False
+        self._claim_has_target_concept: bool | None = None
 
     def __enter__(self) -> WorldModel:
         return self
@@ -69,6 +73,9 @@ class WorldModel(ArtifactStore):
         if self._registry is not None:
             return self._registry
         registry: dict[str, ConceptInfo] = {}
+        if not self._has_table("concept"):
+            self._registry = registry
+            return registry
         rows = self._conn.execute(
             "SELECT id, canonical_name, kind_type, form, form_parameters FROM concept"
         ).fetchall()
@@ -95,6 +102,65 @@ class WorldModel(ArtifactStore):
 
     def condition_solver(self) -> Z3ConditionSolver:
         return self._ensure_solver()
+
+    def _load_context_hierarchy(self) -> ContextHierarchy | None:
+        if self._context_hierarchy_loaded:
+            return self._context_hierarchy
+        self._context_hierarchy_loaded = True
+
+        required_tables = {"context", "context_assumption", "context_exclusion"}
+        if not all(self._has_table(name) for name in required_tables):
+            self._context_hierarchy = None
+            return None
+
+        from propstore.validate_contexts import ContextHierarchy, LoadedContext
+
+        rows = self._conn.execute(
+            "SELECT id, name, description, inherits FROM context ORDER BY id"
+        ).fetchall()
+        if not rows:
+            self._context_hierarchy = None
+            return None
+
+        contexts_by_id: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            context_id = row["id"]
+            contexts_by_id[context_id] = {
+                "id": context_id,
+                "name": row["name"],
+                "description": row["description"],
+                "inherits": row["inherits"],
+                "assumptions": [],
+                "excludes": [],
+            }
+
+        assumption_rows = self._conn.execute(
+            "SELECT context_id, assumption_cel FROM context_assumption "
+            "ORDER BY context_id, seq"
+        ).fetchall()
+        for row in assumption_rows:
+            context = contexts_by_id.get(row["context_id"])
+            if context is None:
+                continue
+            context["assumptions"].append(row["assumption_cel"])
+
+        exclusion_rows = self._conn.execute(
+            "SELECT context_a, context_b FROM context_exclusion ORDER BY context_a, context_b"
+        ).fetchall()
+        for row in exclusion_rows:
+            context = contexts_by_id.get(row["context_a"])
+            if context is None:
+                continue
+            exclusion = row["context_b"]
+            if exclusion not in context["excludes"]:
+                context["excludes"].append(exclusion)
+
+        loaded_contexts = [
+            LoadedContext(filename=context_id, filepath=None, data=data)
+            for context_id, data in contexts_by_id.items()
+        ]
+        self._context_hierarchy = ContextHierarchy(loaded_contexts)
+        return self._context_hierarchy
 
     # ── Unbound queries ──────────────────────────────────────────────
 
@@ -124,9 +190,22 @@ class WorldModel(ArtifactStore):
         if concept_id is None:
             rows = self._conn.execute("SELECT * FROM claim").fetchall()
         else:
-            rows = self._conn.execute(
-                "SELECT * FROM claim WHERE concept_id = ?", (concept_id,)
-            ).fetchall()
+            if self._claim_has_target_concept is None:
+                self._claim_has_target_concept = (
+                    self._conn.execute(
+                        "SELECT 1 FROM pragma_table_info('claim') WHERE name = 'target_concept'"
+                    ).fetchone()
+                    is not None
+                )
+            if self._claim_has_target_concept:
+                rows = self._conn.execute(
+                    "SELECT * FROM claim WHERE concept_id = ? OR target_concept = ?",
+                    (concept_id, concept_id),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT * FROM claim WHERE concept_id = ?", (concept_id,)
+                ).fetchall()
         return [dict(r) for r in rows]
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
@@ -328,13 +407,35 @@ class WorldModel(ArtifactStore):
         **conditions: Any,
     ) -> BoundWorld:
         from propstore.world.bound import BoundWorld
+
         if environment is None:
             environment = Environment(bindings=conditions)
-        elif conditions:
+        else:
             merged = dict(environment.bindings)
-            merged.update(conditions)
-            environment = Environment(bindings=merged, context_id=environment.context_id)
-        return BoundWorld(self, environment=environment, policy=policy)
+            if conditions:
+                merged.update(conditions)
+            environment = Environment(
+                bindings=merged,
+                context_id=environment.context_id,
+                effective_assumptions=tuple(environment.effective_assumptions),
+            )
+
+        context_hierarchy = self._load_context_hierarchy()
+        if environment.context_id is not None and context_hierarchy is not None:
+            environment = Environment(
+                bindings=environment.bindings,
+                context_id=environment.context_id,
+                effective_assumptions=tuple(
+                    context_hierarchy.effective_assumptions(environment.context_id)
+                ),
+            )
+
+        return BoundWorld(
+            self,
+            environment=environment,
+            context_hierarchy=context_hierarchy,
+            policy=policy,
+        )
 
     # ── Chain query ──────────────────────────────────────────────────
 

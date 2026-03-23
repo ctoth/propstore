@@ -13,6 +13,10 @@ from typing import Any
 from propstore.world import ArtifactStore, BeliefSpace
 
 
+def _claim_concept_id(claim: dict[str, Any]) -> Any:
+    return claim.get("concept_id") or claim.get("target_concept")
+
+
 @dataclass
 class GraphNode:
     id: str
@@ -143,7 +147,7 @@ def build_knowledge_graph(
 
     # Filter claims to allowed concepts if group scoping is active
     if allowed_concept_ids is not None:
-        claims = [c for c in claims if c.get("concept_id") in allowed_concept_ids]
+        claims = [c for c in claims if _claim_concept_id(c) in allowed_concept_ids]
 
     # Determine value_of status per concept for metadata
     concept_statuses: dict[str, str] = {}
@@ -154,11 +158,12 @@ def build_knowledge_graph(
 
     for claim in claims:
         claim_id = claim["id"]
-        concept_id = claim.get("concept_id")
+        concept_id = _claim_concept_id(claim)
         meta: dict[str, Any] = {
             "type": claim.get("type"),
             "value": claim.get("value"),
             "concept_id": concept_id,
+            "target_concept": claim.get("target_concept"),
         }
         if bound is not None and concept_id and concept_id in concept_statuses:
             meta["status"] = concept_statuses[concept_id]
@@ -223,7 +228,7 @@ def build_knowledge_graph(
     # ---- 6. Claim-of edges ----
     for claim in claims:
         claim_id = claim["id"]
-        concept_id = claim.get("concept_id")
+        concept_id = _claim_concept_id(claim)
         if concept_id and claim_id in node_ids and concept_id in node_ids:
             graph.edges.append(GraphEdge(
                 source=claim_id,

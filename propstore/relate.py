@@ -11,6 +11,7 @@ from pathlib import Path
 import yaml
 
 from propstore.cli.helpers import write_yaml_file
+from propstore.stances import VALID_STANCE_TYPES
 
 
 def _require_litellm():
@@ -69,9 +70,6 @@ Choose exactly ONE type, or "none" if truly unrelated:
 
 Respond with ONLY a JSON object:
 {{"type": "<type or none>", "strength": "<strong|moderate|weak>", "note": "<1 sentence>", "conditions_differ": "<or null>"}}"""
-
-
-VALID_STANCE_TYPES = {"rebuts", "undercuts", "undermines", "supports", "explains", "supersedes", "none"}
 
 
 _CONFIDENCE_MAP: dict[tuple[int, str], float] = {

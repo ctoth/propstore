@@ -41,6 +41,7 @@ class Z3ConditionSolver:
         self._ctx = z3.Context()
         self._reals: dict[str, z3.ArithRef] = {}
         self._bools: dict[str, z3.BoolRef] = {}
+        self._strings: dict[str, z3.SeqRef] = {}
         # For categories: one EnumSort per concept, with a z3 const
         self._enum_sorts: dict[str, z3.DatatypeSortRef] = {}
         self._enum_consts: dict[str, z3.ExprRef] = {}
@@ -55,6 +56,11 @@ class Z3ConditionSolver:
         if name not in self._bools:
             self._bools[name] = z3.Bool(name, self._ctx)
         return self._bools[name]
+
+    def _get_string(self, name: str) -> z3.SeqRef:
+        if name not in self._strings:
+            self._strings[name] = z3.String(name, self._ctx)
+        return self._strings[name]
 
     def _get_enum(self, name: str) -> tuple[z3.ExprRef, dict[str, z3.ExprRef]]:
         """Get or create an EnumSort for a category concept."""
@@ -174,7 +180,15 @@ class Z3ConditionSolver:
             return None
 
         info = self._registry.get(name_node.name)
-        if info is None or info.kind != KindType.CATEGORY:
+        if info is None:
+            const = self._get_string(name_node.name)
+            value = z3.StringVal(lit_node.value, self._ctx)
+            if node.op == "==":
+                return const == value
+            if node.op == "!=":
+                return const != value
+            return None
+        if info.kind != KindType.CATEGORY:
             return None
 
         const, val_map = self._get_enum(name_node.name)

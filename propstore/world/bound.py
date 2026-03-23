@@ -218,6 +218,8 @@ def _claim_row_to_source_claim(claim: dict) -> dict:
         source["concept"] = claim["concept_id"]
     if claim_type == "measurement" and claim.get("concept_id") and not claim.get("target_concept"):
         source["target_concept"] = claim["concept_id"]
+    if claim_type == "algorithm" and claim.get("concept_id"):
+        source["concept"] = claim["concept_id"]
     if claim_type == "algorithm" and claim.get("variables_json"):
         source["variables"] = json.loads(claim["variables_json"])
     return source
@@ -236,7 +238,13 @@ def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
         data={"claims": [_claim_row_to_source_claim(claim) for claim in claims]},
     )
     concept_registry = _concept_registry_for_store(world)
-    records = detect_conflicts([synthetic], concept_registry)
+    hierarchy_loader = getattr(world, "_load_context_hierarchy", None)
+    context_hierarchy = hierarchy_loader() if callable(hierarchy_loader) else None
+    records = detect_conflicts(
+        [synthetic],
+        concept_registry,
+        context_hierarchy=context_hierarchy,
+    )
     return [
         {
             "concept_id": record.concept_id,
@@ -273,6 +281,9 @@ class BoundWorld(BeliefSpace):
         self._policy = policy
         self._bindings = dict(environment.bindings)
         self._binding_conds = self._bindings_to_cel(self._bindings)
+        for assumption in environment.effective_assumptions:
+            if assumption not in self._binding_conds:
+                self._binding_conds.append(assumption)
         self._context_id = environment.context_id
         self._context_hierarchy = context_hierarchy
         # Pre-compute ancestor set for fast lookups

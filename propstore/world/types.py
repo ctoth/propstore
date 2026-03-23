@@ -50,6 +50,7 @@ class ResolvedResult:
 class Environment:
     bindings: Mapping[str, Any] = field(default_factory=dict)
     context_id: str | None = None
+    effective_assumptions: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass

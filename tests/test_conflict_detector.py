@@ -673,9 +673,9 @@ class TestEquationConflicts:
 # ── Algorithm claim conflict detection ────────────────────────────────
 
 
-def _make_algorithm_claim(id, body, variables, conditions=None):
+def _make_algorithm_claim(id, body, variables, conditions=None, **fields):
     """Build an algorithm claim dict for testing."""
-    return {
+    claim = {
         "id": id,
         "type": "algorithm",
         "body": body,
@@ -683,9 +683,32 @@ def _make_algorithm_claim(id, body, variables, conditions=None):
         "conditions": conditions or [],
         "provenance": {"paper": "test", "page": 1},
     }
+    claim.update(fields)
+    return claim
 
 
 class TestAlgorithmConflicts:
+    def test_algorithm_conflict_uses_declared_output_concept(self):
+        claims = [
+            _make_algorithm_claim(
+                "algo1",
+                "def compute(x):\n    return x * 2 + 1",
+                [{"name": "x", "concept": "concept_in"}],
+                concept="concept_out",
+            ),
+            _make_algorithm_claim(
+                "algo2",
+                "def calc(val):\n    return val ** 3 - 10",
+                [{"name": "val", "concept": "concept_in"}],
+                concept="concept_out",
+            ),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        algo_records = [r for r in records if r.value_a.startswith("algorithm:")]
+        assert len(algo_records) == 1
+        assert algo_records[0].concept_id == "concept_out"
+
     def test_algorithm_equivalent_no_conflict(self):
         """Two equivalent algorithm claims (same logic, different var names) -> no conflict."""
         claims = [
@@ -695,6 +718,7 @@ class TestAlgorithmConflicts:
                 [
                     {"name": "x", "concept": "concept1"},
                 ],
+                concept="concept1",
             ),
             _make_algorithm_claim(
                 "algo2",
@@ -702,6 +726,7 @@ class TestAlgorithmConflicts:
                 [
                     {"name": "val", "concept": "concept1"},
                 ],
+                concept="concept1",
             ),
         ]
         cf = make_claim_file(claims)
@@ -718,6 +743,7 @@ class TestAlgorithmConflicts:
                 [
                     {"name": "x", "concept": "concept1"},
                 ],
+                concept="concept1",
             ),
             _make_algorithm_claim(
                 "algo2",
@@ -725,6 +751,7 @@ class TestAlgorithmConflicts:
                 [
                     {"name": "val", "concept": "concept1"},
                 ],
+                concept="concept1",
             ),
         ]
         cf = make_claim_file(claims)
@@ -745,6 +772,7 @@ class TestAlgorithmConflicts:
                 [
                     {"name": "x", "concept": "concept1"},
                 ],
+                concept="concept1",
             ),
             _make_algorithm_claim(
                 "algo2",
@@ -752,12 +780,40 @@ class TestAlgorithmConflicts:
                 [
                     {"name": "val", "concept": "concept2"},
                 ],
+                concept="concept2",
             ),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], make_concept_registry())
         algo_records = [r for r in records if r.value_a.startswith("algorithm:")]
         assert len(algo_records) == 0
+
+    @given(
+        var_a=st.sampled_from(["x", "signal", "sample"]),
+        var_b=st.sampled_from(["value", "frame", "obs"]),
+    )
+    @settings(max_examples=20)
+    def test_algorithm_output_ownership_independent_of_variable_names(self, var_a, var_b):
+        """Output-concept ownership survives variable renaming."""
+        claims = [
+            _make_algorithm_claim(
+                "algo1",
+                f"def compute({var_a}):\n    return {var_a} * 2 + 1",
+                [{"name": var_a, "concept": "concept_in"}],
+                concept="concept_out",
+            ),
+            _make_algorithm_claim(
+                "algo2",
+                f"def calc({var_b}):\n    return {var_b} ** 3 - 10",
+                [{"name": var_b, "concept": "concept_in"}],
+                concept="concept_out",
+            ),
+        ]
+        cf = make_claim_file(claims)
+        records = detect_conflicts([cf], make_concept_registry())
+        algo_records = [r for r in records if r.value_a.startswith("algorithm:")]
+        assert len(algo_records) == 1
+        assert algo_records[0].concept_id == "concept_out"
 
     def test_algorithm_conditional_overlap(self):
         """Two algorithm claims with overlapping conditions -> appropriate classification."""
@@ -769,6 +825,7 @@ class TestAlgorithmConflicts:
                     {"name": "x", "concept": "concept1"},
                 ],
                 conditions=["task == 'speech'", "fundamental_frequency > 100"],
+                concept="concept1",
             ),
             _make_algorithm_claim(
                 "algo2",
@@ -777,6 +834,7 @@ class TestAlgorithmConflicts:
                     {"name": "val", "concept": "concept1"},
                 ],
                 conditions=["task == 'speech'", "subglottal_pressure < 500"],
+                concept="concept1",
             ),
         ]
         cf = make_claim_file(claims)
@@ -784,3 +842,76 @@ class TestAlgorithmConflicts:
         algo_records = [r for r in records if r.value_a.startswith("algorithm:")]
         assert len(algo_records) == 1
         assert algo_records[0].warning_class == ConflictClass.OVERLAP
+
+
+class TestTransitiveContextSemantics:
+    def test_transitive_conflicts_in_unrelated_contexts_exit_as_context_phi_node(self):
+        from propstore.conflict_detector import detect_transitive_conflicts
+        from propstore.validate_contexts import ContextHierarchy, LoadedContext
+
+        registry = {
+            "concept_out": {
+                "id": "concept_out",
+                "canonical_name": "concept_out",
+                "form": "frequency",
+                "status": "accepted",
+                "definition": "output",
+                "parameterization_relationships": [
+                    {
+                        "inputs": ["concept_mid"],
+                        "sympy": "concept_mid * 2",
+                        "exactness": "exact",
+                    }
+                ],
+            },
+            "concept_mid": {
+                "id": "concept_mid",
+                "canonical_name": "concept_mid",
+                "form": "frequency",
+                "status": "accepted",
+                "definition": "middle",
+                "parameterization_relationships": [
+                    {
+                        "inputs": ["concept_in"],
+                        "sympy": "concept_in * 3",
+                        "exactness": "exact",
+                    }
+                ],
+            },
+            "concept_in": {
+                "id": "concept_in",
+                "canonical_name": "concept_in",
+                "form": "frequency",
+                "status": "accepted",
+                "definition": "input",
+            },
+        }
+        claims = [
+            make_parameter_claim(
+                "direct_out",
+                "concept_out",
+                100.0,
+                conditions=["task == 'speech'"],
+            ) | {"context": "ctx_root"},
+            make_parameter_claim(
+                "source_in",
+                "concept_in",
+                10.0,
+                conditions=["task == 'speech'"],
+            ) | {"context": "ctx_other"},
+        ]
+        cf = make_claim_file(claims)
+        hierarchy = ContextHierarchy([
+            LoadedContext("root", None, {"id": "ctx_root", "name": "Root"}),
+            LoadedContext("other", None, {"id": "ctx_other", "name": "Other"}),
+        ])
+
+        records = detect_transitive_conflicts(
+            [cf],
+            registry,
+            context_hierarchy=hierarchy,
+        )
+
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
+        assert records[0].concept_id == "concept_out"

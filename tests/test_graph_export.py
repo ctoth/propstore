@@ -1,5 +1,7 @@
 """Tests for graph_export — KnowledgeGraph construction and serialization."""
 
+import sqlite3
+
 import pytest
 import yaml
 
@@ -175,7 +177,7 @@ def claim_files(concept_dir):
                 "conditions": ["task == 'speech'"],
                 "stances": [
                     {
-                        "type": "contradicts",
+                        "type": "rebuts",
                         "target": "claim1",
                         "strength": "strong",
                         "note": "same task, conflicting value",
@@ -323,11 +325,58 @@ class TestUnboundGraph:
         assert ("concept1", "concept4") in rel_pairs
 
     def test_unbound_graph_has_stance_edges(self, world):
-        """claim2->claim1 contradicts edge exists."""
+        """claim2->claim1 rebuts edge exists."""
         graph = build_knowledge_graph(world)
         stance_edges = [e for e in graph.edges if e.edge_type == "stance"]
         stance_pairs = {(e.source, e.target) for e in stance_edges}
         assert ("claim2", "claim1") in stance_pairs
+
+    def test_measurement_claim_of_edge_uses_target_concept(self, tmp_path):
+        sidecar = tmp_path / "propstore.sqlite"
+        conn = sqlite3.connect(sidecar)
+        conn.executescript("""
+            CREATE TABLE concept (
+                id TEXT PRIMARY KEY,
+                canonical_name TEXT,
+                status TEXT,
+                domain TEXT,
+                form TEXT,
+                kind_type TEXT,
+                form_parameters TEXT
+            );
+            CREATE TABLE claim (
+                id TEXT PRIMARY KEY,
+                type TEXT,
+                concept_id TEXT,
+                target_concept TEXT,
+                value REAL,
+                conditions_cel TEXT,
+                context_id TEXT
+            );
+        """)
+        conn.execute(
+            "INSERT INTO concept (id, canonical_name, status, domain, form, kind_type, form_parameters) "
+            "VALUES ('concept2', 'jnd_threshold', 'accepted', 'speech', 'frequency', 'quantity', NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim (id, type, concept_id, target_concept, value, conditions_cel, context_id) "
+            "VALUES ('measurement1', 'measurement', NULL, 'concept2', 0.14, NULL, NULL)"
+        )
+        conn.commit()
+        conn.close()
+
+        class _Repo:
+            sidecar_path = sidecar
+
+        with WorldModel(_Repo()) as world:
+            graph = build_knowledge_graph(world)
+
+        claim_of_edges = [
+            edge for edge in graph.edges
+            if edge.edge_type == "claim_of" and edge.source == "measurement1"
+        ]
+        assert len(claim_of_edges) == 1
+        assert claim_of_edges[0].target == "concept2"
 
 
 class TestBoundGraph:

@@ -175,7 +175,7 @@ def claim_files(concept_dir):
                 "conditions": ["task == 'speech'"],
                 "stances": [
                     {
-                        "type": "contradicts",
+                        "type": "rebuts",
                         "target": "claim1",
                         "strength": "strong",
                         "note": "same task, conflicting value",

@@ -9,6 +9,8 @@ TDD tests:
 - Feature 4: chain_query (multi-step binding chains)
 """
 
+import sqlite3
+
 import pytest
 import yaml
 
@@ -449,6 +451,71 @@ class TestUnboundQueries:
 
     def test_claims_for_missing(self, world):
         assert world.claims_for("nonexistent") == []
+
+    def test_claims_for_includes_measurements_by_target_concept(self, tmp_path):
+        sidecar = tmp_path / "propstore.sqlite"
+        conn = sqlite3.connect(sidecar)
+        conn.executescript("""
+            CREATE TABLE claim (
+                id TEXT PRIMARY KEY,
+                type TEXT,
+                concept_id TEXT,
+                target_concept TEXT,
+                value REAL,
+                conditions_cel TEXT,
+                context_id TEXT
+            );
+        """)
+        conn.execute(
+            "INSERT INTO claim (id, type, concept_id, target_concept, value, conditions_cel, context_id) "
+            "VALUES ('measurement1', 'measurement', NULL, 'concept2', 0.14, NULL, NULL)"
+        )
+        conn.commit()
+        conn.close()
+
+        class _Repo:
+            sidecar_path = sidecar
+
+        wm = WorldModel(_Repo())
+        try:
+            claims = wm.claims_for("concept2")
+            assert [claim["id"] for claim in claims] == ["measurement1"]
+
+            active = wm.bind().active_claims("concept2")
+            assert [claim["id"] for claim in active] == ["measurement1"]
+        finally:
+            wm.close()
+
+    def test_claims_for_caches_target_concept_schema_probe(self, tmp_path):
+        sidecar = tmp_path / "propstore.sqlite"
+        conn = sqlite3.connect(sidecar)
+        conn.executescript("""
+            CREATE TABLE claim (
+                id TEXT PRIMARY KEY,
+                type TEXT,
+                concept_id TEXT,
+                target_concept TEXT
+            );
+        """)
+        conn.execute(
+            "INSERT INTO claim (id, type, concept_id, target_concept) "
+            "VALUES ('measurement1', 'measurement', NULL, 'concept2')"
+        )
+        conn.commit()
+        conn.close()
+
+        class _Repo:
+            sidecar_path = sidecar
+
+        wm = WorldModel(_Repo())
+        try:
+            assert wm._claim_has_target_concept is None
+            assert [claim["id"] for claim in wm.claims_for("concept2")] == ["measurement1"]
+            assert wm._claim_has_target_concept is True
+            assert [claim["id"] for claim in wm.claims_for("concept2")] == ["measurement1"]
+            assert wm._claim_has_target_concept is True
+        finally:
+            wm.close()
 
     def test_conflicts(self, world):
         conflicts = world.conflicts()

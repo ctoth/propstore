@@ -282,6 +282,20 @@ def stance_scenarios(draw):
     return claim_ids, stances, sample_sizes
 
 
+@st.composite
+def active_stance_scenarios(draw):
+    claim_ids, stances, sample_sizes = draw(stance_scenarios())
+    active_ids = set(draw(
+        st.lists(
+            st.sampled_from(claim_ids),
+            unique=True,
+            min_size=0,
+            max_size=len(claim_ids),
+        )
+    ))
+    return claim_ids, stances, sample_sizes, active_ids
+
+
 def _build_scenario_db(claim_ids, stances, sample_sizes):
     """Build an in-memory SQLite from generated scenario."""
     conn = sqlite3.connect(":memory:")
@@ -330,6 +344,20 @@ class TestAFProperties:
         af = build_argumentation_framework(SQLiteArgumentationStore(conn), set(claim_ids))
         ext = grounded_extension(af)
         assert conflict_free(ext, af.defeats)
+
+    @given(active_stance_scenarios())
+    @_PROP_SETTINGS
+    def test_af_arguments_never_introduce_claims_outside_active_set(self, scenario):
+        """AF construction is closed over the provided active set."""
+        claim_ids, stances, sample_sizes, active_ids = scenario
+        conn = _build_scenario_db(claim_ids, stances, sample_sizes)
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), active_ids)
+        assert af.arguments == frozenset(active_ids)
+        assert af.defeats <= {
+            (source, target)
+            for source in active_ids
+            for target in active_ids
+        }
 
     @given(stance_scenarios())
     @_PROP_SETTINGS

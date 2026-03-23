@@ -8,9 +8,12 @@ import sqlite3
 
 import pytest
 import yaml
+from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import strategies as st
 
-from propstore.build_sidecar import build_sidecar
+from propstore.build_sidecar import _content_hash, build_sidecar
 from propstore.validate import load_concepts
+from propstore.validate_contexts import LoadedContext
 
 
 @pytest.fixture
@@ -406,6 +409,113 @@ class TestRebuildSkipping:
         mtime2 = sidecar_path.stat().st_mtime
         assert mtime2 > mtime1
 
+    def test_rebuild_when_contexts_change(self, concept_dir, sidecar_path):
+        concepts = load_concepts(concept_dir)
+        context_v1 = [
+            LoadedContext(
+                filename="ctx_root",
+                filepath=None,
+                data={"id": "ctx_root", "name": "Root", "assumptions": ["task == 'speech'"]},
+            )
+        ]
+        context_v2 = [
+            LoadedContext(
+                filename="ctx_root",
+                filepath=None,
+                data={"id": "ctx_root", "name": "Root", "assumptions": ["task == 'singing'"]},
+            )
+        ]
+
+        assert build_sidecar(concepts, sidecar_path, force=True, context_files=context_v1) is True
+        assert build_sidecar(concepts, sidecar_path, context_files=context_v2) is True
+
+    def test_rebuild_when_form_files_change(self, concept_dir, sidecar_path, repo):
+        concepts = load_concepts(concept_dir)
+
+        assert build_sidecar(concepts, sidecar_path, force=True, repo=repo) is True
+
+        form_path = repo.forms_dir / "frequency.yaml"
+        form_data = yaml.safe_load(form_path.read_text())
+        form_data["note"] = "changed semantic form contract"
+        form_path.write_text(yaml.dump(form_data, default_flow_style=False))
+
+        assert build_sidecar(concepts, sidecar_path, repo=repo) is True
+
+    def test_rebuild_when_stance_files_change(self, concept_dir, sidecar_path, claim_files, repo):
+        concepts = load_concepts(concept_dir)
+        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+
+        assert build_sidecar(
+            concepts,
+            sidecar_path,
+            force=True,
+            claim_files=claim_files,
+            concept_registry=concept_registry,
+            repo=repo,
+        ) is True
+
+        stance_path = repo.stances_dir / "claim1.yaml"
+        repo.stances_dir.mkdir(parents=True, exist_ok=True)
+        stance_path.write_text(yaml.dump({
+            "source_claim": "claim1",
+            "stances": [{"type": "supports", "target": "claim5", "note": "new stance file"}],
+        }, default_flow_style=False))
+
+        assert build_sidecar(
+            concepts,
+            sidecar_path,
+            claim_files=claim_files,
+            concept_registry=concept_registry,
+            repo=repo,
+        ) is True
+
+    def test_rebuild_when_semantic_version_changes(self, concept_dir, sidecar_path, monkeypatch):
+        import propstore.build_sidecar as build_sidecar_module
+
+        concepts = load_concepts(concept_dir)
+        assert build_sidecar(concepts, sidecar_path, force=True) is True
+
+        monkeypatch.setattr(
+            build_sidecar_module,
+            "_SEMANTIC_INPUT_VERSION",
+            "test-version-bump",
+            raising=False,
+        )
+
+        assert build_sidecar(concepts, sidecar_path) is True
+
+    @given(
+        assumption_a=st.sampled_from(["task == 'speech'", "task == 'singing'", "task == 'whisper'"]),
+        assumption_b=st.sampled_from(["task == 'speech'", "task == 'singing'", "task == 'whisper'"]),
+    )
+    @settings(max_examples=12, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    def test_content_hash_changes_when_context_semantics_change(
+        self,
+        concept_dir,
+        assumption_a,
+        assumption_b,
+    ):
+        assume(assumption_a != assumption_b)
+        concepts = load_concepts(concept_dir)
+        context_a = [
+            LoadedContext(
+                filename="ctx_root",
+                filepath=None,
+                data={"id": "ctx_root", "name": "Root", "assumptions": [assumption_a]},
+            )
+        ]
+        context_b = [
+            LoadedContext(
+                filename="ctx_root",
+                filepath=None,
+                data={"id": "ctx_root", "name": "Root", "assumptions": [assumption_b]},
+            )
+        ]
+        assert _content_hash(concepts, context_files=context_a) != _content_hash(
+            concepts,
+            context_files=context_b,
+        )
+
 
 # ── Claim fixtures ───────────────────────────────────────────────────
 
@@ -436,7 +546,7 @@ def claim_files(concept_dir):
                 "conditions": ["task == 'speech'"],
                 "stances": [
                     {
-                        "type": "contradicts",
+                        "type": "rebuts",
                         "target": "claim1",
                         "strength": "strong",
                         "note": "same task, conflicting value",
@@ -782,10 +892,168 @@ class TestClaimStanceTable:
         ).fetchone()
         assert row["claim_id"] == "claim2"
         assert row["target_claim_id"] == "claim1"
-        assert row["stance_type"] == "contradicts"
+        assert row["stance_type"] == "rebuts"
         assert row["strength"] == "strong"
         assert "conflicting value" in row["note"]
         conn.close()
+
+    def test_invalid_inline_stance_target_raises(self, concept_dir, sidecar_path, repo):
+        claims_dir = concept_dir / "claims_invalid_stance_target"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = {
+            "source": {"paper": "invalid_stance_target"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 200.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "invalid_stance_target", "page": 1},
+                },
+                {
+                    "id": "claim2",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 220.0,
+                    "unit": "Hz",
+                    "stances": [{"type": "rebuts", "target": "missing_claim"}],
+                    "provenance": {"paper": "invalid_stance_target", "page": 2},
+                },
+            ],
+        }
+        (claims_dir / "invalid_stance_target.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
+
+        from propstore.validate_claims import build_concept_registry, load_claim_files
+
+        claim_files = load_claim_files(claims_dir)
+        concepts = load_concepts(concept_dir)
+        concept_registry = build_concept_registry(repo)
+        with pytest.raises(sqlite3.IntegrityError):
+            build_sidecar(
+                concepts,
+                sidecar_path,
+                force=True,
+                claim_files=claim_files,
+                concept_registry=concept_registry,
+            )
+
+    def test_invalid_inline_stance_type_raises(self, concept_dir, sidecar_path, repo):
+        claims_dir = concept_dir / "claims_invalid_stance_type"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = {
+            "source": {"paper": "invalid_stance_type"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 200.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "invalid_stance_type", "page": 1},
+                },
+                {
+                    "id": "claim2",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 220.0,
+                    "unit": "Hz",
+                    "stances": [{"type": "contradicts", "target": "claim1"}],
+                    "provenance": {"paper": "invalid_stance_type", "page": 2},
+                },
+            ],
+        }
+        (claims_dir / "invalid_stance_type.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
+
+        from propstore.validate_claims import build_concept_registry, load_claim_files
+
+        claim_files = load_claim_files(claims_dir)
+        concepts = load_concepts(concept_dir)
+        concept_registry = build_concept_registry(repo)
+        with pytest.raises(ValueError, match="contradicts"):
+            build_sidecar(
+                concepts,
+                sidecar_path,
+                force=True,
+                claim_files=claim_files,
+                concept_registry=concept_registry,
+            )
+
+    @given(
+        stance_pairs=st.lists(
+            st.tuples(
+                st.sampled_from(["claim1", "claim2", "claim3"]),
+                st.sampled_from(["claim1", "claim2", "claim3"]),
+                st.sampled_from(["rebuts", "supports", "explains", "undercuts"]),
+            ),
+            max_size=6,
+        )
+    )
+    @settings(
+        max_examples=12,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
+    )
+    def test_persisted_stance_edges_reference_extant_claim_ids(
+        self,
+        concept_dir,
+        sidecar_path,
+        repo,
+        stance_pairs,
+    ):
+        claims_dir = concept_dir / "claims_property_stances"
+        claims_dir.mkdir(exist_ok=True)
+        claims = []
+        for claim_id, value in (("claim1", 100.0), ("claim2", 120.0), ("claim3", 140.0)):
+            claims.append({
+                "id": claim_id,
+                "type": "parameter",
+                "concept": "concept1",
+                "value": value,
+                "unit": "Hz",
+                "provenance": {"paper": "stance_property", "page": 1},
+            })
+        stances_by_source: dict[str, list[dict[str, str]]] = {}
+        for source, target, stance_type in stance_pairs:
+            if source == target:
+                continue
+            stances_by_source.setdefault(source, []).append(
+                {"type": stance_type, "target": target}
+            )
+        for claim in claims:
+            if claim["id"] in stances_by_source:
+                claim["stances"] = stances_by_source[claim["id"]]
+        claim_data = {"source": {"paper": "stance_property"}, "claims": claims}
+        (claims_dir / "stance_property.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
+
+        from propstore.validate_claims import build_concept_registry, load_claim_files
+
+        claim_files = load_claim_files(claims_dir)
+        concepts = load_concepts(concept_dir)
+        concept_registry = build_concept_registry(repo)
+        build_sidecar(
+            concepts,
+            sidecar_path,
+            force=True,
+            claim_files=claim_files,
+            concept_registry=concept_registry,
+        )
+
+        conn = sqlite3.connect(sidecar_path)
+        try:
+            claim_ids = {row[0] for row in conn.execute("SELECT id FROM claim").fetchall()}
+            stance_rows = conn.execute(
+                "SELECT claim_id, target_claim_id FROM claim_stance"
+            ).fetchall()
+            assert all(source in claim_ids and target in claim_ids for source, target in stance_rows)
+        finally:
+            conn.close()
 
     def test_conflict_query_by_class(self, sidecar_with_claims):
         """Can query: SELECT * FROM conflicts WHERE warning_class = 'CONFLICT'"""

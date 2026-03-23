@@ -11,11 +11,14 @@ import functools
 import warnings
 from collections import defaultdict
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from propstore.conflict_detector import (
     ConflictClass,
     ConflictRecord,
     _collect_parameter_claims,
+    _claim_context,
+    _classify_pair_context,
 )
 from propstore.validate_claims import LoadedClaimFile
 from propstore.value_comparison import (
@@ -25,6 +28,38 @@ from propstore.value_comparison import (
     value_str as _value_str,
     values_compatible as _values_compatible,
 )
+
+if TYPE_CHECKING:
+    from propstore.validate_contexts import ContextHierarchy
+
+
+_INCOHERENT_CONTEXT = object()
+
+
+def _merge_contexts_for_derivation(
+    contexts: Sequence[str | None],
+    hierarchy: ContextHierarchy | None,
+) -> str | None | object:
+    concrete = [context for context in contexts if context]
+    if not concrete:
+        return None
+    if hierarchy is None:
+        return concrete[0] if len(set(concrete)) == 1 else None
+    if any(
+        hierarchy.are_excluded(ctx_a, ctx_b)
+        for index, ctx_a in enumerate(concrete)
+        for ctx_b in concrete[index + 1:]
+    ):
+        return _INCOHERENT_CONTEXT
+
+    candidates = [
+        candidate
+        for candidate in concrete
+        if all(candidate == other or hierarchy.is_visible(candidate, other) for other in concrete)
+    ]
+    if not candidates:
+        return _INCOHERENT_CONTEXT
+    return max(candidates, key=lambda context_id: len(hierarchy.ancestors(context_id)))
 
 
 def _detect_param_conflicts(
@@ -152,6 +187,8 @@ def _detect_param_conflicts(
 def detect_transitive_conflicts(
     claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict[str, dict],
+    *,
+    context_hierarchy: ContextHierarchy | None = None,
 ) -> list[ConflictRecord]:
     """Detect multi-hop transitive conflicts via parameterization chains.
 
@@ -207,7 +244,7 @@ def detect_transitive_conflicts(
         # Iterative resolution within the group: derive values from claims
         # Try all combinations of input claims to find transitive conflicts
         # For each concept in the group, collect scalar claim values
-        concept_claim_values: dict[str, list[tuple[float, str, list[str]]]] = {}
+        concept_claim_values: dict[str, list[tuple[float, str, list[str], str | None]]] = {}
         for cid in group:
             claims = all_param_claims.get(cid, [])
             for claim in claims:
@@ -218,21 +255,27 @@ def detect_transitive_conflicts(
                         if cid not in concept_claim_values:
                             concept_claim_values[cid] = []
                         concept_claim_values[cid].append(
-                            (center, claim["id"], sorted(claim.get("conditions") or []))
+                            (
+                                center,
+                                claim["id"],
+                                sorted(claim.get("conditions") or []),
+                                _claim_context(claim),
+                            )
                         )
 
         # Iterative forward propagation through the chain
-        # resolved: concept_id -> list of (value, chain_desc, source_claim_ids, conditions)
-        resolved: dict[str, list[tuple[float, str, list[str], list[str]]]] = {}
+        # resolved: concept_id -> list of
+        # (value, chain_desc, source_claim_ids, conditions, derivation_context)
+        resolved: dict[str, list[tuple[float, str, list[str], list[str], str | None]]] = {}
 
         # Seed with direct claims
         for cid in group:
             if cid in concept_claim_values:
-                for val, claim_id, conds in concept_claim_values[cid]:
+                for val, claim_id, conds, claim_context in concept_claim_values[cid]:
                     if cid not in resolved:
                         resolved[cid] = []
                     resolved[cid].append(
-                        (val, f"{cid}={val}(claim:{claim_id})", [claim_id], conds)
+                        (val, f"{cid}={val}(claim:{claim_id})", [claim_id], conds, claim_context)
                     )
 
         # Iterate: try to derive new values
@@ -261,14 +304,23 @@ def detect_transitive_conflicts(
                     chain_parts: list[str] = []
                     source_ids: list[str] = []
                     input_conds: list[list[str]] = []
+                    input_contexts: list[str | None] = []
 
                     for inp in inputs:
                         # Use first resolved value for this input
-                        val, desc, src_ids, conds = resolved[inp][0]
+                        val, desc, src_ids, conds, source_context = resolved[inp][0]
                         input_vals[inp] = val
                         chain_parts.append(desc)
                         source_ids.extend(src_ids)
                         input_conds.append(conds)
+                        input_contexts.append(source_context)
+
+                    derived_context = _merge_contexts_for_derivation(
+                        input_contexts,
+                        context_hierarchy,
+                    )
+                    if derived_context is _INCOHERENT_CONTEXT:
+                        continue
 
                     # Evaluate
                     derived_val = evaluate_parameterization(
@@ -284,7 +336,7 @@ def detect_transitive_conflicts(
                     # Check if this is a NEW derivation
                     already_have = False
                     if cid in resolved:
-                        for existing_val, _, _, _ in resolved[cid]:
+                        for existing_val, _, _, _, _ in resolved[cid]:
                             if abs(existing_val - derived_val) < DEFAULT_TOLERANCE:
                                 already_have = True
                                 break
@@ -293,7 +345,13 @@ def detect_transitive_conflicts(
                         if cid not in resolved:
                             resolved[cid] = []
                         resolved[cid].append(
-                            (derived_val, chain_desc, source_ids, edge_conds)
+                            (
+                                derived_val,
+                                chain_desc,
+                                source_ids,
+                                edge_conds,
+                                derived_context,
+                            )
                         )
                         changed = True
 
@@ -307,10 +365,10 @@ def detect_transitive_conflicts(
                 continue
 
             # Find derived values that came through chains (not direct claims)
-            for val, chain_desc, src_ids, derived_conds in resolved[cid]:
+            for val, chain_desc, src_ids, derived_conds, derived_context in resolved[cid]:
                 # Skip if this is just a direct claim (source is a single claim for this concept)
                 if len(src_ids) == 1 and src_ids[0] in {
-                    claim_id for _, claim_id, _ in concept_claim_values[cid]
+                    claim_id for _, claim_id, _, _ in concept_claim_values[cid]
                 }:
                     continue
 
@@ -323,7 +381,7 @@ def detect_transitive_conflicts(
                         for inp in edge["inputs"]:
                             if inp in concept_claim_values:
                                 edge_input_ids.update(
-                                    cid2 for _, cid2, _ in concept_claim_values[inp]
+                                    cid2 for _, cid2, _, _ in concept_claim_values[inp]
                                 )
                         if set(src_ids) <= edge_input_ids:
                             is_single_hop = True
@@ -333,13 +391,31 @@ def detect_transitive_conflicts(
 
                 # Compare derived value against direct claims
                 derived_claim = {"value": val}
-                for direct_val, direct_claim_id, direct_conds in concept_claim_values[cid]:
+                for direct_val, direct_claim_id, direct_conds, direct_context in concept_claim_values[cid]:
                     direct_claim_dict = {"value": direct_val}
                     if _values_compatible(
                         direct_val, val,
                         claim_a=direct_claim_dict,
                         claim_b=derived_claim,
                     ):
+                        continue
+                    context_class = _classify_pair_context(
+                        direct_context,
+                        derived_context,
+                        context_hierarchy,
+                    )
+                    if context_class is not None:
+                        records.append(ConflictRecord(
+                            concept_id=cid,
+                            claim_a_id=direct_claim_id,
+                            claim_b_id="+".join(src_ids),
+                            warning_class=context_class,
+                            conditions_a=direct_conds,
+                            conditions_b=derived_conds,
+                            value_a=str(direct_val),
+                            value_b=str(val),
+                            derivation_chain=chain_desc,
+                        ))
                         continue
 
                     records.append(ConflictRecord(
