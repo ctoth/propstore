@@ -84,4 +84,4 @@ def claim_strength(claim: dict) -> float:
     if components == 0:
         return 1.0  # neutral default for claims with no metadata
 
-    return score
+    return score / components

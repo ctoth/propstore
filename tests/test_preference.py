@@ -212,3 +212,21 @@ class TestClaimStrengthProperties:
     def test_non_negative(self, claim):
         """P8: claim_strength is non-negative for all valid claims."""
         assert claim_strength(claim) >= 0.0
+
+
+class TestClaimStrengthNormalization:
+    def test_multi_signal_not_inflated(self):
+        """Adding a weak signal should not inflate strength past the strongest single signal."""
+        from propstore.preference import claim_strength
+        unc_only = claim_strength({"uncertainty": 0.01})  # 1/0.01 = 100.0 (1 component)
+        both = claim_strength({"uncertainty": 0.01, "confidence": 0.9})  # (100 + 0.9) / 2 after fix
+        # Currently: both = 100.9 > 100.0 (BUG: raw sum inflates)
+        # After fix: both = 50.45 < 100.0 (normalized average)
+        assert both < unc_only
+
+    def test_same_signals_preserve_ordering(self):
+        """Claims with the same signal set preserve relative ordering after normalization."""
+        from propstore.preference import claim_strength
+        a = claim_strength({"sample_size": 1000, "uncertainty": 0.1})
+        b = claim_strength({"sample_size": 100, "uncertainty": 0.5})
+        assert a > b  # bigger sample + lower uncertainty = stronger
