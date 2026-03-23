@@ -30,7 +30,7 @@ class FormDefinition:
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
 
 
-def load_form(forms_dir: Path, form_name: object) -> FormDefinition | None:
+def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
     """Load a single form definition and return a FormDefinition, or None.
 
     Results are cached by (forms_dir, form_name) to avoid redundant disk reads.
@@ -139,7 +139,7 @@ def json_safe(obj: Any) -> Any:
     return obj
 
 
-def kind_type_from_form_name(form: object) -> KindType | None:
+def kind_type_from_form_name(form: str | None) -> KindType | None:
     """Map a concept form name to the CEL/type-checking kind."""
     if not isinstance(form, str) or not form:
         return None
@@ -152,7 +152,7 @@ def kind_type_from_form_name(form: object) -> KindType | None:
     return KindType.QUANTITY
 
 
-def kind_value_from_form_name(form: object) -> str:
+def kind_value_from_form_name(form: str | None) -> str:
     """Map a concept form name to the sidecar kind_type string."""
     kind = kind_type_from_form_name(form)
     if kind is None:
@@ -162,7 +162,7 @@ def kind_value_from_form_name(form: object) -> str:
     return kind.value
 
 
-def load_form_definition(forms_dir: Path, form_name: object) -> dict[str, Any]:
+def load_form_definition(forms_dir: Path, form_name: str | None) -> dict[str, Any]:
     """Load a form definition YAML file if present."""
     if not isinstance(form_name, str) or not form_name:
         return {}

@@ -17,6 +17,7 @@ from propstore.world.types import (
 )
 
 if TYPE_CHECKING:
+    from propstore.validate_contexts import ContextHierarchy
     from propstore.world.model import WorldModel
 
 
@@ -78,7 +79,7 @@ def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
     )
     concept_registry = _concept_registry_for_store(world)
     hierarchy_loader = getattr(world, "_load_context_hierarchy", None)
-    context_hierarchy = hierarchy_loader() if callable(hierarchy_loader) else None
+    context_hierarchy: ContextHierarchy | None = hierarchy_loader() if callable(hierarchy_loader) else None
     records = detect_conflicts(
         [synthetic],
         concept_registry,
@@ -108,7 +109,7 @@ class BoundWorld(BeliefSpace):
         world: WorldModel,
         bindings: dict[str, Any] | None = None,
         context_id: str | None = None,
-        context_hierarchy: object | None = None,
+        context_hierarchy: ContextHierarchy | None = None,
         *,
         environment: Environment | None = None,
         policy: RenderPolicy | None = None,
@@ -128,7 +129,7 @@ class BoundWorld(BeliefSpace):
         # Pre-compute ancestor set for fast lookups
         if self._context_id and context_hierarchy is not None:
             self._context_visible: set[str] | None = {self._context_id}
-            for ancestor in context_hierarchy.ancestors(self._context_id):  # type: ignore[union-attr]
+            for ancestor in context_hierarchy.ancestors(self._context_id):
                 self._context_visible.add(ancestor)
         else:
             self._context_visible = None  # no context filtering

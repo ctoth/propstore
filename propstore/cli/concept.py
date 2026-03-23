@@ -752,7 +752,7 @@ def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bo
                 if not models:
                     click.echo("Error: no embeddings found. Run 'pks concept embed' first.", err=True)
                     raise SystemExit(1)
-                model = models[0]["model_name"]
+                model = str(models[0]["model_name"])
             results = find_similar_concepts(conn, concept_id, model, top_k=top_k)
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)

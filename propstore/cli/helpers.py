@@ -118,7 +118,7 @@ class CounterLock:
             write_counter(self._counters, self.value + 1)
             self._committed = True
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # type: ignore[no-untyped-def]
+    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: object) -> None:
         if self._fd is not None:
             _unlock_file(self._fd)
             os.close(self._fd)

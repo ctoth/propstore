@@ -75,7 +75,7 @@ def _resolve_argumentation(
         confidence_threshold=confidence_threshold,
     )
 
-    if semantics == "grounded":
+    if isinstance(result, frozenset):
         survivors = result & claim_ids
     else:
         # For preferred/stable, take intersection across all extensions

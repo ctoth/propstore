@@ -170,7 +170,7 @@ async def _classify_stance_async(
                 },
             }
 
-    text = response.choices[0].message.content.strip()
+    text = response.choices[0].message.content.strip()  # type: ignore[union-attr] # litellm ModelResponse content may be typed as optional but is always present for non-streaming
     try:
         result = json.loads(text)
     except json.JSONDecodeError:
@@ -247,7 +247,7 @@ async def _relate_claim_async(
         models = get_registered_models(conn)
         if not models:
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
-        embedding_model = models[0]["model_name"]
+        embedding_model = str(models[0]["model_name"])
 
     claim_a = _get_claim_text(conn, claim_id)
     if not claim_a:
@@ -345,7 +345,7 @@ async def _relate_all_async(
         models = get_registered_models(conn)
         if not models:
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
-        embedding_model = models[0]["model_name"]
+        embedding_model = str(models[0]["model_name"])
 
     all_claim_rows = conn.execute("SELECT id FROM claim").fetchall()
     total = len(all_claim_rows)

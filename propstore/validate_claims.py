@@ -606,6 +606,8 @@ def build_concept_registry(repo: Repository | None) -> dict[str, dict]:
     Args:
         repo: A Repository object providing concepts_dir and forms_dir.
     """
+    if repo is None:
+        return {}
     return build_concept_registry_from_paths(
         repo.concepts_dir,
         repo.forms_dir,

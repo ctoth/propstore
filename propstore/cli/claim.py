@@ -316,7 +316,7 @@ def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool
                 if not models:
                     click.echo("Error: no embeddings found. Run 'pks claim embed' first.", err=True)
                     raise SystemExit(1)
-                model = models[0]["model_name"]
+                model = str(models[0]["model_name"])
             results = find_similar(conn, claim_id, model, top_k=top_k)
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)

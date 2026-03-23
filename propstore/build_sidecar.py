@@ -741,9 +741,10 @@ def _prepare_claim_insert_row(
     prov = claim.get("provenance", {})
     conditions = claim.get("conditions")
     typed_fields = _extract_typed_claim_fields(claim)
+    expression = typed_fields["expression"]
     sympy_generated, sympy_error = _resolve_equation_sympy(
         ctype,
-        typed_fields["expression"],
+        str(expression) if expression is not None else None,
         claim,
     )
     body, canonical_ast, variables_json, stage = _resolve_algorithm_storage(claim)
@@ -839,8 +840,8 @@ def _extract_numeric_claim_fields(claim: dict) -> dict[str, object | None]:
 
 
 def _resolve_equation_sympy(
-    claim_type: object,
-    expression: object,
+    claim_type: str | None,
+    expression: str | None,
     claim: dict,
 ) -> tuple[str | None, str | None]:
     if claim_type != "equation":

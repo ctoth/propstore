@@ -37,7 +37,7 @@ def _get_resource_root() -> Path:
         from importlib.resources import files
         # files() returns a Traversable; for our JSON use case we need
         # as_posix() compatible access, but read_text works on both.
-        return files("propstore") / "_resources"  # type: ignore[return-value]
+        return files("propstore") / "_resources"  # type: ignore[return-value] # Traversable is not Path; works at runtime via duck typing
 
 
 def load_resource_text(relative_path: str) -> str:

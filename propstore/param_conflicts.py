@@ -7,6 +7,7 @@ Detects PARAM_CONFLICT via single-hop and multi-hop parameterization chains:
 
 from __future__ import annotations
 
+import enum
 import functools
 import warnings
 from collections import defaultdict
@@ -29,13 +30,17 @@ if TYPE_CHECKING:
     from propstore.validate_contexts import ContextHierarchy
 
 
-_INCOHERENT_CONTEXT = object()
+class _Sentinel(enum.Enum):
+    INCOHERENT_CONTEXT = "INCOHERENT_CONTEXT"
+
+
+_INCOHERENT_CONTEXT = _Sentinel.INCOHERENT_CONTEXT
 
 
 def _merge_contexts_for_derivation(
     contexts: Sequence[str | None],
     hierarchy: ContextHierarchy | None,
-) -> str | None | object:
+) -> str | None | _Sentinel:
     concrete = [context for context in contexts if context]
     if not concrete:
         return None
@@ -317,6 +322,7 @@ def detect_transitive_conflicts(
                     )
                     if derived_context is _INCOHERENT_CONTEXT:
                         continue
+                    assert not isinstance(derived_context, _Sentinel)  # narrowed above
 
                     # Evaluate
                     derived_val = evaluate_parameterization(

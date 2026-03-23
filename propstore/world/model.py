@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from propstore.cel_checker import ConceptInfo, KindType
 
 if TYPE_CHECKING:
+    from propstore.cli.repository import Repository
     from propstore.world.bound import BoundWorld
     from propstore.validate_contexts import ContextHierarchy
 from propstore.world.resolution import resolve
@@ -37,8 +38,8 @@ _KIND_TYPE_MAP = {
 class WorldModel(ArtifactStore):
     """Read-only reasoner over a compiled sidecar."""
 
-    def __init__(self, repo: object) -> None:
-        sidecar_path = repo.sidecar_path  # type: ignore[union-attr]
+    def __init__(self, repo: Repository) -> None:
+        sidecar_path = repo.sidecar_path
         if not sidecar_path.exists():
             raise FileNotFoundError(
                 f"Sidecar not found at {sidecar_path}. Run 'pks build' first."
@@ -294,6 +295,7 @@ class WorldModel(ArtifactStore):
                 return []
             model_name = models[0]["model_name"]
 
+        assert model_name is not None  # narrowed above
         return find_similar(self._conn, claim_id, model_name, top_k=top_k)
 
     def similar_concepts(
@@ -315,6 +317,7 @@ class WorldModel(ArtifactStore):
                 return []
             model_name = models[0]["model_name"]
 
+        assert model_name is not None  # narrowed above
         return find_similar_concepts(self._conn, concept_id, model_name, top_k=top_k)
 
     def _has_table(self, name: str) -> bool:
