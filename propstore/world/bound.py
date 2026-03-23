@@ -132,6 +132,7 @@ class BoundWorld(BeliefSpace):
                 self._context_visible.add(ancestor)
         else:
             self._context_visible = None  # no context filtering
+        self._conflicts_cache: dict[str | None, list[dict]] = {}
         self._resolver = ActiveClaimResolver(
             parameterizations_for=getattr(self._store, "parameterizations_for", lambda _cid: []),
             is_param_compatible=self._is_param_compatible,
@@ -277,6 +278,8 @@ class BoundWorld(BeliefSpace):
 
     def conflicts(self, concept_id: str | None = None) -> list[dict]:
         """Return active conflicts, revalidated against the current belief space."""
+        if concept_id in self._conflicts_cache:
+            return self._conflicts_cache[concept_id]
         active_claims = self.active_claims(concept_id)
         active_ids = {c["id"] for c in active_claims}
 
@@ -293,6 +296,7 @@ class BoundWorld(BeliefSpace):
             if key not in seen and reverse_key not in seen:
                 result.append(conflict)
                 seen.add(key)
+        self._conflicts_cache[concept_id] = result
         return result
 
     def explain(self, claim_id: str) -> list[dict]:

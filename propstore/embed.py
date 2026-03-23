@@ -599,6 +599,12 @@ def restore_embeddings(
     for s in snapshot.claim_statuses:
         status_lookup[(s["model_key"], s["claim_id"])] = s["content_hash"]
 
+    # Pre-build lookup dicts to avoid O(n^2) scans
+    claim_at_lookup = {
+        (s["model_key"], s["claim_id"]): s.get("embedded_at", "")
+        for s in snapshot.claim_statuses
+    }
+
     for m in snapshot.models:
         model_key = m["model_key"]
         dimensions = m["dimensions"]
@@ -631,8 +637,7 @@ def restore_embeddings(
             conn.execute(
                 "INSERT OR REPLACE INTO embedding_status VALUES (?, ?, ?, ?)",
                 (model_key, claim_id, current_hash,
-                 next((s["embedded_at"] for s in snapshot.claim_statuses
-                       if s["model_key"] == model_key and s["claim_id"] == claim_id), ""))
+                 claim_at_lookup.get((model_key, claim_id), ""))
             )
             report.restored += 1
 
@@ -647,6 +652,11 @@ def restore_embeddings(
     concept_status_lookup = {}
     for s in snapshot.concept_statuses:
         concept_status_lookup[(s["model_key"], s["concept_id"])] = s["content_hash"]
+
+    concept_at_lookup = {
+        (s["model_key"], s["concept_id"]): s.get("embedded_at", "")
+        for s in snapshot.concept_statuses
+    }
 
     for m in snapshot.models:
         model_key = m["model_key"]
@@ -674,8 +684,7 @@ def restore_embeddings(
             conn.execute(
                 "INSERT OR REPLACE INTO concept_embedding_status VALUES (?, ?, ?, ?)",
                 (model_key, concept_id, current_hash,
-                 next((s["embedded_at"] for s in snapshot.concept_statuses
-                       if s["model_key"] == model_key and s["concept_id"] == concept_id), ""))
+                 concept_at_lookup.get((model_key, concept_id), ""))
             )
             report.restored += 1
 

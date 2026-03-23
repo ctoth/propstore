@@ -299,11 +299,12 @@ async def _relate_claim_async(
                 shared_concepts=shared,
             )))
 
+        results_list = list(first_pass_results)
         for idx, task in second_tasks:
             second_result = await task
             # Replace first-pass "none" with second-pass result
-            first_pass_results = list(first_pass_results)
-            first_pass_results[idx] = second_result
+            results_list[idx] = second_result
+        first_pass_results = results_list
 
     return list(first_pass_results)
 

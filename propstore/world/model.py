@@ -49,6 +49,7 @@ class WorldModel(ArtifactStore):
         self._registry: dict[str, ConceptInfo] | None = None
         self._context_hierarchy: ContextHierarchy | None = None
         self._context_hierarchy_loaded = False
+        self._table_cache: dict[str, bool] = {}
         self._claim_has_target_concept: bool | None = None
 
     def __enter__(self) -> WorldModel:
@@ -317,10 +318,14 @@ class WorldModel(ArtifactStore):
         return find_similar_concepts(self._conn, concept_id, model_name, top_k=top_k)
 
     def _has_table(self, name: str) -> bool:
+        if name in self._table_cache:
+            return self._table_cache[name]
         row = self._conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
         ).fetchone()
-        return row is not None
+        result = row is not None
+        self._table_cache[name] = result
+        return result
 
     def has_table(self, name: str) -> bool:
         return self._has_table(name)
