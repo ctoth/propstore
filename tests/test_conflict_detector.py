@@ -1015,3 +1015,32 @@ class TestParameterZ3FallbackHandling:
         ):
             with pytest.raises(RuntimeError, match="unexpected"):
                 detect_parameter_conflicts([cf], cel_registry, solver=solver)
+
+    def test_z3_disjoint_unexpected_error_propagates(self):
+        """RuntimeError in are_disjoint should propagate, not be swallowed."""
+        from unittest.mock import patch
+        from propstore.z3_conditions import Z3ConditionSolver
+        from propstore.conflict_detector.parameters import detect_parameter_conflicts
+
+        cel_registry = {"freq": ConceptInfo(
+            id="freq", canonical_name="freq", kind=KindType.QUANTITY,
+        )}
+        solver = Z3ConditionSolver(cel_registry)
+
+        cf = make_claim_file([
+            {"id": "p1", "type": "parameter", "concept": "freq", "body": "100", "conditions": ["freq > 50"]},
+            {"id": "p2", "type": "parameter", "concept": "freq", "body": "200", "conditions": ["freq > 50"]},
+            {"id": "p3", "type": "parameter", "concept": "freq", "body": "300", "conditions": ["freq < 10"]},
+        ])
+
+        with patch.object(
+            solver,
+            "partition_equivalence_classes",
+            return_value=[[0, 1], [2]],
+        ), patch.object(
+            solver,
+            "are_disjoint",
+            side_effect=RuntimeError("unexpected"),
+        ):
+            with pytest.raises(RuntimeError, match="unexpected"):
+                detect_parameter_conflicts([cf], cel_registry, solver=solver)

@@ -198,6 +198,9 @@ def _detect_cross_class_parameter_conflicts(
     *,
     context_hierarchy: ContextHierarchy | None,
 ) -> None:
+    from propstore.z3_conditions import Z3TranslationError
+    import z3
+
     for left_index in range(len(eq_classes)):
         for right_index in range(left_index + 1, len(eq_classes)):
             group_i = eq_classes[left_index]
@@ -210,7 +213,8 @@ def _detect_cross_class_parameter_conflicts(
                     if z3_solver.are_disjoint(rep_i, rep_j)
                     else ConflictClass.OVERLAP
                 )
-            except Exception:
+            except (Z3TranslationError, z3.Z3Exception) as exc:
+                logging.warning("Z3 disjointness check failed: %s", exc)
                 cross_class = _classify_conditions(
                     rep_i,
                     rep_j,

@@ -13,7 +13,10 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from propstore.cli.repository import Repository
 
 import jsonschema
 import yaml
@@ -597,13 +600,13 @@ def build_concept_registry_from_paths(
     return registry
 
 
-def build_concept_registry(repo: object) -> dict[str, dict]:
+def build_concept_registry(repo: Repository | None) -> dict[str, dict]:
     """Load concepts and build {concept_id: concept_data} mapping.
 
     Args:
         repo: A Repository object providing concepts_dir and forms_dir.
     """
     return build_concept_registry_from_paths(
-        repo.concepts_dir,  # type: ignore[union-attr]
-        repo.forms_dir,  # type: ignore[union-attr]
+        repo.concepts_dir,
+        repo.forms_dir,
     )
