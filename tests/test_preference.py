@@ -65,9 +65,13 @@ class TestStrictlyWeakerConcrete:
         assert strictly_weaker([2], [1], "democratic") is False
 
     def test_empty_set_a_not_weaker(self):
-        """Empty set A is not strictly weaker (no witnesses/vacuously false)."""
+        """Empty set A is not strictly weaker (neutral case, both comparisons)."""
         assert strictly_weaker([], [3, 4], "elitist") is False
-        assert strictly_weaker([], [3, 4], "democratic") is True  # vacuously true: forall x in {}
+        assert strictly_weaker([], [3, 4], "democratic") is False
+
+    def test_empty_set_a_democratic_not_weaker(self):
+        """Empty attacker strengths should not lose attacks under democratic comparison."""
+        assert strictly_weaker([], [1.0], "democratic") is False
 
     def test_empty_set_b_not_dominated(self):
         """Empty set B: elitist requires exists x forall y in {} which is vacuously true.

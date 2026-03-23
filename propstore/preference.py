@@ -28,7 +28,7 @@ def strictly_weaker(
         return any(all(x < y for y in set_b) for x in set_a)
     elif comparison == "democratic":
         if not set_a:
-            return True  # vacuously true: forall x in empty set
+            return False  # empty set is not strictly weaker (neutral case)
         return all(any(x < y for y in set_b) for x in set_a)
     else:
         raise ValueError(f"Unknown comparison: {comparison}")
