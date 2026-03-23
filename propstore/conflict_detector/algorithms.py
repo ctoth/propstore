@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
@@ -44,7 +45,8 @@ def detect_algorithm_conflicts(
                 bindings_b = _bindings_for_algorithm_claim(claim_b)
                 try:
                     result = ast_compare(body_a, bindings_a, body_b, bindings_b)
-                except Exception:
+                except (ValueError, SyntaxError) as exc:
+                    logging.warning("ast_compare failed for %s vs %s: %s", claim_a.get("id"), claim_b.get("id"), exc)
                     continue
                 if result.equivalent and result.tier <= 2:
                     continue

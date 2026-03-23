@@ -583,3 +583,60 @@ class TestZ3Caching:
             "task == 'speech'",
             "fundamental_frequency > 200",
         ]
+
+
+# ── Partition exception-handling tests (Group 2) ────────────────────
+
+
+class TestPartitionExceptionHandling:
+    def test_translation_error_skips_pair(self):
+        """Z3TranslationError in are_equivalent should skip pair, not crash."""
+        from unittest.mock import patch
+        from propstore.cel_checker import ConceptInfo, KindType
+        from propstore.z3_conditions import Z3TranslationError, Z3ConditionSolver
+
+        registry = {"freq": ConceptInfo(id="freq", canonical_name="freq", kind=KindType.QUANTITY)}
+        solver = Z3ConditionSolver(registry)
+
+        call_count = 0
+        original_are_equivalent = solver.are_equivalent
+
+        def flaky_are_equivalent(a, b):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise Z3TranslationError("translation failed")
+            return original_are_equivalent(a, b)
+
+        condition_sets = [
+            ["freq > 100"],
+            ["freq > 200"],  # This comparison will raise on first call
+            ["freq > 100"],  # This should match the first
+        ]
+
+        with patch.object(solver, "are_equivalent", side_effect=flaky_are_equivalent):
+            result = solver.partition_equivalence_classes(condition_sets)
+
+        # Should complete without crash. The failed pair gets its own class.
+        assert isinstance(result, list)
+        assert len(result) >= 2  # At least 2 classes since one comparison failed
+
+    def test_unexpected_error_propagates(self):
+        """RuntimeError in are_equivalent should propagate."""
+        from unittest.mock import patch
+        from propstore.cel_checker import ConceptInfo, KindType
+        from propstore.z3_conditions import Z3ConditionSolver
+
+        registry = {"freq": ConceptInfo(id="freq", canonical_name="freq", kind=KindType.QUANTITY)}
+        solver = Z3ConditionSolver(registry)
+
+        condition_sets = [
+            ["freq > 100"],
+            ["freq > 200"],
+        ]
+
+        with patch.object(
+            solver, "are_equivalent", side_effect=RuntimeError("unexpected")
+        ):
+            with pytest.raises(RuntimeError, match="unexpected"):
+                solver.partition_equivalence_classes(condition_sets)

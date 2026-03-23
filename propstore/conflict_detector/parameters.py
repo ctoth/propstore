@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
@@ -47,9 +48,12 @@ def detect_parameter_conflicts(
         all_conditions = [sorted(claim.get("conditions") or []) for claim in claims]
 
         if z3_solver is not None and len(claims) > 2:
+            from propstore.z3_conditions import Z3TranslationError
+            import z3
             try:
                 eq_classes = z3_solver.partition_equivalence_classes(all_conditions)
-            except Exception:
+            except (Z3TranslationError, z3.Z3Exception) as exc:
+                logging.warning("Z3 partition failed, falling back to pairwise: %s", exc)
                 eq_classes = None
         else:
             eq_classes = None

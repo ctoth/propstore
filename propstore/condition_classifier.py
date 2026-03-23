@@ -9,6 +9,7 @@ Entry point: classify_conditions(conditions_a, conditions_b, cel_registry)
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field as dataclass_field
 from typing import TYPE_CHECKING
@@ -77,12 +78,15 @@ def _try_z3_classify(
         except ImportError:
             return None
         solver = Z3ConditionSolver(cel_registry)
+    import z3
+    from propstore.z3_conditions import Z3TranslationError
     try:
         if solver.are_equivalent(conditions_a, conditions_b):
             return ConflictClass.CONFLICT
         if solver.are_disjoint(conditions_a, conditions_b):
             return ConflictClass.PHI_NODE
-    except Exception:
+    except (z3.Z3Exception, Z3TranslationError) as exc:
+        logging.warning("Z3 condition classification failed: %s", exc)
         return None  # Z3 failed — fall through to fallback
     return ConflictClass.OVERLAP
 

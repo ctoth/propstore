@@ -17,6 +17,7 @@ from propstore.conflict_detector import (
     ConflictClass,
     detect_conflicts,
 )
+from propstore.cel_checker import ConceptInfo, KindType
 from propstore.validate_claims import LoadedClaimFile
 from tests.conftest import make_concept_registry
 
@@ -888,3 +889,129 @@ class TestTransitiveContextSemantics:
         assert len(records) == 1
         assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
         assert records[0].concept_id == "concept_out"
+
+
+# ── Exception-handling tests (Group 2) ──────────────────────────────
+
+
+class TestAlgorithmExceptionHandling:
+    def test_value_error_skipped(self):
+        """ValueError from ast_compare should skip the pair, not crash."""
+        from unittest.mock import patch
+        from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
+
+        cf = make_claim_file([
+            {
+                "id": "alg1",
+                "type": "algorithm",
+                "concept": "concept_algo",
+                "body": "x + 1",
+                "variables": {"x": "input"},
+            },
+            {
+                "id": "alg2",
+                "type": "algorithm",
+                "concept": "concept_algo",
+                "body": "x + 2",
+                "variables": {"x": "input"},
+            },
+        ])
+        registry = {"concept_algo": ConceptInfo(
+            id="concept_algo", canonical_name="concept_algo", kind=KindType.QUANTITY,
+        )}
+
+        with patch(
+            "propstore.conflict_detector.algorithms.ast_compare",
+            side_effect=ValueError("bad parse"),
+        ):
+            records = detect_algorithm_conflicts([cf], registry)
+
+        # Pair was skipped — no crash, no records from this pair
+        assert isinstance(records, list)
+
+    def test_unexpected_error_propagates(self):
+        """RuntimeError from ast_compare should propagate."""
+        from unittest.mock import patch
+        from propstore.conflict_detector.algorithms import detect_algorithm_conflicts
+
+        cf = make_claim_file([
+            {
+                "id": "alg1",
+                "type": "algorithm",
+                "concept": "concept_algo",
+                "body": "x + 1",
+                "variables": {"x": "input"},
+            },
+            {
+                "id": "alg2",
+                "type": "algorithm",
+                "concept": "concept_algo",
+                "body": "x + 2",
+                "variables": {"x": "input"},
+            },
+        ])
+        registry = {"concept_algo": ConceptInfo(
+            id="concept_algo", canonical_name="concept_algo", kind=KindType.QUANTITY,
+        )}
+
+        with patch(
+            "propstore.conflict_detector.algorithms.ast_compare",
+            side_effect=RuntimeError("unexpected"),
+        ):
+            with pytest.raises(RuntimeError, match="unexpected"):
+                detect_algorithm_conflicts([cf], registry)
+
+
+class TestParameterZ3FallbackHandling:
+    def test_z3_partition_error_falls_back_to_pairwise(self):
+        """Z3 partition failure should fall back to pairwise detection."""
+        from unittest.mock import patch
+        from propstore.z3_conditions import Z3TranslationError, Z3ConditionSolver
+        from propstore.conflict_detector.parameters import detect_parameter_conflicts
+
+        cel_registry = {"freq": ConceptInfo(
+            id="freq", canonical_name="freq", kind=KindType.QUANTITY,
+        )}
+        solver = Z3ConditionSolver(cel_registry)
+
+        # 3 claims triggers the Z3 partition path
+        cf = make_claim_file([
+            {"id": "p1", "type": "parameter", "concept": "freq", "body": "100", "conditions": ["freq > 50"]},
+            {"id": "p2", "type": "parameter", "concept": "freq", "body": "200", "conditions": ["freq > 50"]},
+            {"id": "p3", "type": "parameter", "concept": "freq", "body": "300", "conditions": ["freq > 50"]},
+        ])
+
+        with patch.object(
+            solver,
+            "partition_equivalence_classes",
+            side_effect=Z3TranslationError("partition failed"),
+        ):
+            records, _ = detect_parameter_conflicts([cf], cel_registry, solver=solver)
+
+        # Should not crash — falls back to pairwise
+        assert isinstance(records, list)
+
+    def test_z3_partition_unexpected_error_propagates(self):
+        """RuntimeError in partition should propagate."""
+        from unittest.mock import patch
+        from propstore.z3_conditions import Z3ConditionSolver
+        from propstore.conflict_detector.parameters import detect_parameter_conflicts
+
+        cel_registry = {"freq": ConceptInfo(
+            id="freq", canonical_name="freq", kind=KindType.QUANTITY,
+        )}
+        solver = Z3ConditionSolver(cel_registry)
+
+        cf = make_claim_file([
+            {"id": "p1", "type": "parameter", "concept": "freq", "body": "100", "conditions": ["freq > 50"]},
+            {"id": "p2", "type": "parameter", "concept": "freq", "body": "200", "conditions": ["freq > 50"]},
+            {"id": "p3", "type": "parameter", "concept": "freq", "body": "300", "conditions": ["freq > 50"]},
+        ])
+
+        with patch.object(
+            solver,
+            "partition_equivalence_classes",
+            side_effect=RuntimeError("unexpected"),
+        ):
+            with pytest.raises(RuntimeError, match="unexpected"):
+                detect_parameter_conflicts([cf], cel_registry, solver=solver)

@@ -11,6 +11,7 @@ determines which type each concept gets.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from propstore.cel_checker import (
@@ -348,7 +349,8 @@ class Z3ConditionSolver:
                         classes[j].append(i)
                         matched = True
                         break
-                except Exception:
+                except Z3TranslationError as exc:
+                    logging.warning("Equivalence check failed in partition: %s", exc)
                     continue
             if not matched:
                 representatives.append(condition_sets[i])
