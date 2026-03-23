@@ -341,18 +341,38 @@ class TestAttackBasedConflictFree:
         assert not admissible(frozenset({"A", "B"}), args, defeats, attacks=attacks)
 
     def test_complete_extensions_with_attacks(self):
-        """Complete extensions respect attack-based CF."""
-        # A attacks B (blocked by preference), no other attacks
+        """Complete extensions respect attack-based CF.
+
+        With defeats={} and attacks={(A,B)}: F converges to {A,B}
+        (both unattacked in defeats), but {A,B} fails attack-CF.
+        No set is both a fixed point of F and attack-conflict-free.
+        """
         fw = ArgumentationFramework(
             arguments=frozenset({"A", "B"}),
             defeats=frozenset(),
             attacks=frozenset({("A", "B")}),
         )
         exts = complete_extensions(fw)
-        # {A, B} is NOT a complete extension (not conflict-free under attacks)
+        # {A, B} is excluded by attack-based CF
         assert frozenset({"A", "B"}) not in exts
-        # {A} should be complete: CF, unattacked, defends itself
+
+    def test_complete_extensions_attacks_with_defeats(self):
+        """Complete extensions with both attacks and defeats.
+
+        A defeats B (defeat survives), B attacks A (blocked by preference).
+        attacks = {(A,B), (B,A)}, defeats = {(A,B)}.
+        Grounded/complete = {A}: A is unattacked (in defeats), defends itself,
+        and {A} is attack-conflict-free (no attack within {A}).
+        """
+        fw = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset({("A", "B")}),
+            attacks=frozenset({("A", "B"), ("B", "A")}),
+        )
+        exts = complete_extensions(fw)
         assert frozenset({"A"}) in exts
+        # {A, B} fails attack-CF (B attacks A)
+        assert frozenset({"A", "B"}) not in exts
 
     def test_stable_extensions_with_attacks(self):
         """Stable extensions use attack-based CF."""
