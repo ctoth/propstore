@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.propagation import _parse_cached
+from propstore.propagation import parse_cached
 
 
 @dataclass
@@ -57,14 +57,14 @@ def analyze_sensitivity(
     """
     from sympy import Equality, Symbol, diff as sym_diff
 
-    params = world._parameterizations_for(concept_id)
+    params = world.parameterizations_for(concept_id)
     if not params:
         return None
 
     # Find first compatible parameterization
     param = None
     for p in params:
-        if bound._is_param_compatible(p.get("conditions_cel")):
+        if bound.is_param_compatible(p.get("conditions_cel")):
             param = p
             break
 
@@ -83,7 +83,7 @@ def analyze_sensitivity(
 
     # Parse the expression
     all_names = set(effective_inputs) | {concept_id}
-    parsed, symbols = _parse_cached(sympy_str, tuple(sorted(all_names)))
+    parsed, symbols = parse_cached(sympy_str, tuple(sorted(all_names)))
 
     # Handle Eq form: extract RHS
     if isinstance(parsed, Equality):

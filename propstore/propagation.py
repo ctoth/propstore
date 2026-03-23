@@ -12,7 +12,7 @@ import functools
 
 
 @functools.lru_cache(maxsize=128)
-def _parse_cached(expr_str: str, symbol_names: tuple[str, ...]):
+def parse_cached(expr_str: str, symbol_names: tuple[str, ...]):
     from sympy import Symbol
     from sympy.parsing.sympy_parser import parse_expr
 
@@ -37,7 +37,7 @@ def evaluate_parameterization(
 
     # Build symbol names from inputs + output
     all_names = set(input_values.keys()) | {output_concept_id}
-    parsed_expr, symbols = _parse_cached(sympy_expr, tuple(sorted(all_names)))
+    parsed_expr, symbols = parse_cached(sympy_expr, tuple(sorted(all_names)))
 
     # Filter input_values to exclude the output concept (self-referencing)
     effective_inputs = {k: v for k, v in input_values.items() if k != output_concept_id}

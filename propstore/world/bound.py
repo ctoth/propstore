@@ -135,11 +135,11 @@ class BoundWorld(BeliefSpace):
         self._conflicts_cache: dict[str | None, list[dict]] = {}
         self._resolver = ActiveClaimResolver(
             parameterizations_for=getattr(self._store, "parameterizations_for", lambda _cid: []),
-            is_param_compatible=self._is_param_compatible,
+            is_param_compatible=self.is_param_compatible,
             value_of=self.value_of,
-            extract_variable_concepts=self._extract_variable_concepts,
-            collect_known_values=self._collect_known_values,
-            extract_bindings=self._extract_bindings,
+            extract_variable_concepts=self.extract_variable_concepts,
+            collect_known_values=self.collect_known_values,
+            extract_bindings=self.extract_bindings,
         )
 
     @staticmethod
@@ -155,7 +155,7 @@ class BoundWorld(BeliefSpace):
                 conds.append(f"{key} == {value}")
         return conds
 
-    def _is_active(self, claim: dict) -> bool:
+    def is_active(self, claim: dict) -> bool:
         """Check if a claim is active under the current bindings and context."""
         # Step 1: Context membership check
         if self._context_visible is not None:
@@ -178,7 +178,7 @@ class BoundWorld(BeliefSpace):
         solver = self._store.condition_solver()
         return not solver.are_disjoint(self._binding_conds, claim_conds)
 
-    def _is_param_compatible(self, conditions_cel: str | None) -> bool:
+    def is_param_compatible(self, conditions_cel: str | None) -> bool:
         """Check if parameterization conditions are compatible with bindings."""
         if not conditions_cel:
             return True
@@ -192,18 +192,18 @@ class BoundWorld(BeliefSpace):
 
     def active_claims(self, concept_id: str | None = None) -> list[dict]:
         all_claims = self._store.claims_for(concept_id)
-        return [c for c in all_claims if self._is_active(c)]
+        return [c for c in all_claims if self.is_active(c)]
 
     def inactive_claims(self, concept_id: str | None = None) -> list[dict]:
         all_claims = self._store.claims_for(concept_id)
-        return [c for c in all_claims if not self._is_active(c)]
+        return [c for c in all_claims if not self.is_active(c)]
 
     def algorithm_for(self, concept_id: str) -> list[dict]:
         """Return all active algorithm claims relevant to the given concept."""
         active = self.active_claims(concept_id)
         return [c for c in active if c.get("type") == "algorithm"]
 
-    def _collect_known_values(self, variable_concepts: list[str]) -> dict[str, Any]:
+    def collect_known_values(self, variable_concepts: list[str]) -> dict[str, Any]:
         """Resolve numeric values for a list of concept IDs."""
         known: dict[str, Any] = {}
         for cid in variable_concepts:
@@ -217,7 +217,7 @@ class BoundWorld(BeliefSpace):
                         pass
         return known
 
-    def _extract_variable_concepts(self, claim: dict) -> list[str]:
+    def extract_variable_concepts(self, claim: dict) -> list[str]:
         """Extract concept IDs referenced by an algorithm claim's variables."""
         variables_json = claim.get("variables_json")
         if not variables_json:
@@ -234,7 +234,7 @@ class BoundWorld(BeliefSpace):
             concepts.extend(variables.values())
         return concepts
 
-    def _extract_bindings(self, claim: dict) -> dict[str, str]:
+    def extract_bindings(self, claim: dict) -> dict[str, str]:
         """Extract variable name -> concept mapping from an algorithm claim."""
         variables_json = claim.get("variables_json")
         if not variables_json:
@@ -302,7 +302,7 @@ class BoundWorld(BeliefSpace):
     def explain(self, claim_id: str) -> list[dict]:
         """Stance walk filtered to active claims."""
         claim = self._store.get_claim(claim_id)
-        if claim is None or not self._is_active(claim):
+        if claim is None or not self.is_active(claim):
             return []
 
         active_ids = {c["id"] for c in self.active_claims()}

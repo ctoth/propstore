@@ -26,11 +26,11 @@ class HypotheticalWorld(BeliefSpace):
         self._synthetics = list(add or [])
         self._resolver = ActiveClaimResolver(
             parameterizations_for=getattr(self._base._store, "parameterizations_for", lambda _cid: []),
-            is_param_compatible=self._base._is_param_compatible,
+            is_param_compatible=self._base.is_param_compatible,
             value_of=self.value_of,
-            extract_variable_concepts=self._base._extract_variable_concepts,
-            collect_known_values=self._base._collect_known_values,
-            extract_bindings=self._base._extract_bindings,
+            extract_variable_concepts=self._base.extract_variable_concepts,
+            collect_known_values=self._base.collect_known_values,
+            extract_bindings=self._base.extract_bindings,
         )
 
     def _synthetic_to_dict(self, sc: SyntheticClaim) -> dict:
@@ -50,7 +50,7 @@ class HypotheticalWorld(BeliefSpace):
             if concept_id is not None and sc.concept_id != concept_id:
                 continue
             sc_dict = self._synthetic_to_dict(sc)
-            if self._base._is_active(sc_dict):
+            if self._base.is_active(sc_dict):
                 filtered.append(sc_dict)
         return filtered
 
@@ -61,7 +61,7 @@ class HypotheticalWorld(BeliefSpace):
             if concept_id is not None and sc.concept_id != concept_id:
                 continue
             sc_dict = self._synthetic_to_dict(sc)
-            if not self._base._is_active(sc_dict):
+            if not self._base.is_active(sc_dict):
                 filtered.append(sc_dict)
         return filtered
 

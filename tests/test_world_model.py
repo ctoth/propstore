@@ -1643,7 +1643,7 @@ class TestAlgorithmWorldModel:
     def test_collect_known_values(self, algo_world):
         """Known values collected from resolved concepts."""
         bound = algo_world.bind(task="speech")
-        known = bound._collect_known_values(["algo_concept1", "algo_concept2"])
+        known = bound.collect_known_values(["algo_concept1", "algo_concept2"])
         assert "algo_concept1" in known
         assert known["algo_concept1"] == 44100.0
         assert "algo_concept2" in known
@@ -1652,7 +1652,7 @@ class TestAlgorithmWorldModel:
     def test_collect_known_values_skips_unresolvable(self, algo_world):
         """Known values skips concepts that can't be resolved."""
         bound = algo_world.bind(task="speech")
-        known = bound._collect_known_values(["algo_concept1", "nonexistent_concept"])
+        known = bound.collect_known_values(["algo_concept1", "nonexistent_concept"])
         assert "algo_concept1" in known
         assert "nonexistent_concept" not in known
 
@@ -1732,3 +1732,22 @@ class TestConflictsCaching:
         result1 = bound.conflicts("concept1")
         result2 = bound.conflicts("concept1")
         assert result1 == result2
+
+
+# ── Encapsulation: public interface ──────────────────────────────────
+
+class TestBoundWorldPublicInterface:
+    """BoundWorld methods used by collaborators should be public."""
+
+    def test_is_param_compatible_public(self, world):
+        """is_param_compatible is used by HypotheticalWorld and sensitivity."""
+        bound = world.bind()
+        assert hasattr(bound, 'is_param_compatible')
+        assert callable(bound.is_param_compatible)
+
+    def test_extract_methods_public(self, world):
+        """Value extraction methods are used by HypotheticalWorld."""
+        bound = world.bind()
+        assert hasattr(bound, 'extract_variable_concepts')
+        assert hasattr(bound, 'collect_known_values')
+        assert hasattr(bound, 'extract_bindings')

@@ -185,13 +185,13 @@ def z3_complete_extensions(
     return results
 
 
-# ── Preferred extensions (CEGAR) ───────────────────────────────────
+# ── Preferred extensions (enumerate and filter) ───────────────────────────────────
 
 
 def z3_preferred_extensions(
     framework: ArgumentationFramework,
 ) -> list[frozenset[str]]:
-    """Compute all preferred extensions using CEGAR approach.
+    """Compute all preferred extensions by filtering maximal complete extensions.
 
     Preferred extensions are maximal complete extensions.
     1. Find complete extensions
