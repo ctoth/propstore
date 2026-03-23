@@ -1,6 +1,7 @@
 """Repository — locates and provides paths within a propstore knowledge/ directory."""
 from __future__ import annotations
 
+from functools import cached_property
 from pathlib import Path
 
 
@@ -53,6 +54,17 @@ class Repository:
     @property
     def counters_dir(self) -> Path:
         return self._root / "concepts" / ".counters"
+
+    @cached_property
+    def store(self):
+        from propstore.world import WorldModel
+
+        return WorldModel(self)
+
+    def close(self) -> None:
+        store = self.__dict__.get("store")
+        if store is not None:
+            store.close()
 
     @classmethod
     def find(cls, start: Path | None = None) -> Repository:

@@ -16,7 +16,7 @@ from hypothesis import strategies as st
 from propstore.build_sidecar import build_sidecar
 from propstore.validate import load_concepts
 from propstore.validate_claims import load_claim_files, validate_claims
-from propstore.world_model import WorldModel
+from propstore.world import WorldModel
 
 
 # ── Helpers (reused patterns from test_validate_claims) ──────────────

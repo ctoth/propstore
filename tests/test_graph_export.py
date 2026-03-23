@@ -6,7 +6,7 @@ import yaml
 from propstore.build_sidecar import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
 from propstore.validate import load_concepts
-from propstore.world_model import WorldModel
+from propstore.world import WorldModel
 
 
 # ── Fixtures (duplicated from test_world_model.py) ────────────────────

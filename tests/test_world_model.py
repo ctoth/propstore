@@ -14,12 +14,15 @@ import yaml
 
 from propstore.build_sidecar import build_sidecar
 from propstore.validate import load_concepts
-from propstore.world_model import (
+from propstore.world import (
+    ArtifactStore,
+    BeliefSpace,
     BoundWorld,
     ChainResult,
-    ClaimView,
     DerivedResult,
+    Environment,
     HypotheticalWorld,
+    RenderPolicy,
     ResolvedResult,
     ResolutionStrategy,
     SyntheticClaim,
@@ -399,6 +402,7 @@ def world(concept_dir, repo, claim_files):
 class TestWorldModelConstruction:
     def test_construct_from_repo(self, world):
         assert world is not None
+        assert isinstance(world, ArtifactStore)
 
     def test_raises_without_sidecar(self, tmp_path):
         from propstore.cli.repository import Repository
@@ -487,6 +491,11 @@ class TestBindAndActiveClaims:
     def test_bind_returns_bound_world(self, world):
         bound = world.bind(task="speech")
         assert isinstance(bound, BoundWorld)
+
+    def test_bind_environment_with_context_id(self, world):
+        env = Environment(bindings={"task": "speech"}, context_id="ctx_abstract_argumentation")
+        bound = world.bind(env)
+        assert bound._context_id == "ctx_abstract_argumentation"
 
     def test_bind_speech_activates_speech_claims(self, world):
         bound = world.bind(task="speech")
@@ -769,6 +778,58 @@ class TestHypotheticalWorld:
 # ── Feature 3: Conflict Resolution ──────────────────────────────────
 
 class TestConflictResolution:
+    def test_bind_with_environment_and_policy(self, world):
+        env = Environment(bindings={"task": "speech"})
+        policy = RenderPolicy(strategy=ResolutionStrategy.RECENCY)
+
+        bound = world.bind(env, policy=policy)
+
+        assert isinstance(bound, BeliefSpace)
+        result = bound.resolved_value("concept1")
+        assert result.status == "resolved"
+        assert result.winning_claim_id == "claim15"
+
+    def test_bound_resolved_value_uses_policy(self, world):
+        bound = world.bind(
+            task="speech",
+            policy=RenderPolicy(strategy=ResolutionStrategy.SAMPLE_SIZE),
+        )
+
+        result = bound.resolved_value("concept1")
+        assert result.status == "resolved"
+        assert result.winning_claim_id == "claim7"
+
+    def test_bound_resolved_value_uses_concept_strategy_override(self, world):
+        bound = world.bind(
+            task="speech",
+            policy=RenderPolicy(
+                strategy=ResolutionStrategy.SAMPLE_SIZE,
+                concept_strategies={"concept1": ResolutionStrategy.RECENCY},
+            ),
+        )
+
+        result = bound.resolved_value("concept1")
+        assert result.status == "resolved"
+        assert result.winning_claim_id == "claim15"
+
+    def test_resolve_explicit_kwargs_override_policy_defaults(self, world):
+        bound = world.bind(
+            task="speech",
+            policy=RenderPolicy(
+                strategy=ResolutionStrategy.ARGUMENTATION,
+                confidence_threshold=0.99,
+            ),
+        )
+
+        result = resolve(
+            bound,
+            "concept1",
+            policy=bound._policy,
+            confidence_threshold=0.0,
+        )
+        assert result.status == "conflicted"
+        assert "survive" in (result.reason or "")
+
     def test_resolve_not_conflicted(self, world):
         """Determined → returns same, no resolution."""
         bound = world.bind(task="singing")
@@ -848,11 +909,22 @@ class TestConflictResolution:
         assert result.status == "no_claims"
 
     def test_resolve_on_hypothetical(self, world):
-        """resolve() works on HypotheticalWorld via ClaimView."""
+        """resolve() works on HypotheticalWorld via BeliefSpace."""
         bound = world.bind(task="speech")
         hypo = HypotheticalWorld(bound, remove=["claim7", "claim15"])
         result = resolve(hypo, "concept1", ResolutionStrategy.RECENCY)
         # claim2(2024-06-20) vs claim1(2024-01-15) → claim2 wins
+        assert result.status == "resolved"
+        assert result.winning_claim_id == "claim2"
+
+    def test_hypothetical_resolved_value_inherits_policy(self, world):
+        bound = world.bind(
+            task="speech",
+            policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY),
+        )
+        hypo = HypotheticalWorld(bound, remove=["claim7", "claim15"])
+
+        result = hypo.resolved_value("concept1")
         assert result.status == "resolved"
         assert result.winning_claim_id == "claim2"
 
@@ -995,16 +1067,22 @@ class TestHypothesisProperties:
         narrow_ids = {c["id"] for c in narrow.active_claims()}
         assert narrow_ids <= broad_ids
 
-    def test_conflict_subsetting(self, world):
+    def test_unbound_conflicts_match_build_time(self, world):
         world_conflict_pairs = {
             (c["claim_a_id"], c["claim_b_id"]) for c in world.conflicts()
         }
+        bound_conflict_pairs = {
+            (c["claim_a_id"], c["claim_b_id"]) for c in world.bind().conflicts()
+        }
+        assert bound_conflict_pairs == world_conflict_pairs
+
+    def test_bound_conflicts_remain_structured(self, world):
         for binding in [{"task": "speech"}, {"task": "singing"}, {"task": "whisper"}]:
             bound = world.bind(**binding)
-            bound_conflict_pairs = {
-                (c["claim_a_id"], c["claim_b_id"]) for c in bound.conflicts()
-            }
-            assert bound_conflict_pairs <= world_conflict_pairs
+            for conflict in bound.conflicts():
+                assert "warning_class" in conflict
+                assert "claim_a_id" in conflict
+                assert "claim_b_id" in conflict
 
     def test_determinism(self, world):
         r1 = world.bind(task="speech").active_claims()
@@ -1029,7 +1107,7 @@ class TestCrossFeatureProperties:
         assert len(vr_before.claims) == len(vr_after.claims)
 
     def test_claimview_substitutability(self, world):
-        """PX.2: Functions accepting ClaimView produce same structure for BoundWorld and identity HypotheticalWorld."""
+        """PX.2: Functions accepting BeliefSpace produce same structure for BoundWorld and identity HypotheticalWorld."""
         bound = world.bind(task="speech")
         hypo = HypotheticalWorld(bound, remove=[], add=[])
         for cid in ["concept1", "concept2", "concept6"]:
@@ -1226,6 +1304,28 @@ class TestTransitiveConsistency:
             assert c["warning_class"] == "CONFLICT"
             assert "value_a" in c
             assert "value_b" in c
+
+    def test_hypothetical_conflicts_include_recomputed_synthetic_conflicts(self, world):
+        bound = world.bind(task="speech")
+        sc = SyntheticClaim(
+            id="synth_conflict", concept_id="concept2", value=999.0,
+            conditions=["task == 'speech'"],
+        )
+        hypo = HypotheticalWorld(bound, add=[sc])
+
+        conflicts = hypo.conflicts("concept2")
+
+        assert any(
+            {
+                conflict["claim_a_id"],
+                conflict["claim_b_id"],
+            } == {"claim4", "synth_conflict"}
+            or {
+                conflict["claim_a_id"],
+                conflict["claim_b_id"],
+            } == {"claim6", "synth_conflict"}
+            for conflict in conflicts
+        )
 
     def test_hypothetical_recompute_remove(self, world):
         """Remove conflicting claim → recompute clean."""

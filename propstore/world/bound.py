@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from ast_equiv import compare as ast_compare
-from propstore.world.types import DerivedResult, ValueResult
+from propstore.world.types import DerivedResult, Environment, RenderPolicy, ResolvedResult, ValueResult
 
 if TYPE_CHECKING:
     from propstore.world.model import WorldModel
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 
 def _derived_value_impl(
     concept_id: str,
-    world: WorldModel,
+    world,
     is_param_compatible,
     value_of_fn,
     override_values: dict[str, float | str | None] | None = None,
@@ -22,7 +23,7 @@ def _derived_value_impl(
     """Shared implementation for derived_value() — used by BoundWorld and HypotheticalWorld."""
     from propstore.propagation import evaluate_parameterization
 
-    params = world._parameterizations_for(concept_id)
+    params = world.parameterizations_for(concept_id)
     if not params:
         return DerivedResult(concept_id=concept_id, status="no_relationship")
 
@@ -173,25 +174,104 @@ def _value_of_from_active(
     return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
 
 
+def _concept_registry_for_store(world) -> dict[str, dict]:
+    registry: dict[str, dict] = {}
+    for concept in world.all_concepts():
+        cdata = dict(concept)
+        cid = cdata["id"]
+        form_parameters = cdata.get("form_parameters")
+        if isinstance(form_parameters, str):
+            try:
+                cdata["form_parameters"] = json.loads(form_parameters)
+            except json.JSONDecodeError:
+                cdata["form_parameters"] = {}
+        params = world.parameterizations_for(cid)
+        if params:
+            cdata["parameterization_relationships"] = []
+            for param in params:
+                cdata["parameterization_relationships"].append({
+                    "inputs": json.loads(param["concept_ids"]),
+                    "sympy": param.get("sympy"),
+                    "exactness": param.get("exactness"),
+                    "conditions": json.loads(param["conditions_cel"]) if param.get("conditions_cel") else [],
+                })
+        registry[cid] = cdata
+    return registry
+
+
+def _claim_row_to_source_claim(claim: dict) -> dict:
+    source = dict(claim)
+    if claim.get("conditions_cel"):
+        source["conditions"] = json.loads(claim["conditions_cel"])
+    else:
+        source["conditions"] = []
+
+    claim_type = claim.get("type")
+    if claim_type == "parameter" and claim.get("concept_id"):
+        source["concept"] = claim["concept_id"]
+    if claim_type == "measurement" and claim.get("concept_id") and not claim.get("target_concept"):
+        source["target_concept"] = claim["concept_id"]
+    if claim_type == "algorithm" and claim.get("variables_json"):
+        source["variables"] = json.loads(claim["variables_json"])
+    return source
+
+
+def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
+    from propstore.conflict_detector import detect_conflicts
+    from propstore.validate_claims import LoadedClaimFile
+
+    if len(claims) < 2:
+        return []
+
+    synthetic = LoadedClaimFile(
+        filename="<render>",
+        filepath=Path("<render>"),
+        data={"claims": [_claim_row_to_source_claim(claim) for claim in claims]},
+    )
+    concept_registry = _concept_registry_for_store(world)
+    records = detect_conflicts([synthetic], concept_registry)
+    return [
+        {
+            "concept_id": record.concept_id,
+            "claim_a_id": record.claim_a_id,
+            "claim_b_id": record.claim_b_id,
+            "warning_class": record.warning_class.value,
+            "conditions_a": record.conditions_a,
+            "conditions_b": record.conditions_b,
+            "value_a": record.value_a,
+            "value_b": record.value_b,
+            "derivation_chain": record.derivation_chain,
+        }
+        for record in records
+    ]
+
+
 class BoundWorld:
     """The world under specific condition bindings, optionally scoped to a context."""
 
     def __init__(
         self,
         world: WorldModel,
-        bindings: dict[str, Any],
+        bindings: dict[str, Any] | None = None,
         context_id: str | None = None,
         context_hierarchy: object | None = None,
+        *,
+        environment: Environment | None = None,
+        policy: RenderPolicy | None = None,
     ) -> None:
-        self._world = world
-        self._bindings = bindings
-        self._binding_conds = self._bindings_to_cel(bindings)
-        self._context_id = context_id
+        self._store = world
+        if environment is None:
+            environment = Environment(bindings=bindings or {}, context_id=context_id)
+        self._environment = environment
+        self._policy = policy
+        self._bindings = dict(environment.bindings)
+        self._binding_conds = self._bindings_to_cel(self._bindings)
+        self._context_id = environment.context_id
         self._context_hierarchy = context_hierarchy
         # Pre-compute ancestor set for fast lookups
-        if context_id and context_hierarchy is not None:
-            self._context_visible: set[str] | None = {context_id}
-            for ancestor in context_hierarchy.ancestors(context_id):  # type: ignore[union-attr]
+        if self._context_id and context_hierarchy is not None:
+            self._context_visible: set[str] | None = {self._context_id}
+            for ancestor in context_hierarchy.ancestors(self._context_id):  # type: ignore[union-attr]
                 self._context_visible.add(ancestor)
         else:
             self._context_visible = None  # no context filtering
@@ -229,7 +309,7 @@ class BoundWorld:
         if not self._binding_conds:
             return True  # no bindings → everything active
 
-        solver = self._world._ensure_solver()
+        solver = self._store.condition_solver()
         return not solver.are_disjoint(self._binding_conds, claim_conds)
 
     def _is_param_compatible(self, conditions_cel: str | None) -> bool:
@@ -241,15 +321,15 @@ class BoundWorld:
             return True
         if not self._binding_conds:
             return True
-        solver = self._world._ensure_solver()
+        solver = self._store.condition_solver()
         return not solver.are_disjoint(self._binding_conds, conds)
 
     def active_claims(self, concept_id: str | None = None) -> list[dict]:
-        all_claims = self._world.claims_for(concept_id)
+        all_claims = self._store.claims_for(concept_id)
         return [c for c in all_claims if self._is_active(c)]
 
     def inactive_claims(self, concept_id: str | None = None) -> list[dict]:
-        all_claims = self._world.claims_for(concept_id)
+        all_claims = self._store.claims_for(concept_id)
         return [c for c in all_claims if not self._is_active(c)]
 
     def algorithm_for(self, concept_id: str) -> list[dict]:
@@ -319,33 +399,46 @@ class BoundWorld:
         """Derive a value for concept_id via parameterization relationships."""
         return _derived_value_impl(
             concept_id,
-            self._world,
+            self._store,
             self._is_param_compatible,
             self.value_of,
             override_values=override_values,
         )
 
+    def resolved_value(self, concept_id: str) -> ResolvedResult:
+        from propstore.world.resolution import resolve
+
+        return resolve(self, concept_id, policy=self._policy, world=self._store)
+
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status == "determined"
 
     def conflicts(self, concept_id: str | None = None) -> list[dict]:
-        """Return world conflicts that are still active under current bindings."""
-        all_conflicts = self._world.conflicts()
-        active_ids = {c["id"] for c in self.active_claims(concept_id)}
+        """Return active conflicts, revalidated against the current belief space."""
+        active_claims = self.active_claims(concept_id)
+        active_ids = {c["id"] for c in active_claims}
 
         result = []
+        all_conflicts = self._store.conflicts()
         for conflict in all_conflicts:
             if conflict["claim_a_id"] in active_ids and conflict["claim_b_id"] in active_ids:
                 if concept_id is None or conflict.get("concept_id") == concept_id:
                     result.append(conflict)
+        seen = {(c["claim_a_id"], c["claim_b_id"], c.get("concept_id")) for c in result}
+        for conflict in _recomputed_conflicts(self._store, active_claims):
+            key = (conflict["claim_a_id"], conflict["claim_b_id"], conflict.get("concept_id"))
+            reverse_key = (conflict["claim_b_id"], conflict["claim_a_id"], conflict.get("concept_id"))
+            if key not in seen and reverse_key not in seen:
+                result.append(conflict)
+                seen.add(key)
         return result
 
     def explain(self, claim_id: str) -> list[dict]:
         """Stance walk filtered to active claims."""
-        claim = self._world.get_claim(claim_id)
+        claim = self._store.get_claim(claim_id)
         if claim is None or not self._is_active(claim):
             return []
 
         active_ids = {c["id"] for c in self.active_claims()}
-        full_chain = self._world.explain(claim_id)
+        full_chain = self._store.explain(claim_id)
         return [s for s in full_chain if s["target_claim_id"] in active_ids]

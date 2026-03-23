@@ -175,7 +175,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     )
 
     # Step 4: Summary via WorldModel (proves the roundtrip)
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     warning_count = len(concept_result.warnings)
     try:
@@ -350,7 +350,7 @@ def world(obj: dict) -> None:
 @click.pass_obj
 def world_status(obj: dict) -> None:
     """Show knowledge base stats (concepts, claims, conflicts)."""
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -371,7 +371,7 @@ def world_status(obj: dict) -> None:
 @click.pass_obj
 def world_query(obj: dict, concept_id: str) -> None:
     """Show all claims for a concept."""
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -408,7 +408,7 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
 
     Arguments with '=' are bindings, the last argument without '=' is a concept filter.
     """
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -456,7 +456,7 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
 @click.pass_obj
 def world_explain(obj: dict, claim_id: str) -> None:
     """Show the stance chain for a claim."""
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -488,7 +488,7 @@ def world_explain(obj: dict, claim_id: str) -> None:
 @click.pass_obj
 def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
     """List algorithm claims in the world model."""
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -551,7 +551,7 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
 
     Usage: pks world derive concept5 domain=example
     """
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -600,7 +600,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 
     Usage: pks world resolve concept1 domain=example --strategy argumentation
     """
-    from propstore.world_model import ResolutionStrategy, WorldModel, resolve
+    from propstore.world import ResolutionStrategy, WorldModel, resolve
 
     repo: Repository = obj["repo"]
     try:
@@ -658,7 +658,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
     Usage: pks world extensions domain=example --semantics grounded
     """
     from propstore.argumentation import compute_justified_claims, stance_summary
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -678,14 +678,14 @@ def world_extensions(obj: dict, args: tuple[str, ...],
 
     claim_ids = {c["id"] for c in active}
     result = compute_justified_claims(
-        wm._conn, claim_ids,
+        wm, claim_ids,
         semantics=semantics,
         comparison=set_comparison,
         confidence_threshold=confidence_threshold,
     )
 
     # Render explanation: what stances were used under what policy
-    summary = stance_summary(wm._conn, claim_ids, confidence_threshold)
+    summary = stance_summary(wm, claim_ids, confidence_threshold)
     click.echo(f"Semantics: {semantics}")
     click.echo(f"Set comparison: {set_comparison}")
     click.echo(f"Confidence threshold: {confidence_threshold}")
@@ -730,7 +730,7 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
 
     Usage: pks world hypothetical domain=example --remove claim2
     """
-    from propstore.world_model import HypotheticalWorld, SyntheticClaim, WorldModel
+    from propstore.world import HypotheticalWorld, SyntheticClaim, WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -779,7 +779,7 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
 
     Usage: pks world chain concept5 domain=example --strategy sample_size
     """
-    from propstore.world_model import ResolutionStrategy, WorldModel
+    from propstore.world import ResolutionStrategy, WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -796,7 +796,7 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
 
     click.echo(f"Target: {resolved}")
     click.echo(f"Result: {result.result.status}")
-    from propstore.world_model import DerivedResult
+    from propstore.world import DerivedResult
     if isinstance(result.result, DerivedResult) and result.result.value is not None:
         click.echo(f"  value: {result.result.value}")
     click.echo(f"Steps ({len(result.steps)}):")
@@ -819,7 +819,7 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
     Usage: pks world export-graph domain=example --format dot --output graph.dot
     """
     from propstore.graph_export import build_knowledge_graph
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -859,7 +859,7 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
     Usage: pks world sensitivity concept5 domain=example
     """
     from propstore.sensitivity import analyze_sensitivity
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -923,7 +923,7 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
     Usage: pks world check-consistency domain=example
            pks world check-consistency --transitive
     """
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -941,15 +941,11 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
         claim_files = load_claim_files(repo.claims_dir)
         # Build concept_registry from sidecar
         concept_registry: dict[str, dict] = {}
-        rows = wm._conn.execute("SELECT * FROM concept").fetchall()
-        for row in rows:
-            cdata = dict(row)
+        for cdata in wm.all_concepts():
+            cdata = dict(cdata)
             cid = cdata["id"]
             # Load parameterization_relationships from parameterization table
-            param_rows = wm._conn.execute(
-                "SELECT * FROM parameterization WHERE output_concept_id = ?",
-                (cid,),
-            ).fetchall()
+            param_rows = wm.parameterizations_for(cid)
             if param_rows:
                 cdata["parameterization_relationships"] = []
                 for pr in param_rows:

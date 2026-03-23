@@ -1,4 +1,4 @@
-"""Bridge between stance graph and Dung argumentation framework.
+"""Bridge between stance artifacts and Dung argumentation framework.
 
 Converts raw attacks (from claim_stance table) into filtered defeats
 (after preference ordering), builds a Dung AF, and computes extensions.
@@ -10,7 +10,7 @@ References:
 
 from __future__ import annotations
 
-import sqlite3
+from pathlib import Path
 
 from propstore.dung import (
     ArgumentationFramework,
@@ -19,6 +19,7 @@ from propstore.dung import (
     stable_extensions,
 )
 from propstore.preference import claim_strength, defeat_holds
+from propstore.world.types import ArtifactStore
 
 _ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
 _UNCONDITIONAL_TYPES = frozenset({"undercuts", "supersedes"})
@@ -80,7 +81,7 @@ def _cayrol_derived_defeats(
 
 
 def build_argumentation_framework(
-    conn: sqlite3.Connection,
+    store: ArtifactStore,
     active_claim_ids: set[str],
     *,
     comparison: str = "elitist",
@@ -96,21 +97,10 @@ def build_argumentation_framework(
       5. Return AF with attacks (pre-preference) and defeats (post-preference + derived)
     """
     # Load claim metadata for strength computation
-    placeholders = ",".join("?" for _ in active_claim_ids)
-    claim_rows = conn.execute(
-        f"SELECT * FROM claim WHERE id IN ({placeholders})",  # noqa: S608
-        list(active_claim_ids),
-    ).fetchall()
-    claims_by_id = {row["id"]: dict(row) for row in claim_rows}
+    claims_by_id = store.claims_by_ids(active_claim_ids)
 
     # Load stances between active claims above confidence threshold
-    stances = conn.execute(
-        f"SELECT claim_id, target_claim_id, stance_type, confidence "  # noqa: S608
-        f"FROM claim_stance "
-        f"WHERE claim_id IN ({placeholders}) "
-        f"AND target_claim_id IN ({placeholders})",
-        list(active_claim_ids) + list(active_claim_ids),
-    ).fetchall()
+    stances = store.stances_between(active_claim_ids)
 
     attacks: set[tuple[str, str]] = set()
     defeats: set[tuple[str, str]] = set()
@@ -120,7 +110,7 @@ def build_argumentation_framework(
         source_id = stance["claim_id"]
         target_id = stance["target_claim_id"]
         stance_type = stance["stance_type"]
-        confidence = stance["confidence"]
+        confidence = stance.get("confidence")
 
         if confidence is not None and confidence < confidence_threshold:
             continue
@@ -160,7 +150,7 @@ def build_argumentation_framework(
 
 
 def compute_justified_claims(
-    conn: sqlite3.Connection,
+    store: ArtifactStore,
     active_claim_ids: set[str],
     *,
     semantics: str = "grounded",
@@ -173,7 +163,7 @@ def compute_justified_claims(
     For preferred/stable: returns a list of frozensets.
     """
     af = build_argumentation_framework(
-        conn, active_claim_ids,
+        store, active_claim_ids,
         comparison=comparison,
         confidence_threshold=confidence_threshold,
     )
@@ -189,7 +179,7 @@ def compute_justified_claims(
 
 
 def stance_summary(
-    conn: sqlite3.Connection,
+    store: ArtifactStore,
     active_claim_ids: set[str],
     confidence_threshold: float = 0.5,
 ) -> dict:
@@ -198,14 +188,7 @@ def stance_summary(
     Returns counts and model info so the render layer can explain
     which stances were included under what policy.
     """
-    placeholders = ",".join("?" for _ in active_claim_ids)
-    rows = conn.execute(
-        f"SELECT stance_type, confidence, resolution_model "  # noqa: S608
-        f"FROM claim_stance "
-        f"WHERE claim_id IN ({placeholders}) "
-        f"AND target_claim_id IN ({placeholders})",
-        list(active_claim_ids) + list(active_claim_ids),
-    ).fetchall()
+    rows = store.stances_between(active_claim_ids)
 
     total = 0
     included = 0
@@ -215,9 +198,9 @@ def stance_summary(
 
     for row in rows:
         total += 1
-        stype = row[0]
-        conf = row[1]
-        model = row[2]
+        stype = row["stance_type"]
+        conf = row.get("confidence")
+        model = row.get("resolution_model")
 
         if stype in _NON_ATTACK_TYPES:
             excluded_non_attack += 1
@@ -240,7 +223,7 @@ def stance_summary(
 
 
 def compute_consistent_beliefs(
-    conn: sqlite3.Connection,
+    store: ArtifactStore,
     active_claim_ids: set[str],
 ) -> frozenset[str]:
     """Find maximally consistent claim subset using MaxSMT.
@@ -257,12 +240,7 @@ def compute_consistent_beliefs(
         return frozenset()
 
     # Load claim rows from DB
-    placeholders = ",".join("?" for _ in active_claim_ids)
-    claim_rows = conn.execute(
-        f"SELECT * FROM claim WHERE id IN ({placeholders})",  # noqa: S608
-        list(active_claim_ids),
-    ).fetchall()
-    claims_by_id = {row["id"]: dict(row) for row in claim_rows}
+    claims_by_id = store.claims_by_ids(active_claim_ids)
 
     # Compute strengths
     strengths = {
@@ -274,7 +252,8 @@ def compute_consistent_beliefs(
     # Detect conflicts — build synthetic LoadedClaimFile wrappers
     # We need the claim data in the format detect_conflicts expects
     synthetic = LoadedClaimFile(
-        path="<in-memory>",
+        filename="<in-memory>",
+        filepath=Path("<in-memory>"),
         data={"claims": list(claims_by_id.values())},
     )
 

@@ -6,7 +6,7 @@ import yaml
 from propstore.build_sidecar import build_sidecar
 from propstore.sensitivity import SensitivityEntry, SensitivityResult, analyze_sensitivity
 from propstore.validate import load_concepts
-from propstore.world_model import WorldModel
+from propstore.world import WorldModel
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────

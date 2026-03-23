@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
 
 from propstore.world.types import (
-    ClaimView,
+    ArtifactStore,
+    BeliefSpace,
+    RenderPolicy,
     ResolvedResult,
     ResolutionStrategy,
 )
-
-if TYPE_CHECKING:
-    from propstore.world.model import WorldModel
 
 
 def _resolve_recency(claims: list[dict]) -> tuple[str | None, str | None]:
@@ -52,7 +50,7 @@ def _resolve_sample_size(claims: list[dict]) -> tuple[str | None, str | None]:
 
 def _resolve_argumentation(
     claims: list[dict],
-    world: WorldModel,
+    world: ArtifactStore,
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
@@ -66,12 +64,12 @@ def _resolve_argumentation(
     """
     from propstore.argumentation import compute_justified_claims
 
-    if not world._has_table("claim_stance"):
+    if not world.has_table("claim_stance"):
         return None, "no stance data"
 
     claim_ids = {c["id"] for c in claims}
     result = compute_justified_claims(
-        world._conn, claim_ids,
+        world, claim_ids,
         semantics=semantics,
         comparison=comparison,
         confidence_threshold=confidence_threshold,
@@ -96,15 +94,16 @@ def _resolve_argumentation(
 
 
 def resolve(
-    view: ClaimView,
+    view: BeliefSpace,
     concept_id: str,
-    strategy: ResolutionStrategy,
+    strategy: ResolutionStrategy | None = None,
     *,
-    world: WorldModel | None = None,
+    world: ArtifactStore | None = None,
     overrides: dict[str, str] | None = None,
-    semantics: str = "grounded",
-    comparison: str = "elitist",
-    confidence_threshold: float = 0.5,
+    semantics: str | None = None,
+    comparison: str | None = None,
+    confidence_threshold: float | None = None,
+    policy: RenderPolicy | None = None,
 ) -> ResolvedResult:
     """Apply a resolution strategy to a conflicted concept."""
     from propstore.world.bound import BoundWorld
@@ -125,6 +124,31 @@ def resolve(
     if vr.status != "conflicted":
         return ResolvedResult(
             concept_id=concept_id, status=vr.status, claims=vr.claims,
+        )
+
+    if policy is not None:
+        if strategy is None:
+            strategy = policy.concept_strategies.get(concept_id, policy.strategy)
+        if overrides is None:
+            overrides = dict(policy.overrides)
+        if semantics is None:
+            semantics = policy.semantics
+        if comparison is None:
+            comparison = policy.comparison
+        if confidence_threshold is None:
+            confidence_threshold = policy.confidence_threshold
+
+    if semantics is None:
+        semantics = "grounded"
+    if comparison is None:
+        comparison = "elitist"
+    if confidence_threshold is None:
+        confidence_threshold = 0.5
+
+    if strategy is None:
+        return ResolvedResult(
+            concept_id=concept_id, status="conflicted",
+            claims=vr.claims, reason="no resolution strategy configured",
         )
 
     # Conflicted — apply strategy
@@ -156,9 +180,9 @@ def resolve(
     elif strategy == ResolutionStrategy.ARGUMENTATION:
         if world is None:
             if isinstance(view, BoundWorld):
-                world = view._world
+                world = view._store
             elif isinstance(view, HypotheticalWorld):
-                world = view._base._world
+                world = view._base._store
         if world is None:
             return ResolvedResult(
                 concept_id=concept_id, status="conflicted",

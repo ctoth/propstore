@@ -18,6 +18,7 @@ from propstore.argumentation import (
     compute_justified_claims,
     stance_summary,
 )
+from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 
 
 # ── SQLite fixture ──────────────────────────────────────────────────
@@ -106,7 +107,7 @@ class TestConfidenceThresholdFiltering:
         """confidence_threshold=0.0 includes all attack stances."""
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
-            mixed_confidence, ids, confidence_threshold=0.0,
+            SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.0,
         )
         # Both rebuts stances become defeats (equal strength, neither strictly weaker)
         assert ("claim_a", "claim_b") in af.defeats
@@ -116,7 +117,7 @@ class TestConfidenceThresholdFiltering:
         """confidence_threshold=0.5 excludes the 0.3-confidence stance."""
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
-            mixed_confidence, ids, confidence_threshold=0.5,
+            SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.5,
         )
         assert ("claim_a", "claim_b") in af.defeats  # 0.9 >= 0.5
         assert ("claim_c", "claim_a") not in af.defeats  # 0.3 < 0.5
@@ -125,7 +126,7 @@ class TestConfidenceThresholdFiltering:
         """confidence_threshold=0.99 excludes all stances."""
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
-            mixed_confidence, ids, confidence_threshold=0.99,
+            SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.99,
         )
         assert len(af.defeats) == 0
 
@@ -135,12 +136,12 @@ class TestConfidenceThresholdFiltering:
 
         # Low threshold: both attacks active, more complex AF
         ext_low = compute_justified_claims(
-            mixed_confidence, ids, confidence_threshold=0.0,
+            SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.0,
         )
 
         # High threshold: no attacks, everything survives
         ext_high = compute_justified_claims(
-            mixed_confidence, ids, confidence_threshold=0.99,
+            SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.99,
         )
         assert ext_high == ids  # no defeats → all in grounded extension
 
@@ -150,7 +151,7 @@ class TestStanceSummary:
 
     def test_summary_counts(self, mixed_confidence):
         ids = {"claim_a", "claim_b", "claim_c"}
-        summary = stance_summary(mixed_confidence, ids, confidence_threshold=0.5)
+        summary = stance_summary(SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.5)
 
         assert summary["total_stances"] == 3
         assert summary["included_as_attacks"] == 1  # only the 0.9 rebuts
@@ -160,13 +161,13 @@ class TestStanceSummary:
 
     def test_summary_models(self, mixed_confidence):
         ids = {"claim_a", "claim_b", "claim_c"}
-        summary = stance_summary(mixed_confidence, ids, confidence_threshold=0.0)
+        summary = stance_summary(SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.0)
         assert "gemini" in summary["models"]
         assert "gpt-4" in summary["models"]
 
     def test_summary_threshold_zero_includes_all_attacks(self, mixed_confidence):
         ids = {"claim_a", "claim_b", "claim_c"}
-        summary = stance_summary(mixed_confidence, ids, confidence_threshold=0.0)
+        summary = stance_summary(SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.0)
         assert summary["included_as_attacks"] == 2
         assert summary["excluded_by_threshold"] == 0
 

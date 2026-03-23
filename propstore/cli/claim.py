@@ -160,7 +160,7 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
     """Compare two algorithm claims for equivalence."""
     from ast_equiv import compare as ast_compare
 
-    from propstore.world_model import WorldModel
+    from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
     try:

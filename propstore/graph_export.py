@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.world_model import BoundWorld, WorldModel
+from propstore.world import ArtifactStore, BeliefSpace
 
 
 @dataclass
@@ -94,18 +94,18 @@ class KnowledgeGraph:
 
 
 def build_knowledge_graph(
-    world: WorldModel,
-    bound: BoundWorld | None = None,
+    world: ArtifactStore,
+    bound: BeliefSpace | None = None,
     group_id: int | None = None,
 ) -> KnowledgeGraph:
     """Build a KnowledgeGraph from the sidecar database.
 
     Parameters
     ----------
-    world : WorldModel
-        The world model backed by the sidecar database.
-    bound : BoundWorld | None
-        If provided, only active claims under these bindings are included.
+    world : ArtifactStore
+        The artifact store backed by the sidecar database.
+    bound : BeliefSpace | None
+        If provided, only active claims in this belief space are included.
     group_id : int | None
         If provided, only concepts in this parameterization group are included.
     """
@@ -114,15 +114,11 @@ def build_knowledge_graph(
 
     # ---- Determine which concept IDs to include ----
     allowed_concept_ids: set[str] | None = None
-    if group_id is not None and world._has_table("parameterization_group"):
-        rows = world._conn.execute(
-            "SELECT concept_id FROM parameterization_group WHERE group_id = ?",
-            (group_id,),
-        ).fetchall()
-        allowed_concept_ids = {r["concept_id"] for r in rows}
+    if group_id is not None:
+        allowed_concept_ids = world.concept_ids_for_group(group_id)
 
     # ---- 1. Concept nodes ----
-    concept_rows = world._conn.execute("SELECT * FROM concept").fetchall()
+    concept_rows = world.all_concepts()
     for row in concept_rows:
         cid = row["id"]
         if allowed_concept_ids is not None and cid not in allowed_concept_ids:
@@ -180,56 +176,49 @@ def build_knowledge_graph(
         node_ids.add(claim_id)
 
     # ---- 3. Parameterization edges ----
-    if world._has_table("parameterization"):
-        param_rows = world._conn.execute("SELECT * FROM parameterization").fetchall()
-        for row in param_rows:
-            row_d = dict(row)
-            output_id = row_d["output_concept_id"]
-            if output_id not in node_ids:
+    for row_d in world.all_parameterizations():
+        output_id = row_d["output_concept_id"]
+        if output_id not in node_ids:
+            continue
+        input_ids = json.loads(row_d["concept_ids"])
+        for iid in input_ids:
+            if iid not in node_ids:
                 continue
-            input_ids = json.loads(row_d["concept_ids"])
-            for iid in input_ids:
-                if iid not in node_ids:
-                    continue
-                graph.edges.append(GraphEdge(
-                    source=iid,
-                    target=output_id,
-                    edge_type="parameterization",
-                    metadata={
-                        "formula": row_d.get("formula"),
-                        "exactness": row_d.get("exactness"),
-                    },
-                ))
+            graph.edges.append(GraphEdge(
+                source=iid,
+                target=output_id,
+                edge_type="parameterization",
+                metadata={
+                    "formula": row_d.get("formula"),
+                    "exactness": row_d.get("exactness"),
+                },
+            ))
 
     # ---- 4. Relationship edges ----
-    if world._has_table("relationship"):
-        rel_rows = world._conn.execute("SELECT * FROM relationship").fetchall()
-        for row in rel_rows:
-            src = row["source_id"]
-            tgt = row["target_id"]
-            if src not in node_ids or tgt not in node_ids:
-                continue
-            graph.edges.append(GraphEdge(
-                source=src,
-                target=tgt,
-                edge_type="relationship",
-                metadata={"type": row["type"]},
-            ))
+    for row in world.all_relationships():
+        src = row["source_id"]
+        tgt = row["target_id"]
+        if src not in node_ids or tgt not in node_ids:
+            continue
+        graph.edges.append(GraphEdge(
+            source=src,
+            target=tgt,
+            edge_type="relationship",
+            metadata={"type": row["type"]},
+        ))
 
     # ---- 5. Stance edges ----
-    if world._has_table("claim_stance"):
-        stance_rows = world._conn.execute("SELECT * FROM claim_stance").fetchall()
-        for row in stance_rows:
-            cid = row["claim_id"]
-            tid = row["target_claim_id"]
-            if cid not in node_ids or tid not in node_ids:
-                continue
-            graph.edges.append(GraphEdge(
-                source=cid,
-                target=tid,
-                edge_type="stance",
-                metadata={"stance_type": row["stance_type"]},
-            ))
+    for row in world.all_claim_stances():
+        cid = row["claim_id"]
+        tid = row["target_claim_id"]
+        if cid not in node_ids or tid not in node_ids:
+            continue
+        graph.edges.append(GraphEdge(
+            source=cid,
+            target=tid,
+            edge_type="stance",
+            metadata={"stance_type": row["stance_type"]},
+        ))
 
     # ---- 6. Claim-of edges ----
     for claim in claims:

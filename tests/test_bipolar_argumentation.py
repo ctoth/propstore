@@ -32,6 +32,7 @@ from propstore.dung import (
     grounded_extension,
     stable_extensions,
 )
+from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 
 
 # ── SQLite helpers (same schema as test_argumentation_integration) ────
@@ -198,7 +199,7 @@ class TestBipolarAFConstruction:
         _insert_stance(conn, "B", "C", "rebuts")
         conn.commit()
 
-        af = build_argumentation_framework(conn, {"A", "B", "C"})
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), {"A", "B", "C"})
         # Direct defeat: B -> C (rebuts, B stronger)
         assert ("B", "C") in af.defeats
         # Derived supported defeat: A supports B, B defeats C
@@ -213,7 +214,7 @@ class TestBipolarAFConstruction:
         _insert_stance(conn, "B", "C", "supports")
         conn.commit()
 
-        af = build_argumentation_framework(conn, {"A", "B", "C"})
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), {"A", "B", "C"})
         # Direct defeat: A -> B (rebuts, A stronger)
         assert ("A", "B") in af.defeats
         # Derived indirect defeat: A defeats B, B supports C
@@ -226,7 +227,7 @@ class TestBipolarAFConstruction:
         _insert_stance(conn, "X", "Y", "rebuts")
         conn.commit()
 
-        af = build_argumentation_framework(conn, {"X", "Y"})
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), {"X", "Y"})
         assert ("X", "Y") in af.defeats
         assert ("Y", "X") not in af.defeats
 
@@ -237,7 +238,7 @@ class TestBipolarAFConstruction:
         _insert_stance(conn, "A", "B", "supports")
         conn.commit()
 
-        af = build_argumentation_framework(conn, {"A", "B"})
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), {"A", "B"})
         assert af.attacks is not None
         assert ("A", "B") not in af.attacks
         assert af.defeats == frozenset()
@@ -249,7 +250,7 @@ class TestBipolarAFConstruction:
         _insert_stance(conn, "weak", "strong", "rebuts")  # blocked by preference
         conn.commit()
 
-        af = build_argumentation_framework(conn, {"weak", "strong"})
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), {"weak", "strong"})
         assert af.attacks is not None
         # Attack exists (pre-preference)
         assert ("weak", "strong") in af.attacks
@@ -267,7 +268,7 @@ class TestBipolarAFConstruction:
         _insert_stance(conn, "C", "D", "supports")
         conn.commit()
 
-        af = build_argumentation_framework(conn, {"A", "B", "C", "D"})
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), {"A", "B", "C", "D"})
         # Direct: B defeats C
         assert ("B", "C") in af.defeats
         # Supported defeat: A supports B, B defeats C -> (A, C)
@@ -284,7 +285,7 @@ class TestBipolarAFConstruction:
         _insert_stance(conn, "B", "C", "rebuts")
         conn.commit()
 
-        af = build_argumentation_framework(conn, {"A", "B", "C"})
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), {"A", "B", "C"})
         assert ("A", "C") in af.defeats  # supported defeat via explains
 
 
@@ -320,7 +321,7 @@ class TestAttackBasedConflictFree:
         _insert_stance(conn, "weak", "strong", "rebuts")  # blocked
         conn.commit()
 
-        af = build_argumentation_framework(conn, {"weak", "strong"})
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), {"weak", "strong"})
         assert af.attacks is not None
         # Verify the setup: attack exists, defeat does not
         assert ("weak", "strong") in af.attacks
@@ -420,7 +421,7 @@ class TestBipolarExtensions:
         conn.commit()
 
         result = compute_justified_claims(
-            conn, {"A", "B", "C"}, semantics="grounded"
+            SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="grounded"
         )
         assert "A" in result
         assert "B" in result
@@ -436,7 +437,7 @@ class TestBipolarExtensions:
         conn.commit()
 
         result = compute_justified_claims(
-            conn, {"A", "B", "C"}, semantics="grounded"
+            SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="grounded"
         )
         assert "A" in result
         assert "B" not in result
@@ -455,7 +456,7 @@ class TestBipolarExtensions:
         conn.commit()
 
         af = build_argumentation_framework(
-            conn, {"claim_a", "claim_b", "claim_c"}
+            SQLiteArgumentationStore(conn), {"claim_a", "claim_b", "claim_c"}
         )
         # Direct defeats unchanged
         assert ("claim_a", "claim_b") in af.defeats
@@ -472,7 +473,7 @@ class TestBipolarExtensions:
 
         # Grounded should still work
         result = compute_justified_claims(
-            conn, {"claim_a", "claim_b", "claim_c"}, semantics="grounded"
+            SQLiteArgumentationStore(conn), {"claim_a", "claim_b", "claim_c"}, semantics="grounded"
         )
         assert "claim_a" in result
         assert "claim_b" not in result

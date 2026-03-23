@@ -1,17 +1,17 @@
-"""propstore.world — modular world model package.
-
-Re-exports all public names for backward compatibility.
-"""
+"""Public render/store interfaces for propstore."""
 
 from propstore.world.bound import BoundWorld
 from propstore.world.hypothetical import HypotheticalWorld
 from propstore.world.model import WorldModel
 from propstore.world.resolution import resolve
 from propstore.world.types import (
+    ArtifactStore,
+    BeliefSpace,
     ChainResult,
     ChainStep,
-    ClaimView,
     DerivedResult,
+    Environment,
+    RenderPolicy,
     ResolvedResult,
     ResolutionStrategy,
     SyntheticClaim,
@@ -19,12 +19,15 @@ from propstore.world.types import (
 )
 
 __all__ = [
+    "ArtifactStore",
+    "BeliefSpace",
     "BoundWorld",
     "ChainResult",
     "ChainStep",
-    "ClaimView",
     "DerivedResult",
+    "Environment",
     "HypotheticalWorld",
+    "RenderPolicy",
     "ResolvedResult",
     "ResolutionStrategy",
     "SyntheticClaim",

@@ -18,6 +18,7 @@ from propstore.argumentation import (
 )
 from propstore.dung import conflict_free, grounded_extension
 from propstore.preference import claim_strength
+from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 
 
 # ── SQLite fixture ──────────────────────────────────────────────────
@@ -151,7 +152,7 @@ class TestBuildAF:
     def test_excludes_supports(self, basic_scenario):
         """Supports/explains stances do NOT appear in defeat relation."""
         af = build_argumentation_framework(
-            basic_scenario, {"claim_a", "claim_b", "claim_c"}
+            SQLiteArgumentationStore(basic_scenario), {"claim_a", "claim_b", "claim_c"}
         )
         # claim_a supports claim_c should not be a defeat
         assert ("claim_a", "claim_c") not in af.defeats
@@ -159,21 +160,21 @@ class TestBuildAF:
     def test_includes_undercuts(self, basic_scenario):
         """Undercutting always produces defeat regardless of strength."""
         af = build_argumentation_framework(
-            basic_scenario, {"claim_a", "claim_b", "claim_c"}
+            SQLiteArgumentationStore(basic_scenario), {"claim_a", "claim_b", "claim_c"}
         )
         assert ("claim_c", "claim_b") in af.defeats
 
     def test_includes_supersedes(self, supersedes_scenario):
         """Supersedes always produces defeat."""
         af = build_argumentation_framework(
-            supersedes_scenario, {"old_claim", "new_claim"}
+            SQLiteArgumentationStore(supersedes_scenario), {"old_claim", "new_claim"}
         )
         assert ("new_claim", "old_claim") in af.defeats
 
     def test_rebut_blocked_when_weaker(self, basic_scenario):
         """Weak claim rebuting strong claim is blocked by preference."""
         af = build_argumentation_framework(
-            basic_scenario, {"claim_a", "claim_b", "claim_c"}
+            SQLiteArgumentationStore(basic_scenario), {"claim_a", "claim_b", "claim_c"}
         )
         # claim_b (sample=10) rebuts claim_a (sample=1000) → blocked
         assert ("claim_b", "claim_a") not in af.defeats
@@ -181,7 +182,7 @@ class TestBuildAF:
     def test_rebut_succeeds_when_stronger(self, basic_scenario):
         """Strong claim rebuting weak claim succeeds."""
         af = build_argumentation_framework(
-            basic_scenario, {"claim_a", "claim_b", "claim_c"}
+            SQLiteArgumentationStore(basic_scenario), {"claim_a", "claim_b", "claim_c"}
         )
         # claim_a (sample=1000) rebuts claim_b (sample=10) → succeeds
         assert ("claim_a", "claim_b") in af.defeats
@@ -189,7 +190,7 @@ class TestBuildAF:
     def test_confidence_threshold(self, low_confidence_scenario):
         """Stances below confidence threshold are excluded."""
         af = build_argumentation_framework(
-            low_confidence_scenario, {"claim_x", "claim_y"},
+            SQLiteArgumentationStore(low_confidence_scenario), {"claim_x", "claim_y"},
             confidence_threshold=0.5,
         )
         assert ("claim_x", "claim_y") not in af.defeats
@@ -197,7 +198,7 @@ class TestBuildAF:
     def test_arguments_match_input(self, basic_scenario):
         """AF arguments match the active claim IDs passed in."""
         ids = {"claim_a", "claim_b", "claim_c"}
-        af = build_argumentation_framework(basic_scenario, ids)
+        af = build_argumentation_framework(SQLiteArgumentationStore(basic_scenario), ids)
         assert af.arguments == frozenset(ids)
 
 
@@ -208,7 +209,7 @@ class TestComputeJustified:
     def test_grounded(self, basic_scenario):
         """Grounded extension: strong claims survive, weak ones eliminated."""
         result = compute_justified_claims(
-            basic_scenario,
+            SQLiteArgumentationStore(basic_scenario),
             {"claim_a", "claim_b", "claim_c"},
             semantics="grounded",
         )
@@ -221,7 +222,7 @@ class TestComputeJustified:
     def test_preferred(self, basic_scenario):
         """Preferred returns list of extensions."""
         result = compute_justified_claims(
-            basic_scenario,
+            SQLiteArgumentationStore(basic_scenario),
             {"claim_a", "claim_b", "claim_c"},
             semantics="preferred",
         )
@@ -231,7 +232,7 @@ class TestComputeJustified:
     def test_stable(self, basic_scenario):
         """Stable returns list of extensions (may be empty)."""
         result = compute_justified_claims(
-            basic_scenario,
+            SQLiteArgumentationStore(basic_scenario),
             {"claim_a", "claim_b", "claim_c"},
             semantics="stable",
         )
@@ -240,7 +241,7 @@ class TestComputeJustified:
     def test_supersedes_eliminates_old(self, supersedes_scenario):
         """Superseded claim is not in grounded extension."""
         result = compute_justified_claims(
-            supersedes_scenario,
+            SQLiteArgumentationStore(supersedes_scenario),
             {"old_claim", "new_claim"},
             semantics="grounded",
         )
@@ -252,7 +253,7 @@ class TestComputeJustified:
         _insert_claim(conn, "c1", "x", 1.0)
         _insert_claim(conn, "c2", "x", 2.0)
         conn.commit()
-        result = compute_justified_claims(conn, {"c1", "c2"}, semantics="grounded")
+        result = compute_justified_claims(SQLiteArgumentationStore(conn), {"c1", "c2"}, semantics="grounded")
         assert result == frozenset({"c1", "c2"})
 
 
@@ -299,11 +300,15 @@ class TestAFProperties:
     @given(stance_scenarios())
     @_PROP_SETTINGS
     def test_no_supports_in_defeats(self, scenario):
-        """P1: Defeat relation never contains supports/explains pairs."""
+        """P1: Support/explain stances never appear as direct attacks.
+
+        In the bipolar AF, support edges can still induce derived defeats via
+        Cayrol supported/indirect defeat. The invariant we can enforce here is
+        that support/explain pairs are excluded from the direct attack layer.
+        """
         claim_ids, stances, sample_sizes = scenario
         conn = _build_scenario_db(claim_ids, stances, sample_sizes)
-        af = build_argumentation_framework(conn, set(claim_ids))
-        # Check every defeat edge has a corresponding non-support stance
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), set(claim_ids))
         support_only_pairs = set()
         for a, b, t, conf in stances:
             if t in ("supports", "explains") and conf >= 0.5:
@@ -311,9 +316,10 @@ class TestAFProperties:
         for a, b, t, conf in stances:
             if t not in ("supports", "explains") and conf >= 0.5:
                 support_only_pairs.discard((a, b))
-        # Pairs that ONLY have support/explains stances should not be defeats
+        # Pairs that ONLY have support/explains stances should not be attacks.
+        # They may still show up in defeats through support-aware derivation.
         for pair in support_only_pairs:
-            assert pair not in af.defeats
+            assert pair not in af.attacks
 
     @given(stance_scenarios())
     @_PROP_SETTINGS
@@ -321,7 +327,7 @@ class TestAFProperties:
         """P3: Grounded extension of constructed AF is conflict-free."""
         claim_ids, stances, sample_sizes = scenario
         conn = _build_scenario_db(claim_ids, stances, sample_sizes)
-        af = build_argumentation_framework(conn, set(claim_ids))
+        af = build_argumentation_framework(SQLiteArgumentationStore(conn), set(claim_ids))
         ext = grounded_extension(af)
         assert conflict_free(ext, af.defeats)
 
@@ -331,5 +337,5 @@ class TestAFProperties:
         """Justified claims are always a subset of input claim IDs."""
         claim_ids, stances, sample_sizes = scenario
         conn = _build_scenario_db(claim_ids, stances, sample_sizes)
-        result = compute_justified_claims(conn, set(claim_ids), semantics="grounded")
+        result = compute_justified_claims(SQLiteArgumentationStore(conn), set(claim_ids), semantics="grounded")
         assert result <= frozenset(claim_ids)

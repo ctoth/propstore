@@ -13,9 +13,11 @@ if TYPE_CHECKING:
     from propstore.world.bound import BoundWorld
 from propstore.world.resolution import resolve
 from propstore.world.types import (
+    Environment,
     ChainResult,
     ChainStep,
     DerivedResult,
+    RenderPolicy,
     ResolutionStrategy,
     ValueResult,
 )
@@ -90,6 +92,9 @@ class WorldModel:
         self._registry = registry
         return registry
 
+    def condition_solver(self) -> Z3ConditionSolver:
+        return self._ensure_solver()
+
     # ── Unbound queries ──────────────────────────────────────────────
 
     def get_concept(self, concept_id: str) -> dict | None:
@@ -123,11 +128,64 @@ class WorldModel:
             ).fetchall()
         return [dict(r) for r in rows]
 
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
+        if not claim_ids or not self._has_table("claim"):
+            return {}
+        placeholders = ",".join("?" for _ in claim_ids)
+        rows = self._conn.execute(
+            f"SELECT * FROM claim WHERE id IN ({placeholders})",  # noqa: S608
+            list(claim_ids),
+        ).fetchall()
+        return {row["id"]: dict(row) for row in rows}
+
+    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+        if not claim_ids or not self._has_table("claim_stance"):
+            return []
+        placeholders = ",".join("?" for _ in claim_ids)
+        rows = self._conn.execute(
+            f"SELECT * FROM claim_stance "  # noqa: S608
+            f"WHERE claim_id IN ({placeholders}) "
+            f"AND target_claim_id IN ({placeholders})",
+            list(claim_ids) + list(claim_ids),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
     def conflicts(self) -> list[dict]:
         if not self._has_table("conflicts"):
             return []
         rows = self._conn.execute("SELECT * FROM conflicts").fetchall()
         return [dict(r) for r in rows]
+
+    def all_concepts(self) -> list[dict]:
+        rows = self._conn.execute("SELECT * FROM concept").fetchall()
+        return [dict(row) for row in rows]
+
+    def all_parameterizations(self) -> list[dict]:
+        if not self._has_table("parameterization"):
+            return []
+        rows = self._conn.execute("SELECT * FROM parameterization").fetchall()
+        return [dict(row) for row in rows]
+
+    def all_relationships(self) -> list[dict]:
+        if not self._has_table("relationship"):
+            return []
+        rows = self._conn.execute("SELECT * FROM relationship").fetchall()
+        return [dict(row) for row in rows]
+
+    def all_claim_stances(self) -> list[dict]:
+        if not self._has_table("claim_stance"):
+            return []
+        rows = self._conn.execute("SELECT * FROM claim_stance").fetchall()
+        return [dict(row) for row in rows]
+
+    def concept_ids_for_group(self, group_id: int) -> set[str]:
+        if not self._has_table("parameterization_group"):
+            return set()
+        rows = self._conn.execute(
+            "SELECT concept_id FROM parameterization_group WHERE group_id = ?",
+            (group_id,),
+        ).fetchall()
+        return {row["concept_id"] for row in rows}
 
     def search(self, query: str) -> list[dict]:
         rows = self._conn.execute(
@@ -184,6 +242,9 @@ class WorldModel:
         ).fetchone()
         return row is not None
 
+    def has_table(self, name: str) -> bool:
+        return self._has_table(name)
+
     def stats(self) -> dict:
         concepts = self._conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0]
         if self._has_table("claim"):
@@ -208,6 +269,9 @@ class WorldModel:
         ).fetchall()
         return [dict(r) for r in rows]
 
+    def parameterizations_for(self, concept_id: str) -> list[dict]:
+        return self._parameterizations_for(concept_id)
+
     def _group_members(self, concept_id: str) -> list[str]:
         """Get all concept_ids in the same parameterization group."""
         if not self._has_table("parameterization_group"):
@@ -223,6 +287,9 @@ class WorldModel:
             (row["group_id"],),
         ).fetchall()
         return [r["concept_id"] for r in rows]
+
+    def group_members(self, concept_id: str) -> list[str]:
+        return self._group_members(concept_id)
 
     # ── Stance graph ─────────────────────────────────────────────────
 
@@ -252,9 +319,21 @@ class WorldModel:
 
     # ── Condition binding ────────────────────────────────────────────
 
-    def bind(self, **conditions: Any) -> BoundWorld:
+    def bind(
+        self,
+        environment: Environment | None = None,
+        *,
+        policy: RenderPolicy | None = None,
+        **conditions: Any,
+    ) -> BoundWorld:
         from propstore.world.bound import BoundWorld
-        return BoundWorld(self, conditions)
+        if environment is None:
+            environment = Environment(bindings=conditions)
+        elif conditions:
+            merged = dict(environment.bindings)
+            merged.update(conditions)
+            environment = Environment(bindings=merged, context_id=environment.context_id)
+        return BoundWorld(self, environment=environment, policy=policy)
 
     # ── Chain query ──────────────────────────────────────────────────
 
@@ -265,7 +344,8 @@ class WorldModel:
         **bindings: Any,
     ) -> ChainResult:
         """Traverse the parameter space to derive the target concept."""
-        bound = self.bind(**bindings)
+        policy = RenderPolicy(strategy=strategy) if strategy is not None else None
+        bound = self.bind(policy=policy, **bindings)
         steps: list[ChainStep] = []
         resolved_values: dict[str, float | str | None] = {}
         visited: set[str] = set()
@@ -300,7 +380,7 @@ class WorldModel:
 
                 # If conflicted and strategy given, try resolve
                 if vr.status == "conflicted" and strategy is not None:
-                    rr = resolve(bound, cid, strategy, world=self)
+                    rr = bound.resolved_value(cid)
                     if rr.status == "resolved" and rr.value is not None:
                         resolved_values[cid] = rr.value
                         steps.append(ChainStep(concept_id=cid, value=rr.value, source="resolved"))

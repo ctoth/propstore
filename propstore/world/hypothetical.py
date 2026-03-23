@@ -7,18 +7,14 @@ import json
 from propstore.world.bound import (
     BoundWorld,
     _derived_value_impl,
+    _recomputed_conflicts,
     _value_of_from_active,
 )
-from propstore.world.types import DerivedResult, SyntheticClaim, ValueResult
+from propstore.world.types import DerivedResult, ResolvedResult, SyntheticClaim, ValueResult
 
 
 class HypotheticalWorld:
-    """In-memory overlay on a BoundWorld — removes/adds claims without mutation.
-
-    Known limitation: conflicts() returns base conflicts filtered by active IDs.
-    It does NOT detect new conflicts from synthetic claims. Full conflict
-    recomputation is deferred to Feature 7.
-    """
+    """In-memory overlay on a BoundWorld — removes/adds claims without mutation."""
 
     def __init__(
         self,
@@ -75,14 +71,37 @@ class HypotheticalWorld:
         """Derive using this hypothetical world's active claims."""
         return _derived_value_impl(
             concept_id,
-            self._base._world,
+            self._base._store,
             self._base._is_param_compatible,
             self.value_of,
             override_values=override_values,
         )
 
+    def resolved_value(self, concept_id: str) -> ResolvedResult:
+        from propstore.world.resolution import resolve
+
+        return resolve(self, concept_id, policy=self._base._policy, world=self._base._store)
+
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status == "determined"
+
+    def conflicts(self, concept_id: str | None = None) -> list[dict]:
+        filtered = list(self._base.conflicts(concept_id))
+        recomputed = _recomputed_conflicts(self._base._store, self.active_claims(concept_id))
+        seen = {(c["claim_a_id"], c["claim_b_id"], c.get("concept_id")) for c in filtered}
+        for conflict in recomputed:
+            key = (conflict["claim_a_id"], conflict["claim_b_id"], conflict.get("concept_id"))
+            if key not in seen:
+                filtered.append(conflict)
+                seen.add(key)
+        return filtered
+
+    def explain(self, claim_id: str) -> list[dict]:
+        claim = next((c for c in self.active_claims() if c["id"] == claim_id), None)
+        if claim is None:
+            return []
+        active_ids = {c["id"] for c in self.active_claims()}
+        return [s for s in self._base.explain(claim_id) if s["target_claim_id"] in active_ids]
 
     def recompute_conflicts(self) -> list[dict]:
         """Check for direct value disagreements among active claims."""
@@ -124,7 +143,7 @@ class HypotheticalWorld:
         for sc in self._synthetics:
             affected.add(sc.concept_id)
         for cid in self._removed_ids:
-            claim = self._base._world.get_claim(cid)
+            claim = self._base._store.get_claim(cid)
             if claim and claim.get("concept_id"):
                 affected.add(claim["concept_id"])
 

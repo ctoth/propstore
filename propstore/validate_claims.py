@@ -128,6 +128,10 @@ def validate_claims(
             except jsonschema.ValidationError as e:
                 result.errors.append(f"{cf.filename}: JSON Schema error: {e.message}")
 
+        if "claims" not in data:
+            result.errors.append(f"{cf.filename}: missing required 'claims' key")
+            continue
+
         claims = data.get("claims", [])
         if not isinstance(claims, list):
             result.errors.append(f"{cf.filename}: 'claims' must be a list")
@@ -538,4 +542,3 @@ def build_concept_registry(repo: object) -> dict[str, dict]:
         repo.concepts_dir,  # type: ignore[union-attr]
         repo.forms_dir,  # type: ignore[union-attr]
     )
-
