@@ -1,6 +1,7 @@
 """Shared helpers for CLI subcommands."""
 from __future__ import annotations
 
+import logging
 import os
 import re
 import sys
@@ -54,7 +55,8 @@ def _scan_max_concept_id(cdir: Path) -> int:
         if entry.is_file() and entry.suffix == ".yaml":
             try:
                 data = yaml.safe_load(entry.read_text())
-            except Exception:
+            except yaml.YAMLError:
+                logging.warning("Failed to parse YAML in concept scan: %s", entry)
                 continue
             cid = (data or {}).get("id", "")
             if isinstance(cid, str) and cid.startswith("concept"):

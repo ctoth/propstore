@@ -73,7 +73,7 @@ def _detect_param_conflicts(
     - Compare with direct claims for the output concept
     """
     try:
-        from sympy import Symbol as _Symbol
+        from sympy import Symbol as _Symbol, SympifyError
         from sympy.parsing.sympy_parser import parse_expr as _parse_expr
     except ImportError:
         return  # SymPy not available, skip param conflict detection
@@ -144,7 +144,7 @@ def _detect_param_conflicts(
                 assert isinstance(sympy_expr_str, str)
                 expr = _cached_parse(sympy_expr_str, tuple(inputs))
                 derived_value = float(expr.subs(input_values))
-            except Exception:
+            except (SympifyError, TypeError, ValueError, ZeroDivisionError, AssertionError):
                 # SymPy can't simplify -> warn, don't error
                 warnings.warn(
                     f"Could not evaluate parameterization for {concept_id}: {sympy_expr_str}",

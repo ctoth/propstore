@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 import struct
 import sqlite3
 from collections.abc import Callable
@@ -223,7 +224,8 @@ def _embed_entities(
 
         try:
             response = litellm.embedding(model=model_name, input=texts)
-        except Exception:
+        except (ConnectionError, TimeoutError, OSError, ValueError) as exc:
+            logging.warning("Embedding API call failed for batch %d: %s", i, exc)
             errors += len(batch)
             continue
 

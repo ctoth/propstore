@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import sqlite3
 from pathlib import Path
 from typing import TYPE_CHECKING, Sequence
@@ -248,8 +249,10 @@ def build_sidecar(
         except ImportError:
             pass  # sqlite-vec not installed
         except Exception as exc:
-            import sys
-            print(f"Warning: embedding snapshot failed: {exc}", file=sys.stderr)
+            # Intentionally broad: embedding snapshot is optional graceful degradation.
+            # Any failure here (sqlite-vec issues, corrupt DB, etc.) should not block
+            # the sidecar rebuild — embeddings will simply be re-generated.
+            logging.warning("Embedding snapshot failed: %s", exc)
 
     # Build fresh
     if sidecar_path.exists():

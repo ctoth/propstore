@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import sqlite3
 from collections.abc import Callable
 from datetime import date
@@ -151,7 +152,8 @@ async def _classify_stance_async(
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"},
             )
-        except Exception:
+        except (ConnectionError, TimeoutError, OSError, ValueError) as exc:
+            logging.warning("Stance classification failed for %s vs %s: %s", claim_a["id"], claim_b["id"], exc)
             return {
                 "target": claim_b["id"],
                 "type": "none",

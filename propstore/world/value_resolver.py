@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, Callable
 
 from ast_equiv import compare as ast_compare
@@ -159,7 +160,8 @@ class ActiveClaimResolver:
                         bindings_b,
                         known_values=known_values if known_values else None,
                     )
-                except Exception:
+                except (ValueError, SyntaxError) as exc:
+                    logging.warning("ast_compare failed in algorithm equivalence check: %s", exc)
                     return False
                 if not result.equivalent:
                     return False

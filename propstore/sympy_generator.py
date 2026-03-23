@@ -8,6 +8,7 @@ equation representations for equation claims that only have a human-readable
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from tokenize import TokenError
 
 from sympy import SympifyError
@@ -47,7 +48,8 @@ def generate_sympy_with_error(expression: str | None) -> SympyGenerationResult:
     try:
         result = parse_expr(text)
         return SympyGenerationResult(str(result), None)
-    except Exception as exc:
+    except (SympifyError, TypeError, ValueError, SyntaxError, TokenError) as exc:
+        logging.warning("SymPy parse_expr failed for %r: %s", text, exc)
         return SympyGenerationResult(None, str(exc))
 
 
