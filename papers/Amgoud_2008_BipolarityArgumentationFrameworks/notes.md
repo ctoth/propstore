@@ -147,4 +147,31 @@ The summary table *(p.26)* shows exclusivity always holds, duality sometimes hol
 - **[MCLS05]** Mailly, Cayrol, Lagasquie-Schiex (2005) — Further semantics for bipolar AF (referenced for acceptability semantics)
 - **[DP06]** Dubois and Prade (2006) — "On the qualitative comparison of sets of positive and negative affects" — the bipolarity taxonomy used throughout
 - **[Amg99]** Amgoud (1999) — "A formal framework for handling conflicting desires" — desire-based argumentation with bipolarity
-- **[Ver02]** Verheij (2002) — "On the existence and multiplicity of extension in dialectical argumentation" — alternative conflict notion for bipolar AFs
+- **[Ver02]** Verheij (2002) — "On the existence and multiplicity of extension in dialectical argumentation" — alternative conflict notion for bipolar AFs — **Now in Collection** as `Verheij_2002_ExistenceMultiplicityExtensionsDialectical`
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — cited as [Dun95]; the foundational AF paper that BAFs extend. All BAF definitions generalize Dung's originals by adding a support relation alongside defeat.
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — cited via [CLS04/CLS05/CLS06]; Cayrol and Lagasquie-Schiex's earlier BAF work that this survey comprehensively reviews and extends. The three admissibility levels (d-admissible, s-admissible, c-admissible) from Cayrol 2005 are discussed and contextualized within the broader bipolarity taxonomy.
+- [[Verheij_2002_ExistenceMultiplicityExtensionsDialectical]] — cited as [Ver02]; proposes an alternative conflict notion for bipolar settings where two arguments conflict about a third, noted as an alternative to supported defeat.
+- [[Karacapilidis_2001_ComputerSupportedArgumentationCollaborative]] — cited as [KP02]; HERMES system referenced as an example of bipolarity in decision-making argumentation, where positions can both support and attack alternatives.
+- [[Pollock_1987_DefeasibleReasoning]] — related via [Pol01] (Pollock 2001); Pollock's defeasible reasoning with variable degrees of justification connects to the gradual valuation approach.
+- [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] / [[Modgil_2018_GeneralAccountArgumentationPreferences]] — related via Prakken & Sartor [PS97]; ASPIC+ lineage papers in the collection.
+
+### New Leads (Not Yet in Collection)
+- **[CLS04]** Cayrol and Lagasquie-Schiex (2004) — "Bipolar abstract argumentation systems" — foundational BAF paper with detailed semantics
+- **[MCLS05]** Mailly, Cayrol, Lagasquie-Schiex (2005) — Further semantics for bipolar AF
+- **[DP06]** Dubois and Prade (2006) — "On the qualitative comparison of sets of positive and negative affects" — bipolarity taxonomy (Type 1/2/3)
+- **[BH93]** Besnard and Hunter (2001) — "A logic-based theory of deductive arguments"
+
+### Cited By (in Collection)
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — lists Amgoud, Cayrol, Lagasquie-Schiex (2004) as related work (prior companion paper by same authors)
+- [[Modgil_2018_GeneralAccountArgumentationPreferences]] — references Amgoud in multiple contexts: abstract logic approach (Section 5.2), rebuttal of Amgoud & Vesic critique (Section 6.2)
+
+### Conceptual Links (not citation-based)
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — **Strong.** Same research program. Cayrol 2005 defines the core BAF semantics (d/s/c-admissibility); Amgoud 2008 provides the comprehensive survey placing BAFs within the Dubois-Prade bipolarity taxonomy and adding gradual valuation.
+- [[Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation]] — **Moderate.** Baroni's SCC-recursive schema works on standard AFs; an open question (noted in Baroni's paper) is whether it extends to BAFs with support. Amgoud's BAF formalization is what such an extension would need to handle.
+- [[Mayer_2020_Transformer-BasedArgumentMiningHealthcare]] — **Moderate.** Mayer extracts bipolar argumentation structures (support/attack between evidence and claims) from clinical text. Amgoud's BAF formalization and gradual valuation could provide the formal semantics for reasoning over these extracted structures.
+- [[Clark_2014_Micropublications]] — **Moderate.** Clark's micropublication model includes both support and challenge relations grounded in Toulmin-Verheij argumentation. Amgoud's bipolarity taxonomy and BAF semantics formalize the abstract structure underlying Clark's bipolar claim-evidence networks.
+- [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — **Moderate.** Odekerken extends ASPIC+ for incomplete information; combining this with Amgoud's bipolar support relation is an open integration question for propstore.

@@ -149,3 +149,29 @@ The key insight is that **the SCC structure of an AF determines information flow
 - **Pollock 1992**: Cited for grounded semantics characterization; relevant to propstore's existing Pollock-based defeat handling.
 - **Prakken & Sartor 1997**: Argument-based logic programming — connects to ASPIC+ lineage.
 - **Makinson & Schlechta 1991**: Floating conclusions — the CF2 semantics is designed to handle this case.
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — cited as Dung 1995; the foundational AF paper whose preferred/grounded/stable semantics this paper extends via SCC-recursive decomposition.
+- [[Pollock_1987_DefeasibleReasoning]] — related via Pollock 1992 citation; Pollock's defeasible reasoning and defeat semantics underlie the grounded semantics that Baroni shows is SCC-recursive.
+- [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] / [[Modgil_2018_GeneralAccountArgumentationPreferences]] — related via Prakken & Sartor 1997 citation; ASPIC+ lineage papers. The SCC-recursive schema could optimize extension computation in ASPIC+-generated AFs.
+- [[Bondarenko_1997_AbstractArgumentation-TheoreticApproachDefault]] — related to Jakobovits & Vermeir 1999 citation; assumption-based argumentation connects to the SCC decomposition approach.
+
+### New Leads (Not Yet in Collection)
+- **Baroni & Giacomin 2007 (AIJ)**: Full journal version with complete proofs, AD1/AD2/CF1/CF2 semantics, and comprehensive comparison.
+- **Baroni & Giacomin 2003**: Earlier ECSQARU paper first introducing SCC decomposition.
+- **Makinson & Schlechta 1991**: "Floating conclusions" — CF2 semantics handles this problematic case.
+
+### Cited By (in Collection)
+- [[Prakken_2012_AppreciationJohnPollock'sWork]] — references Baroni and Giacomin (2007/2009) in discussion of odd-cycle handling and Pollock's late revision of his semantics. Lists "Baroni and Giacomin (2009)" as a New Lead.
+- [[Caminada_2007_EvaluationArgumentationFormalisms]] — cites Baroni and Giacomin for two-resolutions schema and semi-stable semantics.
+- [[Tang_2025_EncodingArgumentationFrameworksPropositional]] — cites Baroni, Caminada & Giacomin (2011) survey of AF semantics.
+- [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — cites Baroni, Caminada, and Giacomin (2011) handbook chapter on argumentation semantics.
+
+### Conceptual Links (not citation-based)
+- [[Amgoud_2008_BipolarityArgumentationFrameworks]] — **Moderate.** Baroni's SCC-recursive schema works on standard AFs; Amgoud's BAFs add a support relation. Whether SCC-recursiveness extends to BAFs is an open question noted in Baroni's paper (open question 3).
+- [[Verheij_2002_ExistenceMultiplicityExtensionsDialectical]] — **Strong.** Both papers address fundamental properties of argumentation extensions. Verheij characterizes when extensions exist and why multiple extensions arise (separation at the base); Baroni provides a computational schema (SCC decomposition) that isolates independent components. The SCC structure directly relates to Verheij's separation property.
+- [[Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth]] — **Strong.** Both use graph decomposition for argumentation. Fichte uses tree decomposition (treewidth); Baroni uses SCC decomposition. Complementary approaches to tractable computation of AF semantics.
+- [[Dvorak_2012_FixedParameterTractableAlgorithmsAbstractArgumentation]] — **Strong.** Dvorak studies fixed-parameter tractability of AF problems; SCC decomposition is a key structural property exploited for tractability.
+- [[Charwat_2015_MethodsSolvingReasoningProblems]] — **Moderate.** Charwat surveys solving methods for AFs; SCC-recursive computation is one of the algorithmic approaches covered.

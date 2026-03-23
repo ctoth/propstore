@@ -156,3 +156,25 @@ The **proof standards** (scintilla of evidence, preponderance of evidence, beyon
 - **Loui [22]** — requirements on argumentation that are "not generic enough to address non-trivial decision making" — worth checking what requirements were stated *(p.3)*
 - **ZENO system (Gordon 1994)** — rich graphical argumentation language, predecessor approach *(p.2)*
 - **Constraint-based preference aggregation** — the polynomial consistency checking algorithm referenced from [40] *(p.8)*
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Walton_2015_ClassificationSystemArgumentationSchemes]] — related via Walton 1996 citation; Walton's argumentation schemes could formalize the types of positions and constraints used in HERMES.
+
+### New Leads (Not Yet in Collection)
+- **Farley and Freeman (1995)** — "Burden of proof in legal argumentation" — source of the four proof standards used in HERMES
+- **Gordon and Karacapilidis (1997)** — "The Zeno argumentation framework" — foundational predecessor to HERMES
+- **Simari and Loui (1992)** — "A mathematical treatment of defeasible reasoning" — formal treatment that could bridge HERMES' informal scoring and Dung-style semantics
+- **Kunz and Rittel (1970)** — "Issues as elements of information systems" — the original IBIS paper
+
+### Cited By (in Collection)
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — lists Karacapilidis & Papadias (2001) as Related Work Worth Reading and as a New Lead, citing it for practical support relations in argumentation.
+- [[Amgoud_2008_BipolarityArgumentationFrameworks]] — cites as [KP02]; referenced as an example of bipolarity in decision-making argumentation.
+
+### Conceptual Links (not citation-based)
+- [[Dung_1995_AcceptabilityArguments]] — **Strong.** HERMES provides a practical system for argumentation-based decision making but lacks formal AF semantics. Dung's framework provides the formal grounding that HERMES' ad hoc scoring mechanism approximates.
+- [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] — **Moderate.** ASPIC+ provides structured argumentation with formal semantics; HERMES provides a practical collaborative interface. The gap between HERMES' weighted scoring and ASPIC+'s formal defeat semantics is a design tension relevant to propstore's render layer.
+- [[Amgoud_2008_BipolarityArgumentationFrameworks]] — **Moderate.** Both address bipolar argumentation (positions for/against). Amgoud formalizes this as BAFs; HERMES implements it as a weighted scoring system. Amgoud's gradual valuation functions could replace HERMES' ad hoc scoring.
+- [[Stab_2016_ParsingArgumentationStructuresPersuasive]] — **Moderate.** Both deal with structured argumentation discourse. Stab extracts argumentation structures from text; HERMES provides a collaborative interface for constructing them. The extracted structures could populate a HERMES-like discussion forum.
+- [[Mayer_2020_Transformer-BasedArgumentMiningHealthcare]] — **Moderate.** Mayer's pipeline extracts claims and support/attack relations from medical text; HERMES' medical decision-making scenario (pituitary tumor) demonstrates the target use case for such extracted structures.

@@ -123,7 +123,33 @@ The paper's approach of characterizing existence/multiplicity through dialectica
 ## New Leads
 
 - **Verheij (2000b)**: "DefLog — a logic of dialectical justification and defeat" — the full DEFLOG system paper *(p.9)*
-- **Bondarenko et al. (1997)**: assumption-based argumentation frameworks — Verheij's results on stable extensions connect to these *(p.8)*
+- **Bondarenko et al. (1997)**: assumption-based argumentation frameworks — Verheij's results on stable extensions connect to these *(p.8)* — **Now in Collection** as `Bondarenko_1997_AbstractArgumentation-TheoreticApproachDefault`
 - **Caminada & Verheij (2010)**: "On the existence of semi-stable extensions" — extends this work to semi-stable semantics (already found in search results)
 - **Prakken & Vreeswijk (2002)**: overview of models of dialectical argumentation *(p.1)*
 - **Verheij (2000a)**: "Dialectical Argumentation as a Heuristic for Courtroom Decision Making" — application domain *(p.9)*
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — cited as Dung 1995; Verheij's dialectical justification is shown to correspond to Dung's admissibility, and the characterization theorems translate directly to Dung AFs.
+- [[Pollock_1987_DefeasibleReasoning]] — cited as Pollock 1987; Pollock's defeasible reasoning provides the epistemological grounding for the defeat semantics that Verheij formalizes in DEFLOG.
+- [[Reiter_1980_DefaultReasoning]] — cited as Reiter 1980; Verheij's extension existence results apply to default logic, characterizing when Reiter's default extensions exist.
+- [[Bondarenko_1997_AbstractArgumentation-TheoreticApproachDefault]] — cited as Bondarenko et al. 1997; assumption-based argumentation frameworks whose stable extension results connect to Verheij's characterization.
+- [[Verheij_2003_ArtificialArgumentAssistants]] — same author; related work on argument assistants.
+
+### New Leads (Not Yet in Collection)
+- **Verheij (2000b)**: "DefLog — a logic of dialectical justification and defeat" — the full DEFLOG system
+- **Caminada & Verheij (2010)**: "On the existence of semi-stable extensions" — extends this work
+- **Gelfond & Lifschitz (1988)**: "The stable model semantics for logic programming" — formal connections to DEFLOG
+
+### Cited By (in Collection)
+- [[Amgoud_2008_BipolarityArgumentationFrameworks]] — cites as [Ver02]; references Verheij's alternative conflict notion for bipolar settings where two arguments conflict about a third.
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — lists Verheij (2002) as a New Lead and in Related Work Worth Reading, citing relevance to extension computation.
+- [[Clark_2014_Micropublications]] — references Toulmin-Verheij defeasible argumentation theory as the theoretical grounding for the micropublication model.
+
+### Conceptual Links (not citation-based)
+- [[Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation]] — **Strong.** Both address fundamental structural properties of AF extensions. Verheij characterizes existence and multiplicity through dialectical justification; Baroni decomposes extension computation along SCCs. Verheij's "separation at the base" (explaining why multiple extensions arise) is structurally related to Baroni's SCC decomposition (independent components yield combinatorial extension products).
+- [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — **Moderate.** Odekerken's justification statuses (unsatisfiable, defended, out, blocked) relate to Verheij's dialectically justifiable/defeatable/ambiguous classification. Both characterize argument status under uncertainty about which extension obtains.
+- [[Amgoud_2008_BipolarityArgumentationFrameworks]] — **Moderate.** Verheij's DEFLOG dialectical connective captures "assuming" relationships that parallel bipolar support. Open question 4 in Verheij's notes asks how DEFLOG's connective relates to support in BAFs.
+- [[Modgil_2018_GeneralAccountArgumentationPreferences]] — **Moderate.** Both address when and how extensions arise in argumentation. Modgil's attack-based conflict-free revision affects which extensions exist; Verheij's characterization could predict this.
+- [[Shapiro_1998_BeliefRevisionTMS]] — **Moderate.** Both connect argumentation/TMS traditions with formal properties of belief sets. Shapiro bridges TMS and AGM; Verheij bridges dialectical argumentation and extension theory.

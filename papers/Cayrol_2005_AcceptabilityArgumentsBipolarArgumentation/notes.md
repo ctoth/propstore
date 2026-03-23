@@ -312,15 +312,15 @@ Foundational paper for bipolar argumentation. Provides the formal definitions ne
 - [[Dung_1995_AcceptabilityArguments]] — cited as [1]; this paper directly extends Dung's abstract argumentation framework by adding an independent support relation. All of Cayrol's definitions (conflict-free, admissible, stable, preferred) generalize Dung's originals using set-defeat in place of direct defeat.
 
 ### New Leads (Not Yet in Collection)
-- Amgoud, Cayrol, Lagasquie-Schiex (2004) — "On the bipolarity in argumentation frameworks" — companion/prior work developing the bipolar argumentation concept *(p.389, ref [2])*
-- Karacapilidis, N. and Papadias, D. (2001) — "Computer supported argumentation and collaborative decision making" — practical system (Hermes) with support relations *(p.389, ref [5])*
-- Verheij, B. (2002) — "On the existence and multiplicity of extensions in dialectical argumentation" — relevant to extension computation *(p.389, ref [11])*
+- Amgoud, Cayrol, Lagasquie-Schiex (2004) — "On the bipolarity in argumentation frameworks" — companion/prior work developing the bipolar argumentation concept *(p.389, ref [2])* — **Related paper now in collection** as `Amgoud_2008_BipolarityArgumentationFrameworks` (same authors' 2008 comprehensive survey)
+- Karacapilidis, N. and Papadias, D. (2001) — "Computer supported argumentation and collaborative decision making" — practical system (Hermes) with support relations *(p.389, ref [5])* — **Now in Collection** as `Karacapilidis_2001_ComputerSupportedArgumentationCollaborative`
+- Verheij, B. (2002) — "On the existence and multiplicity of extensions in dialectical argumentation" — relevant to extension computation *(p.389, ref [11])* — **Now in Collection** as `Verheij_2002_ExistenceMultiplicityExtensionsDialectical`
 
 ### Supersedes or Recontextualizes
 - (none)
 
 ### Cited By (in Collection)
-- (none found)
+- [[Amgoud_2008_BipolarityArgumentationFrameworks]] — cites Cayrol & Lagasquie-Schiex via [CLS04/CLS05/CLS06]; comprehensively reviews and extends the BAF semantics from this paper within a broader bipolarity taxonomy.
 
 ### Conceptual Links (not citation-based)
 - [[Dung_1995_AcceptabilityArguments]] — **Strong.** Cayrol directly extends Dung's framework. Where Dung defines admissible/preferred/stable/grounded extensions over a single attack relation, Cayrol adds a support relation and derives three new admissibility levels (d-admissible, s-admissible, c-admissible) that collapse to Dung's originals when the support relation is empty. The paper instantiates Dung's framework using set-defeats to prove existence of stable extensions in acyclic BAFs.
