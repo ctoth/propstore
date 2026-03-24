@@ -1,10 +1,14 @@
 """Pure numeric value comparison logic for claims.
 
 Compares values, parses intervals, checks compatibility.
-No propstore imports — only stdlib.
 """
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from propstore.form_utils import FormDefinition
 
 DEFAULT_TOLERANCE = 1e-9
 
@@ -84,18 +88,52 @@ def intervals_compatible(
     return lo_a <= hi_b + tolerance and lo_b <= hi_a + tolerance
 
 
-def values_compatible(value_a, value_b, tolerance: float = DEFAULT_TOLERANCE,
-                      claim_a: dict | None = None, claim_b: dict | None = None) -> bool:
+def _normalize_interval(
+    interval: tuple[float, float, float],
+    unit: str | None,
+    form: "FormDefinition",
+) -> tuple[float, float, float]:
+    """Normalize all three components of an interval to SI units."""
+    from propstore.form_utils import normalize_to_si
+
+    center, lo, hi = interval
+    return (
+        normalize_to_si(center, unit, form),
+        normalize_to_si(lo, unit, form),
+        normalize_to_si(hi, unit, form),
+    )
+
+
+def values_compatible(
+    value_a,
+    value_b,
+    tolerance: float = DEFAULT_TOLERANCE,
+    claim_a: dict | None = None,
+    claim_b: dict | None = None,
+    forms: dict[str, "FormDefinition"] | None = None,
+    concept_form: str | None = None,
+) -> bool:
     """Check if two claim values are compatible.
 
     Supports both legacy list format and named value fields.
     When claim_a/claim_b are provided, uses named field extraction.
+
+    When *forms* and *concept_form* are supplied and the claims carry ``unit``
+    fields, intervals are normalised to SI before comparison.
     """
     # Named fields path
     if claim_a is not None and claim_b is not None:
         interval_a = extract_interval(claim_a)
         interval_b = extract_interval(claim_b)
         if interval_a is not None and interval_b is not None:
+            # Unit-aware normalisation when form metadata is available
+            if forms is not None and concept_form is not None and concept_form in forms:
+                form_def = forms[concept_form]
+                unit_a = claim_a.get("unit")
+                unit_b = claim_b.get("unit")
+                if unit_a is not None or unit_b is not None:
+                    interval_a = _normalize_interval(interval_a, unit_a, form_def)
+                    interval_b = _normalize_interval(interval_b, unit_b, form_def)
             return intervals_compatible(interval_a, interval_b, tolerance)
 
     # Legacy list path
