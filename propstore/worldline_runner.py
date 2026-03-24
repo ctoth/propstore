@@ -111,13 +111,40 @@ def run_worldline(
         if concept_id is not None:
             target_map[target] = concept_id
 
-    for target_name, concept_id in target_map.items():
-        result_entry = _resolve_target(
-            query_world, world, concept_id, target_name,
-            override_concept_ids, policy, dependency_claims,
-            all_steps,
-        )
-        values[target_name] = result_entry
+    # Iterative fixpoint: resolve targets, feed resolved values back as
+    # overrides for subsequent passes. This handles multi-step derivation
+    # chains (e.g., g_earth → gravitational_acceleration → acceleration → force).
+    # Follows chain_query's design (WorldModel.chain_query, model.py:474).
+    resolved_values = dict(override_concept_ids)  # Start with user overrides
+    remaining = dict(target_map)
+    max_passes = 5
+
+    for _pass in range(max_passes):
+        progress = False
+        still_remaining: dict[str, str] = {}
+
+        for target_name, concept_id in remaining.items():
+            if target_name in values and values[target_name].get("status") not in ("underspecified",):
+                continue  # Already resolved
+
+            result_entry = _resolve_target(
+                query_world, world, concept_id, target_name,
+                resolved_values, policy, dependency_claims,
+                all_steps,
+            )
+            values[target_name] = result_entry
+
+            if result_entry.get("status") in ("determined", "derived", "resolved"):
+                val = result_entry.get("value")
+                if val is not None:
+                    resolved_values[concept_id] = val
+                    progress = True
+            else:
+                still_remaining[target_name] = concept_id
+
+        remaining = still_remaining
+        if not progress or not remaining:
+            break
 
     # Fill in any targets we couldn't resolve (name resolution failed)
     for target in definition.targets:
@@ -274,6 +301,71 @@ def _resolve_target(
             "formula": dr.formula,
             "inputs_used": inputs_used,
         }
+
+    # Try chain_query for multi-step derivation (iterative fixpoint
+    # across parameterization groups — resolves chains like
+    # g_earth → gravitational_acceleration → acceleration → force)
+    strategy_enum = policy.strategy if policy.strategy is not None else None
+    chain_bindings = {}
+    if hasattr(query_world, '_bindings'):
+        chain_bindings = dict(query_world._bindings)
+    try:
+        chain_result = world.chain_query(
+            concept_id,
+            strategy=strategy_enum,
+            **chain_bindings,
+        )
+        cr = chain_result.result
+        if hasattr(cr, 'value') and cr.value is not None and cr.status in ("derived", "determined"):
+            # Extract dependencies from chain steps
+            for step in chain_result.steps:
+                if step.source == "claim":
+                    # Find the claim ID for this concept
+                    step_vr = query_world.value_of(step.concept_id)
+                    if step_vr.claims:
+                        dep_id = step_vr.claims[0].get("id")
+                        if dep_id and not dep_id.startswith("__override_"):
+                            dependency_claims.add(dep_id)
+
+            # Record chain steps
+            for step in chain_result.steps:
+                if step.concept_id != concept_id and step.source != "binding":
+                    cpt = world.get_concept(step.concept_id)
+                    step_name = cpt["canonical_name"] if cpt else step.concept_id
+                    all_steps.append({
+                        "concept": step_name,
+                        "value": step.value,
+                        "source": step.source,
+                    })
+
+            formula = None
+            if hasattr(cr, 'formula'):
+                formula = cr.formula
+
+            all_steps.append({
+                "concept": target_name,
+                "value": cr.value,
+                "source": "derived",
+                "formula": formula,
+            })
+
+            inputs_used = {}
+            if hasattr(cr, 'input_values') and cr.input_values:
+                for k, v in cr.input_values.items():
+                    if k in override_values:
+                        inputs_used[k] = {"value": v, "source": "override"}
+                    else:
+                        inputs_used[k] = {"value": v, "source": "chain"}
+
+            return {
+                "status": "derived",
+                "value": cr.value,
+                "source": "derived",
+                "formula": formula,
+                "inputs_used": inputs_used,
+            }
+    except Exception:
+        pass  # Chain query failed — fall through to underspecified
 
     # Underspecified — report what we know
     reason = f"status={vr.status}"
