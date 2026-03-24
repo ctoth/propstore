@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -282,6 +283,58 @@ def export_aliases(obj: dict, fmt: str) -> None:
             click.echo(f"{alias_name} -> {info['id']} ({info['name']})")
 
 
+def _resolve_concept_refs(
+    claim: dict, name_to_id: dict[str, str],
+) -> tuple[dict, int, int]:
+    """Resolve concept names to IDs within a single claim.
+
+    Returns (modified_claim, resolved_count, unresolved_count).
+    """
+    _CONCEPT_ID_RE = re.compile(r"^concept\d+$")
+    resolved = 0
+    unresolved = 0
+
+    def _resolve_one(ref: str) -> str:
+        nonlocal resolved, unresolved
+        if _CONCEPT_ID_RE.match(ref):
+            return ref  # already an ID
+        if ref in name_to_id:
+            resolved += 1
+            return name_to_id[ref]
+        unresolved += 1
+        click.echo(f"  WARNING: concept name '{ref}' not found in registry", err=True)
+        return ref
+
+    # claim.concepts[] — list of concept references (observations)
+    if "concepts" in claim and isinstance(claim["concepts"], list):
+        claim["concepts"] = [
+            _resolve_one(c) if isinstance(c, str) else c
+            for c in claim["concepts"]
+        ]
+
+    # claim.concept — single concept reference (parameter claims)
+    if "concept" in claim and isinstance(claim["concept"], str):
+        claim["concept"] = _resolve_one(claim["concept"])
+
+    # claim.variables[].concept — equation variable concepts
+    for var in claim.get("variables", []) or []:
+        if isinstance(var, dict) and "concept" in var and isinstance(var["concept"], str):
+            var["concept"] = _resolve_one(var["concept"])
+
+    # Resolve concept names in sympy expression strings (whole identifiers only)
+    if "sympy" in claim and isinstance(claim["sympy"], str):
+        sympy_str = claim["sympy"]
+        for name, cid in name_to_id.items():
+            # Replace whole identifiers only: bounded by non-word chars or string edges
+            sympy_str = re.sub(r"(?<!\w)" + re.escape(name) + r"(?!\w)", cid, sympy_str)
+        if sympy_str != claim["sympy"]:
+            # Count how many substitutions happened
+            # (already counted via the field-level resolvers above, so just update)
+            claim["sympy"] = sympy_str
+
+    return claim, resolved, unresolved
+
+
 @click.command("import-papers")
 @click.option(
     "--papers-root",
@@ -299,6 +352,8 @@ def export_aliases(obj: dict, fmt: str) -> None:
 @click.pass_obj
 def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run: bool) -> None:
     """Import paper-local claims.yaml files from a papers/ corpus."""
+    from propstore.validate import load_concepts
+
     repo: Repository = obj["repo"]
     if output_dir is None:
         output_dir = repo.claims_dir
@@ -320,8 +375,24 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
         click.echo(f"Would import {len(imports)} paper claim file(s)")
         return
 
+    # Build concept name → ID lookup table
+    name_to_id: dict[str, str] = {}
+    concepts = load_concepts(repo.concepts_dir)
+    for c in concepts:
+        cid = c.data.get("id", "")
+        name = c.data.get("canonical_name", "")
+        if cid and name:
+            name_to_id[name] = cid
+        # Also add aliases
+        for alias in c.data.get("aliases", []) or []:
+            alias_name = alias.get("name", "") if isinstance(alias, dict) else ""
+            if alias_name:
+                name_to_id[alias_name] = cid
+
     output_dir.mkdir(parents=True, exist_ok=True)
     total_claims = 0
+    total_resolved = 0
+    total_unresolved = 0
     for source_path, destination_path in imports:
         with open(source_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
@@ -345,9 +416,14 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
                         target = stance.get("target")
                         if target and ":" not in target:
                             stance["target"] = f"{source_name}:{target}"
+                # Resolve concept names to IDs
+                _, r, u = _resolve_concept_refs(claim, name_to_id)
+                total_resolved += r
+                total_unresolved += u
         write_yaml_file(destination_path, data)
 
     click.echo(f"Imported {len(imports)} paper claim file(s) into {output_dir} ({total_claims} claims)")
+    click.echo(f"Resolved {total_resolved} concept name(s) to IDs, {total_unresolved} unresolved")
 
 
 # ── World command group ──────────────────────────────────────────────
