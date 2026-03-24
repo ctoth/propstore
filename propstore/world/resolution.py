@@ -83,7 +83,6 @@ def _resolve_claim_graph_argumentation(
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
-    confidence_threshold: float = 0.5,
 ) -> tuple[str | None, str | None]:
     """Resolve in the current claim-graph backend.
 
@@ -101,7 +100,6 @@ def _resolve_claim_graph_argumentation(
         world, active_ids,
         semantics=semantics,
         comparison=comparison,
-        confidence_threshold=confidence_threshold,
     )
 
     if isinstance(result, frozenset):
@@ -130,7 +128,6 @@ def _resolve_structured_argumentation(
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
-    confidence_threshold: float = 0.5,
 ) -> tuple[str | None, str | None]:
     """Resolve via the first structured-argument projection backend."""
     from propstore.structured_argument import (
@@ -155,7 +152,6 @@ def _resolve_structured_argumentation(
         active_claims,
         support_metadata=support_metadata,
         comparison=comparison,
-        confidence_threshold=confidence_threshold,
     )
     result = compute_structured_justified_arguments(
         projection,
@@ -217,7 +213,6 @@ def resolve(
     reasoning_backend: ReasoningBackend | None = None,
     semantics: str | None = None,
     comparison: str | None = None,
-    confidence_threshold: float | None = None,
     policy: RenderPolicy | None = None,
 ) -> ResolvedResult:
     """Apply a resolution strategy to a conflicted concept."""
@@ -249,8 +244,6 @@ def resolve(
             semantics = policy.semantics
         if comparison is None:
             comparison = policy.comparison
-        if confidence_threshold is None:
-            confidence_threshold = policy.confidence_threshold
         # Extract decision criterion fields (used post-resolution for
         # re-interpreting opinion uncertainty at render time)
         _decision_criterion = policy.decision_criterion
@@ -263,9 +256,6 @@ def resolve(
         semantics = "grounded"
     if comparison is None:
         comparison = "elitist"
-    if confidence_threshold is None:
-        confidence_threshold = 0.5
-
     if strategy is None:
         return ResolvedResult(
             concept_id=concept_id, status=ValueStatus.CONFLICTED,
@@ -311,7 +301,6 @@ def resolve(
                 world,
                 semantics=semantics,
                 comparison=comparison,
-                confidence_threshold=confidence_threshold,
             )
         elif reasoning_backend == ReasoningBackend.STRUCTURED_PROJECTION:
             winner_id, reason = _resolve_structured_argumentation(
@@ -321,7 +310,6 @@ def resolve(
                 world,
                 semantics=semantics,
                 comparison=comparison,
-                confidence_threshold=confidence_threshold,
             )
         elif reasoning_backend == ReasoningBackend.ATMS:
             winner_id, reason = _resolve_atms_support(active, view)

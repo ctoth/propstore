@@ -103,7 +103,6 @@ def build_argumentation_framework(
     active_claim_ids: set[str],
     *,
     comparison: str = "elitist",
-    confidence_threshold: float = 0.5,
 ) -> ArgumentationFramework:
     """Build a bipolar AF over active claim rows.
 
@@ -130,7 +129,14 @@ def build_argumentation_framework(
         stance_type = stance["stance_type"]
         confidence = stance.get("confidence")
 
-        if confidence is not None and confidence < confidence_threshold:
+        # Soft epsilon prune: only remove stances with zero information content
+        # Per Li et al. (2012, Def 2): stances should participate with their
+        # existence probability, not be binary gated
+        # Per CLAUDE.md design checklist: no gates before render time
+        opinion_u = stance.get("opinion_uncertainty")
+        if opinion_u is not None and opinion_u > 0.99:
+            # Vacuous opinion — no information content (Josang 2001, p.8)
+            # Prune as performance optimization only
             continue
 
         # Skip stances referencing claims not in the active set — these are
@@ -178,7 +184,6 @@ def compute_claim_graph_justified_claims(
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
-    confidence_threshold: float = 0.5,
 ) -> frozenset[str] | list[frozenset[str]]:
     """Compute justified active claims for the claim-graph backend.
 
@@ -188,7 +193,6 @@ def compute_claim_graph_justified_claims(
     af = build_argumentation_framework(
         store, active_claim_ids,
         comparison=comparison,
-        confidence_threshold=confidence_threshold,
     )
 
     if semantics == "grounded":
@@ -205,45 +209,58 @@ def compute_claim_graph_justified_claims(
 def stance_summary(
     store: ArtifactStore,
     active_claim_ids: set[str],
-    confidence_threshold: float = 0.5,
 ) -> dict:
     """Summarize stances used in AF construction for render explanation.
 
-    Returns counts and model info so the render layer can explain
-    which stances were included under what policy.
+    Returns counts, opinion statistics, and model info so the render
+    layer can explain which stances were included under what policy.
+
+    Stances are only pruned if they carry a vacuous opinion (u > 0.99),
+    per Josang (2001, p.8). All other stances participate regardless of
+    confidence, per Li et al. (2012, Def 2) and the CLAUDE.md design
+    checklist (no gates before render time).
     """
     rows = store.stances_between(active_claim_ids)
 
     total = 0
     included = 0
-    excluded_by_threshold = 0
+    pruned_vacuous = 0
     excluded_non_attack = 0
     models: set[str] = set()
+    uncertainties: list[float] = []
 
     for row in rows:
         total += 1
         stype = row["stance_type"]
-        conf = row.get("confidence")
         model = row.get("resolution_model")
+        opinion_u = row.get("opinion_uncertainty")
 
         if stype in _NON_ATTACK_TYPES:
             excluded_non_attack += 1
             continue
-        if conf is not None and conf < confidence_threshold:
-            excluded_by_threshold += 1
+
+        # Soft epsilon prune: only vacuous opinions are excluded
+        if opinion_u is not None and opinion_u > 0.99:
+            pruned_vacuous += 1
             continue
+
         included += 1
         if model:
             models.add(model)
+        if opinion_u is not None:
+            uncertainties.append(opinion_u)
 
-    return {
+    result: dict = {
         "total_stances": total,
         "included_as_attacks": included,
-        "excluded_by_threshold": excluded_by_threshold,
+        "pruned_vacuous": pruned_vacuous,
         "excluded_non_attack": excluded_non_attack,
-        "confidence_threshold": confidence_threshold,
         "models": sorted(models),
     }
+    if uncertainties:
+        result["mean_uncertainty"] = sum(uncertainties) / len(uncertainties)
+
+    return result
 
 
 def compute_consistent_beliefs(

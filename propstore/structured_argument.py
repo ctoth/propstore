@@ -57,7 +57,6 @@ def build_structured_projection(
     *,
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] | None = None,
     comparison: str = "elitist",
-    confidence_threshold: float = 0.5,
 ) -> StructuredProjection:
     """Project active claims into base structured arguments plus an AF."""
     active_by_id = {claim["id"]: claim for claim in active_claims if claim.get("id")}
@@ -100,7 +99,6 @@ def build_structured_projection(
         active_by_id,
         claim_to_argument_ids,
         comparison=comparison,
-        confidence_threshold=confidence_threshold,
     )
     return StructuredProjection(
         arguments=tuple(arguments),
@@ -131,7 +129,6 @@ def _build_projected_framework(
     claim_to_argument_ids: dict[str, tuple[str, ...]],
     *,
     comparison: str,
-    confidence_threshold: float,
 ) -> ArgumentationFramework:
     attacks: set[tuple[str, str]] = set()
     defeats: set[tuple[str, str]] = set()
@@ -144,8 +141,13 @@ def _build_projected_framework(
         if claim_id not in active_by_id or target_claim_id not in active_by_id:
             continue
 
-        confidence = stance.get("confidence")
-        if confidence is not None and confidence < confidence_threshold:
+        # Soft epsilon prune: only remove stances with zero information content
+        # Per Li et al. (2012, Def 2): stances should participate with their
+        # existence probability, not be binary gated
+        # Per CLAUDE.md design checklist: no gates before render time
+        opinion_u = stance.get("opinion_uncertainty")
+        if opinion_u is not None and opinion_u > 0.99:
+            # Vacuous opinion — no information content (Josang 2001, p.8)
             continue
 
         source_args = claim_to_argument_ids[claim_id]

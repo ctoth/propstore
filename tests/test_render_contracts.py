@@ -18,7 +18,7 @@ def test_render_policy_defaults():
     assert policy.strategy is None
     assert policy.semantics == "grounded"
     assert policy.comparison == "elitist"
-    assert policy.confidence_threshold == 0.5
+    assert not hasattr(policy, "confidence_threshold")
 
 
 def test_environment_defaults():

@@ -456,7 +456,7 @@ def test_world_extensions_cli_accepts_structured_projection_backend(monkeypatch)
         lambda *args, **kwargs: {
             "total_stances": 0,
             "included_as_attacks": 0,
-            "excluded_by_threshold": 0,
+            "pruned_vacuous": 0,
             "excluded_non_attack": 0,
             "models": [],
         },

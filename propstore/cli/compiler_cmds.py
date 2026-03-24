@@ -1251,8 +1251,6 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
 @click.option("--set-comparison", "set_comparison", default="elitist",
               type=click.Choice(["elitist", "democratic"]),
               help="Set comparison for preference ordering (default: elitist)")
-@click.option("--confidence-threshold", "confidence_threshold", default=0.5,
-              type=float, help="Minimum stance confidence to include (default: 0.5)")
 @click.option("--decision-criterion", "decision_criterion", default="pignistic",
               type=click.Choice(["pignistic", "lower_bound", "upper_bound", "hurwicz"]),
               help="Decision criterion for opinion interpretation (default: pignistic)")
@@ -1262,7 +1260,6 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
 def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                   strategy: str, override_id: str | None,
                   semantics: str, set_comparison: str,
-                  confidence_threshold: float,
                   decision_criterion: str,
                   pessimism_index: float) -> None:
     """Resolve a conflicted concept using a strategy.
@@ -1284,7 +1281,6 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
         result = resolve(
             bound, resolved, strat, world=wm, overrides=overrides,
             semantics=semantics, comparison=set_comparison,
-            confidence_threshold=confidence_threshold,
         )
     except ValueError as e:
         click.echo(f"ERROR: {e}", err=True)
@@ -1314,13 +1310,11 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 @click.option("--set-comparison", "set_comparison", default="elitist",
               type=click.Choice(["elitist", "democratic"]),
               help="Set comparison for preference ordering (default: elitist)")
-@click.option("--confidence-threshold", "confidence_threshold", default=0.5,
-              type=float, help="Minimum stance confidence to include (default: 0.5)")
 @click.option("--context", default=None, help="Context to scope the argumentation")
 @click.pass_obj
 def world_extensions(obj: dict, args: tuple[str, ...],
                      backend_name: str, semantics: str, set_comparison: str,
-                     confidence_threshold: float, context: str | None) -> None:
+                     context: str | None) -> None:
     """Show argumentation extensions — all claims that survive scrutiny.
 
     Usage: pks world extensions domain=example --semantics grounded
@@ -1365,12 +1359,10 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             wm, claim_ids,
             semantics=semantics,
             comparison=set_comparison,
-            confidence_threshold=confidence_threshold,
         )
         af = build_argumentation_framework(
             wm, claim_ids,
             comparison=set_comparison,
-            confidence_threshold=confidence_threshold,
         )
         arg_to_claim = {cid: cid for cid in claim_ids}
     elif backend == ReasoningBackend.STRUCTURED_PROJECTION:
@@ -1392,7 +1384,6 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             active,
             support_metadata=support_metadata,
             comparison=set_comparison,
-            confidence_threshold=confidence_threshold,
         )
         result = compute_structured_justified_arguments(
             projection,
@@ -1404,15 +1395,14 @@ def world_extensions(obj: dict, args: tuple[str, ...],
         raise NotImplementedError(f"Unknown backend: {backend.value}")
 
     # Render explanation: what stances were used under what policy
-    summary = stance_summary(wm, claim_ids, confidence_threshold)
+    summary = stance_summary(wm, claim_ids)
     click.echo(f"Backend: {backend.value}")
     click.echo(f"Semantics: {semantics}")
     click.echo(f"Set comparison: {set_comparison}")
-    click.echo(f"Confidence threshold: {confidence_threshold}")
     click.echo(f"Active claims: {len(claim_ids)}")
     click.echo(f"Stances: {summary['total_stances']} total, "
                f"{summary['included_as_attacks']} included as attacks, "
-               f"{summary['excluded_by_threshold']} below threshold, "
+               f"{summary['pruned_vacuous']} vacuous pruned, "
                f"{summary['excluded_non_attack']} non-attack")
     if summary["models"]:
         click.echo(f"Models: {', '.join(summary['models'])}")

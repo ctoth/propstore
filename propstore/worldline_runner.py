@@ -72,7 +72,6 @@ def run_worldline(
         strategy=strategy,
         semantics=definition.policy.semantics,
         comparison=definition.policy.comparison,
-        confidence_threshold=definition.policy.confidence_threshold,
         decision_criterion=definition.policy.decision_criterion,
         pessimism_index=definition.policy.pessimism_index,
         show_uncertainty_interval=definition.policy.show_uncertainty_interval,
@@ -193,7 +192,6 @@ def run_worldline(
                     world, active_ids,
                     semantics=definition.policy.semantics,
                     comparison=definition.policy.comparison,
-                    confidence_threshold=definition.policy.confidence_threshold,
                 )
                 if isinstance(justified, frozenset):
                     defeated = active_ids - justified
@@ -223,7 +221,6 @@ def run_worldline(
                     active,
                     support_metadata=support_metadata,
                     comparison=definition.policy.comparison,
-                    confidence_threshold=definition.policy.confidence_threshold,
                 )
                 justified_args = compute_structured_justified_arguments(
                     projection,

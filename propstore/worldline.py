@@ -65,7 +65,6 @@ class WorldlinePolicy:
     strategy: str | None = None
     semantics: str = "grounded"
     comparison: str = "elitist"
-    confidence_threshold: float = 0.5
     # Decision criterion for interpreting opinion uncertainty at render time
     # Per Denoeux (2019, p.17-18): pignistic is the default
     decision_criterion: str = "pignistic"
@@ -95,7 +94,6 @@ class WorldlinePolicy:
             strategy=data.get("strategy"),
             semantics=data.get("semantics", "grounded"),
             comparison=data.get("comparison", "elitist"),
-            confidence_threshold=float(data.get("confidence_threshold", 0.5)),
             decision_criterion=data.get("decision_criterion", "pignistic"),
             pessimism_index=float(data.get("pessimism_index", 0.5)),
             show_uncertainty_interval=bool(data.get("show_uncertainty_interval", False)),
@@ -117,8 +115,6 @@ class WorldlinePolicy:
             d["semantics"] = self.semantics
         if self.comparison != "elitist":
             d["comparison"] = self.comparison
-        if self.confidence_threshold != 0.5:
-            d["confidence_threshold"] = self.confidence_threshold
         if self.decision_criterion != "pignistic":
             d["decision_criterion"] = self.decision_criterion
         if self.pessimism_index != 0.5:

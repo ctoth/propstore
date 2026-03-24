@@ -99,14 +99,19 @@ def supersedes_scenario(conn):
 
 
 @pytest.fixture
-def low_confidence_scenario(conn):
-    """Stances below confidence threshold should be excluded.
+def vacuous_opinion_scenario(conn):
+    """Stances with vacuous opinion (u > 0.99) should be pruned.
 
-    claim_x rebuts claim_y with confidence 0.3 (below 0.5 threshold).
+    claim_x rebuts claim_y with vacuous opinion (opinion_uncertainty=1.0).
+    Per Josang (2001, p.8): vacuous opinion carries no information.
     """
     _insert_claim(conn, "claim_x", "c1", 100.0, sample_size=100)
     _insert_claim(conn, "claim_y", "c1", 200.0, sample_size=100)
-    _insert_stance(conn, "claim_x", "claim_y", "rebuts", confidence=0.3)
+    conn.execute(
+        "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, "
+        "confidence, opinion_uncertainty) VALUES (?, ?, ?, ?, ?)",
+        ("claim_x", "claim_y", "rebuts", 0.3, 1.0),
+    )
     conn.commit()
     return conn
 
@@ -153,11 +158,15 @@ class TestBuildAF:
         # claim_a (sample=1000) rebuts claim_b (sample=10) → succeeds
         assert ("claim_a", "claim_b") in af.defeats
 
-    def test_confidence_threshold(self, low_confidence_scenario):
-        """Stances below confidence threshold are excluded."""
+    def test_vacuous_opinion_pruned(self, vacuous_opinion_scenario):
+        """Stances with vacuous opinion (u > 0.99) are pruned from the AF.
+
+        Per Josang (2001, p.8): vacuous opinion (0,0,1,a) carries no
+        information. Per Li et al. (2012, Def 2): stances should participate
+        with their existence probability, not be binary gated.
+        """
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(low_confidence_scenario), {"claim_x", "claim_y"},
-            confidence_threshold=0.5,
+            SQLiteArgumentationStore(vacuous_opinion_scenario), {"claim_x", "claim_y"},
         )
         assert ("claim_x", "claim_y") not in af.defeats
 
@@ -319,10 +328,10 @@ class TestAFProperties:
         af = build_argumentation_framework(SQLiteArgumentationStore(conn), set(claim_ids))
         support_only_pairs = set()
         for a, b, t, conf in stances:
-            if t in ("supports", "explains") and conf >= 0.5:
+            if t in ("supports", "explains"):
                 support_only_pairs.add((a, b))
         for a, b, t, conf in stances:
-            if t not in ("supports", "explains") and conf >= 0.5:
+            if t not in ("supports", "explains"):
                 support_only_pairs.discard((a, b))
         # Pairs that ONLY have support/explains stances should not be attacks.
         # They may still show up in defeats through support-aware derivation.

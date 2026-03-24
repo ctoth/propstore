@@ -1,10 +1,15 @@
-"""Tests for render-time stance filtering.
+"""Tests for render-time stance filtering — soft epsilon prune.
 
 Verifies that:
-- confidence_threshold=0.0 includes all stances in AF construction
-- confidence_threshold=0.99 excludes low-confidence stances
-- stance_summary returns correct counts and model info
+- Low-confidence stances now participate in AF construction (no hard gate)
+- Only vacuous stances (opinion_uncertainty > 0.99) are pruned
+- stance_summary reports opinion-aware statistics
+- confidence_threshold has been hard-deleted from all APIs
 - No defeat table exists in the sidecar schema
+
+Per Li et al. (2012, Def 2): each stance has existence probability,
+not binary include/exclude.
+Per CLAUDE.md design checklist: no gates before render time.
 """
 
 from __future__ import annotations
@@ -30,11 +35,13 @@ def _insert_claim(conn, claim_id, concept_id, value, sample_size=None):
     )
 
 
-def _insert_stance(conn, claim_id, target, stype, confidence=0.9, model=None):
+def _insert_stance(conn, claim_id, target, stype, confidence=0.9, model=None,
+                   opinion_uncertainty=None):
     conn.execute(
         "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, "
-        "confidence, resolution_model) VALUES (?, ?, ?, ?, ?)",
-        (claim_id, target, stype, confidence, model),
+        "confidence, resolution_model, opinion_uncertainty) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (claim_id, target, stype, confidence, model, opinion_uncertainty),
     )
 
 
@@ -51,7 +58,7 @@ def mixed_confidence(conn):
     """Scenario with stances at different confidence levels.
 
     claim_a rebuts claim_b at confidence=0.9 (high)
-    claim_c rebuts claim_a at confidence=0.3 (low)
+    claim_c rebuts claim_a at confidence=0.3 (low — previously excluded by threshold)
     claim_a supports claim_c (non-attack)
     """
     _insert_claim(conn, "claim_a", "c1", 200.0, sample_size=100)
@@ -64,76 +71,194 @@ def mixed_confidence(conn):
     return conn
 
 
-class TestConfidenceThresholdFiltering:
-    """Confidence threshold controls which stances become defeats at render time."""
+@pytest.fixture
+def vacuous_stances(conn):
+    """Scenario with vacuous opinion stances (u > 0.99).
 
-    def test_threshold_zero_includes_all_attacks(self, mixed_confidence):
-        """confidence_threshold=0.0 includes all attack stances."""
+    claim_a rebuts claim_b with vacuous opinion (u=1.0)
+    claim_c rebuts claim_a with normal opinion (u=0.3)
+    """
+    _insert_claim(conn, "claim_a", "c1", 200.0, sample_size=100)
+    _insert_claim(conn, "claim_b", "c1", 300.0, sample_size=100)
+    _insert_claim(conn, "claim_c", "c1", 250.0, sample_size=100)
+    _insert_stance(conn, "claim_a", "claim_b", "rebuts", confidence=0.5,
+                   opinion_uncertainty=1.0, model="gemini")
+    _insert_stance(conn, "claim_c", "claim_a", "rebuts", confidence=0.7,
+                   opinion_uncertainty=0.3, model="gpt-4")
+    conn.commit()
+    return conn
+
+
+@pytest.fixture
+def all_vacuous(conn):
+    """Scenario where ALL stances are vacuous."""
+    _insert_claim(conn, "claim_a", "c1", 200.0, sample_size=100)
+    _insert_claim(conn, "claim_b", "c1", 300.0, sample_size=100)
+    _insert_stance(conn, "claim_a", "claim_b", "rebuts", confidence=0.5,
+                   opinion_uncertainty=0.995, model="gemini")
+    _insert_stance(conn, "claim_b", "claim_a", "rebuts", confidence=0.5,
+                   opinion_uncertainty=1.0, model="gpt-4")
+    conn.commit()
+    return conn
+
+
+class TestSoftEpsilonPrune:
+    """Soft epsilon prune: only vacuous opinions (u > 0.99) are pruned.
+
+    Per Li et al. (2012, Def 2): each stance has existence probability,
+    not binary include/exclude. The hard confidence_threshold gate has
+    been replaced with a soft prune that only removes stances carrying
+    zero information content.
+    """
+
+    def test_low_confidence_stances_participate(self, mixed_confidence):
+        """A stance with confidence 0.3 now participates in AF construction.
+
+        Per Li et al. (2012, Def 2): each stance has existence probability,
+        not binary include/exclude.
+        """
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.0,
+            SQLiteArgumentationStore(mixed_confidence), ids,
         )
-        # Both rebuts stances become defeats (equal strength, neither strictly weaker)
+        # Both rebuts stances participate — the 0.3 confidence stance is
+        # no longer excluded by a hard threshold gate
         assert ("claim_a", "claim_b") in af.defeats
         assert ("claim_c", "claim_a") in af.defeats
 
-    def test_threshold_high_excludes_low_confidence(self, mixed_confidence):
-        """confidence_threshold=0.5 excludes the 0.3-confidence stance."""
-        ids = {"claim_a", "claim_b", "claim_c"}
-        af = build_argumentation_framework(
-            SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.5,
-        )
-        assert ("claim_a", "claim_b") in af.defeats  # 0.9 >= 0.5
-        assert ("claim_c", "claim_a") not in af.defeats  # 0.3 < 0.5
+    def test_vacuous_stances_pruned(self, vacuous_stances):
+        """A stance with opinion_uncertainty > 0.99 is pruned.
 
-    def test_threshold_very_high_excludes_all(self, mixed_confidence):
-        """confidence_threshold=0.99 excludes all stances."""
+        Per Josang (2001, p.8): vacuous opinion (0,0,1,a) carries no
+        information — prune as performance optimization only.
+        """
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
-            SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.99,
+            SQLiteArgumentationStore(vacuous_stances), ids,
+        )
+        # claim_a->claim_b has u=1.0 (vacuous) — pruned
+        assert ("claim_a", "claim_b") not in af.defeats
+        # claim_c->claim_a has u=0.3 (informative) — participates
+        assert ("claim_c", "claim_a") in af.defeats
+
+    def test_high_confidence_stances_unchanged(self, mixed_confidence):
+        """Stances with high confidence continue to participate exactly as before."""
+        ids = {"claim_a", "claim_b", "claim_c"}
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(mixed_confidence), ids,
+        )
+        # The 0.9 confidence rebuts stance still produces a defeat
+        assert ("claim_a", "claim_b") in af.defeats
+
+    def test_confidence_threshold_removed(self):
+        """RenderPolicy no longer has a confidence_threshold field.
+        build_argumentation_framework no longer accepts confidence_threshold.
+        Hard deleted, not deprecated.
+        """
+        import inspect
+        from propstore.world.types import RenderPolicy
+
+        # RenderPolicy should not have confidence_threshold
+        assert not hasattr(RenderPolicy(), "confidence_threshold"), \
+            "confidence_threshold should be hard-deleted from RenderPolicy"
+
+        # build_argumentation_framework should not accept confidence_threshold
+        sig = inspect.signature(build_argumentation_framework)
+        assert "confidence_threshold" not in sig.parameters, \
+            "confidence_threshold should be hard-deleted from build_argumentation_framework"
+
+        # compute_claim_graph_justified_claims should not accept it either
+        sig2 = inspect.signature(compute_claim_graph_justified_claims)
+        assert "confidence_threshold" not in sig2.parameters, \
+            "confidence_threshold should be hard-deleted from compute_claim_graph_justified_claims"
+
+        # stance_summary should not accept it either
+        sig3 = inspect.signature(stance_summary)
+        assert "confidence_threshold" not in sig3.parameters, \
+            "confidence_threshold should be hard-deleted from stance_summary"
+
+    def test_stance_summary_reports_uncertainty(self, vacuous_stances):
+        """stance_summary() reports opinion statistics: count of vacuous
+        stances pruned, mean uncertainty of included stances."""
+        ids = {"claim_a", "claim_b", "claim_c"}
+        summary = stance_summary(SQLiteArgumentationStore(vacuous_stances), ids)
+
+        assert summary["total_stances"] == 2
+        assert summary["pruned_vacuous"] == 1  # the u=1.0 stance
+        assert summary["included_as_attacks"] == 1  # the u=0.3 stance
+        assert "mean_uncertainty" in summary
+        assert abs(summary["mean_uncertainty"] - 0.3) < 0.01
+
+    def test_af_with_all_vacuous_stances(self, all_vacuous):
+        """When ALL stances are vacuous (u > 0.99), the AF has no defeat
+        edges — no information content. Edge case."""
+        ids = {"claim_a", "claim_b"}
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(all_vacuous), ids,
         )
         assert len(af.defeats) == 0
+        assert len(af.attacks) == 0
 
-    def test_grounded_extension_changes_with_threshold(self, mixed_confidence):
-        """Different thresholds produce different extensions."""
+    def test_af_includes_more_stances_than_before(self, mixed_confidence):
+        """The new AF includes stances that the old threshold (0.5) would
+        have excluded. The 0.3-confidence stance now participates, resulting
+        in more attack edges (and consequently more defeats including Cayrol
+        derived defeats from support chains)."""
         ids = {"claim_a", "claim_b", "claim_c"}
-
-        # Low threshold: both attacks active, more complex AF
-        ext_low = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.0,
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(mixed_confidence), ids,
         )
+        # Under old behavior with threshold=0.5, only 1 attack edge existed
+        # (claim_a rebuts claim_b at 0.9). Now the 0.3-confidence stance
+        # (claim_c rebuts claim_a) also participates, giving 2 attack edges.
+        assert len(af.attacks) == 2
+        # Both direct attacks produce defeats (equal strength claims)
+        assert ("claim_a", "claim_b") in af.attacks
+        assert ("claim_c", "claim_a") in af.attacks
 
-        # High threshold: no attacks, everything survives
-        ext_high = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.99,
+    def test_epsilon_threshold_very_low(self, conn):
+        """Stances with confidence 0.01 (very low but not vacuous) still
+        participate. Only truly vacuous stances (opinion-based, u > 0.99)
+        are pruned."""
+        _insert_claim(conn, "claim_a", "c1", 100.0, sample_size=100)
+        _insert_claim(conn, "claim_b", "c1", 200.0, sample_size=100)
+        _insert_stance(conn, "claim_a", "claim_b", "rebuts", confidence=0.01,
+                       opinion_uncertainty=0.5)
+        conn.commit()
+        ids = {"claim_a", "claim_b"}
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(conn), ids,
         )
-        assert ext_high == ids  # no defeats → all in grounded extension
+        # Very low confidence but non-vacuous opinion — still participates
+        assert ("claim_a", "claim_b") in af.defeats
 
 
 class TestStanceSummary:
-    """stance_summary returns render explanation metadata."""
+    """stance_summary returns render explanation metadata with opinion-aware stats."""
 
     def test_summary_counts(self, mixed_confidence):
+        """Summary includes all attack stances (no threshold filtering)."""
         ids = {"claim_a", "claim_b", "claim_c"}
-        summary = stance_summary(SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.5)
+        summary = stance_summary(SQLiteArgumentationStore(mixed_confidence), ids)
 
         assert summary["total_stances"] == 3
-        assert summary["included_as_attacks"] == 1  # only the 0.9 rebuts
-        assert summary["excluded_by_threshold"] == 1  # the 0.3 rebuts
+        # Both rebuts stances are now included (0.9 and 0.3)
+        assert summary["included_as_attacks"] == 2
         assert summary["excluded_non_attack"] == 1  # the supports
-        assert summary["confidence_threshold"] == 0.5
+        assert summary["pruned_vacuous"] == 0  # no vacuous stances
 
     def test_summary_models(self, mixed_confidence):
         ids = {"claim_a", "claim_b", "claim_c"}
-        summary = stance_summary(SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.0)
+        summary = stance_summary(SQLiteArgumentationStore(mixed_confidence), ids)
         assert "gemini" in summary["models"]
         assert "gpt-4" in summary["models"]
 
-    def test_summary_threshold_zero_includes_all_attacks(self, mixed_confidence):
+    def test_summary_no_confidence_threshold_key(self, mixed_confidence):
+        """Summary dict should NOT contain confidence_threshold key."""
         ids = {"claim_a", "claim_b", "claim_c"}
-        summary = stance_summary(SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.0)
-        assert summary["included_as_attacks"] == 2
-        assert summary["excluded_by_threshold"] == 0
+        summary = stance_summary(SQLiteArgumentationStore(mixed_confidence), ids)
+        assert "confidence_threshold" not in summary
+        assert "excluded_by_threshold" not in summary
 
 
 class TestNoDefeatTable:

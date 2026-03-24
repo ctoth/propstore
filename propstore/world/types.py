@@ -190,7 +190,6 @@ class RenderPolicy:
     strategy: ResolutionStrategy | None = None
     semantics: str = "grounded"
     comparison: str = "elitist"
-    confidence_threshold: float = 0.5
     # Decision criterion for interpreting opinion uncertainty at render time
     # Per Denoeux (2019, p.17-18): pignistic is the default (E(ω) = b + a·u)
     decision_criterion: str = "pignistic"

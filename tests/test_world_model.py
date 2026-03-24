@@ -1077,7 +1077,6 @@ class TestConflictResolution:
             task="speech",
             policy=RenderPolicy(
                 strategy=ResolutionStrategy.ARGUMENTATION,
-                confidence_threshold=0.99,
             ),
         )
 
@@ -1086,7 +1085,6 @@ class TestConflictResolution:
             "concept1",
             world=world,
             policy=bound._policy,
-            confidence_threshold=0.0,
         )
         assert result.status == "conflicted"
         assert "survive" in (result.reason or "")
