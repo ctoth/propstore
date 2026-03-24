@@ -11,18 +11,12 @@ Complexity: O(3^k * n) where k is treewidth, n is number of bags
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from itertools import product as iterproduct
 from typing import TYPE_CHECKING
 
 from propstore.dung import ArgumentationFramework
 
 if TYPE_CHECKING:
     from propstore.praf import ProbabilisticAF
-
-# Labelling constants
-IN = "I"
-OUT = "O"
-UNDEC = "U"
 
 
 # ===================================================================
@@ -347,360 +341,30 @@ def to_nice_tree_decomposition(
     return NiceTreeDecomposition(nodes=nodes, root=final_top)
 
 
-# ===================================================================
-# Exact DP algorithm
-# ===================================================================
-
-# A labelling is a mapping from argument -> label (I/O/U)
-# A DP table row is (labelling_tuple, witness_set, probability)
-# where witness_set tracks which "out" arguments have confirmed attackers
-
-Labelling = dict[str, str]  # arg -> I/O/U
-
-
-def _labelling_key(labelling: Labelling, bag: frozenset[str]) -> tuple:
-    """Create a hashable key from a labelling restricted to bag args."""
-    return tuple(sorted((a, labelling.get(a, UNDEC)) for a in bag))
-
-
 def compute_exact_dp(
     praf: ProbabilisticAF,
     semantics: str = "grounded",
 ) -> dict[str, float]:
     """Exact extension probabilities via tree decomposition DP.
 
-    Per Popescu & Wallner (2024, Algorithms 1-3):
-    - Each table row: (labelling of bag args as I/O/U, probability)
-    - Leaf: one row, empty labelling, prob=1
-    - Introduce(v): extend rows with v in {I, O, U}, check AF constraints
-    - Forget(v): merge rows agreeing on remaining args, finalize v's status
-    - Join: multiply probs from compatible rows of two children
+    Per Popescu & Wallner (2024, Algorithms 1-3): computes acceptance
+    probabilities by enumerating possible worlds (subframeworks),
+    weighted by their probability, and checking extension membership.
 
-    The witness mechanism (p.6-7) tracks whether 'out' arguments
-    actually have an attacking 'in' argument with a realized edge.
+    The tree decomposition structure is used for:
+    1. Treewidth estimation (determines whether DP is appropriate)
+    2. Elimination ordering (organizes the enumeration)
+    3. Nice TD construction (verified structural properties)
+
+    Current implementation: factored enumeration along the TD structure.
+    The full table-based I/O/U labelling DP with witness mechanism
+    (Popescu 2024, p.6-7) is a future optimization for large
+    low-treewidth AFs where the 3^k table size is much smaller than
+    the 2^(|A|+|D|) brute-force space.
+
+    Complexity: O(3^k * n) with full DP (Popescu 2024, Theorem 7).
+    Current implementation: O(2^(|A|+|D|)) with TD-guided ordering.
     """
-    af = praf.framework
-    args_list = sorted(af.arguments)
-
-    if not args_list:
-        return {}
-
-    # Build attack lookup
-    attackers: dict[str, set[str]] = {a: set() for a in af.arguments}
-    attack_set: set[tuple[str, str]] = set(af.defeats)
-    for src, tgt in af.defeats:
-        attackers[tgt].add(src)
-
-    # Get probabilities as floats
-    p_arg: dict[str, float] = {}
-    for a in af.arguments:
-        p_arg[a] = praf.p_args[a].expectation()
-
-    p_defeat: dict[tuple[str, str], float] = {}
-    for d in af.defeats:
-        p_defeat[d] = praf.p_defeats[d].expectation()
-
-    # Compute tree decomposition
-    td = compute_tree_decomposition(af)
-    ntd = to_nice_tree_decomposition(td)
-
-    # The DP table for each node:
-    # Maps (labelling_key, witnessed_key) -> probability
-    # labelling_key: tuple of (arg, label) pairs for bag args
-    # witnessed_key: frozenset of "out" args that have been witnessed
-    # (i.e., have a confirmed in-labelled attacker with realized attack)
-
-    # For efficiency, represent tables as dict of
-    # (labelling_tuple, witnessed_frozenset) -> float
-    TableKey = tuple  # (labelling_tuple, witnessed_frozenset)
-    Table = dict  # TableKey -> float
-
-    tables: dict[int, Table] = {}
-
-    # Determine semantics-specific constraints
-    is_stable = (semantics == "stable")
-    is_preferred = (semantics == "preferred")
-
-    # Post-order traversal
-    order: list[int] = []
-    stack = [(ntd.root, False)]
-    while stack:
-        nid, processed = stack.pop()
-        if processed:
-            order.append(nid)
-            continue
-        stack.append((nid, True))
-        node = ntd.nodes[nid]
-        for child in reversed(node.children):
-            stack.append((child, False))
-
-    for nid in order:
-        node = ntd.nodes[nid]
-
-        if node.node_type == "leaf":
-            # Leaf: single row, empty labelling, probability 1
-            # Per Popescu & Wallner (2024, p.6)
-            tables[nid] = {((), frozenset()): 1.0}
-
-        elif node.node_type == "introduce":
-            # Introduce node: add argument v to each existing row
-            # Per Popescu & Wallner (2024, p.6-7, Algorithm 2)
-            v = node.introduced
-            child_id = node.children[0]
-            child_table = tables[child_id]
-            new_table: Table = {}
-
-            p_v = p_arg[v]
-            v_attackers = attackers.get(v, set())
-            # Arguments attacked by v
-            v_attacks = {tgt for (src, tgt) in attack_set if src == v}
-
-            for (lab_key, witnessed), prob in child_table.items():
-                child_lab = dict(lab_key)
-
-                # Case 1: v is absent (probability 1 - p_v)
-                # When v is absent, it's not in the subframework at all.
-                # It cannot be in/out/undec — it simply doesn't exist.
-                # We handle this by labelling v as UNDEC with probability factor (1-p_v)
-                # and noting v has no attacks from/to it in this world.
-                p_absent = 1.0 - p_v
-                if p_absent > 1e-15:
-                    new_lab = dict(child_lab)
-                    new_lab[v] = UNDEC
-                    new_key = (tuple(sorted(new_lab.items())), witnessed)
-                    new_table[new_key] = new_table.get(new_key, 0.0) + prob * p_absent
-
-                # Case 2: v is present (probability p_v)
-                if p_v < 1e-15:
-                    continue
-
-                # Sub-case 2a: label v as IN
-                # Per Popescu 2024: v is IN means no attacker currently in bag
-                # is labelled IN (conflict-free check within bag).
-                # Also, v being IN means it can witness "out" for arguments it attacks.
-                can_be_in = True
-                for att in v_attackers:
-                    if att in child_lab and child_lab[att] == IN:
-                        # Check if attack (att, v) can exist
-                        can_be_in = False
-                        break
-                # Also check: v attacks someone labelled IN -> conflict
-                for tgt in v_attacks:
-                    if tgt in child_lab and child_lab[tgt] == IN:
-                        can_be_in = False
-                        break
-
-                if can_be_in:
-                    # Probability factor: p_v * product of defeat-absence for
-                    # attacks FROM in-labelled bag args TO v (they shouldn't exist
-                    # since v is IN and must not be defeated by any IN arg).
-                    # Actually for complete labelling: v IN means all its attackers
-                    # in the current bag that are present must be OUT.
-                    valid = True
-                    p_factor = p_v
-                    # For attacks from bag args to v: if attacker is OUT, attack
-                    # may or may not exist. If attacker is UNDEC, attack may or may not.
-                    # We account for attack probabilities at forget time.
-                    # For now, just track the labelling.
-                    if valid:
-                        new_lab = dict(child_lab)
-                        new_lab[v] = IN
-                        # v being IN can witness "out" for args it attacks in bag
-                        new_witnessed = set(witnessed)
-                        for tgt in v_attacks:
-                            if tgt in child_lab and child_lab[tgt] == OUT:
-                                # v attacks tgt and v is IN — witnesses tgt's "out"
-                                # But we need the attack to exist. We'll enumerate
-                                # attack existence.
-                                pass  # handled at forget time
-                        new_key = (tuple(sorted(new_lab.items())), frozenset(new_witnessed))
-                        new_table[new_key] = new_table.get(new_key, 0.0) + prob * p_factor
-
-                # Sub-case 2b: label v as OUT
-                # v is OUT means at least one attacker is IN with realized attack.
-                # The witness mechanism tracks this.
-                # For now, we allow OUT labelling if there's at least one attacker
-                # in the bag labelled IN.
-                in_attackers_in_bag = [
-                    att for att in v_attackers
-                    if att in child_lab and child_lab[att] == IN
-                ]
-                if in_attackers_in_bag:
-                    new_lab = dict(child_lab)
-                    new_lab[v] = OUT
-                    # v is witnessed if some in-attacker has a certain attack
-                    # We enumerate over attack existence probabilities
-                    # For each in-attacker, the attack (att, v) either exists or not
-                    # v is witnessed OUT if at least one attack exists
-                    # Probability: p_v * P(at least one attack from IN-attackers exists)
-
-                    # Enumerate: for each subset of in-attacker attacks that exist
-                    n_atts = len(in_attackers_in_bag)
-                    for mask in range(1, 1 << n_atts):  # at least one attack exists
-                        p_att_factor = p_v
-                        for k, att in enumerate(in_attackers_in_bag):
-                            d = (att, v)
-                            pd = p_defeat.get(d, 1.0)
-                            if mask & (1 << k):
-                                p_att_factor *= pd
-                            else:
-                                p_att_factor *= (1.0 - pd)
-
-                        if p_att_factor > 1e-15:
-                            new_witnessed = set(witnessed)
-                            new_witnessed.add(v)  # v is witnessed out
-                            new_key = (tuple(sorted(new_lab.items())), frozenset(new_witnessed))
-                            new_table[new_key] = new_table.get(new_key, 0.0) + prob * p_att_factor
-
-                # Also allow OUT without witness if there might be attackers outside the bag
-                # that will witness later. But track that v is NOT yet witnessed.
-                # Per Popescu 2024, p.6-7: witness may come from a later introduce.
-                # However, in a nice TD, by the time we forget v, all its attackers
-                # should have been introduced. So we handle witnessing at forget time.
-
-                # Sub-case: OUT without current witness (attacker not yet in bag)
-                potential_outside_attackers = v_attackers - set(child_lab.keys())
-                if potential_outside_attackers:
-                    # v could be OUT due to an attacker not yet introduced
-                    new_lab = dict(child_lab)
-                    new_lab[v] = OUT
-                    p_factor = p_v
-                    # Don't multiply by attack probs yet — attacker not in bag
-                    new_key = (tuple(sorted(new_lab.items())), frozenset(witnessed))  # NOT witnessed yet
-                    new_table[new_key] = new_table.get(new_key, 0.0) + prob * p_factor
-
-                # Sub-case 2c: label v as UNDEC
-                # v is UNDEC: no attacker in bag is IN (or attacks don't exist)
-                # This is the "unknown" state — might become IN or OUT later
-                new_lab = dict(child_lab)
-                new_lab[v] = UNDEC
-                p_factor = p_v
-                new_key = (tuple(sorted(new_lab.items())), frozenset(witnessed))
-                new_table[new_key] = new_table.get(new_key, 0.0) + prob * p_factor
-
-            tables[nid] = new_table
-
-        elif node.node_type == "forget":
-            # Forget node: remove argument v, finalize its status
-            # Per Popescu & Wallner (2024, p.7, Algorithm 3)
-            v = node.forgotten
-            child_id = node.children[0]
-            child_table = tables[child_id]
-            new_table: Table = {}
-
-            for (lab_key, witnessed), prob in child_table.items():
-                lab = dict(lab_key)
-                v_label = lab.get(v, UNDEC)
-
-                # Remove v from labelling
-                remaining_lab = {a: l for a, l in lab.items() if a != v}
-                remaining_key = tuple(sorted(remaining_lab.items()))
-
-                # Finalize v's conditions
-                keep = True
-
-                if v_label == OUT:
-                    # Per Popescu 2024, p.7: out arguments must be witnessed
-                    # (at least one attacking IN argument with realized attack)
-                    if v not in witnessed:
-                        keep = False
-
-                if v_label == UNDEC:
-                    # Per Popescu 2024: for complete semantics, UNDEC means
-                    # not all attackers are out AND no attacker is in.
-                    # For stable semantics, U is not allowed.
-                    if is_stable:
-                        keep = False
-
-                if v_label == IN:
-                    # Per Popescu 2024: IN means all attackers must be OUT
-                    # (or attacks don't exist). We need to account for attack
-                    # probabilities from attackers NOT in the current bag.
-                    # By the running intersection property, all neighbors of v
-                    # must have appeared in some bag in the subtree below.
-                    # We account for attacks from non-bag attackers.
-                    v_attackers_local = attackers.get(v, set())
-                    for att in v_attackers_local:
-                        if att in lab:
-                            # Attacker is in the bag — already handled
-                            if lab[att] == IN:
-                                # Conflict: both v and attacker are IN
-                                # Attack must not exist for this to be valid
-                                d = (att, v)
-                                pd = p_defeat.get(d, 1.0)
-                                prob *= (1.0 - pd)
-                                if prob < 1e-15:
-                                    keep = False
-                                    break
-
-                if keep and prob > 1e-15:
-                    # Remove v from witnessed set too
-                    new_witnessed = frozenset(w for w in witnessed if w != v)
-                    new_key = (remaining_key, new_witnessed)
-                    new_table[new_key] = new_table.get(new_key, 0.0) + prob
-
-            tables[nid] = new_table
-
-        elif node.node_type == "join":
-            # Join node: combine tables from two children with identical bags
-            # Per Popescu & Wallner (2024, p.6)
-            left_id = node.children[0]
-            right_id = node.children[1]
-            left_table = tables[left_id]
-            right_table = tables[right_id]
-            new_table: Table = {}
-
-            # Group by labelling key for efficient matching
-            left_by_lab: dict[tuple, list[tuple[frozenset, float]]] = {}
-            for (lab_key, witnessed), prob in left_table.items():
-                left_by_lab.setdefault(lab_key, []).append((witnessed, prob))
-
-            right_by_lab: dict[tuple, list[tuple[frozenset, float]]] = {}
-            for (lab_key, witnessed), prob in right_table.items():
-                right_by_lab.setdefault(lab_key, []).append((witnessed, prob))
-
-            # Compatible rows: same labelling, multiply probabilities
-            for lab_key in left_by_lab:
-                if lab_key not in right_by_lab:
-                    continue
-                for l_wit, l_prob in left_by_lab[lab_key]:
-                    for r_wit, r_prob in right_by_lab[lab_key]:
-                        combined_wit = l_wit | r_wit
-                        new_key = (lab_key, combined_wit)
-                        new_table[new_key] = (
-                            new_table.get(new_key, 0.0) + l_prob * r_prob
-                        )
-
-            tables[nid] = new_table
-
-    # Extract results from root table
-    # The root should have an empty bag (all args forgotten)
-    root_table = tables.get(ntd.root, {})
-
-    # Sum all probabilities — this should be 1.0 (or close)
-    # The acceptance probability for each argument is accumulated during
-    # the forget phase.
-
-    # Actually, the DP as described computes P(the entire framework has
-    # a valid extension). To get per-argument acceptance, we need a
-    # different approach: for each argument, sum the probability of all
-    # labellings where that argument is IN.
-
-    # Restructure: we need to track per-argument acceptance during forget.
-    # Let's re-run with accumulation.
-
-    # --- SECOND PASS: accumulate per-argument acceptance ---
-    # Instead of the complex witness-tracking DP, use a simpler approach
-    # that delegates to the brute-force enumeration logic but with the
-    # tree decomposition structure for organizing the computation.
-
-    # Given the complexity of the full witness mechanism, use a cleaner
-    # approach: enumerate all possible worlds weighted by probability,
-    # but factored along the tree decomposition.
-
-    # For correctness (cross-validation will catch bugs), implement the
-    # straightforward factored enumeration.
-
     return _compute_factored_dp(praf, semantics)
 
 
