@@ -20,9 +20,14 @@ from propstore.world.types import (
 
 
 def _resolve_recency(claims: list[dict]) -> tuple[str | None, str | None]:
-    """Pick the claim with the most recent date in provenance_json."""
-    best_id = None
+    """Pick the claim with the most recent date in provenance_json.
+
+    If multiple claims share the same best date, returns ``(None, reason)``
+    so that the caller treats the result as conflicted rather than silently
+    picking an arbitrary winner.
+    """
     best_date = ""
+    dated_claims: list[tuple[str, str]] = []  # (claim_id, date)
     for c in claims:
         prov = c.get("provenance_json")
         if not prov:
@@ -32,26 +37,42 @@ def _resolve_recency(claims: list[dict]) -> tuple[str | None, str | None]:
         except (json.JSONDecodeError, TypeError):
             continue
         date = prov_data.get("date") or ""
-        if isinstance(date, str) and date > best_date:
-            best_date = date
-            best_id = c["id"]
-    if best_id is None:
+        if isinstance(date, str) and date >= best_date:
+            if date > best_date:
+                best_date = date
+                dated_claims = [(c["id"], date)]
+            else:
+                dated_claims.append((c["id"], date))
+    if not dated_claims:
         return None, "no dates in provenance"
-    return best_id, f"most recent: {best_date}"
+    if len(dated_claims) == 1:
+        return dated_claims[0][0], f"most recent: {best_date}"
+    tied_ids = [cid for cid, _ in dated_claims]
+    return None, f"tied recency ({best_date}): {', '.join(tied_ids)}"
 
 
 def _resolve_sample_size(claims: list[dict]) -> tuple[str | None, str | None]:
-    """Pick the claim with the largest sample_size."""
-    best_id = None
+    """Pick the claim with the largest sample_size.
+
+    If multiple claims share the same best sample_size, returns
+    ``(None, reason)`` so that the caller treats the result as conflicted
+    rather than silently picking an arbitrary winner.
+    """
     best_n: int | None = None
+    best_claims: list[str] = []
     for c in claims:
         n = c.get("sample_size")
-        if n is not None and (best_n is None or n > best_n):
-            best_n = n
-            best_id = c["id"]
-    if best_id is None:
+        if n is not None:
+            if best_n is None or n > best_n:
+                best_n = n
+                best_claims = [c["id"]]
+            elif n == best_n:
+                best_claims.append(c["id"])
+    if not best_claims:
         return None, "no sample_size values"
-    return best_id, f"largest sample_size: {best_n}"
+    if len(best_claims) == 1:
+        return best_claims[0], f"largest sample_size: {best_n}"
+    return None, f"tied sample_size ({best_n}): {', '.join(best_claims)}"
 
 
 def _resolve_claim_graph_argumentation(
