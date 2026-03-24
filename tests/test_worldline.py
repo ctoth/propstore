@@ -15,8 +15,11 @@ import pytest
 import yaml
 
 from propstore.build_sidecar import build_sidecar
+from propstore.cli.worldline_cmds import _parse_kv_args
 from propstore.validate import load_concepts
 from propstore.validate_claims import load_claim_files
+from propstore.world import Environment
+from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
 
 
@@ -207,6 +210,95 @@ def physics_world(physics_knowledge):
     from propstore.cli.repository import Repository
     repo = Repository(physics_knowledge)
 
+    concepts = load_concepts(repo.concepts_dir)
+    claim_files = load_claim_files(repo.claims_dir)
+    sidecar_path = repo.sidecar_path
+    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+
+    build_sidecar(concepts, sidecar_path, claim_files=claim_files, repo=repo)
+    return WorldModel(repo)
+
+
+@pytest.fixture(scope="module")
+def chained_physics_knowledge(tmp_path_factory):
+    """Create a minimal physics KB with a two-hop derivation chain."""
+    root = tmp_path_factory.mktemp("chained_physics_kb") / "knowledge"
+    concepts_dir = root / "concepts"
+    concepts_dir.mkdir(parents=True)
+    counters = concepts_dir / ".counters"
+    counters.mkdir()
+    (counters / "physics.next").write_text("10")
+
+    forms_dir = root / "forms"
+    forms_dir.mkdir()
+    for form_name in ("acceleration", "force", "mass"):
+        data = {"name": form_name, "dimensionless": False, "kind": "quantity"}
+        with open(forms_dir / f"{form_name}.yaml", "w", encoding="utf-8") as f:
+            yaml.dump(data, f)
+
+    def write_concept(name, data):
+        with open(concepts_dir / f"{name}.yaml", "w", encoding="utf-8") as f:
+            yaml.dump(data, f, default_flow_style=False)
+
+    write_concept("mass", {
+        "id": "concept1", "canonical_name": "mass",
+        "status": "accepted", "definition": "Mass.", "form": "mass",
+    })
+    write_concept("gravitational_source", {
+        "id": "concept2", "canonical_name": "gravitational_source",
+        "status": "accepted", "definition": "Source gravity.", "form": "acceleration",
+    })
+    write_concept("acceleration", {
+        "id": "concept3", "canonical_name": "acceleration",
+        "status": "accepted", "definition": "Acceleration.", "form": "acceleration",
+        "parameterization_relationships": [{
+            "formula": "a = g",
+            "inputs": ["concept2"],
+            "sympy": "Eq(concept3, concept2)",
+            "exactness": "exact",
+            "source": "test",
+            "bidirectional": True,
+        }],
+    })
+    write_concept("force", {
+        "id": "concept4", "canonical_name": "force",
+        "status": "accepted", "definition": "Force.", "form": "force",
+        "parameterization_relationships": [{
+            "formula": "F = m * a",
+            "inputs": ["concept1", "concept3"],
+            "sympy": "Eq(concept4, concept1 * concept3)",
+            "exactness": "exact",
+            "source": "test",
+            "bidirectional": True,
+        }],
+    })
+
+    claims_dir = root / "claims"
+    claims_dir.mkdir()
+    with open(claims_dir / "physics_claims.yaml", "w", encoding="utf-8") as f:
+        yaml.dump({
+            "source": {"paper": "test"},
+            "claims": [
+                {
+                    "id": "g_claim",
+                    "type": "parameter",
+                    "concept": "concept2",
+                    "value": 9.807,
+                    "unit": "m/s^2",
+                    "provenance": {"paper": "test", "page": 1},
+                },
+            ],
+        }, f, default_flow_style=False)
+
+    return root
+
+
+@pytest.fixture(scope="module")
+def chained_physics_world(chained_physics_knowledge):
+    """Build sidecar and create WorldModel for chained-derivation testing."""
+    from propstore.cli.repository import Repository
+
+    repo = Repository(chained_physics_knowledge)
     concepts = load_concepts(repo.concepts_dir)
     claim_files = load_claim_files(repo.claims_dir)
     sidecar_path = repo.sidecar_path
@@ -425,6 +517,94 @@ class TestWorldlineRunner:
             expected = inputs.get("concept1", inputs.get("mass", 10.0)) * inputs.get("concept2", inputs.get("acceleration", 9.807))
             assert abs(force["value"] - expected) < 1e-9
 
+    def test_run_uses_world_context_scope(self):
+        """inputs.context is passed as bind environment context, not as a fake binding."""
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        class FakeBound:
+            def __init__(self, context_id):
+                self._context_id = context_id
+
+            def value_of(self, concept_id):
+                if self._context_id == "ctx_physics":
+                    return ValueResult(
+                        concept_id=concept_id,
+                        status="determined",
+                        claims=[{"id": "ctx_claim", "value": 42.0}],
+                    )
+                return ValueResult(concept_id=concept_id, status="no_claims")
+
+            def derived_value(self, concept_id, override_values=None):
+                return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+        class FakeWorld:
+            def __init__(self):
+                self.last_environment = None
+                self.last_conditions = None
+
+            def bind(self, environment=None, *, policy=None, **conditions):
+                self.last_environment = environment
+                self.last_conditions = conditions
+                context_id = environment.context_id if environment is not None else None
+                return FakeBound(context_id)
+
+            def resolve_alias(self, name):
+                return None
+
+            def get_concept(self, concept_id):
+                if concept_id == "concept1":
+                    return {"id": concept_id, "canonical_name": "target"}
+                return None
+
+            def get_claim(self, claim_id):
+                return None
+
+            @property
+            def _conn(self):
+                class FakeConn:
+                    @staticmethod
+                    def execute(*args, **kwargs):
+                        class FakeCursor:
+                            @staticmethod
+                            def fetchone():
+                                return {"id": "concept1"}
+                        return FakeCursor()
+                return FakeConn()
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "test_context",
+            "targets": ["target"],
+            "inputs": {"context": "ctx_physics"},
+        })
+        world = FakeWorld()
+
+        result = run_worldline(wl, world)
+
+        assert isinstance(world.last_environment, Environment)
+        assert world.last_environment.context_id == "ctx_physics"
+        assert world.last_conditions == {}
+        assert result.values["target"]["value"] == 42.0
+
+    def test_run_records_transitive_dependencies(self, chained_physics_world):
+        """Two-hop derivations include the upstream claim dependency."""
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "test_transitive_deps",
+            "targets": ["force"],
+            "inputs": {"overrides": {"mass": 10.0}},
+        })
+
+        result = run_worldline(wl, chained_physics_world)
+
+        force = result.values["force"]
+        assert force["status"] == "derived"
+        assert abs(force["value"] - 98.07) < 0.1
+        assert "g_claim" in result.dependencies["claims"]
+        assert force["inputs_used"]["concept3"]["source"] == "derived"
+
 
 # ═══════════════════════════════════════════════════════════════════
 # Phase 4: Staleness detection
@@ -461,3 +641,291 @@ class TestWorldlineStaleness:
         result = run_worldline(wl, physics_world)
         for t in ["force", "acceleration"]:
             assert t in result.values
+
+
+class TestWorldlineDependencyLiveness:
+    def test_resolved_worldline_tracks_all_candidate_claims_for_staleness(self):
+        """A resolved result must stay live to all candidate claims, not just the winner."""
+        from propstore.world.types import DerivedResult, ValueResult
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        class FakeBound:
+            def __init__(self, claims):
+                self._claims = claims
+                self._bindings = {}
+
+            def value_of(self, concept_id):
+                return ValueResult(concept_id=concept_id, status="conflicted", claims=self._claims)
+
+            def derived_value(self, concept_id, override_values=None):
+                return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+            def active_claims(self, concept_id=None):
+                return list(self._claims)
+
+        class FakeWorld:
+            def __init__(self, older_claim_date):
+                self._claims = {
+                    "claim_old": {
+                        "id": "claim_old",
+                        "value": 10.0,
+                        "provenance_json": f'{{"date": "{older_claim_date}"}}',
+                        "content_hash": f"old-{older_claim_date}",
+                    },
+                    "claim_new": {
+                        "id": "claim_new",
+                        "value": 20.0,
+                        "provenance_json": '{"date": "2025-01-01"}',
+                        "content_hash": "new-2025-01-01",
+                    },
+                }
+
+            def bind(self, environment=None, *, policy=None, **conditions):
+                claims = [self._claims["claim_old"], self._claims["claim_new"]]
+                return FakeBound(claims)
+
+            def resolve_concept(self, name):
+                return "concept1" if name == "target" else None
+
+            def get_concept(self, concept_id):
+                if concept_id == "concept1":
+                    return {"id": concept_id, "canonical_name": "target"}
+                return None
+
+            def get_claim(self, claim_id):
+                return self._claims.get(claim_id)
+
+            def has_table(self, name):
+                return False
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "recency_liveness",
+            "targets": ["target"],
+            "policy": {"strategy": "recency"},
+        })
+        original_world = FakeWorld("2024-01-01")
+        changed_world = FakeWorld("2026-01-01")
+
+        result = run_worldline(wl, original_world)
+        wl.results = result
+        rerun = run_worldline(wl, changed_world)
+
+        assert rerun.values["target"]["value"] == 10.0
+        assert sorted(result.dependencies["claims"]) == ["claim_new", "claim_old"]
+        assert wl.is_stale(changed_world)
+
+    def test_argumentation_worldline_records_stance_dependencies_and_detects_staleness(self, monkeypatch):
+        """Argumentation-sensitive worldlines must record stance inputs and go stale when they flip."""
+        from propstore.world.types import DerivedResult, ValueResult
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        class FakeBound:
+            def __init__(self, claims):
+                self._claims = claims
+                self._bindings = {}
+
+            def value_of(self, concept_id):
+                return ValueResult(concept_id=concept_id, status="conflicted", claims=self._claims)
+
+            def derived_value(self, concept_id, override_values=None):
+                return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+            def active_claims(self, concept_id=None):
+                return list(self._claims)
+
+        class FakeWorld:
+            def __init__(self, winner_id, stance_type):
+                self._winner_id = winner_id
+                self._stance_type = stance_type
+                self._claims = {
+                    "claim_a": {"id": "claim_a", "value": 10.0, "content_hash": "hash-a"},
+                    "claim_b": {"id": "claim_b", "value": 20.0, "content_hash": "hash-b"},
+                }
+
+            def bind(self, environment=None, *, policy=None, **conditions):
+                claims = [self._claims["claim_a"], self._claims["claim_b"]]
+                return FakeBound(claims)
+
+            def resolve_concept(self, name):
+                return "concept1" if name == "target" else None
+
+            def get_concept(self, concept_id):
+                if concept_id == "concept1":
+                    return {"id": concept_id, "canonical_name": "target"}
+                return None
+
+            def get_claim(self, claim_id):
+                return self._claims.get(claim_id)
+
+            def has_table(self, name):
+                return name == "claim_stance"
+
+            def claims_by_ids(self, claim_ids):
+                return {cid: self._claims[cid] for cid in claim_ids if cid in self._claims}
+
+            def stances_between(self, claim_ids):
+                if {"claim_a", "claim_b"}.issubset(claim_ids):
+                    return [{
+                        "claim_id": "claim_b",
+                        "target_claim_id": "claim_a",
+                        "stance_type": self._stance_type,
+                        "confidence": 1.0,
+                        "note": f"{self._stance_type}-note",
+                    }]
+                return []
+
+        def fake_justified_claims(world, active_claim_ids, **kwargs):
+            return frozenset({world._winner_id}) & frozenset(active_claim_ids)
+
+        monkeypatch.setattr(
+            "propstore.argumentation.compute_justified_claims",
+            fake_justified_claims,
+        )
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "argumentation_liveness",
+            "targets": ["target"],
+            "policy": {"strategy": "argumentation"},
+        })
+        original_world = FakeWorld("claim_a", "rebuts")
+        changed_world = FakeWorld("claim_b", "supports")
+
+        result = run_worldline(wl, original_world)
+        wl.results = result
+
+        assert result.values["target"]["value"] == 10.0
+        assert result.dependencies["stances"]
+        assert wl.is_stale(changed_world)
+
+    def test_context_sensitive_worldline_detects_staleness_when_context_behavior_changes(self):
+        """Context-scoped worldlines must become stale when that context resolves differently."""
+        from propstore.world.types import DerivedResult, ValueResult
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        class FakeBound:
+            def __init__(self, context_id, active):
+                self._context_id = context_id
+                self._active = active
+                self._bindings = {}
+
+            def value_of(self, concept_id):
+                if self._context_id == "ctx_physics" and self._active:
+                    return ValueResult(
+                        concept_id=concept_id,
+                        status="determined",
+                        claims=[{"id": "ctx_claim", "value": 42.0, "content_hash": "ctx-live"}],
+                    )
+                return ValueResult(concept_id=concept_id, status="no_claims")
+
+            def derived_value(self, concept_id, override_values=None):
+                return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+            def active_claims(self, concept_id=None):
+                if self._context_id == "ctx_physics" and self._active:
+                    return [{"id": "ctx_claim", "value": 42.0, "content_hash": "ctx-live"}]
+                return []
+
+        class FakeWorld:
+            def __init__(self, active):
+                self._active = active
+
+            def bind(self, environment=None, *, policy=None, **conditions):
+                context_id = environment.context_id if environment is not None else None
+                return FakeBound(context_id, self._active)
+
+            def resolve_concept(self, name):
+                return "concept1" if name == "target" else None
+
+            def get_concept(self, concept_id):
+                if concept_id == "concept1":
+                    return {"id": concept_id, "canonical_name": "target"}
+                return None
+
+            def get_claim(self, claim_id):
+                if self._active and claim_id == "ctx_claim":
+                    return {"id": "ctx_claim", "value": 42.0, "content_hash": "ctx-live"}
+                return None
+
+            def has_table(self, name):
+                return False
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "context_liveness",
+            "targets": ["target"],
+            "inputs": {"context": "ctx_physics"},
+        })
+        original_world = FakeWorld(True)
+        changed_world = FakeWorld(False)
+
+        result = run_worldline(wl, original_world)
+        wl.results = result
+
+        assert result.dependencies["contexts"] == ["ctx_physics"]
+        assert wl.is_stale(changed_world)
+
+    def test_run_worldline_uses_world_interface_for_concept_lookup(self):
+        """Worldline materialization should not require a private SQLite connection."""
+        from propstore.world.types import DerivedResult, ValueResult
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        class MinimalBound:
+            def __init__(self):
+                self._bindings = {}
+
+            def value_of(self, concept_id):
+                return ValueResult(
+                    concept_id=concept_id,
+                    status="determined",
+                    claims=[{"id": "claim1", "value": 42.0, "content_hash": "claim-1"}],
+                )
+
+            def derived_value(self, concept_id, override_values=None):
+                return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+            def active_claims(self, concept_id=None):
+                return [{"id": "claim1", "value": 42.0, "content_hash": "claim-1"}]
+
+        class MinimalWorld:
+            def bind(self, environment=None, *, policy=None, **conditions):
+                return MinimalBound()
+
+            def resolve_concept(self, name):
+                return "concept1" if name == "target" else None
+
+            def get_concept(self, concept_id):
+                if concept_id == "concept1":
+                    return {"id": "concept1", "canonical_name": "target"}
+                return None
+
+            def get_claim(self, claim_id):
+                if claim_id == "claim1":
+                    return {"id": "claim1", "value": 42.0, "content_hash": "claim-1"}
+                return None
+
+            def has_table(self, name):
+                return False
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "interface_lookup",
+            "targets": ["target"],
+        })
+
+        result = run_worldline(wl, MinimalWorld())
+        assert result.values["target"]["value"] == 42.0
+
+
+class TestWorldlineCliParsing:
+    def test_parse_kv_args_coerces_scalar_bindings(self):
+        """CLI bindings preserve basic scalar types instead of stringifying all input."""
+        parsed = _parse_kv_args(("count=10", "enabled=true", "place=earth", "ratio=0.5"))
+
+        assert parsed == {
+            "count": 10,
+            "enabled": True,
+            "place": "earth",
+            "ratio": 0.5,
+        }

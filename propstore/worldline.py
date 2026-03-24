@@ -11,6 +11,8 @@ Green 2007 (provenance semirings), Groth 2010 (nanopublications).
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -199,8 +201,8 @@ class WorldlineDefinition:
     def is_stale(self, world) -> bool:
         """Check if this worldline's results are stale.
 
-        A worldline is stale if its dependency claims have changed since
-        the results were computed (content hash mismatch).
+        A worldline is stale if re-materializing it under the current world
+        produces a different fingerprint than the stored results.
         """
         if self.results is None:
             return False  # No results → not stale, just unrun
@@ -209,25 +211,33 @@ class WorldlineDefinition:
         if not stored_hash:
             return True  # No hash → assume stale
 
-        current_hash = _compute_dependency_hash(
-            world, self.results.dependencies.get("claims", []),
-        )
+        from propstore.worldline_runner import run_worldline
+
+        current_results = run_worldline(self, world)
+        current_hash = current_results.content_hash
         return current_hash != stored_hash
 
 
-def _compute_dependency_hash(world, claim_ids: list[str]) -> str:
-    """Compute a content hash over the current state of dependency claims."""
-    import hashlib
-
-    h = hashlib.sha256()
-    for cid in sorted(claim_ids):
-        claim = world.get_claim(cid)
-        if claim is not None:
-            h.update(cid.encode())
-            content_hash = claim.get("content_hash", "")
-            if content_hash:
-                h.update(str(content_hash).encode())
-            else:
-                # Fall back to value
-                h.update(str(claim.get("value", "")).encode())
-    return h.hexdigest()[:16]
+def compute_worldline_content_hash(
+    *,
+    values: dict[str, dict[str, Any]],
+    steps: list[dict[str, Any]],
+    dependencies: dict[str, list[str]],
+    sensitivity: dict[str, Any] | None,
+    argumentation: dict[str, Any] | None,
+) -> str:
+    """Compute a deterministic fingerprint for materialized worldline content."""
+    payload = {
+        "values": values,
+        "steps": steps,
+        "dependencies": dependencies,
+        "sensitivity": sensitivity,
+        "argumentation": argumentation,
+    }
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()[:16]

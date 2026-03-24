@@ -24,10 +24,15 @@ future work.
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import datetime, timezone
 from typing import Any
 
-from propstore.worldline import WorldlineDefinition, WorldlineResult
+from propstore.worldline import (
+    WorldlineDefinition,
+    WorldlineResult,
+    compute_worldline_content_hash,
+)
 
 
 def run_worldline(
@@ -49,11 +54,9 @@ def run_worldline(
         The answer — values, steps, dependencies, content hash.
     """
     from propstore.world import (
-        HypotheticalWorld,
+        Environment,
         RenderPolicy,
         ResolutionStrategy,
-        SyntheticClaim,
-        resolve,
     )
 
     # ── 1. Build the query environment ─────────────────────────────
@@ -73,7 +76,8 @@ def run_worldline(
     )
 
     # Bind the world with conditions and context
-    bound = world.bind(context_id=context_id, policy=policy, **bindings)
+    environment = Environment(bindings=bindings, context_id=context_id)
+    bound = world.bind(environment, policy=policy)
 
     # ── 2. Resolve override concept names to IDs ─────────────────
     # Overrides are handled via override_values in derived_value(),
@@ -111,9 +115,19 @@ def run_worldline(
         if concept_id is not None:
             target_map[target] = concept_id
 
-    # Single-pass resolution: derived_value now recursively resolves
-    # inputs via parameterization chains (value_resolver.py), so each
-    # target resolves in one call regardless of chain depth.
+    # Pre-resolve conflicted concepts that may be needed as derivation
+    # inputs. derived_value can recursively derive undetermined inputs,
+    # but it can't resolve conflicted ones (it has no access to policy).
+    # This pass uses the resolution strategy to settle conflicts before
+    # derivation, adding resolved values to override_concept_ids.
+    if strategy is not None:
+        _pre_resolve_conflicts(
+            query_world, world, target_map, override_concept_ids,
+            policy, dependency_claims, all_steps,
+        )
+
+    # Main pass: resolve each target using claims, overrides, resolution,
+    # and recursive derivation (value_resolver.py).
     for target_name, concept_id in target_map.items():
         result_entry = _resolve_target(
             query_world, world, concept_id, target_name,
@@ -160,6 +174,7 @@ def run_worldline(
 
     # ── 5. Argumentation state (if strategy=argumentation) ─────
     argumentation_state: dict[str, Any] | None = None
+    stance_dependencies: list[str] = []
     if strategy is not None and strategy.value == "argumentation":
         try:
             from propstore.argumentation import compute_justified_claims
@@ -177,28 +192,112 @@ def run_worldline(
                     "justified": sorted(justified),
                     "defeated": sorted(defeated),
                 }
-                # Track stance dependencies
-                for cid in justified | defeated:
+                for cid in active_ids:
                     dependency_claims.add(cid)
+                if hasattr(world, "stances_between"):
+                    stance_rows = world.stances_between(active_ids)
+                    stance_dependencies = sorted(
+                        _stance_dependency_key(row)
+                        for row in stance_rows
+                    )
         except Exception:
             pass  # Argumentation capture is optional
 
     # ── 6. Compute dependency hash ─────────────────────────────────
-    content_hash = _compute_hash(world, sorted(dependency_claims))
+    context_dependencies = _context_dependencies(bound, context_id)
+    dependencies = {
+        "claims": sorted(dependency_claims),
+        "stances": stance_dependencies,
+        "contexts": context_dependencies,
+    }
+    content_hash = compute_worldline_content_hash(
+        values=values,
+        steps=all_steps,
+        dependencies=dependencies,
+        sensitivity=sensitivity_results,
+        argumentation=argumentation_state,
+    )
 
     return WorldlineResult(
         computed=datetime.now(timezone.utc).isoformat(),
         content_hash=content_hash,
         values=values,
         steps=all_steps,
-        dependencies={
-            "claims": sorted(dependency_claims),
-            "stances": [],
-            "contexts": [context_id] if context_id else [],
-        },
+        dependencies=dependencies,
         sensitivity=sensitivity_results,
         argumentation=argumentation_state,
     )
+
+
+def _pre_resolve_conflicts(
+    query_world,
+    world,
+    target_map: dict[str, str],
+    override_concept_ids: dict[str, float | str],
+    policy,
+    dependency_claims: set[str],
+    all_steps: list[dict[str, Any]],
+) -> None:
+    """Resolve conflicted concepts that derivation chains may need as inputs.
+
+    Walks the parameterization graph from each target, collecting all
+    input concepts. For any that are conflicted and not already overridden,
+    applies the resolution strategy and adds the resolved value to
+    override_concept_ids so derived_value can use it.
+
+    This is necessary because ActiveClaimResolver.derived_value() can
+    recursively derive undetermined inputs but cannot resolve conflicted
+    ones (it has no access to resolution policy).
+    """
+    import json
+
+    from propstore.world import resolve
+
+    # Collect all concepts reachable via parameterization from targets
+    needs_check: set[str] = set()
+    visited: set[str] = set()
+    queue = list(target_map.values())
+
+    while queue:
+        cid = queue.pop()
+        if cid in visited:
+            continue
+        visited.add(cid)
+        needs_check.add(cid)
+
+        # Find parameterization inputs for this concept
+        if hasattr(world, 'parameterizations_for'):
+            for param in world.parameterizations_for(cid):
+                input_ids = json.loads(param["concept_ids"])
+                for iid in input_ids:
+                    if iid != cid and iid not in visited:
+                        queue.append(iid)
+
+    # Resolve any conflicted concepts
+    for cid in needs_check:
+        if cid in override_concept_ids:
+            continue
+
+        vr = query_world.value_of(cid)
+        if vr.status == "conflicted":
+            rr = resolve(query_world, cid, policy=policy, world=world)
+            if rr.status == "resolved" and rr.value is not None:
+                override_concept_ids[cid] = rr.value
+                for claim in rr.claims:
+                    claim_id = claim.get("id")
+                    if claim_id and not claim_id.startswith("__override_"):
+                        dependency_claims.add(claim_id)
+
+                concept = world.get_concept(cid)
+                cname = concept["canonical_name"] if concept else cid
+                all_steps.append({
+                    "concept": cname,
+                    "value": rr.value,
+                    "source": "resolved",
+                    "strategy": rr.strategy,
+                    "reason": rr.reason,
+                    "claim_id": rr.winning_claim_id,
+                })
 
 
 def _concept_name(world, concept_id: str) -> str:
@@ -209,23 +308,30 @@ def _concept_name(world, concept_id: str) -> str:
 
 def _resolve_concept_name(world, name: str) -> str | None:
     """Resolve a canonical name or alias to a concept ID."""
+    if hasattr(world, "resolve_concept"):
+        resolved = world.resolve_concept(name)
+        if resolved:
+            return resolved
+
     # Try alias first
-    resolved = world.resolve_alias(name)
-    if resolved:
-        return resolved
+    if hasattr(world, "resolve_alias"):
+        resolved = world.resolve_alias(name)
+        if resolved:
+            return resolved
 
     # Try as concept ID directly
-    concept = world.get_concept(name)
-    if concept:
-        return name
+    if hasattr(world, "get_concept"):
+        concept = world.get_concept(name)
+        if concept:
+            return name
 
-    # Try canonical name lookup via concept table
-    conn = world._conn
-    row = conn.execute(
-        "SELECT id FROM concept WHERE canonical_name = ?", (name,)
-    ).fetchone()
-    if row:
-        return row["id"]
+    if hasattr(world, "_conn"):
+        row = world._conn.execute(
+            "SELECT id FROM concept WHERE canonical_name = ?",
+            (name,),
+        ).fetchone()
+        if row:
+            return row["id"]
 
     return None
 
@@ -241,7 +347,7 @@ def _resolve_target(
     all_steps: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Resolve a single target concept to a value result."""
-    from propstore.world import DerivedResult, ResolutionStrategy, resolve
+    from propstore.world import resolve
 
     # Check if this concept is overridden
     if concept_id in override_values:
@@ -274,8 +380,10 @@ def _resolve_target(
     if vr.status == "conflicted" and policy.strategy is not None:
         rr = resolve(query_world, concept_id, policy=policy, world=world)
         if rr.status == "resolved" and rr.value is not None:
-            if rr.winning_claim_id:
-                dependency_claims.add(rr.winning_claim_id)
+            for claim in rr.claims:
+                claim_id = claim.get("id")
+                if claim_id and not claim_id.startswith("__override_"):
+                    dependency_claims.add(claim_id)
             all_steps.append({
                 "concept": target_name,
                 "value": rr.value,
@@ -303,26 +411,15 @@ def _resolve_target(
         inputs_used: dict[str, dict[str, Any]] = {}
         if dr.input_values:
             for input_cid, input_val in dr.input_values.items():
-                # Check if this input came from an override or a claim
-                if input_cid in override_values:
-                    # Find the canonical name for this concept ID
-                    concept = world.get_concept(input_cid)
-                    cname = concept["canonical_name"] if concept else input_cid
-                    inputs_used[input_cid] = {"value": input_val, "source": "override"}
-                else:
-                    # This came from a claim — track the dependency
-                    input_vr = query_world.value_of(input_cid)
-                    if input_vr.claims:
-                        input_claim_id = input_vr.claims[0].get("id")
-                        if input_claim_id and not input_claim_id.startswith("__override_"):
-                            dependency_claims.add(input_claim_id)
-                        inputs_used[input_cid] = {
-                            "value": input_val,
-                            "source": "claim",
-                            "claim_id": input_claim_id,
-                        }
-                    else:
-                        inputs_used[input_cid] = {"value": input_val, "source": "unknown"}
+                inputs_used[input_cid] = _trace_input_source(
+                    query_world,
+                    world,
+                    input_cid,
+                    override_values,
+                    policy,
+                    dependency_claims,
+                )
+                inputs_used[input_cid].setdefault("value", input_val)
 
         all_steps.append({
             "concept": target_name,
@@ -389,10 +486,15 @@ def _resolve_target(
             inputs_used = {}
             if hasattr(cr, 'input_values') and cr.input_values:
                 for k, v in cr.input_values.items():
-                    if k in override_values:
-                        inputs_used[k] = {"value": v, "source": "override"}
-                    else:
-                        inputs_used[k] = {"value": v, "source": "chain"}
+                    inputs_used[k] = _trace_input_source(
+                        query_world,
+                        world,
+                        k,
+                        override_values,
+                        policy,
+                        dependency_claims,
+                    )
+                    inputs_used[k].setdefault("value", v)
 
             return {
                 "status": "derived",
@@ -426,6 +528,97 @@ def _resolve_target(
     }
 
 
+def _trace_input_source(
+    query_world,
+    world,
+    concept_id: str,
+    override_values: dict[str, float | str],
+    policy,
+    dependency_claims: set[str],
+    seen: set[str] | None = None,
+) -> dict[str, Any]:
+    """Trace where an input value came from, recursing through derived inputs."""
+    from propstore.world import resolve
+
+    if concept_id in override_values:
+        return {
+            "value": override_values[concept_id],
+            "source": "override",
+        }
+
+    if seen is None:
+        seen = set()
+    if concept_id in seen:
+        return {"source": "cycle"}
+    seen.add(concept_id)
+
+    try:
+        vr = query_world.value_of(concept_id)
+        if vr.status == "determined":
+            claim = vr.claims[0] if vr.claims else {}
+            claim_id = claim.get("id")
+            if claim_id and not claim_id.startswith("__override_"):
+                dependency_claims.add(claim_id)
+            result = {
+                "value": claim.get("value"),
+                "source": "claim",
+            }
+            if claim_id:
+                result["claim_id"] = claim_id
+            return result
+
+        if vr.status == "conflicted" and policy.strategy is not None:
+            rr = resolve(query_world, concept_id, policy=policy, world=world)
+            if rr.status == "resolved" and rr.value is not None:
+                for claim in rr.claims:
+                    claim_id = claim.get("id")
+                    if claim_id and not claim_id.startswith("__override_"):
+                        dependency_claims.add(claim_id)
+                result = {
+                    "value": rr.value,
+                    "source": "resolved",
+                    "strategy": rr.strategy,
+                }
+                if rr.winning_claim_id:
+                    result["claim_id"] = rr.winning_claim_id
+                if rr.reason:
+                    result["reason"] = rr.reason
+                return result
+
+        float_overrides = {
+            key: float(val)
+            for key, val in override_values.items()
+            if isinstance(val, (int, float))
+        }
+        dr = query_world.derived_value(concept_id, override_values=float_overrides)
+        if dr.status == "derived" and dr.value is not None:
+            nested_inputs: dict[str, dict[str, Any]] = {}
+            for input_cid, input_val in dr.input_values.items():
+                nested_inputs[input_cid] = _trace_input_source(
+                    query_world,
+                    world,
+                    input_cid,
+                    override_values,
+                    policy,
+                    dependency_claims,
+                    seen,
+                )
+                nested_inputs[input_cid].setdefault("value", input_val)
+            result = {
+                "value": dr.value,
+                "source": "derived",
+            }
+            if dr.formula:
+                result["formula"] = dr.formula
+            if nested_inputs:
+                result["inputs_used"] = nested_inputs
+            return result
+
+        return {"source": "unknown"}
+    finally:
+        seen.discard(concept_id)
+
+
 def _compute_hash(world, claim_ids: list[str]) -> str:
     """Compute a content hash over the current state of dependency claims.
 
@@ -444,3 +637,26 @@ def _compute_hash(world, claim_ids: list[str]) -> str:
             else:
                 h.update(str(claim.get("value", "")).encode())
     return h.hexdigest()[:16]
+
+
+def _stance_dependency_key(row: dict[str, Any]) -> str:
+    """Serialize a stance row into a stable dependency key."""
+    return json.dumps(
+        {key: row.get(key) for key in sorted(row)},
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    )
+
+
+def _context_dependencies(bound, context_id: str | None) -> list[str]:
+    """Collect context-scoped inputs that affect a worldline materialization."""
+    if not context_id:
+        return []
+
+    dependencies = [context_id]
+    environment = getattr(bound, "_environment", None)
+    assumptions = getattr(environment, "effective_assumptions", ())
+    for assumption in assumptions:
+        dependencies.append(f"assumption:{assumption}")
+    return dependencies

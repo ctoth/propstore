@@ -186,6 +186,22 @@ class WorldModel(ArtifactStore):
         ).fetchone()
         return row["concept_id"] if row else None
 
+    def resolve_concept(self, name: str) -> str | None:
+        """Resolve a concept by alias, ID, or canonical name."""
+        resolved = self.resolve_alias(name)
+        if resolved:
+            return resolved
+
+        concept = self.get_concept(name)
+        if concept:
+            return name
+
+        row = self._conn.execute(
+            "SELECT id FROM concept WHERE canonical_name = ?",
+            (name,),
+        ).fetchone()
+        return row["id"] if row else None
+
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if not self._has_table("claim"):
             return []

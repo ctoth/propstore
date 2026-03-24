@@ -8,7 +8,6 @@ Detects PARAM_CONFLICT via single-hop and multi-hop parameterization chains:
 from __future__ import annotations
 
 import enum
-import functools
 import warnings
 from collections import defaultdict
 from collections.abc import Sequence
@@ -35,6 +34,17 @@ class _Sentinel(enum.Enum):
 
 
 _INCOHERENT_CONTEXT = _Sentinel.INCOHERENT_CONTEXT
+
+
+def _representative_source_claim_id(source_ids: Sequence[str]) -> str:
+    """Choose a stable concrete claim id for conflict records.
+
+    Conflict records store a single `claim_b_id` with a foreign-key constraint,
+    while parameterized derivations may depend on multiple source claims.
+    We keep the full chain in `derivation_chain` and use the first source claim
+    as the representative edge endpoint.
+    """
+    return source_ids[0]
 
 
 def _merge_contexts_for_derivation(
@@ -77,16 +87,7 @@ def _detect_param_conflicts(
     - Use SymPy to compute derived value
     - Compare with direct claims for the output concept
     """
-    try:
-        from sympy import Symbol as _Symbol, SympifyError
-        from sympy.parsing.sympy_parser import parse_expr as _parse_expr
-    except ImportError:
-        return  # SymPy not available, skip param conflict detection
-
-    @functools.lru_cache(maxsize=128)
-    def _cached_parse(expr_str: str, input_ids: tuple[str, ...]):
-        symbols = {inp_id: _Symbol(inp_id) for inp_id in input_ids}
-        return _parse_expr(expr_str, local_dict=symbols)
+    from propstore.propagation import evaluate_parameterization
 
     # Rebuild by_concept from all claim files if needed (may already have it)
     all_param_claims = by_concept
@@ -147,9 +148,14 @@ def _detect_param_conflicts(
             # Evaluate the SymPy expression
             try:
                 assert isinstance(sympy_expr_str, str)
-                expr = _cached_parse(sympy_expr_str, tuple(inputs))
-                derived_value = float(expr.subs(input_values))
-            except (SympifyError, TypeError, ValueError, ZeroDivisionError, AssertionError):
+                derived_value = evaluate_parameterization(
+                    sympy_expr_str,
+                    input_values,
+                    concept_id,
+                )
+                if derived_value is None:
+                    raise ValueError("parameterization evaluation returned no result")
+            except (TypeError, ValueError, ZeroDivisionError, AssertionError, ImportError):
                 # SymPy can't simplify -> warn, don't error
                 warnings.warn(
                     f"Could not evaluate parameterization for {concept_id}: {sympy_expr_str}",
@@ -175,7 +181,9 @@ def _detect_param_conflicts(
                 records.append(ConflictRecord(
                     concept_id=concept_id,
                     claim_a_id=direct_claim["id"],
-                    claim_b_id="+".join(input_claim_ids[inp] for inp in inputs),
+                    claim_b_id=_representative_source_claim_id(
+                        [input_claim_ids[inp] for inp in inputs]
+                    ),
                     warning_class=ConflictClass.PARAM_CONFLICT,
                     conditions_a=sorted(direct_claim.get("conditions") or []),
                     conditions_b=[],
@@ -410,7 +418,7 @@ def detect_transitive_conflicts(
                         records.append(ConflictRecord(
                             concept_id=cid,
                             claim_a_id=direct_claim_id,
-                            claim_b_id="+".join(src_ids),
+                            claim_b_id=_representative_source_claim_id(src_ids),
                             warning_class=context_class,
                             conditions_a=direct_conds,
                             conditions_b=derived_conds,
@@ -423,7 +431,7 @@ def detect_transitive_conflicts(
                     records.append(ConflictRecord(
                         concept_id=cid,
                         claim_a_id=direct_claim_id,
-                        claim_b_id="+".join(src_ids),
+                        claim_b_id=_representative_source_claim_id(src_ids),
                         warning_class=ConflictClass.PARAM_CONFLICT,
                         conditions_a=direct_conds,
                         conditions_b=derived_conds,
