@@ -1137,8 +1137,13 @@ def _resolve_algorithm_storage(
     stage = claim.get("stage")
     canonical_ast = None
     if body:
-        variables = claim.get("variables", {}) or {}
-        bindings = variables if isinstance(variables, dict) else {}
+        variables = claim.get("variables") or []
+        bindings = (
+            {v["name"]: v.get("concept", "") for v in variables if isinstance(v, dict) and v.get("name")}
+            if isinstance(variables, list)
+            else variables if isinstance(variables, dict)
+            else {}
+        )
         canonical_ast = canonical_dump(body, bindings)
     raw_vars = claim.get("variables")
     variables_json = json.dumps(raw_vars) if raw_vars else None

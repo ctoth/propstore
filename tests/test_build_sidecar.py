@@ -1320,6 +1320,65 @@ class TestAlgorithmClaim:
         conn.close()
 
 
+class TestAlgorithmBindings:
+    """Regression: algorithm claims with list-of-dict variables must produce
+    canonical AST that includes the concept bindings (not empty bindings)."""
+
+    def test_algorithm_canonical_ast_includes_bindings(
+        self, concept_dir, sidecar_path,
+    ):
+        """When variables is a list of dicts (per schema), canonical_ast must
+        contain the concept names from the bindings, not the raw variable names."""
+        claims_dir = concept_dir / "claims_algo_bindings"
+        claims_dir.mkdir(exist_ok=True)
+
+        algo_paper = {
+            "source": {"paper": "algo_bindings_paper"},
+            "claims": [
+                {
+                    "id": "algo_bind_claim1",
+                    "type": "algorithm",
+                    "body": "def compute(x):\n    return x * 2\n",
+                    "stage": "excitation",
+                    "variables": [
+                        {"name": "x", "concept": "concept1"},
+                    ],
+                    "provenance": {"paper": "algo_bindings_paper", "page": 1},
+                },
+            ],
+        }
+        (claims_dir / "algo_bindings_paper.yaml").write_text(
+            yaml.dump(algo_paper, default_flow_style=False)
+        )
+
+        from propstore.validate_claims import load_claim_files
+        claim_files = load_claim_files(claims_dir)
+
+        concepts = load_concepts(concept_dir)
+        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+        build_sidecar(
+            concepts, sidecar_path, force=True,
+            claim_files=claim_files,
+            concept_registry=concept_registry,
+        )
+
+        conn = sqlite3.connect(sidecar_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT canonical_ast FROM claim WHERE id='algo_bind_claim1'"
+        ).fetchone()
+        conn.close()
+
+        assert row is not None, "algorithm claim must be stored"
+        ast_text = row["canonical_ast"]
+        assert ast_text is not None, "canonical_ast must not be None"
+        # With correct bindings, 'x' should be replaced by 'concept1'
+        assert "concept1" in ast_text, (
+            f"canonical_ast should contain concept binding 'concept1' "
+            f"but got: {ast_text}"
+        )
+
+
 class TestClaimInsertRow:
     def test_prepare_claim_insert_row_returns_dict(self):
         """_prepare_claim_insert_row should return a dict with named columns."""
