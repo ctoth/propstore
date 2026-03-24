@@ -12,6 +12,7 @@ dependencies = [
     "z3-solver>=4.12",
     "graphviz>=0.20",
     "ast-equiv",
+    "bridgman",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +37,7 @@ venv = ".venv"
 
 [tool.uv.sources]
 ast-equiv = { path = "../ast-equiv" }
+bridgman = { git = "https://github.com/ctoth/bridgman" }
 
 [dependency-groups]
 dev = [

@@ -13,6 +13,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from bridgman import dims_equal
+
 
 # ── Types ────────────────────────────────────────────────────────────
 
@@ -95,8 +97,4 @@ def dimensions_compatible(unit_dims: Dimensions, form_dims: Dimensions) -> bool:
     Both are dicts like {"M": 1, "L": -1, "T": -2}. Empty dict = dimensionless.
     Missing keys are treated as exponent 0.
     """
-    all_keys = set(unit_dims.keys()) | set(form_dims.keys())
-    for k in all_keys:
-        if unit_dims.get(k, 0) != form_dims.get(k, 0):
-            return False
-    return True
+    return dims_equal(unit_dims, form_dims)

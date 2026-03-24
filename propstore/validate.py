@@ -11,9 +11,11 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from itertools import product
 from pathlib import Path
 
 import yaml
+from bridgman import mul_dims, div_dims, dims_equal, format_dims
 
 from propstore.cel_checker import (
     ConceptInfo,
@@ -289,34 +291,60 @@ def validate_concepts(
                             f"{c.filename}: parameterization input '{input_id}' "
                             f"must be quantity kind (is {input_kind.value})")
 
-            # ── Form compatibility heuristics ────────────────────
+            # ── Dimensional compatibility (bridgman) ─────────────
             forms_dir = _forms_dir(c)
             output_form_def = load_form(forms_dir, data.get("form"))
             if output_form_def is not None and len(inputs) >= 2:
-                input_form_names: list[str] = []
+                input_form_defs = []
                 for inp_id in inputs:
                     inp_c = id_to_concept.get(inp_id)
                     if inp_c is not None:
                         inp_fd = load_form(forms_dir, inp_c.data.get("form"))
                         if inp_fd is not None:
-                            input_form_names.append(inp_fd.name)
-                if len(input_form_names) == len(inputs) and input_form_names:
-                    unique_input_forms = set(input_form_names)
-                    # All inputs same form but output different → warn
-                    if (len(unique_input_forms) == 1
-                            and input_form_names[0] != output_form_def.name):
-                        result.warnings.append(
-                            f"{c.filename}: all inputs share form '{input_form_names[0]}' "
-                            f"but output has form '{output_form_def.name}' — "
-                            f"possible dimensional mismatch")
-                    # Mixed input forms but output is not dimensionless → warn
-                    elif (len(unique_input_forms) > 1
-                          and not output_form_def.is_dimensionless):
-                        result.warnings.append(
-                            f"{c.filename}: inputs have mixed forms "
-                            f"{sorted(unique_input_forms)} but output form "
-                            f"'{output_form_def.name}' is not dimensionless — "
-                            f"possible dimensional mismatch")
+                            input_form_defs.append(inp_fd)
+                if len(input_form_defs) == len(inputs) and input_form_defs:
+                    input_dims = [fd.dimensions for fd in input_form_defs]
+                    output_dims = output_form_def.dimensions
+                    if output_dims is not None and all(d is not None for d in input_dims):
+                        # Real dimensional verification: try all mul/div
+                        # combinations for the N-1 operations between inputs
+                        ops = [mul_dims, div_dims]
+                        found_valid = False
+                        for op_combo in product(ops, repeat=len(input_dims) - 1):
+                            result_dims = input_dims[0]
+                            for op, next_dims in zip(op_combo, input_dims[1:]):
+                                result_dims = op(result_dims, next_dims)
+                            if dims_equal(result_dims, output_dims):
+                                found_valid = True
+                                break
+                        if not found_valid:
+                            input_strs = [
+                                f"'{fd.name}' {format_dims(fd.dimensions)}"
+                                for fd in input_form_defs
+                            ]
+                            result.warnings.append(
+                                f"{c.filename}: no combination of mul/div on inputs "
+                                f"[{', '.join(input_strs)}] produces output "
+                                f"'{output_form_def.name}' {format_dims(output_dims)} — "
+                                f"dimensional mismatch")
+                    else:
+                        # Fall back to name-based heuristic when dimensions
+                        # are missing from any form
+                        input_form_names = [fd.name for fd in input_form_defs]
+                        unique_input_forms = set(input_form_names)
+                        if (len(unique_input_forms) == 1
+                                and input_form_names[0] != output_form_def.name):
+                            result.warnings.append(
+                                f"{c.filename}: all inputs share form '{input_form_names[0]}' "
+                                f"but output has form '{output_form_def.name}' — "
+                                f"possible dimensional mismatch")
+                        elif (len(unique_input_forms) > 1
+                              and not output_form_def.is_dimensionless):
+                            result.warnings.append(
+                                f"{c.filename}: inputs have mixed forms "
+                                f"{sorted(unique_input_forms)} but output form "
+                                f"'{output_form_def.name}' is not dimensionless — "
+                                f"possible dimensional mismatch")
 
             # conditional exactness must have conditions
             if param.get("exactness") == "conditional":
