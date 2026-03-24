@@ -1,4 +1,9 @@
-"""Resolution strategy helpers for conflicted concepts."""
+"""Resolution helpers for conflicted concepts.
+
+`ResolutionStrategy` chooses a winner among active claims after the active
+belief space has already been computed by the configured reasoning backend.
+Run 1 keeps the existing claim-graph backend as the default.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +12,7 @@ import json
 from propstore.world.types import (
     ArtifactStore,
     BeliefSpace,
+    ReasoningBackend,
     RenderPolicy,
     ResolvedResult,
     ResolutionStrategy,
@@ -48,41 +54,42 @@ def _resolve_sample_size(claims: list[dict]) -> tuple[str | None, str | None]:
     return best_id, f"largest sample_size: {best_n}"
 
 
-def _resolve_argumentation(
-    claims: list[dict],
+def _resolve_claim_graph_argumentation(
+    target_claims: list[dict],
+    active_claims: list[dict],
     world: ArtifactStore,
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
     confidence_threshold: float = 0.5,
 ) -> tuple[str | None, str | None]:
-    """Resolve using ASPIC+ argumentation semantics.
+    """Resolve in the current claim-graph backend.
 
-    Builds a Dung AF from the stance graph filtered through preference
-    ordering, computes the grounded extension, and picks the surviving
-    claim (if exactly one survives for this concept).
+    The AF is built over the whole active belief space, then projected back
+    to the target concept's active claims.
     """
     from propstore.argumentation import compute_justified_claims
 
     if not world.has_table("claim_stance"):
         return None, "no stance data"
 
-    claim_ids = {c["id"] for c in claims}
+    active_ids = {c["id"] for c in active_claims}
+    target_ids = {c["id"] for c in target_claims}
     result = compute_justified_claims(
-        world, claim_ids,
+        world, active_ids,
         semantics=semantics,
         comparison=comparison,
         confidence_threshold=confidence_threshold,
     )
 
     if isinstance(result, frozenset):
-        survivors = result & claim_ids
+        survivors = result & target_ids
     else:
         # For preferred/stable, take intersection across all extensions
         if not result:
             survivors = frozenset()
         else:
-            survivors = frozenset.intersection(*result) & claim_ids
+            survivors = frozenset.intersection(*result) & target_ids
 
     if len(survivors) == 0:
         return None, "all claims defeated"
@@ -100,6 +107,7 @@ def resolve(
     *,
     world: ArtifactStore | None = None,
     overrides: dict[str, str] | None = None,
+    reasoning_backend: ReasoningBackend | None = None,
     semantics: str | None = None,
     comparison: str | None = None,
     confidence_threshold: float | None = None,
@@ -128,6 +136,8 @@ def resolve(
             strategy = policy.concept_strategies.get(concept_id, policy.strategy)
         if overrides is None:
             overrides = dict(policy.overrides)
+        if reasoning_backend is None:
+            reasoning_backend = policy.reasoning_backend
         if semantics is None:
             semantics = policy.semantics
         if comparison is None:
@@ -135,6 +145,8 @@ def resolve(
         if confidence_threshold is None:
             confidence_threshold = policy.confidence_threshold
 
+    if reasoning_backend is None:
+        reasoning_backend = ReasoningBackend.CLAIM_GRAPH
     if semantics is None:
         semantics = "grounded"
     if comparison is None:
@@ -180,8 +192,14 @@ def resolve(
                 concept_id=concept_id, status="conflicted",
                 claims=active, reason="argumentation strategy requires an explicit artifact store",
             )
-        winner_id, reason = _resolve_argumentation(
-            active, world,
+        if reasoning_backend != ReasoningBackend.CLAIM_GRAPH:
+            raise NotImplementedError(
+                f"Reasoning backend '{reasoning_backend.value}' is not implemented"
+            )
+        winner_id, reason = _resolve_claim_graph_argumentation(
+            active,
+            view.active_claims(),
+            world,
             semantics=semantics,
             comparison=comparison,
             confidence_threshold=confidence_threshold,
