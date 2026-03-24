@@ -156,6 +156,7 @@ class ChainResult:
     result: ValueResult | DerivedResult
     steps: list[ChainStep] = field(default_factory=list)
     bindings_used: dict[str, Any] = field(default_factory=dict)
+    unresolved_dependencies: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

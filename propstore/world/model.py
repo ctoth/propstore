@@ -531,6 +531,7 @@ class WorldModel(ArtifactStore):
         steps: list[ChainStep] = []
         resolved_values: dict[str, float | str | None] = {}
         visited: set[str] = set()
+        unresolved_conflicted: list[str] = []
 
         # Record initial bindings as steps
         for key, value in bindings.items():
@@ -570,6 +571,10 @@ class WorldModel(ArtifactStore):
                         changed = True
                         continue
 
+                # Track conflicted concepts that could not be resolved
+                if vr.status == "conflicted" and cid not in unresolved_conflicted:
+                    unresolved_conflicted.append(cid)
+
                 # Try derived_value
                 dr = bound.derived_value(cid, override_values=resolved_values)
                 if dr.status == "derived" and dr.value is not None:
@@ -602,4 +607,5 @@ class WorldModel(ArtifactStore):
             result=result,
             steps=steps,
             bindings_used=bindings,
+            unresolved_dependencies=unresolved_conflicted,
         )
