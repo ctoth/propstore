@@ -118,6 +118,34 @@ def binding_condition_to_cel(key: str, value: Any) -> str:
     return f"{key} == {value}"
 
 
+def cel_to_binding(cel: str) -> tuple[str, Any] | None:
+    """Reverse of binding_condition_to_cel: parse 'key == value' back to (key, value).
+
+    Returns None if the CEL expression is not a simple binding equality.
+    """
+    parts = cel.split(" == ", 1)
+    if len(parts) != 2:
+        return None
+    key, raw = parts[0].strip(), parts[1].strip()
+    if not key:
+        return None
+    # String literal: 'value'
+    if raw.startswith("'") and raw.endswith("'"):
+        return (key, raw[1:-1])
+    # Boolean
+    if raw == "true":
+        return (key, True)
+    if raw == "false":
+        return (key, False)
+    # Numeric
+    try:
+        if "." in raw:
+            return (key, float(raw))
+        return (key, int(raw))
+    except ValueError:
+        return None
+
+
 def compile_environment_assumptions(
     *,
     bindings: Mapping[str, Any],

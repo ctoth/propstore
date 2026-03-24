@@ -845,6 +845,35 @@ def test_run5_future_audit_pins_rebuilt_bound_world_substrate() -> None:
     assert future_report["consistent"] is True
 
 
+def test_future_engine_includes_queryable_bindings_in_environment() -> None:
+    """Future engine must propagate queryable CEL bindings into environment.bindings."""
+    store = _ATMSStore(
+        claims=[
+            {
+                "id": "claim_future",
+                "concept_id": "concept2",
+                "type": "parameter",
+                "value": 2.0,
+                "conditions_cel": json.dumps(["x == 1", "y == 2"]),
+            },
+        ],
+    )
+    bound = _make_bound(store, bindings={"x": 1})
+    engine = bound.atms_engine()
+    queryable = QueryableAssumption.from_cel("y == 2")
+
+    future_engine = engine._future_engine((queryable,))
+    future_bindings = future_engine._bound._environment.bindings
+
+    # The original binding must survive
+    assert future_bindings.get("x") == 1
+    # The queryable's binding must be present
+    assert "y" in future_bindings, (
+        f"queryable binding 'y' missing from future environment.bindings: {dict(future_bindings)}"
+    )
+    assert future_bindings["y"] == 2
+
+
 def test_run5_future_audit_surfaces_missing_support_nogood_and_future_activation() -> None:
     store = _ATMSStore(
         claims=[

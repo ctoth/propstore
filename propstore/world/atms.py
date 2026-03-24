@@ -25,6 +25,7 @@ from propstore.world.labelled import (
     EnvironmentKey,
     Label,
     NogoodSet,
+    cel_to_binding,
     combine_labels,
     merge_labels,
 )
@@ -1130,8 +1131,15 @@ class ATMSEngine:
                 + tuple(queryable.cel for queryable in queryable_set)
             )
         )
+        future_bindings = dict(self._bound._environment.bindings)
+        for queryable in queryable_set:
+            parsed = cel_to_binding(queryable.cel)
+            if parsed is not None:
+                key, value = parsed
+                future_bindings[key] = value
         future_environment = replace(
             self._bound._environment,
+            bindings=future_bindings,
             effective_assumptions=future_effective_assumptions,
             assumptions=future_assumptions,
         )
