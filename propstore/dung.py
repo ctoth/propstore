@@ -152,7 +152,7 @@ def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
 
 
 def complete_extensions(
-    framework: ArgumentationFramework, *, backend: str = "brute_force"
+    framework: ArgumentationFramework, *, backend: str = "z3"
 ) -> list[frozenset[str]]:
     """Compute all complete extensions.
 
@@ -181,7 +181,7 @@ def complete_extensions(
 
 
 def preferred_extensions(
-    framework: ArgumentationFramework, *, backend: str = "brute_force"
+    framework: ArgumentationFramework, *, backend: str = "z3"
 ) -> list[frozenset[str]]:
     """Compute all preferred extensions.
 
@@ -203,7 +203,7 @@ def preferred_extensions(
 
 
 def stable_extensions(
-    framework: ArgumentationFramework, *, backend: str = "brute_force"
+    framework: ArgumentationFramework, *, backend: str = "z3"
 ) -> list[frozenset[str]]:
     """Compute all stable extensions.
 
