@@ -1,24 +1,27 @@
-# Review Fixes Session Notes
+# Session Notes — Unit-Aware Propagation
 
-## CURRENT TOPIC: Unit-Aware Propagation Design
+## GOAL
+Wire unit conversion through propstore's propagation system. f64. Handle multiplicative, affine, logarithmic conversions.
 
-### Forms Directory Investigation
-- `C:\Users\Q\code\propstore\forms\` — 37 seed form YAMLs with `common_alternatives` + multipliers. Used by `pks init` to seed new knowledge bases.
-- `C:\Users\Q\code\propstore\knowledge\forms\` — 16 form YAMLs, the ACTUAL forms the build uses. No multipliers. This is `repo.forms_dir`.
-- `Repository._root` = `C:\Users\Q\code\propstore\knowledge\` (confirmed from repository.py docstring + line 19)
-- `repo.forms_dir` = `C:\Users\Q\code\propstore\knowledge\forms\` (line 36)
-- The seed directory at `C:\Users\Q\code\propstore\forms\` is ONLY referenced by `pks init` (init.py:25)
-- **The conversion multipliers are in the seed forms but NOT in the knowledge base forms.** Either `pks init` strips them during copy, or the seed forms were enriched after init ran.
+## ARCHITECTURE (finally understood)
+- `C:\Users\Q\code\propstore\` = propstore tool source repo
+- `C:\Users\Q\code\propstore\knowledge\` = a propstore PROJECT (data managed by the tool, not part of it)
+- `C:\Users\Q\code\propstore\propstore\_resources\forms\` = canonical form definitions shipped with the package (just moved here from root forms/)
+- `C:\Users\Q\code\propstore\knowledge\forms\` = user's project forms (seeded by pks init from _resources)
+- Conversion multipliers are in `_resources/forms/` YAML `common_alternatives`
 
-### Implication for Unit Design
-The multipliers need to be in `C:\Users\Q\code\propstore\knowledge\forms\` (the actual forms dir) for propagation to use them. Either:
-- Update `pks init` to copy `common_alternatives` into knowledge forms
-- Or add multipliers to `C:\Users\Q\code\propstore\knowledge\forms\` directly
-
-### StrEnum Fix
-- Completed. Commit `987d822`. 1022 passed.
+## PLAN (approved)
+- Phase 1: UnitConversion dataclass + normalize_to_si in form_utils.py — DISPATCHED, running
+- Phase 2: Wire into param_conflicts.py
+- Phase 3: Wire into value_comparison.py
+- Phase 4: Add affine/logarithmic examples to YAML
+- Phase 5: value_si column in sidecar
 
 ## STATUS
-- All 27 fixes complete (26 review + 1 StrEnum)
-- Design discussion with Q on unit-aware propagation in progress
-- Q wants gauge scalars and offsets handled, not just multiplicative
+- Phase 1 agent running (strict TDD)
+- Phases 2-5 prompts not yet written
+
+## PREVIOUS WORK (this session)
+- 27 review fixes complete (26 planned + StrEnum)
+- Forms moved to _resources (commit 7d9688a)
+- 1022 tests passing
