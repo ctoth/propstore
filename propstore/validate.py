@@ -16,6 +16,7 @@ from pathlib import Path
 
 import yaml
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
+from bridgman import verify_expr, dims_of_expr, DimensionalError
 
 from propstore.cel_checker import (
     ConceptInfo,
@@ -306,27 +307,62 @@ def validate_concepts(
                     input_dims = [fd.dimensions for fd in input_form_defs]
                     output_dims = output_form_def.dimensions
                     if output_dims is not None and all(d is not None for d in input_dims):
-                        # Real dimensional verification: try all mul/div
-                        # combinations for the N-1 operations between inputs
-                        ops = [mul_dims, div_dims]
-                        found_valid = False
-                        for op_combo in product(ops, repeat=len(input_dims) - 1):
-                            result_dims = input_dims[0]
-                            for op, next_dims in zip(op_combo, input_dims[1:]):
-                                result_dims = op(result_dims, next_dims)
-                            if dims_equal(result_dims, output_dims):
-                                found_valid = True
-                                break
-                        if not found_valid:
-                            input_strs = [
-                                f"'{fd.name}' {format_dims(fd.dimensions)}"
-                                for fd in input_form_defs
-                            ]
-                            result.warnings.append(
-                                f"{c.filename}: no combination of mul/div on inputs "
-                                f"[{', '.join(input_strs)}] produces output "
-                                f"'{output_form_def.name}' {format_dims(output_dims)} — "
-                                f"dimensional mismatch")
+                        # ── Sympy-based dimensional verification ───────
+                        # If the parameterization has a sympy expression,
+                        # use bridgman's tree-walking verifier (handles
+                        # powers, roots, and arbitrary expressions).
+                        sympy_expr_str = param.get("sympy")
+                        sympy_verified = False
+                        if sympy_expr_str:
+                            try:
+                                import sympy as sp
+                                parsed = sp.sympify(sympy_expr_str)
+                                # Build dim_map: concept ID -> dimensions
+                                dim_map: dict[str, dict[str, int]] = {}
+                                # Output concept
+                                dim_map[cid] = dict(output_dims)
+                                # Input concepts
+                                for inp_id, inp_fd in zip(inputs, input_form_defs):
+                                    dim_map[inp_id] = dict(inp_fd.dimensions)  # type: ignore[arg-type]
+                                if verify_expr(parsed, dim_map):
+                                    sympy_verified = True
+                                else:
+                                    # Sympy says dimensions don't match
+                                    input_strs = [
+                                        f"'{fd.name}' {format_dims(fd.dimensions)}"
+                                        for fd in input_form_defs
+                                    ]
+                                    result.warnings.append(
+                                        f"{c.filename}: sympy dimensional verification "
+                                        f"failed for '{sympy_expr_str}': inputs "
+                                        f"[{', '.join(input_strs)}] → output "
+                                        f"'{output_form_def.name}' {format_dims(output_dims)}")
+                                    sympy_verified = True  # skip brute-force, sympy gave definitive answer
+                            except (DimensionalError, KeyError, TypeError, Exception):
+                                pass  # fall through to brute-force check
+
+                        if not sympy_verified:
+                            # Brute-force: try all mul/div combinations
+                            # for the N-1 operations between inputs
+                            ops = [mul_dims, div_dims]
+                            found_valid = False
+                            for op_combo in product(ops, repeat=len(input_dims) - 1):
+                                result_dims = input_dims[0]
+                                for op, next_dims in zip(op_combo, input_dims[1:]):
+                                    result_dims = op(result_dims, next_dims)
+                                if dims_equal(result_dims, output_dims):
+                                    found_valid = True
+                                    break
+                            if not found_valid:
+                                input_strs = [
+                                    f"'{fd.name}' {format_dims(fd.dimensions)}"
+                                    for fd in input_form_defs
+                                ]
+                                result.warnings.append(
+                                    f"{c.filename}: no combination of mul/div on inputs "
+                                    f"[{', '.join(input_strs)}] produces output "
+                                    f"'{output_form_def.name}' {format_dims(output_dims)} — "
+                                    f"dimensional mismatch")
                     else:
                         # Fall back to name-based heuristic when dimensions
                         # are missing from any form
