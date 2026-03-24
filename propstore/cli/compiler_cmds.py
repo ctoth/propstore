@@ -1108,6 +1108,107 @@ def world_atms_relevance(
     wm.close()
 
 
+@world.command("atms-interventions")
+@click.argument("target")
+@click.argument("args", nargs=-1)
+@click.option("--target-status", required=True, help="Desired ATMS node status (IN/OUT)")
+@click.option("--queryable", "queryables", multiple=True, required=True,
+              help="Future/queryable assumption (CEL or key=value)")
+@click.option("--limit", default=8, show_default=True, type=int,
+              help="Maximum number of future environments to inspect")
+@click.option("--context", default=None, help="Context to scope the ATMS inspection")
+@click.pass_obj
+def world_atms_interventions(
+    obj: dict,
+    target: str,
+    args: tuple[str, ...],
+    target_status: str,
+    queryables: tuple[str, ...],
+    limit: int,
+    context: str | None,
+) -> None:
+    """Show bounded additive intervention plans for an ATMS claim or concept."""
+    repo: Repository = obj["repo"]
+    wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
+
+    parsed_queryables = _parse_queryables(queryables)
+    click.echo("bounded additive plans over declared queryables")
+    click.echo("not revision/contraction")
+
+    claim = wm.get_claim(target)
+    if claim is not None:
+        plans = bound.claim_interventions(target, parsed_queryables, target_status, limit=limit)
+        for plan in plans:
+            status_val = plan["result_status"]
+            if hasattr(status_val, "value"):
+                status_val = status_val.value
+            click.echo(
+                f"  plan [{', '.join(plan['queryable_cels'])}] -> {status_val}"
+            )
+        wm.close()
+        return
+
+    resolved = wm.resolve_alias(target) or target
+    plans = bound.concept_interventions(resolved, parsed_queryables, target_status, limit=limit)
+    for plan in plans:
+        status_val = plan["result_status"]
+        if hasattr(status_val, "value"):
+            status_val = status_val.value
+        click.echo(
+            f"  plan [{', '.join(plan['queryable_cels'])}] -> {status_val}"
+        )
+    wm.close()
+
+
+@world.command("atms-next-query")
+@click.argument("target")
+@click.argument("args", nargs=-1)
+@click.option("--target-status", required=True, help="Desired ATMS node status (IN/OUT)")
+@click.option("--queryable", "queryables", multiple=True, required=True,
+              help="Future/queryable assumption (CEL or key=value)")
+@click.option("--limit", default=8, show_default=True, type=int,
+              help="Maximum number of future environments to inspect")
+@click.option("--context", default=None, help="Context to scope the ATMS inspection")
+@click.pass_obj
+def world_atms_next_query(
+    obj: dict,
+    target: str,
+    args: tuple[str, ...],
+    target_status: str,
+    queryables: tuple[str, ...],
+    limit: int,
+    context: str | None,
+) -> None:
+    """Show next-query suggestions derived from bounded additive intervention plans."""
+    repo: Repository = obj["repo"]
+    wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
+
+    parsed_queryables = _parse_queryables(queryables)
+    click.echo("derived from bounded additive intervention plans")
+
+    claim = wm.get_claim(target)
+    if claim is not None:
+        suggestions = bound.claim_next_queryables(target, parsed_queryables, target_status, limit=limit)
+        for suggestion in suggestions:
+            click.echo(
+                f"  {suggestion['queryable_cel']}: "
+                f"coverage={suggestion['plan_count']} "
+                f"smallest_plan_size={suggestion['smallest_plan_size']}"
+            )
+        wm.close()
+        return
+
+    resolved = wm.resolve_alias(target) or target
+    suggestions = bound.concept_next_queryables(resolved, parsed_queryables, target_status, limit=limit)
+    for suggestion in suggestions:
+        click.echo(
+            f"  {suggestion['queryable_cel']}: "
+            f"coverage={suggestion['plan_count']} "
+            f"smallest_plan_size={suggestion['smallest_plan_size']}"
+        )
+    wm.close()
+
+
 @world.command("derive")
 @click.argument("concept_id")
 @click.argument("args", nargs=-1)
