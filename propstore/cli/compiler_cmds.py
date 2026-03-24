@@ -756,6 +756,143 @@ def _parse_bindings(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
     return parsed, concept_id
 
 
+def _bind_atms_world(
+    repo: Repository,
+    args: tuple[str, ...],
+    *,
+    context: str | None = None,
+):
+    from propstore.world import Environment, ReasoningBackend, RenderPolicy, WorldModel
+
+    wm = WorldModel(repo)
+    bindings, concept_id = _parse_bindings(args)
+    policy = RenderPolicy(reasoning_backend=ReasoningBackend.ATMS)
+    if context:
+        bound = wm.bind(Environment(bindings=bindings, context_id=context), policy=policy)
+    else:
+        bound = wm.bind(policy=policy, **bindings)
+    return wm, bound, bindings, concept_id
+
+
+def _format_assumption_ids(assumption_ids: list[str] | tuple[str, ...]) -> str:
+    if not assumption_ids:
+        return "[]"
+    return "[" + ", ".join(assumption_ids) + "]"
+
+
+@world.command("atms-status")
+@click.argument("args", nargs=-1)
+@click.option("--context", default=None, help="Context to scope the ATMS inspection")
+@click.pass_obj
+def world_atms_status(obj: dict, args: tuple[str, ...], context: str | None) -> None:
+    """Show ATMS-native claim status, support quality, and essential support."""
+    repo: Repository = obj["repo"]
+    try:
+        wm, bound, _bindings, concept_id = _bind_atms_world(repo, args, context=context)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    resolved = None
+    if concept_id:
+        resolved = wm.resolve_alias(concept_id) or concept_id
+    active_claims = sorted(bound.active_claims(resolved), key=lambda claim: claim["id"])
+    if not active_claims:
+        click.echo("No active claims for the current ATMS view.")
+        wm.close()
+        return
+
+    for claim in active_claims:
+        inspection = bound.claim_status(claim["id"])
+        click.echo(
+            f"{claim['id']}: status={inspection.status.value} "
+            f"support_quality={inspection.support_quality.value} "
+            f"essential_support={_format_assumption_ids(inspection.essential_support.assumption_ids if inspection.essential_support else ())}"
+        )
+        click.echo(f"  reason: {inspection.reason}")
+
+    wm.close()
+
+
+@world.command("atms-context")
+@click.argument("args", nargs=-1)
+@click.option("--context", default=None, help="Context to scope the ATMS inspection")
+@click.pass_obj
+def world_atms_context(obj: dict, args: tuple[str, ...], context: str | None) -> None:
+    """Show which ATMS-supported claims hold in the current bound environment."""
+    repo: Repository = obj["repo"]
+    try:
+        wm, bound, _bindings, concept_id = _bind_atms_world(repo, args, context=context)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    environment_key = tuple(
+        assumption.assumption_id
+        for assumption in bound._environment.assumptions
+    )
+    click.echo(f"Environment: {_format_assumption_ids(environment_key)}")
+
+    claim_ids = bound.claims_in_environment(environment_key)
+    if concept_id:
+        resolved = wm.resolve_alias(concept_id) or concept_id
+        allowed = {
+            claim["id"]
+            for claim in bound.active_claims(resolved)
+        }
+        claim_ids = [claim_id for claim_id in claim_ids if claim_id in allowed]
+
+    if not claim_ids:
+        click.echo("No claims have exact ATMS support in the current environment.")
+        wm.close()
+        return
+
+    for claim_id in sorted(claim_ids):
+        inspection = bound.claim_status(claim_id)
+        click.echo(
+            f"{claim_id}: status={inspection.status.value} "
+            f"essential_support={_format_assumption_ids(inspection.essential_support.assumption_ids if inspection.essential_support else ())}"
+        )
+
+    wm.close()
+
+
+@world.command("atms-verify")
+@click.argument("args", nargs=-1)
+@click.option("--context", default=None, help="Context to scope the ATMS inspection")
+@click.pass_obj
+def world_atms_verify(obj: dict, args: tuple[str, ...], context: str | None) -> None:
+    """Run ATMS label self-checks for the current bound environment."""
+    repo: Repository = obj["repo"]
+    try:
+        wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    report = bound.atms_engine().verify_labels()
+    if report["ok"]:
+        click.echo("ATMS labels verified.")
+        wm.close()
+        return
+
+    for section in (
+        "consistency_errors",
+        "minimality_errors",
+        "soundness_errors",
+        "completeness_errors",
+    ):
+        errors = report.get(section) or []
+        if not errors:
+            continue
+        click.echo(f"{section}:")
+        for error in errors:
+            click.echo(f"  {error}")
+
+    wm.close()
+    sys.exit(2)
+
+
 @world.command("derive")
 @click.argument("concept_id")
 @click.argument("args", nargs=-1)
