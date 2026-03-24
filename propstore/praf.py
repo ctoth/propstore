@@ -123,6 +123,8 @@ def compute_praf_acceptance(
         return _compute_mc(praf, semantics, mc_epsilon, mc_confidence, rng_seed)
     if strategy == "exact_enum":
         return _compute_exact_enumeration(praf, semantics)
+    if strategy == "dfquad":
+        return _compute_dfquad(praf, semantics)
 
     # Auto dispatch
     # Fast path: if all P_D expectations are ~1.0 and all P_A expectations are ~1.0,
@@ -470,6 +472,35 @@ def _compute_exact_enumeration(
     return PrAFResult(
         acceptance_probs=acceptance,
         strategy_used="exact_enum",
+        samples=None,
+        confidence_interval_half=None,
+        semantics=semantics,
+    )
+
+
+def _compute_dfquad(
+    praf: ProbabilisticAF,
+    semantics: str,
+    supports: dict[tuple[str, str], float] | None = None,
+) -> PrAFResult:
+    """DF-QuAD gradual semantics for QBAFs.
+
+    Per Freedman et al. (2025, p.3): computes continuous strengths in [0,1]
+    by propagating base scores through attack and support relations.
+
+    Complementary to PrAF MC/exact strategies which compute extension
+    membership probabilities. DF-QuAD computes graded argument strengths.
+    """
+    from propstore.praf_dfquad import compute_dfquad_strengths
+
+    if supports is None:
+        supports = {}
+
+    strengths = compute_dfquad_strengths(praf, supports)
+
+    return PrAFResult(
+        acceptance_probs=strengths,
+        strategy_used="dfquad",
         samples=None,
         confidence_interval_half=None,
         semantics=semantics,
