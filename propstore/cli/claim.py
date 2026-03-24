@@ -15,6 +15,84 @@ def claim() -> None:
     """Manage and validate claims."""
 
 
+@claim.command("show")
+@click.argument("claim_id")
+@click.pass_obj
+def show(obj: dict, claim_id: str) -> None:
+    """Display details of a single claim."""
+    from propstore.world import WorldModel
+
+    repo: Repository = obj["repo"]
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(EXIT_ERROR)
+
+    try:
+        claim_data = wm.get_claim(claim_id)
+        if claim_data is None:
+            click.echo(f"Claim '{claim_id}' not found.", err=True)
+            sys.exit(EXIT_ERROR)
+
+        click.echo(f"Claim: {claim_data['id']}")
+
+        concept_id = claim_data.get("concept_id")
+        if concept_id:
+            click.echo(f"  concept: {concept_id}")
+
+        claim_type = claim_data.get("type")
+        if claim_type:
+            click.echo(f"  type: {claim_type}")
+
+        value = claim_data.get("value")
+        unit = claim_data.get("unit") or ""
+        value_si = claim_data.get("value_si")
+
+        # Get canonical unit from concept's form
+        canonical_unit = ""
+        if concept_id:
+            concept = wm.get_concept(concept_id)
+            if concept:
+                canonical_unit = concept.get("unit_symbol") or ""
+
+        if value is not None:
+            click.echo(f"  value: {value} {unit}".rstrip())
+            if value_si is not None and value_si != value:
+                si_label = f"{value_si} {canonical_unit}".rstrip()
+                click.echo(f"  value (SI): {si_label}")
+
+        lower = claim_data.get("lower_bound")
+        lower_si = claim_data.get("lower_bound_si")
+        if lower is not None:
+            si_part = f" -> {lower_si}" if lower_si is not None and lower_si != lower else ""
+            click.echo(f"  lower_bound: {lower}{si_part}")
+
+        upper = claim_data.get("upper_bound")
+        upper_si = claim_data.get("upper_bound_si")
+        if upper is not None:
+            si_part = f" -> {upper_si}" if upper_si is not None and upper_si != upper else ""
+            click.echo(f"  upper_bound: {upper}{si_part}")
+
+        uncertainty = claim_data.get("uncertainty")
+        if uncertainty is not None:
+            click.echo(f"  uncertainty: {uncertainty}")
+
+        sample_size = claim_data.get("sample_size")
+        if sample_size is not None:
+            click.echo(f"  sample_size: {sample_size}")
+
+        source = claim_data.get("source_paper")
+        if source:
+            click.echo(f"  source: {source}")
+
+        conditions = claim_data.get("conditions_cel")
+        if conditions:
+            click.echo(f"  conditions: {conditions}")
+    finally:
+        wm.close()
+
+
 @claim.command()
 @click.option("--dir", "claims_path", default=None, help="Claims directory")
 @click.option("--concepts-dir", "concepts_path", default=None, help="Concepts directory")

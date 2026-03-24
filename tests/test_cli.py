@@ -116,6 +116,20 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 @pytest.fixture()
 def freq_workspace(workspace: Path) -> Path:
     """Workspace with a frequency concept, a kHz claim, and a built sidecar."""
+    # Overwrite the minimal frequency form with a full definition including SI unit
+    forms_dir = workspace / "knowledge" / "forms"
+    freq_form = {
+        "name": "frequency",
+        "dimensionless": False,
+        "unit_symbol": "Hz",
+        "common_alternatives": [
+            {"unit": "kHz", "type": "multiplicative", "multiplier": 1000},
+            {"unit": "MHz", "type": "multiplicative", "multiplier": 1000000},
+        ],
+    }
+    (forms_dir / "frequency.yaml").write_text(
+        yaml.dump(freq_form, default_flow_style=False))
+
     claims_dir = workspace / "knowledge" / "claims"
     _write_claim_file(claims_dir, "freq_paper.yaml", {
         "source": {"paper": "freq_paper"},
@@ -1300,138 +1314,16 @@ class TestConnectionClosedOnError:
 
 # ── claim show ──────────────────────────────────────────────────────
 
-@pytest.fixture()
-def freq_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Workspace with a built sidecar containing a parameter claim."""
-    monkeypatch.chdir(tmp_path)
-
-    knowledge = tmp_path / "knowledge"
-    concepts = knowledge / "concepts"
-    concepts.mkdir(parents=True)
-    forms_dir = knowledge / "forms"
-    forms_dir.mkdir()
-
-    # Minimal form definitions
-    (forms_dir / "frequency.yaml").write_text(yaml.dump({
-        "name": "frequency",
-        "unit_symbol": "Hz",
-        "dimensionless": False,
-    }))
-
-    # Write a concept
-    _write_concept(concepts, "fundamental_frequency", _make_concept(
-        "fundamental_frequency", "concept1", "speech", form="frequency",
-    ))
-
-    _write_counter(concepts, "speech", 2)
-
-    # Build sidecar with claim data directly in SQLite
-    sidecar_dir = knowledge / "sidecar"
-    sidecar_dir.mkdir()
-    sidecar = sidecar_dir / "propstore.sqlite"
-
-    conn = sqlite3.connect(sidecar)
-    conn.executescript("""
-        CREATE TABLE concept (
-            id TEXT PRIMARY KEY,
-            content_hash TEXT NOT NULL,
-            seq INTEGER NOT NULL,
-            canonical_name TEXT NOT NULL,
-            status TEXT NOT NULL,
-            domain TEXT,
-            definition TEXT NOT NULL,
-            kind_type TEXT NOT NULL,
-            form TEXT NOT NULL,
-            form_parameters TEXT,
-            range_min REAL,
-            range_max REAL,
-            is_dimensionless INTEGER NOT NULL DEFAULT 0,
-            unit_symbol TEXT,
-            created_date TEXT,
-            last_modified TEXT
-        );
-        CREATE TABLE claim (
-            id TEXT PRIMARY KEY,
-            content_hash TEXT NOT NULL,
-            seq INTEGER NOT NULL,
-            type TEXT NOT NULL,
-            concept_id TEXT,
-            value REAL,
-            lower_bound REAL,
-            upper_bound REAL,
-            uncertainty REAL,
-            uncertainty_type TEXT,
-            sample_size INTEGER,
-            unit TEXT,
-            conditions_cel TEXT,
-            statement TEXT,
-            expression TEXT,
-            sympy_generated TEXT,
-            sympy_error TEXT,
-            name TEXT,
-            target_concept TEXT,
-            measure TEXT,
-            listener_population TEXT,
-            methodology TEXT,
-            notes TEXT,
-            description TEXT,
-            auto_summary TEXT,
-            body TEXT,
-            canonical_ast TEXT,
-            variables_json TEXT,
-            stage TEXT,
-            source_paper TEXT NOT NULL,
-            provenance_page INTEGER NOT NULL,
-            provenance_json TEXT,
-            value_si REAL,
-            lower_bound_si REAL,
-            upper_bound_si REAL,
-            context_id TEXT
-        );
-        CREATE TABLE alias (
-            concept_id TEXT NOT NULL,
-            alias_name TEXT NOT NULL
-        );
-    """)
-    conn.execute(
-        "INSERT INTO concept VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        ("concept1", "abc123", 1, "fundamental_frequency", "accepted",
-         "speech", "F0", "quantity", "frequency", None, None, None,
-         0, "Hz", "2026-03-15", None),
-    )
-    conn.execute(
-        """INSERT INTO claim (id, content_hash, seq, type, concept_id,
-           value, lower_bound, upper_bound, uncertainty, sample_size,
-           unit, conditions_cel, source_paper, provenance_page,
-           value_si, lower_bound_si, upper_bound_si)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        ("test_claim1", "def456", 1, "parameter", "concept1",
-         0.2, None, None, 0.01, 200,
-         "kHz", "age > 18", "test_paper", 42,
-         200.0, None, None),
-    )
-    conn.commit()
-    conn.close()
-
-    return tmp_path
-
-
 class TestClaimShow:
     def test_claim_show_exists(self, freq_workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "-C", str(freq_workspace / "knowledge"),
-            "claim", "show", "test_claim1",
-        ])
+        result = runner.invoke(cli, ["claim", "show", "freq_claim1"])
         assert result.exit_code == 0, result.output
-        assert "test_claim1" in result.output
+        assert "freq_claim1" in result.output
 
     def test_claim_show_displays_si_values(self, freq_workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "-C", str(freq_workspace / "knowledge"),
-            "claim", "show", "test_claim1",
-        ])
+        result = runner.invoke(cli, ["claim", "show", "freq_claim1"])
         assert result.exit_code == 0, result.output
         assert "0.2" in result.output
         assert "200" in result.output
@@ -1439,10 +1331,7 @@ class TestClaimShow:
 
     def test_claim_show_not_found(self, freq_workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "-C", str(freq_workspace / "knowledge"),
-            "claim", "show", "nonexistent_claim",
-        ])
+        result = runner.invoke(cli, ["claim", "show", "nonexistent_claim"])
         assert result.exit_code != 0 or "not found" in result.output.lower()
 
 
