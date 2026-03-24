@@ -397,6 +397,65 @@ def world_model(physics_project):
     return WorldModel(repo)
 
 
+# ── Step 5: CLI commands (enhance existing) ─────────────────────────
+
+
+class TestFormListDims:
+    """pks form list --dims shows dimensions, --dims X:N filters."""
+
+    def test_list_with_dims_flag(self, world_model):
+        """pks form list --dims shows dimension column."""
+        from click.testing import CliRunner
+        from propstore.cli.form import form
+
+        runner = CliRunner()
+        result = runner.invoke(form, ["list", "--dims"],
+                               obj={"repo": _repo_from_world(world_model)})
+        assert result.exit_code == 0
+        assert "force" in result.output
+        assert "M" in result.output  # dimension symbol present
+
+    def test_list_filter_by_dims(self, world_model):
+        from click.testing import CliRunner
+        from propstore.cli.form import form
+
+        runner = CliRunner()
+        result = runner.invoke(form, ["list", "--dims", "M:1,L:1,T:-2"],
+                               obj={"repo": _repo_from_world(world_model)})
+        assert result.exit_code == 0
+        assert "force" in result.output
+        # mass should NOT be in output (different dimensions)
+        lines = [l for l in result.output.strip().split("\n") if l.strip()]
+        for line in lines:
+            # Every line should be a form with M·L·T⁻² dims
+            assert "mass" not in line.split()[0] if line.strip() else True
+
+
+class TestFormShowAlgebra:
+    """pks form show <name> appends algebra when sidecar exists."""
+
+    def test_show_includes_algebra(self, world_model):
+        from click.testing import CliRunner
+        from propstore.cli.form import form
+
+        runner = CliRunner()
+        result = runner.invoke(form, ["show", "force"],
+                               obj={"repo": _repo_from_world(world_model)})
+        assert result.exit_code == 0
+        assert "mass" in result.output
+        assert "acceleration" in result.output
+
+
+def _repo_from_world(wm):
+    """Extract the Repository from a WorldModel (it stores it internally)."""
+    # WorldModel stores conn but we need the repo — reconstruct from sidecar path
+    from propstore.cli.repository import Repository
+    db_path = wm._conn.execute("PRAGMA database_list").fetchone()[2]
+    from pathlib import Path
+    sidecar_path = Path(db_path)
+    return Repository(sidecar_path.parent.parent)
+
+
 class TestWorldModelFormQueries:
     def test_forms_by_dimensions(self, world_model):
         results = world_model.forms_by_dimensions({"M": 1, "L": 1, "T": -2})

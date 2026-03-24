@@ -19,26 +19,70 @@ def form() -> None:
 # ── form list ────────────────────────────────────────────────────────
 
 @form.command("list")
+@click.option("--dims", "dims_arg", default=None, is_flag=False, flag_value="__show__",
+              help="Show dimensions column; optionally filter by dims (e.g. M:1,L:1,T:-2)")
 @click.pass_obj
-def list_forms(obj: dict) -> None:
-    """List all available forms."""
+def list_forms(obj: dict, dims_arg: str | None) -> None:
+    """List all available forms.
+
+    With --dims: show dimensions column.
+    With --dims M:1,L:1,T:-2: filter to forms matching those dimensions.
+    """
     repo: Repository = obj["repo"]
     fdir = repo.forms_dir
     if not fdir.exists():
         click.echo("No forms directory found.")
         return
 
-    for entry in sorted(fdir.iterdir()):
-        if not entry.is_file() or entry.suffix != ".yaml":
-            continue
-        with open(entry) as f:
-            data = yaml.safe_load(f)
-        if not isinstance(data, dict):
-            continue
-        name = data.get("name", entry.stem)
-        unit = data.get("unit_symbol") or ""
+    from propstore.form_utils import load_all_forms
+    registry = load_all_forms(fdir)
+
+    # Parse filter dimensions if provided
+    filter_dims: dict[str, int] | None = None
+    if dims_arg is not None and dims_arg != "__show__":
+        filter_dims = _parse_dims_spec(dims_arg)
+
+    show_dims = dims_arg is not None
+
+    for fd in sorted(registry.values(), key=lambda f: f.name):
+        if filter_dims is not None:
+            from bridgman import dims_equal
+            form_dims = fd.dimensions or ({} if fd.is_dimensionless else None)
+            if form_dims is None or not dims_equal(form_dims, filter_dims):
+                continue
+
+        unit = fd.unit_symbol or ""
         unit_col = f"  [{unit}]" if unit else ""
-        click.echo(f"  {name:30s}{unit_col}")
+        if show_dims:
+            dims_str = _format_dims_col(fd.dimensions, fd.is_dimensionless)
+            click.echo(f"  {fd.name:30s}{unit_col:10s}  {dims_str}")
+        else:
+            click.echo(f"  {fd.name:30s}{unit_col}")
+
+
+def _parse_dims_spec(spec: str) -> dict[str, int]:
+    """Parse 'M:1,L:1,T:-2' into {'M': 1, 'L': 1, 'T': -2}."""
+    result: dict[str, int] = {}
+    for part in spec.split(","):
+        part = part.strip()
+        if ":" not in part:
+            continue
+        key, val = part.split(":", 1)
+        result[key.strip()] = int(val.strip())
+    return result
+
+
+def _format_dims_col(dimensions: dict[str, int] | None, is_dimensionless: bool) -> str:
+    """Format dimensions for display column."""
+    if dimensions is None:
+        return "(dimensionless)" if is_dimensionless else ""
+    if not dimensions or all(v == 0 for v in dimensions.values()):
+        return "(dimensionless)"
+    try:
+        from bridgman import format_dims
+        return format_dims(dimensions)
+    except ImportError:
+        return str(dimensions)
 
 
 # ── form show ────────────────────────────────────────────────────────
@@ -47,13 +91,40 @@ def list_forms(obj: dict) -> None:
 @click.argument("name")
 @click.pass_obj
 def show(obj: dict, name: str) -> None:
-    """Show full form definition YAML."""
+    """Show full form definition YAML, plus algebra if sidecar exists."""
     repo: Repository = obj["repo"]
     path = repo.forms_dir / f"{name}.yaml"
     if not path.exists():
         click.echo(f"ERROR: Form '{name}' not found", err=True)
         sys.exit(EXIT_ERROR)
     click.echo(path.read_text())
+
+    # Append algebra from sidecar if available
+    if repo.sidecar_path.exists():
+        try:
+            from propstore.world import WorldModel
+            wm = WorldModel(repo)
+            decompositions = wm.form_algebra_for(name)
+            uses = wm.form_algebra_using(name)
+            wm.close()
+
+            if decompositions or uses:
+                click.echo("---")
+                click.echo("# Form Algebra (derived from concept parameterizations)")
+            if decompositions:
+                click.echo("decompositions:")
+                for entry in decompositions:
+                    input_forms = json.loads(entry["input_forms"])
+                    click.echo(f"  - {name} = {' * '.join(input_forms)}")
+                    if entry.get("source_formula"):
+                        click.echo(f"    from: {entry['source_formula']} ({entry.get('source_concept_id', '?')})")
+            if uses:
+                click.echo("used_in:")
+                for entry in uses:
+                    input_forms = json.loads(entry["input_forms"])
+                    click.echo(f"  - {entry['output_form']} = {' * '.join(input_forms)}")
+        except (FileNotFoundError, Exception):
+            pass  # No sidecar or error — just show the YAML
 
 
 # ── form add ─────────────────────────────────────────────────────────
