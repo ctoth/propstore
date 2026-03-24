@@ -1,0 +1,240 @@
+source:
+  paper: Ghidini_2001_LocalModelsSemanticsContextual
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-23"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Contextual reasoning is governed by two principles: locality (reasoning uses only part of what is available, constituting a context) and compatibility (reasoning across different contexts must be mutually consistent)."
+    concepts:
+      - contextual_reasoning
+      - locality_principle
+      - compatibility_principle
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 2
+      section: "1. Introduction"
+      quote_fragment: "two are the main intuitions underlying the use of context"
+
+  - id: claim2
+    type: observation
+    statement: "A model in Local Models Semantics is a non-empty compatibility relation (set of compatibility sequences over families of local model sets) that does not contain the all-empty sequence, formalizing a collection of mutually compatible partial descriptions of the world."
+    concepts:
+      - local_models_semantics
+      - compatibility_relation
+      - compatibility_sequence
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 7
+      section: "3.1. Local models and models"
+      quote_fragment: "A model is a compatibility relation which contains at least a sequence and does not contain the sequence of empty sets"
+
+  - id: claim3
+    type: observation
+    statement: "A context in Local Models Semantics is a set of local models within a compatibility sequence, making it a partial object that can leave propositions undetermined, unlike possible worlds which are complete objects assigning truth values to all formulae."
+    concepts:
+      - context
+      - local_model
+      - partial_object
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 9
+      section: "3.2. Contexts"
+      quote_fragment: "defining a context as a set of models (instead of a single model) enables us to formalize it as a partial object"
+
+  - id: claim4
+    type: mechanism
+    statement: "Cross-context logical consequence works by using assumptions in context j to prune compatibility sequences, which indirectly constrains the local models in context i, thereby enabling assumptions in one context to influence conclusions in another without sharing a common language."
+    concepts:
+      - logical_consequence
+      - compatibility_sequence
+      - context
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 11
+      section: "3.3. Local satisfiability, satisfiability, and logical consequence"
+      quote_fragment: "the formulae in Gamma_j prune away compatibility sequences, while the formulae in Gamma_i prune away local models in c_i"
+
+  - id: claim5
+    type: observation
+    statement: "Local Models Semantics extends local logical consequence: if a formula phi follows classically from assumptions Gamma_i within a single context, then the labelled formula i:phi follows from Gamma in the multi-context setting."
+    concepts:
+      - local_models_semantics
+      - logical_consequence
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 12
+      section: "3.3"
+      quote_fragment: "If Gamma_i |=_cl phi, then Gamma |= i:phi"
+
+  - id: claim6
+    type: observation
+    statement: "A Multi-Context system is a set of axiomatic formal systems (each with its own language, axioms, and inference rules) connected by bridge rules that propagate consequences across languages, formalizing compatibility as inter-theory inference."
+    concepts:
+      - multi_context_system
+      - bridge_rule
+      - internal_rule
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 19
+      section: "5. The proof theory: MC systems"
+      quote_fragment: "An MC system is essentially a set of logical theories, plus a set of inference rules which allow for the propagation of consequences among theories"
+
+  - id: claim7
+    type: mechanism
+    statement: "Bridge rules in MC systems formalize compatibility by enabling consequences derived in one context to trigger derivations in another, with the degree of inter-context coupling ranging from completely independent (empty bridge rule set) to fully synchronized (mutual reflection rules making all contexts identical)."
+    concepts:
+      - bridge_rule
+      - compatibility_principle
+      - multi_context_system
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 22
+      section: "5"
+      quote_fragment: "Bridge rules in Delta_br formalize compatibility"
+
+  - id: claim8
+    type: observation
+    statement: "Chain models, where every context in every compatibility sequence is a singleton set, formalize situations where each partial description of the world is internally complete (assigns truth values to all propositions in its local language)."
+    concepts:
+      - chain_model
+      - context
+      - local_model
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 9
+      section: "3.1"
+      quote_fragment: "A model C is a chain model if all the c in C are chains"
+
+  - id: claim9
+    type: observation
+    statement: "The MC system MV for viewpoint reasoning, with bridge rules for ball-existence propagation and cross-context reductio ad absurdum, is sound and complete with respect to the class of V-models defined by locality and compatibility constraints."
+    concepts:
+      - multi_context_system
+      - soundness
+      - completeness
+      - viewpoint_reasoning
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 24
+      section: "6.1 / Appendix A"
+      quote_fragment: "The MC system MV can be proved to be a sound and complete axiomatization"
+
+  - id: claim10
+    type: mechanism
+    statement: "Cross-context reductio bridge rules formalize the completeness of observers views: if assuming not-phi in one context generates inconsistency in another, then phi must hold in the first context, generalizing classical reasoning by absurdum across context boundaries."
+    concepts:
+      - bridge_rule
+      - reductio_ad_absurdum
+      - chain_model
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 23
+      section: "6.1"
+      quote_fragment: "if assuming not-phi in one context generates an inconsistency in another context, then it is possible to conclude that phi holds"
+
+  - id: claim11
+    type: observation
+    statement: "The HMB system MBK, combining downward reflection (Rdw: if B(phi) in c_i then phi in c_{i+1}) and restricted upward reflection (Rupr: if phi derivable in c_{i+1} without assumptions at index >= i+1, then B(phi) in c_i), is theorem-equivalent to the minimal normal modal logic K."
+    concepts:
+      - hierarchical_belief
+      - modal_logic_k
+      - bridge_rule
+      - reflection_rule
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 25
+      section: "6.2"
+      quote_fragment: "in MBK, the theory of each view is theorem equivalent with the minimal normal modal logic K"
+
+  - id: claim12
+    type: mechanism
+    statement: "The restriction on the upward reflection rule Rupr prevents treating a consequence of an assumption within a belief context as a theorem of that context, corresponding semantically to the requirement that compatibility constraints involve sets of i-admissible sequences rather than individual sequences."
+    concepts:
+      - reflection_rule
+      - hierarchical_belief
+      - admissibility
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 24
+      section: "6.2"
+      quote_fragment: "the restriction on Rupr_i prevents the case in which a consequence of an assumption in a belief context is treated as a theorem"
+
+  - id: claim13
+    type: comparison
+    statement: "Unlike possible worlds semantics which uses a single global language and defines satisfiability relative to an accessibility relation (making it a function of the model structure), Local Models Semantics uses multiple local languages with independent Tarskian satisfiability, where the model structure influences only which local models are under consideration."
+    concepts:
+      - local_models_semantics
+      - possible_worlds_semantics
+      - local_model
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 26
+      section: "7. Other frameworks"
+      quote_fragment: "In Local Models Semantics, the model and its structure influence only the set of local models under consideration"
+
+  - id: claim14
+    type: comparison
+    statement: "Local Models Semantics handles heterogeneous knowledge federation scenarios where no single global language can describe the entire system, whereas possible worlds semantics requires a unique global language and predetermined model structure."
+    concepts:
+      - local_models_semantics
+      - possible_worlds_semantics
+      - knowledge_base_federation
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 26
+      section: "7"
+      quote_fragment: "does not seem to work in those cases where there is no global scheme describing the system"
+
+  - id: claim15
+    type: observation
+    statement: "Models of combinations of compatibility constraints can be constructed simply by taking the intersection of the models of constituent constraints, enabling modular composition of reasoning capabilities."
+    concepts:
+      - compatibility_relation
+      - compositionality
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 26
+      section: "6.2"
+      quote_fragment: "we construct the models of combinations of constraints simply by taking the intersection of the models of the constituent constraints"
+
+  - id: claim16
+    type: limitation
+    statement: "Local Models Semantics as presented validates only propositional examples; the framework does not demonstrate integration of non-classical logics such as non-normal modal logics as local reasoning systems within contexts."
+    concepts:
+      - local_models_semantics
+      - non_classical_logic
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 26
+      section: "7"
+      quote_fragment: "it is not clear how to extend it to other logics"
+    notes: "Stated about the prior semantics of Giunchiglia and Serafini 1994, which LMS generalizes, but LMS itself validates only propositional examples"
+
+  - id: claim17
+    type: observation
+    statement: "The Rdw and Rupr bridge rules for belief contexts, when used separately, formalize agents with extremely weak reasoning capabilities; only their combination (MBK) yields agents equivalent to modal logic K, demonstrating that Local Models Semantics provides sufficient modularity to model agents with varying reasoning abilities."
+    concepts:
+      - hierarchical_belief
+      - reflection_rule
+      - modal_logic_k
+      - bounded_reasoning
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 25
+      section: "6.2"
+      quote_fragment: "Rdw-models and Rupr-models formalize agents having extremely weak reasoning capabilities"
+
+  - id: claim18
+    type: mechanism
+    statement: "The notion of i-admissibility (c-prime is i-admissible for c when c-prime_i is a subset of c_i) enables defining compatibility constraints that span multiple compatibility sequences, capturing the requirement that a belief holds only if it holds in all admissible situations."
+    concepts:
+      - admissibility
+      - compatibility_sequence
+      - hierarchical_belief
+    provenance:
+      paper: Ghidini_2001_LocalModelsSemanticsContextual
+      page: 18
+      section: "4.2"
+      quote_fragment: "the notion of i-admissibility enables us to characterize the set of sequences whose belief contexts are less partial"
