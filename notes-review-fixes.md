@@ -1,23 +1,21 @@
-# Session Notes — Unit-Aware Propagation
+# Session Notes — Unit-Aware Propagation + CLI
 
-## GOAL
-Wire unit conversion through propstore's propagation system.
+## TEST COUNT: 975 → 1047
 
-## STATUS
-- Phase 1: UnitConversion + normalize_to_si. Commit `f8248ac`. +8 tests. VERIFIED.
-- Phase 2: param_conflicts wiring. Commit `043de92`. +3 tests. VERIFIED.
-- Phase 3: value_comparison wiring — RUNNING (last phase)
-- Phase 4: YAML affine/log forms. Commit `eefcc51`. +5 tests. VERIFIED.
-- Phase 5: sidecar value_si. Commit `9065421`. +4 tests. VERIFIED.
-
-## TEST COUNT
-975 (original) → 1042 (current, before Phase 3)
-
-## TOTAL SESSION WORK
+## COMPLETED
 - 27 review fixes (26 planned + StrEnum)
-- Forms moved to _resources
-- Unit-aware propagation (5 phases, 4 complete, 1 running)
+- Forms moved to _resources (commit 7d9688a)
+- Unit Phase 1: UnitConversion + normalize_to_si (commit f8248ac)
+- Unit Phase 2: param_conflicts wiring (commit 043de92)
+- Unit Phase 3: value_comparison wiring (commit ea87f68)
+- Unit Phase 4: YAML affine/log forms (commit eefcc51)
+- Unit Phase 5: sidecar value_si (commit 9065421)
+- Unit Phase 0: pint integration (commit 0dfe619)
+
+## IN PROGRESS — CLI Surface (3 parallel agents)
+- CLI Phase 1: form show conversions — RUNNING (form.py)
+- CLI Phase 2: world query/bind SI values — RUNNING (compiler_cmds.py)
+- CLI Phase 3: claim show command — RUNNING (claim.py)
 
 ## NEXT
-- When Phase 3 completes: verify, final test suite run
-- All unit-aware propagation work done
+- When all 3 complete: verify, final suite run
