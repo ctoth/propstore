@@ -4,26 +4,32 @@
 Execute all 26 fixes from the code review, TDD style, under Foreman protocol.
 
 ## BASELINE
-975 tests passing, 0 failures. Now at 984 passing.
+975 tests passing. Now at ~988.
 
 ## BATCH 1 — COMPLETE
-- 1A: SQL injection fix. Commit `85d0415`. +5 tests. VERIFIED against plan.
-- 1B: Lying status fix. Commit `f25d55d`. +1 test, 3 files changed. VERIFIED against plan.
-- 1C: Bare except narrowing. Commit `60ff347`. +2 tests, 2 files changed. VERIFIED against plan.
+- 1A: SQL injection fix. Commit `85d0415`. +5 tests. VERIFIED.
+- 1B: Lying status fix. Commit `f25d55d`. +1 test. VERIFIED.
+- 1C: Bare except narrowing. Commit `60ff347`. +2 tests. VERIFIED.
 
 ## BATCH 2 — IN PROGRESS
-- 2A: Cayrol DRY — agent running (structured_argument.py modified, work in progress)
-- Scout 2B: Literature check — agent running
-- 2B coder: blocked on scout verdict
-- 2C: blocked on 2A completion
+- 2A: Cayrol DRY. Commit `7486395`. VERIFIED.
+- 2B: Grounded extension attacks. Commits `5fecb88` (red), `2f48db1` (green). VERIFIED.
+- 2C: Cayrol fixpoint — agent running
 
-## BATCH 3-8 — READY
-All prompt files written. Waiting for Batch 2 progress.
+## BATCH 3 — IN PROGRESS
+- 3A: Z3 div-zero — agent running
+- 3B: Context fallthrough — agent running
+- 3C: CEL unescape. Commit `293e678`. +3 tests. VERIFIED.
+
+## BATCHES 4-8 — READY
+All prompt files written.
 
 ## ANOMALY
-- Commit `b0242d1` "Generalize dimensions beyond physics" — only touches schema/generated/form.schema.json. Likely a previously staged change that an agent committed. Not a plan deviation. Not harmful.
+- 3 pre-existing test failures in test_contexts.py (CONTEXT_PHI_NODE) — will be fixed by 3B
+- Commit `b0242d1` unrelated to plan — schema file only, harmless
 
 ## NEXT
-- When 2A completes: read report, verify, dispatch 2C (if scout-2B not done) or 2B coder + 2C
-- When scout-2B completes: read report, write 2B coder prompt if verdict is YES
-- Batch 3 can start in parallel with Batch 2 remainder (no file overlap)
+- When 2C completes: read report, verify — Batch 2 done
+- When 3A, 3B complete: read reports, verify — Batch 3 done
+- Then dispatch Batch 4 (sequential: 4A, then 4B+4C parallel)
+- Can also start Batch 5 in parallel (different files)
