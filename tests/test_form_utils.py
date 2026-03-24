@@ -78,7 +78,7 @@ class TestUnitConversionMultiplicative:
 
     def test_unit_conversion_unknown_unit(self, freq_form):
         """Unknown unit raises ValueError."""
-        with pytest.raises(ValueError, match="Unknown unit"):
+        with pytest.raises(ValueError, match="Cannot convert"):
             normalize_to_si(100.0, "furlongs_per_fortnight", freq_form)
 
     def test_load_form_preserves_conversions(self, freq_form):
@@ -206,3 +206,25 @@ class TestLoadLevelFormHasLogarithmicConversions:
         assert si == pytest.approx(1.0, rel=0.01)
         back = from_si(si, "dB_SPL", fd)
         assert back == pytest.approx(94.0, rel=0.01)
+
+
+class TestPintSIPrefixes:
+    """Tests that require pint's automatic SI prefix handling."""
+
+    def test_pint_normalize_si_prefixes_automatic(self, forms_dir):
+        """pint handles SI prefixes without manual common_alternatives entries."""
+        _form_cache.pop((str(forms_dir), "frequency"), None)
+        form = load_form(forms_dir, "frequency")
+        assert form is not None
+        # THz is NOT in common_alternatives but pint knows it
+        result = normalize_to_si(1.5, "THz", form)
+        assert result == pytest.approx(1.5e12)
+
+    def test_pint_normalize_compound_unit(self, forms_dir):
+        """pint handles compound units like kPa -> Pa."""
+        _form_cache.pop((str(forms_dir), "pressure"), None)
+        form = load_form(forms_dir, "pressure")
+        assert form is not None
+        # kPa is NOT in common_alternatives but pint knows it
+        result = normalize_to_si(101.325, "kPa", form)
+        assert result == pytest.approx(101325.0)

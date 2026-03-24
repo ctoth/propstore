@@ -9,9 +9,21 @@ from pathlib import Path
 from typing import Any
 
 import jsonschema
+import pint
 import yaml
 
 from propstore.cel_checker import KindType
+
+# Module-level unit registry for pint conversions
+ureg = pint.UnitRegistry()
+
+# Map propstore unit symbols to pint-recognized names
+_PINT_ALIASES: dict[str, str] = {"°C": "degC", "°F": "degF", "µ": "u"}
+
+
+def _pint_unit(unit_str: str) -> str:
+    """Translate a propstore unit symbol to a pint-compatible name."""
+    return _PINT_ALIASES.get(unit_str, unit_str)
 
 
 
@@ -153,32 +165,46 @@ def normalize_to_si(value: float, unit: str | None, form: FormDefinition) -> flo
     """Convert a value from the given unit to the form's canonical (SI) unit."""
     if unit is None or unit == form.unit_symbol:
         return value
-    if unit not in form.conversions:
-        raise ValueError(f"Unknown unit '{unit}' for form '{form.name}'")
-    conv = form.conversions[unit]
-    if conv.type == "multiplicative":
-        return value * conv.multiplier
-    elif conv.type == "affine":
-        return value * conv.multiplier + conv.offset
-    elif conv.type == "logarithmic":
-        return conv.reference * conv.base ** (value / conv.divisor)
-    raise ValueError(f"Unknown conversion type '{conv.type}'")
+    if form.unit_symbol is None:
+        raise ValueError(
+            f"Cannot convert '{unit}' for dimensionless form '{form.name}'"
+        )
+    # Use explicit conversions for logarithmic (pint can't handle these)
+    if unit in form.conversions:
+        conv = form.conversions[unit]
+        if conv.type == "logarithmic":
+            return conv.reference * conv.base ** (value / conv.divisor)
+    # Fall through to pint for multiplicative, affine, and auto-prefix units
+    try:
+        q = ureg.Quantity(value, _pint_unit(unit))
+        return q.to(_pint_unit(form.unit_symbol)).magnitude
+    except (pint.UndefinedUnitError, pint.DimensionalityError) as e:
+        raise ValueError(
+            f"Cannot convert '{unit}' to '{form.unit_symbol}' for form '{form.name}': {e}"
+        )
 
 
 def from_si(si_value: float, unit: str | None, form: FormDefinition) -> float:
     """Convert an SI value back to the given unit."""
     if unit is None or unit == form.unit_symbol:
         return si_value
-    if unit not in form.conversions:
-        raise ValueError(f"Unknown unit '{unit}' for form '{form.name}'")
-    conv = form.conversions[unit]
-    if conv.type == "multiplicative":
-        return si_value / conv.multiplier
-    elif conv.type == "affine":
-        return (si_value - conv.offset) / conv.multiplier
-    elif conv.type == "logarithmic":
-        return conv.divisor * math.log(si_value / conv.reference, conv.base)
-    raise ValueError(f"Unknown conversion type '{conv.type}'")
+    if form.unit_symbol is None:
+        raise ValueError(
+            f"Cannot convert to '{unit}' for dimensionless form '{form.name}'"
+        )
+    # Use explicit conversions for logarithmic (pint can't handle these)
+    if unit in form.conversions:
+        conv = form.conversions[unit]
+        if conv.type == "logarithmic":
+            return conv.divisor * math.log(si_value / conv.reference, conv.base)
+    # Fall through to pint for multiplicative, affine, and auto-prefix units
+    try:
+        q = ureg.Quantity(si_value, _pint_unit(form.unit_symbol))
+        return q.to(_pint_unit(unit)).magnitude
+    except (pint.UndefinedUnitError, pint.DimensionalityError) as e:
+        raise ValueError(
+            f"Cannot convert '{form.unit_symbol}' to '{unit}' for form '{form.name}': {e}"
+        )
 
 
 def load_all_forms(forms_dir: Path) -> dict[str, FormDefinition]:
