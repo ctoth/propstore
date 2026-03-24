@@ -421,6 +421,25 @@ def _resolve_target(
                 )
                 inputs_used[input_cid].setdefault("value", input_val)
 
+        # Record each input as a step in the derivation trace,
+        # skipping inputs already recorded (from pre-resolve or overrides)
+        seen_concepts = {s["concept"] for s in all_steps}
+        for input_cid, input_info in inputs_used.items():
+            concept = world.get_concept(input_cid) if hasattr(world, 'get_concept') else None
+            input_name = concept["canonical_name"] if concept else input_cid
+            if input_name in seen_concepts:
+                continue
+            step: dict[str, Any] = {
+                "concept": input_name,
+                "value": input_info.get("value"),
+                "source": input_info.get("source", "unknown"),
+            }
+            if input_info.get("claim_id"):
+                step["claim_id"] = input_info["claim_id"]
+            if input_info.get("formula"):
+                step["formula"] = input_info["formula"]
+            all_steps.append(step)
+
         all_steps.append({
             "concept": target_name,
             "value": dr.value,
