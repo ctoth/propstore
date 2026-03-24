@@ -1223,6 +1223,62 @@ def test_atms_worldline_future_capture_is_opt_in() -> None:
     assert future_result.argumentation["witness_futures"]["claim_future"][0]["queryable_cels"] == ["y == 2"]
 
 
+def test_was_pruned_by_nogood_detects_transitive_nogood_through_antecedent() -> None:
+    """When a derived node is OUT because its antecedent was nogood-pruned,
+    _was_pruned_by_nogood should report NOGOOD_PRUNED, not MISSING_SUPPORT.
+
+    Setup: claim_a (concept1=2.0, x==1) conflicts with claim_b (concept1=3.0,
+    unconditional). Nogood = {x==1}. claim_a is directly nogood-pruned.
+    Parameterization concept2 = concept1 * 2 creates derived:concept2:4.0
+    depending on claim_a. That derived node is transitively nogood-pruned.
+    """
+    store = _ATMSStore(
+        claims=[
+            {
+                "id": "claim_a",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 2.0,
+                "conditions_cel": json.dumps(["x == 1"]),
+            },
+            {
+                "id": "claim_b",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 3.0,
+                "conditions_cel": None,
+            },
+        ],
+        parameterizations=[
+            {
+                "output_concept_id": "concept2",
+                "concept_ids": json.dumps(["concept1"]),
+                "sympy": "Eq(concept2, concept1 * 2)",
+                "formula": "concept2 = concept1 * 2",
+                "conditions_cel": None,
+            }
+        ],
+        conflicts=[
+            {"claim_a_id": "claim_a", "claim_b_id": "claim_b", "concept_id": "concept1"},
+        ],
+    )
+    bound = _make_bound(store, bindings={"x": 1})
+    engine = bound.atms_engine()
+
+    # claim_a should be directly nogood-pruned (its assumption {x==1} is a nogood)
+    claim_a_inspection = engine.node_status("claim:claim_a")
+    assert claim_a_inspection.status == ATMSNodeStatus.OUT
+    assert claim_a_inspection.out_kind == ATMSOutKind.NOGOOD_PRUNED
+
+    # The derived node from claim_a should be transitively nogood-pruned
+    derived_node_id = engine._derived_node_id("concept2", 4.0)
+    derived_inspection = engine.node_status(derived_node_id)
+    assert derived_inspection.status == ATMSNodeStatus.OUT
+    assert derived_inspection.out_kind == ATMSOutKind.NOGOOD_PRUNED, (
+        f"Expected NOGOOD_PRUNED for transitive nogood, got {derived_inspection.out_kind}"
+    )
+
+
 def test_atms_cli_surfaces_future_analysis(monkeypatch) -> None:
     class FakeRepo:
         pass

@@ -1015,16 +1015,28 @@ class ATMSEngine:
             return "exact justifications exist but no surviving label environments"
         return "no exact ATMS justification produced a label"
 
-    def _was_pruned_by_nogood(self, node_id: str) -> bool:
+    def _was_pruned_by_nogood(self, node_id: str, _visited: set[str] | None = None) -> bool:
         node = self._nodes[node_id]
         if node.label.environments:
             return False
+        if _visited is None:
+            _visited = set()
+        if node_id in _visited:
+            return False
+        _visited.add(node_id)
         for justification_id in node.justification_ids:
             justification = self._justifications[justification_id]
+            # Direct check: would the cross-product be non-empty without nogoods?
             raw = self._justification_candidate_label(justification, nogoods=None)
             pruned = self._justification_candidate_label(justification, nogoods=self.nogoods)
             if raw.environments and not pruned.environments:
                 return True
+            # Transitive check: is any empty-label antecedent itself nogood-pruned?
+            for antecedent_id in justification.antecedent_ids:
+                antecedent = self._nodes[antecedent_id]
+                if not antecedent.label.environments:
+                    if self._was_pruned_by_nogood(antecedent_id, _visited):
+                        return True
         return False
 
     def _justification_candidate_label(
