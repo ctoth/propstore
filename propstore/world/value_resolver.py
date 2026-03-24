@@ -11,6 +11,27 @@ from ast_equiv import compare as ast_compare
 from propstore.world.types import DerivedResult, ValueResult
 
 
+def collect_known_values(
+    variable_concepts: list[str],
+    value_of: Callable[[str], ValueResult],
+) -> dict[str, Any]:
+    """Resolve numeric values for a list of concept IDs.
+
+    Shared implementation used by BoundWorld and HypotheticalWorld.
+    """
+    known: dict[str, Any] = {}
+    for cid in variable_concepts:
+        vr = value_of(cid)
+        if vr.status == "determined" and vr.claims:
+            val = vr.claims[0].get("value")
+            if val is not None:
+                try:
+                    known[cid] = float(val)
+                except (TypeError, ValueError):
+                    pass
+    return known
+
+
 class ActiveClaimResolver:
     """Resolve values and derived values for a belief-space view."""
 

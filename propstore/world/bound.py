@@ -16,7 +16,7 @@ from propstore.world.labelled import (
     combine_labels,
     merge_labels,
 )
-from propstore.world.value_resolver import ActiveClaimResolver
+from propstore.world.value_resolver import ActiveClaimResolver, collect_known_values
 from propstore.world.types import (
     ATMSInspection,
     BeliefSpace,
@@ -215,17 +215,7 @@ class BoundWorld(BeliefSpace):
 
     def collect_known_values(self, variable_concepts: list[str]) -> dict[str, Any]:
         """Resolve numeric values for a list of concept IDs."""
-        known: dict[str, Any] = {}
-        for cid in variable_concepts:
-            vr = self.value_of(cid)
-            if vr.status == "determined" and vr.claims:
-                val = vr.claims[0].get("value")
-                if val is not None:
-                    try:
-                        known[cid] = float(val)
-                    except (TypeError, ValueError):
-                        pass
-        return known
+        return collect_known_values(variable_concepts, self.value_of)
 
     def extract_variable_concepts(self, claim: dict) -> list[str]:
         """Extract concept IDs referenced by an algorithm claim's variables."""
