@@ -16,6 +16,7 @@ from propstore.world.types import (
     RenderPolicy,
     ResolvedResult,
     ResolutionStrategy,
+    ValueStatus,
 )
 
 
@@ -223,12 +224,12 @@ def resolve(
     vr = view.value_of(concept_id)
 
     if vr.status == "no_claims":
-        return ResolvedResult(concept_id=concept_id, status="no_claims")
+        return ResolvedResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
 
     if vr.status == "determined":
         value = vr.claims[0].get("value") if vr.claims else None
         return ResolvedResult(
-            concept_id=concept_id, status="determined",
+            concept_id=concept_id, status=ValueStatus.DETERMINED,
             value=value, claims=vr.claims,
         )
 
@@ -262,7 +263,7 @@ def resolve(
 
     if strategy is None:
         return ResolvedResult(
-            concept_id=concept_id, status="conflicted",
+            concept_id=concept_id, status=ValueStatus.CONFLICTED,
             claims=vr.claims, reason="no resolution strategy configured",
         )
 
@@ -275,7 +276,7 @@ def resolve(
         override_id = (overrides or {}).get(concept_id)
         if override_id is None:
             return ResolvedResult(
-                concept_id=concept_id, status="conflicted",
+                concept_id=concept_id, status=ValueStatus.CONFLICTED,
                 claims=active, reason="no override specified",
             )
         active_ids = {c["id"] for c in active}
@@ -295,7 +296,7 @@ def resolve(
     elif strategy == ResolutionStrategy.ARGUMENTATION:
         if world is None:
             return ResolvedResult(
-                concept_id=concept_id, status="conflicted",
+                concept_id=concept_id, status=ValueStatus.CONFLICTED,
                 claims=active, reason="argumentation strategy requires an explicit artifact store",
             )
         if reasoning_backend == ReasoningBackend.CLAIM_GRAPH:
@@ -326,14 +327,14 @@ def resolve(
 
     if winner_id is None:
         return ResolvedResult(
-            concept_id=concept_id, status="conflicted",
+            concept_id=concept_id, status=ValueStatus.CONFLICTED,
             claims=active, strategy=strategy.value, reason=reason,
         )
 
     winning_claim = next((c for c in active if c["id"] == winner_id), None)
     value = winning_claim.get("value") if winning_claim else None
     return ResolvedResult(
-        concept_id=concept_id, status="resolved",
+        concept_id=concept_id, status=ValueStatus.RESOLVED,
         value=value, claims=active,
         winning_claim_id=winner_id,
         strategy=strategy.value, reason=reason,

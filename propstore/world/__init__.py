@@ -21,6 +21,7 @@ from propstore.world.types import (
     ResolutionStrategy,
     SyntheticClaim,
     ValueResult,
+    ValueStatus,
 )
 
 __all__ = [
@@ -42,6 +43,7 @@ __all__ = [
     "ResolutionStrategy",
     "SyntheticClaim",
     "ValueResult",
+    "ValueStatus",
     "WorldModel",
     "resolve",
 ]

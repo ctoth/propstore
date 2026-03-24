@@ -8,7 +8,7 @@ from typing import Any, Callable
 
 from ast_equiv import compare as ast_compare
 
-from propstore.world.types import DerivedResult, ValueResult
+from propstore.world.types import DerivedResult, ValueResult, ValueStatus
 
 
 def collect_known_values(
@@ -66,7 +66,7 @@ class ActiveClaimResolver:
 
         params = self._parameterizations_for(concept_id)
         if not params:
-            return DerivedResult(concept_id=concept_id, status="no_relationship")
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
         saw_compatible_candidate = False
         saw_conflicted_candidate = False
@@ -91,17 +91,17 @@ class ActiveClaimResolver:
                 saw_underspecified_candidate = True
 
         if not saw_compatible_candidate:
-            return DerivedResult(concept_id=concept_id, status="no_relationship")
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
         if saw_conflicted_candidate:
-            return DerivedResult(concept_id=concept_id, status="conflicted")
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.CONFLICTED)
         if saw_underspecified_candidate:
-            return DerivedResult(concept_id=concept_id, status="underspecified")
-        return DerivedResult(concept_id=concept_id, status="underspecified")
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
+        return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
     def value_of_from_active(self, active: list[dict], concept_id: str) -> ValueResult:
         if not active:
-            return ValueResult(concept_id=concept_id, status="no_claims")
+            return ValueResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
 
         algo_claims = [claim for claim in active if claim.get("type") == "algorithm"]
         value_claims = [claim for claim in active if claim.get("type") != "algorithm"]
@@ -113,10 +113,10 @@ class ActiveClaimResolver:
                 if claim.get("value") is not None
             }
             if not direct_values:
-                status = "no_claims" if not active else "no_values"
+                status = ValueStatus.NO_CLAIMS if not active else ValueStatus.NO_VALUES
                 return ValueResult(concept_id=concept_id, status=status, claims=active)
             if len(direct_values) != 1:
-                return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+                return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=active)
 
             direct_value = next(iter(direct_values))
             unevaluable_algorithm_present = False
@@ -129,14 +129,14 @@ class ActiveClaimResolver:
                     unevaluable_algorithm_present = True
                     continue
                 if not matches_direct:
-                    return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+                    return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=active)
             if unevaluable_algorithm_present:
-                return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
-            return ValueResult(concept_id=concept_id, status="determined", claims=active)
+                return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=active)
+            return ValueResult(concept_id=concept_id, status=ValueStatus.DETERMINED, claims=active)
 
         if algo_claims and not value_claims:
             if len(algo_claims) == 1:
-                return ValueResult(concept_id=concept_id, status="determined", claims=algo_claims)
+                return ValueResult(concept_id=concept_id, status=ValueStatus.DETERMINED, claims=algo_claims)
 
             all_var_concepts: set[str] = set()
             for claim in algo_claims:
@@ -145,16 +145,16 @@ class ActiveClaimResolver:
 
             known_values = self._collect_known_values(list(all_var_concepts))
             if self._all_algorithms_equivalent(algo_claims, known_values):
-                return ValueResult(concept_id=concept_id, status="determined", claims=algo_claims)
-            return ValueResult(concept_id=concept_id, status="conflicted", claims=algo_claims)
+                return ValueResult(concept_id=concept_id, status=ValueStatus.DETERMINED, claims=algo_claims)
+            return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=algo_claims)
 
         values = {claim.get("value") for claim in active if claim.get("value") is not None}
         if not values:
-            status = "no_claims" if not active else "no_values"
+            status = ValueStatus.NO_CLAIMS if not active else ValueStatus.NO_VALUES
             return ValueResult(concept_id=concept_id, status=status, claims=active)
         if len(values) == 1:
-            return ValueResult(concept_id=concept_id, status="determined", claims=active)
-        return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+            return ValueResult(concept_id=concept_id, status=ValueStatus.DETERMINED, claims=active)
+        return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=active)
 
     def _derive_from_parameterization(
         self,
@@ -168,7 +168,7 @@ class ActiveClaimResolver:
 
         sympy_expr = param.get("sympy")
         if not sympy_expr:
-            return DerivedResult(concept_id=concept_id, status="underspecified")
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
         input_ids = json.loads(param["concept_ids"])
         effective_inputs = [iid for iid in input_ids if iid != concept_id]
@@ -184,15 +184,15 @@ class ActiveClaimResolver:
             if value_result.status == "determined":
                 value = value_result.claims[0].get("value") if value_result.claims else None
                 if value is None:
-                    return DerivedResult(concept_id=concept_id, status="underspecified")
+                    return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
                 input_values[input_id] = float(value)
                 continue
 
             if value_result.status == "conflicted":
-                return DerivedResult(concept_id=concept_id, status="conflicted")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.CONFLICTED)
 
             if input_id in derivation_stack:
-                return DerivedResult(concept_id=concept_id, status="underspecified")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
             derivation_stack.add(input_id)
             try:
@@ -208,16 +208,16 @@ class ActiveClaimResolver:
                 input_values[input_id] = float(derived.value)
                 continue
             if derived.status == "conflicted":
-                return DerivedResult(concept_id=concept_id, status="conflicted")
-            return DerivedResult(concept_id=concept_id, status="underspecified")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.CONFLICTED)
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
         result = evaluate_parameterization(sympy_expr, input_values, concept_id)
         if result is None:
-            return DerivedResult(concept_id=concept_id, status="underspecified")
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
         return DerivedResult(
             concept_id=concept_id,
-            status="derived",
+            status=ValueStatus.DERIVED,
             value=result,
             formula=param.get("formula"),
             input_values=input_values,

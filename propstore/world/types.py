@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.world.labelled import (
@@ -19,10 +19,28 @@ if TYPE_CHECKING:
     from propstore.z3_conditions import Z3ConditionSolver
 
 
+class ValueStatus(StrEnum):
+    """Status of a value/derived/resolved result.
+
+    Because StrEnum subclasses str, ``ValueStatus.DETERMINED == "determined"``
+    is True — all existing string comparisons keep working with zero migration.
+    """
+
+    DETERMINED = "determined"
+    CONFLICTED = "conflicted"
+    NO_CLAIMS = "no_claims"
+    NO_VALUES = "no_values"
+    UNDERDETERMINED = "underdetermined"
+    DERIVED = "derived"
+    NO_RELATIONSHIP = "no_relationship"
+    UNDERSPECIFIED = "underspecified"
+    RESOLVED = "resolved"
+
+
 @dataclass
 class ValueResult:
     concept_id: str
-    status: str  # "determined" | "conflicted" | "underdetermined" | "no_claims" | "no_values"
+    status: ValueStatus
     claims: list[dict] = field(default_factory=list)
     label: Label | None = None
 
@@ -30,7 +48,7 @@ class ValueResult:
 @dataclass
 class DerivedResult:
     concept_id: str
-    status: str  # "derived" | "underspecified" | "no_relationship" | "conflicted"
+    status: ValueStatus
     value: float | None = None
     formula: str | None = None
     input_values: dict[str, float] = field(default_factory=dict)
@@ -117,7 +135,7 @@ class ReasoningBackend(Enum):
 @dataclass
 class ResolvedResult:
     concept_id: str
-    status: str  # "determined" | "conflicted" | "no_claims" | "resolved"
+    status: ValueStatus
     value: float | str | None = None
     claims: list[dict] = field(default_factory=list)
     winning_claim_id: str | None = None
