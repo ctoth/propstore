@@ -479,6 +479,19 @@ Run 4 adds ATMS-native inspection over that exact-support layer:
 - justification traces and nogood provenance are exposed for inspection.
 - these statuses describe propagated exact support, not Dung extensions, stability, or relevance.
 
+Run 5 adds bounded future-environment analysis to the `atms` backend:
+
+- future/queryable assumptions can be declared explicitly for ATMS-native "could this change?" inspection.
+- `OUT` statuses now distinguish missing exact support from nogood-pruned support.
+- future analysis reports bounded candidate environments that could activate or block exact support.
+
+Run 6 adds bounded stability and relevance analysis over that implemented future substrate:
+
+- stability asks whether a claim or concept keeps the same status across all bounded consistent future replays.
+- relevance identifies which declared queryables can flip that status.
+- witness futures are returned so stability/relevance claims stay inspectable and honest.
+- this remains bounded replay over admitted future queryables; it is not AGM revision, entrenchment maintenance, or full structured-argument dynamics.
+
 The `atms` backend still does not expose Dung extensions. `pks world extensions --backend atms` remains rejected by design. Use the ATMS-native commands instead:
 
 ```bash
@@ -490,9 +503,21 @@ pks world atms-context domain=argumentation
 
 # Run ATMS label self-checks
 pks world atms-verify domain=argumentation
+
+# Show bounded future environments for a claim or concept
+pks world atms-futures claim_id domain=argumentation --queryable framework=general
+
+# Explain whether an OUT status is missing support or nogood-pruned
+pks world atms-why-out claim_id domain=argumentation --queryable framework=general
+
+# Show bounded stability and witness futures
+pks world atms-stability claim_id domain=argumentation --queryable framework=general
+
+# Show which queryables matter, with witness flips
+pks world atms-relevance claim_id domain=argumentation --queryable framework=general
 ```
 
-Stability analysis, relevance analysis, AGM-style revision semantics, and full ASPIC+ execution remain future work.
+AGM-style revision semantics and full ASPIC+ execution remain future work.
 
 ### MaxSMT conflict resolution
 
