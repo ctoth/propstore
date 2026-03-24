@@ -185,10 +185,24 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         claim_count = s["claims"]
 
         conflicts = wm.conflicts()
+        # Group PHI_NODEs by concept for compact display
+        from collections import defaultdict
+        phi_groups: dict[str, set[str]] = defaultdict(set)
         for c in conflicts:
+            wc = c["warning_class"]
+            if wc in ("PHI_NODE", "CONTEXT_PHI_NODE"):
+                key = f"{wc}: {c['concept_id']}"
+                phi_groups[key].add(c["claim_a_id"])
+                phi_groups[key].add(c["claim_b_id"])
+            else:
+                click.echo(
+                    f"  {wc}: {c['concept_id']} "
+                    f"({c['claim_a_id']} vs {c['claim_b_id']})", err=True)
+        for key, claim_ids in phi_groups.items():
+            sorted_ids = sorted(claim_ids)
             click.echo(
-                f"  {c['warning_class']}: {c['concept_id']} "
-                f"({c['claim_a_id']} vs {c['claim_b_id']})", err=True)
+                f"  {key} — {len(sorted_ids)} branches: "
+                f"{', '.join(sorted_ids)}", err=True)
         wm.close()
     except FileNotFoundError:
         # Sidecar didn't get written (no claims?) — fall back to counting
