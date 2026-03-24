@@ -18,6 +18,7 @@ from propstore.world.labelled import (
 )
 from propstore.world.value_resolver import ActiveClaimResolver
 from propstore.world.types import (
+    ATMSInspection,
     BeliefSpace,
     DerivedResult,
     Environment,
@@ -28,6 +29,7 @@ from propstore.world.types import (
 
 if TYPE_CHECKING:
     from propstore.validate_contexts import ContextHierarchy
+    from propstore.world.atms import ATMSEngine
     from propstore.world.model import WorldModel
 
 
@@ -129,6 +131,7 @@ class BoundWorld(BeliefSpace):
             environment = Environment(bindings=bindings or {}, context_id=context_id)
         self._environment = environment
         self._policy = policy
+        self._atms_engine: ATMSEngine | None = None
         self._bindings = dict(environment.bindings)
         self._binding_conds = self._bindings_to_cel(self._bindings)
         self._assumptions_by_cel: dict[str, list[AssumptionRef]] = {}
@@ -260,7 +263,15 @@ class BoundWorld(BeliefSpace):
 
     def value_of(self, concept_id: str) -> ValueResult:
         active = self.active_claims(concept_id)
+        if self._reasoning_backend() == "atms":
+            supported_ids = self.atms_engine().supported_claim_ids(concept_id)
+            active = [
+                claim for claim in active
+                if claim.get("id") in supported_ids
+            ]
         result = self._resolver.value_of_from_active(active, concept_id)
+        if self._reasoning_backend() == "atms":
+            return self._attach_atms_value_label(result)
         return self._attach_value_label(result)
 
     def derived_value(
@@ -274,13 +285,47 @@ class BoundWorld(BeliefSpace):
             concept_id,
             override_values=override_values,
         )
+        if self._reasoning_backend() == "atms":
+            return self._attach_atms_derived_label(result)
         return self._attach_derived_label(result, override_values=override_values)
 
     def resolved_value(self, concept_id: str) -> ResolvedResult:
         from propstore.world.resolution import resolve
 
         result = resolve(self, concept_id, policy=self._policy, world=self._store)
+        if self._reasoning_backend() == "atms":
+            return self._attach_atms_resolved_label(concept_id, result)
         return self._attach_resolved_label(concept_id, result)
+
+    def atms_engine(self):
+        if self._atms_engine is None:
+            from propstore.world.atms import ATMSEngine
+
+            self._atms_engine = ATMSEngine(self)
+        return self._atms_engine
+
+    def claim_status(self, claim_id: str) -> ATMSInspection:
+        """Return the ATMS-native status and support-quality metadata for a claim."""
+        return self.atms_engine().claim_status(claim_id)
+
+    def claim_essential_support(self, claim_id: str) -> EnvironmentKey | None:
+        """Return Dixon-style essential support for a claim under this bound world."""
+        return self.claim_status(claim_id).essential_support
+
+    def claims_in_environment(
+        self,
+        environment: EnvironmentKey | tuple[str, ...] | list[str],
+    ) -> list[str]:
+        """Return claim IDs whose exact ATMS support is visible inside the environment."""
+        return [
+            node_id.partition(":")[2]
+            for node_id in self.atms_engine().nodes_in_environment(environment)
+            if node_id.startswith("claim:")
+        ]
+
+    def explain_claim_support(self, claim_id: str) -> dict[str, Any]:
+        """Return the ATMS justification trace and support metadata for a claim."""
+        return self.atms_engine().explain_node(self.claim_status(claim_id).node_id)
 
     def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
         """Return exact label support when reconstructible, plus honesty metadata."""
@@ -341,6 +386,22 @@ class BoundWorld(BeliefSpace):
             claim_labels.append(claim_label)
         return replace(result, label=merge_labels(claim_labels))
 
+    def _attach_atms_value_label(self, result: ValueResult) -> ValueResult:
+        if result.status != "determined" or not result.claims:
+            return result
+
+        engine = self.atms_engine()
+        claim_labels: list[Label] = []
+        for claim in result.claims:
+            claim_id = claim.get("id")
+            if not claim_id:
+                return result
+            claim_label = engine.claim_label(claim_id)
+            if claim_label is None:
+                return result
+            claim_labels.append(claim_label)
+        return replace(result, label=merge_labels(claim_labels, nogoods=engine.nogoods))
+
     def _attach_derived_label(
         self,
         result: DerivedResult,
@@ -361,6 +422,15 @@ class BoundWorld(BeliefSpace):
                 return result
             input_labels.append(input_label)
         return replace(result, label=combine_labels(*input_labels))
+
+    def _attach_atms_derived_label(self, result: DerivedResult) -> DerivedResult:
+        if result.status != "derived" or result.value is None:
+            return result
+
+        label = self.atms_engine().derived_label(result.concept_id, result.value)
+        if label is None:
+            return result
+        return replace(result, label=label)
 
     def _attach_resolved_label(
         self,
@@ -384,6 +454,22 @@ class BoundWorld(BeliefSpace):
         if claim_label is None:
             return result
         return replace(result, label=claim_label)
+
+    def _attach_atms_resolved_label(
+        self,
+        concept_id: str,
+        result: ResolvedResult,
+    ) -> ResolvedResult:
+        if result.status == "determined":
+            return replace(result, label=self.value_of(concept_id).label)
+
+        if result.status != "resolved" or not result.winning_claim_id:
+            return result
+
+        label = self.atms_engine().claim_label(result.winning_claim_id)
+        if label is None:
+            return result
+        return replace(result, label=label)
 
     def _label_for_input(
         self,
@@ -459,3 +545,8 @@ class BoundWorld(BeliefSpace):
         if has_conditions:
             return SupportQuality.SEMANTIC_COMPATIBLE
         return SupportQuality.SEMANTIC_COMPATIBLE
+
+    def _reasoning_backend(self) -> str:
+        if self._policy is None:
+            return "claim_graph"
+        return self._policy.reasoning_backend.value
