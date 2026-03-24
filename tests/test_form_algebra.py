@@ -386,45 +386,44 @@ class TestFormAlgebra:
 # ── Step 4: WorldModel form queries ──────────────────────────────────
 
 
+@pytest.fixture
+def world_model(physics_project):
+    """Build sidecar and return a WorldModel."""
+    from propstore.cli.repository import Repository
+    from propstore.world import WorldModel
+    repo = Repository(physics_project / "knowledge")
+    concepts = load_concepts(repo.concepts_dir)
+    build_sidecar(concepts, repo.sidecar_path, force=True, repo=repo)
+    return WorldModel(repo)
+
+
 class TestWorldModelFormQueries:
-    def test_forms_by_dimensions(self, sidecar_path):
-        from propstore.world import WorldModel
-        wm = WorldModel(sidecar_path)
-        results = wm.forms_by_dimensions({"M": 1, "L": 1, "T": -2})
+    def test_forms_by_dimensions(self, world_model):
+        results = world_model.forms_by_dimensions({"M": 1, "L": 1, "T": -2})
         form_names = [r["name"] for r in results]
         assert "force" in form_names
 
-    def test_forms_by_dimensions_no_match(self, sidecar_path):
-        from propstore.world import WorldModel
-        wm = WorldModel(sidecar_path)
-        results = wm.forms_by_dimensions({"M": 99})
+    def test_forms_by_dimensions_no_match(self, world_model):
+        results = world_model.forms_by_dimensions({"M": 99})
         assert results == []
 
-    def test_forms_by_dimensions_dimensionless(self, sidecar_path):
-        from propstore.world import WorldModel
-        wm = WorldModel(sidecar_path)
-        results = wm.forms_by_dimensions({})
+    def test_forms_by_dimensions_dimensionless(self, world_model):
+        results = world_model.forms_by_dimensions({})
         form_names = [r["name"] for r in results]
         assert "ratio" in form_names
 
-    def test_form_algebra_for(self, sidecar_path):
-        from propstore.world import WorldModel
-        wm = WorldModel(sidecar_path)
-        results = wm.form_algebra_for("force")
+    def test_form_algebra_for(self, world_model):
+        results = world_model.form_algebra_for("force")
         assert len(results) >= 1
         input_forms = json.loads(results[0]["input_forms"])
         assert "mass" in input_forms
 
-    def test_form_algebra_for_no_results(self, sidecar_path):
-        from propstore.world import WorldModel
-        wm = WorldModel(sidecar_path)
-        results = wm.form_algebra_for("mass")
+    def test_form_algebra_for_no_results(self, world_model):
+        results = world_model.form_algebra_for("mass")
         # mass has no decomposition (it's a base dimension)
         assert results == []
 
-    def test_form_algebra_using(self, sidecar_path):
-        from propstore.world import WorldModel
-        wm = WorldModel(sidecar_path)
-        results = wm.form_algebra_using("mass")
+    def test_form_algebra_using(self, world_model):
+        results = world_model.form_algebra_using("mass")
         output_forms = [r["output_form"] for r in results]
         assert "force" in output_forms or "energy" in output_forms

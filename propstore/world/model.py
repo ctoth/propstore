@@ -350,6 +350,48 @@ class WorldModel(ArtifactStore):
     def has_table(self, name: str) -> bool:
         return self._has_table(name)
 
+    # ── Form algebra queries ────────────────────────────────────────
+
+    def forms_by_dimensions(self, dims: dict[str, int]) -> list[dict]:
+        """Find all forms with matching SI dimensions."""
+        if not self._has_table("form"):
+            return []
+        from bridgman import dims_equal
+        rows = self._conn.execute("SELECT * FROM form").fetchall()
+        results = []
+        for row in rows:
+            row_dims_json = row["dimensions"]
+            if row_dims_json is None:
+                row_dims: dict[str, int] = {}
+                if not row["is_dimensionless"]:
+                    continue  # No dimensions and not dimensionless — skip
+            else:
+                row_dims = json.loads(row_dims_json)
+            if dims_equal(row_dims, dims):
+                results.append(dict(row))
+        return results
+
+    def form_algebra_for(self, form_name: str) -> list[dict]:
+        """Get all algebra decompositions that produce *form_name*."""
+        if not self._has_table("form_algebra"):
+            return []
+        rows = self._conn.execute(
+            "SELECT * FROM form_algebra WHERE output_form = ?", (form_name,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def form_algebra_using(self, form_name: str) -> list[dict]:
+        """Get all algebra entries where *form_name* is an input."""
+        if not self._has_table("form_algebra"):
+            return []
+        rows = self._conn.execute("SELECT * FROM form_algebra").fetchall()
+        results = []
+        for row in rows:
+            input_forms = json.loads(row["input_forms"])
+            if form_name in input_forms:
+                results.append(dict(row))
+        return results
+
     def stats(self) -> dict:
         concepts = self._conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0]
         if self._has_table("claim"):
