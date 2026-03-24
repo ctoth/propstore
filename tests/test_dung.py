@@ -114,6 +114,19 @@ class TestGroundedConcrete:
         )
         assert result == frozenset({"A", "C"})
 
+    def test_grounded_extension_conflict_free_wrt_attacks(self):
+        """Modgil & Prakken 2018 Def 14: grounded must be conflict-free w.r.t. attacks."""
+        fw = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset(),  # no defeats, so characteristic fn accepts both
+            attacks=frozenset({("A", "B")}),  # but A attacks B
+        )
+        ext = grounded_extension(fw)
+        # With no defeats, the characteristic fn would accept both A and B.
+        # But {A, B} is NOT conflict-free w.r.t. attacks.
+        # The grounded extension must be conflict-free w.r.t. attacks.
+        assert not ({"A", "B"} <= ext), "grounded should not contain both A and B when A attacks B"
+
 
 class TestPreferredConcrete:
     """Concrete examples for preferred extensions."""

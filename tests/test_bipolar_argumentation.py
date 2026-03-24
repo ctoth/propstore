@@ -351,11 +351,12 @@ class TestAttackBasedConflictFree:
         # No stable extensions: no CF set can defeat all outsiders (no defeats)
         assert frozenset({"A", "B"}) not in exts
 
-    def test_grounded_extension_unchanged_by_attacks(self):
-        """Grounded extension uses characteristic function (defeats only).
+    def test_grounded_extension_respects_attacks(self):
+        """Modgil & Prakken 2018 Def 14: grounded must be conflict-free w.r.t. attacks.
 
-        The grounded extension computation iterates F using defeats.
-        It doesn't check CF directly, so attacks don't change it.
+        The grounded extension computation iterates F using defeats, then
+        filters for attack-based conflict-freeness. Even with no defeats,
+        the result must not contain arguments that attack each other.
         """
         fw = ArgumentationFramework(
             arguments=frozenset({"A", "B"}),
@@ -363,8 +364,8 @@ class TestAttackBasedConflictFree:
             attacks=frozenset({("A", "B")}),
         )
         ext = grounded_extension(fw)
-        # No defeats, so both are unattacked in F
-        assert ext == frozenset({"A", "B"})
+        # A attacks B, so {A, B} is not conflict-free w.r.t. attacks
+        assert not ({"A", "B"} <= ext), "grounded should not contain both A and B when A attacks B"
 
 
 # ── Extension-level tests with bipolar examples ──────────────────────
