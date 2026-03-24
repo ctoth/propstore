@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections import deque
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from propstore.cel_checker import ConceptInfo, KindType
@@ -38,6 +39,13 @@ _KIND_TYPE_MAP = {
 
 class WorldModel(ArtifactStore):
     """Read-only reasoner over a compiled sidecar."""
+
+    @classmethod
+    def from_path(cls, knowledge_dir: str | Path) -> WorldModel:
+        """Open a world model from a knowledge directory path."""
+        from propstore.cli.repository import Repository
+
+        return cls(Repository(Path(knowledge_dir)))
 
     def __init__(self, repo: Repository) -> None:
         sidecar_path = repo.sidecar_path
@@ -173,6 +181,15 @@ class WorldModel(ArtifactStore):
         ).fetchone()
         return dict(row) if row else None
 
+    def concept_name(self, concept_id: str) -> str | None:
+        """Return the canonical name for a concept, or None if not found."""
+        concept = self.get_concept(concept_id)
+        return concept["canonical_name"] if concept else None
+
+    def concept_names(self) -> dict[str, str]:
+        """Return ``{concept_id: canonical_name}`` for all concepts."""
+        return {c["id"]: c["canonical_name"] for c in self.all_concepts()}
+
     def get_claim(self, claim_id: str) -> dict | None:
         if not self._has_table("claim"):
             return None
@@ -249,10 +266,15 @@ class WorldModel(ArtifactStore):
         ).fetchall()
         return [dict(row) for row in rows]
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self, concept_id: str | None = None) -> list[dict]:
         if not self._has_table("conflicts"):
             return []
-        rows = self._conn.execute("SELECT * FROM conflicts").fetchall()
+        if concept_id is not None:
+            rows = self._conn.execute(
+                "SELECT * FROM conflicts WHERE concept_id = ?", (concept_id,)
+            ).fetchall()
+        else:
+            rows = self._conn.execute("SELECT * FROM conflicts").fetchall()
         return [dict(r) for r in rows]
 
     def all_concepts(self) -> list[dict]:

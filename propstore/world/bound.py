@@ -24,6 +24,7 @@ from propstore.world.types import (
     Environment,
     QueryableAssumption,
     RenderPolicy,
+    ResolutionStrategy,
     ResolvedResult,
     ValueResult,
 )
@@ -280,10 +281,22 @@ class BoundWorld(BeliefSpace):
             return self._attach_atms_derived_label(result)
         return self._attach_derived_label(result, override_values=override_values)
 
-    def resolved_value(self, concept_id: str) -> ResolvedResult:
+    def resolved_value(
+        self,
+        concept_id: str,
+        *,
+        strategy: ResolutionStrategy | None = None,
+        policy: RenderPolicy | None = None,
+    ) -> ResolvedResult:
         from propstore.world.resolution import resolve
 
-        result = resolve(self, concept_id, policy=self._policy, world=self._store)
+        effective_policy = policy or self._policy
+        result = resolve(
+            self, concept_id,
+            strategy=strategy,
+            policy=effective_policy,
+            world=self._store,
+        )
         if self._reasoning_backend() == "atms":
             return self._attach_atms_resolved_label(concept_id, result)
         return self._attach_resolved_label(concept_id, result)
@@ -410,6 +423,78 @@ class BoundWorld(BeliefSpace):
         """Return the bounded queryables that matter to a concept's value status."""
         self._require_atms_backend()
         return self.atms_engine().concept_relevant_queryables(concept_id, queryables, limit=limit)
+
+    def claim_interventions(
+        self,
+        claim_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        target_status: str,
+        limit: int = 8,
+        max_plans: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return bounded additive intervention plans for one claim."""
+        self._require_atms_backend()
+        return self.atms_engine().claim_interventions(
+            claim_id,
+            queryables,
+            target_status,
+            limit=limit,
+            max_plans=max_plans,
+        )
+
+    def concept_interventions(
+        self,
+        concept_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        target_value_status: str,
+        limit: int = 8,
+        max_plans: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return bounded additive intervention plans for one concept."""
+        self._require_atms_backend()
+        return self.atms_engine().concept_interventions(
+            concept_id,
+            queryables,
+            target_value_status,
+            limit=limit,
+            max_plans=max_plans,
+        )
+
+    def claim_next_queryables(
+        self,
+        claim_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        target_status: str,
+        limit: int = 8,
+        max_suggestions: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return bounded next-query suggestions derived from claim intervention plans."""
+        self._require_atms_backend()
+        return self.atms_engine().next_queryables_for_claim(
+            claim_id,
+            queryables,
+            target_status,
+            limit=limit,
+            max_suggestions=max_suggestions,
+        )
+
+    def concept_next_queryables(
+        self,
+        concept_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        target_value_status: str,
+        limit: int = 8,
+        max_suggestions: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return bounded next-query suggestions derived from concept intervention plans."""
+        self._require_atms_backend()
+        return self.atms_engine().next_queryables_for_concept(
+            concept_id,
+            queryables,
+            target_value_status,
+            limit=limit,
+            max_suggestions=max_suggestions,
+        )
 
     def why_concept_out(
         self,
