@@ -53,35 +53,37 @@ def defeat_holds(
     raise ValueError(f"Unknown attack type: {attack_type}")
 
 
-def claim_strength(claim: dict) -> float:
-    """Compute ordinal strength from claim metadata.
+def claim_strength(claim: dict) -> list[float]:
+    """Compute multi-dimensional strength from claim metadata.
 
-    Composes from available signals:
+    Returns multi-dimensional strength for set comparison per
+    Modgil & Prakken (2018, Def 19). Each available signal becomes
+    a separate dimension, enabling elitist vs democratic comparison
+    to produce different results.
+
+    Dimensions (when present):
       - sample_size: log-scaled (diminishing returns)
       - uncertainty: inverse (lower = stronger)
       - confidence: direct (stance classification confidence)
 
-    Missing metadata is neutral (contributes 0), not penalizing.
+    Missing signals are omitted — only dimensions with data are included.
+    If NO metadata is available, returns [1.0] (single neutral element).
     """
-    score = 0.0
-    components = 0
+    dims: list[float] = []
 
     sample_size = claim.get("sample_size")
     if sample_size is not None and sample_size > 0:
-        score += math.log1p(sample_size)
-        components += 1
+        dims.append(math.log1p(sample_size))
 
     uncertainty = claim.get("uncertainty")
     if uncertainty is not None and uncertainty > 0:
-        score += 1.0 / uncertainty
-        components += 1
+        dims.append(1.0 / uncertainty)
 
     confidence = claim.get("confidence")
     if confidence is not None:
-        score += confidence
-        components += 1
+        dims.append(float(confidence))
 
-    if components == 0:
-        return 1.0  # neutral default for claims with no metadata
+    if not dims:
+        return [1.0]  # neutral default for claims with no metadata
 
-    return score / components
+    return dims

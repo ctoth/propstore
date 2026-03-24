@@ -155,8 +155,8 @@ def build_argumentation_framework(
         elif stance_type in _PREFERENCE_TYPES:
             attacker_claim = claims_by_id.get(source_id, {})
             target_claim = claims_by_id.get(target_id, {})
-            attacker_s = [claim_strength(attacker_claim)]
-            target_s = [claim_strength(target_claim)]
+            attacker_s = claim_strength(attacker_claim)  # already returns list[float]
+            target_s = claim_strength(target_claim)
             if defeat_holds(stance_type, attacker_s, target_s, comparison):
                 defeats.add((source_id, target_id))
 
@@ -266,11 +266,13 @@ def compute_consistent_beliefs(
     # Load claim rows from DB
     claims_by_id = store.claims_by_ids(active_claim_ids)
 
-    # Compute strengths
+    # Compute strengths — scalar aggregation for MaxSMT weight.
+    # claim_strength returns list[float]; multi-dim strength reduced to mean.
     strengths = {
-        cid: claim_strength(claims_by_id[cid])
+        cid: sum(dims) / len(dims)
         for cid in active_claim_ids
         if cid in claims_by_id
+        for dims in [claim_strength(claims_by_id[cid])]
     }
 
     # Detect conflicts — build synthetic LoadedClaimFile wrappers

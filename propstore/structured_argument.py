@@ -85,7 +85,7 @@ def build_structured_projection(
                 ),
                 premise_claim_ids=(),
                 label=label,
-                strength=claim_strength(claim),
+                strength=sum(s := claim_strength(claim)) / len(s),  # scalar for serialization
                 top_rule_kind="claim",
                 attackable_kind="base_claim",
                 subargument_ids=(),
@@ -172,8 +172,8 @@ def _build_projected_framework(
                     target_claim = active_by_id[target_claim_id]
                     if defeat_holds(
                         stance_type,
-                        [claim_strength(attacker_claim)],
-                        [claim_strength(target_claim)],
+                        claim_strength(attacker_claim),  # already returns list[float]
+                        claim_strength(target_claim),
                         comparison,
                     ):
                         defeats.add((source_arg, target_arg))
