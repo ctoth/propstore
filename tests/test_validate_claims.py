@@ -1499,3 +1499,53 @@ class TestSympyExceptNarrowing:
         files = load_claim_files(claims_dir)
         with pytest.raises(NameError, match="undefined_variable_bug"):
             validate_claims(files, registry)
+
+
+# ── Wrong error label bug (7C) ──────────────────────────────────────
+
+
+class TestClaimTypeErrorLabels:
+    """Error messages must use the actual claim type, not hardcoded 'observation'."""
+
+    @pytest.mark.parametrize("ctype", ["mechanism", "comparison", "limitation"])
+    def test_missing_statement_error_uses_correct_type(self, claims_dir, ctype):
+        claim = {
+            "id": "claim1",
+            "type": ctype,
+            "concepts": ["concept1"],
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        # Must say the actual type, not "observation"
+        assert any(f"{ctype} claim" in e for e in result.errors), (
+            f"Expected '{ctype} claim' in errors, got: {result.errors}"
+        )
+        assert not any("observation claim" in e for e in result.errors), (
+            f"Error should not say 'observation' for {ctype} claims: {result.errors}"
+        )
+
+    @pytest.mark.parametrize("ctype", ["mechanism", "comparison", "limitation"])
+    def test_missing_concepts_error_uses_correct_type(self, claims_dir, ctype):
+        claim = {
+            "id": "claim1",
+            "type": ctype,
+            "statement": "Some statement",
+            "provenance": {"paper": "test_paper", "page": 1},
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any(f"{ctype} claim" in e for e in result.errors), (
+            f"Expected '{ctype} claim' in errors, got: {result.errors}"
+        )
+        assert not any("observation claim" in e for e in result.errors), (
+            f"Error should not say 'observation' for {ctype} claims: {result.errors}"
+        )

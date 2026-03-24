@@ -234,7 +234,7 @@ def validate_claims(
             elif ctype == "algorithm":
                 _validate_algorithm(claim, cid, cf.filename, concept_registry, result)
             elif ctype in ("mechanism", "comparison", "limitation"):
-                _validate_observation(claim, cid, cf.filename, concept_registry, result)
+                _validate_observation(claim, cid, cf.filename, concept_registry, result, claim_type=ctype)
             else:
                 result.errors.append(
                     f"{cf.filename}: claim '{cid}' has unrecognized type '{ctype}'")
@@ -513,19 +513,20 @@ def _validate_equation(
 def _validate_observation(
     claim: dict, cid: str, filename: str,
     concept_registry: dict[str, dict], result: ValidationResult,
+    claim_type: str = "observation",
 ) -> None:
     statement = claim.get("statement")
     if not statement:
-        result.errors.append(f"{filename}: observation claim '{cid}' missing 'statement'")
+        result.errors.append(f"{filename}: {claim_type} claim '{cid}' missing 'statement'")
 
     concepts = claim.get("concepts")
     if not concepts or not isinstance(concepts, list) or len(concepts) == 0:
-        result.errors.append(f"{filename}: observation claim '{cid}' missing 'concepts' (at least one required)")
+        result.errors.append(f"{filename}: {claim_type} claim '{cid}' missing 'concepts' (at least one required)")
     elif isinstance(concepts, list):
         for concept_id in concepts:
             if concept_id not in concept_registry:
                 result.errors.append(
-                    f"{filename}: observation claim '{cid}' references "
+                    f"{filename}: {claim_type} claim '{cid}' references "
                     f"nonexistent concept '{concept_id}'")
 
 
