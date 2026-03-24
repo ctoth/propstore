@@ -173,6 +173,7 @@ def tokenize(expr: str) -> list[Token]:
                             token_type = TokenType.IN
                     elif token_type == TokenType.STRING_LIT:
                         val = val[1:-1]  # strip quotes
+                        val = val.replace('\\"', '"').replace("\\'", "'").replace('\\\\', '\\')
                     elif token_type == TokenType.INT_LIT:
                         val = int(val)
                     elif token_type == TokenType.FLOAT_LIT:

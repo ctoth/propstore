@@ -106,6 +106,24 @@ class TestTokenizer:
         tokens = tokenize("!phonation_present")
         assert tokens[0].value == "!"
 
+    def test_string_literal_unescapes_quotes(self):
+        """Escaped quotes inside string literals should be unescaped."""
+        tokens = tokenize(r'category == "has \"inner\" quotes"')
+        string_token = [t for t in tokens if t.type.name == "STRING_LIT"][0]
+        assert string_token.value == 'has "inner" quotes'
+
+    def test_string_literal_unescapes_backslash(self):
+        """Escaped backslashes inside string literals should be unescaped."""
+        tokens = tokenize(r'category == "path\\to\\file"')
+        string_token = [t for t in tokens if t.type.name == "STRING_LIT"][0]
+        assert string_token.value == "path\\to\\file"
+
+    def test_single_quoted_string_unescapes(self):
+        """Single-quoted strings should also unescape."""
+        tokens = tokenize(r"category == 'it\'s here'")
+        string_token = [t for t in tokens if t.type.name == "STRING_LIT"][0]
+        assert string_token.value == "it's here"
+
 
 # ── Parser tests ─────────────────────────────────────────────────────
 
