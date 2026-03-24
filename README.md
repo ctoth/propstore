@@ -461,11 +461,13 @@ The bridge layer (`argumentation.py`) converts raw stances into a Dung AF:
 
 ## Semantic axes
 
-- `reasoning_backend` selects how the active belief space is interpreted. The default and only implemented backend today is `claim_graph`.
+- `reasoning_backend` selects the argumentation backend used when a render policy asks for argumentation-based conflict resolution. The default and only implemented backend today is `claim_graph`.
 - `resolution_strategy` selects how to pick a winner when a conflicted concept still has multiple active claims after belief-space reasoning.
 - `comparison` selects the preference-comparison rule used inside the claim-graph argumentation backend.
 
-The long-term target architecture is a labelled belief space. Current worldline files and CLI defaults still run on the claim-graph backend.
+Run 2A adds an internal ATMS-style labelled semantic core for assumptions, environments, labels, nogoods, and justification normalization. Current worldline files and CLI defaults still run on the `claim_graph` backend.
+
+The labelled core is support bookkeeping, not yet a full ATMS control regime and not yet a structured-argument ASPIC+ backend.
 
 ### MaxSMT conflict resolution
 
