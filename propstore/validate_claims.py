@@ -494,12 +494,25 @@ def _validate_equation(
 
             if dim_map:
                 parsed = sp.sympify(sympy_str)
-                if not verify_expr(parsed, dim_map):
-                    result.warnings.append(
-                        f"{filename}: equation claim '{cid}' dimensional verification "
-                        f"failed for sympy '{sympy_str}'")
+                if isinstance(parsed, sp.Eq):
+                    if not verify_expr(parsed, dim_map):
+                        result.warnings.append(
+                            f"{filename}: equation claim '{cid}' dimensional verification "
+                            f"failed for sympy '{sympy_str}'")
+                else:
+                    # Non-Eq expression — can't verify both sides but can
+                    # check if all referenced concepts have compatible dims
+                    from bridgman import dims_of_expr
+                    try:
+                        dims_of_expr(parsed, dim_map)
+                    except DimensionalError as de:
+                        result.warnings.append(
+                            f"{filename}: equation claim '{cid}' dimensional "
+                            f"inconsistency in '{sympy_str}': {de}")
+        except (KeyError, SyntaxError):
+            pass  # missing concept or unparseable sympy — skip
         except Exception:
-            pass  # skip silently — many valid equations have symbols not in dim_map
+            pass  # other failures (matrix ops, etc.) — skip
 
 
 def _validate_observation(
