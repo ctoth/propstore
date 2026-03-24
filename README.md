@@ -492,6 +492,13 @@ Run 6 adds bounded stability and relevance analysis over that implemented future
 - witness futures are returned so stability/relevance claims stay inspectable and honest.
 - this remains bounded replay over admitted future queryables; it is not AGM revision, entrenchment maintenance, or full structured-argument dynamics.
 
+Run 7 adds bounded intervention and inquiry planning over that same ATMS future replay substrate:
+
+- intervention plans are minimal bounded additive queryable sets that reach a requested replayed target.
+- next-query suggestions are derived from those actual minimal plans rather than invented separately.
+- plans remain witness-bearing and minimal only within the admitted bounded search over declared queryables.
+- this is still not AGM revision, contraction, replacement of current assumptions, or entrenchment maintenance.
+
 The `atms` backend still does not expose Dung extensions. `pks world extensions --backend atms` remains rejected by design. Use the ATMS-native commands instead:
 
 ```bash
@@ -515,6 +522,12 @@ pks world atms-stability claim_id domain=argumentation --queryable framework=gen
 
 # Show which queryables matter, with witness flips
 pks world atms-relevance claim_id domain=argumentation --queryable framework=general
+
+# Show bounded additive intervention plans over declared queryables
+pks world atms-interventions claim_id domain=argumentation --target-status IN --queryable framework=general
+
+# Show next-query suggestions derived from actual minimal intervention plans
+pks world atms-next-query claim_id domain=argumentation --target-status IN --queryable framework=general
 ```
 
 AGM-style revision semantics and full ASPIC+ execution remain future work.
