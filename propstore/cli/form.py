@@ -19,13 +19,15 @@ def form() -> None:
 # ── form list ────────────────────────────────────────────────────────
 
 @form.command("list")
-@click.option("--dims", "dims_arg", default=None, is_flag=False, flag_value="__show__",
-              help="Show dimensions column; optionally filter by dims (e.g. M:1,L:1,T:-2)")
+@click.option("--dims", "dims_filter", default=None,
+              help="Filter by dimensions (e.g. M:1,L:1,T:-2). Implies showing dims column.")
+@click.option("--show-dims", "show_dims_flag", is_flag=True, default=False,
+              help="Show dimensions column.")
 @click.pass_obj
-def list_forms(obj: dict, dims_arg: str | None) -> None:
+def list_forms(obj: dict, dims_filter: str | None, show_dims_flag: bool) -> None:
     """List all available forms.
 
-    With --dims: show dimensions column.
+    With --show-dims: show dimensions column.
     With --dims M:1,L:1,T:-2: filter to forms matching those dimensions.
     """
     repo: Repository = obj["repo"]
@@ -39,10 +41,10 @@ def list_forms(obj: dict, dims_arg: str | None) -> None:
 
     # Parse filter dimensions if provided
     filter_dims: dict[str, int] | None = None
-    if dims_arg is not None and dims_arg != "__show__":
-        filter_dims = _parse_dims_spec(dims_arg)
+    if dims_filter is not None:
+        filter_dims = _parse_dims_spec(dims_filter)
 
-    show_dims = dims_arg is not None
+    show_dims = show_dims_flag or dims_filter is not None
 
     for fd in sorted(registry.values(), key=lambda f: f.name):
         if filter_dims is not None:

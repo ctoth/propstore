@@ -404,12 +404,12 @@ class TestFormListDims:
     """pks form list --dims shows dimensions, --dims X:N filters."""
 
     def test_list_with_dims_flag(self, world_model):
-        """pks form list --dims shows dimension column."""
+        """pks form list --show-dims shows dimension column."""
         from click.testing import CliRunner
         from propstore.cli.form import form
 
         runner = CliRunner()
-        result = runner.invoke(form, ["list", "--dims"],
+        result = runner.invoke(form, ["list", "--show-dims"],
                                obj={"repo": _repo_from_world(world_model)})
         assert result.exit_code == 0
         assert "force" in result.output

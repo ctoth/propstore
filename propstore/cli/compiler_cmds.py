@@ -780,6 +780,28 @@ def _format_assumption_ids(assumption_ids: list[str] | tuple[str, ...]) -> str:
     return "[" + ", ".join(assumption_ids) + "]"
 
 
+def _parse_queryables(queryables: tuple[str, ...]) -> list[str]:
+    parsed: list[str] = []
+    for queryable in queryables:
+        if any(operator in queryable for operator in ("==", "!=", ">=", "<=", ">", "<")):
+            parsed.append(queryable)
+            continue
+        if "=" in queryable:
+            key, _, value = queryable.partition("=")
+            parsed.append(f"{key} == '{value}'")
+            continue
+        parsed.append(queryable)
+    return parsed
+
+
+def _format_future_summary(future: dict) -> str:
+    queryables = ", ".join(future.get("queryable_cels", ()))
+    return (
+        f"[{queryables}] -> {future['status']}"
+        f" environment={_format_assumption_ids(future.get('environment', ())) }"
+    )
+
+
 @world.command("atms-status")
 @click.argument("args", nargs=-1)
 @click.option("--context", default=None, help="Context to scope the ATMS inspection")
@@ -891,6 +913,243 @@ def world_atms_verify(obj: dict, args: tuple[str, ...], context: str | None) -> 
 
     wm.close()
     sys.exit(2)
+
+
+@world.command("atms-futures")
+@click.argument("target")
+@click.argument("args", nargs=-1)
+@click.option("--queryable", "queryables", multiple=True, required=True,
+              help="Future/queryable assumption (CEL or key=value)")
+@click.option("--limit", default=8, show_default=True, type=int,
+              help="Maximum number of future environments to inspect")
+@click.option("--context", default=None, help="Context to scope the ATMS inspection")
+@click.pass_obj
+def world_atms_futures(
+    obj: dict,
+    target: str,
+    args: tuple[str, ...],
+    queryables: tuple[str, ...],
+    limit: int,
+    context: str | None,
+) -> None:
+    """Show bounded ATMS future environments for a claim or concept."""
+    repo: Repository = obj["repo"]
+    try:
+        wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    parsed_queryables = _parse_queryables(queryables)
+    claim = wm.get_claim(target)
+    if claim is not None:
+        report = bound.claim_future_statuses(target, parsed_queryables, limit=limit)
+        click.echo(
+            f"{target}: current_status={report['current'].status.value} "
+            f"could_become_in={report['could_become_in']} "
+            f"could_become_out={report['could_become_out']}"
+        )
+        for future in report["futures"]:
+            click.echo(
+                f"  future [{', '.join(future['queryable_cels'])}] -> {future['status'].value}"
+            )
+        wm.close()
+        return
+
+    resolved = wm.resolve_alias(target) or target
+    concept_report = bound.concept_future_statuses(resolved, parsed_queryables, limit=limit)
+    if not concept_report:
+        click.echo("No active claims for the requested ATMS future view.")
+        wm.close()
+        return
+    for claim_id in sorted(concept_report):
+        report = concept_report[claim_id]
+        click.echo(
+            f"{claim_id}: current_status={report['current'].status.value} "
+            f"could_become_in={report['could_become_in']} "
+            f"could_become_out={report['could_become_out']}"
+        )
+        for future in report["futures"]:
+            click.echo(
+                f"  future [{', '.join(future['queryable_cels'])}] -> {future['status'].value}"
+            )
+    wm.close()
+
+
+@world.command("atms-why-out")
+@click.argument("target")
+@click.argument("args", nargs=-1)
+@click.option("--queryable", "queryables", multiple=True,
+              help="Future/queryable assumption (CEL or key=value)")
+@click.option("--limit", default=8, show_default=True, type=int,
+              help="Maximum number of future environments to inspect")
+@click.option("--context", default=None, help="Context to scope the ATMS inspection")
+@click.pass_obj
+def world_atms_why_out(
+    obj: dict,
+    target: str,
+    args: tuple[str, ...],
+    queryables: tuple[str, ...],
+    limit: int,
+    context: str | None,
+) -> None:
+    """Explain whether an ATMS OUT status is missing-support or nogood-pruned."""
+    repo: Repository = obj["repo"]
+    try:
+        wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    parsed_queryables = _parse_queryables(queryables)
+    claim = wm.get_claim(target)
+    if claim is not None:
+        report = bound.atms_engine().why_out(
+            f"claim:{target}",
+            queryables=parsed_queryables,
+            limit=limit,
+        )
+        click.echo(
+            f"{target}: out_kind={report['out_kind'].value if report['out_kind'] is not None else 'none'} "
+            f"future_activatable={report['future_activatable']}"
+        )
+        click.echo(
+            f"  candidate_queryables={_format_assumption_ids([', '.join(item) for item in report['candidate_queryable_cels']])}"
+        )
+        click.echo(f"  reason: {report['reason']}")
+        wm.close()
+        return
+
+    resolved = wm.resolve_alias(target) or target
+    concept_report = bound.why_concept_out(resolved, parsed_queryables, limit=limit)
+    click.echo(
+            f"{resolved}: value_status={concept_report['value_status']} "
+            f"supported_claim_ids={_format_assumption_ids(concept_report['supported_claim_ids'])}"
+        )
+    for claim_id, report in sorted(concept_report["claim_reasons"].items()):
+        click.echo(
+            f"  {claim_id}: out_kind={report['out_kind'].value if report['out_kind'] is not None else 'none'} "
+            f"future_activatable={report['future_activatable']}"
+        )
+    wm.close()
+
+
+@world.command("atms-stability")
+@click.argument("target")
+@click.argument("args", nargs=-1)
+@click.option("--queryable", "queryables", multiple=True, required=True,
+              help="Future/queryable assumption (CEL or key=value)")
+@click.option("--limit", default=8, show_default=True, type=int,
+              help="Maximum number of future environments to inspect")
+@click.option("--context", default=None, help="Context to scope the ATMS inspection")
+@click.pass_obj
+def world_atms_stability(
+    obj: dict,
+    target: str,
+    args: tuple[str, ...],
+    queryables: tuple[str, ...],
+    limit: int,
+    context: str | None,
+) -> None:
+    """Show bounded ATMS-native stability over the implemented future replay substrate."""
+    repo: Repository = obj["repo"]
+    try:
+        wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    parsed_queryables = _parse_queryables(queryables)
+    claim = wm.get_claim(target)
+    if claim is not None:
+        report = bound.claim_stability(target, parsed_queryables, limit=limit)
+        click.echo(
+            f"{target}: status={report['current'].status.value} "
+            f"stable={report['stable']} "
+            f"consistent_futures={report['consistent_future_count']}"
+        )
+        if not report["witnesses"]:
+            click.echo("  no bounded consistent future flips the status")
+        for witness in report["witnesses"]:
+            click.echo(
+                f"  witness [{', '.join(witness['queryable_cels'])}] -> {witness['status'].value}"
+            )
+        wm.close()
+        return
+
+    resolved = wm.resolve_alias(target) or target
+    report = bound.concept_stability(resolved, parsed_queryables, limit=limit)
+    click.echo(
+        f"{resolved}: value_status={report['current_status']} "
+        f"stable={report['stable']} "
+        f"consistent_futures={report['consistent_future_count']}"
+    )
+    if not report["witnesses"]:
+        click.echo("  no bounded consistent future flips the value status")
+    for witness in report["witnesses"]:
+        click.echo(
+            f"  witness [{', '.join(witness['queryable_cels'])}] -> {witness['status']}"
+        )
+    wm.close()
+
+
+@world.command("atms-relevance")
+@click.argument("target")
+@click.argument("args", nargs=-1)
+@click.option("--queryable", "queryables", multiple=True, required=True,
+              help="Future/queryable assumption (CEL or key=value)")
+@click.option("--limit", default=8, show_default=True, type=int,
+              help="Maximum number of future environments to inspect")
+@click.option("--context", default=None, help="Context to scope the ATMS inspection")
+@click.pass_obj
+def world_atms_relevance(
+    obj: dict,
+    target: str,
+    args: tuple[str, ...],
+    queryables: tuple[str, ...],
+    limit: int,
+    context: str | None,
+) -> None:
+    """Show which bounded queryables can flip an ATMS or concept status."""
+    repo: Repository = obj["repo"]
+    try:
+        wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+
+    parsed_queryables = _parse_queryables(queryables)
+    claim = wm.get_claim(target)
+    if claim is not None:
+        report = bound.claim_relevance(target, parsed_queryables, limit=limit)
+        click.echo(
+            f"{target}: current_status={report['current'].status.value} "
+            f"relevant_queryables={_format_assumption_ids(report['relevant_queryables'])}"
+        )
+        for queryable_cel, pairs in sorted(report["witness_pairs"].items()):
+            for pair in pairs:
+                click.echo(
+                    f"  {queryable_cel}: "
+                    f"[{', '.join(pair['without']['queryable_cels'])}] -> {pair['without']['status'].value}; "
+                    f"[{', '.join(pair['with']['queryable_cels'])}] -> {pair['with']['status'].value}"
+                )
+        wm.close()
+        return
+
+    resolved = wm.resolve_alias(target) or target
+    report = bound.concept_relevance(resolved, parsed_queryables, limit=limit)
+    click.echo(
+        f"{resolved}: current_status={report['current_status']} "
+        f"relevant_queryables={_format_assumption_ids(report['relevant_queryables'])}"
+    )
+    for queryable_cel, pairs in sorted(report["witness_pairs"].items()):
+        for pair in pairs:
+            click.echo(
+                f"  {queryable_cel}: "
+                f"[{', '.join(pair['without']['queryable_cels'])}] -> {pair['without']['status']}; "
+                f"[{', '.join(pair['with']['queryable_cels'])}] -> {pair['with']['status']}"
+            )
+    wm.close()
 
 
 @world.command("derive")
