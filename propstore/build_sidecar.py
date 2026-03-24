@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Sequence
 import yaml
 
 from propstore.parameterization_groups import build_groups
-from propstore.form_utils import kind_value_from_form_name, load_all_forms, load_form
+from propstore.form_utils import kind_value_from_form_name, load_all_forms, load_form, normalize_to_si, FormDefinition
 from propstore.stances import VALID_STANCE_TYPES
 from propstore.validate import LoadedConcept
 from propstore.validate_claims import LoadedClaimFile
@@ -285,7 +285,16 @@ def build_sidecar(
             _create_claim_tables(conn)
             if concept_registry is None:
                 concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-            _populate_claims(conn, claim_files, concept_registry)
+            # Resolve forms directory for SI normalization
+            _forms_dir: Path | None = None
+            if repo is not None:
+                _forms_dir = repo.forms_dir
+            elif concepts:
+                _forms_dir = concepts[0].filepath.parent.parent / "forms"
+            _form_registry: dict[str, FormDefinition] = {}
+            if _forms_dir is not None and _forms_dir.exists():
+                _form_registry = load_all_forms(_forms_dir)
+            _populate_claims(conn, claim_files, concept_registry, form_registry=_form_registry)
             from propstore.validate_contexts import ContextHierarchy
 
             context_hierarchy = ContextHierarchy(context_files) if context_files else None
@@ -807,6 +816,9 @@ def _create_claim_tables(conn: sqlite3.Connection):
             source_paper TEXT NOT NULL,
             provenance_page INTEGER NOT NULL,
             provenance_json TEXT,
+            value_si REAL,
+            lower_bound_si REAL,
+            upper_bound_si REAL,
             context_id TEXT,
             FOREIGN KEY (context_id) REFERENCES context(id)
         );
@@ -864,6 +876,8 @@ def _populate_claims(
     conn: sqlite3.Connection,
     claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict | None = None,
+    *,
+    form_registry: dict[str, FormDefinition] | None = None,
 ):
     claim_seq = 0
     deferred_stances: list[tuple] = []
@@ -877,6 +891,7 @@ def _populate_claims(
                 source_paper,
                 claim_seq=claim_seq,
                 concept_registry=concept_registry,
+                form_registry=form_registry,
             )
             cols = ", ".join(row.keys())
             placeholders = ", ".join("?" * len(row))
@@ -917,6 +932,7 @@ def _prepare_claim_insert_row(
     *,
     claim_seq: int,
     concept_registry: dict | None = None,
+    form_registry: dict[str, FormDefinition] | None = None,
 ) -> dict[str, object]:
     from propstore.description_generator import generate_description
 
@@ -938,6 +954,35 @@ def _prepare_claim_insert_row(
         normalized_claim
     )
 
+    # ── SI normalization ──────────────────────────────────────────────
+    value_si = typed_fields["value"]
+    lower_bound_si = typed_fields["lower_bound"]
+    upper_bound_si = typed_fields["upper_bound"]
+    unit = typed_fields["unit"]
+
+    form_def: FormDefinition | None = None
+    if form_registry and concept_registry:
+        concept_id = typed_fields["concept_id"]
+        concept_data = concept_registry.get(concept_id) if concept_id else None
+        if isinstance(concept_data, dict):
+            form_name = concept_data.get("form")
+            if isinstance(form_name, str):
+                form_def = form_registry.get(form_name)
+
+    if form_def is not None:
+        try:
+            if value_si is not None:
+                value_si = normalize_to_si(float(value_si), unit, form_def)
+            if lower_bound_si is not None:
+                lower_bound_si = normalize_to_si(float(lower_bound_si), unit, form_def)
+            if upper_bound_si is not None:
+                upper_bound_si = normalize_to_si(float(upper_bound_si), unit, form_def)
+        except (ValueError, TypeError):
+            # Unknown unit or non-numeric value — keep raw values
+            value_si = typed_fields["value"]
+            lower_bound_si = typed_fields["lower_bound"]
+            upper_bound_si = typed_fields["upper_bound"]
+
     return {
         "id": normalized_claim.get("id"),
         "content_hash": _claim_content_hash(normalized_claim, source_paper),
@@ -951,6 +996,9 @@ def _prepare_claim_insert_row(
         "uncertainty_type": typed_fields["uncertainty_type"],
         "sample_size": typed_fields["sample_size"],
         "unit": typed_fields["unit"],
+        "value_si": value_si,
+        "lower_bound_si": lower_bound_si,
+        "upper_bound_si": upper_bound_si,
         "conditions_cel": json.dumps(conditions) if conditions else None,
         "statement": typed_fields["statement"],
         "expression": typed_fields["expression"],

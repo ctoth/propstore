@@ -1490,3 +1490,138 @@ class TestFormAlgebraDimVerified:
         assert len(rows) >= 1, "form_algebra must contain entries for dimensioned forms"
         row = rows[0]
         assert row["dim_verified"] == 1, "entry with valid dimensions should have dim_verified=1"
+
+
+# ── value_si normalization ────────────────────────────────────────────
+
+class TestClaimValueSI:
+    """value_si / lower_bound_si / upper_bound_si columns are populated
+    at build time by normalizing raw values through normalize_to_si()."""
+
+    def _setup_frequency_form_with_kHz(self, concept_dir):
+        """Write a frequency form with kHz in common_alternatives."""
+        forms_dir = concept_dir.parent / "forms"
+        forms_dir.mkdir(exist_ok=True)
+        yaml.dump(
+            {
+                "name": "frequency",
+                "kind": "quantity",
+                "unit_symbol": "Hz",
+                "dimensions": {"T": -1},
+                "common_alternatives": [
+                    {"unit": "kHz", "type": "multiplicative", "multiplier": 1000.0},
+                ],
+            },
+            (forms_dir / "frequency.yaml").open("w"),
+        )
+        # Ensure other forms still exist (minimal stubs)
+        for form_name in ("category", "structural", "duration_ratio", "pressure"):
+            path = forms_dir / f"{form_name}.yaml"
+            if not path.exists():
+                yaml.dump({"name": form_name}, path.open("w"))
+        # Clear form cache so new YAML is picked up
+        from propstore.form_utils import _form_cache
+        _form_cache.clear()
+
+    def _build_with_claims(self, concept_dir, sidecar_path, claims_list):
+        """Helper: write claim file, build sidecar, return db path."""
+        self._setup_frequency_form_with_kHz(concept_dir)
+        claims_dir = concept_dir / "claims_si_test"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = {
+            "source": {"paper": "si_test_paper"},
+            "claims": claims_list,
+        }
+        (claims_dir / "si_test_paper.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
+        from propstore.validate_claims import load_claim_files
+        claim_files = load_claim_files(claims_dir)
+        concepts = load_concepts(concept_dir)
+        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+        build_sidecar(
+            concepts, sidecar_path, force=True,
+            claim_files=claim_files,
+            concept_registry=concept_registry,
+        )
+        return sidecar_path
+
+    def test_claim_value_si_normalized(self, concept_dir, sidecar_path):
+        """0.2 kHz -> value_si = 200.0 Hz."""
+        db = self._build_with_claims(concept_dir, sidecar_path, [
+            {
+                "id": "si_claim1",
+                "type": "parameter",
+                "concept": "concept1",  # fundamental_frequency, form=frequency
+                "value": 0.2,
+                "unit": "kHz",
+                "provenance": {"paper": "si_test_paper", "page": 1},
+            },
+        ])
+        conn = sqlite3.connect(db)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT value, value_si, unit FROM claim WHERE id='si_claim1'").fetchone()
+        conn.close()
+        assert row["value"] == 0.2, "raw value preserved"
+        assert row["unit"] == "kHz", "raw unit preserved"
+        assert row["value_si"] == pytest.approx(200.0), "value_si = 0.2 * 1000"
+
+    def test_claim_value_si_canonical_unit(self, concept_dir, sidecar_path):
+        """Claim with canonical unit Hz -> value_si = same as value."""
+        db = self._build_with_claims(concept_dir, sidecar_path, [
+            {
+                "id": "si_claim2",
+                "type": "parameter",
+                "concept": "concept1",
+                "value": 440.0,
+                "unit": "Hz",
+                "provenance": {"paper": "si_test_paper", "page": 2},
+            },
+        ])
+        conn = sqlite3.connect(db)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT value, value_si FROM claim WHERE id='si_claim2'").fetchone()
+        conn.close()
+        assert row["value_si"] == pytest.approx(440.0), "canonical unit -> value_si == value"
+
+    def test_claim_value_si_no_unit(self, concept_dir, sidecar_path):
+        """Claim with no unit field -> value_si = same as value."""
+        db = self._build_with_claims(concept_dir, sidecar_path, [
+            {
+                "id": "si_claim3",
+                "type": "parameter",
+                "concept": "concept1",
+                "value": 100.0,
+                "provenance": {"paper": "si_test_paper", "page": 3},
+            },
+        ])
+        conn = sqlite3.connect(db)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT value, value_si FROM claim WHERE id='si_claim3'").fetchone()
+        conn.close()
+        assert row["value_si"] == pytest.approx(100.0), "no unit -> value_si == value"
+
+    def test_claim_bounds_si_normalized(self, concept_dir, sidecar_path):
+        """lower_bound=0.1, upper_bound=0.3, unit=kHz -> _si = 100.0, 300.0."""
+        db = self._build_with_claims(concept_dir, sidecar_path, [
+            {
+                "id": "si_claim4",
+                "type": "parameter",
+                "concept": "concept1",
+                "lower_bound": 0.1,
+                "upper_bound": 0.3,
+                "unit": "kHz",
+                "provenance": {"paper": "si_test_paper", "page": 4},
+            },
+        ])
+        conn = sqlite3.connect(db)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT lower_bound, upper_bound, lower_bound_si, upper_bound_si "
+            "FROM claim WHERE id='si_claim4'"
+        ).fetchone()
+        conn.close()
+        assert row["lower_bound"] == 0.1, "raw lower_bound preserved"
+        assert row["upper_bound"] == 0.3, "raw upper_bound preserved"
+        assert row["lower_bound_si"] == pytest.approx(100.0), "lower_bound_si = 0.1 * 1000"
+        assert row["upper_bound_si"] == pytest.approx(300.0), "upper_bound_si = 0.3 * 1000"
