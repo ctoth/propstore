@@ -106,17 +106,49 @@ def admissible(
 def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
     """Compute the unique grounded extension.
 
-    The grounded extension is the least fixed point of F.
-    Start with S = {} and iterate F until fixed point.
+    The grounded extension is the least fixed point of F, filtered
+    for attack-based conflict-freeness.
 
-    Reference: Dung 1995, Definition 20 + Theorem 25.
+    Start with S = {} and iterate F until fixed point, then enforce
+    conflict-freeness w.r.t. attacks (not just defeats).
+
+    References:
+        Dung 1995, Definition 20 + Theorem 25 (least fixed point).
+        Modgil & Prakken 2018, Definition 14 (attack-based conflict-free).
     """
     s: frozenset[str] = frozenset()
     while True:
         next_s = characteristic_fn(s, framework.arguments, framework.defeats)
         if next_s == s:
-            return s
+            break
         s = next_s
+
+    # Modgil & Prakken 2018 Def 14: conflict-free uses attacks, not defeats.
+    # The characteristic function computes defense via defeats (correct per
+    # Dung 1995), but the result must also be conflict-free w.r.t. attacks.
+    cf_relation = framework.attacks if framework.attacks is not None else framework.defeats
+    if cf_relation != framework.defeats:
+        # Remove arguments attacked by peers, then re-verify the fixpoint.
+        # Iterate until stable: removing an argument may leave another undefended.
+        while True:
+            attacked_in_ext = frozenset(
+                b for (a, b) in cf_relation if a in s and b in s
+            )
+            if not attacked_in_ext:
+                break
+            s = s - attacked_in_ext
+            # Re-compute fixpoint on the reduced set: some members may now
+            # lack defenders, so shrink to the grounded kernel.
+            while True:
+                next_s = frozenset(
+                    a for a in s
+                    if defends(s, a, framework.arguments, framework.defeats)
+                )
+                if next_s == s:
+                    break
+                s = next_s
+
+    return s
 
 
 def complete_extensions(

@@ -154,6 +154,13 @@ class Z3ConditionSolver:
         if node.op == "*":
             return left * right
         if node.op == "/":
+            # Guard against division by zero: Z3 treats x/0 as an
+            # uninterpreted value (total function), which causes unsound
+            # disjointness results. Collect non-zero guards to conjunct
+            # into the final condition expression.
+            zero = z3.RealVal(0, self._ctx)
+            guard = right != zero
+            self._current_guards.append(guard)
             return left / right
 
         # Comparisons
@@ -267,7 +274,13 @@ class Z3ConditionSolver:
     def _condition_to_z3(self, condition: str) -> Any:
         expr = self._condition_expr_cache.get(condition)
         if expr is None:
-            expr = self._translate(self._condition_ast(condition))
+            self._current_guards: list[Any] = []
+            translated = self._translate(self._condition_ast(condition))
+            # Conjunct any non-zero denominator guards collected during translation
+            if self._current_guards:
+                expr = z3.And(translated, *self._current_guards)
+            else:
+                expr = translated
             self._condition_expr_cache[condition] = expr
         return expr
 

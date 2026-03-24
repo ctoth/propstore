@@ -292,6 +292,39 @@ class TestZ3CrossConceptArithmetic:
             ["fundamental_frequency / subglottal_pressure > 3.0"],
         )
 
+    def test_division_by_zero_unsoundness(self):
+        """Division by zero makes Z3 unsound: x/0 is an uninterpreted total
+        function in Z3, so F0/Ps > 3 and F0/Ps < 1 are satisfiable when Ps=0
+        (Z3 picks an arbitrary value for x/0). The solver must guard against
+        this by constraining denominators to be non-zero."""
+        registry = _make_cel_registry()
+        solver = Z3ConditionSolver(registry)
+        # Without fix: Z3 says disjoint (wrong — Ps=0 satisfies both via
+        # uninterpreted x/0). With fix: denominator != 0 guard makes these
+        # genuinely disjoint (no unsound x/0 path).
+        # We test the property that matters: the solver adds the guard.
+        # Verify by checking a case where the guard changes the answer:
+        # "F0 / Ps > 0" vs "F0 / Ps < 0" — without guard, disjoint;
+        # but we also need Ps != 0 to be asserted.
+        # Actually test with a direct Z3 probe:
+        import z3 as _z3
+        ctx = solver._ctx
+        f0 = solver._get_real("fundamental_frequency")
+        ps = solver._get_real("subglottal_pressure")
+        # Translate a condition with division — should add non-zero guard
+        expr = solver._condition_to_z3(
+            "fundamental_frequency / subglottal_pressure > 3.0"
+        )
+        # The translated expression, when added to a solver, should make
+        # ps == 0 unsatisfiable (because of the non-zero guard)
+        s = _z3.Solver(ctx=ctx)
+        s.add(expr)
+        s.add(ps == _z3.RealVal(0, ctx))
+        assert s.check() == _z3.unsat, (
+            "Division expression should be UNSAT when denominator is 0 "
+            "(non-zero guard missing)"
+        )
+
 
 @z3_only
 class TestZ3Negation:
