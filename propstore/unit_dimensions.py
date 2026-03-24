@@ -20,6 +20,12 @@ from bridgman import dims_equal
 
 Dimensions = dict[str, int]  # e.g. {"M": 1, "L": -1, "T": -2}
 
+# physgen uses unicode Θ for temperature; form YAMLs use ascii THETA
+_DIM_KEY_NORMALIZE = {"Θ": "THETA", "θ": "THETA"}
+
+def _normalize_dim_key(k: str) -> str:
+    return _DIM_KEY_NORMALIZE.get(k, k)
+
 
 
 # ── Load shipped lookup table ────────────────────────────────────────
@@ -40,7 +46,9 @@ def _get_symbol_table() -> dict[str, Dimensions]:
     if resource_exists("physgen_units.json"):
         raw = json.loads(load_resource_text("physgen_units.json"))
         for symbol, dims in raw.items():
-            table[symbol] = {k: v for k, v in dims.items() if v != 0}
+            table[symbol] = {
+                _normalize_dim_key(k): v for k, v in dims.items() if v != 0
+            }
 
     _symbol_table = table
     return table
