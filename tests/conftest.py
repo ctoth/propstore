@@ -37,6 +37,10 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
             embedding_distance REAL,
             pass_number INTEGER,
             confidence REAL,
+            opinion_belief REAL,
+            opinion_disbelief REAL,
+            opinion_uncertainty REAL,
+            opinion_base_rate REAL DEFAULT 0.5,
             FOREIGN KEY (claim_id) REFERENCES claim(id),
             FOREIGN KEY (target_claim_id) REFERENCES claim(id)
         );

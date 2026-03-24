@@ -187,10 +187,14 @@ def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) ->
             conn.execute(
                 "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
                 "conditions_differ, note, resolution_method, resolution_model, embedding_model, "
-                "embedding_distance, pass_number, confidence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "embedding_distance, pass_number, confidence, "
+                "opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate"
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (source_claim, target, stype, s.get("strength"), cond_differ, s.get("note"),
                  res.get("method"), res.get("model"), res.get("embedding_model"),
-                 res.get("embedding_distance"), res.get("pass_number"), res.get("confidence"))
+                 res.get("embedding_distance"), res.get("pass_number"), res.get("confidence"),
+                 res.get("opinion_belief"), res.get("opinion_disbelief"),
+                 res.get("opinion_uncertainty"), res.get("opinion_base_rate"))
             )
             count += 1
 
@@ -838,6 +842,14 @@ def _create_claim_tables(conn: sqlite3.Connection):
             embedding_distance REAL,
             pass_number INTEGER,
             confidence REAL,
+            -- Opinion columns: subjective logic opinion tuple (Jøsang 2001, Def 9, p.7)
+            -- b (belief) + d (disbelief) + u (uncertainty) = 1, a = base rate
+            -- Vacuous opinion (0, 0, 1, 0.5) = total ignorance
+            -- See propstore/opinion.py for the full algebra
+            opinion_belief REAL,
+            opinion_disbelief REAL,
+            opinion_uncertainty REAL,
+            opinion_base_rate REAL DEFAULT 0.5,
             FOREIGN KEY (claim_id) REFERENCES claim(id),
             FOREIGN KEY (target_claim_id) REFERENCES claim(id)
         );
@@ -908,7 +920,9 @@ def _populate_claims(
         conn.execute(
             "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
             "conditions_differ, note, resolution_method, resolution_model, embedding_model, "
-            "embedding_distance, pass_number, confidence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "embedding_distance, pass_number, confidence, "
+            "opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             stance_row,
         )
 
@@ -1235,6 +1249,10 @@ def _extract_deferred_stance_rows(
             resolution.get("embedding_distance"),
             resolution.get("pass_number"),
             resolution.get("confidence"),
+            resolution.get("opinion_belief"),
+            resolution.get("opinion_disbelief"),
+            resolution.get("opinion_uncertainty"),
+            resolution.get("opinion_base_rate"),
         ))
     return rows
 
