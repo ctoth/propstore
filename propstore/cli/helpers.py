@@ -6,8 +6,10 @@ import os
 import re
 import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
+import click
 import yaml
 
 
@@ -205,6 +207,30 @@ def load_all_concepts_by_id(cdir: Path) -> dict[str, dict]:
             if cid:
                 result[cid] = data
     return result
+
+
+# ── WorldModel helpers ────────────────────────────────────────────────
+
+@contextmanager
+def open_world_model(repo):
+    """Open WorldModel, exit with error if sidecar not found.
+
+    Usage::
+
+        with open_world_model(repo) as wm:
+            ...  # wm is auto-closed on exit
+    """
+    from propstore.world import WorldModel
+
+    try:
+        wm = WorldModel(repo)
+    except FileNotFoundError:
+        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
+        sys.exit(1)
+    try:
+        yield wm
+    finally:
+        wm.close()
 
 
 # ── Exit codes ───────────────────────────────────────────────────────

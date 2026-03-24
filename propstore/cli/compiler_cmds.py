@@ -10,7 +10,7 @@ from pathlib import Path
 import click
 import yaml
 
-from propstore.cli.helpers import EXIT_VALIDATION, write_yaml_file
+from propstore.cli.helpers import EXIT_VALIDATION, open_world_model, write_yaml_file
 from propstore.cli.repository import Repository
 
 
@@ -566,17 +566,11 @@ def world_status(obj: dict) -> None:
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    s = wm.stats()
-    click.echo(f"Concepts: {s['concepts']}")
-    click.echo(f"Claims:   {s['claims']}")
-    click.echo(f"Conflicts: {s['conflicts']}")
-    wm.close()
+    with open_world_model(repo) as wm:
+        s = wm.stats()
+        click.echo(f"Concepts: {s['concepts']}")
+        click.echo(f"Claims:   {s['claims']}")
+        click.echo(f"Conflicts: {s['conflicts']}")
 
 
 @world.command("query")
@@ -587,19 +581,13 @@ def world_query(obj: dict, concept_id: str) -> None:
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    # Try alias resolution
-    resolved = wm.resolve_alias(concept_id) or concept_id
-    concept = wm.get_concept(resolved)
-    if concept is None:
-        click.echo(f"Unknown concept: {concept_id}", err=True)
-        wm.close()
-        sys.exit(1)
+    with open_world_model(repo) as wm:
+        # Try alias resolution
+        resolved = wm.resolve_alias(concept_id) or concept_id
+        concept = wm.get_concept(resolved)
+        if concept is None:
+            click.echo(f"Unknown concept: {concept_id}", err=True)
+            sys.exit(1)
 
     click.echo(f"{concept['canonical_name']} ({resolved})")
     claims = wm.claims_for(resolved)
@@ -624,16 +612,11 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    # Parse: args with '=' are bindings, last arg without '=' is concept_id
-    binding_args = [a for a in args if "=" in a]
-    non_binding = [a for a in args if "=" not in a]
-    query_concept = non_binding[-1] if non_binding else None
+    with open_world_model(repo) as wm:
+        # Parse: args with '=' are bindings, last arg without '=' is concept_id
+        binding_args = [a for a in args if "=" in a]
+        non_binding = [a for a in args if "=" not in a]
+        query_concept = non_binding[-1] if non_binding else None
 
     parsed: dict[str, str] = {}
     for b in binding_args:
@@ -672,17 +655,11 @@ def world_explain(obj: dict, claim_id: str) -> None:
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    claim = wm.get_claim(claim_id)
-    if claim is None:
-        click.echo(f"Unknown claim: {claim_id}", err=True)
-        wm.close()
-        sys.exit(1)
+    with open_world_model(repo) as wm:
+        claim = wm.get_claim(claim_id)
+        if claim is None:
+            click.echo(f"Unknown claim: {claim_id}", err=True)
+            sys.exit(1)
 
     click.echo(f"{claim_id}: {claim['type']} concept={claim.get('concept_id')} value={claim.get('value')}")
     chain = wm.explain(claim_id)
@@ -706,15 +683,10 @@ def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    # Fetch all algorithm claims
-    all_claims = wm.claims_for(None)
-    algos = [c for c in all_claims if c.get("type") == "algorithm"]
+    with open_world_model(repo) as wm:
+        # Fetch all algorithm claims
+        all_claims = wm.claims_for(None)
+        algos = [c for c in all_claims if c.get("type") == "algorithm"]
 
     if stage:
         algos = [c for c in algos if c.get("stage") == stage]
@@ -810,11 +782,7 @@ def _format_future_summary(future: dict) -> str:
 def world_atms_status(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Show ATMS-native claim status, support quality, and essential support."""
     repo: Repository = obj["repo"]
-    try:
-        wm, bound, _bindings, concept_id = _bind_atms_world(repo, args, context=context)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
+    wm, bound, _bindings, concept_id = _bind_atms_world(repo, args, context=context)
 
     resolved = None
     if concept_id:
@@ -844,11 +812,7 @@ def world_atms_status(obj: dict, args: tuple[str, ...], context: str | None) -> 
 def world_atms_context(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Show which ATMS-supported claims hold in the current bound environment."""
     repo: Repository = obj["repo"]
-    try:
-        wm, bound, _bindings, concept_id = _bind_atms_world(repo, args, context=context)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
+    wm, bound, _bindings, concept_id = _bind_atms_world(repo, args, context=context)
 
     environment_key = tuple(
         assumption.assumption_id
@@ -887,11 +851,7 @@ def world_atms_context(obj: dict, args: tuple[str, ...], context: str | None) ->
 def world_atms_verify(obj: dict, args: tuple[str, ...], context: str | None) -> None:
     """Run ATMS label self-checks for the current bound environment."""
     repo: Repository = obj["repo"]
-    try:
-        wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
+    wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
 
     report = bound.atms_engine().verify_labels()
     if report["ok"]:
@@ -935,11 +895,7 @@ def world_atms_futures(
 ) -> None:
     """Show bounded ATMS future environments for a claim or concept."""
     repo: Repository = obj["repo"]
-    try:
-        wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
+    wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
 
     parsed_queryables = _parse_queryables(queryables)
     claim = wm.get_claim(target)
@@ -996,11 +952,7 @@ def world_atms_why_out(
 ) -> None:
     """Explain whether an ATMS OUT status is missing-support or nogood-pruned."""
     repo: Repository = obj["repo"]
-    try:
-        wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
+    wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
 
     parsed_queryables = _parse_queryables(queryables)
     claim = wm.get_claim(target)
@@ -1054,11 +1006,7 @@ def world_atms_stability(
 ) -> None:
     """Show bounded ATMS-native stability over the implemented future replay substrate."""
     repo: Repository = obj["repo"]
-    try:
-        wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
+    wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
 
     parsed_queryables = _parse_queryables(queryables)
     claim = wm.get_claim(target)
@@ -1113,11 +1061,7 @@ def world_atms_relevance(
 ) -> None:
     """Show which bounded queryables can flip an ATMS or concept status."""
     repo: Repository = obj["repo"]
-    try:
-        wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
+    wm, bound, _bindings, _concept_id = _bind_atms_world(repo, args, context=context)
 
     parsed_queryables = _parse_queryables(queryables)
     claim = wm.get_claim(target)
@@ -1165,16 +1109,11 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    bindings, _ = _parse_bindings(args)
-    resolved = wm.resolve_alias(concept_id) or concept_id
-    bound = wm.bind(**bindings)
-    result = bound.derived_value(resolved)
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        resolved = wm.resolve_alias(concept_id) or concept_id
+        bound = wm.bind(**bindings)
+        result = bound.derived_value(resolved)
 
     click.echo(f"{resolved}: {result.status}")
     if result.value is not None:
@@ -1214,15 +1153,10 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
     from propstore.world import ResolutionStrategy, WorldModel, resolve
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    bindings, _ = _parse_bindings(args)
-    resolved = wm.resolve_alias(concept_id) or concept_id
-    bound = wm.bind(**bindings)
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        resolved = wm.resolve_alias(concept_id) or concept_id
+        bound = wm.bind(**bindings)
 
     strat = ResolutionStrategy(strategy)
     overrides = {resolved: override_id} if override_id else None
@@ -1276,18 +1210,13 @@ def world_extensions(obj: dict, args: tuple[str, ...],
     from propstore.world import Environment, ReasoningBackend, WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    bindings, _ = _parse_bindings(args)
-    if context:
-        env = Environment(bindings=bindings, context_id=context)
-        bound = wm.bind(env)
-    else:
-        bound = wm.bind(**bindings)
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        if context:
+            env = Environment(bindings=bindings, context_id=context)
+            bound = wm.bind(env)
+        else:
+            bound = wm.bind(**bindings)
 
     active = bound.active_claims()
     if not active:
@@ -1479,14 +1408,9 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
     from propstore.world import HypotheticalWorld, SyntheticClaim, WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    bindings, _ = _parse_bindings(args)
-    bound = wm.bind(**bindings)
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        bound = wm.bind(**bindings)
 
     synthetics: list[SyntheticClaim] = []
     if add_json:
@@ -1528,14 +1452,9 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
     from propstore.world import ResolutionStrategy, WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    bindings, _ = _parse_bindings(args)
-    resolved = wm.resolve_alias(concept_id) or concept_id
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        resolved = wm.resolve_alias(concept_id) or concept_id
 
     strat = ResolutionStrategy(strategy) if strategy else None
     result = wm.chain_query(resolved, strategy=strat, **bindings)
@@ -1574,14 +1493,9 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    bindings, _ = _parse_bindings(args)
-    bound = wm.bind(**bindings) if bindings else None
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        bound = wm.bind(**bindings) if bindings else None
 
     graph = build_knowledge_graph(wm, bound=bound, group_id=group_id)
 
@@ -1614,15 +1528,10 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    bindings, _ = _parse_bindings(args)
-    resolved = wm.resolve_alias(concept_id) or concept_id
-    bound = wm.bind(**bindings)
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        resolved = wm.resolve_alias(concept_id) or concept_id
+        bound = wm.bind(**bindings)
 
     result = analyze_sensitivity(wm, resolved, bound)
 
@@ -1678,13 +1587,8 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
     from propstore.world import WorldModel
 
     repo: Repository = obj["repo"]
-    try:
-        wm = WorldModel(repo)
-    except FileNotFoundError:
-        click.echo("ERROR: Sidecar not found. Run 'pks build' first.", err=True)
-        sys.exit(1)
-
-    bindings, _ = _parse_bindings(args)
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
 
     if transitive:
         from propstore.conflict_detector import detect_transitive_conflicts
