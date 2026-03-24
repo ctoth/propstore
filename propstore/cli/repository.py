@@ -52,6 +52,10 @@ class Repository:
         return self._root / "stances"
 
     @property
+    def worldlines_dir(self) -> Path:
+        return self._root / "worldlines"
+
+    @property
     def counters_dir(self) -> Path:
         return self._root / "concepts" / ".counters"
 
@@ -99,6 +103,7 @@ class Repository:
             root / "forms",
             root / "sidecar",
             root / "stances",
+            root / "worldlines",
         ]
         for d in dirs:
             d.mkdir(parents=True, exist_ok=True)

@@ -75,29 +75,21 @@ def run_worldline(
     # Bind the world with conditions and context
     bound = world.bind(context_id=context_id, policy=policy, **bindings)
 
-    # ── 2. Inject overrides as synthetic claims ────────────────────
-    # Overrides map canonical_name → value. We need to resolve to concept IDs.
-    synthetic_claims: list[SyntheticClaim] = []
+    # ── 2. Resolve override concept names to IDs ─────────────────
+    # Overrides are handled via override_values in derived_value(),
+    # not via SyntheticClaims. This avoids conflicts with existing
+    # claims for the same concept (Martins 1983: overrides are
+    # context-local hypotheses that supersede, not compete with,
+    # stored beliefs).
     override_concept_ids: dict[str, float | str] = {}
 
     for name, value in overrides.items():
-        # Resolve canonical name to concept ID
         concept_id = _resolve_concept_name(world, name)
         if concept_id is None:
             continue
         override_concept_ids[concept_id] = value
-        synthetic_claims.append(SyntheticClaim(
-            id=f"__override_{name}",
-            concept_id=concept_id,
-            type="parameter",
-            value=value,
-        ))
 
-    # Create hypothetical world with overrides if any
-    if synthetic_claims:
-        query_world = HypotheticalWorld(bound, add=synthetic_claims)
-    else:
-        query_world = bound
+    query_world = bound
 
     # ── 3. Resolve each target ─────────────────────────────────────
     values: dict[str, dict[str, Any]] = {}
