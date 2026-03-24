@@ -314,11 +314,20 @@ def _validate_value_fields(
 
     if has_lower and has_upper:
         try:
-            if float(lower_bound) > float(upper_bound):
-                result.errors.append(
-                    f"{filename}: {label} claim '{cid}' lower_bound > upper_bound")
+            lb = float(lower_bound)
         except (TypeError, ValueError):
-            pass
+            lb = None
+            result.errors.append(
+                f"{filename}: {label} claim '{cid}' has non-numeric lower_bound: {lower_bound!r}")
+        try:
+            ub = float(upper_bound)
+        except (TypeError, ValueError):
+            ub = None
+            result.errors.append(
+                f"{filename}: {label} claim '{cid}' has non-numeric upper_bound: {upper_bound!r}")
+        if lb is not None and ub is not None and lb > ub:
+            result.errors.append(
+                f"{filename}: {label} claim '{cid}' lower_bound > upper_bound")
 
     uncertainty = claim.get("uncertainty")
     uncertainty_type = claim.get("uncertainty_type")
@@ -334,11 +343,14 @@ def _validate_value_fields(
 
     if has_uncertainty:
         try:
-            if float(uncertainty) < 0:
-                result.errors.append(
-                    f"{filename}: {label} claim '{cid}' uncertainty must be >= 0")
+            uval = float(uncertainty)
         except (TypeError, ValueError):
-            pass
+            uval = None
+            result.errors.append(
+                f"{filename}: {label} claim '{cid}' has non-numeric uncertainty: {uncertainty!r}")
+        if uval is not None and uval < 0:
+            result.errors.append(
+                f"{filename}: {label} claim '{cid}' uncertainty must be >= 0")
 
 
 def _validate_parameter(

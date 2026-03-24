@@ -1549,3 +1549,67 @@ class TestClaimTypeErrorLabels:
         assert not any("observation claim" in e for e in result.errors), (
             f"Error should not say 'observation' for {ctype} claims: {result.errors}"
         )
+
+
+# ── Non-numeric bounds / uncertainty ────────────────────────────────
+
+
+class TestNonNumericBounds:
+    """Validation must reject non-numeric lower_bound, upper_bound, and uncertainty."""
+
+    def test_non_numeric_lower_bound(self, claims_dir):
+        claim = make_parameter_claim(
+            "claim1", "concept1", 440.0, "Hz",
+            lower_bound="abc", upper_bound=450.0,
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("non-numeric lower_bound" in e for e in result.errors), (
+            f"Expected non-numeric lower_bound error, got: {result.errors}"
+        )
+
+    def test_non_numeric_upper_bound(self, claims_dir):
+        claim = make_parameter_claim(
+            "claim1", "concept1", 440.0, "Hz",
+            lower_bound=430.0, upper_bound="not_a_number",
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("non-numeric upper_bound" in e for e in result.errors), (
+            f"Expected non-numeric upper_bound error, got: {result.errors}"
+        )
+
+    def test_non_numeric_uncertainty(self, claims_dir):
+        claim = make_parameter_claim(
+            "claim1", "concept1", 440.0, "Hz",
+            uncertainty="high", uncertainty_type="std",
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any("non-numeric uncertainty" in e for e in result.errors), (
+            f"Expected non-numeric uncertainty error, got: {result.errors}"
+        )
+
+    def test_numeric_string_bounds_still_pass(self, claims_dir):
+        claim = make_parameter_claim(
+            "claim1", "concept1", 440.0, "Hz",
+            lower_bound="430.5", upper_bound="450.5",
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"
