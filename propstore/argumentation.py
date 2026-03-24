@@ -1,11 +1,9 @@
-"""Bridge between stance artifacts and Dung argumentation framework.
+"""Claim-graph argumentation backend.
 
-Converts raw attacks (from claim_stance table) into filtered defeats
-(after preference ordering), builds a Dung AF, and computes extensions.
-
-References:
-    Modgil, S. & Prakken, H. (2018). Def 8 (attack types),
-    Def 9 (defeat = attack surviving preference filter).
+This module does not build full structured ASPIC+ arguments. The "arguments"
+here are active claim rows, preferences come from heuristic claim metadata,
+and conditions only decide which claims are active before AF construction.
+The result is a claim-graph backend inspired by Dung and ASPIC+ ideas.
 """
 
 from __future__ import annotations
@@ -87,7 +85,7 @@ def build_argumentation_framework(
     comparison: str = "elitist",
     confidence_threshold: float = 0.5,
 ) -> ArgumentationFramework:
-    """Build a bipolar AF from the stance graph.
+    """Build a bipolar AF over active claim rows.
 
     Steps:
       1. Load all stances between active claims with confidence >= threshold
@@ -154,7 +152,7 @@ def build_argumentation_framework(
     )
 
 
-def compute_justified_claims(
+def compute_claim_graph_justified_claims(
     store: ArtifactStore,
     active_claim_ids: set[str],
     *,
@@ -162,7 +160,7 @@ def compute_justified_claims(
     comparison: str = "elitist",
     confidence_threshold: float = 0.5,
 ) -> frozenset[str] | list[frozenset[str]]:
-    """End-to-end: build AF, compute extensions, return justified claim IDs.
+    """Compute justified active claims for the claim-graph backend.
 
     For grounded: returns a single frozenset (the unique grounded extension).
     For preferred/stable: returns a list of frozensets.
@@ -181,6 +179,25 @@ def compute_justified_claims(
         return [frozenset(e) for e in stable_extensions(af)]
     else:
         raise ValueError(f"Unknown semantics: {semantics}")
+
+
+def compute_justified_claims(
+    store: ArtifactStore,
+    active_claim_ids: set[str],
+    *,
+    semantics: str = "grounded",
+    comparison: str = "elitist",
+    confidence_threshold: float = 0.5,
+) -> frozenset[str] | list[frozenset[str]]:
+    """Backward-compatible alias for the current claim-graph backend."""
+
+    return compute_claim_graph_justified_claims(
+        store,
+        active_claim_ids,
+        semantics=semantics,
+        comparison=comparison,
+        confidence_threshold=confidence_threshold,
+    )
 
 
 def stance_summary(
