@@ -127,6 +127,18 @@ class TestCayrolDerivedDefeats:
         assert ("A", "C") in derived  # supported defeat
         assert ("B", "D") in derived  # indirect defeat
 
+    def test_cayrol_derived_defeats_chain_transitively(self):
+        """Cayrol 2005: derived defeats should chain through support + defeat + support."""
+        supports = {("A", "B"), ("C", "D")}
+        defeats = {("B", "C")}
+        derived = _cayrol_derived_defeats(defeats, supports)
+        # A supports B, B defeats C => (A,C) is supported defeat
+        assert ("A", "C") in derived
+        # B defeats C, C supports D => (B,D) is indirect defeat
+        assert ("B", "D") in derived
+        # Chained: (A,C) derived defeat + C supports D => (A,D) indirect defeat
+        assert ("A", "D") in derived  # THIS SHOULD FAIL with single-pass
+
     def test_direct_defeat_not_duplicated(self):
         """Direct defeats are not in the derived set (they're already in defeats)."""
         supports = {("A", "B")}

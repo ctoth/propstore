@@ -54,28 +54,48 @@ def _cayrol_derived_defeats(
 
     Indirect defeat: A →def B →sup ... →sup C  ⟹  (A, C)
       A defeats B, B supports C (transitively).
-    """
-    derived: set[tuple[str, str]] = set()
 
+    Derived defeats can chain: if (A,C) is a derived defeat and C
+    supports D, then (A,D) is also a derived indirect defeat. This
+    requires fixpoint iteration — each pass may produce new defeats
+    that enable further derivations in the next pass.
+    """
     # Pre-compute transitive support reachability for each argument
     all_support_sources = {a for a, _ in supports}
     support_reach: dict[str, set[str]] = {}
     for src in all_support_sources:
         support_reach[src] = _transitive_support_targets(src, supports)
 
-    # Supported defeat: A supports* B, B defeats C → (A, C)
-    for b, c in defeats:
-        for a, targets in support_reach.items():
-            if b in targets:
-                derived.add((a, c))
+    # Working set: original defeats plus all derived defeats found so far
+    working_defeats = set(defeats)
+    all_derived: set[tuple[str, str]] = set()
 
-    # Indirect defeat: A defeats B, B supports* C → (A, C)
-    for a, b in defeats:
-        if b in support_reach:
-            for c in support_reach[b]:
-                derived.add((a, c))
+    while True:
+        new_derived: set[tuple[str, str]] = set()
 
-    return derived
+        # Supported defeat: A supports* B, B defeats C → (A, C)
+        for b, c in working_defeats:
+            for a, targets in support_reach.items():
+                if b in targets:
+                    pair = (a, c)
+                    if pair not in working_defeats:
+                        new_derived.add(pair)
+
+        # Indirect defeat: A defeats B, B supports* C → (A, C)
+        for a, b in working_defeats:
+            if b in support_reach:
+                for c in support_reach[b]:
+                    pair = (a, c)
+                    if pair not in working_defeats:
+                        new_derived.add(pair)
+
+        if not new_derived:
+            break
+
+        working_defeats |= new_derived
+        all_derived |= new_derived
+
+    return all_derived
 
 
 def build_argumentation_framework(
