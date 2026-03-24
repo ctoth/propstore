@@ -2,7 +2,7 @@
 from pathlib import Path
 import yaml
 
-forms_dir = Path(__file__).parent.parent / "forms"
+forms_dir = Path(__file__).parent.parent / "propstore" / "_resources" / "forms"
 
 # All forms: existing ones get enriched, new ones get created
 forms = {

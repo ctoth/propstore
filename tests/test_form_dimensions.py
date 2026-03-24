@@ -42,7 +42,7 @@ def _load_schema() -> dict:
 @pytest.fixture
 def forms_dir():
     """Return the real forms directory."""
-    return Path(__file__).parent.parent / "forms"
+    return Path(__file__).parent.parent / "propstore" / "_resources" / "forms"
 
 
 @pytest.fixture

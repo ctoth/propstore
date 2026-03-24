@@ -22,7 +22,7 @@ _FALLBACK_FORMS = (
 
 def _seed_forms(forms_dir: Path) -> None:
     """Populate forms/ for a freshly initialized project."""
-    package_forms_dir = Path(__file__).resolve().parents[2] / "forms"
+    package_forms_dir = Path(__file__).resolve().parent.parent / "_resources" / "forms"
     if package_forms_dir.is_dir():
         for form_path in sorted(package_forms_dir.glob("*.yaml")):
             shutil.copy2(form_path, forms_dir / form_path.name)
