@@ -1,21 +1,19 @@
-# Session Notes — Unit-Aware Propagation + CLI
+# Session Notes
 
-## TEST COUNT: 975 → 1047
+## TEST COUNT: 975 → 1056 (+81 tests)
 
-## COMPLETED
+## COMPLETED THIS SESSION
 - 27 review fixes (26 planned + StrEnum)
-- Forms moved to _resources (commit 7d9688a)
-- Unit Phase 1: UnitConversion + normalize_to_si (commit f8248ac)
-- Unit Phase 2: param_conflicts wiring (commit 043de92)
-- Unit Phase 3: value_comparison wiring (commit ea87f68)
-- Unit Phase 4: YAML affine/log forms (commit eefcc51)
-- Unit Phase 5: sidecar value_si (commit 9065421)
-- Unit Phase 0: pint integration (commit 0dfe619)
+- Forms moved to _resources
+- Unit-aware propagation (5 phases + pint integration)
+- CLI surface: form show conversions, world query/bind SI, claim show
 
-## IN PROGRESS — CLI Surface (3 parallel agents)
-- CLI Phase 1: form show conversions — RUNNING (form.py)
-- CLI Phase 2: world query/bind SI values — RUNNING (compiler_cmds.py)
-- CLI Phase 3: claim show command — RUNNING (claim.py)
+## IN PROGRESS
+- atms-interventions + atms-next-query CLI commands — prompt written, dispatching now
+- These are the LAST missing commands — the test already exists and fails with "No such command"
+- Backend is fully implemented in bound.py (claim_interventions, claim_next_queryables)
+- This will fix the 1 "pre-existing" test failure
 
 ## NEXT
-- When all 3 complete: verify, final suite run
+- Dispatch atms-interventions agent
+- When complete: 0 failures expected
