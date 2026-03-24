@@ -772,7 +772,7 @@ from propstore.conflict_detector import ConflictClass, _classify_pair_context
 
 class TestContextAwareConflicts:
     def test_different_unrelated_context_is_context_phi_node(self):
-        """Different unrelated contexts = CONTEXT_PHI_NODE."""
+        """Different unrelated contexts = None (let condition analysis decide)."""
         result = _classify_pair_context(
             context_a="ctx_atms", context_b="ctx_jtms",
             hierarchy=ContextHierarchy([
@@ -780,7 +780,7 @@ class TestContextAwareConflicts:
                 LoadedContext("b", None, make_context("ctx_jtms", "JTMS")),
             ]),
         )
-        assert result == ConflictClass.CONTEXT_PHI_NODE
+        assert result is None
 
     def test_same_context_returns_none(self):
         """Same context → None (let normal classification proceed)."""
@@ -833,8 +833,8 @@ class TestContextAwareConflicts:
         """No hierarchy at all → None (backward compatible)."""
         assert _classify_pair_context("ctx_a", "ctx_b", None) is None
 
-    def test_detect_conflicts_uses_context_phi_node_as_classification_exit(self):
-        """Unrelated-context claims should classify as CONTEXT_PHI_NODE, not ordinary conflict."""
+    def test_detect_conflicts_unrelated_contexts_not_suppressed(self):
+        """Unrelated-context claims go through normal condition analysis, not CONTEXT_PHI_NODE."""
         from propstore.conflict_detector import detect_conflicts
         from propstore.validate_claims import LoadedClaimFile
 
@@ -878,18 +878,19 @@ class TestContextAwareConflicts:
 
         records = detect_conflicts([cf], registry, context_hierarchy=hierarchy)
         assert len(records) == 1
-        assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
+        assert records[0].warning_class == ConflictClass.CONFLICT
 
     @given(
         value_a=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
         value_b=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
     )
     @settings(max_examples=40)
-    def test_unrelated_context_conflicts_always_exit_as_context_phi_node(
+    def test_unrelated_context_conflicts_not_suppressed(
         self,
         value_a,
         value_b,
     ):
+        """Unrelated contexts let condition analysis decide — never CONTEXT_PHI_NODE."""
         from propstore.conflict_detector import detect_conflicts
         from propstore.validate_claims import LoadedClaimFile
 
@@ -935,7 +936,7 @@ class TestContextAwareConflicts:
 
         records = detect_conflicts([cf], registry, context_hierarchy=hierarchy)
         assert len(records) == 1
-        assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
+        assert records[0].warning_class == ConflictClass.CONFLICT
 
 
 # ── Step 6: CLI + Repository integration ─────────────────────────────

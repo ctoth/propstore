@@ -28,7 +28,7 @@ def _classify_pair_context(
         return None
     if hierarchy.is_visible(context_b, context_a):
         return None
-    return ConflictClass.CONTEXT_PHI_NODE
+    return None  # unrelated contexts — let condition analysis decide
 
 
 def _claim_context(claim: dict[str, Any]) -> str | None:

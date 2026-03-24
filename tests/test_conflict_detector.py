@@ -819,7 +819,13 @@ class TestAlgorithmConflicts:
 
 
 class TestTransitiveContextSemantics:
-    def test_transitive_conflicts_in_unrelated_contexts_exit_as_context_phi_node(self):
+    def test_transitive_conflicts_in_unrelated_contexts_not_suppressed(self):
+        """Unrelated contexts no longer suppress transitive conflicts.
+
+        Previously, unrelated contexts fell through to CONTEXT_PHI_NODE,
+        silently suppressing real conflicts. Now condition analysis runs,
+        revealing the actual PARAM_CONFLICT.
+        """
         from propstore.conflict_detector import detect_transitive_conflicts
         from propstore.validate_contexts import ContextHierarchy, LoadedContext
 
@@ -887,8 +893,47 @@ class TestTransitiveContextSemantics:
         )
 
         assert len(records) == 1
-        assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
+        assert records[0].warning_class == ConflictClass.PARAM_CONFLICT
         assert records[0].concept_id == "concept_out"
+
+    def test_unrelated_contexts_do_not_suppress_direct_conflicts(self):
+        """Claims in unrelated contexts should NOT be suppressed as CONTEXT_PHI_NODE.
+
+        Two contexts with no hierarchy relationship (not excluded, not visible)
+        should let condition analysis decide, not silently classify as phi-node.
+        """
+        from propstore.validate_contexts import ContextHierarchy, LoadedContext
+
+        claims = [
+            make_parameter_claim(
+                "claim_a", "concept1", 200.0,
+                conditions=["task == 'speech'"],
+            ) | {"context": "ctx_alpha"},
+            make_parameter_claim(
+                "claim_b", "concept1", 350.0,
+                conditions=["task == 'speech'"],
+            ) | {"context": "ctx_beta"},
+        ]
+        cf = make_claim_file(claims)
+        hierarchy = ContextHierarchy([
+            LoadedContext("alpha", None, {"id": "ctx_alpha", "name": "Alpha"}),
+            LoadedContext("beta", None, {"id": "ctx_beta", "name": "Beta"}),
+        ])
+
+        records = detect_conflicts(
+            [cf],
+            make_concept_registry(),
+            context_hierarchy=hierarchy,
+        )
+
+        # Unrelated contexts must NOT suppress the conflict as CONTEXT_PHI_NODE.
+        # The pair has same conditions + different values = real CONFLICT.
+        phi_records = [r for r in records if r.warning_class == ConflictClass.CONTEXT_PHI_NODE]
+        assert len(phi_records) == 0, (
+            f"Expected no CONTEXT_PHI_NODE for unrelated contexts, got {phi_records}"
+        )
+        assert len(records) == 1
+        assert records[0].warning_class == ConflictClass.CONFLICT
 
 
 # ── Exception-handling tests (Group 2) ──────────────────────────────
