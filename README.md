@@ -464,12 +464,35 @@ The bridge layer (`argumentation.py`) converts raw stances into a Dung AF:
 - `reasoning_backend` selects the argumentation backend used when a render policy asks for argumentation-based conflict resolution.
 - `claim_graph` remains the default backend and preserves the current claim-row projection and behavior.
 - `structured_projection` is a first structured-argument projection over active claims plus exact support metadata. It is a bridge toward ASPIC+, not full ASPIC+ execution.
+- `atms` is a global label/nogood propagation backend over the active belief space. It is an ATMS-style engine pass, not a full de Kleer runtime manager, not AGM entrenchment, and not full ASPIC+.
 - `resolution_strategy` selects how to pick a winner when a conflicted concept still has multiple active claims after belief-space reasoning.
 - `comparison` selects the preference-comparison rule used inside the claim-graph argumentation backend.
 
-Run 2A adds an internal ATMS-style labelled semantic core for assumptions, environments, labels, nogoods, and justification normalization. Run 2B adds a first structured projection backend on top of that core. Current worldline files and CLI defaults still run on the `claim_graph` backend.
+Run 2A adds an internal labelled semantic core for assumptions, environments, labels, nogoods, and justification normalization. Run 2B adds a first structured projection backend on top of that core. Run 3 adds an `atms` backend with global exact-support propagation and nogood pruning. Current worldline files and CLI defaults still run on the `claim_graph` backend.
 
-The labelled core is exact-support bookkeeping, not yet a full ATMS control regime and not yet a universal proof certificate for every active claim. Semantically compatible Z3 activation and context visibility are preserved, but not upgraded into exact labels.
+The labelled core and `atms` backend track exact support only. Semantically compatible Z3 activation and context visibility are preserved for activity, but not upgraded into exact labels or unconditional support by fiat.
+
+Run 4 adds ATMS-native inspection over that exact-support layer:
+
+- `TRUE`, `IN`, and `OUT` statuses are exposed directly from propagated labels.
+- `essential_support` is available as the shared core across compatible supporting environments.
+- justification traces and nogood provenance are exposed for inspection.
+- these statuses describe propagated exact support, not Dung extensions, stability, or relevance.
+
+The `atms` backend still does not expose Dung extensions. `pks world extensions --backend atms` remains rejected by design. Use the ATMS-native commands instead:
+
+```bash
+# Show ATMS status, support quality, and essential support
+pks world atms-status domain=argumentation
+
+# Show which exactly supported claims hold in the current bound environment
+pks world atms-context domain=argumentation
+
+# Run ATMS label self-checks
+pks world atms-verify domain=argumentation
+```
+
+Stability analysis, relevance analysis, AGM-style revision semantics, and full ASPIC+ execution remain future work.
 
 ### MaxSMT conflict resolution
 
