@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,18 @@ import yaml
 
 from propstore.cel_checker import KindType
 
+
+
+@dataclass(frozen=True)
+class UnitConversion:
+    """Conversion specification from an alternative unit to the form's SI unit."""
+    unit: str
+    type: str          # "multiplicative", "affine", "logarithmic"
+    multiplier: float = 1.0
+    offset: float = 0.0      # affine: si = raw * multiplier + offset
+    base: float = 10.0       # logarithmic: si = reference * base^(raw / divisor)
+    divisor: float = 1.0
+    reference: float = 1.0
 
 
 @dataclass
@@ -25,6 +38,7 @@ class FormDefinition:
     parameters: dict = field(default_factory=dict)
     dimensions: dict[str, int] | None = None
     extra_units: list[dict[str, Any]] = field(default_factory=list)
+    conversions: dict[str, UnitConversion] = field(default_factory=dict)
 
 
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
@@ -101,6 +115,25 @@ def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
                 extra_units.append(entry)
                 allowed.add(entry["symbol"])
 
+    # Build UnitConversion objects from common_alternatives
+    conversions: dict[str, UnitConversion] = {}
+    for alt in data.get("common_alternatives", []) or []:
+        if not isinstance(alt, dict):
+            continue
+        unit = alt.get("unit")
+        if not isinstance(unit, str) or not unit:
+            continue
+        conv_type = alt.get("type", "multiplicative")
+        conversions[unit] = UnitConversion(
+            unit=unit,
+            type=conv_type,
+            multiplier=float(alt.get("multiplier", 1.0)),
+            offset=float(alt.get("offset", 0.0)),
+            base=float(alt.get("base", 10.0)),
+            divisor=float(alt.get("divisor", 1.0)),
+            reference=float(alt.get("reference", 1.0)),
+        )
+
     result = FormDefinition(
         name=form_name,
         kind=kind,
@@ -110,9 +143,42 @@ def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
         parameters=parameters,
         dimensions=dimensions,
         extra_units=extra_units,
+        conversions=conversions,
     )
     _form_cache[cache_key] = result
     return result
+
+
+def normalize_to_si(value: float, unit: str | None, form: FormDefinition) -> float:
+    """Convert a value from the given unit to the form's canonical (SI) unit."""
+    if unit is None or unit == form.unit_symbol:
+        return value
+    if unit not in form.conversions:
+        raise ValueError(f"Unknown unit '{unit}' for form '{form.name}'")
+    conv = form.conversions[unit]
+    if conv.type == "multiplicative":
+        return value * conv.multiplier
+    elif conv.type == "affine":
+        return value * conv.multiplier + conv.offset
+    elif conv.type == "logarithmic":
+        return conv.reference * conv.base ** (value / conv.divisor)
+    raise ValueError(f"Unknown conversion type '{conv.type}'")
+
+
+def from_si(si_value: float, unit: str | None, form: FormDefinition) -> float:
+    """Convert an SI value back to the given unit."""
+    if unit is None or unit == form.unit_symbol:
+        return si_value
+    if unit not in form.conversions:
+        raise ValueError(f"Unknown unit '{unit}' for form '{form.name}'")
+    conv = form.conversions[unit]
+    if conv.type == "multiplicative":
+        return si_value / conv.multiplier
+    elif conv.type == "affine":
+        return (si_value - conv.offset) / conv.multiplier
+    elif conv.type == "logarithmic":
+        return conv.divisor * math.log(si_value / conv.reference, conv.base)
+    raise ValueError(f"Unknown conversion type '{conv.type}'")
 
 
 def load_all_forms(forms_dir: Path) -> dict[str, FormDefinition]:
