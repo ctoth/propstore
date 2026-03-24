@@ -409,11 +409,17 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
                 if "id" in claim and ":" not in claim["id"]:
                     claim["id"] = f"{source_name}:{claim['id']}"
                 total_claims += 1
-                # Also prefix inline stance targets
+                # Prefix inline stance targets only if they reference
+                # claims within this same file (local IDs)
+                local_ids = {
+                    c.get("id", "").split(":")[-1]
+                    for c in data.get("claims", []) or []
+                    if isinstance(c, dict) and c.get("id")
+                }
                 for stance in claim.get("stances", []) or []:
                     if isinstance(stance, dict):
                         target = stance.get("target")
-                        if target and ":" not in target:
+                        if target and ":" not in target and target in local_ids:
                             stance["target"] = f"{source_name}:{target}"
                 # Resolve concept names to IDs
                 _, r, u = _resolve_concept_refs(claim, name_to_id)
@@ -850,7 +856,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 @world.command("extensions")
 @click.argument("args", nargs=-1)
 @click.option("--backend", "backend_name", default="claim_graph",
-              type=click.Choice(["claim_graph", "structured_projection"]),
+              type=click.Choice(["claim_graph", "structured_projection", "atms"]),
               help="Argumentation backend (default: claim_graph)")
 @click.option("--semantics", default="grounded",
               type=click.Choice(["grounded", "preferred", "stable"]),
@@ -894,6 +900,15 @@ def world_extensions(obj: dict, args: tuple[str, ...],
 
     claim_ids = {c["id"] for c in active}
     backend = ReasoningBackend(backend_name)
+
+    if backend == ReasoningBackend.ATMS:
+        click.echo(
+            "ERROR: backend 'atms' does not expose Dung extensions; "
+            "use worldline or resolve with reasoning_backend=atms instead.",
+            err=True,
+        )
+        wm.close()
+        sys.exit(2)
 
     if backend == ReasoningBackend.CLAIM_GRAPH:
         from propstore.argumentation import (
