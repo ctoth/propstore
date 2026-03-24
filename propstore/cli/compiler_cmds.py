@@ -883,14 +883,20 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
     strat = ResolutionStrategy(strategy) if strategy else None
     result = wm.chain_query(resolved, strategy=strat, **bindings)
 
-    click.echo(f"Target: {resolved}")
+    def _label(cid: str) -> str:
+        """Return 'conceptN (canonical_name)' or just the id if no name."""
+        c = wm.get_concept(cid)
+        name = c.get("canonical_name", "") if c else ""
+        return f"{cid} ({name})" if name else cid
+
+    click.echo(f"Target: {_label(resolved)}")
     click.echo(f"Result: {result.result.status}")
     from propstore.world import DerivedResult
     if isinstance(result.result, DerivedResult) and result.result.value is not None:
         click.echo(f"  value: {result.result.value}")
     click.echo(f"Steps ({len(result.steps)}):")
     for step in result.steps:
-        click.echo(f"  {step.concept_id}: {step.value} ({step.source})")
+        click.echo(f"  {_label(step.concept_id)}: {step.value} ({step.source})")
     wm.close()
 
 
