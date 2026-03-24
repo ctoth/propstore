@@ -113,7 +113,8 @@ def _claim_content_hash(claim: dict, source_paper: str) -> str:
     """
     h = hashlib.sha256()
     h.update((claim.get("type", "")).encode())
-    h.update((claim.get("concept", claim.get("target_concept", ""))).encode())
+    concept_ref = claim.get("concept") or claim.get("target_concept") or ""
+    h.update(str(concept_ref).encode())
 
     # Value — normalize to string
     value = claim.get("value")
@@ -234,13 +235,13 @@ def build_sidecar(
     # Snapshot embeddings before rebuild
     _embedding_snapshot = None
     if sidecar_path.exists():
+        _snap_conn = None
         try:
             from propstore.embed import extract_embeddings, _load_vec_extension
             _snap_conn = sqlite3.connect(sidecar_path)
             _snap_conn.row_factory = sqlite3.Row
             _load_vec_extension(_snap_conn)
             _embedding_snapshot = extract_embeddings(_snap_conn)
-            _snap_conn.close()
             if _embedding_snapshot is not None:
                 import sys
                 _cv = sum(len(v) for v in _embedding_snapshot.claim_vectors.values())
@@ -253,6 +254,9 @@ def build_sidecar(
             # Any failure here (sqlite-vec issues, corrupt DB, etc.) should not block
             # the sidecar rebuild — embeddings will simply be re-generated.
             logging.warning("Embedding snapshot failed: %s", exc)
+        finally:
+            if _snap_conn is not None:
+                _snap_conn.close()
 
     # Build fresh
     if sidecar_path.exists():
@@ -743,21 +747,27 @@ def _prepare_claim_insert_row(
 ) -> dict[str, object]:
     from propstore.description_generator import generate_description
 
-    ctype = claim.get("type")
-    prov = claim.get("provenance", {})
-    conditions = claim.get("conditions")
-    typed_fields = _extract_typed_claim_fields(claim)
+    normalized_claim = _canonicalize_claim_for_storage(
+        claim,
+        concept_registry or {},
+    )
+    ctype = normalized_claim.get("type")
+    prov = normalized_claim.get("provenance", {})
+    conditions = normalized_claim.get("conditions")
+    typed_fields = _extract_typed_claim_fields(normalized_claim)
     expression = typed_fields["expression"]
     sympy_generated, sympy_error = _resolve_equation_sympy(
         ctype,
         str(expression) if expression is not None else None,
-        claim,
+        normalized_claim,
     )
-    body, canonical_ast, variables_json, stage = _resolve_algorithm_storage(claim)
+    body, canonical_ast, variables_json, stage = _resolve_algorithm_storage(
+        normalized_claim
+    )
 
     return {
-        "id": claim.get("id"),
-        "content_hash": _claim_content_hash(claim, source_paper),
+        "id": normalized_claim.get("id"),
+        "content_hash": _claim_content_hash(normalized_claim, source_paper),
         "seq": claim_seq,
         "type": ctype,
         "concept_id": typed_fields["concept_id"],
@@ -778,9 +788,9 @@ def _prepare_claim_insert_row(
         "measure": typed_fields["measure"],
         "listener_population": typed_fields["listener_population"],
         "methodology": typed_fields["methodology"],
-        "notes": claim.get("notes"),
-        "description": claim.get("description"),
-        "auto_summary": generate_description(claim, concept_registry or {}),
+        "notes": normalized_claim.get("notes"),
+        "description": normalized_claim.get("description"),
+        "auto_summary": generate_description(normalized_claim, concept_registry or {}),
         "body": body,
         "canonical_ast": canonical_ast,
         "variables_json": variables_json,
@@ -788,8 +798,90 @@ def _prepare_claim_insert_row(
         "source_paper": prov.get("paper", source_paper),
         "provenance_page": prov.get("page", 0),
         "provenance_json": json.dumps(prov),
-        "context_id": claim.get("context"),
+        "context_id": normalized_claim.get("context"),
     }
+
+
+def _resolve_concept_reference(
+    concept_ref: str | None,
+    concept_registry: dict,
+) -> str | None:
+    """Resolve an ID/canonical name/alias to the canonical concept ID."""
+    if not concept_ref:
+        return concept_ref
+
+    direct = concept_registry.get(concept_ref)
+    if isinstance(direct, dict):
+        resolved = direct.get("id")
+        if resolved:
+            return resolved
+
+    seen_ids: set[str] = set()
+    for concept in concept_registry.values():
+        if not isinstance(concept, dict):
+            continue
+        concept_id = concept.get("id")
+        if not concept_id or concept_id in seen_ids:
+            continue
+        seen_ids.add(concept_id)
+        if concept.get("canonical_name") == concept_ref:
+            return concept_id
+        for alias in concept.get("aliases", []) or []:
+            if isinstance(alias, dict) and alias.get("name") == concept_ref:
+                return concept_id
+
+    return concept_ref
+
+
+def _canonicalize_claim_for_storage(claim: dict, concept_registry: dict) -> dict:
+    """Normalize concept references so compiled artifacts consistently use IDs."""
+    normalized = dict(claim)
+
+    normalized["concept"] = _resolve_concept_reference(
+        normalized.get("concept"),
+        concept_registry,
+    )
+    normalized["target_concept"] = _resolve_concept_reference(
+        normalized.get("target_concept"),
+        concept_registry,
+    )
+
+    concepts = normalized.get("concepts")
+    if isinstance(concepts, list):
+        normalized["concepts"] = [
+            _resolve_concept_reference(concept_ref, concept_registry)
+            for concept_ref in concepts
+        ]
+
+    variables = normalized.get("variables")
+    if isinstance(variables, list):
+        normalized["variables"] = []
+        for variable in variables:
+            if not isinstance(variable, dict):
+                normalized["variables"].append(variable)
+                continue
+            updated = dict(variable)
+            updated["concept"] = _resolve_concept_reference(
+                updated.get("concept"),
+                concept_registry,
+            )
+            normalized["variables"].append(updated)
+
+    parameters = normalized.get("parameters")
+    if isinstance(parameters, list):
+        normalized["parameters"] = []
+        for parameter in parameters:
+            if not isinstance(parameter, dict):
+                normalized["parameters"].append(parameter)
+                continue
+            updated = dict(parameter)
+            updated["concept"] = _resolve_concept_reference(
+                updated.get("concept"),
+                concept_registry,
+            )
+            normalized["parameters"].append(updated)
+
+    return normalized
 
 
 def _extract_typed_claim_fields(claim: dict) -> dict[str, object | None]:
