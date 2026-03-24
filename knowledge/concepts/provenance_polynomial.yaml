@@ -1,0 +1,10 @@
+id: concept377
+canonical_name: provenance_polynomial
+status: proposed
+definition: An element of the free commutative semiring N[X] over tuple-identifier
+  variables X, capturing the most informative provenance annotation for positive relational
+  algebra queries from which all coarser provenance notions can be derived via semiring
+  homomorphisms
+domain: database_theory
+created_date: '2026-03-23'
+form: structural

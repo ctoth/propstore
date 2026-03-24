@@ -1,0 +1,10 @@
+id: concept380
+canonical_name: omega_continuous_semiring
+status: proposed
+definition: A commutative semiring equipped with a natural partial order in which
+  every ascending omega-chain has a least upper bound preserved by addition and multiplication,
+  enabling well-defined fixpoint semantics for recursive Datalog queries over annotated
+  relations
+domain: database_theory
+created_date: '2026-03-23'
+form: structural
