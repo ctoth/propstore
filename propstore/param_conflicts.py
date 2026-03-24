@@ -224,26 +224,14 @@ def detect_transitive_conflicts(
     groups = build_groups(concept_list)
     all_param_claims = _collect_parameter_claims(claim_files)
 
-    # Build a directed graph of parameterization edges:
-    # output_concept -> list of (inputs, sympy_expr, conditions, exactness)
-    param_edges: dict[str, list[dict]] = defaultdict(list)
-    # Track which concepts have DIRECT parameterization (single-hop)
-    direct_param_outputs: set[str] = set()
+    # Build a directed graph of parameterization edges using shared utility
+    from propstore.parameterization_walk import parameterization_edges_from_registry
 
-    for cid, cdata in concept_registry.items():
-        for rel in cdata.get("parameterization_relationships", []):
-            if rel.get("exactness") != "exact":
-                continue
-            inputs = rel.get("inputs", [])
-            sympy_expr = rel.get("sympy")
-            if not inputs or not sympy_expr:
-                continue
-            param_edges[cid].append({
-                "inputs": inputs,
-                "sympy": sympy_expr,
-                "conditions": rel.get("conditions", []),
-            })
-            direct_param_outputs.add(cid)
+    param_edges = parameterization_edges_from_registry(
+        concept_registry,
+        exactness_filter={"exact", "approximate"},
+    )
+    direct_param_outputs = set(param_edges.keys())
 
     # For each group with 3+ concepts (multi-hop chain possible)
     for group in groups:

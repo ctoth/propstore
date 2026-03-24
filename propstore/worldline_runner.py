@@ -240,8 +240,9 @@ def _pre_resolve_conflicts(
 ) -> None:
     """Resolve conflicted concepts that derivation chains may need as inputs.
 
-    Walks the parameterization graph from each target, collecting all
-    input concepts. For any that are conflicted and not already overridden,
+    Walks the parameterization graph from each target (via shared
+    parameterization_walk.reachable_concepts), collecting all input
+    concepts. For any that are conflicted and not already overridden,
     applies the resolution strategy and adds the resolved value to
     override_concept_ids so derived_value can use it.
 
@@ -249,29 +250,12 @@ def _pre_resolve_conflicts(
     recursively derive undetermined inputs but cannot resolve conflicted
     ones (it has no access to resolution policy).
     """
-    import json
-
+    from propstore.parameterization_walk import reachable_concepts
     from propstore.world import resolve
 
     # Collect all concepts reachable via parameterization from targets
-    needs_check: set[str] = set()
-    visited: set[str] = set()
-    queue = list(target_map.values())
-
-    while queue:
-        cid = queue.pop()
-        if cid in visited:
-            continue
-        visited.add(cid)
-        needs_check.add(cid)
-
-        # Find parameterization inputs for this concept
-        if hasattr(world, 'parameterizations_for'):
-            for param in world.parameterizations_for(cid):
-                input_ids = json.loads(param["concept_ids"])
-                for iid in input_ids:
-                    if iid != cid and iid not in visited:
-                        queue.append(iid)
+    param_fn = getattr(world, 'parameterizations_for', lambda _: [])
+    needs_check = reachable_concepts(set(target_map.values()), param_fn)
 
     # Resolve any conflicted concepts
     for cid in needs_check:
@@ -365,16 +349,19 @@ def _resolve_target(
         claim_id = claim.get("id")
         if claim_id and not claim_id.startswith("__override_"):
             dependency_claims.add(claim_id)
-        step = {"concept": target_name, "value": claim.get("value"), "source": "claim"}
+        claim_payload = _claim_payload(claim)
+        step = {"concept": target_name, "source": "claim"}
+        step.update(claim_payload)
         if claim_id:
             step["claim_id"] = claim_id
         all_steps.append(step)
-        return {
+        result = {
             "status": "determined",
-            "value": claim.get("value"),
             "source": "claim",
             "claim_id": claim_id,
         }
+        result.update(claim_payload)
+        return result
 
     # If conflicted and strategy given, try resolution
     if vr.status == "conflicted" and policy.strategy is not None:
@@ -462,6 +449,7 @@ def _resolve_target(
     chain_bindings = {}
     if hasattr(query_world, '_bindings'):
         chain_bindings = dict(query_world._bindings)
+    chain_error: str | None = None
     try:
         chain_result = world.chain_query(
             concept_id,
@@ -522,8 +510,20 @@ def _resolve_target(
                 "formula": formula,
                 "inputs_used": inputs_used,
             }
-    except Exception:
-        pass  # Chain query failed — fall through to underspecified
+    except Exception as exc:
+        chain_error = f"chain query failed: {exc}"
+
+    if chain_error is not None:
+        all_steps.append({
+            "concept": target_name,
+            "value": None,
+            "source": "error",
+            "reason": chain_error,
+        })
+        return {
+            "status": "error",
+            "reason": chain_error,
+        }
 
     # Underspecified — report what we know
     reason = f"status={vr.status}"
@@ -545,6 +545,32 @@ def _resolve_target(
         "status": "underspecified",
         "reason": reason,
     }
+
+
+def _claim_payload(claim: dict[str, Any]) -> dict[str, Any]:
+    """Preserve non-scalar claim payloads in worldline results."""
+    payload: dict[str, Any] = {}
+    value = claim.get("value")
+    if value is not None:
+        payload["value"] = value
+
+    claim_type = claim.get("type")
+    if claim_type:
+        payload["claim_type"] = claim_type
+
+    for field in ("statement", "expression", "body", "name", "canonical_ast"):
+        field_value = claim.get(field)
+        if field_value:
+            payload[field] = field_value
+
+    variables_json = claim.get("variables_json")
+    if variables_json:
+        try:
+            payload["variables"] = json.loads(variables_json)
+        except (TypeError, json.JSONDecodeError):
+            payload["variables"] = variables_json
+
+    return payload
 
 
 def _trace_input_source(
