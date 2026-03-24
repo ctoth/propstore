@@ -1228,3 +1228,45 @@ class TestQueryReadOnly:
             "DELETE FROM concept WHERE 1=1",
         ])
         assert result.exit_code != 0
+
+
+# ── Resource leak tests ──────────────────────────────────────────────
+
+class TestConnectionClosedOnError:
+    """Verify sqlite3 connections are closed even when CLI commands raise."""
+
+    @staticmethod
+    def _make_repo_with_sidecar(tmp_path: Path) -> Path:
+        """Create minimal repo structure with a sidecar file."""
+        knowledge = tmp_path / "knowledge"
+        (knowledge / "concepts").mkdir(parents=True)
+        sidecar_dir = knowledge / "sidecar"
+        sidecar_dir.mkdir()
+        sidecar = sidecar_dir / "propstore.sqlite"
+        sidecar.touch()
+        return tmp_path
+
+    def test_claim_embed_closes_conn_on_error(self, tmp_path: Path) -> None:
+        """claim embed must close its sqlite3 connection if embed_claims raises."""
+        from unittest.mock import patch, MagicMock
+
+        self._make_repo_with_sidecar(tmp_path)
+
+        mock_conn = MagicMock()
+        mock_conn.row_factory = None
+
+        with (
+            patch("sqlite3.connect", return_value=mock_conn),
+            patch("propstore.embed._load_vec_extension"),
+            patch("propstore.embed.embed_claims", side_effect=RuntimeError("boom")),
+        ):
+            runner = CliRunner()
+            result = runner.invoke(cli, [
+                "-C", str(tmp_path),
+                "claim", "embed", "--model", "test-model", "--all",
+            ])
+
+        # The command should have failed (non-zero or exception output)
+        assert result.exit_code != 0 or "boom" in (result.output or "")
+        # The connection MUST have been closed despite the error
+        mock_conn.close.assert_called()

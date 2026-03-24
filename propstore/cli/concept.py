@@ -498,13 +498,14 @@ def search(obj: dict, query: str) -> None:
     sidecar = repo.sidecar_path
 
     if sidecar.exists():
+        import contextlib
         conn = sqlite3.connect(sidecar)
-        rows = conn.execute(
-            "SELECT concept_id, canonical_name, definition "
-            "FROM concept_fts WHERE concept_fts MATCH ? LIMIT 20",
-            (query,),
-        ).fetchall()
-        conn.close()
+        with contextlib.closing(conn):
+            rows = conn.execute(
+                "SELECT concept_id, canonical_name, definition "
+                "FROM concept_fts WHERE concept_fts MATCH ? LIMIT 20",
+                (query,),
+            ).fetchall()
         if rows:
             for cid, name, defn in rows:
                 snippet = (defn or "")[:80]
@@ -685,34 +686,34 @@ def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_
         click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
         raise SystemExit(1)
 
+    import contextlib
     conn = sqlite3.connect(sidecar)
-    conn.row_factory = sqlite3.Row
-    _load_vec_extension(conn)
+    with contextlib.closing(conn):
+        conn.row_factory = sqlite3.Row
+        _load_vec_extension(conn)
 
-    ids = [concept_id] if concept_id else None
+        ids = [concept_id] if concept_id else None
 
-    if model == "all":
-        models = get_registered_models(conn)
-        if not models:
-            click.echo("Error: no models registered. Run embed with a specific model first.", err=True)
-            conn.close()
-            raise SystemExit(1)
-        for m in models:
-            click.echo(f"Embedding with {m['model_name']}...")
-            result = embed_concepts(
-                conn, m["model_name"], concept_ids=ids, batch_size=batch_size,
-                on_progress=lambda done, total: click.echo(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None
-            )
-            click.echo(f"  embedded={result['embedded']} skipped={result['skipped']} errors={result['errors']}")
-    else:
-        def progress(done: int, total: int) -> None:
-            click.echo(f"  {done}/{total} concepts embedded", err=True)
+        if model == "all":
+            models = get_registered_models(conn)
+            if not models:
+                click.echo("Error: no models registered. Run embed with a specific model first.", err=True)
+                raise SystemExit(1)
+            for m in models:
+                click.echo(f"Embedding with {m['model_name']}...")
+                result = embed_concepts(
+                    conn, m["model_name"], concept_ids=ids, batch_size=batch_size,
+                    on_progress=lambda done, total: click.echo(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None
+                )
+                click.echo(f"  embedded={result['embedded']} skipped={result['skipped']} errors={result['errors']}")
+        else:
+            def progress(done: int, total: int) -> None:
+                click.echo(f"  {done}/{total} concepts embedded", err=True)
 
-        result = embed_concepts(conn, model, concept_ids=ids, batch_size=batch_size, on_progress=progress)
-        click.echo(f"Embedded: {result['embedded']}, Skipped: {result['skipped']}, Errors: {result['errors']}")
+            result = embed_concepts(conn, model, concept_ids=ids, batch_size=batch_size, on_progress=progress)
+            click.echo(f"Embedded: {result['embedded']}, Skipped: {result['skipped']}, Errors: {result['errors']}")
 
-    conn.commit()
-    conn.close()
+        conn.commit()
 
 
 # ── concept similar ──────────────────────────────────────────────────

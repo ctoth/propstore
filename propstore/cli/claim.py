@@ -252,35 +252,35 @@ def embed(obj: dict, claim_id: str | None, embed_all: bool, model: str, batch_si
         click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
         raise SystemExit(1)
 
+    import contextlib
     import sqlite3
     conn = sqlite3.connect(sidecar)
-    conn.row_factory = sqlite3.Row
-    _load_vec_extension(conn)
+    with contextlib.closing(conn):
+        conn.row_factory = sqlite3.Row
+        _load_vec_extension(conn)
 
-    ids = [claim_id] if claim_id else None
+        ids = [claim_id] if claim_id else None
 
-    if model == "all":
-        models = get_registered_models(conn)
-        if not models:
-            click.echo("Error: no models registered. Run embed with a specific model first.", err=True)
-            conn.close()
-            raise SystemExit(1)
-        for m in models:
-            click.echo(f"Embedding with {m['model_name']}...")
-            result = embed_claims(
-                conn, m["model_name"], claim_ids=ids, batch_size=batch_size,
-                on_progress=lambda done, total: click.echo(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None
-            )
-            click.echo(f"  embedded={result['embedded']} skipped={result['skipped']} errors={result['errors']}")
-    else:
-        def progress(done: int, total: int) -> None:
-            click.echo(f"  {done}/{total} claims embedded", err=True)
+        if model == "all":
+            models = get_registered_models(conn)
+            if not models:
+                click.echo("Error: no models registered. Run embed with a specific model first.", err=True)
+                raise SystemExit(1)
+            for m in models:
+                click.echo(f"Embedding with {m['model_name']}...")
+                result = embed_claims(
+                    conn, m["model_name"], claim_ids=ids, batch_size=batch_size,
+                    on_progress=lambda done, total: click.echo(f"  {done}/{total}", nl=False) if done % batch_size == 0 else None
+                )
+                click.echo(f"  embedded={result['embedded']} skipped={result['skipped']} errors={result['errors']}")
+        else:
+            def progress(done: int, total: int) -> None:
+                click.echo(f"  {done}/{total} claims embedded", err=True)
 
-        result = embed_claims(conn, model, claim_ids=ids, batch_size=batch_size, on_progress=progress)
-        click.echo(f"Embedded: {result['embedded']}, Skipped: {result['skipped']}, Errors: {result['errors']}")
+            result = embed_claims(conn, model, claim_ids=ids, batch_size=batch_size, on_progress=progress)
+            click.echo(f"Embedded: {result['embedded']}, Skipped: {result['skipped']}, Errors: {result['errors']}")
 
-    conn.commit()
-    conn.close()
+        conn.commit()
 
 
 @claim.command()
@@ -356,42 +356,41 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
         click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
         raise SystemExit(1)
 
+    import contextlib
     import sqlite3
     conn = sqlite3.connect(sidecar)
-    conn.row_factory = sqlite3.Row
-    _load_vec_extension(conn)
+    with contextlib.closing(conn):
+        conn.row_factory = sqlite3.Row
+        _load_vec_extension(conn)
 
-    stances_dir = repo.stances_dir
+        stances_dir = repo.stances_dir
 
-    if claim_id and not relate_all_flag:
-        # Single claim
-        stances = relate_claim(conn, claim_id, model, embedding_model, top_k,
-                               second_pass_threshold=second_pass_threshold)
-        conn.close()
+        if claim_id and not relate_all_flag:
+            # Single claim
+            stances = relate_claim(conn, claim_id, model, embedding_model, top_k,
+                                   second_pass_threshold=second_pass_threshold)
 
-        if stances:
-            write_stance_file(stances_dir, claim_id, stances, model)
-            for s in stances:
-                click.echo(f"  {s['type']:12s} {s.get('strength', ''):8s} -> {s['target']}  {s.get('note', '')}")
-            click.echo(f"\n{len(stances)} stances written to {stances_dir / f'{claim_id}.yaml'}")
+            if stances:
+                write_stance_file(stances_dir, claim_id, stances, model)
+                for s in stances:
+                    click.echo(f"  {s['type']:12s} {s.get('strength', ''):8s} -> {s['target']}  {s.get('note', '')}")
+                click.echo(f"\n{len(stances)} stances written to {stances_dir / f'{claim_id}.yaml'}")
+            else:
+                click.echo("No epistemic relationships found.")
+
+        elif relate_all_flag:
+            def progress(done, total):
+                if done % 10 == 0 or done == total:
+                    click.echo(f"  {done}/{total} claims processed", err=True)
+
+            result = relate_all_fn(conn, model, embedding_model, top_k, concurrency=concurrency,
+                                   on_progress=progress, second_pass_threshold=second_pass_threshold)
+
+            # Write stance files
+            for cid, stances in result.get("stances_by_claim", {}).items():
+                write_stance_file(stances_dir, cid, stances, model)
+
+            click.echo(f"\nProcessed: {result['claims_processed']}, Stances found: {result['stances_found']}, No relation: {result['no_relation']}")
         else:
-            click.echo("No epistemic relationships found.")
-
-    elif relate_all_flag:
-        def progress(done, total):
-            if done % 10 == 0 or done == total:
-                click.echo(f"  {done}/{total} claims processed", err=True)
-
-        result = relate_all_fn(conn, model, embedding_model, top_k, concurrency=concurrency,
-                               on_progress=progress, second_pass_threshold=second_pass_threshold)
-        conn.close()
-
-        # Write stance files
-        for cid, stances in result.get("stances_by_claim", {}).items():
-            write_stance_file(stances_dir, cid, stances, model)
-
-        click.echo(f"\nProcessed: {result['claims_processed']}, Stances found: {result['stances_found']}, No relation: {result['no_relation']}")
-    else:
-        click.echo("Error: provide a claim ID or use --all", err=True)
-        conn.close()
-        raise SystemExit(1)
+            click.echo("Error: provide a claim ID or use --all", err=True)
+            raise SystemExit(1)
