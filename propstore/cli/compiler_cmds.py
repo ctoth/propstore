@@ -849,6 +849,9 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 
 @world.command("extensions")
 @click.argument("args", nargs=-1)
+@click.option("--backend", "backend_name", default="claim_graph",
+              type=click.Choice(["claim_graph", "structured_projection"]),
+              help="Argumentation backend (default: claim_graph)")
 @click.option("--semantics", default="grounded",
               type=click.Choice(["grounded", "preferred", "stable"]),
               help="Argumentation semantics (default: grounded)")
@@ -860,14 +863,14 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 @click.option("--context", default=None, help="Context to scope the argumentation")
 @click.pass_obj
 def world_extensions(obj: dict, args: tuple[str, ...],
-                     semantics: str, set_comparison: str,
+                     backend_name: str, semantics: str, set_comparison: str,
                      confidence_threshold: float, context: str | None) -> None:
     """Show argumentation extensions — all claims that survive scrutiny.
 
     Usage: pks world extensions domain=example --semantics grounded
     """
-    from propstore.argumentation import compute_claim_graph_justified_claims, stance_summary
-    from propstore.world import Environment, WorldModel
+    from propstore.argumentation import stance_summary
+    from propstore.world import Environment, ReasoningBackend, WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -890,15 +893,59 @@ def world_extensions(obj: dict, args: tuple[str, ...],
         return
 
     claim_ids = {c["id"] for c in active}
-    result = compute_claim_graph_justified_claims(
-        wm, claim_ids,
-        semantics=semantics,
-        comparison=set_comparison,
-        confidence_threshold=confidence_threshold,
-    )
+    backend = ReasoningBackend(backend_name)
+
+    if backend == ReasoningBackend.CLAIM_GRAPH:
+        from propstore.argumentation import (
+            build_argumentation_framework,
+            compute_claim_graph_justified_claims,
+        )
+
+        result = compute_claim_graph_justified_claims(
+            wm, claim_ids,
+            semantics=semantics,
+            comparison=set_comparison,
+            confidence_threshold=confidence_threshold,
+        )
+        af = build_argumentation_framework(
+            wm, claim_ids,
+            comparison=set_comparison,
+            confidence_threshold=confidence_threshold,
+        )
+        arg_to_claim = {cid: cid for cid in claim_ids}
+    elif backend == ReasoningBackend.STRUCTURED_PROJECTION:
+        from propstore.structured_argument import (
+            build_structured_projection,
+            compute_structured_justified_arguments,
+        )
+
+        support_metadata: dict[str, tuple[object | None, object]] = {}
+        claim_support = getattr(bound, "claim_support", None)
+        if callable(claim_support):
+            for claim in active:
+                claim_id = claim.get("id")
+                if claim_id:
+                    support_metadata[claim_id] = claim_support(claim)
+
+        projection = build_structured_projection(
+            wm,
+            active,
+            support_metadata=support_metadata,
+            comparison=set_comparison,
+            confidence_threshold=confidence_threshold,
+        )
+        result = compute_structured_justified_arguments(
+            projection,
+            semantics=semantics,
+        )
+        af = projection.framework
+        arg_to_claim = dict(projection.argument_to_claim_id)
+    else:
+        raise NotImplementedError(f"Unknown backend: {backend.value}")
 
     # Render explanation: what stances were used under what policy
     summary = stance_summary(wm, claim_ids, confidence_threshold)
+    click.echo(f"Backend: {backend.value}")
     click.echo(f"Semantics: {semantics}")
     click.echo(f"Set comparison: {set_comparison}")
     click.echo(f"Confidence threshold: {confidence_threshold}")
@@ -909,15 +956,6 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                f"{summary['excluded_non_attack']} non-attack")
     if summary["models"]:
         click.echo(f"Models: {', '.join(summary['models'])}")
-
-    # Build AF to get defeat edges for showing defeaters
-    from propstore.argumentation import build_argumentation_framework
-
-    af = build_argumentation_framework(
-        wm, claim_ids,
-        comparison=set_comparison,
-        confidence_threshold=confidence_threshold,
-    )
 
     # Build lookup helpers
     claim_map = {c["id"]: c for c in active}
@@ -962,15 +1000,24 @@ def world_extensions(obj: dict, args: tuple[str, ...],
 
     if semantics == "grounded":
         # Defeaters: for each defeated claim, find what attacks it
-        defeated = claim_ids - result
+        if backend == ReasoningBackend.STRUCTURED_PROJECTION:
+            assert isinstance(result, frozenset)
+            justified_claims = {arg_to_claim[arg_id] for arg_id in result}
+        else:
+            assert isinstance(result, frozenset)
+            justified_claims = set(result)
+
+        defeated = claim_ids - justified_claims
         defeaters_map: dict[str, list[str]] = {}
         for src, tgt in af.defeats:
-            if tgt in defeated:
-                defeaters_map.setdefault(tgt, []).append(src)
+            src_claim = arg_to_claim.get(src, src)
+            tgt_claim = arg_to_claim.get(tgt, tgt)
+            if tgt_claim in defeated:
+                defeaters_map.setdefault(tgt_claim, []).append(src_claim)
 
         # Print accepted, grouped by type
-        accepted_groups = _group_by_type(result)
-        click.echo(f"Accepted ({len(result)} claims):")
+        accepted_groups = _group_by_type(justified_claims)
+        click.echo(f"Accepted ({len(justified_claims)} claims):")
         for ctype, cids in sorted(accepted_groups.items()):
             click.echo(f"  {ctype} ({len(cids)}):")
             for cid in cids:
@@ -988,10 +1035,16 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                 else:
                     click.echo(f"  {_claim_label(cid)}")
     else:
+        assert isinstance(result, list)
         click.echo(f"Extensions ({len(result)}):")
         for i, ext in enumerate(result):
-            click.echo(f"  Extension {i + 1} ({len(ext)} claims):")
-            groups = _group_by_type(ext)
+            ext_claims = (
+                {arg_to_claim[arg_id] for arg_id in ext}
+                if backend == ReasoningBackend.STRUCTURED_PROJECTION
+                else set(ext)
+            )
+            click.echo(f"  Extension {i + 1} ({len(ext_claims)} claims):")
+            groups = _group_by_type(ext_claims)
             for ctype, cids in sorted(groups.items()):
                 click.echo(f"    {ctype}:")
                 for cid in cids:
