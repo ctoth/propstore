@@ -1177,3 +1177,54 @@ class TestConceptAddValue:
         ])
         assert result.exit_code != 0
         assert "extensible" in result.output.lower()
+
+
+# ── query (SQL injection protection) ────────────────────────────────
+
+class TestQueryReadOnly:
+    """Verify that `pks query` enforces read-only mode on the sidecar."""
+
+    @pytest.fixture()
+    def built_workspace(self, workspace: Path) -> Path:
+        """Build a sidecar so `pks query` has something to query."""
+        runner = CliRunner()
+        sidecar_dir = workspace / "knowledge" / "sidecar"
+        sidecar_dir.mkdir(parents=True, exist_ok=True)
+        result = runner.invoke(cli, ["build", "-o", str(sidecar_dir / "propstore.sqlite")])
+        assert result.exit_code == 0, result.output
+        return workspace
+
+    def test_select_works(self, built_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["query", "SELECT count(*) FROM concept"])
+        assert result.exit_code == 0, result.output
+
+    def test_drop_table_rejected(self, built_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["query", "DROP TABLE IF EXISTS concept"])
+        assert result.exit_code != 0
+
+    def test_insert_rejected(self, built_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "query",
+            "INSERT INTO concept (id, canonical_name, status, definition, domain, form) "
+            "VALUES ('evil', 'evil', 'accepted', 'evil', 'evil', 'evil')",
+        ])
+        assert result.exit_code != 0
+
+    def test_update_rejected(self, built_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "query",
+            "UPDATE concept SET canonical_name='hacked' WHERE 1=1",
+        ])
+        assert result.exit_code != 0
+
+    def test_delete_rejected(self, built_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "query",
+            "DELETE FROM concept WHERE 1=1",
+        ])
+        assert result.exit_code != 0

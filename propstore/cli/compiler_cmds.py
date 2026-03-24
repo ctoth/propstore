@@ -232,6 +232,7 @@ def query(obj: dict, sql: str) -> None:
 
     conn = sqlite3.connect(sidecar)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA query_only=ON")
     try:
         cursor = conn.execute(sql)
         rows = cursor.fetchall()
