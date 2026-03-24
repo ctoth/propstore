@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import ast
 import json
 import logging
 from typing import Any, Callable
 
-from ast_equiv import compare as ast_compare, parse_algorithm
+from ast_equiv import compare as ast_compare
 
 from propstore.world.types import DerivedResult, ValueResult
 
@@ -98,19 +97,17 @@ class ActiveClaimResolver:
                 return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
 
             direct_value = next(iter(direct_values))
-            algorithm_values: set[float | str] = set()
             unevaluable_algorithm_present = False
             for claim in algo_claims:
-                evaluated = self._evaluate_algorithm_claim_value(claim)
-                if evaluated is None:
+                matches_direct = self._algorithm_matches_direct_value(
+                    claim,
+                    direct_value,
+                )
+                if matches_direct is None:
                     unevaluable_algorithm_present = True
                     continue
-                algorithm_values.add(self._normalize_value(evaluated))
-
-            if any(value != direct_value for value in algorithm_values):
-                return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
-            if len(algorithm_values) > 1:
-                return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+                if not matches_direct:
+                    return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
             if unevaluable_algorithm_present:
                 return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
             return ValueResult(concept_id=concept_id, status="determined", claims=active)
@@ -225,7 +222,11 @@ class ActiveClaimResolver:
             return float(value)
         return value
 
-    def _evaluate_algorithm_claim_value(self, claim: dict) -> float | None:
+    def _algorithm_matches_direct_value(
+        self,
+        claim: dict,
+        direct_value: float | str | None,
+    ) -> bool | None:
         body = claim.get("body")
         if not body:
             return None
@@ -234,45 +235,32 @@ class ActiveClaimResolver:
         if not bindings:
             return None
 
-        known_values = self._collect_known_values(list(dict.fromkeys(bindings.values())))
-        local_env: dict[str, Any] = {}
-        for name, concept_id in bindings.items():
-            if concept_id not in known_values:
-                return None
-            local_env[name] = known_values[concept_id]
-
-        try:
-            tree = parse_algorithm(body)
-        except ValueError:
+        constant_body = _constant_algorithm_body(direct_value)
+        if constant_body is None:
             return None
 
-        function_node = next(
-            (
-                node for node in tree.body
-                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-            ),
-            None,
-        )
-        if function_node is None or len(function_node.body) != 1:
-            return None
-
-        statement = function_node.body[0]
-        if not isinstance(statement, ast.Return) or statement.value is None:
-            return None
-        if not _is_safe_algorithm_expression(statement.value):
-            return None
-
-        expression = ast.fix_missing_locations(ast.Expression(body=statement.value))
-        try:
-            result = eval(compile(expression, "<algorithm-claim>", "eval"), {"__builtins__": {}}, local_env)
-        except Exception as exc:
-            logging.warning("algorithm evaluation failed for %s: %s", claim.get("id"), exc)
+        concept_ids = list(dict.fromkeys(bindings.values()))
+        known_values = self._collect_known_values(concept_ids)
+        if any(concept_id not in known_values for concept_id in concept_ids):
             return None
 
         try:
-            return float(result)
-        except (TypeError, ValueError):
+            result = ast_compare(
+                body,
+                bindings,
+                constant_body,
+                {},
+                known_values=known_values,
+            )
+        except (ValueError, SyntaxError) as exc:
+            logging.warning(
+                "ast_compare failed for algorithm-vs-direct comparison %s: %s",
+                claim.get("id"),
+                exc,
+            )
             return None
+
+        return result.equivalent
 
     def _all_algorithms_equivalent(
         self,
@@ -303,28 +291,7 @@ class ActiveClaimResolver:
         return True
 
 
-_SAFE_ALGORITHM_EXPR_NODES = (
-    ast.BinOp,
-    ast.Constant,
-    ast.Div,
-    ast.Expression,
-    ast.FloorDiv,
-    ast.Load,
-    ast.Mod,
-    ast.Mult,
-    ast.Name,
-    ast.Pow,
-    ast.Return,
-    ast.Sub,
-    ast.UnaryOp,
-    ast.UAdd,
-    ast.USub,
-    ast.Add,
-)
-
-
-def _is_safe_algorithm_expression(node: ast.AST) -> bool:
-    for child in ast.walk(node):
-        if not isinstance(child, _SAFE_ALGORITHM_EXPR_NODES):
-            return False
-    return True
+def _constant_algorithm_body(value: float | str | None) -> str | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return f"def compute():\n    return {float(value)!r}\n"
