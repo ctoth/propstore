@@ -4,7 +4,7 @@
 Execute all 26 fixes from the code review, TDD style, under Foreman protocol.
 
 ## TEST COUNT PROGRESSION
-975 → 984 → 988 → 991 → 998 → 1001 → 1009 (latest confirmed)
+975 → 984 → 988 → 991 → 998 → 1001 → 1009 → 1018 (latest confirmed)
 
 ## COMPLETE BATCHES
 
@@ -42,18 +42,22 @@ Execute all 26 fixes from the code review, TDD style, under Foreman protocol.
 
 ### Batch 6
 - 6A: Form algebra filter. `8f7e1e5`. VERIFIED.
-- 6B: Algorithm bindings — RUNNING
-- 6C: Non-numeric bounds — waiting on 6B
+- 6B: Algorithm bindings. `06b2614`. VERIFIED.
+- 6C: Non-numeric bounds — RUNNING
 
 ### Batch 8
-- 8A: WorldModel boilerplate DRY — RUNNING (parallel with 6B, no file overlap)
-- 8B, 8C: Waiting on 8A
+- 8A: WorldModel boilerplate DRY. `5cdf440`. Agent struggled but left working uncommitted code. I committed it manually after verifying 1017 passed (1 pre-existing failure). VERIFIED.
+- 8B: parse_bindings DRY — RUNNING
+- 8C: Resource leaks — waiting on 8B
 
-## BLOCKERS
-None. All agents completing successfully. No merge conflicts observed despite concurrent work on shared files.
+## OBSERVATIONS
+- 8A agent ran out of steam doing the large refactor (1665+/1735- lines). Left uncommitted but working changes. I verified and committed manually.
+- 1 pre-existing test failure: `test_atms_cli_surfaces_interventions_and_next_queries` — references `claim_interventions`/`concept_interventions` methods that don't exist yet on BoundWorld. From uncommitted work predating this session.
+- No merge conflicts despite heavy concurrent agent use on shared files.
+- Total: 22 of 26 fixes complete and verified. 4 remaining (6C, 8B, 8C, plus 8A already done).
 
 ## NEXT
-- When 6B completes: verify, dispatch 6C
-- When 8A completes: verify, dispatch 8B
-- Then 6C and 8B, then 8C
-- Final: full test suite verification
+1. When 6C completes: verify — Batch 6 done
+2. When 8B completes: verify, dispatch 8C
+3. When 8C completes: verify — all done
+4. Final: full test suite verification, summary
