@@ -54,7 +54,9 @@ class WorldlinePolicy:
     """Render policy for a worldline.
 
     `reasoning_backend` identifies the argumentation backend used when
-    `strategy` asks for argumentation-based conflict resolution.
+    `strategy` asks for argumentation-based conflict resolution. `atms`
+    selects the global label/nogood propagation backend rather than a
+    Dung-style extension backend.
     """
 
     reasoning_backend: str = "claim_graph"

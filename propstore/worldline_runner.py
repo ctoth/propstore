@@ -234,11 +234,19 @@ def run_worldline(
                         "justified": sorted(justified),
                         "defeated": sorted(defeated),
                     }
+            elif reasoning_backend == "atms":
+                atms_engine = getattr(bound, "atms_engine", None)
+                if callable(atms_engine):
+                    argumentation_state = atms_engine().argumentation_state()
 
             if argumentation_state is not None:
                 for cid in active_ids:
                     dependency_claims.add(cid)
-                if hasattr(world, "stances_between") and world.has_table("claim_stance"):
+                if (
+                    argumentation_state.get("backend") != "atms"
+                    and hasattr(world, "stances_between")
+                    and world.has_table("claim_stance")
+                ):
                     stance_rows = world.stances_between(active_ids)
                     stance_dependencies = sorted(
                         _stance_dependency_key(row)

@@ -166,6 +166,25 @@ def _resolve_structured_argumentation(
     return None, f"{len(survivor_claims)} claims survive in {semantics} structured projection"
 
 
+def _resolve_atms_support(
+    target_claims: list[dict],
+    view: BeliefSpace,
+) -> tuple[str | None, str | None]:
+    """Resolve by ATMS-supported status over the active belief space."""
+    atms_engine = getattr(view, "atms_engine", None)
+    if not callable(atms_engine):
+        raise NotImplementedError("ATMS backend requires a bound world with an ATMS engine")
+
+    engine = atms_engine()
+    target_ids = {claim["id"] for claim in target_claims}
+    supported = engine.supported_claim_ids() & target_ids
+    if len(supported) == 0:
+        return None, "all ATMS-supported claims defeated"
+    if len(supported) == 1:
+        return next(iter(supported)), "sole ATMS-supported claim survives"
+    return None, f"{len(supported)} claims remain ATMS-supported"
+
+
 def resolve(
     view: BeliefSpace,
     concept_id: str,
@@ -277,6 +296,8 @@ def resolve(
                 comparison=comparison,
                 confidence_threshold=confidence_threshold,
             )
+        elif reasoning_backend == ReasoningBackend.ATMS:
+            winner_id, reason = _resolve_atms_support(active, view)
         else:
             raise NotImplementedError(
                 f"Reasoning backend '{reasoning_backend.value}' is not implemented"
