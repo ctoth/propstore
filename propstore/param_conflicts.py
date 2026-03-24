@@ -26,7 +26,31 @@ from propstore.value_comparison import (
 )
 
 if TYPE_CHECKING:
+    from propstore.form_utils import FormDefinition
     from propstore.validate_contexts import ContextHierarchy
+
+
+def _normalize_claim_value(
+    value: float,
+    claim: dict,
+    concept_id: str,
+    concept_registry: dict[str, dict],
+    forms: dict[str, FormDefinition] | None,
+) -> float:
+    """Normalize a claim's value to SI using the concept's form, if available."""
+    if forms is None:
+        return value
+    unit = claim.get("unit")
+    if unit is None:
+        return value
+    form_name = concept_registry.get(concept_id, {}).get("form")
+    if form_name is None or form_name not in forms:
+        return value
+    from propstore.form_utils import normalize_to_si
+    form_def = forms[form_name]
+    if unit == form_def.unit_symbol:
+        return value
+    return normalize_to_si(value, unit, form_def)
 
 
 class _Sentinel(enum.Enum):
@@ -78,6 +102,8 @@ def _detect_param_conflicts(
     by_concept: dict[str, list[dict]],
     concept_registry: dict[str, dict],
     claim_files: Sequence[LoadedClaimFile],
+    *,
+    forms: dict[str, FormDefinition] | None = None,
 ) -> None:
     """Detect PARAM_CONFLICT via parameterization relationships.
 
@@ -130,15 +156,19 @@ def _detect_param_conflicts(
                     if interval is not None:
                         center, lo, hi = interval
                         if abs(hi - lo) < DEFAULT_TOLERANCE:
-                            # Point value
-                            input_values[inp_id] = center
+                            # Point value — normalize to SI if forms available
+                            input_values[inp_id] = _normalize_claim_value(
+                                center, claim, inp_id, concept_registry, forms,
+                            )
                             input_claim_ids[inp_id] = claim["id"]
                             break
                     else:
                         # Legacy fallback
                         vals = _parse_numeric_values(claim.get("value", []))
                         if len(vals) == 1:
-                            input_values[inp_id] = vals[0]
+                            input_values[inp_id] = _normalize_claim_value(
+                                vals[0], claim, inp_id, concept_registry, forms,
+                            )
                             input_claim_ids[inp_id] = claim["id"]
                             break
 
@@ -198,6 +228,7 @@ def detect_transitive_conflicts(
     concept_registry: dict[str, dict],
     *,
     context_hierarchy: ContextHierarchy | None = None,
+    forms: dict[str, FormDefinition] | None = None,
 ) -> list[ConflictRecord]:
     """Detect multi-hop transitive conflicts via parameterization chains.
 
@@ -249,11 +280,15 @@ def detect_transitive_conflicts(
                 if interval is not None:
                     center, lo, hi = interval
                     if abs(hi - lo) < DEFAULT_TOLERANCE:
+                        # Normalize to SI if forms available
+                        normalized = _normalize_claim_value(
+                            center, claim, cid, concept_registry, forms,
+                        )
                         if cid not in concept_claim_values:
                             concept_claim_values[cid] = []
                         concept_claim_values[cid].append(
                             (
-                                center,
+                                normalized,
                                 claim["id"],
                                 sorted(claim.get("conditions") or []),
                                 _claim_context(claim),
