@@ -29,7 +29,7 @@ class HypotheticalWorld(BeliefSpace):
             is_param_compatible=self._base.is_param_compatible,
             value_of=self.value_of,
             extract_variable_concepts=self._base.extract_variable_concepts,
-            collect_known_values=self._base.collect_known_values,
+            collect_known_values=self.collect_known_values,
             extract_bindings=self._base.extract_bindings,
         )
 
@@ -64,6 +64,21 @@ class HypotheticalWorld(BeliefSpace):
             if not self._base.is_active(sc_dict):
                 filtered.append(sc_dict)
         return filtered
+
+    def collect_known_values(self, variable_concepts: list[str]) -> dict:
+        """Resolve numeric values for a list of concept IDs via hypothetical claims."""
+        from typing import Any
+        known: dict[str, Any] = {}
+        for cid in variable_concepts:
+            vr = self.value_of(cid)
+            if vr.status == "determined" and vr.claims:
+                val = vr.claims[0].get("value")
+                if val is not None:
+                    try:
+                        known[cid] = float(val)
+                    except (TypeError, ValueError):
+                        pass
+        return known
 
     def value_of(self, concept_id: str) -> ValueResult:
         active = self.active_claims(concept_id)

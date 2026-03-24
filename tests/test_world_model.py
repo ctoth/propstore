@@ -931,6 +931,37 @@ class TestHypotheticalWorld:
         assert dr.value is not None
         assert abs(dr.value - 0.2) < 1e-9  # 0.001 * 200
 
+    def test_collect_known_values_uses_hypothetical(self, world):
+        """collect_known_values routes through hypothetical, not base world.
+
+        Regression test: HypotheticalWorld.collect_known_values was wired to
+        self._base.collect_known_values, which called self._base.value_of
+        (BoundWorld) instead of self.value_of (HypotheticalWorld). This meant
+        algorithm equivalence checks and other collect_known_values callers
+        bypassed hypothetical additions and removals.
+        """
+        bound = world.bind(task="speech")
+        # concept1 is conflicted in base (claim1=200, claim2=350, etc.)
+        # Remove all but claim1 so concept1 is determined at 200
+        hypo_base = HypotheticalWorld(bound, remove=["claim2", "claim7", "claim15"])
+        assert hypo_base.collect_known_values(["concept1"]) == {"concept1": 200.0}
+
+        # Now create a hypothetical that replaces concept1 with 500
+        sc = SyntheticClaim(
+            id="synth_f0", concept_id="concept1", value=500.0,
+            conditions=["task == 'speech'"],
+        )
+        hypo = HypotheticalWorld(bound, remove=["claim1", "claim2", "claim7", "claim15"], add=[sc])
+        # value_of should see the synthetic claim
+        vr = hypo.value_of("concept1")
+        assert vr.status == "determined"
+        assert vr.claims[0]["value"] == 500.0
+        # collect_known_values MUST also see the synthetic value
+        known = hypo.collect_known_values(["concept1"])
+        assert known == {"concept1": 500.0}, (
+            f"collect_known_values leaked to base world: got {known}"
+        )
+
     def test_preserves_base(self, world):
         """Base BoundWorld unchanged after hypothetical creation."""
         bound = world.bind(task="speech")
