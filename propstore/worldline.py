@@ -51,8 +51,13 @@ class WorldlineInputs:
 
 @dataclass
 class WorldlinePolicy:
-    """Resolution policy for a worldline."""
+    """Render policy for a worldline.
 
+    `reasoning_backend` identifies the semantic backend. `strategy` is still
+    the render-time conflict winner selection policy.
+    """
+
+    reasoning_backend: str = "claim_graph"
     strategy: str | None = None
     semantics: str = "grounded"
     comparison: str = "elitist"
@@ -63,6 +68,7 @@ class WorldlinePolicy:
         if not data:
             return cls()
         return cls(
+            reasoning_backend=data.get("reasoning_backend", "claim_graph"),
             strategy=data.get("strategy"),
             semantics=data.get("semantics", "grounded"),
             comparison=data.get("comparison", "elitist"),
@@ -71,6 +77,8 @@ class WorldlinePolicy:
 
     def to_dict(self) -> dict:
         d: dict[str, Any] = {}
+        if self.reasoning_backend != "claim_graph":
+            d["reasoning_backend"] = self.reasoning_backend
         if self.strategy:
             d["strategy"] = self.strategy
         if self.semantics != "grounded":

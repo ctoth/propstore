@@ -55,6 +55,7 @@ def run_worldline(
     """
     from propstore.world import (
         Environment,
+        ReasoningBackend,
         RenderPolicy,
         ResolutionStrategy,
     )
@@ -69,6 +70,7 @@ def run_worldline(
     if definition.policy.strategy:
         strategy = ResolutionStrategy(definition.policy.strategy)
     policy = RenderPolicy(
+        reasoning_backend=ReasoningBackend(definition.policy.reasoning_backend),
         strategy=strategy,
         semantics=definition.policy.semantics,
         comparison=definition.policy.comparison,
