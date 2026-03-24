@@ -1,25 +1,24 @@
-# Review Fixes Session — COMPLETE + EXTRAS
+# Review Fixes Session Notes
 
-## RESULT
-**1022 passed, 1 failed** (pre-existing). 26/26 review fixes implemented and verified.
+## CURRENT TOPIC: Unit-Aware Propagation Design
 
-## CURRENT STATE
-- All 26 planned review fixes committed and verified
-- Two additional tasks running in background:
-  1. **StrEnum agent** — converting bare string status fields to StrEnum (Q requested)
-  2. **Unit propagation scout** — assessing feasibility of unit-aware propagation (Q asked how hard)
+### Forms Directory Investigation
+- `C:\Users\Q\code\propstore\forms\` — 37 seed form YAMLs with `common_alternatives` + multipliers. Used by `pks init` to seed new knowledge bases.
+- `C:\Users\Q\code\propstore\knowledge\forms\` — 16 form YAMLs, the ACTUAL forms the build uses. No multipliers. This is `repo.forms_dir`.
+- `Repository._root` = `C:\Users\Q\code\propstore\knowledge\` (confirmed from repository.py docstring + line 19)
+- `repo.forms_dir` = `C:\Users\Q\code\propstore\knowledge\forms\` (line 36)
+- The seed directory at `C:\Users\Q\code\propstore\forms\` is ONLY referenced by `pks init` (init.py:25)
+- **The conversion multipliers are in the seed forms but NOT in the knowledge base forms.** Either `pks init` strips them during copy, or the seed forms were enriched after init ran.
 
-## TEST PROGRESSION
-975 → 1022 (+47 new tests)
+### Implication for Unit Design
+The multipliers need to be in `C:\Users\Q\code\propstore\knowledge\forms\` (the actual forms dir) for propagation to use them. Either:
+- Update `pks init` to copy `common_alternatives` into knowledge forms
+- Or add multipliers to `C:\Users\Q\code\propstore\knowledge\forms\` directly
 
-## THE 1 PRE-EXISTING FAILURE
-`test_atms_cli_surfaces_interventions_and_next_queries` — references `claim_interventions`/`concept_interventions` methods not yet on BoundWorld. From uncommitted work predating this session.
+### StrEnum Fix
+- Completed. Commit `987d822`. 1022 passed.
 
-## AWAITING
-- `fix-strenum` agent: converting status fields to StrEnum in types.py and all construction sites
-- `scout-units` agent: reading propagation.py, unit_dimensions.py, form_utils.py etc. to assess unit-aware propagation effort
-
-## NEXT
-- When StrEnum agent completes: read report, verify
-- When unit scout completes: read report, relay findings to Q
-- If Q wants unit-aware propagation: plan and execute based on scout findings
+## STATUS
+- All 27 fixes complete (26 review + 1 StrEnum)
+- Design discussion with Q on unit-aware propagation in progress
+- Q wants gauge scalars and offsets handled, not just multiplicative
