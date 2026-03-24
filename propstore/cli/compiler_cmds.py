@@ -717,15 +717,10 @@ def _parse_bindings(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
 
     Arguments with '=' are bindings, the last argument without '=' is concept_id.
     """
-    binding_args = [a for a in args if "=" in a]
-    non_binding = [a for a in args if "=" not in a]
-    concept_id = non_binding[-1] if non_binding else None
+    from propstore.cli.helpers import parse_kv_pairs
 
-    parsed: dict[str, str] = {}
-    for b in binding_args:
-        key, _, value = b.partition("=")
-        parsed[key] = value
-
+    parsed, remaining = parse_kv_pairs(args)
+    concept_id = remaining[-1] if remaining else None
     return parsed, concept_id
 
 

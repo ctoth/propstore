@@ -10,40 +10,14 @@ import yaml
 from propstore.cli.repository import Repository
 
 
-def _coerce_cli_scalar(value: str) -> Any:
-    """Coerce basic CLI scalars while leaving ordinary strings untouched."""
-    lowered = value.lower()
-    if lowered == "true":
-        return True
-    if lowered == "false":
-        return False
-
-    signless = value.lstrip("+-")
-    if signless.isdigit():
-        try:
-            return int(value)
-        except ValueError:
-            pass
-
-    try:
-        if any(ch in value for ch in (".", "e", "E")):
-            return float(value)
-    except ValueError:
-        pass
-
-    return value
-
-
 def _parse_kv_args(args: tuple[str, ...]) -> dict[str, Any]:
-    """Parse key=value arguments into a dict."""
-    result: dict[str, Any] = {}
-    for arg in args:
-        if "=" not in arg:
-            click.echo(f"WARNING: ignoring argument without '=': {arg}", err=True)
-            continue
-        key, _, value = arg.partition("=")
-        result[key] = _coerce_cli_scalar(value)
-    return result
+    """Parse key=value arguments into a dict with type coercion."""
+    from propstore.cli.helpers import parse_kv_pairs
+
+    parsed, remaining = parse_kv_pairs(args, coerce=True)
+    for r in remaining:
+        click.echo(f"WARNING: ignoring argument without '=': {r}", err=True)
+    return parsed
 
 
 @click.group()
