@@ -1,4 +1,4 @@
-"""ATMS-style exact-support propagation plus bounded future-environment analysis.
+"""ATMS-style exact-support propagation plus bounded replay, planning, and inquiry.
 
 This engine propagates exact labels globally across active claims and
 compatible parameterization justifications, then prunes them with nogoods
@@ -6,9 +6,10 @@ induced by active conflicts. It exposes ATMS-native inspection over current
 labels and a bounded replay surface for future/queryable assumptions. Those
 future views support honest "could this change?" analysis without upgrading
 semantic compatibility into exact support. Run 6 adds bounded stability and
-relevance analysis over that implemented replay substrate. This remains a
-bounded ATMS-native analysis over rebuilt future bound worlds rather than AGM-
-style revision, entrenchment maintenance, or a full de Kleer runtime manager.
+relevance analysis, and Run 7 adds bounded additive intervention planning and
+next-query suggestions over that same replay substrate. This remains a bounded
+ATMS-native analysis over rebuilt future bound worlds rather than AGM-style
+revision, entrenchment maintenance, or a full de Kleer runtime manager.
 """
 
 from __future__ import annotations
@@ -433,6 +434,139 @@ class ATMSEngine:
             "current_status": current_status,
             **relevance,
         }
+
+    def node_interventions(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        target_status: ATMSNodeStatus | str,
+        *,
+        limit: int = 8,
+        max_plans: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return minimal additive plans that reach the requested ATMS node status."""
+        normalized_target = self._coerce_node_target_status(target_status)
+        current = self.node_status(node_id)
+        candidates = [
+            future
+            for future in self.node_future_statuses(node_id, queryables, limit=limit)["futures"]
+            if future["consistent"] and self._future_reaches_node_target(future, normalized_target)
+        ]
+        plans = [
+            self._node_intervention_plan(
+                node_id,
+                current=current,
+                target_status=normalized_target,
+                future=future,
+            )
+            for future in self._minimal_future_entries(candidates)
+        ]
+        if max_plans is not None:
+            return plans[:max_plans]
+        return plans
+
+    def claim_interventions(
+        self,
+        claim_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        target_status: ATMSNodeStatus | str,
+        *,
+        limit: int = 8,
+        max_plans: int | None = None,
+    ) -> list[dict[str, Any]]:
+        node_id = self._claim_node_ids.get(claim_id)
+        if node_id is None:
+            raise KeyError(f"Unknown ATMS claim: {claim_id}")
+        return self.node_interventions(
+            node_id,
+            queryables,
+            target_status,
+            limit=limit,
+            max_plans=max_plans,
+        )
+
+    def concept_interventions(
+        self,
+        concept_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        target_value_status: str,
+        *,
+        limit: int = 8,
+        max_plans: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return minimal additive plans that reach the requested concept value status."""
+        current_status = self._bound.value_of(concept_id).status
+        candidates = [
+            future
+            for future in self._concept_future_entries(concept_id, queryables, limit=limit)
+            if future["consistent"] and future["status"] == target_value_status
+        ]
+        plans = [
+            self._concept_intervention_plan(
+                concept_id,
+                current_status=current_status,
+                target_status=target_value_status,
+                future=future,
+            )
+            for future in self._minimal_future_entries(candidates)
+        ]
+        if max_plans is not None:
+            return plans[:max_plans]
+        return plans
+
+    def next_queryables_for_node(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        target_status: ATMSNodeStatus | str,
+        *,
+        limit: int = 8,
+        max_suggestions: int | None = None,
+    ) -> list[dict[str, Any]]:
+        plans = self.node_interventions(
+            node_id,
+            queryables,
+            target_status,
+            limit=limit,
+        )
+        return self._next_queryables_from_plans(plans, max_suggestions=max_suggestions)
+
+    def next_queryables_for_claim(
+        self,
+        claim_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        target_status: ATMSNodeStatus | str,
+        *,
+        limit: int = 8,
+        max_suggestions: int | None = None,
+    ) -> list[dict[str, Any]]:
+        node_id = self._claim_node_ids.get(claim_id)
+        if node_id is None:
+            raise KeyError(f"Unknown ATMS claim: {claim_id}")
+        return self.next_queryables_for_node(
+            node_id,
+            queryables,
+            target_status,
+            limit=limit,
+            max_suggestions=max_suggestions,
+        )
+
+    def next_queryables_for_concept(
+        self,
+        concept_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        target_value_status: str,
+        *,
+        limit: int = 8,
+        max_suggestions: int | None = None,
+    ) -> list[dict[str, Any]]:
+        plans = self.concept_interventions(
+            concept_id,
+            queryables,
+            target_value_status,
+            limit=limit,
+        )
+        return self._next_queryables_from_plans(plans, max_suggestions=max_suggestions)
 
     def essential_support(
         self,
@@ -1351,6 +1485,114 @@ class ATMSEngine:
             minimal_sets.append(queryable_set)
         return minimal
 
+    @staticmethod
+    def _coerce_node_target_status(target_status: ATMSNodeStatus | str) -> ATMSNodeStatus:
+        if isinstance(target_status, ATMSNodeStatus):
+            normalized = target_status
+        else:
+            normalized = ATMSNodeStatus(str(target_status))
+        if normalized not in {ATMSNodeStatus.IN, ATMSNodeStatus.OUT}:
+            raise ValueError("target_status must be IN or OUT for bounded ATMS interventions")
+        return normalized
+
+    @staticmethod
+    def _future_reaches_node_target(
+        future: dict[str, Any],
+        target_status: ATMSNodeStatus,
+    ) -> bool:
+        if future["status"] != target_status:
+            return False
+        if target_status == ATMSNodeStatus.OUT:
+            return future.get("out_kind") == ATMSOutKind.NOGOOD_PRUNED
+        return True
+
+    def _node_intervention_plan(
+        self,
+        node_id: str,
+        *,
+        current: ATMSInspection,
+        target_status: ATMSNodeStatus,
+        future: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "target": node_id,
+            "node_id": node_id,
+            "claim_id": current.claim_id,
+            "current_status": current.status,
+            "target_status": target_status,
+            "queryable_ids": list(future["queryable_ids"]),
+            "queryable_cels": list(future["queryable_cels"]),
+            "environment": list(future["environment"]),
+            "consistent": future["consistent"],
+            "result_status": future["status"],
+            "result_out_kind": future.get("out_kind"),
+            "minimality_basis": "set_inclusion_over_queryable_ids",
+        }
+
+    def _concept_intervention_plan(
+        self,
+        concept_id: str,
+        *,
+        current_status: str,
+        target_status: str,
+        future: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "target": concept_id,
+            "concept_id": concept_id,
+            "current_status": current_status,
+            "target_status": target_status,
+            "queryable_ids": list(future["queryable_ids"]),
+            "queryable_cels": list(future["queryable_cels"]),
+            "environment": list(future["environment"]),
+            "consistent": future["consistent"],
+            "result_status": future["status"],
+            "minimality_basis": "set_inclusion_over_queryable_ids",
+        }
+
+    @staticmethod
+    def _next_queryables_from_plans(
+        plans: list[dict[str, Any]],
+        *,
+        max_suggestions: int | None,
+    ) -> list[dict[str, Any]]:
+        grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+        for plan in plans:
+            for queryable_id, queryable_cel in zip(
+                plan["queryable_ids"],
+                plan["queryable_cels"],
+                strict=True,
+            ):
+                grouped[(queryable_id, queryable_cel)].append(plan)
+
+        suggestions = [
+            {
+                "queryable_id": queryable_id,
+                "queryable_cel": queryable_cel,
+                "plan_count": len(containing_plans),
+                "smallest_plan_size": min(
+                    len(plan["queryable_ids"])
+                    for plan in containing_plans
+                ),
+                "plan_queryable_cels": [
+                    list(plan["queryable_cels"])
+                    for plan in containing_plans
+                ],
+                "example_plans": containing_plans[:2],
+            }
+            for (queryable_id, queryable_cel), containing_plans in grouped.items()
+        ]
+        suggestions.sort(
+            key=lambda suggestion: (
+                suggestion["smallest_plan_size"],
+                -suggestion["plan_count"],
+                suggestion["queryable_cel"],
+            )
+        )
+        if max_suggestions is not None:
+            return suggestions[:max_suggestions]
+        return suggestions
+
     def _future_node_inspection(
         self,
         node_id: str,
@@ -1625,6 +1867,51 @@ class ATMSEngine:
             serialized["concept_id"] = report["concept_id"]
             serialized["current_status"] = report["current_status"]
         return serialized
+
+    @classmethod
+    def _serialize_intervention_plan(cls, plan: dict[str, Any]) -> dict[str, Any]:
+        serialized = {
+            "target": plan["target"],
+            "queryable_ids": list(plan["queryable_ids"]),
+            "queryable_cels": list(plan["queryable_cels"]),
+            "environment": list(plan["environment"]),
+            "consistent": plan["consistent"],
+            "minimality_basis": plan["minimality_basis"],
+        }
+        if "node_id" in plan:
+            serialized["node_id"] = plan["node_id"]
+            serialized["claim_id"] = plan["claim_id"]
+            serialized["current_status"] = plan["current_status"].value
+            serialized["target_status"] = plan["target_status"].value
+            serialized["result_status"] = plan["result_status"].value
+            serialized["result_out_kind"] = (
+                None
+                if plan["result_out_kind"] is None
+                else plan["result_out_kind"].value
+            )
+        if "concept_id" in plan:
+            serialized["concept_id"] = plan["concept_id"]
+            serialized["current_status"] = plan["current_status"]
+            serialized["target_status"] = plan["target_status"]
+            serialized["result_status"] = plan["result_status"]
+        return serialized
+
+    @classmethod
+    def _serialize_next_query_suggestion(cls, suggestion: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "queryable_id": suggestion["queryable_id"],
+            "queryable_cel": suggestion["queryable_cel"],
+            "plan_count": suggestion["plan_count"],
+            "smallest_plan_size": suggestion["smallest_plan_size"],
+            "plan_queryable_cels": [
+                list(plan_queryables)
+                for plan_queryables in suggestion["plan_queryable_cels"]
+            ],
+            "example_plans": [
+                cls._serialize_intervention_plan(plan)
+                for plan in suggestion["example_plans"]
+            ],
+        }
 
     @staticmethod
     def _label_or_none(label: Label) -> Label | None:
