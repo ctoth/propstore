@@ -929,3 +929,108 @@ class TestWorldlineCliParsing:
             "place": "earth",
             "ratio": 0.5,
         }
+
+
+class TestWorldlineFailureModes:
+    def test_run_algorithm_target_preserves_claim_payload(self):
+        """Algorithm-only targets should preserve the claim payload instead of returning value=None."""
+        from propstore.world.types import DerivedResult, ValueResult
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        class FakeBound:
+            def __init__(self):
+                self._bindings = {}
+
+            def value_of(self, concept_id):
+                return ValueResult(
+                    concept_id=concept_id,
+                    status="determined",
+                    claims=[{
+                        "id": "algo1",
+                        "type": "algorithm",
+                        "body": "def compute(sr, ws):\n    return sr / ws\n",
+                        "canonical_ast": "(sr/ws)",
+                    }],
+                )
+
+            def derived_value(self, concept_id, override_values=None):
+                return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+            def active_claims(self, concept_id=None):
+                return [{
+                    "id": "algo1",
+                    "type": "algorithm",
+                    "body": "def compute(sr, ws):\n    return sr / ws\n",
+                    "canonical_ast": "(sr/ws)",
+                }]
+
+        class FakeWorld:
+            def bind(self, environment=None, *, policy=None, **conditions):
+                return FakeBound()
+
+            def resolve_concept(self, name):
+                return "concept1" if name == "target" else None
+
+            def get_concept(self, concept_id):
+                if concept_id == "concept1":
+                    return {"id": "concept1", "canonical_name": "target"}
+                return None
+
+            def get_claim(self, claim_id):
+                return None
+
+            def has_table(self, name):
+                return False
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "algorithm_target",
+            "targets": ["target"],
+        })
+
+        result = run_worldline(wl, FakeWorld())
+
+        assert result.values["target"]["status"] == "determined"
+        assert result.values["target"]["claim_type"] == "algorithm"
+        assert result.values["target"]["body"] == "def compute(sr, ws):\n    return sr / ws\n"
+
+    def test_run_worldline_surfaces_chain_query_failures(self):
+        """Engine failures should not be reported as ordinary underspecification."""
+        from propstore.world.types import DerivedResult, ValueResult
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        class FakeBound:
+            def __init__(self):
+                self._bindings = {}
+
+            def value_of(self, concept_id):
+                return ValueResult(concept_id=concept_id, status="no_claims")
+
+            def derived_value(self, concept_id, override_values=None):
+                return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+        class FakeWorld:
+            def bind(self, environment=None, *, policy=None, **conditions):
+                return FakeBound()
+
+            def resolve_concept(self, name):
+                return "concept1" if name == "target" else None
+
+            def get_concept(self, concept_id):
+                if concept_id == "concept1":
+                    return {"id": "concept1", "canonical_name": "target"}
+                return None
+
+            def chain_query(self, concept_id, strategy=None, **bindings):
+                raise RuntimeError("solver exploded")
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "chain_failure",
+            "targets": ["target"],
+        })
+
+        result = run_worldline(wl, FakeWorld())
+
+        assert result.values["target"]["status"] == "error"
+        assert "solver exploded" in result.values["target"]["reason"]
