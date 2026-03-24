@@ -10,6 +10,14 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
+from propstore.argumentation import (
+    _ATTACK_TYPES,
+    _PREFERENCE_TYPES,
+    _SUPPORT_TYPES,
+    _UNCONDITIONAL_TYPES,
+    _cayrol_derived_defeats,
+    _transitive_support_targets,
+)
 from propstore.dung import (
     ArgumentationFramework,
     grounded_extension,
@@ -19,11 +27,6 @@ from propstore.dung import (
 from propstore.preference import claim_strength, defeat_holds
 from propstore.world.labelled import Label, SupportQuality
 from propstore.world.types import ArtifactStore
-
-_ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
-_UNCONDITIONAL_TYPES = frozenset({"undercuts", "supersedes"})
-_PREFERENCE_TYPES = frozenset({"rebuts", "undermines"})
-_SUPPORT_TYPES = frozenset({"supports", "explains"})
 
 
 @dataclass(frozen=True)
@@ -188,45 +191,6 @@ def _build_projected_framework(
         defeats=frozenset(defeats),
         attacks=frozenset(attacks),
     )
-
-
-def _cayrol_derived_defeats(
-    defeats: set[tuple[str, str]],
-    supports: set[tuple[str, str]],
-) -> set[tuple[str, str]]:
-    derived: set[tuple[str, str]] = set()
-    support_reach = {
-        source: _transitive_support_targets(source, supports)
-        for source, _ in supports
-    }
-
-    for defeated_source, defeated_target in defeats:
-        for source, targets in support_reach.items():
-            if defeated_source in targets:
-                derived.add((source, defeated_target))
-
-    for source, target in defeats:
-        if target not in support_reach:
-            continue
-        for supported in support_reach[target]:
-            derived.add((source, supported))
-    return derived
-
-
-def _transitive_support_targets(
-    source: str,
-    supports: set[tuple[str, str]],
-    visited: set[str] | None = None,
-) -> set[str]:
-    if visited is None:
-        visited = set()
-    visited.add(source)
-    targets: set[str] = set()
-    for left, right in supports:
-        if left == source and right not in visited:
-            targets.add(right)
-            targets |= _transitive_support_targets(right, supports, visited)
-    return targets
 
 
 def _default_support_metadata(claim: dict) -> tuple[Label | None, SupportQuality]:
