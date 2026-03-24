@@ -349,8 +349,9 @@ def _resolve_concept_refs(
     help="Directory to write imported claim files into",
 )
 @click.option("--dry-run", is_flag=True, help="Report what would be imported without writing")
+@click.option("--strict", is_flag=True, help="Abort import if any dimensional check fails")
 @click.pass_obj
-def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run: bool) -> None:
+def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run: bool, strict: bool) -> None:
     """Import paper-local claims.yaml files from a papers/ corpus."""
     from propstore.validate import load_concepts
 
@@ -369,27 +370,25 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
         click.echo(f"No claims.yaml files found under {papers_root}")
         return
 
-    if dry_run:
-        for source_path, destination_path in imports:
-            click.echo(f"Would import {source_path} -> {destination_path}")
-        click.echo(f"Would import {len(imports)} paper claim file(s)")
-        return
-
     # Build concept name → ID lookup table
     name_to_id: dict[str, str] = {}
     concepts = load_concepts(repo.concepts_dir)
+    id_to_concept: dict[str, dict] = {}
     for c in concepts:
         cid = c.data.get("id", "")
         name = c.data.get("canonical_name", "")
         if cid and name:
             name_to_id[name] = cid
+        if cid:
+            id_to_concept[cid] = c.data
         # Also add aliases
         for alias in c.data.get("aliases", []) or []:
             alias_name = alias.get("name", "") if isinstance(alias, dict) else ""
             if alias_name:
                 name_to_id[alias_name] = cid
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    # Load and resolve all paper data (needed for both dry-run and real import)
+    resolved_papers: list[tuple[Path, Path, dict]] = []
     total_claims = 0
     total_resolved = 0
     total_unresolved = 0
@@ -420,9 +419,126 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
                 _, r, u = _resolve_concept_refs(claim, name_to_id)
                 total_resolved += r
                 total_unresolved += u
+        resolved_papers.append((source_path, destination_path, data))
+
+    # ── Dimensional pre-check (bridgman) ─────────────────────────────
+    dim_verified = 0
+    dim_warnings = 0
+    try:
+        import sympy as sp
+        from bridgman import verify_expr, DimensionalError, format_dims
+        from propstore.form_utils import load_form
+
+        for _source_path, _dest_path, data in resolved_papers:
+            for claim in data.get("claims", []) or []:
+                if not isinstance(claim, dict):
+                    continue
+                if claim.get("type") != "equation":
+                    continue
+                sympy_str = claim.get("sympy")
+                variables = claim.get("variables")
+                if not sympy_str or not isinstance(variables, list):
+                    continue
+
+                # Build symbol → concept ID mapping from the variables list
+                sym_to_cid: dict[str, str] = {}
+                dependent_symbol: str | None = None
+                for var in variables:
+                    if not isinstance(var, dict):
+                        continue
+                    sym = var.get("symbol")
+                    cid = var.get("concept")
+                    if sym and cid:
+                        sym_to_cid[sym] = cid
+                        if var.get("role") == "dependent":
+                            dependent_symbol = sym
+
+                if not sym_to_cid:
+                    continue
+
+                # Build dim_map: symbol name → dimensions dict
+                dim_map: dict[str, dict[str, int]] = {}
+                skip = False
+                for sym, cid in sym_to_cid.items():
+                    concept_data = id_to_concept.get(cid)
+                    if concept_data is None:
+                        skip = True
+                        break
+                    form_name = concept_data.get("form")
+                    fd = load_form(repo.forms_dir, form_name)
+                    if fd is None:
+                        skip = True
+                        break
+                    if fd.dimensions is not None:
+                        dim_map[sym] = dict(fd.dimensions)
+                    elif fd.is_dimensionless:
+                        dim_map[sym] = {}
+                    else:
+                        skip = True
+                        break
+                if skip:
+                    continue
+
+                # Parse and verify
+                claim_id = claim.get("id", "<unknown>")
+                try:
+                    parsed = sp.sympify(sympy_str)
+                    # If sympy field is not an Eq, wrap it as Eq(dependent, rhs)
+                    if not isinstance(parsed, sp.Eq) and dependent_symbol:
+                        parsed = sp.Eq(sp.Symbol(dependent_symbol), parsed)
+                    if not isinstance(parsed, sp.Eq):
+                        continue
+
+                    if verify_expr(parsed, dim_map):
+                        dim_verified += 1
+                    else:
+                        dim_warnings += 1
+                        # Build detail strings
+                        details = []
+                        for sym, cid in sym_to_cid.items():
+                            dims = dim_map.get(sym, {})
+                            details.append(f"  {sym} ({cid}): {format_dims(dims)}")
+                        click.echo(
+                            f"WARNING: dimensional mismatch in claim '{claim_id}':\n"
+                            + "\n".join(details),
+                            err=True,
+                        )
+                except (DimensionalError, KeyError, TypeError) as exc:
+                    dim_warnings += 1
+                    click.echo(
+                        f"WARNING: dimensional check error in claim '{claim_id}': {exc}",
+                        err=True,
+                    )
+                except Exception:
+                    pass  # non-fatal: skip claims that can't be parsed
+    except ImportError:
+        pass  # sympy or bridgman not available — skip dim check
+
+    eq_total = dim_verified + dim_warnings
+    if eq_total > 0:
+        click.echo(
+            f"Dimensional check: {dim_verified} equation(s) verified, "
+            f"{dim_warnings} warning(s)"
+        )
+
+    if strict and dim_warnings > 0:
+        raise click.ClickException(
+            f"Aborting import: {dim_warnings} dimensional warning(s) in --strict mode"
+        )
+
+    # ── Write files (skip in dry-run mode) ───────────────────────────
+    if dry_run:
+        for source_path, destination_path, _data in resolved_papers:
+            click.echo(f"Would import {source_path} -> {destination_path}")
+        click.echo(f"Would import {len(resolved_papers)} paper claim file(s)")
+        click.echo(f"Resolved {total_resolved} concept name(s) to IDs, {total_unresolved} unresolved")
+        return
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for _source_path, destination_path, data in resolved_papers:
         write_yaml_file(destination_path, data)
 
-    click.echo(f"Imported {len(imports)} paper claim file(s) into {output_dir} ({total_claims} claims)")
+    click.echo(f"Imported {len(resolved_papers)} paper claim file(s) into {output_dir} ({total_claims} claims)")
     click.echo(f"Resolved {total_resolved} concept name(s) to IDs, {total_unresolved} unresolved")
 
 
