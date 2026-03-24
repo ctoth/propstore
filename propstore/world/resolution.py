@@ -184,6 +184,90 @@ def _resolve_structured_argumentation(
     return None, f"{len(survivor_claims)} claims survive in {semantics} structured projection"
 
 
+def _resolve_praf(
+    target_claims: list[dict],
+    active_claims: list[dict],
+    world: ArtifactStore,
+    *,
+    semantics: str = "grounded",
+    comparison: str = "elitist",
+    policy: RenderPolicy | None = None,
+) -> tuple[str | None, str | None, dict[str, float] | None]:
+    """Resolve via Probabilistic Argumentation Framework.
+
+    Per Li et al. (2012): build PrAF from opinion-annotated stances,
+    compute acceptance probabilities, determine winner by highest
+    acceptance probability among competing claims.
+
+    Returns (winner_id, reason, acceptance_probs).
+    """
+    from propstore.argumentation import build_praf
+    from propstore.praf import compute_praf_acceptance
+
+    if not world.has_table("claim_stance"):
+        return None, "no stance data", None
+
+    active_ids = {c["id"] for c in active_claims}
+    target_ids = {c["id"] for c in target_claims}
+
+    # Extract PrAF parameters from policy
+    strategy = "auto"
+    mc_epsilon = 0.01
+    mc_confidence = 0.95
+    treewidth_cutoff = 12
+    rng_seed: int | None = None
+
+    if policy is not None:
+        strategy = policy.praf_strategy
+        mc_epsilon = policy.praf_mc_epsilon
+        mc_confidence = policy.praf_mc_confidence
+        treewidth_cutoff = policy.praf_treewidth_cutoff
+        rng_seed = policy.praf_mc_seed
+
+    # Reject dfquad — implemented in Phase 5B-3
+    if strategy == "dfquad":
+        raise NotImplementedError("DF-QuAD implemented in Phase 5B-3")
+
+    # Build PrAF and compute acceptance probabilities
+    praf = build_praf(world, active_ids, comparison=comparison)
+    praf_result = compute_praf_acceptance(
+        praf,
+        semantics=semantics,
+        strategy=strategy,
+        mc_epsilon=mc_epsilon,
+        mc_confidence=mc_confidence,
+        treewidth_cutoff=treewidth_cutoff,
+        rng_seed=rng_seed,
+    )
+
+    acceptance = praf_result.acceptance_probs
+
+    # Filter to target claims and find winner by highest acceptance prob
+    target_probs = {cid: acceptance.get(cid, 0.0) for cid in target_ids}
+
+    if not target_probs:
+        return None, "no target claims in PrAF", acceptance
+
+    best_prob = max(target_probs.values())
+    best_claims = [cid for cid, p in target_probs.items() if p == best_prob]
+
+    if len(best_claims) == 1:
+        winner = best_claims[0]
+        return (
+            winner,
+            f"highest PrAF acceptance ({best_prob:.4f}) "
+            f"via {praf_result.strategy_used} ({semantics})",
+            acceptance,
+        )
+
+    return (
+        None,
+        f"{len(best_claims)} claims tied at acceptance {best_prob:.4f} "
+        f"via {praf_result.strategy_used} ({semantics})",
+        acceptance,
+    )
+
+
 def _resolve_atms_support(
     target_claims: list[dict],
     view: BeliefSpace,
@@ -266,6 +350,7 @@ def resolve(
     active = vr.claims
     winner_id: str | None = None
     reason: str | None = None
+    _acceptance_probs: dict[str, float] | None = None
 
     if strategy == ResolutionStrategy.OVERRIDE:
         override_id = (overrides or {}).get(concept_id)
@@ -311,6 +396,15 @@ def resolve(
                 semantics=semantics,
                 comparison=comparison,
             )
+        elif reasoning_backend == ReasoningBackend.PRAF:
+            winner_id, reason, _acceptance_probs = _resolve_praf(
+                active,
+                view.active_claims(),
+                world,
+                semantics=semantics,
+                comparison=comparison,
+                policy=policy,
+            )
         elif reasoning_backend == ReasoningBackend.ATMS:
             winner_id, reason = _resolve_atms_support(active, view)
         else:
@@ -322,6 +416,7 @@ def resolve(
         return ResolvedResult(
             concept_id=concept_id, status=ValueStatus.CONFLICTED,
             claims=active, strategy=strategy.value, reason=reason,
+            acceptance_probs=_acceptance_probs,
         )
 
     winning_claim = next((c for c in active if c["id"] == winner_id), None)
@@ -331,4 +426,5 @@ def resolve(
         value=value, claims=active,
         winning_claim_id=winner_id,
         strategy=strategy.value, reason=reason,
+        acceptance_probs=_acceptance_probs,
     )

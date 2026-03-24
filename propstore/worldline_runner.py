@@ -75,6 +75,11 @@ def run_worldline(
         decision_criterion=definition.policy.decision_criterion,
         pessimism_index=definition.policy.pessimism_index,
         show_uncertainty_interval=definition.policy.show_uncertainty_interval,
+        praf_strategy=definition.policy.praf_strategy,
+        praf_mc_epsilon=definition.policy.praf_mc_epsilon,
+        praf_mc_confidence=definition.policy.praf_mc_confidence,
+        praf_treewidth_cutoff=definition.policy.praf_treewidth_cutoff,
+        praf_mc_seed=definition.policy.praf_mc_seed,
     )
 
     # Bind the world with conditions and context

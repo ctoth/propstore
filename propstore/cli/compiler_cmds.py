@@ -1256,17 +1256,40 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
               help="Decision criterion for opinion interpretation (default: pignistic)")
 @click.option("--pessimism-index", "pessimism_index", default=0.5,
               type=float, help="Hurwicz pessimism index α ∈ [0,1] (default: 0.5)")
+@click.option("--reasoning-backend", "reasoning_backend", default="claim_graph",
+              type=click.Choice(["claim_graph", "structured_projection", "atms", "praf"]),
+              help="Argumentation backend (default: claim_graph)")
+@click.option("--praf-strategy", "praf_strategy", default="auto",
+              type=click.Choice(["auto", "mc", "exact", "dfquad"]),
+              help="PrAF computation strategy (default: auto)")
+@click.option("--praf-epsilon", "praf_epsilon", default=0.01,
+              type=float, help="PrAF MC error tolerance (default: 0.01)")
+@click.option("--praf-confidence", "praf_confidence", default=0.95,
+              type=float, help="PrAF MC confidence level (default: 0.95)")
+@click.option("--praf-seed", "praf_seed", default=None,
+              type=int, help="PrAF MC RNG seed (default: random)")
 @click.pass_obj
 def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                   strategy: str, override_id: str | None,
                   semantics: str, set_comparison: str,
                   decision_criterion: str,
-                  pessimism_index: float) -> None:
+                  pessimism_index: float,
+                  reasoning_backend: str,
+                  praf_strategy: str,
+                  praf_epsilon: float,
+                  praf_confidence: float,
+                  praf_seed: int | None) -> None:
     """Resolve a conflicted concept using a strategy.
 
     Usage: pks world resolve concept1 domain=example --strategy argumentation
     """
-    from propstore.world import ResolutionStrategy, WorldModel, resolve
+    from propstore.world import (
+        ReasoningBackend,
+        RenderPolicy,
+        ResolutionStrategy,
+        WorldModel,
+        resolve,
+    )
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
@@ -1275,14 +1298,28 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
         bound = wm.bind(**bindings)
 
     strat = ResolutionStrategy(strategy)
-    overrides = {resolved: override_id} if override_id else None
+    overrides_dict = {resolved: override_id} if override_id else None
+    backend = ReasoningBackend(reasoning_backend)
+
+    policy = RenderPolicy(
+        reasoning_backend=backend,
+        strategy=strat,
+        semantics=semantics,
+        comparison=set_comparison,
+        decision_criterion=decision_criterion,
+        pessimism_index=pessimism_index,
+        praf_strategy=praf_strategy,
+        praf_mc_epsilon=praf_epsilon,
+        praf_mc_confidence=praf_confidence,
+        praf_mc_seed=praf_seed,
+        overrides=overrides_dict or {},
+    )
 
     try:
         result = resolve(
-            bound, resolved, strat, world=wm, overrides=overrides,
-            semantics=semantics, comparison=set_comparison,
+            bound, resolved, policy=policy, world=wm,
         )
-    except ValueError as e:
+    except (ValueError, NotImplementedError) as e:
         click.echo(f"ERROR: {e}", err=True)
         wm.close()
         sys.exit(1)
@@ -1296,13 +1333,17 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
         click.echo(f"  strategy: {result.strategy}")
     if result.reason:
         click.echo(f"  reason: {result.reason}")
+    if result.acceptance_probs:
+        click.echo("  acceptance_probs:")
+        for cid, prob in sorted(result.acceptance_probs.items()):
+            click.echo(f"    {cid}: {prob:.4f}")
     wm.close()
 
 
 @world.command("extensions")
 @click.argument("args", nargs=-1)
 @click.option("--backend", "backend_name", default="claim_graph",
-              type=click.Choice(["claim_graph", "structured_projection", "atms"]),
+              type=click.Choice(["claim_graph", "structured_projection", "atms", "praf"]),
               help="Argumentation backend (default: claim_graph)")
 @click.option("--semantics", default="grounded",
               type=click.Choice(["grounded", "preferred", "stable"]),
@@ -1348,6 +1389,45 @@ def world_extensions(obj: dict, args: tuple[str, ...],
         )
         wm.close()
         sys.exit(2)
+
+    if backend == ReasoningBackend.PRAF:
+        from propstore.argumentation import build_praf
+        from propstore.praf import compute_praf_acceptance
+
+        praf = build_praf(wm, claim_ids, comparison=set_comparison)
+        praf_result = compute_praf_acceptance(
+            praf, semantics=semantics,
+        )
+        summary = stance_summary(wm, claim_ids)
+        click.echo(f"Backend: {backend.value}")
+        click.echo(f"Semantics: {semantics}")
+        click.echo(f"Strategy used: {praf_result.strategy_used}")
+        if praf_result.samples is not None:
+            click.echo(f"MC samples: {praf_result.samples}")
+        click.echo(f"Active claims: {len(claim_ids)}")
+        click.echo(f"Stances: {summary['total_stances']} total, "
+                   f"{summary['included_as_attacks']} included as attacks")
+        click.echo("\nAcceptance probabilities:")
+        claim_map = {c["id"]: c for c in active}
+        for cid, prob in sorted(
+            praf_result.acceptance_probs.items(),
+            key=lambda x: -x[1],
+        ):
+            c = claim_map.get(cid)
+            label = cid
+            if c:
+                value = c.get("value")
+                concept_id_val = c.get("concept_id")
+                if concept_id_val:
+                    concept = wm.get_concept(concept_id_val)
+                    cname = concept.get("canonical_name", concept_id_val) if concept else concept_id_val
+                    if value is not None:
+                        label = f"{cid}: {cname} = {value}"
+                    else:
+                        label = f"{cid}: {cname}"
+            click.echo(f"  {label}  P(accepted) = {prob:.4f}")
+        wm.close()
+        return
 
     if backend == ReasoningBackend.CLAIM_GRAPH:
         from propstore.argumentation import (

@@ -130,6 +130,7 @@ class ReasoningBackend(Enum):
     CLAIM_GRAPH = "claim_graph"
     STRUCTURED_PROJECTION = "structured_projection"
     ATMS = "atms"
+    PRAF = "praf"
 
 
 @dataclass
@@ -142,6 +143,7 @@ class ResolvedResult:
     strategy: str | None = None
     reason: str | None = None
     label: Label | None = None
+    acceptance_probs: dict[str, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -200,6 +202,13 @@ class RenderPolicy:
     # Whether to include [Bel, Pl] uncertainty interval in output
     # Per Jøsang (2001, p.4): interval endpoints Bel=b, Pl=1-d
     show_uncertainty_interval: bool = False
+    # PrAF-specific fields (Li et al. 2012, Popescu 2024)
+    # All with defaults for backward compatibility.
+    praf_strategy: str = "auto"  # "auto", "mc", "exact", "dfquad"
+    praf_mc_epsilon: float = 0.01  # MC error tolerance (Li 2012, p.8)
+    praf_mc_confidence: float = 0.95  # MC confidence level
+    praf_treewidth_cutoff: int = 12  # max treewidth for exact DP (Popescu 2024, p.8)
+    praf_mc_seed: int | None = None  # RNG seed (None = random)
     overrides: Mapping[str, str] = field(default_factory=dict)
     concept_strategies: Mapping[str, ResolutionStrategy] = field(default_factory=dict)
 

@@ -73,6 +73,12 @@ class WorldlinePolicy:
     # Whether to include [Bel, Pl] uncertainty interval in output
     # Per Jøsang (2001, p.4)
     show_uncertainty_interval: bool = False
+    # PrAF-specific fields (Li et al. 2012, Popescu 2024)
+    praf_strategy: str = "auto"  # "auto", "mc", "exact", "dfquad"
+    praf_mc_epsilon: float = 0.01  # MC error tolerance (Li 2012, p.8)
+    praf_mc_confidence: float = 0.95  # MC confidence level
+    praf_treewidth_cutoff: int = 12  # max treewidth for exact DP (Popescu 2024, p.8)
+    praf_mc_seed: int | None = None  # RNG seed (None = random)
     future_queryables: list[str] = field(default_factory=list)
     future_limit: int | None = None
 
@@ -97,6 +103,15 @@ class WorldlinePolicy:
             decision_criterion=data.get("decision_criterion", "pignistic"),
             pessimism_index=float(data.get("pessimism_index", 0.5)),
             show_uncertainty_interval=bool(data.get("show_uncertainty_interval", False)),
+            praf_strategy=data.get("praf_strategy", "auto"),
+            praf_mc_epsilon=float(data.get("praf_mc_epsilon", 0.01)),
+            praf_mc_confidence=float(data.get("praf_mc_confidence", 0.95)),
+            praf_treewidth_cutoff=int(data.get("praf_treewidth_cutoff", 12)),
+            praf_mc_seed=(
+                None
+                if data.get("praf_mc_seed") is None
+                else int(data["praf_mc_seed"])
+            ),
             future_queryables=list(data.get("future_queryables") or []),
             future_limit=(
                 None
@@ -121,6 +136,16 @@ class WorldlinePolicy:
             d["pessimism_index"] = self.pessimism_index
         if self.show_uncertainty_interval:
             d["show_uncertainty_interval"] = self.show_uncertainty_interval
+        if self.praf_strategy != "auto":
+            d["praf_strategy"] = self.praf_strategy
+        if self.praf_mc_epsilon != 0.01:
+            d["praf_mc_epsilon"] = self.praf_mc_epsilon
+        if self.praf_mc_confidence != 0.95:
+            d["praf_mc_confidence"] = self.praf_mc_confidence
+        if self.praf_treewidth_cutoff != 12:
+            d["praf_treewidth_cutoff"] = self.praf_treewidth_cutoff
+        if self.praf_mc_seed is not None:
+            d["praf_mc_seed"] = self.praf_mc_seed
         if self.future_queryables:
             d["future_queryables"] = list(self.future_queryables)
         if self.future_limit is not None:
