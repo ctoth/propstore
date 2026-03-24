@@ -1045,3 +1045,136 @@ class TestWorldlineFailureModes:
 
         assert result.values["target"]["status"] == "error"
         assert "solver exploded" in result.values["target"]["reason"]
+
+
+class TestSilentExceptionLogging:
+    """Fix 7B: silent except blocks must log warnings, not swallow silently."""
+
+    def test_sensitivity_failure_logs_warning(self, caplog):
+        """When sensitivity analysis raises, a warning must be logged."""
+        import logging
+        from unittest.mock import patch, MagicMock
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        # Minimal fake world that returns a "derived" target
+        class FakeValueResult:
+            status = "no_claims"
+            claims = []
+
+        class FakeDerivedResult:
+            status = "derived"
+            value = 42.0
+            formula = "x * 2"
+            input_values = {}
+
+        class FakeWorld:
+            def bind(self, env, policy=None):
+                return self
+
+            def resolve_concept(self, name):
+                if name == "target":
+                    return "concept1"
+                return None
+
+            def get_concept(self, cid):
+                if cid == "concept1":
+                    return {"id": "concept1", "canonical_name": "target"}
+                return None
+
+            def value_of(self, cid):
+                return FakeValueResult()
+
+            def derived_value(self, cid, override_values=None):
+                return FakeDerivedResult()
+
+            def has_table(self, name):
+                return False
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "sensitivity_fail",
+            "targets": ["target"],
+        })
+
+        with caplog.at_level(logging.WARNING, logger="propstore.worldline_runner"):
+            with patch(
+                "propstore.worldline_runner.analyze_sensitivity",
+                side_effect=RuntimeError("sensitivity kaboom"),
+                create=True,
+            ):
+                # The import happens inside the function, so we patch the module-level import target
+                with patch(
+                    "propstore.sensitivity.analyze_sensitivity",
+                    side_effect=RuntimeError("sensitivity kaboom"),
+                ):
+                    result = run_worldline(wl, FakeWorld())
+
+        # The worldline should still succeed (sensitivity is optional)
+        assert result.values["target"]["status"] == "derived"
+        # But a warning must have been logged
+        assert any(
+            "sensitivity" in rec.message.lower() for rec in caplog.records
+        ), f"Expected a warning about sensitivity failure, got: {[r.message for r in caplog.records]}"
+
+    def test_argumentation_failure_logs_warning(self, caplog):
+        """When argumentation capture raises, a warning must be logged."""
+        import logging
+        from unittest.mock import patch
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        class FakeValueResult:
+            status = "no_claims"
+            claims = []
+
+        class FakeDerivedResult:
+            status = "derived"
+            value = 42.0
+            formula = "x * 2"
+            input_values = {}
+
+        class FakeWorld:
+            def bind(self, env, policy=None):
+                return self
+
+            def resolve_concept(self, name):
+                if name == "target":
+                    return "concept1"
+                return None
+
+            def get_concept(self, cid):
+                if cid == "concept1":
+                    return {"id": "concept1", "canonical_name": "target"}
+                return None
+
+            def value_of(self, cid):
+                return FakeValueResult()
+
+            def derived_value(self, cid, override_values=None):
+                return FakeDerivedResult()
+
+            def has_table(self, name):
+                return True  # claim_stance exists
+
+            def active_claims(self):
+                raise RuntimeError("argumentation kaboom")
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "arg_fail",
+            "targets": ["target"],
+            "policy": {
+                "strategy": "argumentation",
+                "reasoning_backend": "claim_graph",
+                "semantics": "grounded",
+            },
+        })
+
+        with caplog.at_level(logging.WARNING, logger="propstore.worldline_runner"):
+            result = run_worldline(wl, FakeWorld())
+
+        # The worldline should still succeed
+        assert result.values["target"]["status"] == "derived"
+        # But a warning must have been logged
+        assert any(
+            "argumentation" in rec.message.lower() for rec in caplog.records
+        ), f"Expected a warning about argumentation failure, got: {[r.message for r in caplog.records]}"
