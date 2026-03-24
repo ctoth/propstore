@@ -275,6 +275,7 @@ def build_sidecar(
         _populate_relationships(conn, concepts)
         _populate_parameterizations(conn, concepts)
         _populate_parameterization_groups(conn, concepts)
+        _populate_form_algebra(conn, concepts, repo=repo)
         _build_fts_index(conn, concepts)
 
         if context_files:
@@ -407,6 +408,125 @@ def _create_tables(conn: sqlite3.Connection):
         CREATE INDEX idx_param_group ON parameterization_group(group_id);
         CREATE INDEX idx_form_algebra_output ON form_algebra(output_form);
     """)
+
+
+def _populate_form_algebra(
+    conn: sqlite3.Connection,
+    concepts: list[LoadedConcept],
+    *,
+    repo: Repository | None = None,
+) -> None:
+    """Derive form algebra from concept parameterizations and populate the table.
+
+    For each concept parameterization, extracts the form-level relationship
+    (e.g. force = mass * acceleration) by substituting concept IDs with form
+    names in the sympy expression. Deduplicates and validates with bridgman.
+    """
+    # Build concept_id → (form_name, concept data) lookup
+    id_to_form: dict[str, str] = {}
+    for c in concepts:
+        cid = c.data.get("id")
+        form_name = c.data.get("form")
+        if cid and form_name:
+            id_to_form[cid] = form_name
+
+    # Determine forms directory for dimension lookup
+    forms_dir: Path | None = None
+    if repo is not None:
+        forms_dir = repo.forms_dir
+    elif concepts:
+        forms_dir = concepts[0].filepath.parent.parent / "forms"
+    if forms_dir is None or not forms_dir.exists():
+        return
+
+    # Track seen entries for deduplication
+    seen: set[tuple] = set()
+
+    for c in concepts:
+        cid = c.data.get("id")
+        if not cid:
+            continue
+        output_form = id_to_form.get(cid)
+        if not output_form:
+            continue
+
+        for param in c.data.get("parameterization_relationships", []) or []:
+            inputs = param.get("inputs", []) or []
+            if not inputs:
+                continue
+
+            # Resolve input forms
+            input_forms = []
+            all_resolved = True
+            for inp_id in inputs:
+                inp_form = id_to_form.get(inp_id)
+                if not inp_form:
+                    all_resolved = False
+                    break
+                input_forms.append(inp_form)
+            if not all_resolved:
+                continue
+
+            # Build form-level operation from sympy
+            sympy_str = param.get("sympy")
+            operation = ""
+            if sympy_str:
+                try:
+                    import sympy as sp
+                    parsed = sp.sympify(sympy_str)
+                    # Substitute concept IDs with form names
+                    subs = {}
+                    for inp_id in inputs:
+                        subs[sp.Symbol(inp_id)] = sp.Symbol(id_to_form[inp_id])
+                    subs[sp.Symbol(cid)] = sp.Symbol(output_form)
+                    form_expr = parsed.subs(subs)
+                    operation = str(form_expr)
+                except Exception:
+                    operation = sympy_str
+            if not operation:
+                operation = param.get("formula", "")
+
+            # Validate dimensions with bridgman
+            try:
+                output_fd = load_form(forms_dir, output_form)
+                if output_fd is None or output_fd.dimensions is None:
+                    continue
+                input_fds = [load_form(forms_dir, f) for f in input_forms]
+                if any(fd is None or fd.dimensions is None for fd in input_fds):
+                    continue
+
+                # Build dim_map and verify
+                dim_map: dict[str, dict[str, int]] = {}
+                dim_map[output_form] = dict(output_fd.dimensions)
+                for inp_form, inp_fd in zip(input_forms, input_fds):
+                    dim_map[inp_form] = dict(inp_fd.dimensions)  # type: ignore[arg-type]
+
+                if sympy_str and operation:
+                    import sympy as sp
+                    from bridgman import verify_expr
+                    form_parsed = sp.sympify(operation)
+                    if not verify_expr(form_parsed, dim_map):
+                        continue  # Dimensionally invalid — skip
+            except Exception:
+                continue  # Can't verify — skip
+
+            # Dedup key: (output_form, sorted input forms, canonical operation)
+            try:
+                canon_op = canonical_dump(operation)
+            except Exception:
+                canon_op = operation
+            dedup_key = (output_form, tuple(sorted(input_forms)), canon_op)
+            if dedup_key in seen:
+                continue
+            seen.add(dedup_key)
+
+            conn.execute(
+                "INSERT INTO form_algebra "
+                "(output_form, input_forms, operation, source_concept_id, source_formula) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (output_form, json.dumps(input_forms), operation, cid,
+                 param.get("formula", "")),
+            )
 
 
 def _populate_forms(
