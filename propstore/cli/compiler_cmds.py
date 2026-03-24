@@ -476,8 +476,10 @@ def world_explain(obj: dict, claim_id: str) -> None:
     if not chain:
         click.echo("  (no stances)")
     for s in chain:
+        src = s['claim_id']
+        indent = "  " if src == claim_id else "    "
         click.echo(
-            f"  {s['stance_type']} -> {s['target_claim_id']}"
+            f"{indent}{src} {s['stance_type']} -> {s['target_claim_id']}"
             f" (strength={s.get('strength')}, note={s.get('note')})")
     wm.close()
 
