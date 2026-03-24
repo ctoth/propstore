@@ -517,7 +517,9 @@ def _populate_form_algebra(
                             import sympy as sp
                             from bridgman import verify_expr
                             form_parsed = sp.sympify(operation)
-                            if not verify_expr(form_parsed, dim_map):
+                            if not isinstance(form_parsed, sp.Eq):
+                                dim_verified = 0  # Not an equation — skip verification
+                            elif not verify_expr(form_parsed, dim_map):
                                 dim_verified = 0  # Dimensionally invalid
             except (KeyError, ValueError):
                 dim_verified = 0
