@@ -304,8 +304,14 @@ def validate_concepts(
                         if inp_fd is not None:
                             input_form_defs.append(inp_fd)
                 if len(input_form_defs) == len(inputs) and input_form_defs:
-                    input_dims = [fd.dimensions for fd in input_form_defs]
-                    output_dims = output_form_def.dimensions
+                    def _effective_dims(fd):
+                        """Dimensions for a form: treat dimensionless with no dims as {}."""
+                        if fd.dimensions is not None:
+                            return fd.dimensions
+                        return {} if fd.is_dimensionless else None
+
+                    input_dims = [_effective_dims(fd) for fd in input_form_defs]
+                    output_dims = _effective_dims(output_form_def)
                     if output_dims is not None and all(d is not None for d in input_dims):
                         # ── Sympy-based dimensional verification ───────
                         # If the parameterization has a sympy expression,
