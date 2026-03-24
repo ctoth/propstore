@@ -741,3 +741,52 @@ class TestParameterizationFormCompatibility:
         result = validate_concepts(concepts)
         assert not result.errors, f"Unexpected errors: {result.errors}"
         assert not any("form" in w.lower() and "mismatch" in w.lower() for w in result.warnings)
+
+
+# ── Bare except narrowing ─────────────────────────────────────────
+
+class TestSympyExceptNarrowing:
+    """Programming errors in sympy dimensional verification must propagate, not be swallowed."""
+
+    def test_programming_error_in_verify_expr_propagates(self, concept_dir, monkeypatch):
+        """NameError inside verify_expr must NOT be silently caught."""
+        # Clear form cache so our form files with dimensions are loaded fresh
+        from propstore.form_utils import _form_cache
+        _form_cache.clear()
+
+        # Write form files with actual dimensions so the sympy path triggers
+        forms_dir = concept_dir.parent / "forms"
+        (forms_dir / "frequency.yaml").write_text(yaml.dump({
+            "name": "frequency",
+            "kind": "quantity",
+            "unit_symbol": "Hz",
+            "dimensionless": False,
+            "dimensions": {"T": -1},
+        }, default_flow_style=False))
+
+        c1 = make_quantity_concept("concept1", "concept_a", form="frequency")
+        c2 = make_quantity_concept("concept2", "concept_b", form="frequency")
+        c3 = make_quantity_concept("concept3", "concept_c", form="frequency",
+                                   parameterization_relationships=[{
+                                       "formula": "c = a * b",
+                                       "sympy": "Eq(concept3, concept1 * concept2)",
+                                       "inputs": ["concept1", "concept2"],
+                                       "exactness": "exact",
+                                       "source": "Test_2024",
+                                       "bidirectional": True,
+                                   }])
+        write_concept(concept_dir, "concept_a.yaml", c1)
+        write_concept(concept_dir, "concept_b.yaml", c2)
+        write_concept(concept_dir, "concept_c.yaml", c3)
+
+        # Monkeypatch verify_expr to raise a programming error
+        import propstore.validate as val_mod
+
+        def _boom(*args, **kwargs):
+            raise NameError("undefined_variable_bug")
+
+        monkeypatch.setattr(val_mod, "verify_expr", _boom)
+
+        concepts = load_concepts(concept_dir)
+        with pytest.raises(NameError, match="undefined_variable_bug"):
+            validate_concepts(concepts)

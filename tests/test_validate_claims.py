@@ -1438,3 +1438,64 @@ class TestNewClaimTypes:
         result = validate_claims(files, make_concept_registry())
         type_errors = [e for e in result.errors if "unrecognized type" in e]
         assert not type_errors, f"Limitation type rejected: {type_errors}"
+
+
+# ── Bare except narrowing ─────────────────────────────────────────
+
+
+class TestSympyExceptNarrowing:
+    """Programming errors in equation dimensional verification must propagate."""
+
+    def test_programming_error_in_verify_expr_propagates(self, claims_dir, monkeypatch):
+        """NameError inside verify_expr must NOT be silently caught."""
+        from propstore.form_utils import FormDefinition
+        from propstore.cel_checker import KindType
+
+        # Build registry with form definitions that have dimensions
+        registry = {
+            "concept1": {
+                "id": "concept1",
+                "canonical_name": "frequency",
+                "form": "frequency",
+                "status": "accepted",
+                "definition": "F0",
+                "_form_definition": FormDefinition(
+                    name="frequency", kind=KindType.QUANTITY,
+                    dimensions={"T": -1},
+                ),
+            },
+            "concept2": {
+                "id": "concept2",
+                "canonical_name": "pressure",
+                "form": "pressure",
+                "status": "accepted",
+                "definition": "Ps",
+                "_form_definition": FormDefinition(
+                    name="pressure", kind=KindType.QUANTITY,
+                    dimensions={"M": 1, "L": -1, "T": -2},
+                ),
+            },
+        }
+
+        # Equation claim with sympy that will trigger dimensional check
+        claim = make_equation_claim(
+            "claim1", "F0 = Ps", sympy="Eq(F0, Ps)",
+            variables=[
+                {"symbol": "F0", "concept": "concept1"},
+                {"symbol": "Ps", "concept": "concept2"},
+            ],
+        )
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        # Monkeypatch bridgman.verify_expr (imported locally inside the try block)
+        import bridgman
+
+        def _boom(*args, **kwargs):
+            raise NameError("undefined_variable_bug")
+
+        monkeypatch.setattr(bridgman, "verify_expr", _boom)
+
+        files = load_claim_files(claims_dir)
+        with pytest.raises(NameError, match="undefined_variable_bug"):
+            validate_claims(files, registry)

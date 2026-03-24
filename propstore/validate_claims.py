@@ -506,10 +506,8 @@ def _validate_equation(
                         f"{filename}: equation claim '{cid}' sympy '{sympy_str}' "
                         f"is not an Eq() — cannot verify dimensional consistency. "
                         f"Wrap as Eq(lhs, rhs).")
-        except (KeyError, SyntaxError):
-            pass  # missing concept or unparseable sympy — skip
-        except Exception:
-            pass  # other failures (matrix ops, etc.) — skip
+        except (KeyError, SyntaxError, DimensionalError, TypeError):
+            pass  # missing concept, unparseable sympy, dim errors, or type issues — skip
 
 
 def _validate_observation(

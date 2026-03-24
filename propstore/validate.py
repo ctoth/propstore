@@ -344,7 +344,7 @@ def validate_concepts(
                                         f"[{', '.join(input_strs)}] → output "
                                         f"'{output_form_def.name}' {format_dims(output_dims)}")
                                     sympy_verified = True  # skip brute-force, sympy gave definitive answer
-                            except (DimensionalError, KeyError, TypeError, Exception):
+                            except (DimensionalError, KeyError, TypeError, SyntaxError):
                                 pass  # fall through to brute-force check
 
                         if not sympy_verified:

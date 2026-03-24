@@ -643,6 +643,47 @@ specific parameter names, numeric values, author names, exact terms.
 If any sidecar layer corrupts or gets out of sync, `python compile.py` rebuilds
 it from the YAML claim files. The YAML is always authoritative.
 
+## Form Algebra and Dimensional Analysis
+
+Forms are the type system of the knowledge graph. Each concept references a form
+that defines what kind of quantity it is. Forms with `kind: quantity` can carry
+**dimension exponents** — a dict mapping base dimension symbols to integer powers.
+
+### Domain-Agnostic Dimensions
+
+Dimension symbols are not hardcoded to physics. The dimension basis is
+domain-defined: any valid identifier can be a dimension key.
+
+| Domain | Base dimensions | Example |
+|--------|----------------|---------|
+| Physics | L, M, T, I, Theta, N, J | force: {M:1, L:1, T:-2} |
+| Economics | Currency, Time, Quantity | price: {Currency:1, Quantity:-1} |
+| Information | Bits, Time | bandwidth: {Bits:1, Time:-1} |
+| Pharmacology | Mass, Volume, Time | concentration: {Mass:1, Volume:-1} |
+
+The mathematical structure is the same in every domain: a free abelian group
+over dimension exponents (ℤⁿ). Bridgman's arithmetic (`mul_dims`, `div_dims`,
+`pow_dims`, `verify_expr`) operates on `dict[str, int]` with arbitrary keys.
+
+### Form Algebra (auto-derived)
+
+When concepts have parameterization relationships (e.g., `F = m * a`), the
+build pipeline automatically derives form-level relationships:
+
+```
+force = mass × acceleration     (from F = m * a)
+energy = mass × velocity²       (from E = m * c²)
+power = force × velocity        (from P = F * v)
+```
+
+These are stored in the `form_algebra` sidecar table and queryable via:
+- `pks form list --show-dims` — display dimension column
+- `pks form list --dims M:1,L:1,T:-2` — find forms by dimensions
+- `pks form show <name>` — shows decompositions and uses
+
+Form algebra is derived, not authored. It's a mathematical consequence of
+concept parameterizations — no duplicate authoring needed.
+
 ## Relationship to Existing Work
 
 ### What We're Taking

@@ -117,14 +117,24 @@ class TestDimensionsSchemaValidation:
             jsonschema.validate(form_data, form_schema)
 
     def test_dimensions_rejects_invalid_key(self, form_schema: dict) -> None:
-        """Dimension keys must be from SI base set; 'X' is invalid."""
+        """Dimension keys must be identifiers; '123' is invalid."""
         form_data = {
             "name": "test_bad_key",
             "dimensionless": False,
-            "dimensions": {"X": 1},
+            "dimensions": {"123": 1},
         }
         with pytest.raises(jsonschema.ValidationError):
             jsonschema.validate(form_data, form_schema)
+
+    def test_dimensions_accepts_custom_key(self, form_schema: dict) -> None:
+        """Dimension keys can be any valid identifier, not just SI symbols."""
+        form_data = {
+            "name": "test_custom",
+            "dimensionless": False,
+            "dimensions": {"Currency": 1, "Quantity": -1},
+        }
+        # Should not raise
+        jsonschema.validate(form_data, form_schema)
 
 
 class TestDimensionsValidationLogic:
@@ -371,13 +381,14 @@ class TestDimensionsPropertyBased:
             jsonschema.validate(form_data, schema)
 
     @given(key=st.text(min_size=1, max_size=10).filter(
-        lambda k: k not in SI_BASE_DIMENSIONS
+        lambda k: not k or not k[0].isalpha() or not all(c.isalnum() or c == '_' for c in k)
     ))
     @settings(max_examples=30)
     def test_invalid_dimension_keys_rejected(
         self, key: str,
     ) -> None:
-        """Dimension keys not in {L, M, T, I, Theta, N, J} fail schema."""
+        """Dimension keys must be valid identifiers (start with letter, alphanumeric/underscore)."""
+        assume(len(key) > 0)
         schema = _load_schema()
         form_data = {
             "name": "bad_key",
