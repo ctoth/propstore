@@ -11,6 +11,7 @@ from pathlib import Path
 
 import yaml
 
+from propstore.calibrate import categorical_to_opinion
 from propstore.cli.helpers import write_yaml_file
 from propstore.stances import VALID_STANCE_TYPES
 
@@ -73,14 +74,8 @@ Respond with ONLY a JSON object:
 {{"type": "<type or none>", "strength": "<strong|moderate|weak>", "note": "<1 sentence>", "conditions_differ": "<or null>"}}"""
 
 
-_CONFIDENCE_MAP: dict[tuple[int, str], float] = {
-    (1, "strong"): 0.95, (1, "moderate"): 0.80, (1, "weak"): 0.60,
-    (2, "strong"): 0.70, (2, "moderate"): 0.50, (2, "weak"): 0.30,
-}
-
-
-def _compute_confidence(pass_number: int, strength: str) -> float:
-    return _CONFIDENCE_MAP.get((pass_number, strength), 0.5)
+# _CONFIDENCE_MAP removed: fabricated lookup table replaced by categorical_to_opinion()
+# Per Guo et al. (2017, p.0): raw neural scores are miscalibrated; fabricated scores are worse
 
 
 def _get_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict | None:
@@ -196,9 +191,14 @@ async def _classify_stance_async(
 
     strength = result.get("strength", "moderate")
     if stance_type != "none":
-        confidence = _compute_confidence(pass_number, strength)
+        # Compute opinion from categorical classification (Jøsang 2001, p.8)
+        # Without calibration data, returns vacuous opinion (honest ignorance)
+        opinion = categorical_to_opinion(strength, pass_number)
+        # Backward-compatible confidence = probability expectation (Jøsang 2001, p.5, Def 6)
+        confidence = opinion.expectation()  # E(ω) = b + a·u
     else:
         confidence = 0.0
+        opinion = None
 
     resolution = {
         "method": f"nli_{'first' if pass_number == 1 else 'second'}_pass",
@@ -207,6 +207,10 @@ async def _classify_stance_async(
         "embedding_distance": embedding_distance,
         "pass_number": pass_number,
         "confidence": confidence,
+        "opinion_belief": opinion.b if opinion else 0.0,
+        "opinion_disbelief": opinion.d if opinion else 0.0,
+        "opinion_uncertainty": opinion.u if opinion else 0.0,
+        "opinion_base_rate": opinion.a if opinion else 0.5,
     }
 
     return {
