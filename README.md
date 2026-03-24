@@ -437,7 +437,7 @@ pks context list
 
 ## Argumentation
 
-propstore implements formal argumentation semantics for conflict resolution, following the ASPIC+ framework (Modgil & Prakken 2014).
+propstore currently ships one reasoning backend: a claim-graph backend. It builds a Dung AF over active claim rows, uses heuristic claim metadata for preferences, and uses claim conditions only to determine activity. This is inspired by Dung and ASPIC+ style reasoning, but it is not a full structured-argument ASPIC+ implementation.
 
 ### Dung abstract argumentation
 
@@ -449,7 +449,7 @@ The core engine implements Dung's abstract argumentation framework AF = (Args, D
 
 Two backends: brute-force enumeration (`dung.py`) and Z3 SAT encoding (`dung_z3.py`) for scalability.
 
-### ASPIC+ bridge
+### Claim-graph bridge
 
 The bridge layer (`argumentation.py`) converts raw stances into a Dung AF:
 
@@ -458,6 +458,14 @@ The bridge layer (`argumentation.py`) converts raw stances into a Dung AF:
 3. Rebutting and undermining attacks become defeats only if the attacker is at least as strong as the target (elitist comparison) or the attacking set is at least as strong (democratic comparison)
 4. Build the Dung AF from surviving defeats
 5. Compute extensions under chosen semantics
+
+## Semantic axes
+
+- `reasoning_backend` selects how the active belief space is interpreted. The default and only implemented backend today is `claim_graph`.
+- `resolution_strategy` selects how to pick a winner when a conflicted concept still has multiple active claims after belief-space reasoning.
+- `comparison` selects the preference-comparison rule used inside the claim-graph argumentation backend.
+
+The long-term target architecture is a labelled belief space. Current worldline files and CLI defaults still run on the claim-graph backend.
 
 ### MaxSMT conflict resolution
 
@@ -632,7 +640,7 @@ Resolve conflicting claims using a strategy:
 uv run pks world resolve concept1 task=speech --strategy sample_size
 ```
 
-Strategies: `recency` (most recent paper wins), `sample_size` (largest N wins), `argumentation` (resolve via Dung extensions — the grounded extension determines the winning claim), `override` (specify a claim ID).
+Strategies: `recency` (most recent paper wins), `sample_size` (largest N wins), `argumentation` (run the current claim-graph backend over the whole active belief space, then project survivors back to the target concept), `override` (specify a claim ID).
 
 ### Chain queries
 
