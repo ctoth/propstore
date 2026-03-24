@@ -14,7 +14,7 @@ from hypothesis import strategies as st
 
 from propstore.argumentation import (
     build_argumentation_framework,
-    compute_justified_claims,
+    compute_claim_graph_justified_claims,
 )
 from propstore.dung import conflict_free, grounded_extension
 from propstore.preference import claim_strength
@@ -196,13 +196,13 @@ class TestBuildAF:
             assert src in active_ids and tgt in active_ids
 
 
-# ── Tests: compute_justified_claims ─────────────────────────────────
+# ── Tests: compute_claim_graph_justified_claims ─────────────────────────────────
 
 
 class TestComputeJustified:
     def test_grounded(self, basic_scenario):
         """Grounded extension: strong claims survive, weak ones eliminated."""
-        result = compute_justified_claims(
+        result = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(basic_scenario),
             {"claim_a", "claim_b", "claim_c"},
             semantics="grounded",
@@ -215,7 +215,7 @@ class TestComputeJustified:
 
     def test_preferred(self, basic_scenario):
         """Preferred returns list of extensions."""
-        result = compute_justified_claims(
+        result = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(basic_scenario),
             {"claim_a", "claim_b", "claim_c"},
             semantics="preferred",
@@ -225,7 +225,7 @@ class TestComputeJustified:
 
     def test_stable(self, basic_scenario):
         """Stable returns list of extensions (may be empty)."""
-        result = compute_justified_claims(
+        result = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(basic_scenario),
             {"claim_a", "claim_b", "claim_c"},
             semantics="stable",
@@ -234,7 +234,7 @@ class TestComputeJustified:
 
     def test_supersedes_eliminates_old(self, supersedes_scenario):
         """Superseded claim is not in grounded extension."""
-        result = compute_justified_claims(
+        result = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(supersedes_scenario),
             {"old_claim", "new_claim"},
             semantics="grounded",
@@ -247,7 +247,7 @@ class TestComputeJustified:
         _insert_claim(conn, "c1", "x", 1.0)
         _insert_claim(conn, "c2", "x", 2.0)
         conn.commit()
-        result = compute_justified_claims(SQLiteArgumentationStore(conn), {"c1", "c2"}, semantics="grounded")
+        result = compute_claim_graph_justified_claims(SQLiteArgumentationStore(conn), {"c1", "c2"}, semantics="grounded")
         assert result == frozenset({"c1", "c2"})
 
 
@@ -359,5 +359,5 @@ class TestAFProperties:
         """Justified claims are always a subset of input claim IDs."""
         claim_ids, stances, sample_sizes = scenario
         conn = _build_scenario_db(claim_ids, stances, sample_sizes)
-        result = compute_justified_claims(SQLiteArgumentationStore(conn), set(claim_ids), semantics="grounded")
+        result = compute_claim_graph_justified_claims(SQLiteArgumentationStore(conn), set(claim_ids), semantics="grounded")
         assert result <= frozenset(claim_ids)

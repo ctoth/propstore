@@ -780,7 +780,7 @@ class TestWorldlineDependencyLiveness:
             return frozenset({world._winner_id}) & frozenset(active_claim_ids)
 
         monkeypatch.setattr(
-            "propstore.argumentation.compute_justified_claims",
+            "propstore.argumentation.compute_claim_graph_justified_claims",
             fake_justified_claims,
         )
 

@@ -68,14 +68,14 @@ def _resolve_claim_graph_argumentation(
     The AF is built over the whole active belief space, then projected back
     to the target concept's active claims.
     """
-    from propstore.argumentation import compute_justified_claims
+    from propstore.argumentation import compute_claim_graph_justified_claims
 
     if not world.has_table("claim_stance"):
         return None, "no stance data"
 
     active_ids = {c["id"] for c in active_claims}
     target_ids = {c["id"] for c in target_claims}
-    result = compute_justified_claims(
+    result = compute_claim_graph_justified_claims(
         world, active_ids,
         semantics=semantics,
         comparison=comparison,

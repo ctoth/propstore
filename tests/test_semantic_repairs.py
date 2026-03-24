@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import yaml
 
-from propstore.argumentation import compute_justified_claims
+from propstore.argumentation import compute_claim_graph_justified_claims
 from propstore.build_sidecar import build_sidecar
 from propstore.cli.repository import Repository
 from propstore.validate import load_concepts
@@ -247,7 +247,7 @@ def derivation_world(tmp_path):
 def test_argumentation_resolution_uses_whole_active_belief_space(argumentation_world):
     bound = argumentation_world.bind(task="speech")
 
-    local_only = compute_justified_claims(argumentation_world, {"target_a", "target_b"})
+    local_only = compute_claim_graph_justified_claims(argumentation_world, {"target_a", "target_b"})
     assert local_only == frozenset({"target_b"})
 
     result = resolve(

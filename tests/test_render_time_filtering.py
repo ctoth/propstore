@@ -15,7 +15,7 @@ import pytest
 
 from propstore.argumentation import (
     build_argumentation_framework,
-    compute_justified_claims,
+    compute_claim_graph_justified_claims,
     stance_summary,
 )
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
@@ -99,12 +99,12 @@ class TestConfidenceThresholdFiltering:
         ids = {"claim_a", "claim_b", "claim_c"}
 
         # Low threshold: both attacks active, more complex AF
-        ext_low = compute_justified_claims(
+        ext_low = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.0,
         )
 
         # High threshold: no attacks, everything survives
-        ext_high = compute_justified_claims(
+        ext_high = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(mixed_confidence), ids, confidence_threshold=0.99,
         )
         assert ext_high == ids  # no defeats → all in grounded extension

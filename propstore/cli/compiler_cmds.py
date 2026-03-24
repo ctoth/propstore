@@ -660,7 +660,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
 
     Usage: pks world extensions domain=example --semantics grounded
     """
-    from propstore.argumentation import compute_justified_claims, stance_summary
+    from propstore.argumentation import compute_claim_graph_justified_claims, stance_summary
     from propstore.world import Environment, WorldModel
 
     repo: Repository = obj["repo"]
@@ -684,7 +684,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
         return
 
     claim_ids = {c["id"] for c in active}
-    result = compute_justified_claims(
+    result = compute_claim_graph_justified_claims(
         wm, claim_ids,
         semantics=semantics,
         comparison=set_comparison,

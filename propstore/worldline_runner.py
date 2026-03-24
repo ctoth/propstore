@@ -179,10 +179,10 @@ def run_worldline(
     stance_dependencies: list[str] = []
     if strategy is not None and strategy.value == "argumentation":
         try:
-            from propstore.argumentation import compute_justified_claims
+            from propstore.argumentation import compute_claim_graph_justified_claims
             active = bound.active_claims()
             active_ids = {c["id"] for c in active}
-            justified = compute_justified_claims(
+            justified = compute_claim_graph_justified_claims(
                 world, active_ids,
                 semantics=definition.policy.semantics,
                 comparison=definition.policy.comparison,

@@ -181,24 +181,6 @@ def compute_claim_graph_justified_claims(
         raise ValueError(f"Unknown semantics: {semantics}")
 
 
-def compute_justified_claims(
-    store: ArtifactStore,
-    active_claim_ids: set[str],
-    *,
-    semantics: str = "grounded",
-    comparison: str = "elitist",
-    confidence_threshold: float = 0.5,
-) -> frozenset[str] | list[frozenset[str]]:
-    """Backward-compatible alias for the current claim-graph backend."""
-
-    return compute_claim_graph_justified_claims(
-        store,
-        active_claim_ids,
-        semantics=semantics,
-        comparison=comparison,
-        confidence_threshold=confidence_threshold,
-    )
-
 
 def stance_summary(
     store: ArtifactStore,

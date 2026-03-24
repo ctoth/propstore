@@ -22,7 +22,7 @@ import pytest
 from propstore.argumentation import (
     _cayrol_derived_defeats,
     build_argumentation_framework,
-    compute_justified_claims,
+    compute_claim_graph_justified_claims,
 )
 from propstore.dung import (
     ArgumentationFramework,
@@ -384,7 +384,7 @@ class TestBipolarExtensions:
         _insert_stance(conn, "B", "C", "rebuts")
         conn.commit()
 
-        result = compute_justified_claims(
+        result = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="grounded"
         )
         assert "A" in result
@@ -400,7 +400,7 @@ class TestBipolarExtensions:
         _insert_stance(conn, "B", "C", "supports")
         conn.commit()
 
-        result = compute_justified_claims(
+        result = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="grounded"
         )
         assert "A" in result
@@ -436,7 +436,7 @@ class TestBipolarExtensions:
         assert ("claim_b", "claim_a") in af.attacks
 
         # Grounded should still work
-        result = compute_justified_claims(
+        result = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(conn), {"claim_a", "claim_b", "claim_c"}, semantics="grounded"
         )
         assert "claim_a" in result
