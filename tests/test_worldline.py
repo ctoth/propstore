@@ -360,6 +360,17 @@ class TestWorldlineDefinition:
                 "name": "no targets",
             })
 
+    def test_worldline_definition_rejects_unknown_reasoning_backend(self):
+        """Unknown semantic backends fail during worldline parsing, not execution."""
+        from propstore.worldline import WorldlineDefinition
+
+        with pytest.raises(ValueError, match="Unknown reasoning_backend"):
+            WorldlineDefinition.from_dict({
+                "id": "bad_backend",
+                "targets": ["force"],
+                "policy": {"reasoning_backend": "not_real"},
+            })
+
     def test_worldline_result_from_yaml(self, worldline_yaml_with_results):
         """Can parse a worldline YAML with results into a WorldlineResult."""
         from propstore.worldline import WorldlineDefinition

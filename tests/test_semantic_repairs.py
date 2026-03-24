@@ -9,6 +9,7 @@ from propstore.cli.repository import Repository
 from propstore.validate import load_concepts
 from propstore.validate_claims import load_claim_files
 from propstore.world import ResolutionStrategy, WorldModel, resolve
+from propstore.world.value_resolver import ActiveClaimResolver
 
 
 def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> WorldModel:
@@ -269,3 +270,28 @@ def test_derived_value_checks_all_compatible_parameterizations(derivation_world)
     assert result.status == "derived"
     assert result.value == pytest.approx(12.0)
     assert result.formula == "x = c * d"
+
+
+def test_mixed_direct_and_multistatement_algorithm_uses_ast_equivalence():
+    resolver = ActiveClaimResolver(
+        parameterizations_for=lambda cid: [],
+        is_param_compatible=lambda conds: True,
+        value_of=lambda cid: None,
+        extract_variable_concepts=lambda claim: ["input"] if claim.get("type") == "algorithm" else [],
+        collect_known_values=lambda ids: {"input": 5.0},
+        extract_bindings=lambda claim: {"x": "input"},
+    )
+
+    active = [
+        {"id": "direct", "type": "parameter", "value": 10.0},
+        {
+            "id": "algo",
+            "type": "algorithm",
+            "body": "def compute(x):\n    y = x * 2\n    return y\n",
+            "variables_json": '[{"name":"x","concept":"input"}]',
+        },
+    ]
+
+    result = resolver.value_of_from_active(active, "target")
+
+    assert result.status == "determined"
