@@ -1,8 +1,8 @@
 """Resolution helpers for conflicted concepts.
 
-`ResolutionStrategy` chooses a winner among active claims after the active
-belief space has already been computed by the configured reasoning backend.
-Run 1 keeps the existing claim-graph backend as the default.
+`ResolutionStrategy` chooses a winner among active claims. The active belief
+space is computed by BoundWorld (Z3 condition solving); the reasoning backend
+is only relevant when the strategy is ARGUMENTATION.
 """
 
 from __future__ import annotations

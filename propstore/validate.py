@@ -1,10 +1,10 @@
 """Concept file validator for the propstore concept registry.
 
-Loads all concepts/*.yaml files, validates against the JSON Schema,
-then runs the compiler contract checks that JSON Schema can't express.
+Loads all concepts/*.yaml files and runs structural validation via Python
+code (required fields, valid types, cross-reference checks). There is no
+JSON Schema validation in this module.
 
 Reports errors (hard stop) and warnings separately.
-Exits nonzero on any error.
 """
 
 from __future__ import annotations

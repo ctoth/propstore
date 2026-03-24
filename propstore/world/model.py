@@ -8,6 +8,7 @@ from collections import deque
 from typing import TYPE_CHECKING, Any
 
 from propstore.cel_checker import ConceptInfo, KindType
+from propstore.world.labelled import compile_environment_assumptions
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
@@ -442,6 +443,7 @@ class WorldModel(ArtifactStore):
                 bindings=merged,
                 context_id=environment.context_id,
                 effective_assumptions=tuple(environment.effective_assumptions),
+                assumptions=tuple(environment.assumptions),
             )
 
         context_hierarchy = self._load_context_hierarchy()
@@ -452,7 +454,19 @@ class WorldModel(ArtifactStore):
                 effective_assumptions=tuple(
                     context_hierarchy.effective_assumptions(environment.context_id)
                 ),
+                assumptions=tuple(environment.assumptions),
             )
+
+        environment = Environment(
+            bindings=environment.bindings,
+            context_id=environment.context_id,
+            effective_assumptions=tuple(environment.effective_assumptions),
+            assumptions=compile_environment_assumptions(
+                bindings=environment.bindings,
+                effective_assumptions=environment.effective_assumptions,
+                context_id=environment.context_id,
+            ),
+        )
 
         return BoundWorld(
             self,

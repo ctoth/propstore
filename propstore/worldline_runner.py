@@ -1,24 +1,19 @@
 """Worldline materialization engine.
 
 Takes a WorldlineDefinition and a WorldModel, computes results by:
-1. Binding conditions and injecting overrides as synthetic claims
-2. Resolving each target concept (value_of → resolved_value → derived_value → chain)
-3. Tracking which claims contributed to each result (dependency set)
-4. Computing a content hash over dependencies for staleness detection
+1. Binding conditions and passing overrides as dicts to derived_value()
+2. Resolving each target concept (value_of -> resolved_value -> derived_value -> chain)
+3. Tracking which claims were consulted during resolution (flat dependency set)
+4. Computing a SHA-256 content hash over the full result payload for staleness detection
 
-The dependency tracking follows de Kleer 1986 (ATMS): every derived datum
-carries its minimal assumption set. Here, "assumptions" are the claims
-whose values were used. Soundness (P2) requires every dependency to be
-necessary; completeness (P3) requires no missing dependencies.
+Dependencies are accumulated into a flat set[str] of claim IDs -- every claim
+consulted during resolution is added, not just the minimal necessary set.
 
-Override precedence follows Martins 1983 (belief spaces): overrides are
-synthetic claims injected into the belief space that take priority over
-stored claims, analogous to hypotheses in a belief space context.
+Overrides are float/string dicts passed to derived_value() as override_values,
+bypassing the belief space entirely. They are NOT injected as synthetic claims.
 
-Content hashing for staleness follows Green 2007 (provenance semirings):
-the hash is a coarse projection of the full dependency polynomial.
-A finer projection (tracking which claims combine how) is left for
-future work.
+The content hash covers the full materialized result: values, steps,
+dependencies, sensitivity, and argumentation state.
 """
 
 from __future__ import annotations
@@ -664,26 +659,6 @@ def _trace_input_source(
         return {"source": "unknown"}
     finally:
         seen.discard(concept_id)
-
-
-def _compute_hash(world, claim_ids: list[str]) -> str:
-    """Compute a content hash over the current state of dependency claims.
-
-    This is a coarse projection of the full provenance polynomial
-    (Green 2007): we hash the claim IDs and their content hashes,
-    losing the algebraic structure but retaining change detection.
-    """
-    h = hashlib.sha256()
-    for cid in claim_ids:
-        claim = world.get_claim(cid)
-        if claim is not None:
-            h.update(cid.encode())
-            content_hash = claim.get("content_hash", "")
-            if content_hash:
-                h.update(str(content_hash).encode())
-            else:
-                h.update(str(claim.get("value", "")).encode())
-    return h.hexdigest()[:16]
 
 
 def _stance_dependency_key(row: dict[str, Any]) -> str:

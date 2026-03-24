@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
+from propstore.world.labelled import AssumptionRef, Label
+
 if TYPE_CHECKING:
     from propstore.z3_conditions import Z3ConditionSolver
 
@@ -16,6 +18,7 @@ class ValueResult:
     concept_id: str
     status: str  # "determined" | "conflicted" | "underdetermined" | "no_claims"
     claims: list[dict] = field(default_factory=list)
+    label: Label | None = None
 
 
 @dataclass
@@ -26,6 +29,7 @@ class DerivedResult:
     formula: str | None = None
     input_values: dict[str, float] = field(default_factory=dict)
     exactness: str | None = None
+    label: Label | None = None
 
 
 class ResolutionStrategy(Enum):
@@ -36,10 +40,11 @@ class ResolutionStrategy(Enum):
 
 
 class ReasoningBackend(Enum):
-    """Semantic backend used to interpret the active belief space.
+    """Argumentation implementation selector.
 
-    Run 1 keeps the existing claim-graph backend as the default.
-    ResolutionStrategy remains a separate render-time winner-selection axis.
+    Only consulted inside the ARGUMENTATION resolution strategy to choose
+    which argumentation backend to call. The active belief space is computed
+    by BoundWorld (Z3 condition solving), not by this enum.
     """
 
     CLAIM_GRAPH = "claim_graph"
@@ -54,6 +59,7 @@ class ResolvedResult:
     winning_claim_id: str | None = None
     strategy: str | None = None
     reason: str | None = None
+    label: Label | None = None
 
 
 @dataclass(frozen=True)
@@ -61,6 +67,7 @@ class Environment:
     bindings: Mapping[str, Any] = field(default_factory=dict)
     context_id: str | None = None
     effective_assumptions: tuple[str, ...] = field(default_factory=tuple)
+    assumptions: tuple[AssumptionRef, ...] = field(default_factory=tuple)
 
 
 @dataclass
@@ -91,9 +98,9 @@ class ChainResult:
 class RenderPolicy:
     """Render-time policy.
 
-    `reasoning_backend` selects the semantic backend used to interpret the
-    active belief space. `strategy` is only used when a conflicted concept
-    needs a winner selected at render time.
+    `reasoning_backend` selects the argumentation implementation used when
+    `strategy` is ARGUMENTATION. `strategy` chooses a winner among active
+    claims when a concept is conflicted at render time.
     """
 
     reasoning_backend: ReasoningBackend = ReasoningBackend.CLAIM_GRAPH

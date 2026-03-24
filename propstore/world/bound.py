@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from propstore.world.labelled import (
+    AssumptionRef,
+    EnvironmentKey,
+    Label,
+    binding_condition_to_cel,
+    combine_labels,
+    merge_labels,
+)
 from propstore.world.value_resolver import ActiveClaimResolver
 from propstore.world.types import (
     BeliefSpace,
@@ -121,6 +130,9 @@ class BoundWorld(BeliefSpace):
         self._policy = policy
         self._bindings = dict(environment.bindings)
         self._binding_conds = self._bindings_to_cel(self._bindings)
+        self._assumptions_by_cel: dict[str, list[AssumptionRef]] = {}
+        for assumption in environment.assumptions:
+            self._assumptions_by_cel.setdefault(assumption.cel, []).append(assumption)
         for assumption in environment.effective_assumptions:
             if assumption not in self._binding_conds:
                 self._binding_conds.append(assumption)
@@ -146,15 +158,7 @@ class BoundWorld(BeliefSpace):
     @staticmethod
     def _bindings_to_cel(bindings: dict[str, Any]) -> list[str]:
         """Convert keyword bindings to CEL condition strings."""
-        conds: list[str] = []
-        for key, value in bindings.items():
-            if isinstance(value, str):
-                conds.append(f"{key} == '{value}'")
-            elif isinstance(value, bool):
-                conds.append(f"{key} == {'true' if value else 'false'}")
-            else:
-                conds.append(f"{key} == {value}")
-        return conds
+        return [binding_condition_to_cel(key, value) for key, value in bindings.items()]
 
     def is_active(self, claim: dict) -> bool:
         """Check if a claim is active under the current bindings and context."""
@@ -255,7 +259,8 @@ class BoundWorld(BeliefSpace):
 
     def value_of(self, concept_id: str) -> ValueResult:
         active = self.active_claims(concept_id)
-        return self._resolver.value_of_from_active(active, concept_id)
+        result = self._resolver.value_of_from_active(active, concept_id)
+        return self._attach_value_label(result)
 
     def derived_value(
         self,
@@ -264,15 +269,17 @@ class BoundWorld(BeliefSpace):
         override_values: dict[str, float | str | None] | None = None,
     ) -> DerivedResult:
         """Derive a value for concept_id via parameterization relationships."""
-        return self._resolver.derived_value(
+        result = self._resolver.derived_value(
             concept_id,
             override_values=override_values,
         )
+        return self._attach_derived_label(result, override_values=override_values)
 
     def resolved_value(self, concept_id: str) -> ResolvedResult:
         from propstore.world.resolution import resolve
 
-        return resolve(self, concept_id, policy=self._policy, world=self._store)
+        result = resolve(self, concept_id, policy=self._policy, world=self._store)
+        return self._attach_resolved_label(concept_id, result)
 
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status == "determined"
@@ -313,3 +320,116 @@ class BoundWorld(BeliefSpace):
             if target is not None and self.is_active(target):
                 result.append(s)
         return result
+
+    def _attach_value_label(self, result: ValueResult) -> ValueResult:
+        if result.status != "determined" or not result.claims:
+            return result
+
+        claim_labels: list[Label] = []
+        for claim in result.claims:
+            claim_label = self._claim_support_label(claim)
+            if claim_label is None:
+                return result
+            claim_labels.append(claim_label)
+        return replace(result, label=merge_labels(claim_labels))
+
+    def _attach_derived_label(
+        self,
+        result: DerivedResult,
+        *,
+        override_values: dict[str, float | str | None] | None,
+    ) -> DerivedResult:
+        if result.status != "derived":
+            return result
+
+        input_labels: list[Label] = []
+        for input_id in result.input_values:
+            input_label = self._label_for_input(
+                input_id,
+                override_values=override_values,
+                seen={result.concept_id},
+            )
+            if input_label is None:
+                return result
+            input_labels.append(input_label)
+        return replace(result, label=combine_labels(*input_labels))
+
+    def _attach_resolved_label(
+        self,
+        concept_id: str,
+        result: ResolvedResult,
+    ) -> ResolvedResult:
+        if result.status == "determined":
+            return replace(result, label=self.value_of(concept_id).label)
+
+        if result.status != "resolved" or not result.winning_claim_id:
+            return result
+
+        winning_claim = next(
+            (claim for claim in result.claims if claim.get("id") == result.winning_claim_id),
+            None,
+        )
+        if winning_claim is None:
+            return result
+
+        claim_label = self._claim_support_label(winning_claim)
+        if claim_label is None:
+            return result
+        return replace(result, label=claim_label)
+
+    def _label_for_input(
+        self,
+        concept_id: str,
+        *,
+        override_values: dict[str, float | str | None] | None,
+        seen: set[str],
+    ) -> Label | None:
+        if override_values and concept_id in override_values:
+            return None
+
+        value_result = self.value_of(concept_id)
+        if value_result.status == "determined":
+            return value_result.label
+
+        if concept_id in seen:
+            return None
+
+        seen.add(concept_id)
+        try:
+            derived = self.derived_value(concept_id, override_values=override_values)
+        finally:
+            seen.discard(concept_id)
+        if derived.status == "derived":
+            return derived.label
+        return None
+
+    def _claim_support_label(self, claim: dict) -> Label | None:
+        # Labels are only attached when the active support can be reconstructed
+        # exactly from compiled assumptions. Context visibility is enforced
+        # separately from CEL activation, so a context-scoped claim is not an
+        # unconditional fact even if it has no explicit conditions.
+        if claim.get("context_id") is not None:
+            return None
+
+        conds_json = claim.get("conditions_cel")
+        if not conds_json:
+            return Label.empty()
+
+        conditions = json.loads(conds_json)
+        if not conditions:
+            return Label.empty()
+
+        condition_labels: list[Label] = []
+        for condition in conditions:
+            matches = self._assumptions_by_cel.get(condition)
+            if not matches:
+                return None
+            condition_labels.append(
+                Label(
+                    tuple(
+                        EnvironmentKey((assumption.assumption_id,))
+                        for assumption in matches
+                    )
+                )
+            )
+        return combine_labels(*condition_labels)

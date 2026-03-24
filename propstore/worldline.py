@@ -53,8 +53,8 @@ class WorldlineInputs:
 class WorldlinePolicy:
     """Render policy for a worldline.
 
-    `reasoning_backend` identifies the semantic backend. `strategy` is still
-    the render-time conflict winner selection policy.
+    `reasoning_backend` identifies the argumentation backend used when
+    `strategy` asks for argumentation-based conflict resolution.
     """
 
     reasoning_backend: str = "claim_graph"
@@ -67,8 +67,17 @@ class WorldlinePolicy:
     def from_dict(cls, data: dict | None) -> WorldlinePolicy:
         if not data:
             return cls()
+        reasoning_backend = data.get("reasoning_backend", "claim_graph")
+        from propstore.world.types import ReasoningBackend
+
+        try:
+            ReasoningBackend(reasoning_backend)
+        except ValueError as exc:
+            raise ValueError(
+                f"Unknown reasoning_backend '{reasoning_backend}'"
+            ) from exc
         return cls(
-            reasoning_backend=data.get("reasoning_backend", "claim_graph"),
+            reasoning_backend=reasoning_backend,
             strategy=data.get("strategy"),
             semantics=data.get("semantics", "grounded"),
             comparison=data.get("comparison", "elitist"),
