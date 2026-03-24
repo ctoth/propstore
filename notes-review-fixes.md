@@ -4,29 +4,26 @@
 Execute all 26 fixes from the code review, TDD style, under Foreman protocol.
 
 ## BASELINE
-975 tests passing, 0 failures.
+975 tests passing, 0 failures. Now at 984 passing.
 
-## ALL PROMPT FILES COMPLETE
-- Batch 1: fix-1a, fix-1b, fix-1c (DISPATCHED — awaiting)
-- Batch 2: fix-2a, scout-2b, fix-2c (ready; 2B coder prompt pending scout verdict)
-- Batch 3: fix-3a, fix-3b, fix-3c (ready)
-- Batch 4: fix-4a, fix-4b, fix-4c (ready)
-- Batch 5: fix-5a, fix-5b, fix-5c (ready)
-- Batch 6: fix-6a, fix-6b, fix-6c (ready)
-- Batch 7: fix-7a, fix-7b, fix-7c (ready)
-- Batch 8: fix-8a, fix-8b, fix-8c (ready)
+## BATCH 1 — COMPLETE
+- 1A: SQL injection fix. Commit `85d0415`. +5 tests. VERIFIED against plan.
+- 1B: Lying status fix. Commit `f25d55d`. +1 test, 3 files changed. VERIFIED against plan.
+- 1C: Bare except narrowing. Commit `60ff347`. +2 tests, 2 files changed. VERIFIED against plan.
 
-## DONE
-- Plan written and approved
-- All 24 prompt files written
+## BATCH 2 — IN PROGRESS
+- 2A: Cayrol DRY — agent running (structured_argument.py modified, work in progress)
+- Scout 2B: Literature check — agent running
+- 2B coder: blocked on scout verdict
+- 2C: blocked on 2A completion
 
-## AWAITING
-- fix-1a agent (SQL injection) — background
-- fix-1b agent (lying status) — background
-- fix-1c agent (bare except) — background
+## BATCH 3-8 — READY
+All prompt files written. Waiting for Batch 2 progress.
+
+## ANOMALY
+- Commit `b0242d1` "Generalize dimensions beyond physics" — only touches schema/generated/form.schema.json. Likely a previously staged change that an agent committed. Not a plan deviation. Not harmful.
 
 ## NEXT
-- When Batch 1 completes: read reports, verify against plan, update notes
-- Dispatch Batch 2 (sequential: 2A first, then scout-2B, then 2B coder if confirmed, then 2C)
-- Dispatch Batch 3 in parallel (3A, 3B, 3C independent)
-- Can run Batch 2 and 3 concurrently since no file overlap
+- When 2A completes: read report, verify, dispatch 2C (if scout-2B not done) or 2B coder + 2C
+- When scout-2B completes: read report, write 2B coder prompt if verdict is YES
+- Batch 3 can start in parallel with Batch 2 remainder (no file overlap)
