@@ -44,10 +44,12 @@ class ReasoningBackend(Enum):
 
     Only consulted inside the ARGUMENTATION resolution strategy to choose
     which argumentation backend to call. The active belief space is computed
-    by BoundWorld (Z3 condition solving), not by this enum.
+    by BoundWorld (Z3 condition solving), not by this enum. `structured_projection`
+    is a first structured-argument projection over active claims, not full ASPIC+.
     """
 
     CLAIM_GRAPH = "claim_graph"
+    STRUCTURED_PROJECTION = "structured_projection"
 
 
 @dataclass

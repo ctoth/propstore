@@ -6,6 +6,7 @@ import hashlib
 import json
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 
 
@@ -97,6 +98,15 @@ class JustificationRecord:
             antecedents=tuple(antecedents),
             label=combine_labels(*antecedents, nogoods=nogoods),
         )
+
+
+class SupportQuality(Enum):
+    """How faithfully the current belief-space activation can be labeled."""
+
+    EXACT = "exact"
+    SEMANTIC_COMPATIBLE = "semantic_compatible"
+    CONTEXT_VISIBLE_ONLY = "context_visible_only"
+    MIXED = "mixed"
 
 
 def binding_condition_to_cel(key: str, value: Any) -> str:

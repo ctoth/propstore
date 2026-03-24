@@ -11,6 +11,7 @@ from propstore.world.labelled import (
     AssumptionRef,
     EnvironmentKey,
     Label,
+    SupportQuality,
     binding_condition_to_cel,
     combine_labels,
     merge_labels,
@@ -281,6 +282,13 @@ class BoundWorld(BeliefSpace):
         result = resolve(self, concept_id, policy=self._policy, world=self._store)
         return self._attach_resolved_label(concept_id, result)
 
+    def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
+        """Return exact label support when reconstructible, plus honesty metadata."""
+        label = self._claim_support_label(claim)
+        if label is not None:
+            return label, SupportQuality.EXACT
+        return None, self._support_quality(claim)
+
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status == "determined"
 
@@ -433,3 +441,21 @@ class BoundWorld(BeliefSpace):
                 )
             )
         return combine_labels(*condition_labels)
+
+    def _support_quality(self, claim: dict) -> SupportQuality:
+        conds_json = claim.get("conditions_cel")
+        has_conditions = False
+        if conds_json:
+            try:
+                has_conditions = bool(json.loads(conds_json))
+            except (TypeError, json.JSONDecodeError):
+                has_conditions = True
+
+        has_context = claim.get("context_id") is not None
+        if has_context and has_conditions:
+            return SupportQuality.MIXED
+        if has_context:
+            return SupportQuality.CONTEXT_VISIBLE_ONLY
+        if has_conditions:
+            return SupportQuality.SEMANTIC_COMPATIBLE
+        return SupportQuality.SEMANTIC_COMPATIBLE

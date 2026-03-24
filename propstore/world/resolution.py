@@ -100,6 +100,72 @@ def _resolve_claim_graph_argumentation(
     return None, f"{len(survivors)} claims survive in {semantics} extension"
 
 
+def _resolve_structured_argumentation(
+    target_claims: list[dict],
+    active_claims: list[dict],
+    view: BeliefSpace,
+    world: ArtifactStore,
+    *,
+    semantics: str = "grounded",
+    comparison: str = "elitist",
+    confidence_threshold: float = 0.5,
+) -> tuple[str | None, str | None]:
+    """Resolve via the first structured-argument projection backend."""
+    from propstore.structured_argument import (
+        build_structured_projection,
+        compute_structured_justified_arguments,
+    )
+
+    if not world.has_table("claim_stance"):
+        return None, "no stance data"
+
+    support_metadata: dict[str, tuple[object | None, object]] = {}
+    claim_support = getattr(view, "claim_support", None)
+    if callable(claim_support):
+        for claim in active_claims:
+            claim_id = claim.get("id")
+            if not claim_id:
+                continue
+            support_metadata[claim_id] = claim_support(claim)
+
+    projection = build_structured_projection(
+        world,
+        active_claims,
+        support_metadata=support_metadata,
+        comparison=comparison,
+        confidence_threshold=confidence_threshold,
+    )
+    result = compute_structured_justified_arguments(
+        projection,
+        semantics=semantics,
+    )
+
+    target_arg_ids = frozenset(
+        arg_id
+        for claim in target_claims
+        for arg_id in projection.claim_to_argument_ids.get(claim["id"], ())
+    )
+    if isinstance(result, frozenset):
+        survivor_args = result & target_arg_ids
+    else:
+        if not result:
+            survivor_args = frozenset()
+        else:
+            survivor_args = frozenset.intersection(*result) & target_arg_ids
+
+    survivor_claims = {
+        projection.argument_to_claim_id[arg_id]
+        for arg_id in survivor_args
+    }
+    if len(survivor_claims) == 0:
+        return None, "all projected arguments defeated"
+    if len(survivor_claims) == 1:
+        winner = next(iter(survivor_claims))
+        return winner, f"sole structured projection survivor in {semantics} extension"
+
+    return None, f"{len(survivor_claims)} claims survive in {semantics} structured projection"
+
+
 def resolve(
     view: BeliefSpace,
     concept_id: str,
@@ -192,18 +258,29 @@ def resolve(
                 concept_id=concept_id, status="conflicted",
                 claims=active, reason="argumentation strategy requires an explicit artifact store",
             )
-        if reasoning_backend != ReasoningBackend.CLAIM_GRAPH:
+        if reasoning_backend == ReasoningBackend.CLAIM_GRAPH:
+            winner_id, reason = _resolve_claim_graph_argumentation(
+                active,
+                view.active_claims(),
+                world,
+                semantics=semantics,
+                comparison=comparison,
+                confidence_threshold=confidence_threshold,
+            )
+        elif reasoning_backend == ReasoningBackend.STRUCTURED_PROJECTION:
+            winner_id, reason = _resolve_structured_argumentation(
+                active,
+                view.active_claims(),
+                view,
+                world,
+                semantics=semantics,
+                comparison=comparison,
+                confidence_threshold=confidence_threshold,
+            )
+        else:
             raise NotImplementedError(
                 f"Reasoning backend '{reasoning_backend.value}' is not implemented"
             )
-        winner_id, reason = _resolve_claim_graph_argumentation(
-            active,
-            view.active_claims(),
-            world,
-            semantics=semantics,
-            comparison=comparison,
-            confidence_threshold=confidence_threshold,
-        )
 
     if winner_id is None:
         return ResolvedResult(

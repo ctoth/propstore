@@ -174,24 +174,71 @@ def run_worldline(
     stance_dependencies: list[str] = []
     if strategy is not None and strategy.value == "argumentation":
         try:
-            from propstore.argumentation import compute_claim_graph_justified_claims
             active = bound.active_claims()
             active_ids = {c["id"] for c in active}
-            justified = compute_claim_graph_justified_claims(
-                world, active_ids,
-                semantics=definition.policy.semantics,
-                comparison=definition.policy.comparison,
-                confidence_threshold=definition.policy.confidence_threshold,
-            )
-            if isinstance(justified, frozenset):
-                defeated = active_ids - justified
-                argumentation_state = {
-                    "justified": sorted(justified),
-                    "defeated": sorted(defeated),
-                }
+            reasoning_backend = definition.policy.reasoning_backend
+            if (
+                reasoning_backend == "claim_graph"
+                and world.has_table("claim_stance")
+            ):
+                from propstore.argumentation import compute_claim_graph_justified_claims
+
+                justified = compute_claim_graph_justified_claims(
+                    world, active_ids,
+                    semantics=definition.policy.semantics,
+                    comparison=definition.policy.comparison,
+                    confidence_threshold=definition.policy.confidence_threshold,
+                )
+                if isinstance(justified, frozenset):
+                    defeated = active_ids - justified
+                    argumentation_state = {
+                        "justified": sorted(justified),
+                        "defeated": sorted(defeated),
+                    }
+            elif (
+                reasoning_backend == "structured_projection"
+                and world.has_table("claim_stance")
+            ):
+                from propstore.structured_argument import (
+                    build_structured_projection,
+                    compute_structured_justified_arguments,
+                )
+
+                support_metadata: dict[str, tuple[object | None, object]] = {}
+                claim_support = getattr(bound, "claim_support", None)
+                if callable(claim_support):
+                    for claim in active:
+                        claim_id = claim.get("id")
+                        if claim_id:
+                            support_metadata[claim_id] = claim_support(claim)
+
+                projection = build_structured_projection(
+                    world,
+                    active,
+                    support_metadata=support_metadata,
+                    comparison=definition.policy.comparison,
+                    confidence_threshold=definition.policy.confidence_threshold,
+                )
+                justified_args = compute_structured_justified_arguments(
+                    projection,
+                    semantics=definition.policy.semantics,
+                )
+                if isinstance(justified_args, frozenset):
+                    justified = {
+                        projection.argument_to_claim_id[arg_id]
+                        for arg_id in justified_args
+                    }
+                    defeated = active_ids - justified
+                    argumentation_state = {
+                        "backend": "structured_projection",
+                        "justified": sorted(justified),
+                        "defeated": sorted(defeated),
+                    }
+
+            if argumentation_state is not None:
                 for cid in active_ids:
                     dependency_claims.add(cid)
-                if hasattr(world, "stances_between"):
+                if hasattr(world, "stances_between") and world.has_table("claim_stance"):
                     stance_rows = world.stances_between(active_ids)
                     stance_dependencies = sorted(
                         _stance_dependency_key(row)

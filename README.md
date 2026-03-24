@@ -461,13 +461,15 @@ The bridge layer (`argumentation.py`) converts raw stances into a Dung AF:
 
 ## Semantic axes
 
-- `reasoning_backend` selects the argumentation backend used when a render policy asks for argumentation-based conflict resolution. The default and only implemented backend today is `claim_graph`.
+- `reasoning_backend` selects the argumentation backend used when a render policy asks for argumentation-based conflict resolution.
+- `claim_graph` remains the default backend and preserves the current claim-row projection and behavior.
+- `structured_projection` is a first structured-argument projection over active claims plus exact support metadata. It is a bridge toward ASPIC+, not full ASPIC+ execution.
 - `resolution_strategy` selects how to pick a winner when a conflicted concept still has multiple active claims after belief-space reasoning.
 - `comparison` selects the preference-comparison rule used inside the claim-graph argumentation backend.
 
-Run 2A adds an internal ATMS-style labelled semantic core for assumptions, environments, labels, nogoods, and justification normalization. Current worldline files and CLI defaults still run on the `claim_graph` backend.
+Run 2A adds an internal ATMS-style labelled semantic core for assumptions, environments, labels, nogoods, and justification normalization. Run 2B adds a first structured projection backend on top of that core. Current worldline files and CLI defaults still run on the `claim_graph` backend.
 
-The labelled core is support bookkeeping, not yet a full ATMS control regime and not yet a structured-argument ASPIC+ backend.
+The labelled core is exact-support bookkeeping, not yet a full ATMS control regime and not yet a universal proof certificate for every active claim. Semantically compatible Z3 activation and context visibility are preserved, but not upgraded into exact labels.
 
 ### MaxSMT conflict resolution
 
