@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
@@ -45,6 +46,37 @@ class ATMSNodeStatus(Enum):
     OUT = "OUT"
 
 
+class ATMSOutKind(Enum):
+    """Why an ATMS node is currently OUT."""
+
+    MISSING_SUPPORT = "missing_support"
+    NOGOOD_PRUNED = "nogood_pruned"
+
+
+@dataclass(frozen=True, order=True)
+class QueryableAssumption:
+    """Future/queryable assumption available only to bounded future analysis."""
+
+    assumption_id: str
+    cel: str
+    kind: str = "queryable"
+    source: str = "future"
+
+    @classmethod
+    def from_cel(
+        cls,
+        cel: str,
+        *,
+        source: str = "future",
+    ) -> QueryableAssumption:
+        digest = hashlib.sha1(f"queryable\0{source}\0{cel}".encode("utf-8")).hexdigest()[:12]
+        return cls(
+            assumption_id=f"queryable:{source}:{digest}",
+            cel=cel,
+            source=source,
+        )
+
+
 @dataclass(frozen=True)
 class ATMSInspection:
     """Inspectible ATMS status plus support-quality honesty metadata."""
@@ -55,6 +87,7 @@ class ATMSInspection:
     label: Label | None
     essential_support: EnvironmentKey | None
     reason: str
+    out_kind: ATMSOutKind | None = None
     claim_id: str | None = None
     kind: str | None = None
 

@@ -56,7 +56,9 @@ class WorldlinePolicy:
     `reasoning_backend` identifies the argumentation backend used when
     `strategy` asks for argumentation-based conflict resolution. `atms`
     selects the global label/nogood propagation backend rather than a
-    Dung-style extension backend.
+    Dung-style extension backend. `future_queryables` and `future_limit`
+    opt into bounded ATMS future, stability, and relevance analysis over
+    replayed bound worlds. They do not imply AGM-style revision semantics.
     """
 
     reasoning_backend: str = "claim_graph"
@@ -64,6 +66,8 @@ class WorldlinePolicy:
     semantics: str = "grounded"
     comparison: str = "elitist"
     confidence_threshold: float = 0.5
+    future_queryables: list[str] = field(default_factory=list)
+    future_limit: int | None = None
 
     @classmethod
     def from_dict(cls, data: dict | None) -> WorldlinePolicy:
@@ -84,6 +88,12 @@ class WorldlinePolicy:
             semantics=data.get("semantics", "grounded"),
             comparison=data.get("comparison", "elitist"),
             confidence_threshold=float(data.get("confidence_threshold", 0.5)),
+            future_queryables=list(data.get("future_queryables") or []),
+            future_limit=(
+                None
+                if data.get("future_limit") is None
+                else int(data["future_limit"])
+            ),
         )
 
     def to_dict(self) -> dict:
@@ -98,6 +108,10 @@ class WorldlinePolicy:
             d["comparison"] = self.comparison
         if self.confidence_threshold != 0.5:
             d["confidence_threshold"] = self.confidence_threshold
+        if self.future_queryables:
+            d["future_queryables"] = list(self.future_queryables)
+        if self.future_limit is not None:
+            d["future_limit"] = self.future_limit
         return d
 
 

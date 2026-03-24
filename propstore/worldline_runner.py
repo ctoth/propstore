@@ -173,87 +173,87 @@ def run_worldline(
     argumentation_state: dict[str, Any] | None = None
     stance_dependencies: list[str] = []
     if strategy is not None and strategy.value == "argumentation":
-        try:
-            active = bound.active_claims()
-            active_ids = {c["id"] for c in active}
-            reasoning_backend = definition.policy.reasoning_backend
+        active = bound.active_claims()
+        active_ids = {c["id"] for c in active}
+        reasoning_backend = definition.policy.reasoning_backend
+        if (
+            reasoning_backend == "claim_graph"
+            and world.has_table("claim_stance")
+        ):
+            from propstore.argumentation import compute_claim_graph_justified_claims
+
+            justified = compute_claim_graph_justified_claims(
+                world, active_ids,
+                semantics=definition.policy.semantics,
+                comparison=definition.policy.comparison,
+                confidence_threshold=definition.policy.confidence_threshold,
+            )
+            if isinstance(justified, frozenset):
+                defeated = active_ids - justified
+                argumentation_state = {
+                    "justified": sorted(justified),
+                    "defeated": sorted(defeated),
+                }
+        elif (
+            reasoning_backend == "structured_projection"
+            and world.has_table("claim_stance")
+        ):
+            from propstore.structured_argument import (
+                build_structured_projection,
+                compute_structured_justified_arguments,
+            )
+
+            support_metadata: dict[str, tuple[object | None, object]] = {}
+            claim_support = getattr(bound, "claim_support", None)
+            if callable(claim_support):
+                for claim in active:
+                    claim_id = claim.get("id")
+                    if claim_id:
+                        support_metadata[claim_id] = claim_support(claim)
+
+            projection = build_structured_projection(
+                world,
+                active,
+                support_metadata=support_metadata,
+                comparison=definition.policy.comparison,
+                confidence_threshold=definition.policy.confidence_threshold,
+            )
+            justified_args = compute_structured_justified_arguments(
+                projection,
+                semantics=definition.policy.semantics,
+            )
+            if isinstance(justified_args, frozenset):
+                justified = {
+                    projection.argument_to_claim_id[arg_id]
+                    for arg_id in justified_args
+                }
+                defeated = active_ids - justified
+                argumentation_state = {
+                    "backend": "structured_projection",
+                    "justified": sorted(justified),
+                    "defeated": sorted(defeated),
+                }
+        elif reasoning_backend == "atms":
+            atms_engine = getattr(bound, "atms_engine", None)
+            if callable(atms_engine):
+                argumentation_state = atms_engine().argumentation_state(
+                    queryables=definition.policy.future_queryables,
+                    future_limit=definition.policy.future_limit or 8,
+                )
+
+        if argumentation_state is not None:
+            for cid in active_ids:
+                dependency_claims.add(cid)
             if (
-                reasoning_backend == "claim_graph"
+                argumentation_state.get("backend") != "atms"
+                and hasattr(world, "stances_between")
                 and world.has_table("claim_stance")
             ):
-                from propstore.argumentation import compute_claim_graph_justified_claims
-
-                justified = compute_claim_graph_justified_claims(
-                    world, active_ids,
-                    semantics=definition.policy.semantics,
-                    comparison=definition.policy.comparison,
-                    confidence_threshold=definition.policy.confidence_threshold,
+                stance_rows = world.stances_between(active_ids)
+                stance_dependencies = sorted(
+                    _stance_dependency_key(row)
+                    for row in stance_rows
                 )
-                if isinstance(justified, frozenset):
-                    defeated = active_ids - justified
-                    argumentation_state = {
-                        "justified": sorted(justified),
-                        "defeated": sorted(defeated),
-                    }
-            elif (
-                reasoning_backend == "structured_projection"
-                and world.has_table("claim_stance")
-            ):
-                from propstore.structured_argument import (
-                    build_structured_projection,
-                    compute_structured_justified_arguments,
-                )
-
-                support_metadata: dict[str, tuple[object | None, object]] = {}
-                claim_support = getattr(bound, "claim_support", None)
-                if callable(claim_support):
-                    for claim in active:
-                        claim_id = claim.get("id")
-                        if claim_id:
-                            support_metadata[claim_id] = claim_support(claim)
-
-                projection = build_structured_projection(
-                    world,
-                    active,
-                    support_metadata=support_metadata,
-                    comparison=definition.policy.comparison,
-                    confidence_threshold=definition.policy.confidence_threshold,
-                )
-                justified_args = compute_structured_justified_arguments(
-                    projection,
-                    semantics=definition.policy.semantics,
-                )
-                if isinstance(justified_args, frozenset):
-                    justified = {
-                        projection.argument_to_claim_id[arg_id]
-                        for arg_id in justified_args
-                    }
-                    defeated = active_ids - justified
-                    argumentation_state = {
-                        "backend": "structured_projection",
-                        "justified": sorted(justified),
-                        "defeated": sorted(defeated),
-                    }
-            elif reasoning_backend == "atms":
-                atms_engine = getattr(bound, "atms_engine", None)
-                if callable(atms_engine):
-                    argumentation_state = atms_engine().argumentation_state()
-
-            if argumentation_state is not None:
-                for cid in active_ids:
-                    dependency_claims.add(cid)
-                if (
-                    argumentation_state.get("backend") != "atms"
-                    and hasattr(world, "stances_between")
-                    and world.has_table("claim_stance")
-                ):
-                    stance_rows = world.stances_between(active_ids)
-                    stance_dependencies = sorted(
-                        _stance_dependency_key(row)
-                        for row in stance_rows
-                    )
-        except Exception:
-            pass  # Argumentation capture is optional
 
     # ── 6. Compute dependency hash ─────────────────────────────────
     context_dependencies = _context_dependencies(bound, context_id)

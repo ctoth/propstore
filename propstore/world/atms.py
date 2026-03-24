@@ -1,13 +1,14 @@
-"""ATMS-style global label and nogood propagation for a bound belief space.
+"""ATMS-style exact-support propagation plus bounded future-environment analysis.
 
-This is a first real ATMS-style engine over the current labelled kernel.
-It propagates exact labels globally across active claims and compatible
-parameterization justifications, then prunes them with nogoods induced by
-active conflicts. Run 4 exposes ATMS-native inspection over those labels:
-TRUE/IN/OUT node status, essential support, justification traces, nogood
-provenance, and label verification. It is not yet a full de Kleer runtime
-or incremental ATMS, not Dung-extension semantics, and not stability or
-relevance analysis.
+This engine propagates exact labels globally across active claims and
+compatible parameterization justifications, then prunes them with nogoods
+induced by active conflicts. It exposes ATMS-native inspection over current
+labels and a bounded replay surface for future/queryable assumptions. Those
+future views support honest "could this change?" analysis without upgrading
+semantic compatibility into exact support. Run 6 adds bounded stability and
+relevance analysis over that implemented replay substrate. This remains a
+bounded ATMS-native analysis over rebuilt future bound worlds rather than AGM-
+style revision, entrenchment maintenance, or a full de Kleer runtime manager.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
-from itertools import product
+from itertools import combinations, product
 from typing import TYPE_CHECKING, Any
 
 from propstore.propagation import evaluate_parameterization
@@ -28,7 +29,12 @@ from propstore.world.labelled import (
     merge_labels,
 )
 from propstore.world.labelled import SupportQuality
-from propstore.world.types import ATMSInspection, ATMSNodeStatus
+from propstore.world.types import (
+    ATMSInspection,
+    ATMSNodeStatus,
+    ATMSOutKind,
+    QueryableAssumption,
+)
 
 if TYPE_CHECKING:
     from propstore.world.bound import BoundWorld
@@ -107,6 +113,7 @@ class ATMSEngine:
         label = self._label_or_none(node.label)
         status = self._status_from_label(node.label)
         support_quality = self._support_quality_for_node(node)
+        out_kind = self._out_kind_for_node(node.node_id, status)
         return ATMSInspection(
             node_id=node_id,
             claim_id=node.payload.get("claim_id"),
@@ -116,6 +123,7 @@ class ATMSEngine:
             label=label,
             essential_support=self.essential_support(node_id),
             reason=self._reason_for_node(node, status, support_quality),
+            out_kind=out_kind,
         )
 
     def claim_status(self, claim_id: str) -> ATMSInspection:
@@ -123,6 +131,307 @@ class ATMSEngine:
         if node_id is None:
             raise KeyError(f"Unknown ATMS claim: {claim_id}")
         return self.node_status(node_id)
+
+    def future_environments(
+        self,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> list[dict[str, Any]]:
+        futures: list[dict[str, Any]] = []
+        for future in self._future_entries(queryables, limit):
+            future_engine = future["future_engine"]
+            futures.append({
+                "queryable_ids": list(future["queryable_ids"]),
+                "queryable_cels": list(future["queryable_cels"]),
+                "environment": list(future["environment_key"].assumption_ids),
+                "consistent": future["consistent"],
+                "supported_claim_ids": sorted(future_engine.supported_claim_ids()),
+                "nogoods": [
+                    list(environment.assumption_ids)
+                    for environment in future_engine.nogoods.environments
+                ],
+            })
+        return futures
+
+    def node_future_statuses(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> dict[str, Any]:
+        current = self.node_status(node_id)
+        futures: list[dict[str, Any]] = []
+        for future in self._future_entries(queryables, limit):
+            future_engine = future["future_engine"]
+            inspection = future_engine._future_node_inspection(node_id, fallback=self._nodes.get(node_id))
+            futures.append({
+                "queryable_ids": list(future["queryable_ids"]),
+                "queryable_cels": list(future["queryable_cels"]),
+                "environment": list(future["environment_key"].assumption_ids),
+                "consistent": future["consistent"],
+                "status": inspection.status,
+                "out_kind": inspection.out_kind,
+                "reason": inspection.reason,
+                "support_quality": inspection.support_quality,
+                "essential_support": self._serialize_environment_key(inspection.essential_support)
+                or [],
+            })
+        return {
+            "node_id": node_id,
+            "claim_id": current.claim_id,
+            "current": current,
+            "could_become_in": current.status == ATMSNodeStatus.OUT
+            and any(entry["status"] != ATMSNodeStatus.OUT for entry in futures),
+            "could_become_out": (
+                current.status != ATMSNodeStatus.OUT
+                or any(entry["status"] != ATMSNodeStatus.OUT for entry in futures)
+            )
+            and any(
+                entry["status"] == ATMSNodeStatus.OUT
+                and entry["out_kind"] == ATMSOutKind.NOGOOD_PRUNED
+                for entry in futures
+            ),
+            "futures": futures,
+        }
+
+    def claim_future_statuses(
+        self,
+        claim_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> dict[str, Any]:
+        node_id = self._claim_node_ids.get(claim_id)
+        if node_id is None:
+            raise KeyError(f"Unknown ATMS claim: {claim_id}")
+        return self.node_future_statuses(node_id, queryables, limit=limit)
+
+    def why_out(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...] | None = None,
+        limit: int = 8,
+    ) -> dict[str, Any]:
+        inspection = self.node_status(node_id)
+        candidate_queryable_cels: list[list[str]] = []
+        if inspection.status == ATMSNodeStatus.OUT and queryables:
+            for future in self.could_become_in(node_id, queryables, limit=limit):
+                candidate_queryable_cels.append(list(future["queryable_cels"]))
+        return {
+            "node_id": node_id,
+            "claim_id": inspection.claim_id,
+            "status": inspection.status,
+            "out_kind": inspection.out_kind,
+            "reason": inspection.reason,
+            "support_quality": inspection.support_quality,
+            "future_activatable": bool(candidate_queryable_cels),
+            "candidate_queryable_cels": candidate_queryable_cels,
+        }
+
+    def could_become_in(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> list[dict[str, Any]]:
+        report = self.node_future_statuses(node_id, queryables, limit=limit)
+        return [
+            future
+            for future in report["futures"]
+            if future["status"] != ATMSNodeStatus.OUT
+        ]
+
+    def could_become_out(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> list[dict[str, Any]]:
+        report = self.node_future_statuses(node_id, queryables, limit=limit)
+        return [
+            future
+            for future in report["futures"]
+            if future["status"] == ATMSNodeStatus.OUT
+            and future["out_kind"] == ATMSOutKind.NOGOOD_PRUNED
+        ]
+
+    def status_flip_witnesses(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> list[dict[str, Any]]:
+        """Return minimal bounded consistent futures whose ATMS status flips."""
+        report = self.node_future_statuses(node_id, queryables, limit=limit)
+        current_status = report["current"].status
+        witnesses = [
+            future
+            for future in report["futures"]
+            if future["consistent"] and future["status"] != current_status
+        ]
+        return self._minimal_future_entries(witnesses)
+
+    def is_stable(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> bool:
+        """Whether the node keeps its current ATMS status in all bounded consistent futures."""
+        return self.node_stability(node_id, queryables, limit=limit)["stable"]
+
+    def claim_is_stable(
+        self,
+        claim_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> bool:
+        node_id = self._claim_node_ids.get(claim_id)
+        if node_id is None:
+            raise KeyError(f"Unknown ATMS claim: {claim_id}")
+        return self.is_stable(node_id, queryables, limit=limit)
+
+    def concept_is_stable(
+        self,
+        concept_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> bool:
+        return self.concept_stability(concept_id, queryables, limit=limit)["stable"]
+
+    def node_stability(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> dict[str, Any]:
+        """Summarize bounded ATMS stability over the implemented replay substrate."""
+        report = self.node_future_statuses(node_id, queryables, limit=limit)
+        consistent_futures = [future for future in report["futures"] if future["consistent"]]
+        witnesses = self._minimal_future_entries([
+            future
+            for future in consistent_futures
+            if future["status"] != report["current"].status
+        ])
+        return {
+            "node_id": report["node_id"],
+            "claim_id": report["claim_id"],
+            "current": report["current"],
+            "stable": not witnesses,
+            "limit": limit,
+            "future_count": len(report["futures"]),
+            "consistent_future_count": len(consistent_futures),
+            "inconsistent_future_count": len(report["futures"]) - len(consistent_futures),
+            "witnesses": witnesses,
+        }
+
+    def claim_stability(
+        self,
+        claim_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> dict[str, Any]:
+        node_id = self._claim_node_ids.get(claim_id)
+        if node_id is None:
+            raise KeyError(f"Unknown ATMS claim: {claim_id}")
+        return self.node_stability(node_id, queryables, limit=limit)
+
+    def concept_stability(
+        self,
+        concept_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> dict[str, Any]:
+        """Summarize bounded concept stability using the current BoundWorld value status."""
+        current_status = self._bound.value_of(concept_id).status
+        futures = self._concept_future_entries(concept_id, queryables, limit=limit)
+        consistent_futures = [future for future in futures if future["consistent"]]
+        witnesses = self._minimal_future_entries([
+            future
+            for future in consistent_futures
+            if future["status"] != current_status
+        ])
+        return {
+            "concept_id": concept_id,
+            "current_status": current_status,
+            "stable": not witnesses,
+            "limit": limit,
+            "future_count": len(futures),
+            "consistent_future_count": len(consistent_futures),
+            "inconsistent_future_count": len(futures) - len(consistent_futures),
+            "witnesses": witnesses,
+        }
+
+    def relevant_queryables(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> list[str]:
+        """Return queryables whose inclusion changes the bounded ATMS status somewhere."""
+        return self.node_relevance(node_id, queryables, limit=limit)["relevant_queryables"]
+
+    def claim_relevant_queryables(
+        self,
+        claim_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> list[str]:
+        node_id = self._claim_node_ids.get(claim_id)
+        if node_id is None:
+            raise KeyError(f"Unknown ATMS claim: {claim_id}")
+        return self.relevant_queryables(node_id, queryables, limit=limit)
+
+    def concept_relevant_queryables(
+        self,
+        concept_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> list[str]:
+        return self.concept_relevance(concept_id, queryables, limit=limit)["relevant_queryables"]
+
+    def node_relevance(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> dict[str, Any]:
+        """Summarize which queryables can flip a node's bounded ATMS status."""
+        current = self.node_status(node_id)
+        states = self._node_relevance_states(node_id, queryables, limit=limit)
+        relevance = self._relevance_from_states(states, current.status)
+        return {
+            "node_id": node_id,
+            "claim_id": current.claim_id,
+            "current": current,
+            **relevance,
+        }
+
+    def claim_relevance(
+        self,
+        claim_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> dict[str, Any]:
+        node_id = self._claim_node_ids.get(claim_id)
+        if node_id is None:
+            raise KeyError(f"Unknown ATMS claim: {claim_id}")
+        return self.node_relevance(node_id, queryables, limit=limit)
+
+    def concept_relevance(
+        self,
+        concept_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int = 8,
+    ) -> dict[str, Any]:
+        """Summarize which queryables can flip a concept's bounded value status."""
+        current_status = self._bound.value_of(concept_id).status
+        states = self._concept_relevance_states(concept_id, queryables, limit=limit)
+        relevance = self._relevance_from_states(states, current_status)
+        return {
+            "concept_id": concept_id,
+            "current_status": current_status,
+            **relevance,
+        }
 
     def essential_support(
         self,
@@ -234,13 +543,18 @@ class ATMSEngine:
             "completeness_errors": completeness_errors,
         }
 
-    def argumentation_state(self) -> dict[str, Any]:
+    def argumentation_state(
+        self,
+        *,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...] | None = None,
+        future_limit: int = 8,
+    ) -> dict[str, Any]:
         claim_inspections = {
             claim["id"]: self.claim_status(claim["id"])
             for claim in self._bound.active_claims()
             if claim.get("id") in self._claim_node_ids
         }
-        return {
+        result = {
             "backend": "atms",
             "supported": sorted(self.supported_claim_ids()),
             "defeated": sorted(
@@ -273,6 +587,64 @@ class ATMSEngine:
                 for environment in self.nogoods.environments
             ],
         }
+        normalized_queryables = self._coerce_queryables(queryables or ())
+        if normalized_queryables:
+            result["declared_queryables"] = [queryable.cel for queryable in normalized_queryables]
+            result["future_statuses"] = {
+                claim_id: self._serialize_future_report(
+                    self.claim_future_statuses(
+                        claim_id,
+                        normalized_queryables,
+                        limit=future_limit,
+                    )
+                )
+                for claim_id in sorted(claim_inspections)
+            }
+            result["stability"] = {
+                claim_id: self._serialize_stability_report(
+                    self.claim_stability(
+                        claim_id,
+                        normalized_queryables,
+                        limit=future_limit,
+                    )
+                )
+                for claim_id in sorted(claim_inspections)
+            }
+            result["relevance"] = {
+                claim_id: self._serialize_relevance_report(
+                    self.claim_relevance(
+                        claim_id,
+                        normalized_queryables,
+                        limit=future_limit,
+                    )
+                )
+                for claim_id in sorted(claim_inspections)
+            }
+            result["witness_futures"] = {
+                claim_id: [
+                    self._serialize_future_entry(witness)
+                    for witness in self.status_flip_witnesses(
+                        self._claim_node_ids[claim_id],
+                        normalized_queryables,
+                        limit=future_limit,
+                    )
+                ]
+                for claim_id in sorted(claim_inspections)
+            }
+            why_out = {
+                claim_id: self._serialize_why_out(
+                    self.why_out(
+                        self._claim_node_ids[claim_id],
+                        queryables=normalized_queryables,
+                        limit=future_limit,
+                    )
+                )
+                for claim_id, inspection in sorted(claim_inspections.items())
+                if inspection.status == ATMSNodeStatus.OUT
+            }
+            if why_out:
+                result["why_out"] = why_out
+        return result
 
     def _build(self) -> None:
         self._build_assumption_nodes()
@@ -594,6 +966,17 @@ class ATMSEngine:
             return ATMSNodeStatus.TRUE
         return ATMSNodeStatus.IN
 
+    def _out_kind_for_node(
+        self,
+        node_id: str,
+        status: ATMSNodeStatus,
+    ) -> ATMSOutKind | None:
+        if status != ATMSNodeStatus.OUT:
+            return None
+        if self._was_pruned_by_nogood(node_id):
+            return ATMSOutKind.NOGOOD_PRUNED
+        return ATMSOutKind.MISSING_SUPPORT
+
     def _support_quality_for_node(self, node: ATMSNode) -> SupportQuality:
         if node.kind != "claim":
             return SupportQuality.EXACT
@@ -677,6 +1060,300 @@ class ATMSEngine:
                 assumption.assumption_id
                 for assumption in self._bound._environment.assumptions
             )
+        )
+
+    def _coerce_queryables(
+        self,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+    ) -> tuple[QueryableAssumption, ...]:
+        current_ids = {
+            assumption.assumption_id
+            for assumption in self._bound._environment.assumptions
+        }
+        current_cels = {
+            assumption.cel
+            for assumption in self._bound._environment.assumptions
+        }
+        normalized: dict[tuple[str, str], QueryableAssumption] = {}
+        for queryable in queryables:
+            candidate = (
+                queryable
+                if isinstance(queryable, QueryableAssumption)
+                else QueryableAssumption.from_cel(str(queryable))
+            )
+            if candidate.assumption_id in current_ids or candidate.cel in current_cels:
+                continue
+            normalized[(candidate.cel, candidate.assumption_id)] = candidate
+        return tuple(
+            normalized[key]
+            for key in sorted(normalized)
+        )
+
+    def _iter_future_queryable_sets(
+        self,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int,
+    ):
+        if limit <= 0:
+            return
+        normalized = self._coerce_queryables(queryables)
+        count = 0
+        for width in range(1, len(normalized) + 1):
+            for queryable_set in combinations(normalized, width):
+                yield queryable_set
+                count += 1
+                if count >= limit:
+                    return
+
+    def _future_engine(
+        self,
+        queryable_set: tuple[QueryableAssumption, ...],
+    ) -> ATMSEngine:
+        future_assumptions = tuple(
+            sorted(
+                self._bound._environment.assumptions
+                + tuple(
+                    AssumptionRef(
+                        assumption_id=queryable.assumption_id,
+                        kind=queryable.kind,
+                        source=queryable.source,
+                        cel=queryable.cel,
+                    )
+                    for queryable in queryable_set
+                ),
+                key=lambda assumption: assumption.assumption_id,
+            )
+        )
+        future_effective_assumptions = tuple(
+            dict.fromkeys(
+                self._bound._environment.effective_assumptions
+                + tuple(queryable.cel for queryable in queryable_set)
+            )
+        )
+        future_environment = replace(
+            self._bound._environment,
+            effective_assumptions=future_effective_assumptions,
+            assumptions=future_assumptions,
+        )
+        future_bound = self._bound.__class__(
+            self._bound._store,
+            environment=future_environment,
+            context_hierarchy=self._bound._context_hierarchy,
+            policy=self._bound._policy,
+        )
+        return self.__class__(future_bound)
+
+    def _future_entries(
+        self,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        entries: list[dict[str, Any]] = []
+        for queryable_set in self._iter_future_queryable_sets(queryables, limit):
+            future_engine = self._future_engine(queryable_set)
+            environment_key = future_engine._bound_environment_key()
+            entries.append({
+                "queryable_ids": tuple(queryable.assumption_id for queryable in queryable_set),
+                "queryable_cels": tuple(queryable.cel for queryable in queryable_set),
+                "environment_key": environment_key,
+                "consistent": not future_engine.nogoods.excludes(environment_key),
+                "future_engine": future_engine,
+            })
+        return entries
+
+    def _concept_future_entries(
+        self,
+        concept_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        futures: list[dict[str, Any]] = []
+        for future in self._future_entries(queryables, limit):
+            future_engine = future["future_engine"]
+            futures.append({
+                "queryable_ids": list(future["queryable_ids"]),
+                "queryable_cels": list(future["queryable_cels"]),
+                "environment": list(future["environment_key"].assumption_ids),
+                "consistent": future["consistent"],
+                "status": future_engine._bound.value_of(concept_id).status,
+                "supported_claim_ids": sorted(future_engine.supported_claim_ids(concept_id)),
+            })
+        return futures
+
+    @staticmethod
+    def _minimal_future_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        ordered = sorted(
+            entries,
+            key=lambda entry: (
+                len(entry["queryable_ids"]),
+                tuple(entry["queryable_ids"]),
+            ),
+        )
+        minimal: list[dict[str, Any]] = []
+        minimal_sets: list[set[str]] = []
+        for entry in ordered:
+            queryable_set = set(entry["queryable_ids"])
+            if any(existing.issubset(queryable_set) for existing in minimal_sets):
+                continue
+            minimal.append(entry)
+            minimal_sets.append(queryable_set)
+        return minimal
+
+    def _node_relevance_states(
+        self,
+        node_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int,
+    ) -> dict[tuple[str, ...], dict[str, Any]]:
+        current = self.node_status(node_id)
+        states: dict[tuple[str, ...], dict[str, Any]] = {
+            (): {
+                "queryable_ids": (),
+                "queryable_cels": (),
+                "environment": list(self._bound_environment_key().assumption_ids),
+                "consistent": not self.nogoods.excludes(self._bound_environment_key()),
+                "status": current.status,
+            }
+        }
+        for future in self.node_future_statuses(node_id, queryables, limit=limit)["futures"]:
+            key = tuple(future["queryable_ids"])
+            states[key] = {
+                "queryable_ids": tuple(future["queryable_ids"]),
+                "queryable_cels": tuple(future["queryable_cels"]),
+                "environment": list(future["environment"]),
+                "consistent": future["consistent"],
+                "status": future["status"],
+            }
+        return states
+
+    def _concept_relevance_states(
+        self,
+        concept_id: str,
+        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        limit: int,
+    ) -> dict[tuple[str, ...], dict[str, Any]]:
+        states: dict[tuple[str, ...], dict[str, Any]] = {
+            (): {
+                "queryable_ids": (),
+                "queryable_cels": (),
+                "environment": list(self._bound_environment_key().assumption_ids),
+                "consistent": not self.nogoods.excludes(self._bound_environment_key()),
+                "status": self._bound.value_of(concept_id).status,
+            }
+        }
+        for future in self._concept_future_entries(concept_id, queryables, limit=limit):
+            key = tuple(future["queryable_ids"])
+            states[key] = {
+                "queryable_ids": tuple(future["queryable_ids"]),
+                "queryable_cels": tuple(future["queryable_cels"]),
+                "environment": list(future["environment"]),
+                "consistent": future["consistent"],
+                "status": future["status"],
+            }
+        return states
+
+    def _relevance_from_states(
+        self,
+        states: dict[tuple[str, ...], dict[str, Any]],
+        current_status: ATMSNodeStatus | str,
+    ) -> dict[str, Any]:
+        known_queryables = sorted({
+            (queryable_id, queryable_cel)
+            for state in states.values()
+            for queryable_id, queryable_cel in zip(
+                state["queryable_ids"],
+                state["queryable_cels"],
+                strict=True,
+            )
+        })
+        relevant_queryables: list[str] = []
+        witness_pairs: dict[str, list[dict[str, Any]]] = {}
+        for queryable_id, queryable_cel in known_queryables:
+            pairs: list[dict[str, Any]] = []
+            for key, without_state in states.items():
+                if queryable_id in key or not without_state["consistent"]:
+                    continue
+                with_key = tuple(sorted(key + (queryable_id,)))
+                with_state = states.get(with_key)
+                if with_state is None or not with_state["consistent"]:
+                    continue
+                if without_state["status"] == with_state["status"]:
+                    continue
+                pairs.append({
+                    "queryable_id": queryable_id,
+                    "queryable_cel": queryable_cel,
+                    "without": {
+                        "queryable_ids": list(without_state["queryable_ids"]),
+                        "queryable_cels": list(without_state["queryable_cels"]),
+                        "environment": list(without_state["environment"]),
+                        "consistent": without_state["consistent"],
+                        "status": without_state["status"],
+                    },
+                    "with": {
+                        "queryable_ids": list(with_state["queryable_ids"]),
+                        "queryable_cels": list(with_state["queryable_cels"]),
+                        "environment": list(with_state["environment"]),
+                        "consistent": with_state["consistent"],
+                        "status": with_state["status"],
+                    },
+                })
+            if pairs:
+                relevant_queryables.append(queryable_cel)
+                witness_pairs[queryable_cel] = self._minimal_witness_pairs(pairs)
+        relevant_set = set(relevant_queryables)
+        return {
+            "current_status": current_status,
+            "relevant_queryables": relevant_queryables,
+            "irrelevant_queryables": [
+                queryable_cel
+                for _queryable_id, queryable_cel in known_queryables
+                if queryable_cel not in relevant_set
+            ],
+            "witness_pairs": witness_pairs,
+        }
+
+    @staticmethod
+    def _minimal_witness_pairs(pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        ordered = sorted(
+            pairs,
+            key=lambda pair: (
+                len(pair["with"]["queryable_ids"]),
+                tuple(pair["with"]["queryable_ids"]),
+            ),
+        )
+        minimal: list[dict[str, Any]] = []
+        minimal_sets: list[set[str]] = []
+        for pair in ordered:
+            queryable_set = set(pair["with"]["queryable_ids"])
+            if any(existing.issubset(queryable_set) for existing in minimal_sets):
+                continue
+            minimal.append(pair)
+            minimal_sets.append(queryable_set)
+        return minimal
+
+    def _future_node_inspection(
+        self,
+        node_id: str,
+        *,
+        fallback: ATMSNode | None,
+    ) -> ATMSInspection:
+        if node_id in self._nodes:
+            return self.node_status(node_id)
+        support_quality = (
+            SupportQuality.EXACT
+            if fallback is None or fallback.kind != "claim"
+            else self._support_quality_for_node(fallback)
+        )
+        return ATMSInspection(
+            node_id=node_id,
+            claim_id=None if fallback is None else fallback.payload.get("claim_id"),
+            kind=None if fallback is None else fallback.kind,
+            status=ATMSNodeStatus.OUT,
+            support_quality=support_quality,
+            label=None,
+            essential_support=None,
+            reason="node absent from future ATMS view",
+            out_kind=ATMSOutKind.MISSING_SUPPORT,
         )
 
     @staticmethod
@@ -789,6 +1466,145 @@ class ATMSEngine:
                 for detail in self._nogood_provenance.get(environment, ())
             ],
         }
+
+    @classmethod
+    def _serialize_inspection(cls, inspection: ATMSInspection) -> dict[str, Any]:
+        return {
+            "node_id": inspection.node_id,
+            "claim_id": inspection.claim_id,
+            "kind": inspection.kind,
+            "status": inspection.status.value,
+            "support_quality": inspection.support_quality.value,
+            "label": cls._serialize_label(inspection.label),
+            "essential_support": cls._serialize_environment_key(inspection.essential_support),
+            "reason": inspection.reason,
+            "out_kind": None if inspection.out_kind is None else inspection.out_kind.value,
+        }
+
+    @classmethod
+    def _serialize_future_report(cls, report: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "node_id": report["node_id"],
+            "claim_id": report["claim_id"],
+            "current": cls._serialize_inspection(report["current"]),
+            "could_become_in": report["could_become_in"],
+            "could_become_out": report["could_become_out"],
+            "futures": [
+                {
+                    "queryable_ids": list(future["queryable_ids"]),
+                    "queryable_cels": list(future["queryable_cels"]),
+                    "environment": list(future["environment"]),
+                    "consistent": future["consistent"],
+                    "status": future["status"].value,
+                    "out_kind": None if future["out_kind"] is None else future["out_kind"].value,
+                    "reason": future["reason"],
+                    "support_quality": future["support_quality"].value,
+                    "essential_support": list(future["essential_support"]),
+                }
+                for future in report["futures"]
+            ],
+            "future_in": [
+                list(future["queryable_cels"])
+                for future in report["futures"]
+                if future["status"] != ATMSNodeStatus.OUT
+            ],
+            "future_out": [
+                list(future["queryable_cels"])
+                for future in report["futures"]
+                if future["status"] == ATMSNodeStatus.OUT
+            ],
+        }
+
+    @classmethod
+    def _serialize_why_out(cls, report: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "node_id": report["node_id"],
+            "claim_id": report["claim_id"],
+            "status": report["status"].value,
+            "out_kind": None if report["out_kind"] is None else report["out_kind"].value,
+            "reason": report["reason"],
+            "support_quality": report["support_quality"].value,
+            "future_activatable": report["future_activatable"],
+            "candidate_queryable_cels": [
+                list(queryable_set)
+                for queryable_set in report["candidate_queryable_cels"]
+            ],
+        }
+
+    @classmethod
+    def _serialize_future_entry(cls, future: dict[str, Any]) -> dict[str, Any]:
+        result = {
+            "queryable_ids": list(future["queryable_ids"]),
+            "queryable_cels": list(future["queryable_cels"]),
+            "environment": list(future["environment"]),
+            "consistent": future["consistent"],
+            "status": future["status"].value if isinstance(future["status"], ATMSNodeStatus) else future["status"],
+        }
+        if "out_kind" in future:
+            result["out_kind"] = (
+                None
+                if future["out_kind"] is None
+                else future["out_kind"].value
+            )
+        if "reason" in future:
+            result["reason"] = future["reason"]
+        if "support_quality" in future:
+            result["support_quality"] = future["support_quality"].value
+        if "essential_support" in future:
+            result["essential_support"] = list(future["essential_support"])
+        if "supported_claim_ids" in future:
+            result["supported_claim_ids"] = list(future["supported_claim_ids"])
+        return result
+
+    @classmethod
+    def _serialize_stability_report(cls, report: dict[str, Any]) -> dict[str, Any]:
+        serialized = {
+            "stable": report["stable"],
+            "limit": report["limit"],
+            "future_count": report["future_count"],
+            "consistent_future_count": report["consistent_future_count"],
+            "inconsistent_future_count": report["inconsistent_future_count"],
+            "witnesses": [
+                cls._serialize_future_entry(witness)
+                for witness in report["witnesses"]
+            ],
+        }
+        if "node_id" in report:
+            serialized["node_id"] = report["node_id"]
+            serialized["claim_id"] = report["claim_id"]
+            serialized["current"] = cls._serialize_inspection(report["current"])
+        if "concept_id" in report:
+            serialized["concept_id"] = report["concept_id"]
+            serialized["current_status"] = report["current_status"]
+        return serialized
+
+    @classmethod
+    def _serialize_relevance_report(cls, report: dict[str, Any]) -> dict[str, Any]:
+        serialized = {
+            "relevant_queryables": list(report["relevant_queryables"]),
+            "irrelevant_queryables": list(report["irrelevant_queryables"]),
+            "witness_pairs": {
+                queryable_cel: [
+                    {
+                        "queryable_id": pair["queryable_id"],
+                        "queryable_cel": pair["queryable_cel"],
+                        "without": cls._serialize_future_entry(pair["without"]),
+                        "with": cls._serialize_future_entry(pair["with"]),
+                    }
+                    for pair in pairs
+                ]
+                for queryable_cel, pairs in report["witness_pairs"].items()
+            },
+        }
+        if "node_id" in report:
+            serialized["node_id"] = report["node_id"]
+            serialized["claim_id"] = report["claim_id"]
+            serialized["current"] = cls._serialize_inspection(report["current"])
+            serialized["current_status"] = report["current_status"].value
+        if "concept_id" in report:
+            serialized["concept_id"] = report["concept_id"]
+            serialized["current_status"] = report["current_status"]
+        return serialized
 
     @staticmethod
     def _label_or_none(label: Label) -> Label | None:
