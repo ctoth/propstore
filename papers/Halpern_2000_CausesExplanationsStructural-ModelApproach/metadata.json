@@ -1,0 +1,13 @@
+{
+  "title": "Causes and Explanations: A Structural-Model Approach. Part I: Causes",
+  "authors": [
+    "Joseph Y. Halpern",
+    "J. Pearl"
+  ],
+  "year": "2000",
+  "arxiv_id": "cs/0011012",
+  "doi": "10.1093/bjps/axi147",
+  "abstract": "We propose a new definition of actual causes, using structural equations to model counterfactuals. We show that the definition yields a plausible and elegant account of causation that handles well examples which have caused problems for other definitions and resolves major difficulties in the traditional account. 1. Introduction2. Causal models: a review 2.1Causal models 2.2Syntax and semantics3. The definition of cause4. Examples5. A more refined definition6. Discussion AAppendix: Some Technical Issues A.1The active causal process A.2A closer look at AC2(b) A.3Causality with infinitely many variables A.4Causality in nonrecursive models Introduction Causal models: a review 2.1Causal models 2.2Syntax and semantics 2.1Causal models 2.2Syntax and semantics The definition of cause Examples A more refined definition Discussion AAppendix: Some Technical Issues A.1The active causal process A.2A closer look at AC2(b) A.3Causality with infinitely many variables A.4Causality in nonrecursive models",
+  "url": "https://www.semanticscholar.org/paper/8cdef777fd8ad1c8632c385076577f73fa50baa4",
+  "pdf_url": "http://arxiv.org/pdf/cs/0011012"
+}

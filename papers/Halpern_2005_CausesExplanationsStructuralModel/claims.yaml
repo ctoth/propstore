@@ -1,0 +1,219 @@
+source:
+  paper: Halpern_2005_CausesExplanationsStructuralModel
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-23"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "An actual cause is defined as a triple (X=x, phi, (M,u)) satisfying three conditions: AC1 (X=x and phi both hold in the actual world), AC2 (there exists a partition (Z,W) of endogenous variables and values (x',w') such that intervening on X and W changes phi while keeping X at actual value preserves phi), and AC3 (X is minimal)."
+    concepts:
+      - actual_cause
+      - structural_equation_model
+      - counterfactual
+      - intervention
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 2
+      section: "3 The Definition of Cause"
+      quote_fragment: "X = x is an actual cause of phi in (M, u) if the following three conditions hold"
+    notes: "This is Definition 3.1, the central contribution of the paper. Updated from Halpern & Pearl 2001 to address problems identified by Hopkins & Pearl 2003."
+
+  - id: claim2
+    type: mechanism
+    statement: "The AC2 condition handles preemption and overdetermination by partitioning endogenous variables into a 'free' set Z (allowed to take values determined by structural equations) and a 'frozen' set W (held at potentially non-actual values w'), creating contingencies under which the but-for test succeeds even when it fails in the actual world."
+    concepts:
+      - actual_cause
+      - preemption
+      - overdetermination
+      - counterfactual
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 2
+      section: "3 The Definition of Cause"
+      quote_fragment: "AC2(a) is a reminiscent of the traditional counterfactual criterion"
+
+  - id: claim3
+    type: mechanism
+    statement: "AC2(b) — the stability condition — prevents spurious causation by requiring that freezing W at non-actual values w' does not independently flip the outcome when X is held at its actual value. Without this condition, variables that merely correlate with the outcome could qualify as causes."
+    concepts:
+      - actual_cause
+      - stability_condition
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 2
+      section: "3 The Definition of Cause"
+      quote_fragment: "setting W to w' should have no effect on phi as long as X is kept at its current value"
+    stances:
+      - type: supports
+        target: "claim1"
+        note: "Motivates the AC2(b) component of the definition"
+
+  - id: claim4
+    type: mechanism
+    statement: "AC3 (minimality) prevents conjunctive inflation: without it, any superset of a genuine cause would also satisfy the definition, since adding irrelevant variables to X preserves AC1 and AC2."
+    concepts:
+      - actual_cause
+      - minimality
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 2
+      section: "3 The Definition of Cause"
+      quote_fragment: "X is minimal; no subset of X satisfies conditions AC1 and AC2"
+    stances:
+      - type: supports
+        target: "claim1"
+        note: "Motivates the AC3 component of the definition"
+
+  - id: claim5
+    type: observation
+    statement: "A causal model M = (S, F) consists of a signature S = (U, V, R) with exogenous variables U, endogenous variables V, and range function R, plus a set of structural equations F assigning each endogenous variable a deterministic function of the other variables."
+    concepts:
+      - structural_equation_model
+      - exogenous_variable
+      - endogenous_variable
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 1
+      section: "2 Causal Models: A Review"
+      quote_fragment: "Given a causal model M = (S, F), a (possibly empty) vector X of variables in V"
+
+  - id: claim6
+    type: observation
+    statement: "In overdetermination (two independently sufficient causes both present), each individual cause satisfies the HP definition because the other can be frozen at its non-actual value via AC2, restoring counterfactual dependence."
+    concepts:
+      - actual_cause
+      - overdetermination
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 3
+      section: "3 The Definition of Cause"
+      quote_fragment: "both matches are needed to start a fire if j = 1"
+    notes: "Demonstrated via the forest fire example with two arsonists (Example 3.2, disjunctive scenario)."
+
+  - id: claim7
+    type: observation
+    statement: "In late preemption (Suzy's rock hits the bottle before Billy's would have), Suzy's throw is correctly identified as the actual cause and Billy's is not, because Billy's rock hitting (BH=1) only occurs when Suzy's doesn't hit (SH=0), and this contingency fails AC2(b)."
+    concepts:
+      - actual_cause
+      - preemption
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 5
+      section: "3 The Definition of Cause"
+      quote_fragment: "Suzy's throw is a cause of the bottle shattering but Billy's throw is not"
+    notes: "Example 3.2 continued — the classic Billy/Suzy rock-throwing scenario."
+
+  - id: claim8
+    type: comparison
+    statement: "The HP structural-model definition of causality resolves problems that defeat Lewis's counterfactual account, including overdetermination (where the but-for test incorrectly says neither of two sufficient causes is a cause) and late preemption (where the but-for test incorrectly identifies a preempted backup as a cause)."
+    concepts:
+      - actual_cause
+      - counterfactual
+      - overdetermination
+      - preemption
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 0
+      section: "1 Introduction"
+      quote_fragment: "difficulties that have been raised over the years"
+    stances:
+      - type: rebuts
+        target: "lewis_counterfactual_causation"
+        strength: "strong"
+        note: "Demonstrates specific failure cases of Lewis's approach and provides a formal fix"
+
+  - id: claim9
+    type: limitation
+    statement: "Causal verdicts under the HP definition are model-relative: the same real-world events can receive different causal judgments depending on which variables are included in the structural equation model, how those variables are ranged, and what background assumptions are encoded as exogenous."
+    concepts:
+      - actual_cause
+      - structural_equation_model
+      - model_relativity
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 7
+      section: "4 Examples"
+      quote_fragment: "much depends on choosing the 'right' set of variables with which to model a situation"
+    notes: "The authors present this as both a feature (matching intuitions about context-dependence of causal judgments) and a limitation (no general theory for model selection)."
+
+  - id: claim10
+    type: limitation
+    statement: "There is no general theory for how to make appropriate modeling choices — which variables to include, what ranges to assign, which structural equations to write. The paper provides heuristics and examples but acknowledges this as an open problem."
+    concepts:
+      - structural_equation_model
+      - model_selection
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 8
+      section: "5 Discussion"
+      quote_fragment: "we do not have a general theory for how to make these choices"
+
+  - id: claim11
+    type: mechanism
+    statement: "Interventions are modeled by replacing structural equations: to set X = x', the equation F_X is replaced with the constant function returning x', while all other equations remain unchanged. This makes interventions compositional and distinguishes them from mere observation."
+    concepts:
+      - intervention
+      - structural_equation_model
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 1
+      section: "2 Causal Models: A Review"
+      quote_fragment: "we can define a new causal model denoted M_{X<-x}"
+
+  - id: claim12
+    type: observation
+    statement: "The beam criterion — a tractable special case where causality depends only on the relationship between a variable and its parents in the causal DAG — is equivalent to the full HP definition when the causal structure has no 'structural contingencies' (situations where the choice of contingencies depends on the specific cause and effect being tested)."
+    concepts:
+      - actual_cause
+      - beam_criterion
+      - causal_dag
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 3
+      section: "3 The Definition of Cause"
+      quote_fragment: "the beam criterion selects the choice of contingencies depending only on the relationship between a variable and its parents"
+
+  - id: claim13
+    type: mechanism
+    statement: "A ranking function over structural contingencies — assigning higher rank to more 'normal' or 'typical' settings of exogenous variables — can resolve cases where the HP definition gives counterintuitive results by restricting AC2 to use only contingencies that are at most as surprising as the actual context."
+    concepts:
+      - actual_cause
+      - normality_ranking
+      - structural_contingency
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 8
+      section: "5 Discussion"
+      quote_fragment: "we can then modify the definition of causality so that we can talk about X = x being an actual cause of phi in (M, u) at rank k"
+    notes: "Preliminary extension; a slight modification of AC2 condition. More fully developed in later work (Halpern 2015)."
+
+  - id: claim14
+    type: observation
+    statement: "In the railroad switch example, whether flipping the switch is a cause of the train arriving at its destination depends on model granularity: in a coarse model with only switch position and arrival, it is a cause; in a fine-grained model including intermediate track segments, it is not."
+    concepts:
+      - actual_cause
+      - model_relativity
+      - causal_dag
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 7
+      section: "4 Examples"
+      quote_fragment: "It is easy to see that flipping the switch is not a cause"
+    stances:
+      - type: supports
+        target: "claim9"
+        note: "Concrete demonstration of model-relativity of causal verdicts"
+
+  - id: claim15
+    type: comparison
+    statement: "Unlike Lewis's possible-worlds approach to counterfactuals, structural equation models make interventions explicit and compositional: each intervention is a specific replacement of one structural equation, producing a well-defined modified model rather than requiring similarity judgments across possible worlds."
+    concepts:
+      - structural_equation_model
+      - counterfactual
+      - intervention
+    provenance:
+      paper: Halpern_2005_CausesExplanationsStructuralModel
+      page: 1
+      section: "2 Causal Models: A Review"
+      quote_fragment: "we are concerned with extracting the actual causality relation from such a knowledge base"

@@ -1,0 +1,14 @@
+{
+  "title": "Contexts: A Formalization and Some Applications",
+  "authors": [
+    {
+      "name": "Ramanathan V. Guha"
+    }
+  ],
+  "year": 1991,
+  "venue": "PhD Thesis, Stanford University",
+  "abstract": "Logical formulas used in representation are traditionally supposed to be objective, decontextualized truths. In reality, they have many contextual aspects. Representations often assume a context of use. This thesis attempts to remedy this by formalizing and developing several applications for contexts, incorporating contexts as rich objects in a first-order framework and extending the logic as required.",
+  "source_url": "https://www.filosoficas.unam.mx/~morado/TextosAjenos/guha-thesis.pdf",
+  "semantic_scholar_id": "63dc637595eec644f0462f87996fe90edc85c763",
+  "technical_report": "STAN-CS-91-1399-Thesis, MCC Technical Report ACT-CYC-423-91"
+}
