@@ -116,6 +116,7 @@ def compute_praf_acceptance(
         "mc" — force Monte Carlo sampling.
         "deterministic" — force deterministic Dung evaluation.
         "exact_enum" — brute-force enumeration (small AFs only).
+        "exact_dp" — tree-decomposition DP (Popescu & Wallner 2024).
     """
     if strategy == "deterministic":
         return _deterministic_fallback(praf, semantics)
@@ -123,6 +124,8 @@ def compute_praf_acceptance(
         return _compute_mc(praf, semantics, mc_epsilon, mc_confidence, rng_seed)
     if strategy == "exact_enum":
         return _compute_exact_enumeration(praf, semantics)
+    if strategy == "exact_dp":
+        return _compute_exact_dp(praf, semantics)
     if strategy == "dfquad":
         return _compute_dfquad(praf, semantics)
 
@@ -141,6 +144,14 @@ def compute_praf_acceptance(
     n_args = len(praf.framework.arguments)
     if n_args <= 13:
         return _compute_exact_enumeration(praf, semantics)
+
+    # Medium AF with low treewidth: exact DP (Popescu & Wallner 2024)
+    # Per plan Section 2.4: estimate treewidth, use DP if below cutoff.
+    from propstore.praf_treedecomp import estimate_treewidth
+
+    tw = estimate_treewidth(praf.framework)
+    if tw <= treewidth_cutoff:
+        return _compute_exact_dp(praf, semantics)
 
     # Default: MC
     return _compute_mc(praf, semantics, mc_epsilon, mc_confidence, rng_seed)
@@ -472,6 +483,29 @@ def _compute_exact_enumeration(
     return PrAFResult(
         acceptance_probs=acceptance,
         strategy_used="exact_enum",
+        samples=None,
+        confidence_interval_half=None,
+        semantics=semantics,
+    )
+
+
+def _compute_exact_dp(
+    praf: ProbabilisticAF,
+    semantics: str,
+) -> PrAFResult:
+    """Exact computation via tree-decomposition DP.
+
+    Per Popescu & Wallner (2024): compute extension probabilities using
+    dynamic programming on tree decompositions. Tractable for low-treewidth
+    AFs (complexity O(3^k * n) where k is treewidth).
+    """
+    from propstore.praf_treedecomp import compute_exact_dp
+
+    acceptance = compute_exact_dp(praf, semantics)
+
+    return PrAFResult(
+        acceptance_probs=acceptance,
+        strategy_used="exact_dp",
         samples=None,
         confidence_interval_half=None,
         semantics=semantics,
