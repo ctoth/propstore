@@ -235,6 +235,20 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
                 extra = f" via {step['formula']}"
             click.echo(f"  {concept} = {value} ({source}){extra}")
 
+    if wl.results.sensitivity:
+        click.echo("Sensitivity:")
+        for concept, entries in wl.results.sensitivity.items():
+            for entry in entries:
+                elast = entry.get("elasticity")
+                deriv = entry.get("partial_derivative")
+                inp = entry.get("input", "?")
+                click.echo(f"  {concept}: d/d({inp}) = {deriv}, elasticity = {elast}")
+
+    if wl.results.argumentation:
+        defeated = wl.results.argumentation.get("defeated", [])
+        if defeated:
+            click.echo(f"Defeated claims: {', '.join(defeated)}")
+
     if wl.results.dependencies.get("claims"):
         click.echo(f"Dependencies: {', '.join(wl.results.dependencies['claims'])}")
 

@@ -130,7 +130,60 @@ def run_worldline(
                 "reason": f"concept '{target}' not found in knowledge base",
             }
 
-    # ── 4. Compute dependency hash ─────────────────────────────────
+    # ── 4. Sensitivity analysis for derived targets ──────────────
+    sensitivity_results: dict[str, Any] | None = None
+    float_overrides = {k: float(v) for k, v in override_concept_ids.items()
+                       if isinstance(v, (int, float))}
+    for target_name, concept_id in target_map.items():
+        val = values.get(target_name, {})
+        if val.get("status") == "derived":
+            try:
+                from propstore.sensitivity import analyze_sensitivity
+                sr = analyze_sensitivity(
+                    world, concept_id, bound,
+                    override_values=float_overrides,
+                )
+                if sr is not None and sr.entries:
+                    if sensitivity_results is None:
+                        sensitivity_results = {}
+                    sensitivity_results[target_name] = [
+                        {
+                            "input": _concept_name(world, e.input_concept_id),
+                            "elasticity": e.elasticity,
+                            "partial_derivative": e.partial_derivative_value,
+                        }
+                        for e in sr.entries
+                        if e.elasticity is not None
+                    ]
+            except Exception:
+                pass  # Sensitivity is optional — don't block on failure
+
+    # ── 5. Argumentation state (if strategy=argumentation) ─────
+    argumentation_state: dict[str, Any] | None = None
+    if strategy is not None and strategy.value == "argumentation":
+        try:
+            from propstore.argumentation import compute_justified_claims
+            active = bound.active_claims()
+            active_ids = {c["id"] for c in active}
+            justified = compute_justified_claims(
+                world, active_ids,
+                semantics=definition.policy.semantics,
+                comparison=definition.policy.comparison,
+                confidence_threshold=definition.policy.confidence_threshold,
+            )
+            if isinstance(justified, frozenset):
+                defeated = active_ids - justified
+                argumentation_state = {
+                    "justified": sorted(justified),
+                    "defeated": sorted(defeated),
+                }
+                # Track stance dependencies
+                for cid in justified | defeated:
+                    dependency_claims.add(cid)
+        except Exception:
+            pass  # Argumentation capture is optional
+
+    # ── 6. Compute dependency hash ─────────────────────────────────
     content_hash = _compute_hash(world, sorted(dependency_claims))
 
     return WorldlineResult(
@@ -140,10 +193,18 @@ def run_worldline(
         steps=all_steps,
         dependencies={
             "claims": sorted(dependency_claims),
-            "stances": [],  # TODO: track stance dependencies for argumentation
+            "stances": [],
             "contexts": [context_id] if context_id else [],
         },
+        sensitivity=sensitivity_results,
+        argumentation=argumentation_state,
     )
+
+
+def _concept_name(world, concept_id: str) -> str:
+    """Get canonical name for a concept ID, falling back to the ID itself."""
+    concept = world.get_concept(concept_id)
+    return concept["canonical_name"] if concept else concept_id
 
 
 def _resolve_concept_name(world, name: str) -> str | None:
