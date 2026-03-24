@@ -35,6 +35,16 @@ class ResolutionStrategy(Enum):
     OVERRIDE = "override"
 
 
+class ReasoningBackend(Enum):
+    """Semantic backend used to interpret the active belief space.
+
+    Run 1 keeps the existing claim-graph backend as the default.
+    ResolutionStrategy remains a separate render-time winner-selection axis.
+    """
+
+    CLAIM_GRAPH = "claim_graph"
+
+
 @dataclass
 class ResolvedResult:
     concept_id: str
@@ -79,6 +89,14 @@ class ChainResult:
 
 @dataclass(frozen=True)
 class RenderPolicy:
+    """Render-time policy.
+
+    `reasoning_backend` selects the semantic backend used to interpret the
+    active belief space. `strategy` is only used when a conflicted concept
+    needs a winner selected at render time.
+    """
+
+    reasoning_backend: ReasoningBackend = ReasoningBackend.CLAIM_GRAPH
     strategy: ResolutionStrategy | None = None
     semantics: str = "grounded"
     comparison: str = "elitist"
