@@ -1358,3 +1358,76 @@ class TestClaimInsertRow:
         assert "type" in row
         assert "source_paper" in row
         assert "context_id" in row
+
+
+# ── Form algebra: dim_verified flag ──────────────────────────────────
+
+class TestFormAlgebraDimVerified:
+    """Form algebra entries must never be dropped at build time.
+
+    Forms without dimensions (or with failed dimensional verification)
+    should be stored with dim_verified=0 instead of silently skipped.
+    """
+
+    def test_form_algebra_stores_entry_when_dimensions_missing(
+        self, concept_dir, sidecar_path, repo
+    ):
+        """Forms without dimensions must still produce form_algebra rows."""
+        # The fixture forms have no dimensions — the entry must still appear
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True, repo=repo)
+        conn = sqlite3.connect(sidecar_path)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT * FROM form_algebra").fetchall()
+        conn.close()
+        # concept5 has a parameterization_relationship → expect at least 1 row
+        assert len(rows) >= 1, "form_algebra must not drop entries with missing dimensions"
+        row = rows[0]
+        assert row["dim_verified"] == 0, "entry without dimensions should have dim_verified=0"
+
+    def test_form_algebra_dim_verified_true_when_dimensions_present(
+        self, concept_dir, sidecar_path, repo
+    ):
+        """Forms WITH valid dimensions and no sympy to verify → dim_verified=1."""
+        # Add dimensions to the form files
+        forms_dir = concept_dir.parent / "forms"
+        (forms_dir / "duration_ratio.yaml").write_text(yaml.dump({
+            "name": "duration_ratio",
+            "dimensions": {"T": 0},
+            "dimensionless": True,
+        }, default_flow_style=False))
+        (forms_dir / "frequency.yaml").write_text(yaml.dump({
+            "name": "frequency",
+            "dimensions": {"T": -1},
+        }, default_flow_style=False))
+
+        # Add a concept with a parameterization that has NO sympy field,
+        # so dimensional verification succeeds purely on dimension presence
+        concepts_path = concept_dir
+        (concepts_path / "period.yaml").write_text(yaml.dump({
+            "id": "concept6",
+            "canonical_name": "period",
+            "status": "accepted",
+            "definition": "Duration of one cycle.",
+            "domain": "speech",
+            "form": "duration_ratio",
+            "parameterization_relationships": [{
+                "formula": "T0 = 1/f0",
+                "inputs": ["concept1"],
+                "exactness": "exact",
+                "source": "definition",
+            }],
+        }, default_flow_style=False))
+
+        concepts = load_concepts(concept_dir)
+        build_sidecar(concepts, sidecar_path, force=True, repo=repo)
+        conn = sqlite3.connect(sidecar_path)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT * FROM form_algebra WHERE output_form='duration_ratio' "
+            "AND source_concept_id='concept6'"
+        ).fetchall()
+        conn.close()
+        assert len(rows) >= 1, "form_algebra must contain entries for dimensioned forms"
+        row = rows[0]
+        assert row["dim_verified"] == 1, "entry with valid dimensions should have dim_verified=1"

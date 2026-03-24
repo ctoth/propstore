@@ -398,6 +398,7 @@ def _create_tables(conn: sqlite3.Connection):
             operation TEXT NOT NULL,
             source_concept_id TEXT,
             source_formula TEXT,
+            dim_verified INTEGER NOT NULL DEFAULT 1,
             FOREIGN KEY (output_form) REFERENCES form(name)
         );
 
@@ -487,28 +488,32 @@ def _populate_form_algebra(
                 operation = param.get("formula", "")
 
             # Validate dimensions with bridgman
+            dim_verified = 1
             try:
                 output_fd = load_form(forms_dir, output_form)
                 if output_fd is None or output_fd.dimensions is None:
-                    continue
-                input_fds = [load_form(forms_dir, f) for f in input_forms]
-                if any(fd is None or fd.dimensions is None for fd in input_fds):
-                    continue
+                    dim_verified = 0
+                else:
+                    input_fds = [load_form(forms_dir, f) for f in input_forms]
+                    if any(fd is None or fd.dimensions is None for fd in input_fds):
+                        dim_verified = 0
+                    else:
+                        # Build dim_map and verify
+                        dim_map: dict[str, dict[str, int]] = {}
+                        dim_map[output_form] = dict(output_fd.dimensions)
+                        for inp_form, inp_fd in zip(input_forms, input_fds):
+                            dim_map[inp_form] = dict(inp_fd.dimensions)  # type: ignore[arg-type]
 
-                # Build dim_map and verify
-                dim_map: dict[str, dict[str, int]] = {}
-                dim_map[output_form] = dict(output_fd.dimensions)
-                for inp_form, inp_fd in zip(input_forms, input_fds):
-                    dim_map[inp_form] = dict(inp_fd.dimensions)  # type: ignore[arg-type]
-
-                if sympy_str and operation:
-                    import sympy as sp
-                    from bridgman import verify_expr
-                    form_parsed = sp.sympify(operation)
-                    if not verify_expr(form_parsed, dim_map):
-                        continue  # Dimensionally invalid — skip
-            except Exception:
-                continue  # Can't verify — skip
+                        if sympy_str and operation:
+                            import sympy as sp
+                            from bridgman import verify_expr
+                            form_parsed = sp.sympify(operation)
+                            if not verify_expr(form_parsed, dim_map):
+                                dim_verified = 0  # Dimensionally invalid
+            except (KeyError, ValueError):
+                dim_verified = 0
+            except ImportError:
+                dim_verified = 0
 
             # Dedup key: (output_form, sorted input forms, canonical operation)
             try:
@@ -522,10 +527,11 @@ def _populate_form_algebra(
 
             conn.execute(
                 "INSERT INTO form_algebra "
-                "(output_form, input_forms, operation, source_concept_id, source_formula) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "(output_form, input_forms, operation, source_concept_id, "
+                "source_formula, dim_verified) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
                 (output_form, json.dumps(input_forms), operation, cid,
-                 param.get("formula", "")),
+                 param.get("formula", ""), dim_verified),
             )
 
 

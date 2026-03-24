@@ -309,11 +309,15 @@ class TestFormAlgebra:
         op = rows[0][0]
         assert "**2" in op or "velocity" in op
 
-    def test_algebra_skips_dimensionally_invalid(self, bad_dims_sidecar):
-        """Parameterization with wrong dimensions → no form_algebra entry."""
+    def test_algebra_stores_dimensionally_invalid_with_flag(self, bad_dims_sidecar):
+        """Parameterization with wrong dimensions → stored with dim_verified=0."""
         conn = sqlite3.connect(bad_dims_sidecar)
-        count = conn.execute("SELECT COUNT(*) FROM form_algebra").fetchone()[0]
-        assert count == 0
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT * FROM form_algebra").fetchall()
+        assert len(rows) >= 1, "dimensionally invalid entries must be stored, not dropped"
+        assert all(row["dim_verified"] == 0 for row in rows), (
+            "dimensionally invalid entries must have dim_verified=0"
+        )
 
     def test_algebra_deduplicates(self, tmp_path):
         """Two concepts with same form algebra → one entry."""
