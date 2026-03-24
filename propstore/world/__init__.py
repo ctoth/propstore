@@ -5,6 +5,8 @@ from propstore.world.hypothetical import HypotheticalWorld
 from propstore.world.model import WorldModel
 from propstore.world.resolution import resolve
 from propstore.world.types import (
+    ATMSInspection,
+    ATMSNodeStatus,
     ArtifactStore,
     BeliefSpace,
     ChainResult,
@@ -20,6 +22,8 @@ from propstore.world.types import (
 )
 
 __all__ = [
+    "ATMSInspection",
+    "ATMSNodeStatus",
     "ArtifactStore",
     "BeliefSpace",
     "BoundWorld",

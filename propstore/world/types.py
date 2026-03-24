@@ -7,7 +7,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from propstore.world.labelled import AssumptionRef, Label
+from propstore.world.labelled import (
+    AssumptionRef,
+    EnvironmentKey,
+    Label,
+    SupportQuality,
+)
 
 if TYPE_CHECKING:
     from propstore.z3_conditions import Z3ConditionSolver
@@ -32,6 +37,28 @@ class DerivedResult:
     label: Label | None = None
 
 
+class ATMSNodeStatus(Enum):
+    """ATMS-native node status derived from the propagated label."""
+
+    TRUE = "TRUE"
+    IN = "IN"
+    OUT = "OUT"
+
+
+@dataclass(frozen=True)
+class ATMSInspection:
+    """Inspectible ATMS status plus support-quality honesty metadata."""
+
+    node_id: str
+    status: ATMSNodeStatus
+    support_quality: SupportQuality
+    label: Label | None
+    essential_support: EnvironmentKey | None
+    reason: str
+    claim_id: str | None = None
+    kind: str | None = None
+
+
 class ResolutionStrategy(Enum):
     RECENCY = "recency"
     SAMPLE_SIZE = "sample_size"
@@ -45,11 +72,13 @@ class ReasoningBackend(Enum):
     Only consulted inside the ARGUMENTATION resolution strategy to choose
     which argumentation backend to call. The active belief space is computed
     by BoundWorld (Z3 condition solving), not by this enum. `structured_projection`
-    is a first structured-argument projection over active claims, not full ASPIC+.
+    is a first structured-argument projection over active claims, and `atms`
+    is a global label/nogood propagation backend. Neither is full ASPIC+.
     """
 
     CLAIM_GRAPH = "claim_graph"
     STRUCTURED_PROJECTION = "structured_projection"
+    ATMS = "atms"
 
 
 @dataclass
