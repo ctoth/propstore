@@ -178,6 +178,63 @@ def build_argumentation_framework(
     )
 
 
+def build_praf(
+    store: ArtifactStore,
+    active_claim_ids: set[str],
+    *,
+    comparison: str = "elitist",
+) -> "ProbabilisticAF":
+    """Build PrAF by annotating AF with opinion-derived probabilities.
+
+    Per Li et al. (2012, Def 2): PrAF = (A, P_A, D, P_D).
+    P_A from p_arg_from_claim() (default: dogmatic true).
+    P_D from stance opinion columns (Jøsang 2001, Def 6: E(ω) = b + a·u).
+
+    Steps:
+      1. Call build_argumentation_framework() to get the AF
+      2. Load opinion data for each stance from the store
+      3. Map opinions to P_D (fallback: opinion columns → confidence → dogmatic true)
+      4. Set P_A = p_arg_from_claim(claim) for each argument
+      5. Return ProbabilisticAF
+    """
+    from propstore.praf import ProbabilisticAF, p_arg_from_claim, p_defeat_from_stance
+
+    # Step 1: Build full AF
+    af = build_argumentation_framework(store, active_claim_ids, comparison=comparison)
+
+    # Step 2-3: Load stances and map to P_D
+    claims_by_id = store.claims_by_ids(active_claim_ids)
+    stances = store.stances_between(active_claim_ids)
+
+    # Index stances by (source, target) for defeat lookup
+    stance_by_pair: dict[tuple[str, str], dict] = {}
+    for stance in stances:
+        source_id = stance["claim_id"]
+        target_id = stance["target_claim_id"]
+        stance_type = stance["stance_type"]
+        if stance_type in _ATTACK_TYPES:
+            stance_by_pair[(source_id, target_id)] = stance
+
+    # Build P_D for each defeat in the AF
+    p_defeats: dict[tuple[str, str], "Opinion"] = {}
+    for defeat in af.defeats:
+        stance = stance_by_pair.get(defeat)
+        if stance is not None:
+            p_defeats[defeat] = p_defeat_from_stance(stance)
+        else:
+            # Derived defeat (Cayrol 2005) or no stance found — certain defeat
+            from propstore.opinion import Opinion as _Opinion
+            p_defeats[defeat] = _Opinion.dogmatic_true()
+
+    # Step 4: P_A for each argument
+    p_args: dict[str, "Opinion"] = {}
+    for arg_id in af.arguments:
+        claim = claims_by_id.get(arg_id, {"claim_id": arg_id})
+        p_args[arg_id] = p_arg_from_claim(claim)
+
+    return ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
+
+
 def compute_claim_graph_justified_claims(
     store: ArtifactStore,
     active_claim_ids: set[str],
