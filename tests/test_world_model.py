@@ -452,6 +452,124 @@ class TestUnboundQueries:
     def test_claims_for_missing(self, world):
         assert world.claims_for("nonexistent") == []
 
+    def test_claims_for_resolves_claims_written_with_canonical_name(self, tmp_path):
+        knowledge = tmp_path / "knowledge"
+        concepts_path = knowledge / "concepts"
+        concepts_path.mkdir(parents=True)
+        counters = concepts_path / ".counters"
+        counters.mkdir()
+        (counters / "speech.next").write_text("2")
+
+        forms_dir = knowledge / "forms"
+        forms_dir.mkdir()
+        (forms_dir / "frequency.yaml").write_text(
+            yaml.dump({"name": "frequency"}, default_flow_style=False)
+        )
+
+        (concepts_path / "fundamental_frequency.yaml").write_text(yaml.dump({
+            "id": "concept1",
+            "canonical_name": "fundamental_frequency",
+            "status": "accepted",
+            "definition": "F0",
+            "form": "frequency",
+            "aliases": [{"name": "F0", "source": "common"}],
+        }, default_flow_style=False))
+
+        claims_dir = knowledge / "claims"
+        claims_dir.mkdir()
+        (claims_dir / "paper.yaml").write_text(yaml.dump({
+            "source": {"paper": "paper"},
+            "claims": [{
+                "id": "claim1",
+                "type": "parameter",
+                "concept": "fundamental_frequency",
+                "value": 440.0,
+                "unit": "Hz",
+                "provenance": {"paper": "paper", "page": 1},
+            }],
+        }, default_flow_style=False))
+
+        from propstore.cli.repository import Repository
+        from propstore.validate_claims import load_claim_files
+
+        repo = Repository(knowledge)
+        concepts = load_concepts(repo.concepts_dir)
+        claim_files = load_claim_files(repo.claims_dir)
+        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+        build_sidecar(
+            concepts,
+            repo.sidecar_path,
+            claim_files=claim_files,
+            concept_registry=concept_registry,
+            repo=repo,
+        )
+
+        wm = WorldModel(repo)
+        try:
+            assert [claim["id"] for claim in wm.claims_for("concept1")] == ["claim1"]
+            assert wm.bind().value_of("concept1").status == "determined"
+        finally:
+            wm.close()
+
+    def test_claims_for_resolves_claims_written_with_alias(self, tmp_path):
+        knowledge = tmp_path / "knowledge"
+        concepts_path = knowledge / "concepts"
+        concepts_path.mkdir(parents=True)
+        counters = concepts_path / ".counters"
+        counters.mkdir()
+        (counters / "speech.next").write_text("2")
+
+        forms_dir = knowledge / "forms"
+        forms_dir.mkdir()
+        (forms_dir / "frequency.yaml").write_text(
+            yaml.dump({"name": "frequency"}, default_flow_style=False)
+        )
+
+        (concepts_path / "fundamental_frequency.yaml").write_text(yaml.dump({
+            "id": "concept1",
+            "canonical_name": "fundamental_frequency",
+            "status": "accepted",
+            "definition": "F0",
+            "form": "frequency",
+            "aliases": [{"name": "F0", "source": "common"}],
+        }, default_flow_style=False))
+
+        claims_dir = knowledge / "claims"
+        claims_dir.mkdir()
+        (claims_dir / "paper.yaml").write_text(yaml.dump({
+            "source": {"paper": "paper"},
+            "claims": [{
+                "id": "claim1",
+                "type": "parameter",
+                "concept": "F0",
+                "value": 440.0,
+                "unit": "Hz",
+                "provenance": {"paper": "paper", "page": 1},
+            }],
+        }, default_flow_style=False))
+
+        from propstore.cli.repository import Repository
+        from propstore.validate_claims import load_claim_files
+
+        repo = Repository(knowledge)
+        concepts = load_concepts(repo.concepts_dir)
+        claim_files = load_claim_files(repo.claims_dir)
+        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+        build_sidecar(
+            concepts,
+            repo.sidecar_path,
+            claim_files=claim_files,
+            concept_registry=concept_registry,
+            repo=repo,
+        )
+
+        wm = WorldModel(repo)
+        try:
+            assert [claim["id"] for claim in wm.claims_for("concept1")] == ["claim1"]
+            assert wm.bind().value_of("concept1").status == "determined"
+        finally:
+            wm.close()
+
     def test_claims_for_includes_measurements_by_target_concept(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
@@ -1683,17 +1801,17 @@ class TestAlgorithmWorldModel:
         assert result.status == "conflicted"
         assert len(result.claims) == 2
 
-    def test_mixed_algorithm_parameter_separate(self, algo_world):
-        """Algorithm and parameter claims for same concept don't conflict."""
+    def test_mixed_algorithm_parameter_claims_conflict_when_semantics_disagree(self, algo_world):
+        """Mixed direct and algorithm claims conflict when the algorithm implies another value."""
         # algo_concept3 has algo_claim1, algo_claim2, algo_claim3 (algorithms)
         # and algo_claim_param (parameter, value=42.0). With mixed claims,
-        # value_of should resolve based on the parameter claim only.
+        # the direct value should be checked against the active algorithm.
         bound = algo_world.bind(task="speech")
         # Remove all but one algorithm and keep the parameter
         hypo = HypotheticalWorld(bound, remove=["algo_claim2", "algo_claim3"])
         result = hypo.value_of("algo_concept3")
-        # Mixed: one algorithm + one parameter → determined via parameter value
-        assert result.status == "determined"
+        # algo_claim1 evaluates to 44100 / 512 ~= 86.13, which disagrees with 42.0.
+        assert result.status == "conflicted"
 
 
 # ── Performance: _has_table caching ──────────────────────────────────

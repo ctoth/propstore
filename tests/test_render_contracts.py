@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 from propstore.cli.repository import Repository
-from propstore.world import ArtifactStore, BeliefSpace, Environment, RenderPolicy, ResolutionStrategy
+from propstore.world import (
+    ArtifactStore,
+    BeliefSpace,
+    Environment,
+    ReasoningBackend,
+    RenderPolicy,
+    ResolutionStrategy,
+)
 
 
 def test_render_policy_defaults():
     policy = RenderPolicy()
 
+    assert policy.reasoning_backend == ReasoningBackend.CLAIM_GRAPH
     assert policy.strategy is None
     assert policy.semantics == "grounded"
     assert policy.comparison == "elitist"
