@@ -105,7 +105,11 @@ class HypotheticalWorld(BeliefSpace):
         return self.value_of(concept_id).status == "determined"
 
     def conflicts(self, concept_id: str | None = None) -> list[dict]:
-        filtered = list(self._base.conflicts(concept_id))
+        filtered = [
+            c for c in self._base.conflicts(concept_id)
+            if c.get("claim_a_id") not in self._removed_ids
+            and c.get("claim_b_id") not in self._removed_ids
+        ]
         recomputed = _recomputed_conflicts(self._base._store, self.active_claims(concept_id))
         seen = {(c["claim_a_id"], c["claim_b_id"], c.get("concept_id")) for c in filtered}
         for conflict in recomputed:

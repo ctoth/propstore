@@ -1012,6 +1012,28 @@ class TestHypotheticalWorld:
             hypo_vr = hypo.value_of(cid)
             assert base_vr.status == hypo_vr.status
 
+    def test_conflicts_excludes_removed_claims(self, world):
+        """conflicts() must not return conflicts referencing removed claims."""
+        bound = world.bind(task="speech")
+        # concept1 has claim1(200), claim2(350), claim7(250), claim15(205) — conflicted
+        # Verify base has conflicts involving claim2
+        base_conflicts = bound.conflicts("concept1")
+        assert any(
+            c["claim_a_id"] == "claim2" or c["claim_b_id"] == "claim2"
+            for c in base_conflicts
+        ), "precondition: base must have conflicts involving claim2"
+
+        # Remove claim2 — no conflict result should reference it
+        hypo = HypotheticalWorld(bound, remove=["claim2"])
+        hypo_conflicts = hypo.conflicts("concept1")
+        stale = [
+            c for c in hypo_conflicts
+            if c["claim_a_id"] == "claim2" or c["claim_b_id"] == "claim2"
+        ]
+        assert stale == [], (
+            f"conflicts() returned stale entries referencing removed claim2: {stale}"
+        )
+
 
 # ── Feature 3: Conflict Resolution ──────────────────────────────────
 
@@ -1196,6 +1218,112 @@ class TestConflictResolution:
         assert result.status == "conflicted"
         assert result.reason is not None
         assert "survive" in result.reason
+
+    def test_resolve_recency_tie_returns_conflicted(self, world):
+        """Two claims with identical dates → conflicted, not arbitrary winner."""
+        from propstore.world.resolution import _resolve_recency
+
+        claims = [
+            {"id": "a", "provenance_json": '{"date": "2025-01-01"}'},
+            {"id": "b", "provenance_json": '{"date": "2025-01-01"}'},
+        ]
+        winner_id, reason = _resolve_recency(claims)
+        assert winner_id is None, (
+            f"Expected None (conflicted) for tied dates, got winner {winner_id}"
+        )
+        assert "tie" in reason.lower() or "tied" in reason.lower()
+
+    def test_resolve_recency_tie_unique_best_still_wins(self, world):
+        """One claim has strictly newest date → still resolves to winner."""
+        from propstore.world.resolution import _resolve_recency
+
+        claims = [
+            {"id": "a", "provenance_json": '{"date": "2025-01-01"}'},
+            {"id": "b", "provenance_json": '{"date": "2024-06-01"}'},
+            {"id": "c", "provenance_json": '{"date": "2024-06-01"}'},
+        ]
+        winner_id, reason = _resolve_recency(claims)
+        assert winner_id == "a"
+
+    def test_resolve_sample_size_tie_returns_conflicted(self, world):
+        """Two claims with identical sample_size → conflicted, not arbitrary winner."""
+        from propstore.world.resolution import _resolve_sample_size
+
+        claims = [
+            {"id": "a", "sample_size": 50},
+            {"id": "b", "sample_size": 50},
+        ]
+        winner_id, reason = _resolve_sample_size(claims)
+        assert winner_id is None, (
+            f"Expected None (conflicted) for tied sample sizes, got winner {winner_id}"
+        )
+        assert "tie" in reason.lower() or "tied" in reason.lower()
+
+    def test_resolve_sample_size_tie_unique_best_still_wins(self, world):
+        """One claim has strictly largest sample_size → still resolves to winner."""
+        from propstore.world.resolution import _resolve_sample_size
+
+        claims = [
+            {"id": "a", "sample_size": 100},
+            {"id": "b", "sample_size": 50},
+            {"id": "c", "sample_size": 50},
+        ]
+        winner_id, reason = _resolve_sample_size(claims)
+        assert winner_id == "a"
+
+    def test_resolve_recency_tie_through_resolve_api(self, world):
+        """Integration: tied dates through resolve() → conflicted status."""
+        from unittest.mock import patch
+
+        tied_claims = [
+            {"id": "claim1", "value": 200.0,
+             "provenance_json": '{"date": "2025-01-01"}'},
+            {"id": "claim2", "value": 350.0,
+             "provenance_json": '{"date": "2025-01-01"}'},
+        ]
+        bound = world.bind(task="speech")
+        original_value_of = bound.value_of
+
+        def mock_value_of(concept_id):
+            if concept_id == "concept1":
+                return ValueResult(
+                    concept_id="concept1",
+                    status="conflicted",
+                    claims=tied_claims,
+                )
+            return original_value_of(concept_id)
+
+        with patch.object(type(bound), "value_of", mock_value_of):
+            result = resolve(bound, "concept1", ResolutionStrategy.RECENCY)
+
+        assert result.status == "conflicted"
+        assert len(result.claims) == 2
+
+    def test_resolve_sample_size_tie_through_resolve_api(self, world):
+        """Integration: tied sample_size through resolve() → conflicted status."""
+        from unittest.mock import patch
+
+        tied_claims = [
+            {"id": "claim1", "value": 200.0, "sample_size": 50},
+            {"id": "claim2", "value": 350.0, "sample_size": 50},
+        ]
+        bound = world.bind(task="speech")
+        original_value_of = bound.value_of
+
+        def mock_value_of(concept_id):
+            if concept_id == "concept1":
+                return ValueResult(
+                    concept_id="concept1",
+                    status="conflicted",
+                    claims=tied_claims,
+                )
+            return original_value_of(concept_id)
+
+        with patch.object(type(bound), "value_of", mock_value_of):
+            result = resolve(bound, "concept1", ResolutionStrategy.SAMPLE_SIZE)
+
+        assert result.status == "conflicted"
+        assert len(result.claims) == 2
 
 
 # ── Feature 4: Chain Query ──────────────────────────────────────────
