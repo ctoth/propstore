@@ -500,15 +500,12 @@ def _validate_equation(
                             f"{filename}: equation claim '{cid}' dimensional verification "
                             f"failed for sympy '{sympy_str}'")
                 else:
-                    # Non-Eq expression — can't verify both sides but can
-                    # check if all referenced concepts have compatible dims
-                    from bridgman import dims_of_expr
-                    try:
-                        dims_of_expr(parsed, dim_map)
-                    except DimensionalError as de:
-                        result.warnings.append(
-                            f"{filename}: equation claim '{cid}' dimensional "
-                            f"inconsistency in '{sympy_str}': {de}")
+                    # Non-Eq expression — can't verify dimensional consistency
+                    # because there's no lhs=rhs to compare.
+                    result.warnings.append(
+                        f"{filename}: equation claim '{cid}' sympy '{sympy_str}' "
+                        f"is not an Eq() — cannot verify dimensional consistency. "
+                        f"Wrap as Eq(lhs, rhs).")
         except (KeyError, SyntaxError):
             pass  # missing concept or unparseable sympy — skip
         except Exception:
