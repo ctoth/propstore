@@ -66,6 +66,14 @@ class WorldlinePolicy:
     semantics: str = "grounded"
     comparison: str = "elitist"
     confidence_threshold: float = 0.5
+    # Decision criterion for interpreting opinion uncertainty at render time
+    # Per Denoeux (2019, p.17-18): pignistic is the default
+    decision_criterion: str = "pignistic"
+    # Hurwicz pessimism index α ∈ [0,1] — Per Denoeux (2019, p.17)
+    pessimism_index: float = 0.5
+    # Whether to include [Bel, Pl] uncertainty interval in output
+    # Per Jøsang (2001, p.4)
+    show_uncertainty_interval: bool = False
     future_queryables: list[str] = field(default_factory=list)
     future_limit: int | None = None
 
@@ -88,6 +96,9 @@ class WorldlinePolicy:
             semantics=data.get("semantics", "grounded"),
             comparison=data.get("comparison", "elitist"),
             confidence_threshold=float(data.get("confidence_threshold", 0.5)),
+            decision_criterion=data.get("decision_criterion", "pignistic"),
+            pessimism_index=float(data.get("pessimism_index", 0.5)),
+            show_uncertainty_interval=bool(data.get("show_uncertainty_interval", False)),
             future_queryables=list(data.get("future_queryables") or []),
             future_limit=(
                 None
@@ -108,6 +119,12 @@ class WorldlinePolicy:
             d["comparison"] = self.comparison
         if self.confidence_threshold != 0.5:
             d["confidence_threshold"] = self.confidence_threshold
+        if self.decision_criterion != "pignistic":
+            d["decision_criterion"] = self.decision_criterion
+        if self.pessimism_index != 0.5:
+            d["pessimism_index"] = self.pessimism_index
+        if self.show_uncertainty_interval:
+            d["show_uncertainty_interval"] = self.show_uncertainty_interval
         if self.future_queryables:
             d["future_queryables"] = list(self.future_queryables)
         if self.future_limit is not None:

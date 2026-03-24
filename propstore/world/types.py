@@ -191,8 +191,69 @@ class RenderPolicy:
     semantics: str = "grounded"
     comparison: str = "elitist"
     confidence_threshold: float = 0.5
+    # Decision criterion for interpreting opinion uncertainty at render time
+    # Per Denoeux (2019, p.17-18): pignistic is the default (E(ω) = b + a·u)
+    decision_criterion: str = "pignistic"
+    # Hurwicz pessimism index α ∈ [0,1] — only used when criterion="hurwicz"
+    # α=1.0 → pessimistic (lower bound), α=0.0 → optimistic (upper bound)
+    # Per Denoeux (2019, p.17)
+    pessimism_index: float = 0.5
+    # Whether to include [Bel, Pl] uncertainty interval in output
+    # Per Jøsang (2001, p.4): interval endpoints Bel=b, Pl=1-d
+    show_uncertainty_interval: bool = False
     overrides: Mapping[str, str] = field(default_factory=dict)
     concept_strategies: Mapping[str, ResolutionStrategy] = field(default_factory=dict)
+
+
+def apply_decision_criterion(
+    opinion_b: float | None,
+    opinion_d: float | None,
+    opinion_u: float | None,
+    opinion_a: float | None,
+    confidence: float | None,
+    criterion: str = "pignistic",
+    pessimism_index: float = 0.5,
+) -> float | None:
+    """Apply decision criterion to opinion data, falling back to raw confidence.
+
+    Per Denoeux (2019, p.17-18): decision criteria determine how belief
+    function uncertainty maps to actionable values at render time.
+
+    Args:
+        opinion_b/d/u/a: Opinion components (may be None for old data)
+        confidence: Scalar fallback (existing backward-compat field)
+        criterion: One of "pignistic", "lower_bound", "upper_bound", "hurwicz"
+        pessimism_index: α for Hurwicz criterion
+
+    Returns:
+        Decision value, or None if no opinion or confidence available.
+    """
+    # If opinion components are all present, compute from opinion
+    if (
+        opinion_b is not None
+        and opinion_d is not None
+        and opinion_u is not None
+        and opinion_a is not None
+    ):
+        if criterion == "pignistic":
+            # Jøsang (2001, p.5, Def 6): E(ω) = b + a·u
+            return opinion_b + opinion_a * opinion_u
+        elif criterion == "lower_bound":
+            # Jøsang (2001, p.4): Bel(x) = b
+            return opinion_b
+        elif criterion == "upper_bound":
+            # Jøsang (2001, p.4): Pl(x) = 1 - d
+            return 1.0 - opinion_d
+        elif criterion == "hurwicz":
+            # Denoeux (2019, p.17): α·Bel + (1-α)·Pl
+            bel = opinion_b
+            pl = 1.0 - opinion_d
+            return pessimism_index * bel + (1.0 - pessimism_index) * pl
+        else:
+            raise ValueError(f"Unknown decision criterion: {criterion!r}")
+
+    # Fall back to raw confidence when opinion is missing (old data)
+    return confidence
 
 
 @runtime_checkable

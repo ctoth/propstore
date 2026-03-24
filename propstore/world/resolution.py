@@ -251,6 +251,11 @@ def resolve(
             comparison = policy.comparison
         if confidence_threshold is None:
             confidence_threshold = policy.confidence_threshold
+        # Extract decision criterion fields (used post-resolution for
+        # re-interpreting opinion uncertainty at render time)
+        _decision_criterion = policy.decision_criterion
+        _pessimism_index = policy.pessimism_index
+        _show_uncertainty_interval = policy.show_uncertainty_interval
 
     if reasoning_backend is None:
         reasoning_backend = ReasoningBackend.CLAIM_GRAPH

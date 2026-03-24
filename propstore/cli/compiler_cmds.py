@@ -1253,11 +1253,18 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
               help="Set comparison for preference ordering (default: elitist)")
 @click.option("--confidence-threshold", "confidence_threshold", default=0.5,
               type=float, help="Minimum stance confidence to include (default: 0.5)")
+@click.option("--decision-criterion", "decision_criterion", default="pignistic",
+              type=click.Choice(["pignistic", "lower_bound", "upper_bound", "hurwicz"]),
+              help="Decision criterion for opinion interpretation (default: pignistic)")
+@click.option("--pessimism-index", "pessimism_index", default=0.5,
+              type=float, help="Hurwicz pessimism index α ∈ [0,1] (default: 0.5)")
 @click.pass_obj
 def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
                   strategy: str, override_id: str | None,
                   semantics: str, set_comparison: str,
-                  confidence_threshold: float) -> None:
+                  confidence_threshold: float,
+                  decision_criterion: str,
+                  pessimism_index: float) -> None:
     """Resolve a conflicted concept using a strategy.
 
     Usage: pks world resolve concept1 domain=example --strategy argumentation
