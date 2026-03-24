@@ -7,5 +7,9 @@ dimensions:
 common_alternatives:
 - unit: °C
   type: affine
-  multiplier: 1
+  multiplier: 1.0
   offset: 273.15
+- unit: °F
+  type: affine
+  multiplier: 0.5556
+  offset: 255.372

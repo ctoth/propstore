@@ -157,3 +157,52 @@ class TestUnitConversionLogarithmic:
         # Roundtrip
         back = from_si(result, "dB_SPL", fd)
         assert back == pytest.approx(94.0, rel=0.01)
+
+
+class TestLoadTemperatureFormHasAffineConversions:
+    """Load temperature form from real YAML and verify affine conversions."""
+
+    def test_has_celsius_affine(self, forms_dir):
+        _form_cache.pop((str(forms_dir), "temperature"), None)
+        fd = load_form(forms_dir, "temperature")
+        assert fd is not None
+        assert "°C" in fd.conversions
+        assert fd.conversions["°C"].type == "affine"
+
+    def test_has_fahrenheit_affine(self, forms_dir):
+        _form_cache.pop((str(forms_dir), "temperature"), None)
+        fd = load_form(forms_dir, "temperature")
+        assert fd is not None
+        assert "°F" in fd.conversions
+        assert fd.conversions["°F"].type == "affine"
+
+    def test_fahrenheit_roundtrip(self, forms_dir):
+        """212 °F -> 373.15 K -> 212 °F."""
+        _form_cache.pop((str(forms_dir), "temperature"), None)
+        fd = load_form(forms_dir, "temperature")
+        assert fd is not None
+        si = normalize_to_si(212.0, "°F", fd)
+        assert si == pytest.approx(373.15, rel=0.01)
+        back = from_si(si, "°F", fd)
+        assert back == pytest.approx(212.0, rel=0.01)
+
+
+class TestLoadLevelFormHasLogarithmicConversions:
+    """Load the sound_pressure_level form and verify logarithmic conversion."""
+
+    def test_has_db_spl_logarithmic(self, forms_dir):
+        _form_cache.pop((str(forms_dir), "sound_pressure_level"), None)
+        fd = load_form(forms_dir, "sound_pressure_level")
+        assert fd is not None
+        assert "dB_SPL" in fd.conversions
+        assert fd.conversions["dB_SPL"].type == "logarithmic"
+
+    def test_db_spl_roundtrip(self, forms_dir):
+        """94 dB SPL -> ~1.0 Pa -> 94 dB SPL."""
+        _form_cache.pop((str(forms_dir), "sound_pressure_level"), None)
+        fd = load_form(forms_dir, "sound_pressure_level")
+        assert fd is not None
+        si = normalize_to_si(94.0, "dB_SPL", fd)
+        assert si == pytest.approx(1.0, rel=0.01)
+        back = from_si(si, "dB_SPL", fd)
+        assert back == pytest.approx(94.0, rel=0.01)

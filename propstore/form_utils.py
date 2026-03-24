@@ -58,7 +58,7 @@ def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
     if not form_path.exists():
         _form_cache[cache_key] = None
         return None
-    with open(form_path) as f:
+    with open(form_path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     if not isinstance(data, dict):
         return None
@@ -250,7 +250,7 @@ def load_form_definition(forms_dir: Path, form_name: str | None) -> dict[str, An
     form_path = forms_dir / f"{form_name}.yaml"
     if not form_path.exists():
         return {}
-    with open(form_path) as f:
+    with open(form_path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     return data if isinstance(data, dict) else {}
 
@@ -304,7 +304,7 @@ def validate_form_files(forms_dir: Path) -> list[str]:
     for entry in sorted(forms_dir.iterdir()):
         if not entry.is_file() or entry.suffix != ".yaml":
             continue
-        with open(entry) as f:
+        with open(entry, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         if not isinstance(data, dict):
             errors.append(f"{entry.stem}: form file is not a YAML mapping")

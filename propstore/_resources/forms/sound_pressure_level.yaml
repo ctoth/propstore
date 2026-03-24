@@ -1,0 +1,14 @@
+name: sound_pressure_level
+kind: quantity
+dimensionless: false
+unit_symbol: Pa
+dimensions:
+  M: 1
+  L: -1
+  T: -2
+common_alternatives:
+- unit: dB_SPL
+  type: logarithmic
+  base: 10
+  divisor: 20
+  reference: 0.00002

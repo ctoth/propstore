@@ -37,19 +37,28 @@
       "description": "Alternative unit conversions.",
       "items": {
         "type": "object",
-        "required": ["unit", "type", "multiplier"],
+        "required": ["unit", "type"],
         "properties": {
           "unit": {
             "type": "string"
           },
           "type": {
             "type": "string",
-            "enum": ["multiplicative", "affine"]
+            "enum": ["multiplicative", "affine", "logarithmic"]
           },
           "multiplier": {
             "type": "number"
           },
           "offset": {
+            "type": "number"
+          },
+          "base": {
+            "type": "number"
+          },
+          "divisor": {
+            "type": "number"
+          },
+          "reference": {
             "type": "number"
           }
         },
