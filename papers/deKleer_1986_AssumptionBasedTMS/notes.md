@@ -297,6 +297,7 @@ This is the foundational paper for the ATMS, which is the core inference substra
 - [[deKleer_1984_QualitativePhysicsConfluences]] -- **Strong.** The qualitative physics framework is the application domain that motivated the ATMS. Multiple interpretations from qualitative constraint satisfaction correspond directly to ATMS environments.
 - [[Alchourron_1985_TheoryChange]] -- **Strong.** The AGM postulates define rational belief revision; Dixon (1993) proved the ATMS satisfies them. The ATMS's context switching implements AGM contraction/expansion.
 - [[Ginsberg_1985_Counterfactuals]] -- **Moderate.** Ginsberg's counterfactual evaluation (set proposition to unknown, recompute closure) maps directly to ATMS assumption retraction and label recomputation.
+- [[Popescu_2024_ProbabilisticArgumentationConstellation]] — **Strong.** Popescu's DP table rows (partial I/O/U labellings with probability weights) are structurally analogous to ATMS labels (minimal assumption sets). Each row represents a context (possible world configuration) with its probability. The constellation approach's enumeration of subframeworks maps to the ATMS's management of multiple simultaneous consistent contexts. For propstore, the ATMS label structure could serve as the data structure for Popescu's probability-weighted DP entries.
 
 ## Related Work Worth Reading
 - Doyle [12]: Original justification-based TMS (the system the ATMS improves upon) *(p.161)*

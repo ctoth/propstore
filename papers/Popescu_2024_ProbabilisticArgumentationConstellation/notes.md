@@ -278,3 +278,35 @@ This paper provides the algorithmic foundation for exact probabilistic argumenta
 - Abseher, Musliu, Woltran 2017 — htd library for tree-decompositions *(p.7)*
 - Hemaspaandra, Vollmer 1995 — counting complexity hierarchy (#·P, #·NP classes) *(p.4)*
 - Dvořák, Woltran 2012 — complexity of abstract argumentation *(p.2)*
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — cited as foundational AF semantics; all semantics computed by this paper's DP algorithm (admissible, complete, stable, preferred) are Dung's standard semantics *(p.2)*
+- [[Li_2011_ProbabilisticArgumentationFrameworks]] — cited as the source of PAF semantics under the constellation approach; this paper's algorithms compute Li et al.'s probability definitions exactly *(p.2-3)*
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — cited as prior work on probabilistic reasoning with AFs; Hunter & Thimm's epistemic approach is an alternative to the constellation approach that this paper targets *(p.1)*
+- [[Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth]] — cited as Fichte et al. 2021; predecessor work on tree-decomposition-guided reductions for argumentation. Fichte reduces to SAT/QBF while preserving treewidth; Popescu applies tree-decomposition DP directly to probabilistic AFs
+
+### New Leads (Not Yet in Collection)
+- Fazzinga, Flesca, Furfaro (2019, 2020) — foundational complexity results for probabilistic AFs; FP^{#P}-completeness proofs that this paper refines with counting classes
+- Gottlob, Greco, Scarcello (2001) — tree-decomposition for database queries; the DP table approach originates here
+- Abseher, Musliu, Woltran (2017) — htd library for computing tree-decompositions; implementation dependency
+- Hemaspaandra, Vollmer (1995) — counting complexity hierarchy (#·P, #·NP classes); needed to understand the complexity separation results
+
+### Supersedes or Recontextualizes
+- (none — this paper extends rather than supersedes existing work)
+
+### Cited By (in Collection)
+- (none found)
+
+### Conceptual Links (not citation-based)
+- **Tree-decomposition DP for argumentation:**
+  - [[Fichte_2021_Decomposition-GuidedReductionsArgumentationTreewidth]] — **Strong.** Both papers exploit bounded treewidth for tractable argumentation computation, but with complementary approaches: Fichte compiles to SAT/QBF preserving O(k) treewidth, while Popescu runs DP directly on the tree-decomposition with I/O/U labelling tables. Popescu's approach avoids the SAT solver overhead but is specific to probabilistic extension computation. For propstore, both approaches are relevant: Fichte for non-probabilistic semantics computation, Popescu for probabilistic queries.
+- **ATMS and multiple-context reasoning:**
+  - [[deKleer_1986_AssumptionBasedTMS]] — **Strong.** Popescu's DP table rows (partial labellings with probability weights) are structurally analogous to ATMS labels (minimal assumption sets). Each row represents a context (possible world configuration) with its probability. The ATMS's management of multiple simultaneous consistent contexts maps directly to the constellation approach's enumeration of subframeworks. For propstore, the ATMS label structure could serve as the data structure for storing Popescu's DP table entries.
+  - [[Dixon_1993_ATMSandAGM]] — **Moderate.** Dixon proves ATMS context switching equals AGM belief revision. Popescu's probability-weighted contexts add a quantitative dimension: each ATMS context gets a probability, and extension membership becomes a weighted sum over contexts rather than a binary membership test.
+- **Probabilistic argumentation semantics:**
+  - [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — **Strong.** Hunter & Thimm define epistemic probabilities over arguments (degree of belief), while Popescu computes constellation probabilities (likelihood of structural configurations). For propstore, these are complementary: Hunter's approach assigns beliefs to arguments within a fixed AF; Popescu's approach assigns probabilities to the AF structure itself. Both probability types may be needed.
+  - [[Li_2011_ProbabilisticArgumentationFrameworks]] — **Strong.** Li et al. define the PAF semantics; Popescu provides the first exact algorithms. Together they form the complete specification+implementation pair for probabilistic argumentation under the constellation approach.
+- **Extension computation:**
+  - [[Dung_1995_AcceptabilityArguments]] — **Strong.** Popescu's algorithms compute probabilities over Dung's extension semantics. The I/O/U labelling used in the DP is a direct encoding of Caminada's labelling characterization of Dung's semantics.
