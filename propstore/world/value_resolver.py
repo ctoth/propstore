@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
 from typing import Any, Callable
 
-from ast_equiv import compare as ast_compare
+from ast_equiv import compare as ast_compare, parse_algorithm
 
 from propstore.world.types import DerivedResult, ValueResult
 
@@ -47,82 +48,35 @@ class ActiveClaimResolver:
         if not params:
             return DerivedResult(concept_id=concept_id, status="no_relationship")
 
+        saw_compatible_candidate = False
+        saw_conflicted_candidate = False
+        saw_underspecified_candidate = False
+
         for param in params:
             if not self._is_param_compatible(param.get("conditions_cel")):
                 continue
+            saw_compatible_candidate = True
 
-            sympy_expr = param.get("sympy")
-            if not sympy_expr:
-                continue
+            candidate = self._derive_from_parameterization(
+                concept_id,
+                param,
+                override_values=override_values,
+                derivation_stack=_derivation_stack,
+            )
+            if candidate.status == "derived":
+                return candidate
+            if candidate.status == "conflicted":
+                saw_conflicted_candidate = True
+            elif candidate.status == "underspecified":
+                saw_underspecified_candidate = True
 
-            input_ids = json.loads(param["concept_ids"])
-            effective_inputs = [iid for iid in input_ids if iid != concept_id]
-
-            input_values: dict[str, float] = {}
-            all_determined = True
-            any_conflicted = False
-
-            for input_id in effective_inputs:
-                if override_values and input_id in override_values:
-                    override_value = override_values[input_id]
-                    if override_value is not None:
-                        try:
-                            input_values[input_id] = float(override_value)
-                            continue
-                        except (TypeError, ValueError):
-                            pass
-
-                value_result = self._value_of(input_id)
-                if value_result.status == "determined":
-                    value = value_result.claims[0].get("value") if value_result.claims else None
-                    if value is not None:
-                        input_values[input_id] = float(value)
-                    else:
-                        all_determined = False
-                elif value_result.status == "conflicted":
-                    any_conflicted = True
-                    all_determined = False
-                else:
-                    # No direct claim — try recursive derivation.
-                    # This enables multi-step chains like
-                    # g_earth → gravitational_acceleration → acceleration → force.
-                    if input_id not in _derivation_stack:
-                        _derivation_stack.add(input_id)
-                        try:
-                            derived = self.derived_value(
-                                input_id,
-                                override_values=override_values,
-                                _derivation_stack=_derivation_stack,
-                            )
-                            if derived.status == "derived" and derived.value is not None:
-                                input_values[input_id] = float(derived.value)
-                            else:
-                                all_determined = False
-                        finally:
-                            _derivation_stack.discard(input_id)
-                    else:
-                        all_determined = False  # Cycle detected — don't recurse
-
-            if any_conflicted:
-                return DerivedResult(concept_id=concept_id, status="conflicted")
-
-            if not all_determined or len(input_values) != len(effective_inputs):
-                continue
-
-            result = evaluate_parameterization(sympy_expr, input_values, concept_id)
-            if result is not None:
-                return DerivedResult(
-                    concept_id=concept_id,
-                    status="derived",
-                    value=result,
-                    formula=param.get("formula"),
-                    input_values=input_values,
-                    exactness=param.get("exactness"),
-                )
-
-        if any(not self._is_param_compatible(param.get("conditions_cel")) for param in params):
+        if not saw_compatible_candidate:
             return DerivedResult(concept_id=concept_id, status="no_relationship")
 
+        if saw_conflicted_candidate:
+            return DerivedResult(concept_id=concept_id, status="conflicted")
+        if saw_underspecified_candidate:
+            return DerivedResult(concept_id=concept_id, status="underspecified")
         return DerivedResult(concept_id=concept_id, status="underspecified")
 
     def value_of_from_active(self, active: list[dict], concept_id: str) -> ValueResult:
@@ -133,12 +87,33 @@ class ActiveClaimResolver:
         value_claims = [claim for claim in active if claim.get("type") != "algorithm"]
 
         if value_claims and algo_claims:
-            values = {claim.get("value") for claim in value_claims if claim.get("value") is not None}
-            if not values:
+            direct_values = {
+                self._normalize_value(claim.get("value"))
+                for claim in value_claims
+                if claim.get("value") is not None
+            }
+            if not direct_values:
                 return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
-            if len(values) == 1:
-                return ValueResult(concept_id=concept_id, status="determined", claims=active)
-            return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+            if len(direct_values) != 1:
+                return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+
+            direct_value = next(iter(direct_values))
+            algorithm_values: set[float | str] = set()
+            unevaluable_algorithm_present = False
+            for claim in algo_claims:
+                evaluated = self._evaluate_algorithm_claim_value(claim)
+                if evaluated is None:
+                    unevaluable_algorithm_present = True
+                    continue
+                algorithm_values.add(self._normalize_value(evaluated))
+
+            if any(value != direct_value for value in algorithm_values):
+                return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+            if len(algorithm_values) > 1:
+                return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+            if unevaluable_algorithm_present:
+                return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+            return ValueResult(concept_id=concept_id, status="determined", claims=active)
 
         if algo_claims and not value_claims:
             if len(algo_claims) == 1:
@@ -160,6 +135,144 @@ class ActiveClaimResolver:
         if len(values) == 1:
             return ValueResult(concept_id=concept_id, status="determined", claims=active)
         return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
+
+    def _derive_from_parameterization(
+        self,
+        concept_id: str,
+        param: dict,
+        *,
+        override_values: dict[str, float | str | None] | None,
+        derivation_stack: set[str],
+    ) -> DerivedResult:
+        from propstore.propagation import evaluate_parameterization
+
+        sympy_expr = param.get("sympy")
+        if not sympy_expr:
+            return DerivedResult(concept_id=concept_id, status="underspecified")
+
+        input_ids = json.loads(param["concept_ids"])
+        effective_inputs = [iid for iid in input_ids if iid != concept_id]
+
+        input_values: dict[str, float] = {}
+        for input_id in effective_inputs:
+            override_value = self._coerce_override_value(override_values, input_id)
+            if override_value is not None:
+                input_values[input_id] = override_value
+                continue
+
+            value_result = self._value_of(input_id)
+            if value_result.status == "determined":
+                value = value_result.claims[0].get("value") if value_result.claims else None
+                if value is None:
+                    return DerivedResult(concept_id=concept_id, status="underspecified")
+                input_values[input_id] = float(value)
+                continue
+
+            if value_result.status == "conflicted":
+                return DerivedResult(concept_id=concept_id, status="conflicted")
+
+            if input_id in derivation_stack:
+                return DerivedResult(concept_id=concept_id, status="underspecified")
+
+            derivation_stack.add(input_id)
+            try:
+                derived = self.derived_value(
+                    input_id,
+                    override_values=override_values,
+                    _derivation_stack=derivation_stack,
+                )
+            finally:
+                derivation_stack.discard(input_id)
+
+            if derived.status == "derived" and derived.value is not None:
+                input_values[input_id] = float(derived.value)
+                continue
+            if derived.status == "conflicted":
+                return DerivedResult(concept_id=concept_id, status="conflicted")
+            return DerivedResult(concept_id=concept_id, status="underspecified")
+
+        result = evaluate_parameterization(sympy_expr, input_values, concept_id)
+        if result is None:
+            return DerivedResult(concept_id=concept_id, status="underspecified")
+
+        return DerivedResult(
+            concept_id=concept_id,
+            status="derived",
+            value=result,
+            formula=param.get("formula"),
+            input_values=input_values,
+            exactness=param.get("exactness"),
+        )
+
+    @staticmethod
+    def _coerce_override_value(
+        override_values: dict[str, float | str | None] | None,
+        input_id: str,
+    ) -> float | None:
+        if not override_values or input_id not in override_values:
+            return None
+        override_value = override_values[input_id]
+        if override_value is None:
+            return None
+        try:
+            return float(override_value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _normalize_value(value: float | str | None) -> float | str | None:
+        if isinstance(value, int | float) and not isinstance(value, bool):
+            return float(value)
+        return value
+
+    def _evaluate_algorithm_claim_value(self, claim: dict) -> float | None:
+        body = claim.get("body")
+        if not body:
+            return None
+
+        bindings = self._extract_bindings(claim)
+        if not bindings:
+            return None
+
+        known_values = self._collect_known_values(list(dict.fromkeys(bindings.values())))
+        local_env: dict[str, Any] = {}
+        for name, concept_id in bindings.items():
+            if concept_id not in known_values:
+                return None
+            local_env[name] = known_values[concept_id]
+
+        try:
+            tree = parse_algorithm(body)
+        except ValueError:
+            return None
+
+        function_node = next(
+            (
+                node for node in tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ),
+            None,
+        )
+        if function_node is None or len(function_node.body) != 1:
+            return None
+
+        statement = function_node.body[0]
+        if not isinstance(statement, ast.Return) or statement.value is None:
+            return None
+        if not _is_safe_algorithm_expression(statement.value):
+            return None
+
+        expression = ast.fix_missing_locations(ast.Expression(body=statement.value))
+        try:
+            result = eval(compile(expression, "<algorithm-claim>", "eval"), {"__builtins__": {}}, local_env)
+        except Exception as exc:
+            logging.warning("algorithm evaluation failed for %s: %s", claim.get("id"), exc)
+            return None
+
+        try:
+            return float(result)
+        except (TypeError, ValueError):
+            return None
 
     def _all_algorithms_equivalent(
         self,
@@ -188,3 +301,30 @@ class ActiveClaimResolver:
                 if not result.equivalent:
                     return False
         return True
+
+
+_SAFE_ALGORITHM_EXPR_NODES = (
+    ast.BinOp,
+    ast.Constant,
+    ast.Div,
+    ast.Expression,
+    ast.FloorDiv,
+    ast.Load,
+    ast.Mod,
+    ast.Mult,
+    ast.Name,
+    ast.Pow,
+    ast.Return,
+    ast.Sub,
+    ast.UnaryOp,
+    ast.UAdd,
+    ast.USub,
+    ast.Add,
+)
+
+
+def _is_safe_algorithm_expression(node: ast.AST) -> bool:
+    for child in ast.walk(node):
+        if not isinstance(child, _SAFE_ALGORITHM_EXPR_NODES):
+            return False
+    return True
