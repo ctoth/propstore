@@ -111,40 +111,16 @@ def run_worldline(
         if concept_id is not None:
             target_map[target] = concept_id
 
-    # Iterative fixpoint: resolve targets, feed resolved values back as
-    # overrides for subsequent passes. This handles multi-step derivation
-    # chains (e.g., g_earth → gravitational_acceleration → acceleration → force).
-    # Follows chain_query's design (WorldModel.chain_query, model.py:474).
-    resolved_values = dict(override_concept_ids)  # Start with user overrides
-    remaining = dict(target_map)
-    max_passes = 5
-
-    for _pass in range(max_passes):
-        progress = False
-        still_remaining: dict[str, str] = {}
-
-        for target_name, concept_id in remaining.items():
-            if target_name in values and values[target_name].get("status") not in ("underspecified",):
-                continue  # Already resolved
-
-            result_entry = _resolve_target(
-                query_world, world, concept_id, target_name,
-                resolved_values, policy, dependency_claims,
-                all_steps,
-            )
-            values[target_name] = result_entry
-
-            if result_entry.get("status") in ("determined", "derived", "resolved"):
-                val = result_entry.get("value")
-                if val is not None:
-                    resolved_values[concept_id] = val
-                    progress = True
-            else:
-                still_remaining[target_name] = concept_id
-
-        remaining = still_remaining
-        if not progress or not remaining:
-            break
+    # Single-pass resolution: derived_value now recursively resolves
+    # inputs via parameterization chains (value_resolver.py), so each
+    # target resolves in one call regardless of chain depth.
+    for target_name, concept_id in target_map.items():
+        result_entry = _resolve_target(
+            query_world, world, concept_id, target_name,
+            override_concept_ids, policy, dependency_claims,
+            all_steps,
+        )
+        values[target_name] = result_entry
 
     # Fill in any targets we couldn't resolve (name resolution failed)
     for target in definition.targets:

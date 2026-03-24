@@ -36,8 +36,12 @@ class ActiveClaimResolver:
         concept_id: str,
         *,
         override_values: dict[str, float | str | None] | None = None,
+        _derivation_stack: set[str] | None = None,
     ) -> DerivedResult:
         from propstore.propagation import evaluate_parameterization
+
+        if _derivation_stack is None:
+            _derivation_stack = set()
 
         params = self._parameterizations_for(concept_id)
         if not params:
@@ -79,7 +83,25 @@ class ActiveClaimResolver:
                     any_conflicted = True
                     all_determined = False
                 else:
-                    all_determined = False
+                    # No direct claim — try recursive derivation.
+                    # This enables multi-step chains like
+                    # g_earth → gravitational_acceleration → acceleration → force.
+                    if input_id not in _derivation_stack:
+                        _derivation_stack.add(input_id)
+                        try:
+                            derived = self.derived_value(
+                                input_id,
+                                override_values=override_values,
+                                _derivation_stack=_derivation_stack,
+                            )
+                            if derived.status == "derived" and derived.value is not None:
+                                input_values[input_id] = float(derived.value)
+                            else:
+                                all_determined = False
+                        finally:
+                            _derivation_stack.discard(input_id)
+                    else:
+                        all_determined = False  # Cycle detected — don't recurse
 
             if any_conflicted:
                 return DerivedResult(concept_id=concept_id, status="conflicted")
