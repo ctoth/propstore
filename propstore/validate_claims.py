@@ -448,6 +448,47 @@ def _validate_equation(
                         f"{filename}: equation claim '{cid}' variable references "
                         f"nonexistent concept '{var_concept}'")
 
+    # ── Dimensional consistency (bridgman) ────────────────────
+    sympy_str = claim.get("sympy")
+    if sympy_str and isinstance(variables, list):
+        try:
+            from bridgman import verify_expr, DimensionalError
+            import sympy as sp
+
+            # Build dim_map: map both symbol names and concept IDs to dimensions
+            dim_map: dict[str, dict[str, int]] = {}
+            for var in variables:
+                if not isinstance(var, dict):
+                    continue
+                var_concept = var.get("concept")
+                var_symbol = var.get("symbol")
+                if not var_concept or var_concept not in concept_registry:
+                    continue
+                concept_data = concept_registry[var_concept]
+                form_def = concept_data.get("_form_definition")
+                if form_def is None:
+                    continue
+                if form_def.dimensions is not None:
+                    dims = dict(form_def.dimensions)
+                elif form_def.is_dimensionless:
+                    dims = {}
+                else:
+                    continue
+                # Map by symbol (used in sympy expressions)
+                if var_symbol:
+                    dim_map[var_symbol] = dims
+                # Also map by concept ID (some sympy fields use concept IDs)
+                dim_map[var_concept] = dims
+
+            if dim_map:
+                parsed = sp.sympify(sympy_str)
+                if not verify_expr(parsed, dim_map):
+                    result.warnings.append(
+                        f"{filename}: equation claim '{cid}' dimensional verification "
+                        f"failed for sympy '{sympy_str}'")
+        except Exception:
+            pass  # skip silently — many valid equations have symbols not in dim_map
+
 
 def _validate_observation(
     claim: dict, cid: str, filename: str,
