@@ -14,6 +14,23 @@ from propstore.cli.helpers import EXIT_VALIDATION, open_world_model, write_yaml_
 from propstore.cli.repository import Repository
 
 
+def _format_value_with_si(claim: dict) -> str:
+    """Format a claim's value with optional SI normalization.
+
+    Returns e.g. ``value=0.2 kHz (SI: 200.0 Hz)`` when the stored unit
+    differs from the canonical SI unit, or ``value=200.0 Hz`` when they match.
+    """
+    value = claim.get("value")
+    unit = claim.get("unit")
+    value_si = claim.get("value_si")
+    if unit and value_si is not None and float(value_si) != float(value):
+        return f"value={value} {unit} (SI: {value_si} Hz)"
+    elif unit:
+        return f"value={value} {unit}"
+    else:
+        return f"value={value}"
+
+
 @click.command()
 @click.pass_obj
 def validate(obj: dict) -> None:
@@ -589,14 +606,14 @@ def world_query(obj: dict, concept_id: str) -> None:
             click.echo(f"Unknown concept: {concept_id}", err=True)
             sys.exit(1)
 
-    click.echo(f"{concept['canonical_name']} ({resolved})")
-    claims = wm.claims_for(resolved)
-    if not claims:
-        click.echo("  (no claims)")
-    for c in claims:
-        conds = c.get("conditions_cel") or "[]"
-        click.echo(f"  {c['id']}: {c['type']} value={c.get('value')} conditions={conds}")
-    wm.close()
+        click.echo(f"{concept['canonical_name']} ({resolved})")
+        claims = wm.claims_for(resolved)
+        if not claims:
+            click.echo("  (no claims)")
+        for c in claims:
+            conds = c.get("conditions_cel") or "[]"
+            val_part = _format_value_with_si(c)
+            click.echo(f"  {c['id']}: {c['type']} {val_part} conditions={conds}")
 
 
 @world.command("bind")
@@ -618,33 +635,32 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
         non_binding = [a for a in args if "=" not in a]
         query_concept = non_binding[-1] if non_binding else None
 
-    parsed: dict[str, str] = {}
-    for b in binding_args:
-        if "=" not in b:
-            click.echo(f"Invalid binding: {b} (expected key=value)", err=True)
-            wm.close()
-            sys.exit(1)
-        key, _, value = b.partition("=")
-        parsed[key] = value
+        parsed: dict[str, str] = {}
+        for b in binding_args:
+            if "=" not in b:
+                click.echo(f"Invalid binding: {b} (expected key=value)", err=True)
+                sys.exit(1)
+            key, _, value = b.partition("=")
+            parsed[key] = value
 
-    bound = wm.bind(**parsed)
+        bound = wm.bind(**parsed)
 
-    if query_concept:
-        resolved = wm.resolve_alias(query_concept) or query_concept
-        result = bound.value_of(resolved)
-        click.echo(f"{resolved}: {result.status}")
-        for c in result.claims:
-            click.echo(f"  {c['id']}: value={c.get('value')} source={c.get('source_paper')}")
-    else:
-        active = bound.active_claims()
-        click.echo(f"Active claims: {len(active)}")
-        for c in active:
-            conds = c.get("conditions_cel") or "[]"
-            click.echo(
-                f"  {c['id']}: {c.get('concept_id', '?')} "
-                f"value={c.get('value')} conditions={conds}")
-
-    wm.close()
+        if query_concept:
+            resolved = wm.resolve_alias(query_concept) or query_concept
+            result = bound.value_of(resolved)
+            click.echo(f"{resolved}: {result.status}")
+            for c in result.claims:
+                val_part = _format_value_with_si(c)
+                click.echo(f"  {c['id']}: {val_part} source={c.get('source_paper')}")
+        else:
+            active = bound.active_claims()
+            click.echo(f"Active claims: {len(active)}")
+            for c in active:
+                conds = c.get("conditions_cel") or "[]"
+                val_part = _format_value_with_si(c)
+                click.echo(
+                    f"  {c['id']}: {c.get('concept_id', '?')} "
+                    f"{val_part} conditions={conds}")
 
 
 @world.command("explain")
