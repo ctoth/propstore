@@ -1,0 +1,15 @@
+name: force
+kind: quantity
+dimensionless: false
+unit_symbol: N
+dimensions:
+  M: 1
+  L: 1
+  T: -2
+common_alternatives:
+- unit: kN
+  type: multiplicative
+  multiplier: 1000
+- unit: dyn
+  type: multiplicative
+  multiplier: 1.0e-05

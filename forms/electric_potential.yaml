@@ -1,16 +1,16 @@
-name: time
+name: electric_potential
 kind: quantity
 dimensionless: false
-unit_symbol: s
+unit_symbol: V
 dimensions:
-  T: 1
+  M: 1
+  L: 2
+  T: -3
+  I: -1
 common_alternatives:
-- unit: ms
+- unit: mV
   type: multiplicative
   multiplier: 0.001
-- unit: min
+- unit: kV
   type: multiplicative
-  multiplier: 60
-- unit: h
-  type: multiplicative
-  multiplier: 3600
+  multiplier: 1000

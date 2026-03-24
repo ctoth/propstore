@@ -1,16 +1,16 @@
-name: time
+name: mass
 kind: quantity
 dimensionless: false
-unit_symbol: s
+unit_symbol: kg
 dimensions:
-  T: 1
+  M: 1
 common_alternatives:
-- unit: ms
+- unit: g
   type: multiplicative
   multiplier: 0.001
-- unit: min
+- unit: mg
   type: multiplicative
-  multiplier: 60
-- unit: h
+  multiplier: 1.0e-06
+- unit: t
   type: multiplicative
-  multiplier: 3600
+  multiplier: 1000

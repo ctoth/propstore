@@ -1,6 +1,6 @@
-name: rate
+name: amount
 kind: quantity
 dimensionless: false
-unit_symbol: 1/s
+unit_symbol: mol
 dimensions:
-  T: -1
+  N: 1

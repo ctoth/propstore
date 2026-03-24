@@ -1,0 +1,14 @@
+name: velocity
+kind: quantity
+dimensionless: false
+unit_symbol: m/s
+dimensions:
+  L: 1
+  T: -1
+common_alternatives:
+- unit: km/h
+  type: multiplicative
+  multiplier: 0.277778
+- unit: km/s
+  type: multiplicative
+  multiplier: 1000

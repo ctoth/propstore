@@ -1,0 +1,10 @@
+name: electric_current
+kind: quantity
+dimensionless: false
+unit_symbol: A
+dimensions:
+  I: 1
+common_alternatives:
+- unit: mA
+  type: multiplicative
+  multiplier: 0.001

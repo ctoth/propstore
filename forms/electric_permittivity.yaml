@@ -1,0 +1,10 @@
+name: electric_permittivity
+kind: quantity
+dimensionless: false
+unit_symbol: F/m
+dimensions:
+  I: 2
+  T: 4
+  M: -1
+  L: -3
+note: Form for vacuum permittivity (epsilon_0) and similar quantities.

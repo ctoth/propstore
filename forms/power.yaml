@@ -1,16 +1,18 @@
-name: frequency
+name: power
 kind: quantity
 dimensionless: false
-unit_symbol: Hz
+unit_symbol: W
 dimensions:
-  T: -1
+  M: 1
+  L: 2
+  T: -3
 common_alternatives:
-- unit: kHz
+- unit: kW
   type: multiplicative
   multiplier: 1000
-- unit: MHz
+- unit: MW
   type: multiplicative
   multiplier: 1000000
-- unit: GHz
+- unit: hp
   type: multiplicative
-  multiplier: 1000000000
+  multiplier: 745.7

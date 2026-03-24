@@ -1,6 +1,8 @@
-name: rate
+name: momentum
 kind: quantity
 dimensionless: false
-unit_symbol: 1/s
+unit_symbol: kg·m/s
 dimensions:
+  M: 1
+  L: 1
   T: -1

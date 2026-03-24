@@ -1,16 +1,16 @@
-name: frequency
+name: resistance
 kind: quantity
 dimensionless: false
-unit_symbol: Hz
+unit_symbol: Ω
 dimensions:
-  T: -1
+  M: 1
+  L: 2
+  T: -3
+  I: -2
 common_alternatives:
-- unit: kHz
+- unit: kΩ
   type: multiplicative
   multiplier: 1000
-- unit: MHz
+- unit: MΩ
   type: multiplicative
   multiplier: 1000000
-- unit: GHz
-  type: multiplicative
-  multiplier: 1000000000

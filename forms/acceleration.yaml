@@ -1,0 +1,7 @@
+name: acceleration
+kind: quantity
+dimensionless: false
+unit_symbol: m/s²
+dimensions:
+  L: 1
+  T: -2

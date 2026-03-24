@@ -1,0 +1,19 @@
+name: distance
+kind: quantity
+dimensionless: false
+unit_symbol: m
+dimensions:
+  L: 1
+common_alternatives:
+- unit: km
+  type: multiplicative
+  multiplier: 1000
+- unit: cm
+  type: multiplicative
+  multiplier: 0.01
+- unit: mm
+  type: multiplicative
+  multiplier: 0.001
+- unit: AU
+  type: multiplicative
+  multiplier: 149597870700

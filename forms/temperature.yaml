@@ -1,0 +1,11 @@
+name: temperature
+kind: quantity
+dimensionless: false
+unit_symbol: K
+dimensions:
+  Θ: 1
+common_alternatives:
+- unit: °C
+  type: affine
+  multiplier: 1
+  offset: 273.15

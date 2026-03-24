@@ -1,6 +1,6 @@
-name: rate
+name: area
 kind: quantity
 dimensionless: false
-unit_symbol: 1/s
+unit_symbol: m²
 dimensions:
-  T: -1
+  L: 2

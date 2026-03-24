@@ -1,0 +1,7 @@
+name: density
+kind: quantity
+dimensionless: false
+unit_symbol: kg/m³
+dimensions:
+  M: 1
+  L: -3

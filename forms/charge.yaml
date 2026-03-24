@@ -1,6 +1,7 @@
-name: rate
+name: charge
 kind: quantity
 dimensionless: false
-unit_symbol: 1/s
+unit_symbol: C
 dimensions:
-  T: -1
+  I: 1
+  T: 1

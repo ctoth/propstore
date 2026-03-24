@@ -1,0 +1,10 @@
+name: gravitational_param
+kind: quantity
+dimensionless: false
+unit_symbol: m³/(kg·s²)
+dimensions:
+  L: 3
+  M: -1
+  T: -2
+note: Form for the gravitational constant G and similar quantities with dimensions
+  L3 M-1 T-2.

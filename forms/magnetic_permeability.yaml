@@ -1,0 +1,10 @@
+name: magnetic_permeability
+kind: quantity
+dimensionless: false
+unit_symbol: H/m
+dimensions:
+  M: 1
+  L: 1
+  T: -2
+  I: -2
+note: Form for vacuum permeability (mu_0) and similar quantities.
