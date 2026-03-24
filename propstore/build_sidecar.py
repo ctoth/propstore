@@ -524,6 +524,8 @@ def _populate_contexts(conn: sqlite3.Connection, contexts: list) -> None:
     """Populate context, context_assumption, and context_exclusion tables."""
     from propstore.validate_contexts import LoadedContext
 
+    # First pass: insert all contexts and their assumptions
+    exclusion_pairs: list[tuple[str, str]] = []
     for ctx in contexts:
         if not isinstance(ctx, LoadedContext):
             continue
@@ -544,10 +546,14 @@ def _populate_contexts(conn: sqlite3.Connection, contexts: list) -> None:
             )
 
         for exc in d.get("excludes") or []:
-            conn.execute(
-                "INSERT INTO context_exclusion (context_a, context_b) VALUES (?, ?)",
-                (cid, exc),
-            )
+            exclusion_pairs.append((cid, exc))
+
+    # Second pass: insert exclusions after all contexts exist
+    for ctx_a, ctx_b in exclusion_pairs:
+        conn.execute(
+            "INSERT INTO context_exclusion (context_a, context_b) VALUES (?, ?)",
+            (ctx_a, ctx_b),
+        )
 
 
 def _build_fts_index(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
