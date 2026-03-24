@@ -480,6 +480,18 @@ def _validate_equation(
                 # Also map by concept ID (some sympy fields use concept IDs)
                 dim_map[var_concept] = dims
 
+            # Also scan sympy for concept IDs not declared in variables
+            import re
+            for cid_ref in re.findall(r'concept\d+', sympy_str):
+                if cid_ref not in dim_map and cid_ref in concept_registry:
+                    concept_data = concept_registry[cid_ref]
+                    form_def = concept_data.get("_form_definition")
+                    if form_def is not None:
+                        if form_def.dimensions is not None:
+                            dim_map[cid_ref] = dict(form_def.dimensions)
+                        elif form_def.is_dimensionless:
+                            dim_map[cid_ref] = {}
+
             if dim_map:
                 parsed = sp.sympify(sympy_str)
                 if not verify_expr(parsed, dim_map):
