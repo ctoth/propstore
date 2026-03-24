@@ -651,16 +651,17 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
               help="Set comparison for preference ordering (default: elitist)")
 @click.option("--confidence-threshold", "confidence_threshold", default=0.5,
               type=float, help="Minimum stance confidence to include (default: 0.5)")
+@click.option("--context", default=None, help="Context to scope the argumentation")
 @click.pass_obj
 def world_extensions(obj: dict, args: tuple[str, ...],
                      semantics: str, set_comparison: str,
-                     confidence_threshold: float) -> None:
+                     confidence_threshold: float, context: str | None) -> None:
     """Show argumentation extensions — all claims that survive scrutiny.
 
     Usage: pks world extensions domain=example --semantics grounded
     """
     from propstore.argumentation import compute_justified_claims, stance_summary
-    from propstore.world import WorldModel
+    from propstore.world import Environment, WorldModel
 
     repo: Repository = obj["repo"]
     try:
@@ -670,7 +671,11 @@ def world_extensions(obj: dict, args: tuple[str, ...],
         sys.exit(1)
 
     bindings, _ = _parse_bindings(args)
-    bound = wm.bind(**bindings)
+    if context:
+        env = Environment(bindings=bindings, context_id=context)
+        bound = wm.bind(env)
+    else:
+        bound = wm.bind(**bindings)
 
     active = bound.active_claims()
     if not active:
