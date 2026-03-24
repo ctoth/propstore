@@ -113,6 +113,32 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return tmp_path
 
 
+@pytest.fixture()
+def freq_workspace(workspace: Path) -> Path:
+    """Workspace with a frequency concept, a kHz claim, and a built sidecar."""
+    claims_dir = workspace / "knowledge" / "claims"
+    _write_claim_file(claims_dir, "freq_paper.yaml", {
+        "source": {"paper": "freq_paper"},
+        "claims": [
+            {
+                "id": "freq_claim1",
+                "type": "parameter",
+                "concept": "concept1",
+                "value": 0.2,
+                "unit": "kHz",
+                "provenance": {"paper": "freq_paper", "page": 1},
+            }
+        ],
+    })
+
+    runner = CliRunner()
+    sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
+    sidecar.parent.mkdir(parents=True, exist_ok=True)
+    result = runner.invoke(cli, ["build", "-o", str(sidecar)])
+    assert result.exit_code == 0, f"Build failed: {result.output}"
+    return workspace
+
+
 class TestInit:
     def test_creates_forms_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.chdir(tmp_path)
@@ -1270,3 +1296,245 @@ class TestConnectionClosedOnError:
         assert result.exit_code != 0 or "boom" in (result.output or "")
         # The connection MUST have been closed despite the error
         mock_conn.close.assert_called()
+
+
+# ── claim show ──────────────────────────────────────────────────────
+
+@pytest.fixture()
+def freq_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Workspace with a built sidecar containing a parameter claim."""
+    monkeypatch.chdir(tmp_path)
+
+    knowledge = tmp_path / "knowledge"
+    concepts = knowledge / "concepts"
+    concepts.mkdir(parents=True)
+    forms_dir = knowledge / "forms"
+    forms_dir.mkdir()
+
+    # Minimal form definitions
+    (forms_dir / "frequency.yaml").write_text(yaml.dump({
+        "name": "frequency",
+        "unit_symbol": "Hz",
+        "dimensionless": False,
+    }))
+
+    # Write a concept
+    _write_concept(concepts, "fundamental_frequency", _make_concept(
+        "fundamental_frequency", "concept1", "speech", form="frequency",
+    ))
+
+    _write_counter(concepts, "speech", 2)
+
+    # Build sidecar with claim data directly in SQLite
+    sidecar_dir = knowledge / "sidecar"
+    sidecar_dir.mkdir()
+    sidecar = sidecar_dir / "propstore.sqlite"
+
+    conn = sqlite3.connect(sidecar)
+    conn.executescript("""
+        CREATE TABLE concept (
+            id TEXT PRIMARY KEY,
+            content_hash TEXT NOT NULL,
+            seq INTEGER NOT NULL,
+            canonical_name TEXT NOT NULL,
+            status TEXT NOT NULL,
+            domain TEXT,
+            definition TEXT NOT NULL,
+            kind_type TEXT NOT NULL,
+            form TEXT NOT NULL,
+            form_parameters TEXT,
+            range_min REAL,
+            range_max REAL,
+            is_dimensionless INTEGER NOT NULL DEFAULT 0,
+            unit_symbol TEXT,
+            created_date TEXT,
+            last_modified TEXT
+        );
+        CREATE TABLE claim (
+            id TEXT PRIMARY KEY,
+            content_hash TEXT NOT NULL,
+            seq INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            concept_id TEXT,
+            value REAL,
+            lower_bound REAL,
+            upper_bound REAL,
+            uncertainty REAL,
+            uncertainty_type TEXT,
+            sample_size INTEGER,
+            unit TEXT,
+            conditions_cel TEXT,
+            statement TEXT,
+            expression TEXT,
+            sympy_generated TEXT,
+            sympy_error TEXT,
+            name TEXT,
+            target_concept TEXT,
+            measure TEXT,
+            listener_population TEXT,
+            methodology TEXT,
+            notes TEXT,
+            description TEXT,
+            auto_summary TEXT,
+            body TEXT,
+            canonical_ast TEXT,
+            variables_json TEXT,
+            stage TEXT,
+            source_paper TEXT NOT NULL,
+            provenance_page INTEGER NOT NULL,
+            provenance_json TEXT,
+            value_si REAL,
+            lower_bound_si REAL,
+            upper_bound_si REAL,
+            context_id TEXT
+        );
+        CREATE TABLE alias (
+            concept_id TEXT NOT NULL,
+            alias_name TEXT NOT NULL
+        );
+    """)
+    conn.execute(
+        "INSERT INTO concept VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("concept1", "abc123", 1, "fundamental_frequency", "accepted",
+         "speech", "F0", "quantity", "frequency", None, None, None,
+         0, "Hz", "2026-03-15", None),
+    )
+    conn.execute(
+        """INSERT INTO claim (id, content_hash, seq, type, concept_id,
+           value, lower_bound, upper_bound, uncertainty, sample_size,
+           unit, conditions_cel, source_paper, provenance_page,
+           value_si, lower_bound_si, upper_bound_si)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        ("test_claim1", "def456", 1, "parameter", "concept1",
+         0.2, None, None, 0.01, 200,
+         "kHz", "age > 18", "test_paper", 42,
+         200.0, None, None),
+    )
+    conn.commit()
+    conn.close()
+
+    return tmp_path
+
+
+class TestClaimShow:
+    def test_claim_show_exists(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "-C", str(freq_workspace / "knowledge"),
+            "claim", "show", "test_claim1",
+        ])
+        assert result.exit_code == 0, result.output
+        assert "test_claim1" in result.output
+
+    def test_claim_show_displays_si_values(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "-C", str(freq_workspace / "knowledge"),
+            "claim", "show", "test_claim1",
+        ])
+        assert result.exit_code == 0, result.output
+        assert "0.2" in result.output
+        assert "200" in result.output
+        assert "kHz" in result.output
+
+    def test_claim_show_not_found(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "-C", str(freq_workspace / "knowledge"),
+            "claim", "show", "nonexistent_claim",
+        ])
+        assert result.exit_code != 0 or "not found" in result.output.lower()
+
+
+# ── world query/bind SI values ──────────────────────────────────────
+
+class TestWorldQuerySIValues:
+    def test_world_query_shows_si_value(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["world", "query", "concept1"])
+        assert result.exit_code == 0, result.output
+        assert "0.2" in result.output
+        assert "kHz" in result.output
+        assert "200" in result.output
+
+    def test_world_bind_shows_si_value(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["world", "bind", "concept1"])
+        assert result.exit_code == 0, result.output
+        assert "0.2" in result.output
+        assert "200" in result.output
+
+
+# ── form show — unit conversions ─────────────────────────────────────
+
+class TestFormShowConversions:
+    """Tests for unit conversion display in `pks form show`."""
+
+    def _write_form_with_conversions(self, workspace: Path, name: str, data: dict) -> None:
+        forms_dir = workspace / "knowledge" / "forms"
+        (forms_dir / f"{name}.yaml").write_text(
+            yaml.dump(data, default_flow_style=False, sort_keys=False))
+
+    def test_form_show_displays_conversions(self, workspace: Path) -> None:
+        self._write_form_with_conversions(workspace, "frequency", {
+            "name": "frequency",
+            "kind": "quantity",
+            "dimensionless": False,
+            "unit_symbol": "Hz",
+            "dimensions": {"T": -1},
+            "common_alternatives": [
+                {"unit": "kHz", "type": "multiplicative", "multiplier": 1000},
+                {"unit": "MHz", "type": "multiplicative", "multiplier": 1000000},
+            ],
+        })
+        runner = CliRunner()
+        result = runner.invoke(cli, ["form", "show", "frequency"])
+        assert result.exit_code == 0, result.output
+        assert "Unit Conversions" in result.output
+        assert "kHz" in result.output
+
+    def test_form_show_no_conversions_for_category(self, workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["form", "show", "category"])
+        assert result.exit_code == 0, result.output
+        assert "Unit Conversions" not in result.output
+
+    def test_form_show_affine_conversion(self, workspace: Path) -> None:
+        self._write_form_with_conversions(workspace, "temperature", {
+            "name": "temperature",
+            "kind": "quantity",
+            "dimensionless": False,
+            "unit_symbol": "K",
+            "dimensions": {"\u0398": 1},
+            "common_alternatives": [
+                {"unit": "\u00b0C", "type": "affine", "multiplier": 1.0, "offset": 273.15},
+                {"unit": "\u00b0F", "type": "affine", "multiplier": 0.5556, "offset": 255.372},
+            ],
+        })
+        runner = CliRunner()
+        result = runner.invoke(cli, ["form", "show", "temperature"])
+        assert result.exit_code == 0, result.output
+        assert "Unit Conversions" in result.output
+        # Check formatted affine conversion line (not just raw YAML keyword)
+        assert "\u00b0C \u2192 K" in result.output or "degC \u2192 K" in result.output
+        assert "affine" in result.output
+
+    def test_form_show_logarithmic_conversion(self, workspace: Path) -> None:
+        self._write_form_with_conversions(workspace, "sound_pressure_level", {
+            "name": "sound_pressure_level",
+            "kind": "quantity",
+            "dimensionless": False,
+            "unit_symbol": "Pa",
+            "dimensions": {"M": 1, "L": -1, "T": -2},
+            "common_alternatives": [
+                {"unit": "dB_SPL", "type": "logarithmic", "base": 10, "divisor": 20, "reference": 0.00002},
+            ],
+        })
+        runner = CliRunner()
+        result = runner.invoke(cli, ["form", "show", "sound_pressure_level"])
+        assert result.exit_code == 0, result.output
+        assert "Unit Conversions" in result.output
+        # Check formatted logarithmic conversion line (not just raw YAML keyword)
+        assert "dB_SPL \u2192 Pa" in result.output
+        assert "logarithmic" in result.output
+        assert "ref=" in result.output

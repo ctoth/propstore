@@ -101,6 +101,22 @@ def show(obj: dict, name: str) -> None:
         sys.exit(EXIT_ERROR)
     click.echo(path.read_text())
 
+    # Display unit conversions if the form has any
+    from propstore.form_utils import load_form
+    form_def = load_form(repo.forms_dir, name)
+    if form_def and form_def.conversions:
+        click.echo("Unit Conversions:")
+        si = form_def.unit_symbol or "SI"
+        for conv in form_def.conversions.values():
+            if conv.type == "multiplicative":
+                click.echo(f"  {conv.unit} \u2192 {si}  (\u00d7{conv.multiplier:g})")
+            elif conv.type == "affine":
+                click.echo(f"  {conv.unit} \u2192 {si}  (\u00d7{conv.multiplier:g} + {conv.offset:g}, affine)")
+            elif conv.type == "logarithmic":
+                click.echo(f"  {conv.unit} \u2192 {si}  (logarithmic, ref={conv.reference:g})")
+            else:
+                click.echo(f"  {conv.unit} \u2192 {si}  ({conv.type})")
+
     # Append algebra from sidecar if available
     if repo.sidecar_path.exists():
         try:
