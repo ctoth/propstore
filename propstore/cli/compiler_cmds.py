@@ -699,24 +699,92 @@ def world_extensions(obj: dict, args: tuple[str, ...],
     if summary["models"]:
         click.echo(f"Models: {', '.join(summary['models'])}")
 
+    # Build AF to get defeat edges for showing defeaters
+    from propstore.argumentation import build_argumentation_framework
+
+    af = build_argumentation_framework(
+        wm, claim_ids,
+        comparison=set_comparison,
+        confidence_threshold=confidence_threshold,
+    )
+
+    # Build lookup helpers
+    claim_map = {c["id"]: c for c in active}
+
+    def _claim_label(cid: str) -> str:
+        """Format a claim for display: id (type) concept = value."""
+        c = claim_map.get(cid)
+        if c is None:
+            return cid
+        ctype = c.get("type", "?")
+        concept_id = c.get("concept_id")
+        value = c.get("value")
+        # Resolve concept name
+        cname = None
+        if concept_id:
+            concept = wm.get_concept(concept_id)
+            if concept:
+                cname = concept.get("canonical_name", concept_id)
+        if ctype == "parameter" and value is not None:
+            return f"{cid}: {cname} = {value}"
+        elif ctype == "equation":
+            expr = c.get("expression", "")
+            return f"{cid}: {expr}" if expr else f"{cid} ({ctype})"
+        elif ctype in ("observation", "limitation", "mechanism", "comparison"):
+            stmt = c.get("statement") or c.get("description") or ""
+            if len(stmt) > 60:
+                stmt = stmt[:57] + "..."
+            return f"{cid}: {stmt}" if stmt else f"{cid} ({ctype})"
+        elif value is not None:
+            return f"{cid}: {cname} = {value}" if cname else f"{cid} = {value}"
+        else:
+            return f"{cid} ({ctype})"
+
+    # Group justified claims by type
+    def _group_by_type(cids):
+        groups: dict[str, list[str]] = {}
+        for cid in sorted(cids):
+            c = claim_map.get(cid)
+            ctype = c.get("type", "unknown") if c else "unknown"
+            groups.setdefault(ctype, []).append(cid)
+        return groups
+
     if semantics == "grounded":
-        click.echo(f"Grounded extension ({len(result)} claims):")
-        for cid in sorted(result):
-            claim = next((c for c in active if c["id"] == cid), None)
-            concept = claim["concept_id"] if claim else "?"
-            value = claim.get("value", "?") if claim else "?"
-            click.echo(f"  {cid} [{concept}] = {value}")
+        # Defeaters: for each defeated claim, find what attacks it
         defeated = claim_ids - result
+        defeaters_map: dict[str, list[str]] = {}
+        for src, tgt in af.defeats:
+            if tgt in defeated:
+                defeaters_map.setdefault(tgt, []).append(src)
+
+        # Print accepted, grouped by type
+        accepted_groups = _group_by_type(result)
+        click.echo(f"Accepted ({len(result)} claims):")
+        for ctype, cids in sorted(accepted_groups.items()):
+            click.echo(f"  {ctype} ({len(cids)}):")
+            for cid in cids:
+                click.echo(f"    {_claim_label(cid)}")
+
+        # Print defeated with defeaters
         if defeated:
             click.echo(f"Defeated ({len(defeated)} claims):")
             for cid in sorted(defeated):
-                click.echo(f"  {cid}")
+                defeaters = defeaters_map.get(cid, [])
+                if defeaters:
+                    by = ", ".join(sorted(defeaters))
+                    click.echo(f"  {_claim_label(cid)}")
+                    click.echo(f"    defeated by: {by}")
+                else:
+                    click.echo(f"  {_claim_label(cid)}")
     else:
         click.echo(f"Extensions ({len(result)}):")
         for i, ext in enumerate(result):
             click.echo(f"  Extension {i + 1} ({len(ext)} claims):")
-            for cid in sorted(ext):
-                click.echo(f"    {cid}")
+            groups = _group_by_type(ext)
+            for ctype, cids in sorted(groups.items()):
+                click.echo(f"    {ctype}:")
+                for cid in cids:
+                    click.echo(f"      {_claim_label(cid)}")
 
     wm.close()
 
