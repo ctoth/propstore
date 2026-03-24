@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Sequence
 import yaml
 
 from propstore.parameterization_groups import build_groups
-from propstore.form_utils import kind_value_from_form_name, load_form
+from propstore.form_utils import kind_value_from_form_name, load_all_forms, load_form
 from propstore.stances import VALID_STANCE_TYPES
 from propstore.validate import LoadedConcept
 from propstore.validate_claims import LoadedClaimFile
@@ -269,6 +269,7 @@ def build_sidecar(
 
         _create_tables(conn)
         _create_context_tables(conn)
+        _populate_forms(conn, repo=repo, concepts=concepts)
         _populate_concepts(conn, concepts, repo=repo)
         _populate_aliases(conn, concepts)
         _populate_relationships(conn, concepts)
@@ -381,12 +382,58 @@ def _create_tables(conn: sqlite3.Connection):
             FOREIGN KEY (concept_id) REFERENCES concept(id)
         );
 
+        CREATE TABLE form (
+            name TEXT PRIMARY KEY,
+            kind TEXT NOT NULL,
+            unit_symbol TEXT,
+            is_dimensionless INTEGER NOT NULL DEFAULT 0,
+            dimensions TEXT
+        );
+
+        CREATE TABLE form_algebra (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            output_form TEXT NOT NULL,
+            input_forms TEXT NOT NULL,
+            operation TEXT NOT NULL,
+            source_concept_id TEXT,
+            source_formula TEXT,
+            FOREIGN KEY (output_form) REFERENCES form(name)
+        );
+
         CREATE INDEX idx_alias_name ON alias(alias_name);
         CREATE INDEX idx_alias_concept ON alias(concept_id);
         CREATE INDEX idx_rel_source ON relationship(source_id);
         CREATE INDEX idx_rel_target ON relationship(target_id);
         CREATE INDEX idx_param_group ON parameterization_group(group_id);
+        CREATE INDEX idx_form_algebra_output ON form_algebra(output_form);
     """)
+
+
+def _populate_forms(
+    conn: sqlite3.Connection,
+    *,
+    repo: Repository | None = None,
+    concepts: list[LoadedConcept] | None = None,
+) -> None:
+    """Populate the form table from form YAML files."""
+    # Determine forms directory
+    forms_dir: Path | None = None
+    if repo is not None:
+        forms_dir = repo.forms_dir
+    elif concepts:
+        forms_dir = concepts[0].filepath.parent.parent / "forms"
+    if forms_dir is None or not forms_dir.exists():
+        return
+
+    registry = load_all_forms(forms_dir)
+    for fd in registry.values():
+        dims_json = json.dumps(fd.dimensions) if fd.dimensions is not None else None
+        conn.execute(
+            "INSERT INTO form (name, kind, unit_symbol, is_dimensionless, dimensions) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (fd.name, fd.kind.value if hasattr(fd.kind, 'value') else str(fd.kind),
+             fd.unit_symbol, 1 if fd.is_dimensionless else 0, dims_json),
+        )
 
 
 def _populate_concepts(

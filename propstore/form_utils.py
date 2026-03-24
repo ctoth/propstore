@@ -128,6 +128,21 @@ def load_all_forms(forms_dir: Path) -> dict[str, FormDefinition]:
     return registry
 
 
+def dims_signature(dimensions: dict[str, int] | None) -> str | None:
+    """Canonical string key for a dimension dict.
+
+    Returns a sorted, zero-stripped representation like ``'L:1,M:1,T:-2'``,
+    an empty string for dimensionless (all-zero or empty dict),
+    or ``None`` when *dimensions* is ``None``.
+    """
+    if dimensions is None:
+        return None
+    cleaned = {k: v for k, v in dimensions.items() if v != 0}
+    if not cleaned:
+        return ""
+    return ",".join(f"{k}:{v}" for k, v in sorted(cleaned.items()))
+
+
 def json_safe(obj: Any) -> Any:
     """Recursively convert date objects to ISO strings for JSON serialization."""
     if isinstance(obj, dict):
