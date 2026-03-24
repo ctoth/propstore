@@ -581,6 +581,8 @@ def _resolve_target(
     reason = f"status={vr.status}"
     if vr.status == "no_claims":
         reason = "no claims and no override provided"
+    elif vr.status == "no_values":
+        reason = "claims exist but none have scalar values"
     elif vr.status == "conflicted":
         reason = "conflicted with no resolution strategy"
     elif vr.status == "underdetermined":

@@ -92,7 +92,8 @@ class ActiveClaimResolver:
                 if claim.get("value") is not None
             }
             if not direct_values:
-                return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
+                status = "no_claims" if not active else "no_values"
+                return ValueResult(concept_id=concept_id, status=status, claims=active)
             if len(direct_values) != 1:
                 return ValueResult(concept_id=concept_id, status="conflicted", claims=active)
 
@@ -128,7 +129,8 @@ class ActiveClaimResolver:
 
         values = {claim.get("value") for claim in active if claim.get("value") is not None}
         if not values:
-            return ValueResult(concept_id=concept_id, status="no_claims", claims=active)
+            status = "no_claims" if not active else "no_values"
+            return ValueResult(concept_id=concept_id, status=status, claims=active)
         if len(values) == 1:
             return ValueResult(concept_id=concept_id, status="determined", claims=active)
         return ValueResult(concept_id=concept_id, status="conflicted", claims=active)

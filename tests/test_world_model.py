@@ -757,6 +757,28 @@ class TestValueOf:
         result = bound.value_of("concept3")
         assert result.status == "no_claims"
 
+    def test_no_values_distinct_from_no_claims(self, world):
+        """Claims present but all have value=None → status should be 'no_values', not 'no_claims'."""
+        bound = world.bind(task="speech")
+        # Inject synthetic claims with value=None (observation-like claims without scalar values)
+        hypo = HypotheticalWorld(
+            bound,
+            add=[
+                SyntheticClaim(id="synth_obs1", concept_id="concept3", type="observation", value=None,
+                               conditions=["task == 'speech'"]),
+                SyntheticClaim(id="synth_obs2", concept_id="concept3", type="observation", value=None,
+                               conditions=["task == 'speech'"]),
+            ],
+        )
+        result = hypo.value_of("concept3")
+        # Claims ARE present — status must NOT be "no_claims"
+        assert result.status != "no_claims", (
+            "Claims exist but lack values; status should be 'no_values', not 'no_claims'"
+        )
+        assert result.status == "no_values"
+        # The claims themselves should still be included in the result
+        assert len(result.claims) == 2
+
     def test_is_determined(self, world):
         bound = world.bind(task="singing")
         assert bound.is_determined("concept1") is True

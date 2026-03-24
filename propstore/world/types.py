@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 @dataclass
 class ValueResult:
     concept_id: str
-    status: str  # "determined" | "conflicted" | "underdetermined" | "no_claims"
+    status: str  # "determined" | "conflicted" | "underdetermined" | "no_claims" | "no_values"
     claims: list[dict] = field(default_factory=list)
     label: Label | None = None
 
