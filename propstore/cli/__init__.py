@@ -48,3 +48,54 @@ cli.add_command(import_papers)
 cli.add_command(init)
 cli.add_command(world)
 cli.add_command(worldline)
+
+
+# ── promote command ──────────────────────────────────────────────────
+
+@cli.command()
+@click.argument("path", required=False, default=None, type=click.Path())
+@click.option("-y", "--yes", is_flag=True, help="Skip confirmation prompt.")
+@click.pass_context
+def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
+    """Move proposal artifacts from proposals/ into source-of-truth storage.
+
+    Moves stance files from knowledge/proposals/stances/ to knowledge/stances/.
+    If PATH is given, promotes only that file; otherwise promotes all files
+    in knowledge/proposals/stances/.
+    """
+    repo: "Repository" = ctx.obj["repo"]
+    proposals_stances = repo.root / "proposals" / "stances"
+    target_stances = repo.stances_dir
+
+    if path is not None:
+        sources = [Path(path)]
+    else:
+        if not proposals_stances.exists():
+            click.echo("No proposals/stances/ directory found. Nothing to promote.")
+            return
+        sources = sorted(proposals_stances.glob("*.yaml"))
+
+    if not sources:
+        click.echo("No proposal files found to promote.")
+        return
+
+    # Show what will be moved
+    for src in sources:
+        dest = target_stances / src.name
+        click.echo(f"  {src} -> {dest}")
+
+    if not yes:
+        click.confirm("Promote these files?", abort=True)
+
+    target_stances.mkdir(parents=True, exist_ok=True)
+    moved = 0
+    for src in sources:
+        if not src.exists():
+            click.echo(f"  SKIP (not found): {src}", err=True)
+            continue
+        dest = target_stances / src.name
+        src.rename(dest)
+        click.echo(f"  Promoted: {src.name}")
+        moved += 1
+
+    click.echo(f"\n{moved} file(s) promoted.")

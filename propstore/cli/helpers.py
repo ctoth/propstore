@@ -152,9 +152,9 @@ def next_id(counters: Path) -> tuple[str, int]:
 # ── YAML I/O ─────────────────────────────────────────────────────────
 
 def load_concept_file(path: Path) -> dict:
-    with open(path) as f:
-        data = yaml.safe_load(f)
-    return data if data else {}
+    """Re-exported from :mod:`propstore.data_utils` for backward compatibility."""
+    from propstore.data_utils import load_concept_file as _load_concept_file
+    return _load_concept_file(path)
 
 
 def write_yaml_file(path: Path, data: dict) -> None:
@@ -174,41 +174,8 @@ def write_concept_file(path: Path, data: dict) -> None:
 
 # ── Lookup helpers ───────────────────────────────────────────────────
 
-_ID_RE = re.compile(r'^concept\d+$')
-
-
-def find_concept(id_or_name: str, cdir: Path) -> Path | None:
-    """Find a concept file by ID or canonical_name. Returns filepath or None."""
-    if not cdir.exists():
-        return None
-
-    # Try as canonical_name (direct file lookup)
-    direct = cdir / f"{id_or_name}.yaml"
-    if direct.exists():
-        return direct
-
-    # Try as ID — scan files
-    if _ID_RE.match(id_or_name):
-        for entry in sorted(cdir.iterdir()):
-            if entry.is_file() and entry.suffix == ".yaml":
-                data = load_concept_file(entry)
-                if data.get("id") == id_or_name:
-                    return entry
-    return None
-
-
-def load_all_concepts_by_id(cdir: Path) -> dict[str, dict]:
-    """Load all concepts keyed by ID."""
-    if not cdir.exists():
-        return {}
-    result: dict[str, dict] = {}
-    for entry in sorted(cdir.iterdir()):
-        if entry.is_file() and entry.suffix == ".yaml":
-            data = load_concept_file(entry)
-            cid = data.get("id")
-            if cid:
-                result[cid] = data
-    return result
+# Re-exported from propstore.data_utils for backward compatibility
+from propstore.data_utils import find_concept, load_all_concepts_by_id
 
 
 # ── WorldModel helpers ────────────────────────────────────────────────
