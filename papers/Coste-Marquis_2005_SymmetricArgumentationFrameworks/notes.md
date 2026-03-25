@@ -114,3 +114,32 @@ Directly relevant to propstore's argumentation layer. When claims from different
 - Cayrol et al. [23]: Minimal defence refinement of preferred semantics
 - Dunne & Bench-Capon [26]: Coherence in finite argument systems -- provides the complexity baselines this paper extends
 - Dimopoulos et al. [19]: Computational complexity of assumption-based argumentation for default reasoning
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — the foundational paper defining AFs, extensions, and all semantics that this paper restricts to symmetric attacks
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — same year, same venue tradition; extends Dung AFs with support relation (bipolar), while this paper restricts to symmetric attacks. Complementary structural investigations.
+- [[Simari_1992_MathematicalTreatmentDefeasibleReasoning]] — cited as [8] for defeasible reasoning foundations
+- [[Pollock_1987_DefeasibleReasoning]] — cited as [7] for defeasible reasoning theory
+- [[Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation]] — Baroni & Giacomin's recursive approach cited as [22]; their SCC decomposition handles odd-length cycles while this paper shows even-length cycles (from symmetric mutual attacks) have cleaner semantics
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — evaluates argumentation principles including coherence and relative groundedness, which this paper proves hold universally for symmetric AFs
+- [[Amgoud_2011_NewApproachPreference-basedArgumentation]] — Amgoud & Cayrol cited as [13, 15, 16] for preference-based argumentation
+
+### New Leads (Not Yet in Collection)
+- Dunne & Bench-Capon (2002) — "Coherence in finite argument system" — Artificial Intelligence 141:187-203 — provides complexity baselines for general AFs that this paper specializes to symmetric
+- Dimopoulos, Nebel & Toni (2002) — "On the computational complexity of assumption-based argumentation" — AI 141:57-78 — single-argument complexity results extended here to set-of-arguments
+- Elvang-Goransson, Fox & Krause (1993) — "Dialectic reasoning with inconsistent information" — motivation for symmetric AFs from logic-based argumentation
+- Bondarenko, Dung, Kowalski & Toni (1997) — "An abstract argumentation-theoretic approach to default reasoning" — AI 93:63-101 — foundational structured argumentation
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- (none found — collection papers referencing "Coste-Marquis 2005" cite the companion "Prudent semantics" paper, not this one)
+
+### Conceptual Links (not citation-based)
+- [[Dung_1995_AcceptabilityArguments]] — Dung defines coherence (preferred=stable) and relative groundedness (grounded = intersection of preferred) as properties some AFs have; this paper proves all symmetric AFs have both properties universally, strengthening Dung's Theorem 33 (limited controversial => coherent) since symmetric AFs are a different structural class
+- [[Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation]] — Baroni's SCC-recursive approach and CF2 semantics handle problematic cases (odd-length cycles) where standard semantics fail; symmetric AFs create only even-length cycles (every mutual attack is a 2-cycle), explaining why standard semantics behave well here — the pathologies CF2 was designed to fix cannot arise in symmetric frameworks
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — Cayrol's bipolar AFs add support alongside attack; an open question is whether adding support to a symmetric AF preserves the collapse of preferred/stable/naive, since supported defeats could introduce asymmetry
+- [[Caminada_2006_IssueReinstatementArgumentation]] — Caminada's labelling approach (in/out/undec) applied to symmetric AFs would yield: every argument is either IN (unattacked, in grounded) or in an even cycle where it alternates between preferred extensions — semi-stable semantics would coincide with preferred since preferred=stable here
