@@ -516,3 +516,280 @@ def test_build_praf_no_stances():
     assert len(praf.p_defeats) == 0
     # P_A still populated for both arguments
     assert set(praf.p_args.keys()) == {"c1", "c2"}
+
+
+# ---------------------------------------------------------------------------
+# Decision Criteria in Resolution (Phase 4 Red)
+# ---------------------------------------------------------------------------
+
+def _make_claims_and_stances_decision_criterion_tie():
+    """Two claims that tie on PrAF acceptance probability but differ in opinion.
+
+    Both claims mutually defeat each other with identical stance opinions
+    (symmetric), so PrAF acceptance probabilities are equal. But the claims
+    carry different opinion components (b,d,u,a) that produce different
+    values under different decision criteria.
+
+    Claim A: opinion b=0.6, d=0.1, u=0.3, a=0.5
+        pignistic = 0.6 + 0.5*0.3 = 0.75
+        lower_bound = 0.6
+        upper_bound = 1.0 - 0.1 = 0.9
+
+    Claim B: opinion b=0.7, d=0.2, u=0.1, a=0.5
+        pignistic = 0.7 + 0.5*0.1 = 0.75
+        lower_bound = 0.7
+        upper_bound = 1.0 - 0.2 = 0.8
+
+    Under pignistic: tie (both 0.75).
+    Under lower_bound: B wins (0.7 > 0.6).
+    Under upper_bound: A wins (0.9 > 0.8).
+    Under hurwicz(alpha=1.0): same as lower_bound, B wins.
+
+    Per Denoeux (2019, p.17-18): decision criteria determine how belief
+    function uncertainty maps to actionable values.
+    Per Jøsang (2001, p.5, Def 6): E(ω) = b + a·u is pignistic for binary.
+    """
+    # Equal sample_size so mutual rebuts both pass preference filter
+    claims = [
+        {"id": "cA", "concept_id": "temp", "type": "parameter", "value": 100.0,
+         "sample_size": 50, "provenance_json": '{"date": "2024-01-01"}',
+         "opinion_belief": 0.6, "opinion_disbelief": 0.1,
+         "opinion_uncertainty": 0.3, "opinion_base_rate": 0.5},
+        {"id": "cB", "concept_id": "temp", "type": "parameter", "value": 200.0,
+         "sample_size": 50, "provenance_json": '{"date": "2024-01-01"}',
+         "opinion_belief": 0.7, "opinion_disbelief": 0.2,
+         "opinion_uncertainty": 0.1, "opinion_base_rate": 0.5},
+    ]
+    # Symmetric mutual defeats with identical opinions — produces a PrAF tie
+    symmetric_opinion = {
+        "opinion_belief": 0.8, "opinion_disbelief": 0.05,
+        "opinion_uncertainty": 0.15, "opinion_base_rate": 0.5,
+        "confidence": 0.9,
+    }
+    stances = [
+        {"claim_id": "cA", "target_claim_id": "cB",
+         "stance_type": "rebuts", **symmetric_opinion},
+        {"claim_id": "cB", "target_claim_id": "cA",
+         "stance_type": "rebuts", **symmetric_opinion},
+    ]
+    return claims, stances
+
+
+class TestDecisionCriteriaInResolution:
+    """Tests for decision criterion integration in the PrAF resolution path.
+
+    The problem: apply_decision_criterion() is never called from the
+    resolution path. The winner is always picked by bare max(acceptance_probs),
+    ignoring the decision_criterion policy field.
+
+    Per Denoeux (2019, p.17-18): decision criteria determine how belief
+    function uncertainty maps to actionable values at render time.
+    Per Jøsang (2001, p.5, Def 6): E(ω) = b + a·u is pignistic for binary.
+    """
+
+    def test_praf_decision_criterion_lower_bound_changes_winner(self):
+        """lower_bound criterion (Bel = b) should break PrAF ties differently than pignistic.
+
+        Claim A: b=0.6, pignistic=0.75, lower_bound=0.6
+        Claim B: b=0.7, pignistic=0.75, lower_bound=0.7
+        Under lower_bound: B wins (0.7 > 0.6).
+
+        Currently fails because decision_criterion is never applied in
+        _resolve_praf() — the tied acceptance probs produce CONFLICTED
+        instead of using the criterion as tiebreaker.
+
+        Per Jøsang (2001, p.4): Bel(x) = b.
+        Per Denoeux (2019, p.15): lower expected utility = Bel.
+        """
+        from propstore.world.resolution import resolve
+        from propstore.world.types import (
+            ReasoningBackend,
+            RenderPolicy,
+            ResolutionStrategy,
+            ValueStatus,
+        )
+
+        claims, stances = _make_claims_and_stances_decision_criterion_tie()
+        store = _MockStore(claims, stances)
+        view = _MockBeliefSpace(claims)
+
+        policy = RenderPolicy(
+            reasoning_backend=ReasoningBackend.PRAF,
+            strategy=ResolutionStrategy.ARGUMENTATION,
+            decision_criterion="lower_bound",
+            praf_mc_seed=42,
+        )
+        result = resolve(view, "temp", policy=policy, world=store)
+
+        # With lower_bound tiebreaker, B should win (0.7 > 0.6)
+        assert result.status == ValueStatus.RESOLVED, (
+            f"Expected RESOLVED with lower_bound tiebreaker, got {result.status}: {result.reason}"
+        )
+        assert result.winning_claim_id == "cB", (
+            f"Expected cB to win under lower_bound (b=0.7 > 0.6), "
+            f"got {result.winning_claim_id}"
+        )
+
+    def test_praf_decision_criterion_hurwicz_pessimistic(self):
+        """Hurwicz at α=1.0 (fully pessimistic) should match lower_bound behavior.
+
+        Per Denoeux (2019, p.17): Hurwicz = α·Bel + (1-α)·Pl.
+        At α=1.0: Hurwicz = Bel = lower_bound.
+
+        Claim A: Bel=0.6, Pl=0.9 → Hurwicz(1.0) = 0.6
+        Claim B: Bel=0.7, Pl=0.8 → Hurwicz(1.0) = 0.7
+        B wins.
+        """
+        from propstore.world.resolution import resolve
+        from propstore.world.types import (
+            ReasoningBackend,
+            RenderPolicy,
+            ResolutionStrategy,
+            ValueStatus,
+        )
+
+        claims, stances = _make_claims_and_stances_decision_criterion_tie()
+        store = _MockStore(claims, stances)
+        view = _MockBeliefSpace(claims)
+
+        policy = RenderPolicy(
+            reasoning_backend=ReasoningBackend.PRAF,
+            strategy=ResolutionStrategy.ARGUMENTATION,
+            decision_criterion="hurwicz",
+            pessimism_index=1.0,
+            praf_mc_seed=42,
+        )
+        result = resolve(view, "temp", policy=policy, world=store)
+
+        # Fully pessimistic Hurwicz = lower_bound; B wins (0.7 > 0.6)
+        assert result.status == ValueStatus.RESOLVED, (
+            f"Expected RESOLVED with hurwicz(1.0) tiebreaker, got {result.status}: {result.reason}"
+        )
+        assert result.winning_claim_id == "cB", (
+            f"Expected cB to win under hurwicz(1.0), got {result.winning_claim_id}"
+        )
+
+    def test_praf_default_pignistic_backward_compat(self):
+        """Default pignistic criterion preserves existing behavior — tied claims stay tied.
+
+        Claim A: pignistic = 0.75
+        Claim B: pignistic = 0.75
+        Under pignistic: tie → CONFLICTED (same as current bare max behavior).
+
+        This test documents the backward-compatible case: when both claims have
+        equal pignistic values, the result is CONFLICTED (no arbitrary winner).
+        """
+        from propstore.world.resolution import resolve
+        from propstore.world.types import (
+            ReasoningBackend,
+            RenderPolicy,
+            ResolutionStrategy,
+            ValueStatus,
+        )
+
+        claims, stances = _make_claims_and_stances_decision_criterion_tie()
+        store = _MockStore(claims, stances)
+        view = _MockBeliefSpace(claims)
+
+        policy = RenderPolicy(
+            reasoning_backend=ReasoningBackend.PRAF,
+            strategy=ResolutionStrategy.ARGUMENTATION,
+            # decision_criterion defaults to "pignistic"
+            praf_mc_seed=42,
+        )
+        result = resolve(view, "temp", policy=policy, world=store)
+
+        # Pignistic tie → CONFLICTED (no arbitrary winner selected)
+        assert result.status == ValueStatus.CONFLICTED, (
+            f"Expected CONFLICTED under pignistic tie, got {result.status}"
+        )
+        # acceptance_probs must still be populated
+        assert result.acceptance_probs is not None
+
+    def test_decision_criterion_result_carries_acceptance_probs(self):
+        """ResolvedResult.acceptance_probs must be populated regardless of decision_criterion.
+
+        Even when a decision criterion breaks a tie and produces RESOLVED,
+        the raw acceptance_probs from PrAF computation must still be present
+        for transparency/audit.
+        """
+        from propstore.world.resolution import resolve
+        from propstore.world.types import (
+            ReasoningBackend,
+            RenderPolicy,
+            ResolutionStrategy,
+        )
+
+        claims, stances = _make_claims_and_stances_decision_criterion_tie()
+        store = _MockStore(claims, stances)
+        view = _MockBeliefSpace(claims)
+
+        policy = RenderPolicy(
+            reasoning_backend=ReasoningBackend.PRAF,
+            strategy=ResolutionStrategy.ARGUMENTATION,
+            decision_criterion="lower_bound",
+            praf_mc_seed=42,
+        )
+        result = resolve(view, "temp", policy=policy, world=store)
+
+        # acceptance_probs must be present regardless of criterion
+        assert result.acceptance_probs is not None, (
+            "acceptance_probs must be populated when decision_criterion is used"
+        )
+        assert isinstance(result.acceptance_probs, dict)
+        assert "cA" in result.acceptance_probs
+        assert "cB" in result.acceptance_probs
+        for prob in result.acceptance_probs.values():
+            assert 0.0 <= prob <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# Hypothesis property test: lower_bound <= pignistic <= upper_bound
+# ---------------------------------------------------------------------------
+
+class TestDecisionCriterionProperties:
+    """Property-based tests for decision criterion ordering invariants.
+
+    Per Denoeux (2019, p.15, 18): Bel <= E_BetP <= Pl,
+    i.e., lower_bound <= pignistic <= upper_bound for any valid opinion.
+    """
+
+    def test_lower_bound_leq_pignistic_leq_upper_bound(self):
+        """Bel(x) <= E(ω) <= Pl(x) for any valid opinion.
+
+        Per Denoeux (2019, p.15, 18): the pignistic expected utility always
+        falls within the [lower, upper] bounds defined by belief and plausibility.
+        Per Jøsang (2001, p.4-5): Bel = b, Pl = 1-d, E = b + a·u.
+
+        Uses hypothesis for exhaustive property checking.
+        """
+        from hypothesis import given, settings, assume
+        from hypothesis import strategies as st
+        from propstore.world.types import apply_decision_criterion
+
+        @given(
+            b=st.floats(min_value=0.0, max_value=1.0),
+            d=st.floats(min_value=0.0, max_value=1.0),
+            a=st.floats(min_value=0.0, max_value=1.0),
+        )
+        @settings(max_examples=200, deadline=None)
+        def _check(b, d, a):
+            u = 1.0 - b - d
+            assume(u >= 0.0)
+            assume(u <= 1.0)
+
+            lower = apply_decision_criterion(b, d, u, a, None, "lower_bound")
+            pignistic = apply_decision_criterion(b, d, u, a, None, "pignistic")
+            upper = apply_decision_criterion(b, d, u, a, None, "upper_bound")
+
+            assert lower is not None
+            assert pignistic is not None
+            assert upper is not None
+            assert lower <= pignistic + 1e-12, (
+                f"lower_bound ({lower}) > pignistic ({pignistic}) for b={b}, d={d}, u={u}, a={a}"
+            )
+            assert pignistic <= upper + 1e-12, (
+                f"pignistic ({pignistic}) > upper_bound ({upper}) for b={b}, d={d}, u={u}, a={a}"
+            )
+
+        _check()
