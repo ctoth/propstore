@@ -18,6 +18,7 @@ from propstore.world.types import (
     ResolvedResult,
     ResolutionStrategy,
     ValueStatus,
+    apply_decision_criterion,
 )
 
 
@@ -257,6 +258,47 @@ def _resolve_praf(
             acceptance,
         )
 
+    # Tiebreaker: apply decision criterion to each tied claim's opinion
+    # components per Denoeux (2019, p.17-18).  Pignistic ties remain ties
+    # (backward compatible) because PrAF already uses expectations.
+    decision_criterion = "pignistic"
+    pessimism_index = 0.5
+    if policy is not None:
+        decision_criterion = policy.decision_criterion
+        pessimism_index = policy.pessimism_index
+
+    if len(best_claims) > 1 and decision_criterion != "pignistic":
+        # Build a lookup from claim id to claim dict
+        claim_lookup = {c["id"]: c for c in target_claims}
+        decision_values: dict[str, float | None] = {}
+        for cid in best_claims:
+            c = claim_lookup.get(cid, {})
+            decision_values[cid] = apply_decision_criterion(
+                c.get("opinion_belief"),
+                c.get("opinion_disbelief"),
+                c.get("opinion_uncertainty"),
+                c.get("opinion_base_rate"),
+                c.get("confidence"),
+                criterion=decision_criterion,
+                pessimism_index=pessimism_index,
+            )
+
+        # Filter to claims with non-None decision values
+        scored = {cid: v for cid, v in decision_values.items() if v is not None}
+        if scored:
+            best_dv = max(scored.values())
+            dv_winners = [cid for cid, v in scored.items()
+                          if math.isclose(v, best_dv, rel_tol=1e-9)]
+            if len(dv_winners) == 1:
+                winner = dv_winners[0]
+                return (
+                    winner,
+                    f"PrAF acceptance tie ({best_prob:.4f}) broken by "
+                    f"{decision_criterion} ({best_dv:.4f}) "
+                    f"via {praf_result.strategy_used} ({semantics})",
+                    acceptance,
+                )
+
     return (
         None,
         f"{len(best_claims)} claims tied at acceptance {best_prob:.4f} "
@@ -325,11 +367,8 @@ def resolve(
             semantics = policy.semantics
         if comparison is None:
             comparison = policy.comparison
-        # Extract decision criterion fields (used post-resolution for
-        # re-interpreting opinion uncertainty at render time)
-        _decision_criterion = policy.decision_criterion
-        _pessimism_index = policy.pessimism_index
-        _show_uncertainty_interval = policy.show_uncertainty_interval
+        # decision_criterion and pessimism_index are read inside
+        # _resolve_praf() from the policy object directly.
 
     if reasoning_backend is None:
         reasoning_backend = ReasoningBackend.CLAIM_GRAPH
