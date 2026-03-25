@@ -47,7 +47,20 @@
 - Stable models of ADF correspond to answer sets
 - Well-founded model corresponds to grounded semantics
 
-## NEXT
-- Write notes.md, description.md, abstract.md, citations.md
-- Run reconcile skill
-- Update papers/index.md
+## Progress
+- [x] notes.md written
+- [x] abstract.md written
+- [x] description.md written
+- [x] citations.md written
+- [x] Committed initial artifacts
+- [x] index.md updated with entry
+- [x] Cross-references added to Brewka 2010 notes (Cites + Cited by sections)
+- [ ] Backward annotations to cited papers (Dung 1995, Cayrol 2005, Simari 1992, Caminada 2006, Prakken 2010)
+- [ ] Commit reconciliation changes
+
+## Reconciliation Findings
+Papers in repo that cite Brewka 2010: Gabbay 2012, Thimm 2012, Hunter 2017, Modgil 2018, Cyras 2021, Charwat 2015, Odekerken 2023, Tang 2025, Doutre 2018
+Papers Brewka 2010 cites (in repo): Dung 1995, Cayrol 2005, Bench-Capon 2003, Caminada 2006, Simari 1992, Vreeswijk 1997, Prakken 2010
+- Bench-Capon 2003 and Vreeswijk 1997 have no notes.md -- skip backward annotation
+- Other 5 cited papers have notes.md, need backward annotation added
+- Existing cross-ref sections vary in format -- some use ### Cited by, some use bullet lists at end

@@ -193,6 +193,28 @@ ADFs are directly relevant to propstore's argumentation layer. Where Dung AFs on
 - [ ] How do weighted ADFs relate to probabilistic argumentation frameworks (Hunter 2017, Li 2011)?
 - [ ] Later work (Brewka et al. 2013) extended ADFs significantly — should that be read next?
 
+## Cross-References (in this repo)
+
+### Cites
+- [[Dung_1995_AcceptabilityArguments]] — The foundational AF paper that ADFs generalize
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — Bipolar AFs, the most direct predecessor; ADFs subsume BAFs
+- [[Bench-Capon_2003_PersuasionPracticalArgumentValue-based]] — Value-based AFs; cited for preference-based extensions
+- [[Caminada_2006_IssueReinstatementArgumentation]] — Semi-stable semantics; cited for alternative semantics
+- [[Simari_1992_MathematicalTreatmentDefeasibleReasoning]] — Defeasible reasoning; cited for specificity-based preferences
+- [[Vreeswijk_1997_AbstractArgumentationSystems]] — Abstract argumentation systems; cited as prior generalization attempt
+- [[Prakken_2010_AbstractFrameworkArgumentationStructured]] — ASPIC+; cited for structured argumentation
+
+### Cited by
+- [[Gabbay_2012_EquationalApproachArgumentationNetworks]] — Discusses how ADFs with Boolean conditions relate to equational approach (Section 2.2)
+- [[Thimm_2012_ProbabilisticSemanticsAbstractArgumentation]] — Cites the 2013 revisited version in context of probabilistic semantics
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — References probabilistic ADFs (Polberg & Doder 2014)
+- [[Modgil_2018_GeneralAccountArgumentationPreferences]] — Mentions ADFs as a generalization
+- [[Čyras_2021_ArgumentativeXAISurvey]] — Directly cites Brewka & Woltran 2010
+- [[Charwat_2015_MethodsSolvingReasoningProblems]] — Cites the 2013 revisited version for solving methods
+- [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — Cites ADF semantics work
+- [[Tang_2025_EncodingArgumentationFrameworksPropositional]] — Cites ADF encoding work
+- [[Doutre_2018_ConstraintsChangesSurveyAbstract]] — References ADF revision work
+
 ## Related Work Worth Reading
 - Brewka, Ellmauthaler, Strass, Wallner, Woltran (2013) — "Abstract Dialectical Frameworks Revisited" — the journal-length follow-up with full technical details
 - Strass (2013) — Approximating operators and semantics for ADFs
