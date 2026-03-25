@@ -56,6 +56,14 @@ class FormDefinition:
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
 
 
+def clear_form_cache() -> None:
+    """Clear the module-level form cache, forcing reload from disk on next access."""
+    _form_cache.clear()
+    # Also clear schema cache if it exists
+    global _form_schema_cache
+    _form_schema_cache = None
+
+
 def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
     """Load a single form definition and return a FormDefinition, or None.
 

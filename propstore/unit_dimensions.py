@@ -33,6 +33,12 @@ def _normalize_dim_key(k: str) -> str:
 _symbol_table: dict[str, Dimensions] | None = None
 
 
+def clear_symbol_table() -> None:
+    """Reset the module-level symbol table, forcing rebuild on next access."""
+    global _symbol_table
+    _symbol_table = None
+
+
 def _get_symbol_table() -> dict[str, Dimensions]:
     """Lazy-load the symbol->dimensions table from shipped physgen JSON."""
     global _symbol_table
