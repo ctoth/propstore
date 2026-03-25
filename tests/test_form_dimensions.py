@@ -23,6 +23,7 @@ from propstore.form_utils import (
     load_form,
     validate_form_files,
 )
+from propstore.unit_dimensions import clear_symbol_table, _symbol_table
 
 # ── Constants ─────────────────────────────────────────────────────────
 
@@ -422,6 +423,66 @@ class TestDimensionsPropertyBased:
         assert fd_a is not None and fd_b is not None
         assert fd_a.dimensions == fd_b.dimensions
 
+
+
+class TestSymbolTableReset:
+    """Tests for symbol table invalidation via clear_symbol_table() (F7.3).
+
+    The _symbol_table module-level dict accumulates entries across calls to
+    register_form_units() and is never reset. These tests verify that
+    clear_symbol_table() exists and works correctly. They SHOULD FAIL
+    because clear_symbol_table() does not exist yet.
+    """
+
+    def test_clear_symbol_table_empties_table(self) -> None:
+        """clear_symbol_table() resets the symbol table to None/empty."""
+        from propstore.unit_dimensions import _get_symbol_table
+
+        # Force the table to be loaded
+        table = _get_symbol_table()
+        assert table is not None
+        assert len(table) > 0  # physgen_units.json has entries
+
+        # Clear and verify
+        clear_symbol_table()
+
+        # After clearing, the internal _symbol_table should be None
+        # (so next _get_symbol_table() call re-loads from disk)
+        import propstore.unit_dimensions as ud
+        assert ud._symbol_table is None
+
+    def test_clear_symbol_table_removes_registered_form_units(
+        self, tmp_path: Path
+    ) -> None:
+        """After clear, previously registered form units are gone."""
+        from propstore.unit_dimensions import (
+            _get_symbol_table,
+            register_form_units,
+            resolve_unit_dimensions,
+        )
+
+        # Write a form with a custom extra_unit
+        _write_form_yaml(tmp_path, "custom_form", {
+            "name": "custom_form",
+            "kind": "quantity",
+            "dimensionless": False,
+            "unit_symbol": "X",
+            "dimensions": {"L": 1},
+            "extra_units": [
+                {"symbol": "cX", "dimensions": {"L": 1}},
+            ],
+        })
+
+        # Register the custom unit
+        register_form_units(tmp_path)
+        assert resolve_unit_dimensions("cX") is not None
+
+        # Clear the symbol table
+        clear_symbol_table()
+
+        # After clearing & reloading base table, custom unit should be gone
+        result = resolve_unit_dimensions("cX")
+        assert result is None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────

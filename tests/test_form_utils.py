@@ -17,6 +17,7 @@ import yaml
 from propstore.form_utils import (
     FormDefinition,
     UnitConversion,
+    clear_form_cache,
     load_form,
     normalize_to_si,
     from_si,
@@ -228,3 +229,68 @@ class TestPintSIPrefixes:
         # kPa is NOT in common_alternatives but pint knows it
         result = normalize_to_si(101.325, "kPa", form)
         assert result == pytest.approx(101325.0)
+
+
+class TestFormCacheClearing:
+    """Tests for cache invalidation via clear_form_cache() (F7.1).
+
+    The _form_cache module-level dict is never cleared. Modified YAML on disk
+    is never re-read. These tests verify that clear_form_cache() exists and
+    works correctly. They SHOULD FAIL because clear_form_cache() does not
+    exist yet.
+    """
+
+    def test_clear_form_cache_reloads_from_disk(self, tmp_path):
+        """After clearing the cache, load_form re-reads from disk."""
+        # Write initial form
+        form_data = {
+            "name": "cache_test",
+            "kind": "quantity",
+            "dimensionless": False,
+            "unit_symbol": "m",
+            "dimensions": {"L": 1},
+        }
+        form_path = tmp_path / "cache_test.yaml"
+        with open(form_path, "w") as f:
+            yaml.dump(form_data, f)
+
+        # Load form — should be cached
+        fd1 = load_form(tmp_path, "cache_test")
+        assert fd1 is not None
+        assert fd1.unit_symbol == "m"
+
+        # Verify caching: second call returns same object
+        fd2 = load_form(tmp_path, "cache_test")
+        assert fd2 is fd1
+
+        # Modify form on disk
+        form_data["unit_symbol"] = "km"
+        with open(form_path, "w") as f:
+            yaml.dump(form_data, f)
+
+        # Without clearing, stale cache is returned
+        fd3 = load_form(tmp_path, "cache_test")
+        assert fd3.unit_symbol == "m"  # stale!
+
+        # Clear cache and reload — should pick up disk change
+        clear_form_cache()
+        fd4 = load_form(tmp_path, "cache_test")
+        assert fd4 is not None
+        assert fd4.unit_symbol == "km"  # fresh from disk
+
+    def test_clear_form_cache_empties_cache_dict(self, tmp_path):
+        """clear_form_cache() removes all entries from _form_cache."""
+        form_data = {
+            "name": "empty_test",
+            "kind": "quantity",
+            "dimensionless": True,
+        }
+        form_path = tmp_path / "empty_test.yaml"
+        with open(form_path, "w") as f:
+            yaml.dump(form_data, f)
+
+        load_form(tmp_path, "empty_test")
+        assert len(_form_cache) > 0
+
+        clear_form_cache()
+        assert len(_form_cache) == 0
