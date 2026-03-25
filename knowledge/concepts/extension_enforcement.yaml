@@ -1,0 +1,9 @@
+id: concept464
+canonical_name: extension_enforcement
+status: proposed
+definition: The problem of modifying an argumentation framework so that a given set
+  of arguments becomes an extension under a specified semantics, typically by adding
+  or removing arguments and attacks
+domain: argumentation
+created_date: '2026-03-24'
+form: structural

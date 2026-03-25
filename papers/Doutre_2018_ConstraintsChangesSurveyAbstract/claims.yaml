@@ -1,0 +1,218 @@
+source:
+  paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-24"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "An argumentation system consists of three components: (1) an argumentation framework defining arguments and attacks, (2) an evaluation semantics, and (3) the evaluation result computed from (1) and (2). Constraints can target any component, and changes can affect any component."
+    concepts:
+      - argumentation_framework
+      - argumentation_system
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 2
+      section: "2. Argumentation system"
+      quote_fragment: "an argumentation system is defined as a set of three components"
+
+  - id: claim2
+    type: observation
+    statement: "Extension enforcement — modifying an AF so that a desired set of arguments becomes an extension — can always be achieved for stable and preferred semantics by adding a single new argument that attacks all non-extension arguments and is attacked by all extension arguments."
+    concepts:
+      - extension_enforcement
+      - stable_extension
+      - preferred_extension
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 9
+      section: "3.2. Extension enforcement"
+      quote_fragment: "adding a new argument to enforce an extension"
+    notes: "This is Baumann's strong enforcement result. The added argument serves as a universal enforcer."
+
+  - id: claim3
+    type: observation
+    statement: "Argument-fixed extension enforcement — enforcing an extension by only adding or removing attacks, without changing the argument set — is more constrained than general enforcement and may fail for some desired extensions."
+    concepts:
+      - extension_enforcement
+      - attack_relation
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 10
+      section: "3.2. Extension enforcement"
+      quote_fragment: "argument-fixed enforcement"
+    stances:
+      - type: supports
+        target: "claim2"
+        note: "Identifies a more restrictive variant of enforcement"
+
+  - id: claim4
+    type: mechanism
+    statement: "Enforcement operators can be generalized beyond classical structural change by allowing the semantics itself to change. When no structural modification can enforce a desired extension under the current semantics, switching to a different semantics may achieve the goal without any structural change."
+    concepts:
+      - extension_enforcement
+      - argumentation_system
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 10
+      section: "3.2. Extension enforcement"
+      quote_fragment: "the agent is authorized to modify the semantics"
+    notes: "Doutre and Mailly's own contribution — semantic change as enforcement mechanism"
+
+  - id: claim5
+    type: observation
+    statement: "Constraints on argumentation systems can be classified into three types: structural constraints (on the AF graph), semantic constraints (on which semantics is used), and acceptability constraints (on which arguments must be accepted or rejected)."
+    concepts:
+      - argumentation_system
+      - argumentation_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 13
+      section: "4. Constraints"
+      quote_fragment: "structural constraints directly concern the elements of the argumentation framework"
+
+  - id: claim6
+    type: observation
+    statement: "Changes to an argumentation system in response to a constraint can be classified as structural changes (adding/removing arguments or attacks) or semantic changes (switching the evaluation semantics). Most existing work addresses only structural changes."
+    concepts:
+      - dynamic_argumentation_framework
+      - argumentation_system
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 7
+      section: "3. Main approaches on change"
+      quote_fragment: "an elementary change in an argumentation framework the addition or removal of atomic elements"
+
+  - id: claim7
+    type: comparison
+    statement: "Classical enforcement operators only modify the AF structure, while generalized enforcement operators can also change the semantics. The generalized approach strictly subsumes classical enforcement because structural change is a special case of combined structural-and-semantic change."
+    concepts:
+      - extension_enforcement
+      - argumentation_system
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 10
+      section: "3.2. Extension enforcement"
+    notes: "Doutre and Mailly's key positioning contribution in this survey"
+
+  - id: claim8
+    type: mechanism
+    statement: "Belief revision approaches to argumentation dynamics encode the AF as a propositional formula and apply AGM-style revision operators, enabling distance-based minimal change computation. This connects argumentation dynamics to the well-studied belief revision literature but may lose argumentation-specific structural properties."
+    concepts:
+      - belief_revision
+      - argumentation_framework
+      - agm_postulates
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 11
+      section: "3.3. Change in argumentation through belief update"
+      quote_fragment: "belief update has been used to propose several approaches to revise argumentation frameworks"
+
+  - id: claim9
+    type: observation
+    statement: "Quality of enforcement can be measured along three independent dimensions: structural minimality (fewest graph changes), semantic minimality (fewest extension changes), and acceptability minimality (fewest argument status changes). These dimensions can conflict — minimal structural change may cause maximal semantic change."
+    concepts:
+      - minimal_change
+      - extension_enforcement
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 17
+      section: "5. Quality of enforcement"
+      quote_fragment: "minimality is not obviously defined in argumentation settings"
+    notes: "Key insight: the three minimality dimensions are independent and potentially conflicting"
+
+  - id: claim10
+    type: observation
+    statement: "Control Argumentation Frameworks partition arguments into fixed, uncertain, and control sets, enabling enforcement reasoning under incomplete information via QBF encodings. This generalizes standard enforcement by accommodating uncertainty about which arguments actually exist."
+    concepts:
+      - control_argumentation_framework
+      - extension_enforcement
+      - incomplete_information
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 10
+      section: "3.2. Extension enforcement"
+      quote_fragment: "Control Argumentation Frameworks, a new approach that generalizes existing techniques"
+    notes: "Dimopoulos, Mailly, Moraitis 2018 contribution surveyed here"
+
+  - id: claim11
+    type: limitation
+    statement: "Dynamics of argumentation in ranking-based semantics is almost entirely unexplored. Existing work on enforcement, revision, and change operations is defined only for extension-based and labelling-based semantics."
+    concepts:
+      - ranking_based_semantics
+      - dynamic_argumentation_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 21
+      section: "6. Conclusion and perspectives"
+      quote_fragment: "the investigation of change in ranking-based semantics is an interesting topic which has not been studied yet"
+
+  - id: claim12
+    type: limitation
+    statement: "Semantic change as an enforcement mechanism has received far less attention than structural change. Studying the quality of semantic change and combining semantic constraints with other constraint types remain open problems."
+    concepts:
+      - extension_enforcement
+      - minimal_change
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 21
+      section: "6. Conclusion and perspectives"
+      quote_fragment: "semantic change has received far less attention than other kinds of change"
+
+  - id: claim13
+    type: limitation
+    statement: "The survey covers only dynamics in Dung's abstract argumentation framework. Adapting existing work to structured argumentation frameworks (like ASPIC+) and to bipolar argumentation frameworks is not straightforward and remains an open question."
+    concepts:
+      - argumentation_framework
+      - aspic_plus
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 21
+      section: "6. Conclusion and perspectives"
+      quote_fragment: "adapting existing work about change in Dung's framework to other argumentation frameworks is not necessarily straightforward"
+
+  - id: claim14
+    type: observation
+    statement: "Refinement preserves conflict-freeness: if a set of arguments is conflict-free in an AF and the AF is refined (arguments added without new internal attacks, or attacks added), the set remains conflict-free in the refined AF."
+    concepts:
+      - conflict_free
+      - argumentation_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 7
+      section: "3.1. Elementary changes"
+      quote_fragment: "refinement and abstraction"
+    notes: "From Boella et al. Definition 6 as presented in the survey"
+
+  - id: claim15
+    type: equation
+    expression: "\\text{Cat}(a) = \\begin{cases} 1 & \\text{if Att}(a) = \\emptyset \\\\ \\frac{1}{1 + \\sum_{b \\in \\text{Att}(a)} \\text{Cat}(b)} & \\text{otherwise} \\end{cases}"
+    sympy: "Piecewise((1, Eq(Att_a, 0)), (1/(1 + Sum_Cat_attackers), True))"
+    variables:
+      - symbol: "Cat(a)"
+        concept: "categoriser_function"
+        role: "dependent"
+      - symbol: "Att(a)"
+        concept: "attack_relation"
+        role: "independent"
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Doutre_2018_ConstraintsChangesSurveyAbstract
+      page: 6
+      section: "2.1. General setting"
+      quote_fragment: "categoriser function"
+    notes: "Originally from Besnard and Hunter 2001. Yields unique ranking when the graph is a tree."

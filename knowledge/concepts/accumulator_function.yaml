@@ -1,0 +1,9 @@
+id: concept462
+canonical_name: accumulator_function
+status: proposed
+definition: A function that takes pairs of categoriser values (from pro and con argument
+  trees) and produces accumulated values whose balance determines whether a formula
+  follows from a knowledge base under argumentation
+domain: argumentation
+created_date: '2026-03-24'
+form: structural

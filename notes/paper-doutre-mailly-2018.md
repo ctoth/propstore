@@ -29,9 +29,14 @@
 - papers/Doutre_2018_ConstraintsChangesSurveyAbstract/metadata.json
 - papers/Doutre_2018_ConstraintsChangesSurveyAbstract/pngs/ — 26 page images
 
+**DONE (continued):**
+- notes.md, description.md, abstract.md, citations.md all written
+- Reconciliation complete: 11 papers already in collection, 5 new leads, 3 conceptual links
+- Backward annotation added to Cayrol_2014 notes
+- index.md updated
+- Two commits made
+
 **NEXT:**
-- Write notes.md, description.md, abstract.md, citations.md
-- Reconcile cross-references
-- Update index.md
-- Extract claims (Step 4)
-- Write report
+- Extract claims (Step 4 of paper-process) — create mode since no claims.yaml exists
+- Write report (Step 5)
+- This is a survey paper so claims will be mainly observations, mechanisms, comparisons, and limitations rather than parameters/equations

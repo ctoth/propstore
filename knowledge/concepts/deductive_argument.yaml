@@ -1,0 +1,9 @@
+id: concept463
+canonical_name: deductive_argument
+status: proposed
+definition: An argument defined as a pair of a minimal consistent subset of a knowledge
+  base (support) and a formula it deductively entails (consequent), where minimality
+  ensures every formula in the support contributes to the proof
+domain: argumentation
+created_date: '2026-03-24'
+form: structural
