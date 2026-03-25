@@ -80,6 +80,44 @@ class TestStrictlyWeakerConcrete:
         assert strictly_weaker([1, 2], [], "democratic") is False  # no y to dominate
 
 
+class TestElitistEmptySetVacuousTruth:
+    """Tests for Finding F16: elitist empty-set vacuous truth bug.
+
+    Bug: strictly_weaker(anything, [], "elitist") returns True because
+    all(x < y for y in []) is vacuously True. This incorrectly makes
+    non-empty sets "strictly weaker" than an empty set, which blocks
+    rebut/undermine attacks against targets with no strength dimensions.
+
+    Reference: Modgil & Prakken 2018, Def 19. An empty comparison set
+    has no elements to be weaker than — the result should be False.
+    """
+
+    def test_nonempty_vs_empty_elitist_not_weaker(self):
+        """Non-empty set is NOT strictly weaker than empty set.
+
+        strictly_weaker([1.0], [], "elitist") should be False.
+        Nothing to be weaker than — empty set is not "stronger".
+        Currently returns True due to vacuous truth of all() on empty.
+        """
+        assert strictly_weaker([1.0], [], "elitist") is False
+
+    def test_empty_vs_nonempty_elitist_not_weaker(self):
+        """Empty set is NOT strictly weaker than non-empty set.
+
+        strictly_weaker([], [1.0], "elitist") should be False.
+        Empty set has no elements to test — nothing is "strictly weaker".
+        """
+        assert strictly_weaker([], [1.0], "elitist") is False
+
+    def test_control_normal_nonempty_elitist(self):
+        """Control: normal non-empty comparison works correctly.
+
+        strictly_weaker([0.1], [0.9], "elitist") should be True.
+        0.1 < 0.9 — genuinely weaker.
+        """
+        assert strictly_weaker([0.1], [0.9], "elitist") is True
+
+
 # ── Concrete tests: defeat_holds ────────────────────────────────────
 
 
