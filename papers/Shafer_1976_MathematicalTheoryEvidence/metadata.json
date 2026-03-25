@@ -1,0 +1,13 @@
+{
+  "title": "A Mathematical Theory of Evidence",
+  "authors": ["Glenn Shafer"],
+  "year": "1976",
+  "doi": "10.2307/j.ctv10vm1qb",
+  "url": "https://press.princeton.edu/books/paperback/9780691100425/a-mathematical-theory-of-evidence",
+  "abstract": "Both in science and in practical affairs we reason by combining facts only imperfectly known with each other and with general information, and thereby arrive at new facts that are also only imperfectly known. This book presents a mathematical theory of such reasoning, based on a calculus of beliefs, or degrees of belief. The theory is developed from the work of A. P. Dempster, who proposed a generalization of Bayesian inference that allows one to base degrees of belief for one question on probabilities for a related question. The book extends Dempster's work by providing a more thorough analysis of the rule of combination and by developing the theory of belief functions (also known as Dempster-Shafer theory).",
+  "source": "manual",
+  "type": "book",
+  "publisher": "Princeton University Press",
+  "isbn": "9780691100425",
+  "s2_id": "4cd91c51098783ec972f6a0ab430cacdd634a5b2"
+}
