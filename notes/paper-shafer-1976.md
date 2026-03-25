@@ -54,4 +54,18 @@
 - p28 (book p.13): Compound experiment examples with dice.
 - p29 (book p.14): Conditional chance density q_U(x) = q(x)/Ch(U) if x in U, 0 otherwise.
 
-**NEXT:** Read pages 30-31 (last 2 pages of preview), then write notes/abstract/citations/description
+- p30 (book p.15): Conditional chance Ch(V|U) = Ch(U intersect V)/Ch(U). Rule of conditioning.
+- p31 (book p.16): Section 4 "Chances as Degrees of Belief" — chances are features of the world, not necessarily features of knowledge/belief. Preview ends mid-section.
+
+**FILES WRITTEN:**
+- metadata.json (committed)
+- notes.md (committed)
+- description.md (staged)
+- abstract.md (staged)
+- citations.md (staged)
+
+**REMAINING:**
+- Update papers/index.md
+- Skip reconcile (Step 7) — book, not a paper with typical cross-refs
+- Skip extract-claims (Step 4) — only have preview, not enough for meaningful claims
+- Write report (Step 5)
