@@ -439,6 +439,23 @@ class TestConsensusPropertyTests:
             f"a: fused={fused.a}, original={op.a}"
         )
 
+    @given(valid_opinions(), valid_opinions())
+    @settings(max_examples=100, deadline=None)
+    def test_consensus_reduces_uncertainty(self, op_a, op_b):
+        """Consensus never increases uncertainty (Josang 2001, p.25-26).
+
+        For any two non-dogmatic opinions, the fused uncertainty must be
+        <= min(a.u, b.u). This is a guard test to maintain the invariant.
+
+        Phase 1 Red: this property must hold for the consensus operator
+        to be valid for fusing corpus and categorical opinions.
+        """
+        fused = consensus_pair(op_a, op_b)
+        assert fused.u <= min(op_a.u, op_b.u) + 1e-9, (
+            f"Consensus increased uncertainty: fused.u={fused.u}, "
+            f"min(a.u={op_a.u}, b.u={op_b.u})={min(op_a.u, op_b.u)}"
+        )
+
     @given(valid_opinions())
     @settings(max_examples=100, deadline=None)
     def test_vacuous_identity_different_base_rate(self, op):

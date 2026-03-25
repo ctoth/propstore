@@ -554,3 +554,159 @@ class TestWriteStanceFileWritesToProposals:
             f"write_stance_file wrote to {path_str} — expected proposals/stances/. "
             "Heuristic output must be proposal artifacts, not source mutations."
         )
+
+
+# ---------------------------------------------------------------------------
+# Test 13: CorpusCalibrator reduces uncertainty in _classify_stance_async
+# ---------------------------------------------------------------------------
+
+class TestCorpusCalibReducesUncertainty:
+    """Sub-task 1a: CorpusCalibrator should be used in _classify_stance_async
+    to produce a non-vacuous opinion when reference_distances are available.
+
+    Currently fails because CorpusCalibrator is never imported or used in
+    relate.py — the embedding_distance is available but not converted to
+    an opinion via corpus calibration.
+    """
+
+    def test_corpus_calibrator_reduces_uncertainty(self):
+        """When _classify_stance_async is called with reference_distances,
+        the resulting opinion should have uncertainty < 1.0 (non-vacuous).
+
+        Per Josang 2001 (p.8): vacuous = total ignorance. With corpus
+        calibration data, we have *some* evidence, so u must decrease.
+
+        EXPECTED TO FAIL: _classify_stance_async does not accept
+        reference_distances and never uses CorpusCalibrator.
+        """
+        import asyncio
+        from propstore.relate import _classify_stance_async
+
+        resp = MagicMock()
+        resp.choices = [MagicMock()]
+        resp.choices[0].message.content = json.dumps({
+            "type": "supports",
+            "strength": "strong",
+            "note": "test",
+            "conditions_differ": None,
+        })
+
+        claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
+        claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
+        reference_distances = [0.1, 0.2, 0.3, 0.4, 0.5]
+
+        async def run():
+            sem = asyncio.Semaphore(1)
+            with patch("propstore.relate._require_litellm") as mock_req:
+                mock_litellm = MagicMock()
+                mock_litellm.acompletion = AsyncMock(return_value=resp)
+                mock_req.return_value = mock_litellm
+                return await _classify_stance_async(
+                    claim_a, claim_b, "test-model", sem,
+                    embedding_distance=0.3,
+                    reference_distances=reference_distances,
+                    pass_number=1,
+                )
+
+        result = asyncio.run(run())
+        assert result["resolution"]["opinion_uncertainty"] < 1.0, (
+            "With reference_distances, opinion should be non-vacuous (u < 1.0). "
+            "CorpusCalibrator must be used to convert embedding distance to opinion."
+        )
+
+    def test_no_reference_distances_stays_vacuous(self):
+        """When reference_distances is None, behavior is unchanged — opinion
+        is vacuous. Backward compatibility test.
+
+        EXPECTED TO FAIL: _classify_stance_async does not accept
+        reference_distances parameter (TypeError).
+        """
+        import asyncio
+        from propstore.relate import _classify_stance_async
+
+        resp = MagicMock()
+        resp.choices = [MagicMock()]
+        resp.choices[0].message.content = json.dumps({
+            "type": "supports",
+            "strength": "strong",
+            "note": "test",
+            "conditions_differ": None,
+        })
+
+        claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
+        claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
+
+        async def run():
+            sem = asyncio.Semaphore(1)
+            with patch("propstore.relate._require_litellm") as mock_req:
+                mock_litellm = MagicMock()
+                mock_litellm.acompletion = AsyncMock(return_value=resp)
+                mock_req.return_value = mock_litellm
+                return await _classify_stance_async(
+                    claim_a, claim_b, "test-model", sem,
+                    embedding_distance=0.3,
+                    reference_distances=None,
+                    pass_number=1,
+                )
+
+        result = asyncio.run(run())
+        assert result["resolution"]["opinion_uncertainty"] == pytest.approx(1.0), (
+            "Without reference_distances, opinion must remain vacuous (u = 1.0)"
+        )
+
+    def test_corpus_and_categorical_fused_via_consensus(self):
+        """When both corpus opinion and categorical opinion are available,
+        the result should have lower uncertainty than either alone.
+
+        Per Josang 2001 (p.25, Theorem 7): consensus reduces uncertainty.
+        Assert fused.u <= min(corpus.u, categorical.u).
+
+        EXPECTED TO FAIL: no consensus fusion happens in _classify_stance_async.
+        """
+        import asyncio
+        from propstore.relate import _classify_stance_async
+
+        resp = MagicMock()
+        resp.choices = [MagicMock()]
+        resp.choices[0].message.content = json.dumps({
+            "type": "supports",
+            "strength": "strong",
+            "note": "test",
+            "conditions_differ": None,
+        })
+
+        claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
+        claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
+
+        # Provide both reference_distances (for corpus opinion) and
+        # calibration_counts (for categorical opinion)
+        reference_distances = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+        calibration_counts = {(1, "strong"): (80, 100)}
+
+        async def run():
+            sem = asyncio.Semaphore(1)
+            with patch("propstore.relate._require_litellm") as mock_req:
+                mock_litellm = MagicMock()
+                mock_litellm.acompletion = AsyncMock(return_value=resp)
+                mock_req.return_value = mock_litellm
+                return await _classify_stance_async(
+                    claim_a, claim_b, "test-model", sem,
+                    embedding_distance=0.3,
+                    reference_distances=reference_distances,
+                    calibration_counts=calibration_counts,
+                    pass_number=1,
+                )
+
+        result = asyncio.run(run())
+        u = result["resolution"]["opinion_uncertainty"]
+
+        # Compute what the individual opinions would give
+        from propstore.calibrate import CorpusCalibrator, categorical_to_opinion
+        corpus_op = CorpusCalibrator(reference_distances).to_opinion(0.3)
+        cat_op = categorical_to_opinion("strong", 1, calibration_counts=calibration_counts)
+
+        assert u <= min(corpus_op.u, cat_op.u) + 1e-9, (
+            f"Fused uncertainty u={u} should be <= min(corpus.u={corpus_op.u}, "
+            f"categorical.u={cat_op.u}). Consensus must reduce uncertainty "
+            "(Josang 2001, Theorem 7, p.25)."
+        )

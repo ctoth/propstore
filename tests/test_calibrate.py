@@ -328,6 +328,113 @@ class TestCorpusCalibrationEvidenceModel:
             )
 
 
+# ---------------------------------------------------------------------------
+# Red-phase tests: calibration counts infrastructure (Phase 1, Sub-task 1b)
+# ---------------------------------------------------------------------------
+
+
+class TestCalibrationCountsInfrastructure:
+    """Tests for loading calibration counts from sidecar storage.
+
+    Sub-task 1b: categorical_to_opinion needs calibration_counts to produce
+    non-vacuous opinions, but there is no load_calibration_counts() function
+    and no calibration_counts table in the sidecar schema.
+
+    EXPECTED TO FAIL: load_calibration_counts does not exist (ImportError).
+    """
+
+    def test_categorical_to_opinion_with_loaded_counts(self):
+        """When calibration_counts are loaded from a sidecar table,
+        categorical_to_opinion produces non-vacuous opinions.
+
+        Per Josang 2001 (p.20-21, Def 12): evidence maps to opinion with
+        u = 2/(r+s+2). With 80/100 accuracy, u = 2/102 ~ 0.02.
+        """
+        from propstore.calibrate import load_calibration_counts
+
+        conn = sqlite3.connect(":memory:")
+        conn.execute("""
+            CREATE TABLE calibration_counts (
+                pass_number INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                correct_count INTEGER NOT NULL,
+                total_count INTEGER NOT NULL,
+                PRIMARY KEY (pass_number, category)
+            )
+        """)
+        conn.execute(
+            "INSERT INTO calibration_counts VALUES (?, ?, ?, ?)",
+            (1, "strong", 80, 100),
+        )
+        conn.commit()
+
+        counts = load_calibration_counts(conn)
+        op = categorical_to_opinion("strong", 1, calibration_counts=counts)
+        assert op.u < 0.5, (
+            f"With 80/100 calibration data, uncertainty should be < 0.5, got {op.u}"
+        )
+        conn.close()
+
+    def test_load_calibration_counts_empty_table(self):
+        """Empty calibration_counts table returns None (honest ignorance).
+
+        Per Josang 2001 (p.8): when no data exists, the system must represent
+        total ignorance, not fabricate confidence.
+        """
+        from propstore.calibrate import load_calibration_counts
+
+        conn = sqlite3.connect(":memory:")
+        conn.execute("""
+            CREATE TABLE calibration_counts (
+                pass_number INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                correct_count INTEGER NOT NULL,
+                total_count INTEGER NOT NULL,
+                PRIMARY KEY (pass_number, category)
+            )
+        """)
+        conn.commit()
+
+        result = load_calibration_counts(conn)
+        assert result is None, (
+            "Empty calibration_counts table should return None (honest ignorance)"
+        )
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Red-phase tests: corpus opinion b+d+u=1 property (Phase 1, Sub-task 1b)
+# ---------------------------------------------------------------------------
+
+
+class TestCorpusOpinionBDUSumProperty:
+    """Hypothesis property test: CorpusCalibrator.to_opinion must always
+    produce b+d+u=1.
+
+    Per Josang 2001 (Def 9, p.7): this is the fundamental constraint.
+    This is a guard test to maintain the invariant under any input.
+    """
+
+    @given(
+        ref_distances=st.lists(
+            st.floats(min_value=0.0, max_value=2.0),
+            min_size=1,
+            max_size=100,
+        ),
+        query_distance=st.floats(min_value=0.0, max_value=2.0),
+    )
+    @settings(max_examples=100, deadline=None)
+    def test_bdu_sum_is_one(self, ref_distances, query_distance):
+        """b + d + u must equal 1.0 for all CorpusCalibrator outputs."""
+        cal = CorpusCalibrator(ref_distances)
+        op = cal.to_opinion(query_distance)
+        total = op.b + op.d + op.u
+        assert abs(total - 1.0) < 1e-9, (
+            f"b+d+u={total} != 1.0 for ref_distances={ref_distances[:5]}..., "
+            f"query={query_distance}"
+        )
+
+
 class TestOpinionSchemaConstraints:
     """Test that SQLite schema enforces opinion invariants.
 
