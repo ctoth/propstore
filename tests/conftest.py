@@ -49,6 +49,19 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
                 OR abs(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) < 0.01
             )
         );
+        CREATE TABLE IF NOT EXISTS conflicts (
+            concept_id TEXT NOT NULL,
+            claim_a_id TEXT NOT NULL,
+            claim_b_id TEXT NOT NULL,
+            warning_class TEXT NOT NULL,
+            conditions_a TEXT,
+            conditions_b TEXT,
+            value_a TEXT,
+            value_b TEXT,
+            derivation_chain TEXT,
+            FOREIGN KEY (claim_a_id) REFERENCES claim(id),
+            FOREIGN KEY (claim_b_id) REFERENCES claim(id)
+        );
     """)
 
 

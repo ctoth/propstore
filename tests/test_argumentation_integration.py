@@ -14,6 +14,7 @@ from hypothesis import strategies as st
 
 from propstore.argumentation import (
     build_argumentation_framework,
+    build_praf,
     compute_claim_graph_justified_claims,
 )
 from propstore.dung import conflict_free, grounded_extension
@@ -381,3 +382,174 @@ class TestAFProperties:
         conn = _build_scenario_db(claim_ids, stances, sample_sizes)
         result = compute_claim_graph_justified_claims(SQLiteArgumentationStore(conn), set(claim_ids), semantics="grounded")
         assert result <= frozenset(claim_ids)
+
+
+# ── Helpers for conflict tests ───────────────────────────────────────
+
+
+def _insert_conflict(
+    conn: sqlite3.Connection,
+    concept_id: str,
+    claim_a_id: str,
+    claim_b_id: str,
+    warning_class: str,
+    *,
+    value_a: str | None = None,
+    value_b: str | None = None,
+) -> None:
+    conn.execute(
+        "INSERT INTO conflicts (concept_id, claim_a_id, claim_b_id, warning_class, "
+        "value_a, value_b) VALUES (?, ?, ?, ?, ?, ?)",
+        (concept_id, claim_a_id, claim_b_id, warning_class, value_a, value_b),
+    )
+
+
+# ── Tests: conflict-derived defeats ─────────────────────────────────
+
+
+class TestConflictDerivedDefeats:
+    """Tests for wiring conflicts into the argumentation framework.
+
+    The gap: _collect_claim_graph_relations() only reads stances from
+    store.stances_between(). It never reads conflicts from store.conflicts().
+    Two claims that disagree on value but have no LLM-classified stance
+    produce zero defeats in the AF. These tests encode the correct behavior
+    that should hold after the green-phase fix.
+
+    References:
+    - Dung 1995, Def 6 (p.326): conflict-free sets
+    - Dung 1995, Def 8: admissibility requires defending against all attacks
+    - Josang 2001, p.8: vacuous opinions for honest ignorance
+    """
+
+    def test_conflict_generates_defeats_without_stance(self, conn):
+        """A CONFLICT row between two claims (no stance) should produce defeats.
+
+        Two claims for the same concept with different values and a CONFLICT
+        record but no LLM-classified stance. The AF should contain mutual
+        defeats (symmetric rebuts) because a genuine value conflict exists.
+        Currently fails: _collect_claim_graph_relations ignores conflicts.
+        """
+        _insert_claim(conn, "alpha", "c1", 100.0, sample_size=50)
+        _insert_claim(conn, "beta", "c1", 200.0, sample_size=50)
+        _insert_conflict(conn, "c1", "alpha", "beta", "CONFLICT",
+                         value_a="100.0", value_b="200.0")
+        conn.commit()
+
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(conn), {"alpha", "beta"}
+        )
+        # A genuine conflict should produce at least one defeat direction
+        has_defeat = (
+            ("alpha", "beta") in af.defeats
+            or ("beta", "alpha") in af.defeats
+        )
+        assert has_defeat, (
+            "CONFLICT record between alpha and beta should generate defeats, "
+            f"but af.defeats = {af.defeats}"
+        )
+
+    def test_phi_node_does_not_generate_defeats(self, conn):
+        """PHI_NODE means disjoint conditions — no actual conflict, no defeats.
+
+        PHI_NODE indicates the two claims operate under mutually exclusive
+        conditions and can never co-occur. No defeat should be generated.
+        """
+        _insert_claim(conn, "phi_a", "c1", 100.0, sample_size=50)
+        _insert_claim(conn, "phi_b", "c1", 200.0, sample_size=50)
+        _insert_conflict(conn, "c1", "phi_a", "phi_b", "PHI_NODE",
+                         value_a="100.0", value_b="200.0")
+        conn.commit()
+
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(conn), {"phi_a", "phi_b"}
+        )
+        assert ("phi_a", "phi_b") not in af.defeats
+        assert ("phi_b", "phi_a") not in af.defeats
+
+    def test_real_stance_takes_precedence_over_conflict(self, conn):
+        """When both a stance and a CONFLICT exist, the stance semantics win.
+
+        If an LLM-classified stance says 'supports', a synthetic rebuts from
+        the CONFLICT record should not override it. The real stance's
+        classification takes precedence.
+        """
+        _insert_claim(conn, "prec_a", "c1", 100.0, sample_size=100)
+        _insert_claim(conn, "prec_b", "c1", 200.0, sample_size=100)
+        _insert_stance(conn, "prec_a", "prec_b", "supports")
+        _insert_conflict(conn, "c1", "prec_a", "prec_b", "CONFLICT",
+                         value_a="100.0", value_b="200.0")
+        conn.commit()
+
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(conn), {"prec_a", "prec_b"}
+        )
+        # The real stance is "supports", so no defeat from prec_a → prec_b
+        assert ("prec_a", "prec_b") not in af.defeats
+        # The conflict should still produce a defeat in the reverse direction
+        # (prec_b → prec_a), since the "supports" stance only covers a→b
+        assert ("prec_b", "prec_a") in af.defeats, (
+            "CONFLICT should still produce defeat prec_b→prec_a even when "
+            f"a real 'supports' stance covers a→b, but af.defeats = {af.defeats}"
+        )
+
+    def test_conflict_synthetic_stances_have_vacuous_opinions(self, conn):
+        """Synthetic stances from conflicts must carry vacuous opinions.
+
+        Per Josang 2001 (p.8): when the system lacks evidence for the
+        direction/strength of a relation, it must express total ignorance
+        via opinion_uncertainty >= 0.99 rather than fabricating confidence.
+        """
+        _insert_claim(conn, "vac_a", "c1", 100.0, sample_size=50)
+        _insert_claim(conn, "vac_b", "c1", 200.0, sample_size=50)
+        _insert_conflict(conn, "c1", "vac_a", "vac_b", "CONFLICT",
+                         value_a="100.0", value_b="200.0")
+        conn.commit()
+
+        store = SQLiteArgumentationStore(conn)
+        praf = build_praf(store, {"vac_a", "vac_b"})
+
+        # First, defeats must exist (prerequisite)
+        has_defeat = (
+            ("vac_a", "vac_b") in praf.framework.defeats
+            or ("vac_b", "vac_a") in praf.framework.defeats
+        )
+        assert has_defeat, (
+            "CONFLICT should generate defeats before we can inspect opinions"
+        )
+
+        # The PrAF attack relations for conflict-derived defeats should
+        # carry vacuous opinions (uncertainty >= 0.99)
+        conflict_pairs = {("vac_a", "vac_b"), ("vac_b", "vac_a")}
+        for rel in praf.attack_relations:
+            if (rel.source, rel.target) in conflict_pairs:
+                assert rel.opinion.uncertainty >= 0.99, (
+                    f"Conflict-derived relation {rel.source}→{rel.target} "
+                    f"has opinion uncertainty {rel.opinion.uncertainty}, "
+                    f"expected >= 0.99 (vacuous per Josang 2001)"
+                )
+
+    def test_overlap_conflict_generates_defeats(self, conn):
+        """OVERLAP is a real value conflict — should generate defeats.
+
+        OVERLAP means overlapping conditions with different values. Like
+        CONFLICT, this represents a genuine disagreement that should
+        produce defeats in the AF.
+        """
+        _insert_claim(conn, "ov_a", "c1", 100.0, sample_size=50)
+        _insert_claim(conn, "ov_b", "c1", 200.0, sample_size=50)
+        _insert_conflict(conn, "c1", "ov_a", "ov_b", "OVERLAP",
+                         value_a="100.0", value_b="200.0")
+        conn.commit()
+
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(conn), {"ov_a", "ov_b"}
+        )
+        has_defeat = (
+            ("ov_a", "ov_b") in af.defeats
+            or ("ov_b", "ov_a") in af.defeats
+        )
+        assert has_defeat, (
+            "OVERLAP conflict between ov_a and ov_b should generate defeats, "
+            f"but af.defeats = {af.defeats}"
+        )

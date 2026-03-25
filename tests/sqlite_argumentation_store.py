@@ -27,3 +27,10 @@ class SQLiteArgumentationStore:
             list(claim_ids) + list(claim_ids),
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def conflicts(self) -> list[dict]:
+        try:
+            rows = self._conn.execute("SELECT * FROM conflicts").fetchall()
+            return [dict(row) for row in rows]
+        except Exception:
+            return []
