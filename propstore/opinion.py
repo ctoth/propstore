@@ -42,6 +42,13 @@ class Opinion:
                 f"b + d + u = {total}, expected 1.0"
             )
 
+    # --- Aliases for readability ---
+
+    @property
+    def uncertainty(self) -> float:
+        """Alias for ``u`` (uncertainty component)."""
+        return self.u
+
     # --- Special constructors ---
 
     @classmethod

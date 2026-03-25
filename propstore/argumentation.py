@@ -95,13 +95,21 @@ def _cayrol_derived_defeats(
                     if pair not in working_defeats:
                         new_derived.add(pair)
 
+        # Filter self-loops: derived self-defeats (A,A) are degenerate —
+        # a self-defeating argument is already excluded from all admissible
+        # extensions by Dung 1995 Def 6 (conflict-free). Allowing self-loops
+        # to seed further derivation creates spurious defeats: e.g.
+        # A defeats A (self), A supports B → derived (A,B). This conflates
+        # structural impossibility with directed attack.
+        new_derived = {(a, c) for a, c in new_derived if a != c}
+
         if not new_derived:
             break
 
         working_defeats |= new_derived
         all_derived |= new_derived
 
-    return all_derived
+    return {(a, c) for a, c in all_derived if a != c}
 
 
 def _collect_claim_graph_relations(
@@ -115,6 +123,87 @@ def _collect_claim_graph_relations(
 
     claims_by_id = store.claims_by_ids(active_claim_ids)
     stances = store.stances_between(active_claim_ids)
+
+    # --- Synthesize rebuts from conflict records (Phase 2) ---
+    # Conflicts represent structural value disagreements detected by the
+    # conflict detector. When no LLM-classified stance covers a conflict
+    # pair, we inject a symmetric "rebuts" stance with a vacuous opinion
+    # (b=0, d=0, u=1, a=0.5) — honest ignorance per Jøsang 2001 p.8.
+    # Synthetic stances are ephemeral: generated at render time, never
+    # persisted. Real stances always take precedence (Pollock 1987 p.485).
+    _REAL_CONFLICT_CLASSES = {"CONFLICT", "OVERLAP", "PARAM_CONFLICT"}
+    try:
+        all_conflicts = store.conflicts()
+    except (AttributeError, TypeError):
+        all_conflicts = []
+
+    existing_stance_pairs = {
+        (s["claim_id"], s["target_claim_id"]) for s in stances
+    }
+    # Undirected pairs with any real stance between them.
+    existing_stance_undirected: set[frozenset[str]] = {
+        frozenset({s["claim_id"], s["target_claim_id"]}) for s in stances
+    }
+    # Undirected pairs with a real attack-type stance.
+    existing_attack_undirected: set[frozenset[str]] = {
+        frozenset({s["claim_id"], s["target_claim_id"]})
+        for s in stances if s["stance_type"] in _ATTACK_TYPES
+    }
+    # Claims that participate in any real stance (as source or target).
+    # Used to detect when an LLM has classified a claim with other claims
+    # but intentionally omitted a stance for a particular pair.
+    claims_with_stances: set[str] = set()
+    for s in stances:
+        claims_with_stances.add(s["claim_id"])
+        claims_with_stances.add(s["target_claim_id"])
+
+    for conflict in all_conflicts:
+        wc = conflict.get("warning_class", "")
+        if wc not in _REAL_CONFLICT_CLASSES:
+            continue
+        a_id = conflict["claim_a_id"]
+        b_id = conflict["claim_b_id"]
+        if a_id not in active_claim_ids or b_id not in active_claim_ids:
+            continue
+        pair_key = frozenset({a_id, b_id})
+        # If a real attack stance covers this pair → fully handled, skip.
+        if pair_key in existing_attack_undirected:
+            continue
+        # If the pair has a non-attack stance: the LLM classified the
+        # pair but not as an attack. Synthesize only the uncovered direction
+        # (the LLM's classification in the covered direction takes precedence).
+        if pair_key in existing_stance_undirected:
+            for src, tgt in [(a_id, b_id), (b_id, a_id)]:
+                if (src, tgt) not in existing_stance_pairs:
+                    stances.append({
+                        "claim_id": src,
+                        "target_claim_id": tgt,
+                        "stance_type": "rebuts",
+                        "confidence": 0.5,
+                        "opinion_belief": 0.0,
+                        "opinion_disbelief": 0.0,
+                        "opinion_uncertainty": 1.0,
+                        "opinion_base_rate": 0.5,
+                    })
+            continue
+        # No stance between this pair at all. If either claim participates
+        # in stances with OTHER claims, the LLM had the opportunity to
+        # classify this pair and chose not to — skip. Only synthesize for
+        # truly unclassified (orphan) claim pairs.
+        if a_id in claims_with_stances or b_id in claims_with_stances:
+            continue
+        # Synthesize two directed stances (a→b and b→a).
+        for src, tgt in [(a_id, b_id), (b_id, a_id)]:
+            stances.append({
+                "claim_id": src,
+                "target_claim_id": tgt,
+                "stance_type": "rebuts",
+                "confidence": 0.5,
+                "opinion_belief": 0.0,
+                "opinion_disbelief": 0.0,
+                "opinion_uncertainty": 1.0,
+                "opinion_base_rate": 0.5,
+            })
 
     attacks: set[tuple[str, str]] = set()
     direct_defeats: set[tuple[str, str]] = set()
