@@ -165,8 +165,10 @@ The **proof standards** (scintilla of evidence, preponderance of evidence, beyon
 ### New Leads (Not Yet in Collection)
 - **Farley and Freeman (1995)** — "Burden of proof in legal argumentation" — source of the four proof standards used in HERMES
 - **Gordon and Karacapilidis (1997)** — "The Zeno argumentation framework" — foundational predecessor to HERMES
-- **Simari and Loui (1992)** — "A mathematical treatment of defeasible reasoning" — formal treatment that could bridge HERMES' informal scoring and Dung-style semantics
 - **Kunz and Rittel (1970)** — "Issues as elements of information systems" — the original IBIS paper
+
+### Now in Collection (previously listed as leads)
+- [[Simari_1992_MathematicalTreatmentDefeasibleReasoning]] — Provides rigorous mathematical foundation for defeasible argumentation combining Poole's specificity criterion with Pollock's warrant theory. Defines Defeasible Logic Structures (K, Delta), argument structures, specificity ordering, and a dialectical justification process converging to a unique stable set. Relevant to HERMES as a formal bridge between informal scoring and Dung-style semantics: Simari's specificity ordering could formalize HERMES' proof-standard-based weighting.
 
 ### Cited By (in Collection)
 - [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — lists Karacapilidis & Papadias (2001) as Related Work Worth Reading and as a New Lead, citing it for practical support relations in argumentation.
