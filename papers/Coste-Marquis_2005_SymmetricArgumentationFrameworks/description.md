@@ -1,0 +1,4 @@
+---
+tags: [abstract-argumentation, argumentation-semantics, symmetric-attacks, computational-complexity, dung-af]
+---
+Characterizes Dung argumentation frameworks with symmetric attack relations, proving that preferred, stable, and naive extensions all coincide, that the grounded extension is exactly the set of unattacked arguments (linear time), and that no symmetric framework is well-founded but all are coherent and relatively grounded. Provides a complete complexity map for set-of-arguments acceptability problems, showing coNP/NP-completeness for preferred semantics but tractability for grounded and naive. Relevant to propstore's argumentation layer for understanding how symmetric contradiction patterns (mutual rebuttals between claims) simplify semantics choice while keeping set-level reasoning hard.
