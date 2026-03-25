@@ -463,3 +463,111 @@ def test_mc_confidence_affects_ci_width():
         f"95% CI half-width ({result_95.confidence_interval_half:.6f}), "
         f"but mc_confidence is ignored (hardcoded z=1.96)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 14. test_component_praf_with_missing_p_defeats_keys (RED — Finding F13/F15)
+# ---------------------------------------------------------------------------
+def test_component_praf_with_missing_p_defeats_keys():
+    """Component decomposition crashes when a component has BOTH probabilistic
+    and deterministic (missing p_defeats entry) defeats.
+
+    Bug: praf.py lines 342-345 build comp_p_defeats by filtering with
+    ``if d in praf.p_defeats``, so deterministic defeats (those without a
+    p_defeats entry — always present) are excluded from comp_p_defeats.
+    But comp_defeats (line 325-328) includes ALL defeats between component
+    arguments. The resulting comp_praf has framework.defeats that are NOT
+    in comp_praf.p_defeats.
+
+    The deterministic shortcut (line 354-358) only fires when ALL
+    comp_p_defeats have expectation >= 0.999. If any defeat IS in
+    comp_p_defeats with a sub-unity probability, the component goes to MC.
+    Then _sample_subgraph iterates over comp_praf.framework.defeats
+    (line 274) and looks up p_defeats[(f,t)] (line 276), raising KeyError
+    for the missing defeat.
+
+    Per Li et al. (2012, Def 2): PrAF = (A, P_A, D, P_D). A defeat not
+    in P_D should be treated as deterministic (P_D = 1.0), not crash.
+    """
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    # Single component with THREE defeats: two probabilistic, one deterministic.
+    # a <-> b (probabilistic, both ways)
+    # a -> c  (deterministic, no p_defeats entry)
+    # All three are in the same connected component, so component decomposition
+    # yields one component containing all three arguments.
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b", "c"}),
+        defeats=frozenset({("a", "b"), ("b", "a"), ("a", "c")}),
+    )
+    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    # Provide p_defeats for the probabilistic defeats only.
+    # ("a", "c") intentionally omitted — deterministic defeat.
+    p_defeats = {
+        ("a", "b"): from_probability(0.6, 5),
+        ("b", "a"): from_probability(0.6, 5),
+        # ("a", "c") intentionally omitted — deterministic defeat
+    }
+    praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
+
+    # This should NOT crash with KeyError. Currently it does because
+    # the component has probabilistic defeats (so deterministic shortcut
+    # is skipped) AND a defeat ("a","c") in framework.defeats that is
+    # missing from p_defeats. _sample_subgraph crashes on lookup.
+    result = compute_praf_acceptance(
+        praf, strategy="mc", mc_epsilon=0.05, rng_seed=42,
+    )
+
+    # If fixed: a is undefeated by anything certain except b's probabilistic
+    # defeat. c is always defeated by a (deterministic). So:
+    assert result.acceptance_probs["c"] == pytest.approx(0.0, abs=0.05)
+    assert 0.0 < result.acceptance_probs["a"] <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# 15. test_component_p_defeats_mismatch_direct
+# ---------------------------------------------------------------------------
+def test_component_p_defeats_mismatch_direct():
+    """_sample_subgraph should handle defeats missing from p_defeats by
+    treating them as deterministic (P_D = 1.0, always present).
+
+    Bug: _sample_subgraph (line 276) does a direct dict lookup
+    ``praf.p_defeats[(f, t)]`` with no fallback, so any defeat in
+    framework.defeats that is absent from p_defeats raises KeyError.
+
+    This simulates the state created by _compute_mc's component
+    decomposition (lines 342-345), which filters comp_p_defeats with
+    ``if d in praf.p_defeats`` — dropping deterministic defeats from
+    p_defeats while keeping them in framework.defeats.
+
+    Per Li et al. (2012, Def 2): a defeat not in P_D is deterministic.
+    _sample_subgraph should include it unconditionally when both
+    endpoints are present, not crash.
+    """
+    import random as random_mod
+
+    from propstore.praf import ProbabilisticAF, _sample_subgraph
+
+    # Construct a PrAF with a defeat that has NO p_defeats entry,
+    # simulating the state after component decomposition filtering.
+    af = ArgumentationFramework(
+        arguments=frozenset({"x", "y"}),
+        defeats=frozenset({("x", "y")}),
+    )
+    p_args = {"x": Opinion.dogmatic_true(), "y": Opinion.dogmatic_true()}
+    # p_defeats is EMPTY — the defeat ("x", "y") has no entry
+    p_defeats: dict[tuple[str, str], Opinion] = {}
+
+    praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
+
+    rng = random_mod.Random(42)
+    # _sample_subgraph should treat the missing defeat as deterministic
+    # (always present when both endpoints are sampled), not crash.
+    # Currently crashes with KeyError.
+    sub_af = _sample_subgraph(praf, rng, {"x", "y"})
+
+    # With P_A=1 for both and deterministic defeat, the sampled sub-AF
+    # should always include both arguments and the defeat.
+    assert "x" in sub_af.arguments
+    assert "y" in sub_af.arguments
+    assert ("x", "y") in sub_af.defeats
