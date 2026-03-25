@@ -463,7 +463,12 @@ def _check_binary(node: BinaryOpNode, expr: str, registry: dict[str, ConceptInfo
     right_type = _resolve_type(node.right, expr, registry, errors)
 
     if node.op in LOGICAL_OPS:
-        # Both sides should be boolean-compatible
+        # Both sides must be boolean-compatible
+        _bool_compatible = {ExprType.BOOLEAN, ExprType.UNKNOWN}
+        if left_type not in _bool_compatible:
+            errors.append(CelError(expr, f"Left operand of '{node.op}' must be boolean, got {left_type.value}"))
+        if right_type not in _bool_compatible:
+            errors.append(CelError(expr, f"Right operand of '{node.op}' must be boolean, got {right_type.value}"))
         return ExprType.BOOLEAN
 
     if node.op in ARITHMETIC_OPS:
