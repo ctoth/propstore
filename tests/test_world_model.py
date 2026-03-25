@@ -2151,3 +2151,125 @@ class TestFloatEqualityBugs:
             f"which is FP noise, but recompute_conflicts flagged them as conflicting. "
             f"Bug: hypothetical.py uses val_a != val_b instead of tolerance-based comparison."
         )
+
+
+# ── F19: WorldModel sidecar_path construction ─────────────────────────
+
+
+class TestWorldModelSidecarPath:
+    """WorldModel should accept a sidecar_path: Path directly, without
+    requiring a Repository object.  This is Finding 4 from the architecture
+    audit: world/model.py (Layer 5 render) should not depend on
+    propstore.cli.repository (Layer 6 CLI/agent workflow).
+
+    These tests MUST FAIL on the current code because __init__ only
+    accepts a Repository, not a Path.
+    """
+
+    def test_worldmodel_constructable_with_sidecar_path(self, tmp_path):
+        """WorldModel.__init__ should accept a bare sidecar_path: Path.
+
+        Currently fails because __init__ signature is (self, repo: Repository)
+        and immediately does repo.sidecar_path, which raises AttributeError
+        when given a Path instead of a Repository.
+        """
+        # Create a minimal sidecar database at a known path
+        db_path = tmp_path / "propstore.sqlite"
+        conn = sqlite3.connect(db_path)
+        conn.execute(
+            "CREATE TABLE concept "
+            "(id TEXT PRIMARY KEY, canonical_name TEXT, kind_type TEXT, "
+            "form TEXT, form_parameters TEXT)"
+        )
+        conn.close()
+
+        # This should work: construct WorldModel from a Path to the sidecar db.
+        # It currently FAILS because __init__ expects a Repository, not a Path.
+        wm = WorldModel(sidecar_path=db_path)
+        assert wm is not None
+        wm.close()
+
+    def test_worldmodel_importable_without_cli(self):
+        """propstore.world.model.WorldModel.from_path should not require
+        propstore.cli.repository at runtime.
+
+        Currently fails because from_path() line 46 does:
+            from propstore.cli.repository import Repository
+        This is an upward dependency: Layer 5 (render) -> Layer 6 (CLI).
+        """
+        import importlib
+        import importlib.abc
+        import importlib.machinery
+        import sys
+
+        # Temporarily hide propstore.cli from the import machinery
+        saved = {}
+        cli_modules = [k for k in sys.modules if k.startswith("propstore.cli")]
+        for k in cli_modules:
+            saved[k] = sys.modules.pop(k)
+
+        # Block future imports of propstore.cli using modern importlib API
+        class CliBlocker(importlib.abc.MetaPathFinder):
+            def find_spec(self, fullname, path, target=None):
+                if fullname.startswith("propstore.cli"):
+                    raise ImportError(
+                        f"Layer violation: propstore.world.model must not "
+                        f"import {fullname} (Layer 5 -> Layer 6)"
+                    )
+                return None
+
+        blocker = CliBlocker()
+        sys.meta_path.insert(0, blocker)
+        try:
+            # Call from_path — this should NOT need propstore.cli.
+            # Currently FAILS because from_path() does a runtime import of
+            # propstore.cli.repository.Repository at line 46.
+            from propstore.world.model import WorldModel as WM
+
+            try:
+                WM.from_path("/nonexistent")
+            except ImportError as exc:
+                if "propstore.cli" in str(exc):
+                    pytest.fail(
+                        f"Layer violation: WorldModel.from_path() imports from "
+                        f"propstore.cli at runtime: {exc}"
+                    )
+                raise
+            except FileNotFoundError:
+                # Path doesn't exist — that's fine, the point is no CLI import
+                pass
+        finally:
+            sys.meta_path.remove(blocker)
+            sys.modules.update(saved)
+
+
+# ── F30: HypotheticalWorld + ATMS backend ────────────────────────────
+
+
+class TestHypotheticalWorldATMS:
+    """HypotheticalWorld lacks atms_engine(), so ATMS-backend resolution crashes.
+
+    Finding 10 from audit-atms-world.md: HypotheticalWorld creates its own
+    ActiveClaimResolver but has no atms_engine() method.  If resolved_value()
+    is called with an ATMS-backend policy, _resolve_atms_support() (resolution.py)
+    calls getattr(view, "atms_engine", None) and raises NotImplementedError.
+    """
+
+    def test_hypothetical_atms_resolution_raises(self, world):
+        """resolved_value() with ATMS backend raises NotImplementedError on HypotheticalWorld."""
+        from propstore.world.types import ReasoningBackend
+
+        bound = world.bind(
+            task="speech",
+            policy=RenderPolicy(
+                strategy=ResolutionStrategy.ARGUMENTATION,
+                reasoning_backend=ReasoningBackend.ATMS,
+            ),
+        )
+        hypo = HypotheticalWorld(bound, remove=["claim2", "claim7", "claim15"])
+
+        # HypotheticalWorld has no atms_engine() method.
+        # _resolve_atms_support checks getattr(view, "atms_engine", None)
+        # and raises NotImplementedError when it's not callable.
+        with pytest.raises(NotImplementedError, match="ATMS backend requires"):
+            hypo.resolved_value("concept1")
