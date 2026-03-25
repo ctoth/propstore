@@ -90,3 +90,4 @@ Gabbay defines equational semantics for argumentation frameworks: assign each no
 
 **Uncertainty and graded acceptance:**
 - [[Sensoy_2018_EvidentialDeepLearningQuantifyClassification]] — **Moderate.** Sensoy uses Dirichlet parameters to represent uncertainty over classifications; Gabbay's equational values represent structural uncertainty from network topology. Different uncertainty types but both avoid collapsing to binary acceptance.
+- [[Thimm_2012_ProbabilisticSemanticsAbstractArgumentation]] — **Strong.** Both assign [0,1] values to arguments but via fundamentally different mechanisms: Gabbay uses local equations over attacker values (propagation-based), while Thimm derives probabilities from distributions over complete extensions (global, extension-based). Different semantics for the same numerical range — Gabbay's values encode structural strength, Thimm's encode epistemic belief in acceptability.

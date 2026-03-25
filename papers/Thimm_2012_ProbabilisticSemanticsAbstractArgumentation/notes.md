@@ -163,3 +163,40 @@ Directly relevant to propstore's argumentation layer. This paper provides the th
 - Caminada 2006 — Labellings and reinstatement — already in collection
 - Thimm & Kern-Isberner 2013 — Extended version of this work (mentioned in text)
 - Paris 1994 — Maximum entropy in probabilistic reasoning (theoretical foundation for max-entropy selection)
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — cited as foundational AF definition; Thimm's probabilistic semantics is defined over Dung's complete extensions and labellings *(p.1-2)*
+- [[Caminada_2006_IssueReinstatementArgumentation]] — cited for labelling framework; Thimm's rationality postulates PAF1-PAF4 are derived from properties of Caminada's complete labellings *(p.2-3)*
+- [[Li_2011_ProbabilisticArgumentationFrameworks]] — cited as the structural probability approach (probability over framework topology); Thimm contrasts his epistemic approach (probability over acceptance status) *(p.1)*
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — Hunter & Thimm 2017 is the extended journal version of this work; co-authored by Thimm, it develops the epistemic probability framework further with inconsistency measures and detailed proofs
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — cited for principle-based evaluation of extension semantics *(p.1)*
+- [[Besnard_2001_Logic-basedTheoryDeductiveArguments]] — cited for logic-based deductive argumentation theory *(p.1)*
+
+### New Leads (Not Yet in Collection)
+- Paris 1994 — "The Uncertain Reasoner's Companion" — theoretical foundation for maximum entropy reasoning that Thimm's selection mechanism relies on
+- Jaynes 2003 — "Probability Theory: The Logic of Science" — broader philosophical grounding for entropy-based probability
+- Thimm & Kern-Isberner 2013 — extended technical report version of this work with fuller proofs
+- Polberg & Doder 2014 — probabilistic abstract dialectical frameworks, alternative probabilistic formalization
+
+### Supersedes or Recontextualizes
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — Hunter & Thimm 2017 substantially extends and supersedes this 2012 paper; Thimm is co-author on both. The 2017 paper adds inconsistency measures, detailed complexity analysis, and extensive proofs that the 2012 short paper only sketches.
+
+### Cited By (in Collection)
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — Thimm is co-author; the 2017 paper is the extended version of this work
+- [[Popescu_2024_ProbabilisticArgumentationConstellation]] — cites Hunter & Thimm's epistemic approach as the alternative to the constellation approach that Popescu targets *(p.1)*
+- [[Charwat_2015_MethodsSolvingReasoningProblems]] — cites Thimm 2012 in survey of probabilistic argumentation methods
+- [[Tang_2025_EncodingArgumentationFrameworksPropositional]] — cites Thimm 2012 as probabilistic semantics for AFs
+- [[Lehtonen_2020_AnswerSetProgrammingApproach]] — cites in context of probabilistic argumentation
+- [[Doutre_2018_ConstraintsChangesSurveyAbstract]] — cites in survey of argumentation dynamics approaches
+
+### Conceptual Links (not citation-based)
+- **Graded/numerical argument acceptance:**
+  - [[Gabbay_2012_EquationalApproachArgumentationNetworks]] — **Strong.** Both papers assign [0,1] values to arguments, but via fundamentally different mechanisms: Gabbay uses equational semantics where values are determined by equations over attacker values (local, propagation-based), while Thimm derives probabilities from distributions over complete extensions (global, extension-based). For propstore, these offer two complementary paths to graded acceptance: Gabbay's approach is computationally lighter (local equations), Thimm's is semantically grounded in classical extensions.
+  - [[Bonzon_2016_ComparativeStudyRanking-basedSemantics]] — **Moderate.** Bonzon compares ranking-based semantics that also produce ordinal/cardinal rankings over arguments. Thimm's probabilistic semantics induces a ranking (order by P(A)), providing another entry in the ranking-based landscape.
+- **Probabilistic argumentation computation:**
+  - [[Popescu_2024_ProbabilisticArgumentationConstellation]] — **Strong.** Popescu provides exact DP algorithms for constellation-approach probabilities. Thimm's epistemic approach is the alternative: both assign probabilities but over different objects (acceptance status vs. framework structure). For propstore, the two approaches answer different questions: "how much should we believe argument A?" (Thimm) vs. "what's the probability this attack/argument exists?" (Popescu/Li).
+- **Uncertainty in argumentation:**
+  - [[Shafer_1976_MathematicalTheoryEvidence]] — **Moderate.** Shafer's belief functions generalize probability by allowing explicit ignorance (bel(A) + bel(not A) < 1). Thimm's characteristic function assigns 0.5 to undecided arguments, which resembles but is not identical to Dempster-Shafer's treatment of ignorance. A belief-function variant of Thimm's framework could provide richer uncertainty representation.
+  - [[Falkenhainer_1987_BeliefMaintenanceSystem]] — **Moderate.** Falkenhainer's BMS propagates Dempster-Shafer beliefs through TMS dependency networks. Thimm assigns probabilities to arguments in an AF. Both address graded belief over structured reasoning, but at different architectural levels (dependency network vs. argumentation framework).
