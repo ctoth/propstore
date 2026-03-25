@@ -126,18 +126,19 @@ class TestSoftEpsilonPrune:
         assert ("claim_a", "claim_b") in af.defeats
         assert ("claim_c", "claim_a") in af.defeats
 
-    def test_vacuous_stances_pruned(self, vacuous_stances):
-        """A stance with opinion_uncertainty > 0.99 is pruned.
+    def test_vacuous_stances_survive_af(self, vacuous_stances):
+        """A stance with opinion_uncertainty > 0.99 survives AF construction.
 
-        Per Josang (2001, p.8): vacuous opinion (0,0,1,a) carries no
-        information — prune as performance optimization only.
+        Per CLAUDE.md design checklist: no gates before render time.
+        Vacuous opinions (Josang 2001, p.8) participate in the AF structure;
+        filtering is deferred to render/resolution time.
         """
         ids = {"claim_a", "claim_b", "claim_c"}
         af = build_argumentation_framework(
             SQLiteArgumentationStore(vacuous_stances), ids,
         )
-        # claim_a->claim_b has u=1.0 (vacuous) — pruned
-        assert ("claim_a", "claim_b") not in af.defeats
+        # claim_a->claim_b has u=1.0 (vacuous) — still in the AF
+        assert ("claim_a", "claim_b") in af.attacks
         # claim_c->claim_a has u=0.3 (informative) — participates
         assert ("claim_c", "claim_a") in af.defeats
 
@@ -179,25 +180,29 @@ class TestSoftEpsilonPrune:
 
     def test_stance_summary_reports_uncertainty(self, vacuous_stances):
         """stance_summary() reports opinion statistics: count of vacuous
-        stances pruned, mean uncertainty of included stances."""
+        stances and mean uncertainty of all included stances."""
         ids = {"claim_a", "claim_b", "claim_c"}
         summary = stance_summary(SQLiteArgumentationStore(vacuous_stances), ids)
 
         assert summary["total_stances"] == 2
-        assert summary["pruned_vacuous"] == 1  # the u=1.0 stance
-        assert summary["included_as_attacks"] == 1  # the u=0.3 stance
+        assert summary["vacuous_count"] == 1  # the u=1.0 stance (counted, not pruned)
+        assert summary["included_as_attacks"] == 2  # both stances participate
         assert "mean_uncertainty" in summary
-        assert abs(summary["mean_uncertainty"] - 0.3) < 0.01
+        # mean of [1.0, 0.3] = 0.65
+        assert abs(summary["mean_uncertainty"] - 0.65) < 0.01
 
     def test_af_with_all_vacuous_stances(self, all_vacuous):
-        """When ALL stances are vacuous (u > 0.99), the AF has no defeat
-        edges — no information content. Edge case."""
+        """When ALL stances are vacuous (u > 0.99), they still appear in the AF.
+
+        No build-time gate — vacuous stances participate in AF construction.
+        Filtering is deferred to render/resolution time.
+        """
         ids = {"claim_a", "claim_b"}
         af = build_argumentation_framework(
             SQLiteArgumentationStore(all_vacuous), ids,
         )
-        assert len(af.defeats) == 0
-        assert len(af.attacks) == 0
+        # Both vacuous stances survive into the AF
+        assert len(af.attacks) == 2
 
     def test_af_includes_more_stances_than_before(self, mixed_confidence):
         """The new AF includes stances that the old threshold (0.5) would
@@ -245,7 +250,7 @@ class TestStanceSummary:
         # Both rebuts stances are now included (0.9 and 0.3)
         assert summary["included_as_attacks"] == 2
         assert summary["excluded_non_attack"] == 1  # the supports
-        assert summary["pruned_vacuous"] == 0  # no vacuous stances
+        assert summary["vacuous_count"] == 0  # no vacuous stances
 
     def test_summary_models(self, mixed_confidence):
         ids = {"claim_a", "claim_b", "claim_c"}
