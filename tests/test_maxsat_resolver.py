@@ -4,6 +4,7 @@ Verifies that z3.Optimize with soft constraints produces maximally
 consistent claim subsets weighted by claim_strength.
 """
 import pytest
+import z3
 from propstore.maxsat_resolver import resolve_conflicts
 
 
@@ -94,3 +95,58 @@ class TestMaxSATConflictFree:
         strengths = {"c1": 1.0, "c2": 1.0}
         result = resolve_conflicts(conflicts, strengths)
         assert len(result) >= 1
+
+
+class TestMaxSATBoolRefSafety:
+    """Verify MaxSAT resolver uses z3.is_true() instead of Python truthiness.
+
+    Finding C3 (audit-z3-cel-conflict.md): model.evaluate() returns z3.BoolRef,
+    not Python bool. Using BoolRef in a Python boolean context is
+    version-dependent: some z3 versions raise Z3Exception, others always return
+    True regardless of the logical value. The safe pattern is z3.is_true().
+
+    The current code at maxsat_resolver.py:45 uses:
+        if model.evaluate(var, model_completion=True)
+    instead of:
+        if z3.is_true(model.evaluate(var, model_completion=True))
+
+    This test inspects the source code to verify z3.is_true() is used.
+    """
+
+    def test_resolver_uses_is_true_not_bool_context(self):
+        """The resolver must use z3.is_true() to check model evaluation results.
+
+        Inspects the source code of resolve_conflicts to verify it does not
+        use model.evaluate() in a bare boolean context. The safe pattern is
+        z3.is_true(model.evaluate(...)). Using `if model.evaluate(...)` is
+        fragile because BoolRef.__bool__ behavior is z3-version-dependent.
+        """
+        import inspect
+        import textwrap
+
+        source = inspect.getsource(resolve_conflicts)
+
+        # The code must use z3.is_true() to check model evaluation results
+        assert "is_true" in source, (
+            "resolve_conflicts uses model.evaluate() in a boolean context "
+            "without z3.is_true(). This is version-dependent and fragile. "
+            "Replace `if model.evaluate(var, model_completion=True)` with "
+            "`if z3.is_true(model.evaluate(var, model_completion=True))`"
+        )
+
+    def test_excluded_claim_not_in_result(self):
+        """MaxSAT with conflicting soft constraints must exclude the weaker claim.
+
+        Sets up 3 claims where c1 conflicts with both c2 and c3.
+        c2+c3 together (weight 6) beat c1 alone (weight 5), so c1 must be
+        excluded — model.evaluate(keep_c1) should be z3.BoolVal(False).
+        """
+        conflicts = [("c1", "c2"), ("c1", "c3")]
+        strengths = {"c1": 5.0, "c2": 3.0, "c3": 3.0}
+        result = resolve_conflicts(conflicts, strengths)
+        # c2+c3 (weight 6) beats c1 (weight 5)
+        assert "c1" not in result, (
+            "c1 should be excluded but was kept — "
+            "model.evaluate() BoolRef used in boolean context without z3.is_true()"
+        )
+        assert result == frozenset({"c2", "c3"})

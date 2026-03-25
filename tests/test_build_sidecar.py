@@ -1419,6 +1419,73 @@ class TestClaimInsertRow:
         assert "context_id" in row
 
 
+# ── Unsafe float() coercion (F12.1) ──────────────────────────────────
+
+class TestExtractNumericClaimFieldsFloatSafety:
+    """Verify _extract_numeric_claim_fields handles non-numeric values gracefully.
+
+    Finding F12.1 (audit-error-handling.md): float(raw_value) on a non-numeric
+    string like "N/A" raises ValueError, crashing the entire sidecar build.
+    The function should handle this gracefully (return None for the value,
+    or log a warning) instead of propagating the exception.
+    """
+
+    def test_non_numeric_value_does_not_crash(self):
+        """A claim with value='N/A' must not raise ValueError.
+
+        Current code: float('N/A') raises ValueError.
+        Expected: graceful handling — return None for the value field.
+        """
+        from propstore.build_sidecar import _extract_numeric_claim_fields
+
+        claim = {"value": "N/A", "unit": "Hz"}
+        # This should NOT raise — non-numeric values should be handled gracefully
+        result = _extract_numeric_claim_fields(claim)
+        assert result["value"] is None, (
+            "Non-numeric claim value 'N/A' should produce value=None, "
+            "not crash with ValueError"
+        )
+
+    def test_non_numeric_value_in_prepare_row_does_not_crash(self):
+        """End-to-end: _prepare_claim_insert_row with value='N/A' must not crash."""
+        from propstore.build_sidecar import _prepare_claim_insert_row
+
+        claim = {
+            "id": "crash_claim",
+            "type": "parameter",
+            "concept": "concept1",
+            "value": "N/A",
+            "unit": "Hz",
+            "provenance": {"paper": "test.yaml", "page": 1},
+        }
+        # This should NOT raise ValueError from float("N/A")
+        row = _prepare_claim_insert_row(
+            claim, "test_paper.yaml", claim_seq=1, concept_registry={}
+        )
+        assert isinstance(row, dict)
+        assert row.get("value") is None, (
+            "Non-numeric value 'N/A' should result in value=None in the row"
+        )
+
+    def test_empty_string_value_does_not_crash(self):
+        """A claim with value='' (empty string) must not crash."""
+        from propstore.build_sidecar import _extract_numeric_claim_fields
+
+        claim = {"value": "", "unit": "Hz"}
+        result = _extract_numeric_claim_fields(claim)
+        assert result["value"] is None, (
+            "Empty string claim value should produce value=None"
+        )
+
+    def test_numeric_string_still_works(self):
+        """A claim with a valid numeric string must still convert correctly."""
+        from propstore.build_sidecar import _extract_numeric_claim_fields
+
+        claim = {"value": "42.5", "unit": "Hz"}
+        result = _extract_numeric_claim_fields(claim)
+        assert result["value"] == 42.5
+
+
 # ── Form algebra: dim_verified flag ──────────────────────────────────
 
 class TestFormAlgebraDimVerified:
