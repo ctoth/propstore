@@ -6,6 +6,12 @@ probabilities in PrAFs.
 
 Complexity: O(3^k * n) where k is treewidth, n is number of bags
 (Popescu & Wallner 2024, Theorem 7).
+
+**Known limitation:** The tree decomposition DP currently tracks full edge sets
+and forgotten arguments in table keys, giving row count O(2^|defeats| * 2^|args|).
+This provides zero asymptotic improvement over brute-force enumeration.
+Effective for AFs with treewidth <= ~15. A principled redesign would track
+only local state per bag, achieving the theoretical O(2^tw) bound.
 """
 
 from __future__ import annotations

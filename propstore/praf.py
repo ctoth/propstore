@@ -536,6 +536,12 @@ def _compute_dfquad(
 
     Complementary to PrAF MC/exact strategies which compute extension
     membership probabilities. DF-QuAD computes graded argument strengths.
+
+    **Design note:** Li 2012's P_A (argument existence probability for MC sampling)
+    is currently used as Rago 2016's τ (intrinsic strength for DF-QuAD gradual
+    semantics). These are conceptually distinct: a rarely-existing argument is not
+    the same as a weak argument. A principled separation would maintain P_A for
+    sampling and τ as an independent parameter.
     """
     from propstore.praf_dfquad import compute_dfquad_strengths
 

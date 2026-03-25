@@ -52,6 +52,13 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 | Denoeux 2019 | Decision-making with belief functions: pignistic, Hurwicz, interval criteria | Aspirational — pignistic/Hurwicz/interval criteria not implemented |
 | Fang et al. 2025 | DF-QuAD gradual semantics for quantitative bipolar argumentation frameworks | Implemented — but P_A conflated with base score |
 
+## Known Limitations
+
+**Decision criteria:** Denoeux 2019 decision-making criteria (pignistic transform,
+Hurwicz, interval dominance) are not yet implemented. The opinion layer has
+belief functions via Jøsang 2001 but no formal decision-making layer.
+Only `expectation()` (equivalent to pignistic for binary opinions) is available.
+
 ## Technical Conventions
 
 - `uv run` for all Python execution
