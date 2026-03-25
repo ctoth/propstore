@@ -176,8 +176,13 @@ def run_worldline(
                         for e in sr.entries
                         if e.elasticity is not None
                     ]
-            except Exception:
+            except Exception as exc:
                 logger.warning("sensitivity analysis failed for %s", target_name, exc_info=True)
+                if sensitivity_results is None:
+                    sensitivity_results = {}
+                sensitivity_results[target_name] = {
+                    "error": f"sensitivity analysis failed: {exc}",
+                }
 
     # ── 5. Argumentation state (if strategy=argumentation) ─────
     argumentation_state: dict[str, Any] | None = None
@@ -263,8 +268,12 @@ def run_worldline(
                         _stance_dependency_key(row)
                         for row in stance_rows
                     )
-        except Exception:
+        except Exception as exc:
             logger.warning("argumentation capture failed", exc_info=True)
+            argumentation_state = {
+                "status": "error",
+                "error": f"argumentation capture failed: {exc}",
+            }
 
     # ── 6. Compute dependency hash ─────────────────────────────────
     context_dependencies = _context_dependencies(bound, context_id)

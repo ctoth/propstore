@@ -7,7 +7,23 @@ for grouping equations by their variable structure.
 
 from __future__ import annotations
 
+import re
 from typing import Any
+
+# Reject equation strings that contain Python code-execution patterns.
+# This is defense-in-depth: parse_expr's local_dict alone does NOT
+# prevent __import__('os').system() from executing (the name resolves
+# via Python builtins, not the local_dict).
+_INJECTION_RE = re.compile(
+    r"__\w+__|(?<!\w)(?:import|eval|exec|compile|open|getattr|setattr|delattr)\s*\(",
+    re.IGNORECASE,
+)
+
+
+def _reject_injection(text: str) -> None:
+    """Raise ValueError if *text* contains code-execution patterns."""
+    if _INJECTION_RE.search(text):
+        raise ValueError(f"equation contains forbidden pattern: {text!r}")
 
 
 def equation_signature(claim: dict) -> tuple[str, tuple[str, ...]] | None:
@@ -50,7 +66,11 @@ def canonicalize_equation(claim: dict) -> str | None:
         from tokenize import TokenError
 
         from sympy import Equality, SympifyError, Symbol, simplify
-        from sympy.parsing.sympy_parser import parse_expr
+        from sympy.parsing.sympy_parser import (
+            implicit_multiplication,
+            parse_expr,
+            standard_transformations,
+        )
     except ImportError:
         return None
 
@@ -73,6 +93,7 @@ def canonicalize_equation(claim: dict) -> str | None:
     if isinstance(explicit_sympy, str) and explicit_sympy.strip():
         text = explicit_sympy.strip().replace("^", "**")
         try:
+            _reject_injection(text)
             parsed = parse_expr(text, local_dict=symbol_map)
             if isinstance(parsed, Equality):
                 lhs_val: Any = parsed.lhs
@@ -85,10 +106,24 @@ def canonicalize_equation(claim: dict) -> str | None:
     if not isinstance(expression, str) or "=" not in expression:
         return None
 
+    _safe_transforms = standard_transformations + (implicit_multiplication,)
+
     lhs_text, rhs_text = expression.replace("^", "**").split("=", 1)
     try:
-        lhs = parse_expr(lhs_text.strip(), local_dict=symbol_map)
-        rhs = parse_expr(rhs_text.strip(), local_dict=symbol_map)
+        _reject_injection(lhs_text)
+        _reject_injection(rhs_text)
+        lhs = parse_expr(
+            lhs_text.strip(),
+            local_dict=symbol_map,
+            transformations=_safe_transforms,
+            evaluate=False,
+        )
+        rhs = parse_expr(
+            rhs_text.strip(),
+            local_dict=symbol_map,
+            transformations=_safe_transforms,
+            evaluate=False,
+        )
     except (SympifyError, SyntaxError, TypeError, ValueError, AttributeError, TokenError):
         return None
     diff_expr: Any = lhs - rhs
