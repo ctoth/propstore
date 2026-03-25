@@ -5,7 +5,11 @@ import pytest
 from propstore.argumentation import build_praf
 from propstore.dung import ArgumentationFramework
 from propstore.opinion import Opinion
-from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+from propstore.praf import (
+    ProbabilisticAF,
+    compute_praf_acceptance,
+    summarize_defeat_relations,
+)
 from propstore.structured_argument import build_structured_projection
 
 
@@ -175,13 +179,8 @@ def test_structured_projection_keeps_vacuous_attack_edges() -> None:
     assert ("arg:claim_a", "arg:claim_b") in projection.framework.attacks
 
 
-def test_build_praf_does_not_make_derived_defeats_certain() -> None:
-    """Derived defeats should inherit uncertainty from the generating chain.
-
-    A Cayrol supported defeat exists only when the underlying defeating edge
-    exists. Promoting the derived defeat to certainty overstates the support
-    chain and distorts Li-style probabilistic semantics.
-    """
+def test_build_praf_keeps_direct_defeats_separate_from_derived_summaries() -> None:
+    """Derived defeat marginals should be queried explicitly, not stored as inputs."""
     store = _MiniStore(
         claims=[
             {"id": "claim_a", "concept_id": "c1", "type": "parameter", "value": 1.0},
@@ -209,7 +208,9 @@ def test_build_praf_does_not_make_derived_defeats_certain() -> None:
 
     praf = build_praf(store, {"claim_a", "claim_b", "claim_c"})
 
+    assert ("claim_a", "claim_c") not in praf.p_defeats
     base = praf.p_defeats[("claim_b", "claim_c")].expectation()
-    derived = praf.p_defeats[("claim_a", "claim_c")].expectation()
+    summary = {relation.edge: relation.opinion for relation in summarize_defeat_relations(praf)}
+    derived = summary[("claim_a", "claim_c")].expectation()
 
     assert derived == pytest.approx(base)

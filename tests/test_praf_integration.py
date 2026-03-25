@@ -427,6 +427,16 @@ def test_build_praf_deterministic():
             f"P_D has key {defeat} not in framework.defeats"
         )
 
+    # Primitive relation records preserve provenance-bearing uncertainty.
+    assert len(praf.attack_relations) == 1
+    attack_relation = praf.attack_relations[0]
+    assert attack_relation.kind == "attack"
+    assert attack_relation.edge == ("c1", "c2")
+    assert attack_relation.provenance is not None
+    assert attack_relation.provenance.stance_type == "rebuts"
+    assert len(praf.direct_defeat_relations) == 1
+    assert praf.direct_defeat_relations[0].edge == ("c1", "c2")
+
 
 def test_build_praf_uncertain_defeat_probabilities():
     """build_praf() with uncertain stances produces sub-unity P_D expectations.

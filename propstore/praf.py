@@ -1,8 +1,12 @@
-"""Probabilistic Argumentation Frameworks.
+"""Probabilistic argumentation over primitive relation worlds.
 
-Implements PrAF = (A, P_A, D, P_D) per Li et al. (2012, Def 2).
-Monte Carlo sampler with Agresti-Coull stopping per Li et al. (2012, Algorithm 1).
-Connected component decomposition per Hunter & Thimm (2017, Prop 18).
+This module keeps uncertainty on primitive arguments, attacks, and supports,
+then realizes semantic AFs per sampled world. Direct defeats are primitive
+semantic relations; Cayrol derived defeats are world-derived consequences.
+
+Monte Carlo uses Agresti-Coull stopping per Li et al. (2012, Algorithm 1).
+Connected component decomposition follows Hunter & Thimm (2017, Prop 18)
+over the primitive semantic dependency graph.
 """
 
 from __future__ import annotations
@@ -28,6 +32,10 @@ from propstore.dung import (
     stable_extensions,
 )
 from propstore.opinion import Opinion, from_probability
+from propstore.probabilistic_relations import (
+    ProbabilisticRelation,
+    relation_from_row,
+)
 
 # Threshold for treating P_D as deterministic (all defeats certain).
 _DETERMINISTIC_THRESHOLD = 0.999
@@ -35,14 +43,16 @@ _DETERMINISTIC_THRESHOLD = 0.999
 
 @dataclass(frozen=True)
 class ProbabilisticAF:
-    """PrAF = (A, P_A, D, P_D) per Li et al. (2012, Def 2).
+    """Probabilistic AF with primitive-relation uncertainty.
 
-    framework: the full Dung AF envelope (A, D).
+    framework: the semantic AF envelope used for deterministic evaluation.
     p_args: dict[str, Opinion] — P_A per argument (existence probability).
-    p_defeats: dict[tuple[str, str], Opinion] — P_D per defeat (existence probability).
+    p_defeats: dict[tuple[str, str], Opinion] — direct defeat probabilities only.
     p_attacks: optional primitive attack probabilities when attacks and defeats differ.
     supports / p_supports: optional primitive support relations with existence probabilities.
     base_defeats: optional direct defeats before Cayrol closure; defaults to framework.defeats.
+    attack_relations / support_relations / direct_defeat_relations preserve
+    provenance-bearing primitive relation records.
 
     The MC sampler uses Opinion.expectation() (Jøsang 2001, Def 6: E(ω) = b + a·u)
     as the sampling probability for each element.
@@ -55,6 +65,9 @@ class ProbabilisticAF:
     supports: frozenset[tuple[str, str]] = frozenset()
     p_supports: dict[tuple[str, str], Opinion] | None = None
     base_defeats: frozenset[tuple[str, str]] | None = None
+    attack_relations: tuple[ProbabilisticRelation, ...] = ()
+    support_relations: tuple[ProbabilisticRelation, ...] = ()
+    direct_defeat_relations: tuple[ProbabilisticRelation, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -121,6 +134,22 @@ def p_defeat_from_stance(stance: dict) -> Opinion:
     return p_relation_from_stance(stance)
 
 
+def _is_deterministic_opinion(opinion: Opinion | None) -> bool:
+    if opinion is None:
+        return True
+    expectation = opinion.expectation()
+    return (
+        expectation >= _DETERMINISTIC_THRESHOLD
+        or expectation <= (1.0 - _DETERMINISTIC_THRESHOLD)
+    )
+
+
+def _edge_is_present(opinion: Opinion | None) -> bool:
+    if opinion is None:
+        return True
+    return opinion.expectation() >= _DETERMINISTIC_THRESHOLD
+
+
 def _primitive_attacks(praf: ProbabilisticAF) -> frozenset[tuple[str, str]]:
     if praf.framework.attacks is not None:
         return praf.framework.attacks
@@ -137,6 +166,9 @@ def _attack_opinion(
     praf: ProbabilisticAF,
     edge: tuple[str, str],
 ) -> Opinion | None:
+    for relation in praf.attack_relations:
+        if relation.edge == edge:
+            return relation.opinion
     if praf.p_attacks is not None and edge in praf.p_attacks:
         return praf.p_attacks[edge]
     if edge in _direct_defeats(praf) and edge in praf.p_defeats:
@@ -148,6 +180,9 @@ def _support_opinion(
     praf: ProbabilisticAF,
     edge: tuple[str, str],
 ) -> Opinion | None:
+    for relation in praf.support_relations:
+        if relation.edge == edge:
+            return relation.opinion
     if praf.p_supports is not None and edge in praf.p_supports:
         return praf.p_supports[edge]
     return None
@@ -178,17 +213,42 @@ def _requires_relation_rich_worlds(praf: ProbabilisticAF) -> bool:
 
 
 def _all_structure_deterministic(praf: ProbabilisticAF) -> bool:
-    if not all(p.expectation() >= _DETERMINISTIC_THRESHOLD for p in praf.p_args.values()):
+    if not all(_is_deterministic_opinion(p) for p in praf.p_args.values()):
         return False
     for edge in _primitive_attacks(praf):
         opinion = _attack_opinion(praf, edge)
-        if opinion is not None and opinion.expectation() < _DETERMINISTIC_THRESHOLD:
+        if not _is_deterministic_opinion(opinion):
             return False
     for edge in praf.supports:
         opinion = _support_opinion(praf, edge)
-        if opinion is not None and opinion.expectation() < _DETERMINISTIC_THRESHOLD:
+        if not _is_deterministic_opinion(opinion):
             return False
     return True
+
+
+def _deterministic_world(
+    praf: ProbabilisticAF,
+    arg_subset: frozenset[str] | None = None,
+) -> ArgumentationFramework:
+    """Realize the unique deterministic world for a deterministic PrAF."""
+    args_to_consider = arg_subset if arg_subset is not None else praf.framework.arguments
+    sampled_args = frozenset(
+        a for a in args_to_consider
+        if _edge_is_present(praf.p_args[a])
+    )
+    sampled_attacks = frozenset(
+        edge for edge in _primitive_attacks(praf)
+        if edge[0] in sampled_args
+        and edge[1] in sampled_args
+        and _edge_is_present(_attack_opinion(praf, edge))
+    )
+    sampled_supports = frozenset(
+        edge for edge in praf.supports
+        if edge[0] in sampled_args
+        and edge[1] in sampled_args
+        and _edge_is_present(_support_opinion(praf, edge))
+    )
+    return _build_sampled_framework(praf, sampled_args, sampled_attacks, sampled_supports)
 
 
 def _build_sampled_framework(
@@ -350,11 +410,14 @@ def _deterministic_fallback(praf: ProbabilisticAF, semantics: str) -> PrAFResult
     Per Li (2012, p.2): PrAF with P_A=1, P_D=1 yields acceptance probabilities
     of exactly 0.0 or 1.0, matching standard Dung extension computation.
     """
-    ext = _evaluate_semantics(praf.framework, semantics)
+    deterministic_af = _deterministic_world(praf)
+    ext = _evaluate_semantics(deterministic_af, semantics)
 
     acceptance: dict[str, float] = {}
-    for arg in praf.framework.arguments:
+    for arg in deterministic_af.arguments:
         acceptance[arg] = 1.0 if arg in ext else 0.0
+    for arg in praf.framework.arguments - deterministic_af.arguments:
+        acceptance[arg] = 0.0
 
     return PrAFResult(
         acceptance_probs=acceptance,
@@ -429,14 +492,14 @@ def _sample_subgraph(
     rng: _random_mod.Random,
     arg_subset: set[str] | None = None,
 ) -> ArgumentationFramework:
-    """Sample one induced DAF from the PrAF.
+    """Sample one semantic AF world from primitive probabilistic relations.
 
     Per Li et al. (2012, Algorithm 1, p.5):
     1. For each argument a, include with probability P_A(a).expectation()
-    2. For each defeat (f,t) where both f,t are included,
-       include with probability P_D((f,t)).expectation()
-
-    Step 2 enforces Definition 3: defeats only sampled when both endpoints present.
+    2. For each primitive attack/support where both endpoints are included,
+       sample existence from its opinion expectation
+    3. Derive direct defeats from sampled attacks and direct-defeat policy
+    4. Derive Cayrol defeats from sampled direct defeats and supports
     """
     args_to_sample = arg_subset if arg_subset is not None else praf.framework.arguments
 
@@ -552,7 +615,7 @@ def _compute_mc(
         # Check if this component is deterministic
         comp_all_det = _all_structure_deterministic(comp_praf)
         if comp_all_det:
-            ext = _evaluate_semantics(comp_af, semantics)
+            ext = _evaluate_semantics(_deterministic_world(comp_praf), semantics)
             for arg in comp_args:
                 all_acceptance[arg] = 1.0 if arg in ext else 0.0
             continue
@@ -622,7 +685,6 @@ def _compute_exact_enumeration(
     Complexity: O(2^(|A|+|D|)) — only feasible for small AFs.
     """
     args_list = sorted(praf.framework.arguments)
-    defeats_list = sorted(praf.framework.defeats)
     n_args = len(args_list)
 
     # Per-argument acceptance probability accumulator
@@ -687,6 +749,63 @@ def _compute_exact_dp(
         confidence_interval_half=None,
         semantics=semantics,
     )
+
+
+def summarize_defeat_relations(
+    praf: ProbabilisticAF,
+    *,
+    include_derived: bool = True,
+) -> tuple[ProbabilisticRelation, ...]:
+    """Compute exact defeat marginals as derived query results.
+
+    This helper is explicit and potentially exponential. It is intended for
+    explanation and diagnostics, not as an input to the semantic core.
+    """
+    args_list = sorted(praf.framework.arguments)
+    n_args = len(args_list)
+    acceptance: dict[tuple[str, str], float] = {}
+
+    for arg_mask in range(1 << n_args):
+        sampled_args = frozenset(
+            args_list[i] for i in range(n_args) if arg_mask & (1 << i)
+        )
+
+        p_args_present = 1.0
+        for i, a in enumerate(args_list):
+            p_a = praf.p_args[a].expectation()
+            if arg_mask & (1 << i):
+                p_args_present *= p_a
+            else:
+                p_args_present *= (1.0 - p_a)
+
+        if p_args_present < 1e-15:
+            continue
+
+        for p_world, sub_af in _enumerate_worlds(praf, sampled_args):
+            total_prob = p_args_present * p_world
+            if total_prob < 1e-15:
+                continue
+            for defeat in sub_af.defeats:
+                acceptance[defeat] = acceptance.get(defeat, 0.0) + total_prob
+
+    records: list[ProbabilisticRelation] = []
+    direct_defeats = _direct_defeats(praf)
+    for edge in sorted(acceptance):
+        if not include_derived and edge not in direct_defeats:
+            continue
+        kind = "direct_defeat" if edge in direct_defeats else "derived_defeat"
+        records.append(
+            relation_from_row(
+                kind=kind,
+                source=edge[0],
+                target=edge[1],
+                opinion=Opinion(acceptance[edge], 1.0 - acceptance[edge], 0.0, 0.5),
+                row=None,
+                derived_from=(),
+            )
+        )
+
+    return tuple(records)
 
 
 def _compute_dfquad(

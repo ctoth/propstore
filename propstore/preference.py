@@ -1,4 +1,4 @@
-"""Preference ordering for ASPIC+ argumentation.
+"""Preference ordering for claim-graph argumentation.
 
 Determines which attacks survive as defeats based on argument strength.
 
@@ -6,6 +6,10 @@ References:
     Modgil, S. & Prakken, H. (2018). An abstract framework for
     argumentation with structured arguments. Argument & Computation.
     Def 9 (defeat), Def 19 (set comparisons).
+
+This module implements a claim-metadata heuristic inspired by ASPIC+
+set comparison, not a full Def. 19 / Defs. 20-21 structured-argument
+ordering over premises and defeasible rules.
 """
 
 from __future__ import annotations
@@ -54,12 +58,11 @@ def defeat_holds(
 
 
 def claim_strength(claim: dict) -> list[float]:
-    """Compute multi-dimensional strength from claim metadata.
+    """Compute heuristic multi-dimensional strength from claim metadata.
 
-    Returns multi-dimensional strength for set comparison per
-    Modgil & Prakken (2018, Def 19). Each available signal becomes
-    a separate dimension, enabling elitist vs democratic comparison
-    to produce different results.
+    This is literature-inspired rather than literature-faithful ASPIC+.
+    Each available metadata signal becomes a separate dimension so the
+    current claim-graph backend can reuse elitist vs democratic comparison.
 
     Dimensions (when present):
       - sample_size: log-scaled (diminishing returns)

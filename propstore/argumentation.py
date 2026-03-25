@@ -16,8 +16,13 @@ from propstore.dung import (
     preferred_extensions,
     stable_extensions,
 )
-from propstore.opinion import Opinion
 from propstore.preference import claim_strength, defeat_holds
+from propstore.probabilistic_relations import (
+    ClaimGraphRelations,
+    ProbabilisticRelation,
+    relation_from_row,
+    relation_map,
+)
 from propstore.world.types import ArtifactStore
 
 _ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
@@ -25,25 +30,6 @@ _UNCONDITIONAL_TYPES = frozenset({"undercuts", "supersedes"})
 _PREFERENCE_TYPES = frozenset({"rebuts", "undermines"})
 _SUPPORT_TYPES = frozenset({"supports", "explains"})
 _NON_ATTACK_TYPES = frozenset({"supports", "explains", "none"})
-
-
-def _merge_opinion(
-    opinions: dict[tuple[str, str], Opinion],
-    edge: tuple[str, str],
-    opinion: Opinion,
-) -> bool:
-    """Keep the strongest known expectation for a derived edge summary."""
-    current = opinions.get(edge)
-    if current is not None and current.expectation() >= opinion.expectation():
-        return False
-    opinions[edge] = opinion
-    return True
-
-
-def _probability_opinion(probability: float, a: float = 0.5) -> Opinion:
-    """Embed an exact existence probability as an opinion with zero uncertainty."""
-    prob = min(max(probability, 0.0), 1.0)
-    return Opinion(prob, 1.0 - prob, 0.0, a)
 
 
 def _transitive_support_targets(
@@ -118,90 +104,24 @@ def _cayrol_derived_defeats(
     return all_derived
 
 
-def _support_path_opinions(
-    support_opinions: dict[tuple[str, str], Opinion],
-) -> dict[tuple[str, str], Opinion]:
-    """Aggregate opinions for all simple support paths."""
-    adjacency: dict[str, list[tuple[str, Opinion]]] = {}
-    for (src, tgt), opinion in support_opinions.items():
-        adjacency.setdefault(src, []).append((tgt, opinion))
-
-    path_opinions: dict[tuple[str, str], Opinion] = {}
-
-    def _dfs(
-        source: str,
-        current: str,
-        path_opinion: Opinion | None,
-        visited: set[str],
-    ) -> None:
-        for nxt, edge_opinion in adjacency.get(current, []):
-            if nxt in visited:
-                continue
-            combined_probability = edge_opinion.expectation()
-            if path_opinion is not None:
-                combined_probability *= path_opinion.expectation()
-            combined = _probability_opinion(combined_probability)
-            _merge_opinion(path_opinions, (source, nxt), combined)
-            _dfs(source, nxt, combined, visited | {nxt})
-
-    for source in adjacency:
-        _dfs(source, source, None, {source})
-
-    return path_opinions
-
-
-def _derived_defeat_opinions(
-    direct_defeats: dict[tuple[str, str], Opinion],
-    support_paths: dict[tuple[str, str], Opinion],
-) -> dict[tuple[str, str], Opinion]:
-    """Aggregate opinions for direct and Cayrol-derived defeats."""
-    working = dict(direct_defeats)
-
-    while True:
-        changed = False
-        current_defeats = list(working.items())
-
-        for (support_src, support_tgt), support_opinion in support_paths.items():
-            for (defeat_src, defeat_tgt), defeat_opinion in current_defeats:
-                if defeat_src == support_tgt:
-                    changed |= _merge_opinion(
-                        working,
-                        (support_src, defeat_tgt),
-                        _probability_opinion(
-                            support_opinion.expectation() * defeat_opinion.expectation()
-                        ),
-                    )
-
-        for (defeat_src, defeat_tgt), defeat_opinion in current_defeats:
-            for (support_src, support_tgt), support_opinion in support_paths.items():
-                if support_src == defeat_tgt:
-                    changed |= _merge_opinion(
-                        working,
-                        (defeat_src, support_tgt),
-                        _probability_opinion(
-                            defeat_opinion.expectation() * support_opinion.expectation()
-                        ),
-                    )
-
-        if not changed:
-            break
-
-    return working
-
-
 def _collect_claim_graph_relations(
     store: ArtifactStore,
     active_claim_ids: set[str],
     *,
     comparison: str,
-) -> tuple[dict[str, dict], list[dict], set[tuple[str, str]], set[tuple[str, str]], set[tuple[str, str]], set[tuple[str, str]]]:
+) -> tuple[dict[str, dict], list[dict], ClaimGraphRelations]:
     """Collect primitive and derived graph relations for active claims."""
+    from propstore.praf import p_relation_from_stance
+
     claims_by_id = store.claims_by_ids(active_claim_ids)
     stances = store.stances_between(active_claim_ids)
 
     attacks: set[tuple[str, str]] = set()
     direct_defeats: set[tuple[str, str]] = set()
     supports: set[tuple[str, str]] = set()
+    attack_relations: list[ProbabilisticRelation] = []
+    support_relations: list[ProbabilisticRelation] = []
+    direct_defeat_relations: list[ProbabilisticRelation] = []
 
     for stance in stances:
         source_id = stance["claim_id"]
@@ -213,15 +133,43 @@ def _collect_claim_graph_relations(
 
         if stance_type in _SUPPORT_TYPES:
             supports.add((source_id, target_id))
+            support_relations.append(
+                relation_from_row(
+                    kind="support",
+                    source=source_id,
+                    target=target_id,
+                    opinion=p_relation_from_stance(stance),
+                    row=stance,
+                )
+            )
             continue
 
         if stance_type not in _ATTACK_TYPES:
             continue
 
         attacks.add((source_id, target_id))
+        attack_opinion = p_relation_from_stance(stance)
+        attack_relations.append(
+            relation_from_row(
+                kind="attack",
+                source=source_id,
+                target=target_id,
+                opinion=attack_opinion,
+                row=stance,
+            )
+        )
 
         if stance_type in _UNCONDITIONAL_TYPES:
             direct_defeats.add((source_id, target_id))
+            direct_defeat_relations.append(
+                relation_from_row(
+                    kind="direct_defeat",
+                    source=source_id,
+                    target=target_id,
+                    opinion=attack_opinion,
+                    row=stance,
+                )
+            )
         elif stance_type in _PREFERENCE_TYPES:
             attacker_claim = claims_by_id.get(source_id, {})
             target_claim = claims_by_id.get(target_id, {})
@@ -229,12 +177,25 @@ def _collect_claim_graph_relations(
             target_s = claim_strength(target_claim)
             if defeat_holds(stance_type, attacker_s, target_s, comparison):
                 direct_defeats.add((source_id, target_id))
+                direct_defeat_relations.append(
+                    relation_from_row(
+                        kind="direct_defeat",
+                        source=source_id,
+                        target=target_id,
+                        opinion=attack_opinion,
+                        row=stance,
+                    )
+                )
 
-    derived_defeats = (
-        _cayrol_derived_defeats(direct_defeats, supports)
-        if supports else set()
+    return claims_by_id, stances, ClaimGraphRelations(
+        arguments=frozenset(active_claim_ids),
+        attacks=frozenset(attacks),
+        direct_defeats=frozenset(direct_defeats),
+        supports=frozenset(supports),
+        attack_relations=tuple(attack_relations),
+        support_relations=tuple(support_relations),
+        direct_defeat_relations=tuple(direct_defeat_relations),
     )
-    return claims_by_id, stances, attacks, direct_defeats, supports, derived_defeats
 
 
 def build_argumentation_framework(
@@ -260,17 +221,19 @@ def build_argumentation_framework(
     reconciliation may diverge from standard semantics in edge cases with
     complex attack/defeat interactions.
     """
-    _, _, attacks, direct_defeats, supports, derived_defeats = _collect_claim_graph_relations(
+    _, _, relations = _collect_claim_graph_relations(
         store,
         active_claim_ids,
         comparison=comparison,
     )
-    defeats = direct_defeats | derived_defeats
+    defeats = set(relations.direct_defeats)
+    if relations.supports and relations.direct_defeats:
+        defeats |= _cayrol_derived_defeats(set(relations.direct_defeats), set(relations.supports))
 
     return ArgumentationFramework(
         arguments=frozenset(active_claim_ids),
         defeats=frozenset(defeats),
-        attacks=frozenset(attacks),
+        attacks=relations.attacks,
     )
 
 
@@ -280,60 +243,40 @@ def build_praf(
     *,
     comparison: str = "elitist",
 ) -> "ProbabilisticAF":
-    """Build PrAF by annotating AF with opinion-derived probabilities.
+    """Build a primitive-relation probabilistic model over the claim graph.
 
-    Per Li et al. (2012, Def 2): PrAF = (A, P_A, D, P_D).
-    P_A from p_arg_from_claim() (default: dogmatic true).
-    P_D from stance opinion columns (Jøsang 2001, Def 6: E(ω) = b + a·u).
+    P_A comes from p_arg_from_claim() (default: dogmatic true).
+    Primitive attacks and supports carry opinion-derived existence probabilities.
+    Direct defeats are the primitive semantic relation after preference filtering.
+    Cayrol derived defeats remain world-derived consequences and are not stored
+    as authoritative probabilistic inputs.
 
     Steps:
-      1. Call build_argumentation_framework() to get the AF
-      2. Load opinion data for each stance from the store
-      3. Map opinions to P_D (fallback: opinion columns → confidence → dogmatic true)
-      4. Set P_A = p_arg_from_claim(claim) for each argument
+      1. Collect primitive attacks/supports and direct defeats
+      2. Build the semantic AF envelope with Cayrol closure for deterministic evaluation
+      3. Attach provenance-bearing primitive relation records
+      4. Set P_A for each argument
       5. Return ProbabilisticAF
     """
-    from propstore.praf import ProbabilisticAF, p_arg_from_claim, p_relation_from_stance
+    from propstore.praf import ProbabilisticAF, p_arg_from_claim
 
-    claims_by_id, stances, attacks, direct_defeats, supports, derived_defeats = _collect_claim_graph_relations(
+    claims_by_id, _, relations = _collect_claim_graph_relations(
         store,
         active_claim_ids,
         comparison=comparison,
     )
 
+    derived_defeats = (
+        _cayrol_derived_defeats(set(relations.direct_defeats), set(relations.supports))
+        if relations.supports and relations.direct_defeats
+        else set()
+    )
     af = ArgumentationFramework(
         arguments=frozenset(active_claim_ids),
-        defeats=frozenset(direct_defeats | derived_defeats),
-        attacks=frozenset(attacks),
+        defeats=frozenset(set(relations.direct_defeats) | derived_defeats),
+        attacks=relations.attacks,
     )
-
-    attack_opinions: dict[tuple[str, str], Opinion] = {}
-    support_opinions: dict[tuple[str, str], Opinion] = {}
-    for stance in stances:
-        pair = (stance["claim_id"], stance["target_claim_id"])
-        if pair[0] not in claims_by_id or pair[1] not in claims_by_id:
-            continue
-        stance_type = stance["stance_type"]
-        if stance_type in _ATTACK_TYPES:
-            attack_opinions[pair] = p_relation_from_stance(stance)
-        elif stance_type in _SUPPORT_TYPES:
-            support_opinions[pair] = p_relation_from_stance(stance)
-
-    direct_defeat_opinions = {
-        pair: attack_opinions[pair]
-        for pair in direct_defeats
-        if pair in attack_opinions
-    }
-    support_path_opinions = _support_path_opinions(support_opinions)
-    all_defeat_opinions = _derived_defeat_opinions(
-        direct_defeat_opinions,
-        support_path_opinions,
-    )
-    p_defeats: dict[tuple[str, str], "Opinion"] = {
-        defeat: all_defeat_opinions[defeat]
-        for defeat in af.defeats
-        if defeat in all_defeat_opinions
-    }
+    p_defeats = relation_map(relations.direct_defeat_relations)
 
     # Step 4: P_A for each argument
     p_args: dict[str, "Opinion"] = {}
@@ -345,10 +288,13 @@ def build_praf(
         framework=af,
         p_args=p_args,
         p_defeats=p_defeats,
-        p_attacks=attack_opinions,
-        supports=frozenset(supports),
-        p_supports=support_opinions,
-        base_defeats=frozenset(direct_defeats),
+        p_attacks=relation_map(relations.attack_relations),
+        supports=relations.supports,
+        p_supports=relation_map(relations.support_relations),
+        base_defeats=relations.direct_defeats,
+        attack_relations=relations.attack_relations,
+        support_relations=relations.support_relations,
+        direct_defeat_relations=relations.direct_defeat_relations,
     )
 
 
