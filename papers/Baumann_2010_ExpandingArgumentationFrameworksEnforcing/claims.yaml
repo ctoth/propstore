@@ -1,0 +1,183 @@
+source:
+  paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+  extraction_model: "claude-opus-4-6-20250514"
+  extraction_date: "2026-03-24"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "An expansion of an argumentation framework A=(A,R) is an AF A*=(A union A*, R union R*) where A* is a nonempty set disjoint from A. Normal expansions restrict new attacks to involve at least one new argument; strong expansions further forbid attacks from old to new; weak expansions forbid attacks from new to old."
+    concepts:
+      - expansion
+      - argumentation_framework
+      - attack_relation
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 3
+      section: "2.3 Expansions of AFs"
+      quote_fragment: "An AF A* is an expansion of AF A=(A,R) iff A*=(A union A*, R union R*) for some nonempty A* disjoint from A"
+
+  - id: claim2
+    type: observation
+    statement: "Enforcement of a desired set E* means modifying an argumentation framework so that E* becomes one of its extensions. Conservative enforcement preserves the semantics; liberal enforcement allows changing the semantics."
+    concepts:
+      - extension_enforcement
+      - argumentation_semantics
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 3
+      section: "2.4 Enforcing Extensions"
+      quote_fragment: "Enforcing an extension E* means modifying an argumentation framework in such a way that E* becomes one of its extensions"
+
+  - id: claim3
+    type: limitation
+    statement: "Normal expansions cannot enforce a desired set if the set is not defended by itself in the expanded framework: if S satisfies admissibility and A does not defend all elements of E* in A+, no conservative normal enforcement exists."
+    concepts:
+      - extension_enforcement
+      - expansion
+      - admissible_set
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 5
+      section: "3.1 Impossibility Results"
+      quote_fragment: "If S satisfies admissibility and S+, A does not defend all its elements in A_+, then there is no conservative normal enforcement"
+
+  - id: claim4
+    type: limitation
+    statement: "Normal expansions cannot enforce a conflicting desired set: if E* is a subset of A and E* has an internal conflict under the attack relation, no conservative enforcement under conflict-free semantics is possible."
+    concepts:
+      - extension_enforcement
+      - conflict_free
+      - expansion
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 5
+      section: "3.1 Impossibility Results"
+      quote_fragment: "If S satisfies conflict-freeness and E* subset A is conflicting, there is a counterexample"
+
+  - id: claim5
+    type: mechanism
+    statement: "Any conflict-free set C in an AF can be enforced as an extension by adding a single new argument c that attacks every argument not in C and is attacked by every element of C, producing C union {c} as the unique extension under all standard semantics (stable, preferred, complete, grounded, admissible)."
+    concepts:
+      - extension_enforcement
+      - conflict_free_set
+      - expansion
+      - stable_extension
+      - preferred_extension
+      - complete_extension
+      - grounded_extension
+      - admissible_set
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 7
+      section: "3.2 Possibility Results"
+      quote_fragment: "whenever a set C is conflict-free we may add one additional argument c and certain attacks so that the union of C and c is the unique extension of the constructed AF"
+    notes: "This is the paper's key constructive result (Theorem 4). The enforcement is conservative strong — no semantics change needed."
+
+  - id: claim6
+    type: observation
+    statement: "For weak expansions of an AF under any semantics satisfying the directionality principle, the number of extensions is monotonically non-decreasing: |E_S(A)| <= |E_S(A*)|."
+    concepts:
+      - expansion
+      - directionality
+      - argumentation_semantics
+      - extension
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 9
+      section: "3.3 Monotonic Relations between Sets of Extensions"
+      quote_fragment: "the number of extensions can only increase or stay the same"
+    notes: "Theorem 5, part 1. Applies to grounded, complete, preferred semantics but NOT stable or admissible (which don't satisfy directionality)."
+
+  - id: claim7
+    type: observation
+    statement: "For weak expansions under directional semantics, skeptically justified arguments remain skeptically justified: the intersection of all extensions of A is a subset of the intersection of all extensions of A*."
+    concepts:
+      - expansion
+      - directionality
+      - skeptical_reasoning
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 9
+      section: "3.3 Monotonic Relations between Sets of Extensions"
+      quote_fragment: "skeptically justified args persist"
+    notes: "Corollary 6, part 1. Means adding new arguments (that only receive attacks) cannot destabilize existing skeptically justified conclusions."
+
+  - id: claim8
+    type: observation
+    statement: "For weak expansions under directional semantics, credulously justified arguments remain credulously justified: the union of all extensions of A is a subset of the union of all extensions of A*."
+    concepts:
+      - expansion
+      - directionality
+      - credulous_reasoning
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 9
+      section: "3.3 Monotonic Relations between Sets of Extensions"
+      quote_fragment: "credulously justified args persist"
+    notes: "Corollary 6, part 2."
+
+  - id: claim9
+    type: mechanism
+    statement: "In a weak expansion chain (a sequence of AFs where each is a weak expansion of the previous), the acceptability of an argument a in the final AF A_n is determined by its acceptability in the first AF A_i where a appears, under any semantics satisfying directionality."
+    concepts:
+      - expansion
+      - directionality
+      - dynamic_argumentation_framework
+      - acceptability
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 10
+      section: "3.3 Monotonic Relations between Sets of Extensions"
+      quote_fragment: "the corollary shows that it is sufficient to check the acceptability of an argument a in the expansion chain A_0,...,A_n which is the first AF in which a appears"
+    notes: "Corollary 1 from Definition 7 (expansion chains). Enables incremental acceptability checking without recomputing from scratch."
+
+  - id: claim10
+    type: comparison
+    statement: "Unlike Cayrol et al.'s work on AF revision which considers topology of single-interaction revisions, this paper addresses enforcement (making a desired set become an extension) and monotonicity properties, which are orthogonal concerns."
+    concepts:
+      - extension_enforcement
+      - dynamic_argumentation_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 11
+      section: "4. Related Work and Conclusions"
+      quote_fragment: "Cayrol et al. studied a related problem but their framework does not address enforcement or monotonicity"
+
+  - id: claim11
+    type: limitation
+    statement: "The monotonicity results for extension count and justification state require semantics satisfying the directionality principle; stable semantics and admissible semantics do not satisfy directionality and are therefore excluded."
+    concepts:
+      - directionality
+      - stable_extension
+      - admissible_set
+      - argumentation_semantics
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 9
+      section: "3.3 Monotonic Relations between Sets of Extensions"
+    notes: "This is a significant scope limitation — stable semantics is one of the most commonly used."
+
+  - id: claim12
+    type: limitation
+    statement: "Only conflict-free desired sets can be enforced via the constructive method; enforcement of non-conflict-free sets is not addressed."
+    concepts:
+      - extension_enforcement
+      - conflict_free
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Baumann_2010_ExpandingArgumentationFrameworksEnforcing
+      page: 7
+      section: "3.2 Possibility Results"
+    notes: "The impossibility result (Proposition 1.3) shows this is a fundamental barrier, not just a gap in the proof technique."

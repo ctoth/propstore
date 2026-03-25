@@ -39,8 +39,14 @@
 - **Definition 7:** Expansion chains; Corollary 1 about checking acceptability in initial AF of chain
 - 14 references
 
+### Completed
+- notes.md, abstract.md, citations.md, description.md — all written
+- metadata.json updated with abstract
+- index.md updated with entry
+- Reconcile done: forward refs to Dung 1995, Baroni 2007, Caminada 2006, Cayrol 2005; reverse ref from Doutre 2018; conceptual link to Odekerken 2023
+- Committed: 9d5bd7a (paper files), 1a867b7 (reconcile)
+
 ### Next steps
-- Write notes.md, abstract.md, citations.md, description.md
-- Update metadata.json with abstract
-- Run reconcile, update index.md
-- Extract claims
+- Extract claims (create mode, no existing claims.yaml)
+- Context: ctx_abstract_argumentation
+- Existing concepts cover most needs: extension_enforcement, expansion, directionality, conflict_free, etc.
