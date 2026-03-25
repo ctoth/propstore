@@ -502,3 +502,55 @@ class TestGenuineNoneStillWorks:
         result = asyncio.run(run())
         assert result["type"] == "none", "Genuine none must remain type='none'"
         assert result["resolution"]["confidence"] == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Test 12: write_stance_file writes to proposals/, not knowledge/ (F17)
+# ---------------------------------------------------------------------------
+
+class TestWriteStanceFileWritesToProposals:
+    """Bug F17: write_stance_file() writes LLM stance output directly to
+    knowledge/stances/ (source-of-truth storage).  Per the core design
+    principle, heuristic output must be proposal artifacts, never source
+    mutations.  The output path must contain 'proposals/stances/'."""
+
+    def test_output_path_is_under_proposals(self, tmp_path):
+        """write_stance_file must write to proposals/stances/, not knowledge/stances/."""
+        from propstore.relate import write_stance_file
+
+        # Simulate a knowledge root with a proposals subdirectory
+        knowledge_root = tmp_path / "knowledge"
+        knowledge_root.mkdir()
+        proposals_stances = tmp_path / "proposals" / "stances"
+        # Do NOT pre-create — write_stance_file should target proposals/ internally
+
+        stances = [{
+            "target": "claim_b",
+            "type": "supports",
+            "strength": "strong",
+            "note": "test",
+            "conditions_differ": None,
+            "resolution": {
+                "method": "nli_first_pass",
+                "model": "test-model",
+                "confidence": 0.7,
+                "opinion_belief": 0.0,
+                "opinion_disbelief": 0.0,
+                "opinion_uncertainty": 1.0,
+                "opinion_base_rate": 0.7,
+            },
+        }]
+
+        # Currently write_stance_file accepts stances_dir and writes there.
+        # The caller passes knowledge/stances/.  After the fix, the output
+        # path must route through proposals/stances/ instead.
+        path = write_stance_file(
+            knowledge_root / "stances", "claim_a", stances, "test-model"
+        )
+
+        # The returned path must be under proposals/, not knowledge/
+        path_str = str(path).replace("\\", "/")
+        assert "proposals/stances/" in path_str, (
+            f"write_stance_file wrote to {path_str} — expected proposals/stances/. "
+            "Heuristic output must be proposal artifacts, not source mutations."
+        )

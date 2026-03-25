@@ -1354,6 +1354,30 @@ class TestWorldQuerySIValues:
         assert "200" in result.output
 
 
+class TestWorldCommandsKeepConnectionOpen:
+    @pytest.mark.parametrize(
+        ("args", "expected_substrings"),
+        [
+            (["world", "resolve", "concept1", "--strategy", "recency"], ["concept1: determined"]),
+            (["world", "extensions", "--semantics", "grounded"], ["Backend: claim_graph", "Accepted (1 claims):"]),
+            (["world", "hypothetical", "--remove", "freq_claim1"], ["concept1:", "no_claims"]),
+            (["world", "export-graph", "--format", "json"], ['"nodes"', '"edges"']),
+            (["world", "check-consistency"], ["No conflicts under current bindings."]),
+        ],
+    )
+    def test_world_commands_do_not_use_closed_world_model(
+        self,
+        freq_workspace: Path,
+        args: list[str],
+        expected_substrings: list[str],
+    ) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, args)
+        assert result.exit_code == 0, result.output
+        for expected in expected_substrings:
+            assert expected in result.output
+
+
 # ── form show — unit conversions ─────────────────────────────────────
 
 class TestFormShowConversions:
@@ -1427,3 +1451,29 @@ class TestFormShowConversions:
         assert "dB_SPL \u2192 Pa" in result.output
         assert "logarithmic" in result.output
         assert "ref=" in result.output
+
+
+# ── Promote command (F17) ────────────────────────────────────────────
+
+class TestPromoteCommandExists:
+    """Bug F17: There is no 'pks promote' command to move proposal artifacts
+    from proposals/ into knowledge/ (source-of-truth storage).  Without this
+    command, heuristic output either goes directly to knowledge/ (violating
+    the non-commitment principle) or stays in proposals/ with no path to
+    acceptance."""
+
+    def test_promote_is_registered_command(self):
+        """The 'promote' command must be registered on the top-level CLI group."""
+        command_names = [cmd for cmd in cli.commands]
+        assert "promote" in command_names, (
+            f"'promote' not found in CLI commands: {sorted(command_names)}. "
+            "A promote command is needed to move proposals into source-of-truth storage."
+        )
+
+    def test_promote_help_exits_cleanly(self):
+        """'pks promote --help' must exit 0 (command exists and has help text)."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["promote", "--help"])
+        assert result.exit_code == 0, (
+            f"'pks promote --help' exited {result.exit_code}: {result.output}"
+        )

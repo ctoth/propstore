@@ -110,3 +110,17 @@ def test_write_yaml_file_handles_unicode(tmp_path: Path) -> None:
 
     text = path.read_text(encoding="utf-8")
     assert "Rényi" in text  # not \xe9 escape
+
+
+# ---------------------------------------------------------------------------
+# Test: write_yaml_file importable from propstore.data_utils (F18)
+# ---------------------------------------------------------------------------
+
+def test_write_yaml_file_importable_from_data_utils() -> None:
+    """Bug F18: write_yaml_file lives in propstore.cli.helpers, forcing the
+    heuristic layer (relate.py) to import from the CLI/agent layer — a layer
+    violation.  write_yaml_file should be importable from propstore.data_utils,
+    a shared utilities module that any layer can depend on."""
+    from propstore.data_utils import write_yaml_file  # noqa: F401
+
+    assert callable(write_yaml_file)
