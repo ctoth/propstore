@@ -1,0 +1,4 @@
+---
+tags: [probabilistic-argumentation, abstract-argumentation, maximum-entropy, argumentation-semantics, epistemic-probability]
+---
+Defines a probabilistic semantics for Dung-style abstract argumentation frameworks where each argument receives a probability in [0,1] reflecting epistemic belief in its acceptability, constrained by four rationality postulates derived from complete labellings. Introduces the maximum entropy model as the unique principled selection among valid probability functions, and proves correspondence results between the probabilistic and classical extension-based semantics. Directly relevant to propstore's argumentation layer for expressing graded acceptance of arguments without committing to a single extension, bridging the gap between binary labelling semantics and the system's non-commitment discipline.
