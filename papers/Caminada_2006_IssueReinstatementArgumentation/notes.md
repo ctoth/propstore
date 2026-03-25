@@ -202,3 +202,39 @@ This paper is foundational for propstore's argumentation layer. The labelling-ba
 - [15] Prakken: Relating protocols and arguments (floating conclusions discussion)
 - [2] Vreeswijk & Prakken 2000: Credulous vs sceptical reasoning
 - [13] Jakobovits & Vermeir 1999: Robust semantics
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — cited as [1]; the foundational AF paper defining the semantics that this paper re-characterizes via labellings
+- [[Pollock_1987_DefeasibleReasoning]] — cited as [7]; Pollock's defeasible reasoning with rebutting/undercutting defeat relates to the reinstatement principle formalized here
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — cites this paper as [7/9]; evaluates semi-stable semantics (introduced here) against formal principles, finding it satisfies skepticism adequacy but not resolution adequacy
+- [[Verheij_2002_ExistenceMultiplicityExtensionsDialectical]] — related via Verheij 1996/2003 citations [12/21]; Verheij's admissible stage extensions are proven equivalent to semi-stable extensions (Theorem 12)
+
+### New Leads (Not Yet in Collection)
+- Jakobovits, Vermeir (1999) — "Robust semantics for argumentation frameworks" — alternative approach to handling the same problematic cases (odd cycles, floating arguments)
+- Coste-Marquis, Devred, Marquis (2005) — "Prudent semantics for argumentation frameworks" — another semantics handling indirect attacks, evaluated alongside semi-stable in Baroni 2007
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — cites this for semi-stable semantics definition and reinstatement analysis
+- [[Caminada_2007_EvaluationArgumentationFormalisms]] — cites this in its reference list (same first author's follow-up work on rationality postulates)
+- [[Prakken_2010_AbstractFrameworkArgumentationStructured]] — cites this in its reference list
+- [[Prakken_2012_AppreciationJohnPollock'sWork]] — lists this as a New Lead for labelling-based semantics relevant to Pollock's defeat status assignments *(p.7)*
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — cites this in its reference list; Hunter's epistemic labellings generalize the in/out/undec labellings introduced here to probability distributions
+- [[Charwat_2015_MethodsSolvingReasoningProblems]] — cites this in its reference list as part of the semi-stable semantics definition
+- [[Järvisalo_2025_ICCMA20235thInternational]] — ICCMA competition includes semi-stable semantics (introduced here) as one of the evaluated semantics tracks
+
+### Conceptual Links (not citation-based)
+**Labelling-based semantics:**
+- [[Caminada_2007_EvaluationArgumentationFormalisms]] — **Strong.** Same first author's follow-up work applying labelling-based semantics to evaluate ASPIC-style argumentation formalisms against rationality postulates. The reinstatement labellings defined here provide the formal foundation for the evaluation criteria in that paper.
+- [[Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation]] — **Strong.** Baroni's SCC-recursive schema decomposes AF computation by graph structure; Caminada's labelling approach provides an alternative characterization of the same semantics. Semi-stable semantics (introduced here) satisfies directionality (proven in Baroni 2007), connecting the two frameworks.
+
+**Extension existence and semantics comparison:**
+- [[Verheij_2002_ExistenceMultiplicityExtensionsDialectical]] — **Strong.** Verheij characterizes when stable extensions exist; semi-stable semantics (introduced here) provides a fallback when they don't, with Theorem 11 proving the two coincide when stable extensions exist.
+
+**Structured argumentation:**
+- [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] — **Moderate.** ASPIC+ generates Dung-style AFs from structured arguments; the labelling-based semantics defined here can be applied to those generated AFs, providing an alternative to extension-based computation.
+- [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — **Moderate.** Odekerken extends ASPIC+ with incomplete information using four justification statuses (unsatisfiable, defended, out, blocked) that parallel the in/out/undec labelling scheme introduced here.

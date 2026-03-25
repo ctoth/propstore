@@ -301,9 +301,11 @@ This paper provides essential historical context for understanding the foundatio
 - Pollock (1995) "Cognitive Carpentry" -- Pollock's most comprehensive book on his OSCAR system; primary source for implementation details *(cited p.3, 7, 13)*
 - Pollock (2009b) "A Recursive Semantics for Defeasible Reasoning" -- Pollock's last major technical paper in the Rahwan & Simari handbook *(cited p.10)*
 - Baroni and Giacomin (2009) "Semantics of Abstract Argument Systems" -- comprehensive survey of argumentation semantics *(cited p.7, 10)*
-- Caminada (2006) "On the Issue of Reinstatement in Argumentation" -- labelling-based semantics relevant to Pollock's defeat status assignments *(cited p.7)*
 - Besnard and Hunter (2008) "Elements of Argumentation" -- logic-based deductive argumentation *(cited p.13)*
 - Horty (2012) "Reasons as Defaults" -- co-author's book-length treatment of the attack/defeat distinction *(cited p.16)*
+
+### Now in Collection (previously listed as leads)
+- [[Caminada_2006_IssueReinstatementArgumentation]] — Provides labelling-based characterization of Dung's semantics through reinstatement postulates, establishing exact bijection between complete extensions and reinstatement labellings (in/out/undec). Introduces semi-stable semantics (minimal undec). Directly relevant to Pollock's defeat status assignments discussed *(p.7)*: Caminada's three-valued labellings formalize the same in/out/undecided status that Pollock used informally in his inference graphs.
 
 ### Supersedes or Recontextualizes
 - [[Pollock_1987_DefeasibleReasoning]] -- this survey contextualizes, extends, and critiques the 1987 paper's contributions from a 25-year retrospective, identifying limitations (unclear attack/defeat distinction, ad hoc argument strength) not visible in the original *(p.14-16)*
