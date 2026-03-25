@@ -668,3 +668,214 @@ def test_component_p_defeats_mismatch_direct():
     assert "x" in sub_af.arguments
     assert "y" in sub_af.arguments
     assert ("x", "y") in sub_af.defeats
+
+
+# ---------------------------------------------------------------------------
+# COH Constraint Enforcement — Hunter & Thimm (2017, p.9)
+# ---------------------------------------------------------------------------
+class TestCOHEnforcement:
+    """Tests for enforce_coh(): given a PrAF, scale P_A opinions so that
+    for every attack (A, B), E(P_A(A)) + E(P_A(B)) <= 1.
+
+    Per Hunter & Thimm (2017, p.9): the COH (Coherent) rationality postulate
+    requires that if A attacks B then P(A) + P(B) <= 1.  Currently not enforced.
+
+    All tests import enforce_coh which does not exist yet — they should fail
+    with ImportError.
+    """
+
+    def test_enforce_coh_scales_violating_pair(self):
+        """Build PrAF with A attacks B, E(P_A(A))=0.8, E(P_A(B))=0.6.
+        Sum = 1.4 > 1.0 (COH violation).  After enforce_coh(), the sum
+        must be <= 1.0.
+
+        Per Hunter & Thimm (2017, p.9): COH requires P(A) + P(B) <= 1
+        for every attack (A, B).
+        """
+        from propstore.praf import ProbabilisticAF, enforce_coh
+
+        af = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset({("A", "B")}),
+            attacks=frozenset({("A", "B")}),
+        )
+        praf = ProbabilisticAF(
+            framework=af,
+            p_args={"A": from_probability(0.8, 10), "B": from_probability(0.6, 10)},
+            p_defeats={("A", "B"): Opinion.dogmatic_true()},
+        )
+
+        result = enforce_coh(praf)
+
+        ea = result.p_args["A"].expectation()
+        eb = result.p_args["B"].expectation()
+        assert ea + eb <= 1.0 + 1e-9, (
+            f"COH violated after enforce_coh: E(A)={ea:.4f} + E(B)={eb:.4f} "
+            f"= {ea + eb:.4f} > 1.0"
+        )
+
+    def test_enforce_coh_preserves_satisfying_pair(self):
+        """P_A(A) expectation 0.3, P_A(B) expectation 0.4.  Sum = 0.7 <= 1.0.
+        enforce_coh() should return opinions unchanged.
+
+        Per Hunter & Thimm (2017, p.9): COH is already satisfied — no scaling
+        needed.
+        """
+        from propstore.praf import ProbabilisticAF, enforce_coh
+
+        op_a = from_probability(0.3, 10)
+        op_b = from_probability(0.4, 10)
+
+        af = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset({("A", "B")}),
+            attacks=frozenset({("A", "B")}),
+        )
+        praf = ProbabilisticAF(
+            framework=af,
+            p_args={"A": op_a, "B": op_b},
+            p_defeats={("A", "B"): Opinion.dogmatic_true()},
+        )
+
+        result = enforce_coh(praf)
+
+        assert result.p_args["A"] == op_a, (
+            f"Opinion A changed from {op_a} to {result.p_args['A']} "
+            f"but COH was already satisfied"
+        )
+        assert result.p_args["B"] == op_b, (
+            f"Opinion B changed from {op_b} to {result.p_args['B']} "
+            f"but COH was already satisfied"
+        )
+
+    def test_enforce_coh_non_attacking_pair_unaffected(self):
+        """Two arguments with NO attack.  E(A)=0.8, E(B)=0.9, sum=1.7.
+        COH only applies to attack pairs, so opinions must be unchanged.
+
+        Per Hunter & Thimm (2017, p.9): COH constraint is per-attack-pair.
+        Non-attacking arguments have no constraint between them.
+        """
+        from propstore.praf import ProbabilisticAF, enforce_coh
+
+        op_a = from_probability(0.8, 10)
+        op_b = from_probability(0.9, 10)
+
+        af = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset(),
+            attacks=frozenset(),
+        )
+        praf = ProbabilisticAF(
+            framework=af,
+            p_args={"A": op_a, "B": op_b},
+            p_defeats={},
+        )
+
+        result = enforce_coh(praf)
+
+        assert result.p_args["A"] == op_a, (
+            f"Opinion A changed but there is no attack — COH should not apply"
+        )
+        assert result.p_args["B"] == op_b, (
+            f"Opinion B changed but there is no attack — COH should not apply"
+        )
+
+    def test_enforce_coh_idempotent(self):
+        """Calling enforce_coh() twice produces the same result as once.
+
+        Per Hunter & Thimm (2017, p.9): after enforcement, COH holds.
+        Re-enforcement on a COH-satisfying PrAF should be a no-op.
+        """
+        from propstore.praf import ProbabilisticAF, enforce_coh
+
+        af = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset({("A", "B")}),
+            attacks=frozenset({("A", "B")}),
+        )
+        praf = ProbabilisticAF(
+            framework=af,
+            p_args={"A": from_probability(0.8, 10), "B": from_probability(0.6, 10)},
+            p_defeats={("A", "B"): Opinion.dogmatic_true()},
+        )
+
+        once = enforce_coh(praf)
+        twice = enforce_coh(once)
+
+        for arg in ("A", "B"):
+            assert once.p_args[arg] == twice.p_args[arg], (
+                f"enforce_coh is not idempotent for argument {arg}: "
+                f"first={once.p_args[arg]}, second={twice.p_args[arg]}"
+            )
+
+
+# ---------------------------------------------------------------------------
+# COH Hypothesis property test — Hunter & Thimm (2017, p.9)
+# ---------------------------------------------------------------------------
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
+
+def _small_praf_strategy():
+    """Strategy: build a small PrAF with 2-4 arguments, random attacks,
+    random P_A opinions.  All P_D are dogmatic (certain defeats) so the
+    COH constraint is purely about P_A values.
+    """
+    @st.composite
+    def build(draw):
+        from propstore.praf import ProbabilisticAF
+
+        n_args = draw(st.integers(min_value=2, max_value=4))
+        arg_names = [f"arg{i}" for i in range(n_args)]
+
+        # Random P_A opinions: probability in [0.05, 0.95], evidence 5-20
+        p_args = {}
+        for name in arg_names:
+            p = draw(st.floats(min_value=0.05, max_value=0.95))
+            n = draw(st.integers(min_value=5, max_value=20))
+            p_args[name] = from_probability(p, n)
+
+        # Random attacks (no self-attacks for simplicity)
+        attacks = set()
+        for i, src in enumerate(arg_names):
+            for j, tgt in enumerate(arg_names):
+                if i != j and draw(st.booleans()):
+                    attacks.add((src, tgt))
+
+        af = ArgumentationFramework(
+            arguments=frozenset(arg_names),
+            defeats=frozenset(attacks),
+            attacks=frozenset(attacks),
+        )
+        p_defeats = {edge: Opinion.dogmatic_true() for edge in attacks}
+
+        return ProbabilisticAF(
+            framework=af,
+            p_args=p_args,
+            p_defeats=p_defeats,
+        )
+
+    return build()
+
+
+@given(praf=_small_praf_strategy())
+@settings(max_examples=50)
+def test_coh_holds_after_enforcement(praf):
+    """For any small PrAF, after enforce_coh(), COH holds for ALL attack pairs:
+    E(P_A(A)) + E(P_A(B)) <= 1.0 + 1e-9.
+
+    Per Hunter & Thimm (2017, p.9): COH is a rationality postulate that must
+    hold for every attack in the AF.
+    """
+    from propstore.praf import enforce_coh
+
+    result = enforce_coh(praf)
+
+    attacks = praf.framework.attacks or praf.framework.defeats
+    for src, tgt in attacks:
+        ea = result.p_args[src].expectation()
+        eb = result.p_args[tgt].expectation()
+        assert ea + eb <= 1.0 + 1e-9, (
+            f"COH violated for attack ({src}, {tgt}): "
+            f"E({src})={ea:.4f} + E({tgt})={eb:.4f} = {ea + eb:.4f} > 1.0"
+        )
