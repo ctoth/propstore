@@ -1,0 +1,122 @@
+source:
+  paper: McBurney_2009_DialogueGamesAgentArgumentation
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-24"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A formal dialogue game protocol comprises five components: commencement rules, locutions, rules for combination of locutions, commitment rules, and termination rules."
+    concepts:
+      - dialogue_game
+      - locution
+      - commitment_store
+    provenance:
+      paper: McBurney_2009_DialogueGamesAgentArgumentation
+      page: 266
+      section: "Syntax"
+      quote_fragment: "A dialogue game specification then comprises the following elements"
+
+  - id: claim2
+    type: observation
+    statement: "Agent communication languages like KQML and FIPA ACL cause state-space explosion because they permit too many choices of utterance at each turn, motivating the use of structured dialogue games that constrain interactions via explicit rules."
+    concepts:
+      - dialogue_game
+      - locution
+    provenance:
+      paper: McBurney_2009_DialogueGamesAgentArgumentation
+      page: 261
+      section: "Introduction"
+      quote_fragment: "agents participating in conversations have too many choices of what to utter at each turn, and thus agent dialogues may endure a state-space explosion"
+
+  - id: claim3
+    type: observation
+    statement: "The Walton and Krabbe typology classifies dialogues into six primary types based on the initial information state and goals of participants: information-seeking, inquiry, persuasion, negotiation, deliberation, and eristic."
+    concepts:
+      - dialogue_typology
+      - dialogue_game
+    provenance:
+      paper: McBurney_2009_DialogueGamesAgentArgumentation
+      page: 263
+      section: "Types of dialogues"
+      quote_fragment: "An influential model of human dialogues is the typology of primary dialogue types of Douglas Walton and Erik Krabbe"
+
+  - id: claim4
+    type: mechanism
+    statement: "Commitment-based semantics for dialogue games are preferable to mentalist (BDI) semantics because commitments are publicly observable records of what participants have asserted, whereas mental states are private and unverifiable in multi-agent systems."
+    concepts:
+      - commitment_store
+      - dialogue_game
+    provenance:
+      paper: McBurney_2009_DialogueGamesAgentArgumentation
+      page: 265
+      section: "Syntax"
+      quote_fragment: "it has become standard to talk of speakers in a dialogue incurring commitments"
+    notes: "This aligns with Singh's social semantics approach over Cohen & Levesque mentalist approach"
+
+  - id: claim5
+    type: mechanism
+    statement: "Denotational semantics for agent dialogues can be provided by mapping dialogue states to topological spaces via Tarski's correspondence between modal logic S4 and topology, where open sets correspond to knowable propositions and closed sets to assertable ones."
+    concepts:
+      - dialogue_game
+    provenance:
+      paper: McBurney_2009_DialogueGamesAgentArgumentation
+      page: 271
+      section: "Semantics"
+      quote_fragment: "McBurney and Parsons map dialogues to topological spaces via Tarski's correspondence"
+
+  - id: claim6
+    type: mechanism
+    statement: "Operational semantics for dialogue protocols can be defined using law-governed Linda tuple-spaces or CSP process algebra, enabling formal verification of protocol properties such as termination and deadlock-freedom."
+    concepts:
+      - dialogue_game
+    provenance:
+      paper: McBurney_2009_DialogueGamesAgentArgumentation
+      page: 272
+      section: "Semantics"
+      quote_fragment: "Doutre, McBurney and Wooldridge use law-governed Linda tuple-spaces"
+
+  - id: claim7
+    type: comparison
+    statement: "Dialogue games provide a middle ground between unconstrained agent communication languages (which allow any utterance at any time) and rigid fixed-sequence protocols, by permitting flexible but rule-governed interaction."
+    concepts:
+      - dialogue_game
+      - locution
+    provenance:
+      paper: McBurney_2009_DialogueGamesAgentArgumentation
+      page: 261
+      section: "Introduction"
+      quote_fragment: "Allowing sufficient flexibility of expression while avoiding state-space explosion"
+
+  - id: claim8
+    type: observation
+    statement: "Most actual dialogues involve mixtures of the primary dialogue types, with transitions between types during the course of a single interaction."
+    concepts:
+      - dialogue_typology
+    provenance:
+      paper: McBurney_2009_DialogueGamesAgentArgumentation
+      page: 264
+      section: "Types of dialogues"
+      quote_fragment: "most actual dialogue occurrences involve mixtures of these dialogue types"
+
+  - id: claim9
+    type: observation
+    statement: "Desiderata for agent argumentation protocols include stated purpose, diversity of individual purposes, inclusiveness, transparency, fairness, accountability, and system-level properties such as termination and soundness."
+    concepts:
+      - dialogue_game
+    provenance:
+      paper: McBurney_2009_DialogueGamesAgentArgumentation
+      page: 275
+      section: "Protocol Design and Assessment"
+      quote_fragment: "McBurney, Parsons and Wooldridge proposed criteria"
+
+  - id: claim10
+    type: limitation
+    statement: "Strategic analysis (pragmatics) of dialogue games remains an open research area; participants may have hidden agendas and the study of optimal utterance selection is in its early stages."
+    concepts:
+      - dialogue_game
+    provenance:
+      paper: McBurney_2009_DialogueGamesAgentArgumentation
+      page: 274
+      section: "Pragmatics"
+      quote_fragment: "Dunne studies prevarication and suspicion of hidden agenda"
