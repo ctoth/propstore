@@ -42,7 +42,7 @@ def resolve_conflicts(
         model = optimizer.model()
         return frozenset(
             cid for cid, var in keep_vars.items()
-            if model.evaluate(var, model_completion=True)
+            if z3.is_true(model.evaluate(var, model_completion=True))
         )
 
     return frozenset()  # Should never happen with soft constraints

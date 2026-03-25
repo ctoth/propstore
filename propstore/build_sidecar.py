@@ -1162,7 +1162,17 @@ def _extract_typed_claim_fields(claim: dict) -> dict[str, object | None]:
 
 def _extract_numeric_claim_fields(claim: dict) -> dict[str, object | None]:
     raw_value = claim.get("value")
-    value = float(raw_value) if raw_value is not None else None
+    if raw_value is None:
+        value = None
+    else:
+        try:
+            value = float(raw_value)
+        except ValueError:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Cannot parse value %r as float, treating as None", raw_value
+            )
+            value = None
     return {
         "value": value,
         "lower_bound": claim.get("lower_bound"),
