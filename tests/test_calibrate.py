@@ -1,8 +1,11 @@
 """Tests for propstore.calibrate — calibration module."""
 
 import math
+import sqlite3
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from propstore.calibrate import (
     CorpusCalibrator,
@@ -12,6 +15,7 @@ from propstore.calibrate import (
     expected_calibration_error,
 )
 from propstore.opinion import Opinion
+from tests.conftest import create_argumentation_schema
 
 
 # ---------------------------------------------------------------------------
@@ -215,3 +219,154 @@ def test_roundtrip_categorical_to_expectation():
     # With W=2 prior, expectation ≈ (85 + 0.7*2) / 102 ≈ 0.847
     expected_emp = (85 + 0.7 * 2) / 102
     assert abs(op.expectation() - expected_emp) < 1e-6
+
+
+# ---------------------------------------------------------------------------
+# Red-phase tests: calibration evidence model invariants (F4, F10, M8)
+# ---------------------------------------------------------------------------
+
+
+class TestCorpusCalibrationEvidenceModel:
+    """Tests exposing that corpus size is NOT claim-level evidence.
+
+    Finding 4 (audit-opinion-algebra.md): CorpusCalibrator.to_opinion passes
+    full corpus size as effective sample size n to from_probability(). A corpus
+    of 10,000 pairwise distances produces u = 2/(10000+2) ~ 0.0002 — near-
+    dogmatic certainty. But corpus size measures distribution coverage, not
+    evidence for any individual claim. Per Josang 2001 (p.8) and the project
+    principle "honest ignorance over fabricated confidence", this is wrong.
+    """
+
+    @given(
+        distance=st.floats(min_value=0.0, max_value=1.0),
+    )
+    @settings(max_examples=50)
+    def test_large_corpus_does_not_produce_near_dogmatic_opinion(
+        self, distance: float
+    ):
+        """A 10,000-element corpus calibrator must NOT produce near-dogmatic
+        opinions (u < 0.01). Corpus size is evidence for the calibration of
+        the distance metric, not evidence for the truth of any claim.
+
+        Per Josang 2001 (p.8): u ~ 0 means near-absolute certainty.
+        Per Sensoy 2018 (p.3-4): evidence counts represent actual observations
+        supporting a class — not corpus distribution statistics.
+
+        EXPECTED TO FAIL: current code produces u = 2/(10000+2) ~ 0.0002.
+        """
+        # Build a large corpus of uniformly spaced reference distances
+        ref = [i / 10_000 for i in range(10_000)]
+        cal = CorpusCalibrator(ref)
+        opinion = cal.to_opinion(distance)
+
+        # u > 0.01: the system should NOT be 99%+ certain about a claim
+        # just because it has a large reference corpus
+        assert opinion.u > 0.01, (
+            f"Near-dogmatic opinion u={opinion.u:.6f} from corpus of 10,000 "
+            f"distances. Corpus size is not claim-level evidence."
+        )
+
+    def test_single_element_corpus_produces_near_vacuous_opinion(self):
+        """A single-reference-point corpus has almost no calibration data.
+        The resulting opinion should be near-vacuous (u > 0.9), honestly
+        representing ignorance.
+
+        Per Josang 2001 (p.8): vacuous opinion (0,0,1,a) = total ignorance.
+        With only 1 data point, the system knows almost nothing about the
+        distance distribution.
+        """
+        cal = CorpusCalibrator([0.5])
+        opinion = cal.to_opinion(0.3)
+
+        assert opinion.u > 0.9, (
+            f"Single-element corpus produced opinion with u={opinion.u:.4f}. "
+            f"Expected near-vacuous (u > 0.9) per honest ignorance principle."
+        )
+
+    @given(
+        n=st.integers(min_value=1, max_value=500),
+        distance=st.floats(min_value=0.0, max_value=1.0),
+    )
+    @settings(max_examples=50)
+    def test_opinion_bdu_sum_invariant(self, n: int, distance: float):
+        """b + d + u = 1.0 must hold for all calibrator outputs.
+
+        Per Josang 2001 (Def 9, p.7): this is the fundamental constraint.
+        The Opinion constructor enforces this, so this should PASS.
+        """
+        ref = [i / max(n, 1) for i in range(n)]
+        cal = CorpusCalibrator(ref)
+        op = cal.to_opinion(distance)
+
+        total = op.b + op.d + op.u
+        assert abs(total - 1.0) < 1e-9, (
+            f"b + d + u = {total} != 1.0 for n={n}, distance={distance}"
+        )
+
+    def test_monotonic_evidence_uncertainty_relationship(self):
+        """More corpus data should produce less uncertainty (monotonic).
+
+        For the same query distance, a larger reference corpus should yield
+        a tighter opinion. This tests the directional relationship, not the
+        magnitude (which is the bug in Test 1).
+        """
+        sizes = [10, 100, 1000]
+        distance = 0.25
+        uncertainties = []
+
+        for n in sizes:
+            ref = [i / n for i in range(n)]
+            cal = CorpusCalibrator(ref)
+            op = cal.to_opinion(distance)
+            uncertainties.append(op.u)
+
+        for i in range(len(uncertainties) - 1):
+            assert uncertainties[i] > uncertainties[i + 1], (
+                f"Uncertainty not monotonically decreasing: "
+                f"u({sizes[i]})={uncertainties[i]:.6f} <= "
+                f"u({sizes[i+1]})={uncertainties[i+1]:.6f}"
+            )
+
+
+class TestOpinionSchemaConstraints:
+    """Test that SQLite schema enforces opinion invariants.
+
+    Finding 10 (audit-opinion-algebra.md): The schema has opinion_belief,
+    opinion_disbelief, opinion_uncertainty columns but no CHECK constraint
+    enforcing b+d+u=1 or that values are in [0,1]. This means invalid
+    opinions can be persisted without error.
+
+    EXPECTED TO FAIL: no CHECK constraint exists.
+    """
+
+    def test_sqlite_rejects_invalid_opinion_sum(self):
+        """Inserting b=0.9, d=0.9, u=0.9 violates b+d+u=1.
+        The schema should reject this with a constraint error.
+
+        Per Josang 2001 (Def 9, p.7): b+d+u must equal 1.
+        If this constraint is not enforced at the storage layer, invalid
+        opinions can silently enter the system.
+        """
+        conn = sqlite3.connect(":memory:")
+        create_argumentation_schema(conn)
+
+        # Insert FK targets
+        conn.execute(
+            "INSERT INTO claim (id, type, concept_id, value, source_paper, provenance_page) "
+            "VALUES ('c1', 'parameter', 'concept1', 1.0, 'paper1', 1)"
+        )
+        conn.execute(
+            "INSERT INTO claim (id, type, concept_id, value, source_paper, provenance_page) "
+            "VALUES ('c2', 'parameter', 'concept1', 2.0, 'paper1', 1)"
+        )
+
+        # This INSERT has b+d+u = 2.7, which is clearly invalid.
+        # A proper CHECK constraint would reject it.
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                "INSERT INTO claim_stance "
+                "(claim_id, target_claim_id, stance_type, confidence, "
+                "opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                ("c1", "c2", "supports", 0.8, 0.9, 0.9, 0.9, 0.5),
+            )
