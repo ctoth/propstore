@@ -345,45 +345,40 @@ def compute_exact_dp(
     praf: ProbabilisticAF,
     semantics: str = "grounded",
 ) -> dict[str, float]:
-    """Exact extension probabilities via tree decomposition DP.
+    """Exact acceptance probabilities via tree decomposition DP.
 
-    Per Popescu & Wallner (2024, Algorithms 1-3): computes acceptance
-    probabilities by enumerating possible worlds (subframeworks),
-    weighted by their probability, and checking extension membership.
+    # Tree-decomposition DP for grounded semantics only.
+    # Per Popescu & Wallner (2024): P_ext = P_acc for grounded (unique extension).
+    # For preferred/stable/complete, P_acc is #.NP-complete — use MC instead.
+    # See reports/research-popescu-pacc-report.md for the analysis.
 
-    The tree decomposition structure is used for:
-    1. Treewidth estimation (determines whether DP is appropriate)
-    2. Elimination ordering (organizes the enumeration)
-    3. Nice TD construction (verified structural properties)
+    For grounded semantics, implements the I/O/U labelling DP with witness
+    mechanism (Popescu & Wallner 2024, Algorithms 1-3, p.5-7). The DP
+    processes a nice tree decomposition bottom-up, maintaining tables of
+    partial labellings weighted by probability.
 
-    Current implementation: factored enumeration along the TD structure.
-    The full table-based I/O/U labelling DP with witness mechanism
-    (Popescu 2024, p.6-7) is a future optimization for large
-    low-treewidth AFs where the 3^k table size is much smaller than
-    the 2^(|A|+|D|) brute-force space.
+    For non-grounded semantics, falls back to brute-force enumeration.
 
-    Complexity: O(3^k * n) with full DP (Popescu 2024, Theorem 7).
-    Current implementation: O(2^(|A|+|D|)) with TD-guided ordering.
+    Complexity: O(3^k * n * 2^d_bag) where k is treewidth, n is number
+    of nodes, d_bag is max defeats per bag (Popescu & Wallner 2024, Theorem 7).
     """
-    return _compute_factored_dp(praf, semantics)
+    if semantics != "grounded":
+        # Non-grounded: fall back to brute-force enumeration.
+        # Per Popescu & Wallner (2024, Theorem 6): P_acc for
+        # preferred/stable/complete is #.NP-complete.
+        return _compute_brute_force_fallback(praf, semantics)
+
+    return _compute_grounded_dp(praf)
 
 
-def _compute_factored_dp(
+def _compute_brute_force_fallback(
     praf: ProbabilisticAF,
     semantics: str,
 ) -> dict[str, float]:
-    """Factored DP using tree decomposition structure.
+    """Brute-force enumeration fallback for non-grounded semantics.
 
-    This implements the core idea from Popescu & Wallner (2024):
-    factor the probability computation along the tree decomposition,
-    processing one argument at a time via the nice TD structure.
-
-    For each possible world (subframework), we compute the probability
-    and check extension membership. The tree decomposition factors
-    this into local computations per bag.
-
-    For correctness, we use the elimination ordering from the tree
-    decomposition to organize the enumeration efficiently.
+    Per Popescu & Wallner (2024, Theorem 6): P_acc for multi-extension
+    semantics is #.NP-complete. No efficient TD DP exists for these.
     """
     from propstore.praf import _evaluate_semantics
 
@@ -393,70 +388,20 @@ def _compute_factored_dp(
     if not args_list:
         return {}
 
-    # Get probabilities
     p_arg: dict[str, float] = {a: praf.p_args[a].expectation() for a in af.arguments}
-    p_defeat: dict[tuple[str, str], float] = {d: praf.p_defeats[d].expectation() for d in af.defeats}
+    p_defeat: dict[tuple[str, str], float] = {
+        d: praf.p_defeats[d].expectation() for d in af.defeats
+    }
     defeats_list = sorted(af.defeats)
-
-    # Build attack lookup for faster checking
-    attackers: dict[str, list[str]] = {a: [] for a in af.arguments}
-    for src, tgt in af.defeats:
-        attackers[tgt].append(src)
-
-    # Compute tree decomposition for structure
-    td = compute_tree_decomposition(af)
-    ntd = to_nice_tree_decomposition(td)
-
-    # Use the nice TD to get an elimination ordering
-    # Process arguments in the order they are forgotten
-    forget_order: list[str] = []
-    order: list[int] = []
-    stack = [(ntd.root, False)]
-    while stack:
-        nid, processed = stack.pop()
-        if processed:
-            order.append(nid)
-            continue
-        stack.append((nid, True))
-        node = ntd.nodes[nid]
-        for child in reversed(node.children):
-            stack.append((child, False))
-
-    for nid in order:
-        node = ntd.nodes[nid]
-        if node.node_type == "forget" and node.forgotten:
-            forget_order.append(node.forgotten)
-
-    # Now do the actual DP: process arguments in forget order.
-    # For each "variable" (argument presence + defeat presence),
-    # marginalize over its possible values.
-
-    # State: for each configuration of "active" arguments and defeats,
-    # track the probability and which arguments are accepted.
-
-    # This is essentially a variable elimination algorithm factored
-    # along the tree decomposition.
-
-    # For small-to-medium AFs (where DP is appropriate), we can
-    # enumerate subframeworks efficiently by processing one element
-    # at a time and marginalizing.
-
-    # Accumulator: arg -> sum of P(world) where arg is accepted
-    acceptance: dict[str, float] = {a: 0.0 for a in args_list}
     n_args = len(args_list)
-    n_defeats = len(defeats_list)
 
-    # Enumerate all possible worlds (argument subsets x defeat subsets)
-    # This is equivalent to brute force but organized to match the TD structure.
-    # The key optimization: connected component decomposition is already
-    # done in praf.py. Here we just need correctness.
+    acceptance: dict[str, float] = {a: 0.0 for a in args_list}
 
     for arg_mask in range(1 << n_args):
         sampled_args = frozenset(
             args_list[i] for i in range(n_args) if arg_mask & (1 << i)
         )
 
-        # Probability of this argument configuration
         p_args_present = 1.0
         for i, a in enumerate(args_list):
             p_a = p_arg[a]
@@ -468,7 +413,6 @@ def _compute_factored_dp(
         if p_args_present < 1e-15:
             continue
 
-        # Valid defeats (both endpoints present)
         valid_defeats = [
             (j, d) for j, d in enumerate(defeats_list)
             if d[0] in sampled_args and d[1] in sampled_args
@@ -505,3 +449,380 @@ def _compute_factored_dp(
                     acceptance[a] += total_prob
 
     return acceptance
+
+
+# ===================================================================
+# Grounded-semantics tree-decomposition DP
+# Per Popescu & Wallner (2024, Algorithms 1-3, p.5-7)
+#
+# Adapted for grounded semantics: instead of tracking I/O/U labels
+# (which enumerate ALL complete labellings including non-grounded),
+# we track the presence/absence of bag arguments and the active edge
+# configuration. The grounded labelling is computed via fixpoint at
+# forget time. This ensures exactly one labelling per subworld.
+#
+# Per research-popescu-pacc-report.md: P_ext = P_acc for grounded
+# (unique extension per subframework).
+# ===================================================================
+
+# Row key: (bag_state, active_edges, present_forgotten) → probability.
+#   bag_state: tuple of (arg, present:bool) pairs for args in bag.
+#   active_edges: frozenset of realized defeat edges (accumulated).
+#   present_forgotten: frozenset of forgotten args that were present.
+_RowKey = tuple[
+    tuple[tuple[str, bool], ...],      # bag_state
+    frozenset[tuple[str, str]],        # active_edges
+    frozenset[str],                    # present_forgotten
+]
+DPTable = dict[_RowKey, float]
+
+
+def _make_key(
+    bag_state: dict[str, bool],
+    active_edges: frozenset[tuple[str, str]],
+    present_forgotten: frozenset[str],
+) -> _RowKey:
+    """Build an immutable table key."""
+    state_tuple = tuple(sorted(bag_state.items()))
+    return (state_tuple, active_edges, present_forgotten)
+
+
+def _add_to_table(
+    table: DPTable,
+    bag_state: dict[str, bool],
+    active_edges: frozenset[tuple[str, str]],
+    present_forgotten: frozenset[str],
+    prob: float,
+) -> None:
+    """Add probability to a table row, creating it if needed."""
+    if prob < 1e-18:
+        return
+    key = _make_key(bag_state, active_edges, present_forgotten)
+    table[key] = table.get(key, 0.0) + prob
+
+
+def _compute_grounded_dp(praf: ProbabilisticAF) -> dict[str, float]:
+    """Tree-decomposition DP for grounded semantics.
+
+    Per Popescu & Wallner (2024, Algorithms 1-3): processes a nice tree
+    decomposition bottom-up with I/O/U labelling tables and witness
+    mechanism.
+
+    Per Hunter & Thimm (2017, Prop 18): acceptance probability separates
+    over connected components. Each component is solved independently.
+
+    For grounded semantics, each subframework has exactly one grounded
+    extension (Dung 1995, Theorem 25), so P_ext = P_acc.
+    """
+    af = praf.framework
+    args_list = sorted(af.arguments)
+
+    if not args_list:
+        return {}
+
+    # Extract probabilities as floats.
+    p_arg: dict[str, float] = {
+        a: praf.p_args[a].expectation() for a in af.arguments
+    }
+    p_defeat: dict[tuple[str, str], float] = {
+        d: praf.p_defeats[d].expectation() for d in af.defeats
+    }
+
+    # Decompose into connected components.
+    # Per Hunter & Thimm (2017, Prop 18): components are independent.
+    from propstore.praf import _connected_components
+    components = _connected_components(af)
+
+    acceptance: dict[str, float] = {}
+    for comp_args in components:
+        comp_defeats = frozenset(
+            (f, t) for f, t in af.defeats
+            if f in comp_args and t in comp_args
+        )
+        comp_af = ArgumentationFramework(
+            arguments=frozenset(comp_args),
+            defeats=comp_defeats,
+        )
+        comp_result = _compute_grounded_dp_component(
+            comp_af, p_arg, p_defeat,
+        )
+        acceptance.update(comp_result)
+
+    return acceptance
+
+
+def _compute_grounded_dp_component(
+    af: ArgumentationFramework,
+    p_arg: dict[str, float],
+    p_defeat: dict[tuple[str, str], float],
+) -> dict[str, float]:
+    """Edge-tracking DP for one connected component (grounded semantics).
+
+    Instead of I/O/U labels, tracks which defeat edges are active in each
+    subworld. The grounded labelling is computed via fixpoint at forget
+    time. This guarantees exactly one labelling per subworld, matching
+    the brute-force enumeration.
+
+    Per Popescu & Wallner (2024, Algorithms 1-3): processes a nice tree
+    decomposition bottom-up. Adapted for grounded: edge configurations
+    replace I/O/U partial labellings.
+    """
+    args_list = sorted(af.arguments)
+
+    if not args_list:
+        return {}
+
+    # Build attack lookup.
+    attackers_of: dict[str, list[str]] = {a: [] for a in af.arguments}
+    for src, tgt in af.defeats:
+        attackers_of[tgt].append(src)
+
+    defeat_set: set[tuple[str, str]] = set(af.defeats)
+
+    # Compute tree decomposition and nice TD.
+    td = compute_tree_decomposition(af)
+    ntd = to_nice_tree_decomposition(td)
+
+    # Post-order traversal.
+    post_order: list[int] = []
+    visit_stack: list[tuple[int, bool]] = [(ntd.root, False)]
+    while visit_stack:
+        nid, processed = visit_stack.pop()
+        if processed:
+            post_order.append(nid)
+            continue
+        visit_stack.append((nid, True))
+        node = ntd.nodes[nid]
+        for child in reversed(node.children):
+            visit_stack.append((child, False))
+
+    # Assign edge ownership to prevent double-counting at joins.
+    # Each edge's P_D is factored at exactly one introduce node.
+    owned_edges: set[tuple[str, str]] = set()
+    introduce_owns_edges: dict[int, set[tuple[str, str]]] = {}
+
+    for nid in post_order:
+        node = ntd.nodes[nid]
+        if node.node_type == "introduce":
+            v = node.introduced
+            assert v is not None
+            child_bag = node.bag - {v}
+            node_edges: set[tuple[str, str]] = set()
+            # Edges between v and existing bag members.
+            for edge in defeat_set:
+                src, tgt = edge
+                if src == v and tgt in child_bag and edge not in owned_edges:
+                    node_edges.add(edge)
+                    owned_edges.add(edge)
+                elif tgt == v and src in child_bag and edge not in owned_edges:
+                    node_edges.add(edge)
+                    owned_edges.add(edge)
+                elif src == v and tgt == v and edge not in owned_edges:
+                    node_edges.add(edge)
+                    owned_edges.add(edge)
+            introduce_owns_edges[nid] = node_edges
+
+    # DP tables.
+    tables: dict[int, DPTable] = {}
+
+    for nid in post_order:
+        node = ntd.nodes[nid]
+
+        if node.node_type == "leaf":
+            tables[nid] = {
+                _make_key({}, frozenset(), frozenset()): 1.0
+            }
+
+        elif node.node_type == "introduce":
+            tables[nid] = _dp_introduce(
+                node, tables[node.children[0]], p_defeat,
+                introduce_owns_edges[nid],
+            )
+
+        elif node.node_type == "forget":
+            tables[nid] = _dp_forget(
+                node, tables[node.children[0]], p_arg,
+            )
+
+        elif node.node_type == "join":
+            tables[nid] = _dp_join(
+                node, tables[node.children[0]], tables[node.children[1]],
+            )
+
+        # Free child tables.
+        for child in node.children:
+            if child in tables:
+                del tables[child]
+
+    # At the root, compute grounded extensions and accumulate acceptance.
+    # Each row has present_forgotten (all present args) and active_edges.
+    # Run the grounded fixpoint on each configuration.
+    acceptance: dict[str, float] = {a: 0.0 for a in args_list}
+    root_table = tables.get(ntd.root, {})
+    for (_, edges_fs, present_fs), prob in root_table.items():
+        if prob < 1e-18:
+            continue
+        # Compute grounded extension for this subworld.
+        present = set(present_fs)
+        sub_attackers: dict[str, set[str]] = {a: set() for a in present}
+        for src, tgt in edges_fs:
+            if src in present and tgt in present:
+                sub_attackers[tgt].add(src)
+        # Fixpoint (Dung 1995, Definition 20).
+        labels: dict[str, str] = {a: "U" for a in present}
+        changed = True
+        while changed:
+            changed = False
+            for a in present:
+                if labels[a] != "U":
+                    continue
+                atts = sub_attackers[a]
+                if all(labels[att] == "O" for att in atts):
+                    labels[a] = "I"
+                    changed = True
+                elif any(labels[att] == "I" for att in atts):
+                    labels[a] = "O"
+                    changed = True
+        for a in present:
+            if labels[a] == "I":
+                acceptance[a] += prob
+
+    return acceptance
+
+
+
+def _dp_introduce(
+    node: NiceTDNode,
+    child_table: DPTable,
+    p_defeat: dict[tuple[str, str], float],
+    owns_edges: set[tuple[str, str]],
+) -> DPTable:
+    """Introduce v: add v to bag, branch on owned edge presence.
+
+    For each child row, generate rows with v present or absent.
+    For v present, branch on each owned edge's presence/absence.
+    P_A is NOT applied here (deferred to forget time).
+    """
+    v = node.introduced
+    assert v is not None
+    new_table: DPTable = {}
+
+    # Owned edges involving v and current bag members.
+    owned_list = sorted(owns_edges)
+    n_owned = len(owned_list)
+
+    for (state_tuple, edges_fs, present_forgotten), prob in child_table.items():
+        if prob < 1e-18:
+            continue
+        bag_state = dict(state_tuple)
+
+        # === v absent ===
+        new_state = dict(bag_state)
+        new_state[v] = False
+        _add_to_table(new_table, new_state, edges_fs, present_forgotten, prob)
+
+        # === v present ===
+        # Branch on owned edges.
+        for edge_mask in range(1 << n_owned):
+            p_edges = 1.0
+            new_edges = set(edges_fs)
+            for ei, edge in enumerate(owned_list):
+                if edge_mask & (1 << ei):
+                    p_edges *= p_defeat[edge]
+                    new_edges.add(edge)
+                else:
+                    p_edges *= (1.0 - p_defeat[edge])
+
+            if p_edges < 1e-18:
+                continue
+
+            new_state_p = dict(bag_state)
+            new_state_p[v] = True
+            _add_to_table(
+                new_table, new_state_p, frozenset(new_edges),
+                present_forgotten, prob * p_edges,
+            )
+
+    return new_table
+
+
+def _dp_forget(
+    node: NiceTDNode,
+    child_table: DPTable,
+    p_arg: dict[str, float],
+) -> DPTable:
+    """Forget v: apply P_A, move v from bag to forgotten set.
+
+    Grounded label computation is deferred to the root.
+    """
+    v = node.forgotten
+    assert v is not None
+    new_table: DPTable = {}
+
+    for (state_tuple, edges_fs, present_forgotten), prob in child_table.items():
+        if prob < 1e-18:
+            continue
+        bag_state = dict(state_tuple)
+        v_present = bag_state.get(v, False)
+
+        # Apply P_A(v) — each argument forgotten exactly once.
+        pa_v = p_arg.get(v, 1.0)
+        if v_present:
+            adjusted_prob = prob * pa_v
+        else:
+            adjusted_prob = prob * (1.0 - pa_v)
+
+        if adjusted_prob < 1e-18:
+            continue
+
+        # Move v from bag to forgotten tracking.
+        new_state = {a: p for a, p in bag_state.items() if a != v}
+        new_present_forgotten = (
+            present_forgotten | {v} if v_present else present_forgotten
+        )
+
+        _add_to_table(
+            new_table, new_state, edges_fs,
+            new_present_forgotten, adjusted_prob,
+        )
+
+    return new_table
+
+
+def _dp_join(
+    node: NiceTDNode,
+    left_table: DPTable,
+    right_table: DPTable,
+) -> DPTable:
+    """Join: combine rows with matching bag states.
+
+    Per Popescu & Wallner (2024, p.6): compatible rows are combined.
+    Probabilities multiply, edge sets and accepted sets are unioned.
+    """
+    new_table: DPTable = {}
+
+    # Index right table by bag_state for fast lookup.
+    right_by_state: dict[
+        tuple[tuple[str, bool], ...],
+        list[tuple[frozenset[tuple[str, str]], frozenset[str], float]],
+    ] = {}
+    for (state_tuple, edges_fs, pf), prob in right_table.items():
+        if prob < 1e-18:
+            continue
+        right_by_state.setdefault(state_tuple, []).append(
+            (edges_fs, pf, prob)
+        )
+
+    for (left_state, left_edges, left_pf), left_prob in left_table.items():
+        if left_prob < 1e-18:
+            continue
+        if left_state not in right_by_state:
+            continue
+        for right_edges, right_pf, right_prob in right_by_state[left_state]:
+            combined_prob = left_prob * right_prob
+            combined_edges = left_edges | right_edges
+            combined_pf = left_pf | right_pf
+            key = (left_state, combined_edges, combined_pf)
+            new_table[key] = new_table.get(key, 0.0) + combined_prob
+
+    return new_table
