@@ -109,7 +109,23 @@ class CorpusCalibrator:
     addressing the problem that raw distances are unnormalized and model-
     dependent (noted in code survey: relate.py:52 interpolates raw distance
     into LLM prompt without normalization).
+
+    Evidence model: corpus size measures how well we know the *distribution*
+    of distances, not how much evidence we have for any *individual claim*.
+    The effective sample size for a specific query is the number of reference
+    distances within a local window — the local CDF density — capped at a
+    maximum to prevent fabricated certainty.
+
+    Per Sensoy et al. 2018 (p.3-4): evidence counts represent actual
+    observations supporting a class, not corpus distribution statistics.
+    Per Josang 2001 (p.8): vacuous opinion (0,0,1,a) honestly represents
+    total ignorance; near-zero u fabricates certainty.
     """
+
+    # Maximum effective evidence count. Even with dense local data, we cap
+    # evidence to reflect that corpus calibration is indirect evidence for
+    # claim truth — it measures distributional similarity, not ground truth.
+    _MAX_N_EFF = 50
 
     def __init__(self, reference_distances: list[float]) -> None:
         """Build CDF from reference corpus of pairwise distances.
@@ -131,16 +147,60 @@ class CorpusCalibrator:
         pos = bisect.bisect_right(self._sorted, distance)
         return pos / self._n
 
+    def _effective_sample_size(self, distance: float) -> float:
+        """Compute local effective sample size around the query distance.
+
+        Uses a kernel bandwidth h = 1/sqrt(n) to define a local window
+        [distance - h, distance + h], then counts reference distances
+        within that window. This reflects how many data points inform
+        the CDF estimate at this specific location.
+
+        The count is capped at _MAX_N_EFF because corpus distances are
+        indirect evidence for claim truth — a large corpus tells us the
+        distance metric is well-calibrated, not that we have strong
+        evidence for any particular claim.
+
+        Per Sensoy et al. 2018 (p.3-4): evidence counts should represent
+        actual observations supporting a hypothesis.
+
+        Returns:
+            Effective sample size in [0, _MAX_N_EFF].
+        """
+        # Bandwidth: shrinks as corpus grows, but not as fast as 1/n
+        # (which would make local counts ~1 for large n). 1/sqrt(n) is
+        # the standard kernel density bandwidth scaling.
+        h = 1.0 / math.sqrt(self._n)
+
+        # Count points in [distance - h, distance + h] using binary search
+        lo = bisect.bisect_left(self._sorted, distance - h)
+        hi = bisect.bisect_right(self._sorted, distance + h)
+        local_count = hi - lo
+
+        # Corpus confidence: a corpus of 1-2 points tells us almost nothing
+        # about the distance distribution. Scale local evidence by how much
+        # we trust the corpus itself. We need ~10 points before the CDF
+        # estimate becomes meaningful (asymptotic normality of the empirical
+        # CDF requires sqrt(n) >> 1). This factor smoothly ramps from ~0
+        # at n=1 to ~1 at n>=10.
+        corpus_confidence = min(1.0, (self._n - 1) / 9.0)
+
+        return min(float(local_count) * corpus_confidence, float(self._MAX_N_EFF))
+
     def to_opinion(self, distance: float) -> Opinion:
         """Convert distance to opinion via corpus calibration.
 
-        The effective sample size n = len(reference_distances) determines
-        how narrow the resulting Beta distribution is.
-        Per Sensoy et al. 2018 (p.3-4): evidence scales with observations.
-        Per Josang 2001 (p.20-21, Def 12): evidence maps to opinion.
+        The effective sample size is based on local CDF density — how many
+        reference distances are near the query point — NOT the full corpus
+        size. This prevents a 10,000-element corpus from fabricating
+        near-dogmatic certainty (u ~ 0.0002).
+
+        Per Sensoy et al. 2018 (p.3-4): r = p * n_eff, s = (1-p) * n_eff.
+        Per Josang 2001 (p.20-21, Def 12): evidence maps to opinion via
+            b = r/(r+s+W), d = s/(r+s+W), u = W/(r+s+W).
         """
         p = 1.0 - self.percentile(distance)  # similarity = 1 - percentile
-        return from_probability(p, float(self._n))
+        n_eff = self._effective_sample_size(distance)
+        return from_probability(p, n_eff)
 
 
 # ---------------------------------------------------------------------------
