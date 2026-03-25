@@ -48,3 +48,29 @@ The preferred subtheory framework is the semantic target that ASPIC+ Theorem 31 
 - What it means for an ASPIC+ argumentation framework to "implement" preferred subtheories
 - The role of premise ordering in determining which arguments prevail
 - Why the level-based and partial-order-based approaches correspond to different preference orderings in ASPIC+
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Reiter_1980_DefaultReasoning]] — cited; Reiter's default logic is the baseline that Brewka's Prioritized Default Logic (PDL) extends with priority levels
+- [[Ginsberg_1985_Counterfactuals]] — cited as "Ginsberg 1986"; referenced for counterfactual reasoning connection to default reasoning
+
+### New Leads (Not Yet in Collection)
+- Poole 1988 — "A Logical Framework for Default Reasoning" (THEORIST system) — recovered as a special case of preferred subtheories
+- Konolige 1988 — "Hierarchic Autoepistemic Logic" — competing approach to prioritized defaults that forces priority specification
+- Rescher 1964 — "Hypothetical Reasoning" — origin of preferred maximal consistent subsets concept
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- [[Modgil_2018_GeneralAccountArgumentationPreferences]] — Theorem 31 establishes that stable extensions of classical-logic ASPIC+ c-SAFs correspond exactly to Brewka's preferred subtheories; cited as [16] *(p.28-29)*
+- [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] — references preferred subtheories as the semantic target when ASPIC+ is instantiated with classical logic and no defeasible rules *(p.55)*
+- [[Amgoud_2011_NewApproachPreference-basedArgumentation]] — Theorem 13 establishes bijection between pref-stable extensions and Brewka's preferred sub-theories for weighted knowledge bases *(p.20-22)*
+- [[Dung_1995_AcceptabilityArguments]] — references Brewka's work on prioritized default reasoning
+
+### Conceptual Links (not citation-based)
+- [[Lehtonen_2020_AnswerSetProgrammingApproach]] — **Moderate.** Lehtonen provides practical ASP encodings for ASPIC+ without preferences; extending to preferences would need to produce results corresponding to Brewka's preferred subtheories (per Modgil & Prakken 2018 Theorem 31). The computational approach and the semantic target are complementary.
+- [[Pollock_1987_DefeasibleReasoning]] — **Moderate.** Both address defeasible reasoning with conflicting defaults, but from different angles: Pollock uses argument graphs with rebutting/undercutting defeat and warrant via iterative levels; Brewka uses maximal consistent subsets with priority orderings. Both converge on the idea that specificity determines which defaults prevail.
+- [[Dixon_1993_ATMSandAGM]] — **Moderate.** Dixon's ATMS-to-AGM bridge uses epistemic entrenchment derived from justificational information; Brewka's reliability levels serve an analogous role — both provide a priority ordering that determines what to retract under contradiction. The ATMS manages multiple contexts simultaneously while Brewka enumerates preferred subtheories as alternative consistent positions.
+- [[Simari_1992_MathematicalTreatmentDefeasibleReasoning]] — **Strong.** Simari & Loui combine Poole's specificity criterion with Pollock's warrant theory; Brewka shows how specificity can automatically generate reliability levels for preferred subtheories. Both formalize the intuition that more specific defaults should override more general ones, arriving at compatible but distinct formalisms.

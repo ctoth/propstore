@@ -480,10 +480,11 @@ The framework's separation of strict/defeasible rules and necessary/ordinary pre
 - Walton, D. (2006) — "Fundamentals of critical argumentation" — Source for argument schemes modeled in ASPIC+ *(cited p.51)*
 - Wu (2012) — Studied well-founded semantics for ASPIC+ *(cited p.60)*
 - Snaith & Reed (2012) — TOAST implementation and AIF logical account *(cited p.60)*
-- Brewka, G. (1989) — "Preferred Subtheories: An Extended Logical Framework for Default Reasoning" — The approach without defeasible rules corresponds to Brewka's Preferred Subtheories *(cited p.55)*
+- Brewka, G. (1989) — "Preferred Subtheories: An Extended Logical Framework for Default Reasoning" — The approach without defeasible rules corresponds to Brewka's Preferred Subtheories *(cited p.55)* → NOW IN COLLECTION: [[Brewka_1989_PreferredSubtheoriesExtendedLogical]]
 
 ### Now in Collection (previously listed as leads)
 - [[Prakken_2010_AbstractFrameworkArgumentationStructured]] — The original ASPIC framework paper (precursor to ASPIC+). Defines arguments as inference trees from strict/defeasible rules, three attack types (undermining, rebutting, undercutting), and proves rationality postulates (closure, consistency) for well-formed theories closed under contraposition/transposition. Also proves ABA is a special case. This 2014 tutorial extends and simplifies the 2010 framework.
+- [[Brewka_1989_PreferredSubtheoriesExtendedLogical]] — Defines preferred subtheories as principled maximal consistent subsets selected by reliability orderings. The ASPIC+ approach without defeasible rules (all premises ordinary, all rules strict) corresponds directly to Brewka's preferred subtheories — conflict resolution happens purely through premise preferences. *(cited p.55)*
 
 ### Supersedes or Recontextualizes
 - (none — but see [[Modgil_2018_GeneralAccountArgumentationPreferences]] which supersedes this tutorial with the full technical treatment)

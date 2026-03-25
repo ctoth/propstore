@@ -254,11 +254,13 @@ This paper is directly foundational for the propstore's argumentation architectu
 
 ### New Leads (Not Yet in Collection)
 - Caminada & Amgoud (2007) [18] — "On the evaluation of argumentation formalisms" — introduced the rationality postulates that this paper proves for revised ASPIC+ *(p.18)*
-- Brewka (1989) [16] — "Preferred subtheories" — formally connected to ASPIC+ via Theorem 31; bridge between flat and structured approaches *(p.28-29)*
 - Amgoud & Vesic (2011) [9] — "A new approach for preference-based argumentation frameworks" — key critique target; Section 6.2 systematically rebuts their arguments *(p.32-35)*
 - Bench-Capon (2003) [10] — "Persuasion in practical argument using value-based argumentation frameworks" — extends Dung with audiences and values *(p.30)*
 - Simari & Loui (1992) [46] — "A mathematical treatment of defeasible argumentation and its implementation" — early structured argumentation system *(p.51)*
 - Vreeswijk (1997) [48] — "Abstract argumentation systems" — abstract framework for structured argumentation *(p.51)*
+
+### Now in Collection (previously listed as leads)
+- [[Brewka_1989_PreferredSubtheoriesExtendedLogical]] — Defines preferred subtheories as principled maximal consistent subsets selected by reliability orderings (level-based and partial-order-based). Theorem 31 of this paper establishes that stable extensions of classical-logic ASPIC+ c-SAFs correspond exactly to Brewka's preferred subtheories, providing the semantic bridge between flat and structured approaches to prioritized nonmonotonic reasoning. *(p.28-29)*
 
 ### Now in Collection (previously listed as leads)
 - [[Prakken_2010_AbstractFrameworkArgumentationStructured]] — The original ASPIC framework paper that this 2018 work revises and extends. Prakken 2010 defines the core framework (arguments as inference trees, three attack types, defeat with preferences) and proves rationality postulates under closure conditions. This 2018 paper revises the conflict-free definition (attack-based rather than defeat-based), broadens supported instantiations, and provides complete proofs for the generalized framework. *(p.7)*

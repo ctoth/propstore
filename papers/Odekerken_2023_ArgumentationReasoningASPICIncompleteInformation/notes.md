@@ -329,9 +329,11 @@ For synthetic data:
 
 ### New Leads (Not Yet in Collection)
 - Odekerken, Borg, and Bex (2022) ref 24 — "Stability and relevance in incomplete argumentation frameworks" (COMMA 2022) — companion paper performing the same stability/relevance analysis at Dung's abstract level rather than ASPIC+'s structured level
-- Lehtonen, Wallner, and Jarvisalo (2020) ref 15 — "An ASP approach to argumentative reasoning in ASPIC+" — the base ASP encoding that this paper extends with incomplete-information reasoning
 - Rapberger and Ulbricht (2022) ref 28 — "On dynamics in structured argumentation formalisms" — complementary work on how structured argumentation frameworks change over time
 - Baroni, Caminada, and Giacomin (2011) ref 4 — handbook chapter on argumentation semantics; comprehensive reference for the semantics taxonomy underlying the justification statuses
+
+### Now in Collection (previously listed as leads)
+- [[Lehtonen_2020_AnswerSetProgrammingApproach]] — Provides the base ASP encodings for computing ASPIC+ semantics (without preferences) that this paper extends with incomplete-information reasoning. Lehtonen et al. reformulate extensions as σ-assumptions (pairs of ordinary premises and defeasible rules), proving these biject with AF extensions (Theorem 5) and providing correct ASP encodings for conflict-free, admissible, complete, stable, and preferred semantics that scale to N=3000 atoms.
 
 ### Supersedes or Recontextualizes
 - (none)
