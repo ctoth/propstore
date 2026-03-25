@@ -195,8 +195,9 @@ def _embed_entities(
             (model_key,)
         ).fetchall():
             existing[r[config.status_id_column]] = r["content_hash"]
-    except sqlite3.OperationalError:
-        pass  # table doesn't exist yet
+    except sqlite3.OperationalError as e:
+        if "no such table" not in str(e):
+            raise
 
     to_embed = []
     skipped = 0
@@ -365,7 +366,9 @@ def get_registered_models(conn: sqlite3.Connection) -> list[dict]:
         return [dict(r) for r in conn.execute(
             "SELECT model_key, model_name, dimensions, created_at FROM embedding_model"
         ).fetchall()]
-    except sqlite3.OperationalError:
+    except sqlite3.OperationalError as e:
+        if "no such table" not in str(e):
+            raise
         return []
 
 
@@ -523,7 +526,9 @@ def extract_embeddings(conn: sqlite3.Connection) -> EmbeddingSnapshot | None:
     """Extract all embedding data before sidecar rebuild."""
     try:
         models = [dict(r) for r in conn.execute("SELECT * FROM embedding_model").fetchall()]
-    except sqlite3.OperationalError:
+    except sqlite3.OperationalError as e:
+        if "no such table" not in str(e):
+            raise
         return None
 
     if not models:
@@ -544,7 +549,9 @@ def extract_embeddings(conn: sqlite3.Connection) -> EmbeddingSnapshot | None:
                 (m["model_key"], m["model_key"])
             ).fetchall()
             claim_vectors[m["model_key"]] = [(r[0], r[1], r[2]) for r in rows]
-        except sqlite3.OperationalError:
+        except sqlite3.OperationalError as e:
+            if "no such table" not in str(e):
+                raise
             claim_vectors[m["model_key"]] = []
 
     # Concept embeddings
@@ -553,8 +560,9 @@ def extract_embeddings(conn: sqlite3.Connection) -> EmbeddingSnapshot | None:
         concept_statuses = [dict(r) for r in conn.execute(
             "SELECT * FROM concept_embedding_status"
         ).fetchall()]
-    except sqlite3.OperationalError:
-        pass
+    except sqlite3.OperationalError as e:
+        if "no such table" not in str(e):
+            raise
 
     concept_vectors = {}
     for m in models:
@@ -569,7 +577,9 @@ def extract_embeddings(conn: sqlite3.Connection) -> EmbeddingSnapshot | None:
                 (m["model_key"], m["model_key"])
             ).fetchall()
             concept_vectors[m["model_key"]] = [(r[0], r[1], r[2]) for r in rows]
-        except sqlite3.OperationalError:
+        except sqlite3.OperationalError as e:
+            if "no such table" not in str(e):
+                raise
             concept_vectors[m["model_key"]] = []
 
     return EmbeddingSnapshot(
@@ -593,8 +603,9 @@ def restore_embeddings(
     try:
         for r in conn.execute("SELECT id, seq, content_hash FROM claim").fetchall():
             current_claims[r["id"]] = (r["seq"], r["content_hash"])
-    except sqlite3.OperationalError:
-        pass
+    except sqlite3.OperationalError as e:
+        if "no such table" not in str(e):
+            raise
 
     # Build status lookup: (model_key, claim_id) -> content_hash_at_embed_time
     status_lookup = {}
@@ -648,8 +659,9 @@ def restore_embeddings(
     try:
         for r in conn.execute("SELECT id, seq, content_hash FROM concept").fetchall():
             current_concepts[r["id"]] = (r["seq"], r["content_hash"])
-    except sqlite3.OperationalError:
-        pass
+    except sqlite3.OperationalError as e:
+        if "no such table" not in str(e):
+            raise
 
     concept_status_lookup = {}
     for s in snapshot.concept_statuses:
