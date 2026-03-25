@@ -50,6 +50,7 @@ class Z3ConditionSolver:
         self._enum_sorts: dict[str, z3.DatatypeSortRef] = {}
         self._enum_consts: dict[str, z3.ExprRef] = {}
         self._enum_values: dict[str, dict[str, z3.ExprRef]] = {}
+        self._current_guards: list[Any] = []
 
     def _get_real(self, name: str) -> z3.ArithRef:
         if name not in self._reals:
