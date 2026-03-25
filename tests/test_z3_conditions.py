@@ -673,3 +673,102 @@ class TestPartitionExceptionHandling:
         ):
             with pytest.raises(RuntimeError, match="unexpected"):
                 solver.partition_equivalence_classes(condition_sets)
+
+
+# ── Guard state leak tests (F9) ─────────────────────────────────────
+
+
+@z3_only
+class TestZ3GuardStateLeak:
+    """Tests for _current_guards shared mutable state fragility.
+
+    Finding C1/C2 from audit-z3-cel-conflict.md: _current_guards is an
+    instance attribute set per-condition in _condition_to_z3(), never
+    initialized in __init__. This makes _translate() crash when called
+    directly, and means guard state leaks across translations.
+    """
+
+    def test_two_division_conditions_get_independent_guards(self):
+        """Two conditions dividing by the same variable should each get
+        independent guards.  After translating both via _condition_to_z3,
+        the _current_guards attribute should be initialized and each
+        condition's cached Z3 expression should independently include
+        the denominator-non-zero guard.
+
+        This test verifies that _current_guards is properly initialized
+        as an instance attribute (not set ad-hoc inside _condition_to_z3).
+        It checks hasattr BEFORE any translation — which fails because
+        __init__ never creates _current_guards.
+        """
+        import z3 as _z3
+
+        registry = {
+            "a": ConceptInfo(id="a", canonical_name="a", kind=KindType.QUANTITY),
+            "y": ConceptInfo(id="y", canonical_name="y", kind=KindType.QUANTITY),
+        }
+        solver = Z3ConditionSolver(registry)
+
+        # _current_guards should exist as an instance attribute from __init__,
+        # so that any method can safely reference it.  Currently it doesn't —
+        # it's only created inside _condition_to_z3().
+        assert hasattr(solver, "_current_guards"), (
+            "_current_guards must be initialized in __init__ so that "
+            "_translate can safely reference it without going through "
+            "_condition_to_z3 first"
+        )
+
+        # Translate two conditions that both divide by y
+        expr_a = solver._condition_to_z3("a / y > 0")
+        expr_b = solver._condition_to_z3("a / y < 5")
+
+        # Both expressions should make y==0 unsatisfiable (guard present)
+        ctx = solver._ctx
+        y = solver._get_real("y")
+        zero = _z3.RealVal(0, ctx)
+
+        s1 = _z3.Solver(ctx=ctx)
+        s1.add(expr_a)
+        s1.add(y == zero)
+        assert s1.check() == _z3.unsat, "Condition A must guard against y==0"
+
+        s2 = _z3.Solver(ctx=ctx)
+        s2.add(expr_b)
+        s2.add(y == zero)
+        assert s2.check() == _z3.unsat, "Condition B must guard against y==0"
+
+    def test_direct_translate_does_not_crash_on_division_guard(self):
+        """Calling _translate() directly (bypassing _condition_to_z3) on an
+        AST containing division should not raise AttributeError.
+
+        Currently _current_guards is only set inside _condition_to_z3(),
+        so calling _translate() on a division node will crash at line 163
+        with: AttributeError: 'Z3ConditionSolver' object has no attribute
+        '_current_guards'.
+        """
+        from propstore.cel_checker import BinaryOpNode, NameNode, LiteralNode
+
+        registry = {
+            "a": ConceptInfo(id="a", canonical_name="a", kind=KindType.QUANTITY),
+            "y": ConceptInfo(id="y", canonical_name="y", kind=KindType.QUANTITY),
+        }
+        solver = Z3ConditionSolver(registry)
+
+        # Build AST for "a / y" — a division that triggers guard collection
+        div_node = BinaryOpNode(
+            op="/",
+            left=NameNode(name="a"),
+            right=NameNode(name="y"),
+        )
+
+        # Wrap in a comparison: "a / y > 0"
+        cmp_node = BinaryOpNode(
+            op=">",
+            left=div_node,
+            right=LiteralNode(value=0, lit_type="int"),
+        )
+
+        # _translate() called directly (not through _condition_to_z3) should
+        # not crash.  Currently it does because _current_guards is not
+        # initialized in __init__.
+        result = solver._translate(cmp_node)
+        assert result is not None
