@@ -28,25 +28,29 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 5. **Render layer** — Resolution strategies (recency, sample_size, argumentation, override), world queries, hypothetical reasoning. Multiple render policies over the same underlying corpus.
 6. **Agent workflow layer** — extract-claims, reconcile-vocabulary, relate, adjudicate. These produce proposals, not truth.
 
+### Known Limitations
+
+**ASPIC+ argument construction:** The current implementation maps claims 1:1 to arguments (flat structure). Full ASPIC+ per Modgil & Prakken 2018 Defs 3-7 requires: strict/defeasible rules, recursive argument building from sub-arguments, and last-link/weakest-link comparison (Defs 20-21). These are not yet implemented.
+
 ## Key Literature Grounding
 
-| Paper | What it grounds |
-|-------|----------------|
-| Dung 1995 | AF = (Args, Defeats), grounded/preferred/stable/complete extensions |
-| de Kleer 1986 | ATMS: label every datum with minimal assumption sets, never commit to one context |
-| Dixon 1993 | ATMS context switching = AGM operations; entrenchment from justification structure |
-| Alchourron 1985 | AGM postulates: correctness criteria for any belief revision operation |
-| Modgil & Prakken 2018 | ASPIC+: attack-based conflict-free, rationality postulates, preference orderings |
-| Pollock 1987 | Rebutting vs undercutting defeat, warrant = ultimately undefeated argument |
-| Cayrol 2005 | Bipolar argumentation: support creates new defeat paths |
-| Odekerken 2023 | ASPIC+ with incomplete information: stability and relevance |
-| Jøsang 2001 | Subjective Logic: Opinion = (b,d,u,a), expectation E(ω) = b + a·u, consensus fusion |
-| Guo et al. 2017 | Temperature scaling for neural network calibration; ECE metric |
-| Sensoy et al. 2018 | Evidential deep learning: Dirichlet-based uncertainty from evidence counts |
-| Hunter & Thimm 2017 | Probabilistic argumentation: acceptance probability, COH constraint, component decomposition |
-| Li et al. 2012 | PrAF = (A, P_A, D, P_D): MC sampling with Agresti-Coull stopping for probabilistic AFs |
-| Denoeux 2019 | Decision-making with belief functions: pignistic, Hurwicz, interval criteria |
-| Fang et al. 2025 | DF-QuAD gradual semantics for quantitative bipolar argumentation frameworks |
+| Paper | What it grounds | Status |
+|-------|----------------|--------|
+| Dung 1995 | AF = (Args, Defeats), grounded/preferred/stable/complete extensions | Implemented |
+| de Kleer 1986 | ATMS: label every datum with minimal assumption sets, never commit to one context | Implemented |
+| Dixon 1993 | ATMS context switching = AGM operations; entrenchment from justification structure | Aspirational — no AGM operations implemented |
+| Alchourron 1985 | AGM postulates: correctness criteria for any belief revision operation | Aspirational — referenced via Dixon 1993 |
+| Modgil & Prakken 2018 | ASPIC+: attack-based conflict-free, rationality postulates, preference orderings | Partial — preference ordering implemented, argument construction is flat (no rules/sub-arguments per Defs 3-7) |
+| Pollock 1987 | Rebutting vs undercutting defeat, warrant = ultimately undefeated argument | Implemented |
+| Cayrol 2005 | Bipolar argumentation: support creates new defeat paths | Implemented — derived defeats with fixpoint |
+| Odekerken 2023 | ASPIC+ with incomplete information: stability and relevance | Partial — stability only |
+| Jøsang 2001 | Subjective Logic: Opinion = (b,d,u,a), expectation E(ω) = b + a·u, consensus fusion | Implemented |
+| Guo et al. 2017 | Temperature scaling for neural network calibration; ECE metric | Implemented |
+| Sensoy et al. 2018 | Evidential deep learning: Dirichlet-based uncertainty from evidence counts | Implemented — evidence-to-opinion mapping |
+| Hunter & Thimm 2017 | Probabilistic argumentation: acceptance probability, COH constraint, component decomposition | Partial — COH constraint not enforced |
+| Li et al. 2012 | PrAF = (A, P_A, D, P_D): MC sampling with Agresti-Coull stopping for probabilistic AFs | Implemented — MC sampling with Agresti-Coull |
+| Denoeux 2019 | Decision-making with belief functions: pignistic, Hurwicz, interval criteria | Aspirational — pignistic/Hurwicz/interval criteria not implemented |
+| Fang et al. 2025 | DF-QuAD gradual semantics for quantitative bipolar argumentation frameworks | Implemented — but P_A conflated with base score |
 
 ## Technical Conventions
 
