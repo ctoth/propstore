@@ -1,0 +1,13 @@
+{
+  "title": "Expanding Argumentation Frameworks: Enforcing and Monotonicity Results",
+  "authors": [
+    "Ringo Baumann",
+    "G. Brewka"
+  ],
+  "year": "2010",
+  "arxiv_id": null,
+  "doi": "10.3233/978-1-60750-619-5-75",
+  "abstract": "This paper addresses the problem of revising a Dung-style argumentation framework by adding finitely many new arguments which may interact with old ones. We study the behavior of the extensions of the augmented argumentation frameworks, taking also into account possible changes of the underlying semantics (which may be interpreted as corresponding changes of proof standards). We show both possibility and impossibility results related to the problem of enforcing a desired set of arguments. Furthermore, we prove some monotonicity results for a special class of expansions with respect to the cardinality of the set of extensions and the justification state.",
+  "url": "https://www.semanticscholar.org/paper/d18743f8412e5895429f9ad28334d4448ca41808",
+  "pdf_url": ""
+}
