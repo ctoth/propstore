@@ -560,3 +560,59 @@ def test_category_from_cli_round_trip():
     # Invalid value on non-extensible -> error (not just warning)
     errors = check_cel_expression("dataset == 'UNKNOWN'", registry)
     assert any(not e.is_warning for e in errors)
+
+
+# ── Type checker: logical operator operand validation (M6/F8) ────────
+
+class TestLogicalOperatorTypeValidation:
+    """Tests for M6: CEL type checker must reject non-boolean operands to && and ||.
+
+    Bug: _check_binary returns ExprType.BOOLEAN for logical ops without
+    verifying that both operands are boolean-compatible.  '3 && 5' passes
+    silently when it should be a type error.
+
+    References: audit finding M6 in notes/audit-z3-cel-conflict.md, lines 110-122.
+    """
+
+    def test_numeric_operands_to_and_is_type_error(self, registry):
+        """'3 && 5' — numeric operands to && should produce a type error.
+
+        Currently PASSES silently (bug). This test should FAIL until the
+        checker is fixed to validate operand types for logical operators.
+        """
+        errors = check_cel_expression("3 && 5", registry)
+        hard_errors = [e for e in errors if not e.is_warning]
+        assert len(hard_errors) >= 1, (
+            "Expected type error for numeric operands to '&&', but checker accepted '3 && 5'"
+        )
+
+    def test_mixed_operand_types_to_or_is_type_error(self, registry):
+        """'fundamental_frequency || "foo"' — quantity || string should be a type error.
+
+        Currently PASSES silently (bug). This test should FAIL until the
+        checker is fixed to validate operand types for logical operators.
+        """
+        errors = check_cel_expression("fundamental_frequency || 'foo'", registry)
+        hard_errors = [e for e in errors if not e.is_warning]
+        assert len(hard_errors) >= 1, (
+            "Expected type error for non-boolean operands to '||', "
+            "but checker accepted 'fundamental_frequency || \"foo\"'"
+        )
+
+    def test_boolean_operands_to_and_ok(self, registry):
+        """'true && false' — boolean literal operands to && should pass (control)."""
+        errors = check_cel_expression("true && false", registry)
+        hard_errors = [e for e in errors if not e.is_warning]
+        assert len(hard_errors) == 0, (
+            f"Boolean operands to '&&' should be valid, but got errors: {hard_errors}"
+        )
+
+    def test_comparison_results_to_and_ok(self, registry):
+        """'fundamental_frequency > 0 && F0 < 10' — comparisons to && should pass (control)."""
+        errors = check_cel_expression(
+            "fundamental_frequency > 0 && F0 < 10", registry
+        )
+        hard_errors = [e for e in errors if not e.is_warning]
+        assert len(hard_errors) == 0, (
+            f"Comparison results as operands to '&&' should be valid, but got errors: {hard_errors}"
+        )
