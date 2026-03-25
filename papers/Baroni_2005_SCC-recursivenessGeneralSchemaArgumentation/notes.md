@@ -159,9 +159,11 @@ The key insight is that **the SCC structure of an AF determines information flow
 - [[Bondarenko_1997_AbstractArgumentation-TheoreticApproachDefault]] — related to Jakobovits & Vermeir 1999 citation; assumption-based argumentation connects to the SCC decomposition approach.
 
 ### New Leads (Not Yet in Collection)
-- **Baroni & Giacomin 2007 (AIJ)**: Full journal version with complete proofs, AD1/AD2/CF1/CF2 semantics, and comprehensive comparison.
 - **Baroni & Giacomin 2003**: Earlier ECSQARU paper first introducing SCC decomposition.
 - **Makinson & Schlechta 1991**: "Floating conclusions" — CF2 semantics handles this problematic case.
+
+### Now in Collection (previously listed as leads)
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — Full journal version of this workshop paper, providing the complete principle-based evaluation framework for extension-based argumentation semantics. Evaluates 8 semantics (including CF2 introduced here) against formal criteria: conflict-free, I-maximality, reinstatement, directionality, skepticism adequacy, and resolution adequacy. Key finding: preferred and stable are the only semantics satisfying all criteria including resolution adequacy.
 
 ### Cited By (in Collection)
 - [[Prakken_2012_AppreciationJohnPollock'sWork]] — references Baroni and Giacomin (2007/2009) in discussion of odd-cycle handling and Pollock's late revision of his semantics. Lists "Baroni and Giacomin (2009)" as a New Lead.
