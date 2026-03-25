@@ -383,3 +383,148 @@ class TestClaimStrengthMultiDim:
         # Single-element lists should work with defeat_holds
         assert defeat_holds("rebuts", result, [0.5], "elitist") is True  # 0.7 not weaker than 0.5
         assert defeat_holds("rebuts", [0.5], result, "elitist") is False  # 0.5 IS strictly weaker than 0.7
+
+
+# ── Phase 3: Fixed-length preference vector tests ──────────────────
+#
+# These tests assert that claim_strength() ALWAYS returns a 3-element
+# vector with neutral defaults for missing dimensions, so that
+# strictly_weaker() comparisons between claims with different metadata
+# profiles are commensurable.
+#
+# Neutral defaults rationale:
+#   [0] log_sample_size: 0.0  — log1p(0) = 0, "no samples observed"
+#   [1] inverse_uncertainty: 1.0 — 1/1.0 = 1.0, "maximum uncertainty"
+#   [2] confidence: 0.5 — coin flip, neither advantage nor disadvantage
+#
+# Literature grounding:
+#   Modgil & Prakken 2018, Def 19: Elitist/Democratic set comparison
+#   requires commensurable vectors. Variable-length vectors make
+#   cross-claim comparison meaningless (comparing log(sample_size)
+#   against confidence is numerically incommensurable).
+
+
+class TestClaimStrengthFixedLength:
+    """Tests for fixed-length 3-element preference vectors.
+
+    claim_strength() must always return a 3-element vector so that
+    Def 19 (Modgil & Prakken 2018) set comparisons are commensurable
+    across claims with different metadata profiles.
+    """
+
+    def test_claim_strength_fixed_length_all_fields(self):
+        """Claim with all three metadata fields returns 3-element vector.
+
+        All dimensions are populated from actual metadata — no defaults needed.
+        """
+        claim = {"sample_size": 100, "uncertainty": 0.2, "confidence": 0.9}
+        result = claim_strength(claim)
+        assert len(result) == 3
+
+    def test_claim_strength_fixed_length_no_fields(self):
+        """Claim with no metadata returns 3-element vector of neutral defaults.
+
+        Neutral defaults: [0.0, 1.0, 0.5]
+          - 0.0 for log_sample_size: log1p(0) = 0, weakest possible
+          - 1.0 for inverse_uncertainty: 1/1.0, maximum uncertainty
+          - 0.5 for confidence: coin flip, no advantage
+        """
+        result = claim_strength({})
+        assert len(result) == 3
+        assert result == [0.0, 1.0, 0.5]
+
+    def test_claim_strength_fixed_length_partial(self):
+        """Claim with only sample_size returns 3-element vector.
+
+        Second element (inverse_uncertainty) and third element (confidence)
+        must be neutral defaults.
+        """
+        result = claim_strength({"sample_size": 500})
+        assert len(result) == 3
+        # Second element: inverse_uncertainty default = 1.0
+        assert result[1] == 1.0
+        # Third element: confidence default = 0.5
+        assert result[2] == 0.5
+
+    def test_claim_strength_fixed_length_different_partials(self):
+        """Claims with different metadata subsets return same-length vectors.
+
+        Claim A has only sample_size; Claim B has only confidence.
+        Both must return 3-element vectors for commensurable comparison
+        under Def 19 (Modgil & Prakken 2018).
+        """
+        a = claim_strength({"sample_size": 100})
+        b = claim_strength({"confidence": 0.8})
+        assert len(a) == len(b) == 3
+
+    def test_strictly_weaker_same_length_vectors(self):
+        """Two claims with different metadata subsets produce same-length
+        vectors for strictly_weaker() comparison.
+
+        This verifies the precondition: vectors fed to strictly_weaker()
+        from claim_strength() are always commensurable (same length),
+        regardless of which metadata fields were present.
+        """
+        dims_a = claim_strength({"sample_size": 50})
+        dims_b = claim_strength({"confidence": 0.7})
+        # Both must be length 3 — the precondition for commensurable comparison
+        assert len(dims_a) == 3
+        assert len(dims_b) == 3
+        # The comparison must be well-defined (no crash, meaningful result)
+        result = strictly_weaker(dims_a, dims_b, "elitist")
+        assert isinstance(result, bool)
+
+
+class TestClaimStrengthFixedLengthProperties:
+    """Hypothesis property tests for fixed-length preference vectors."""
+
+    @given(st.fixed_dictionaries({}, optional={
+        "sample_size": st.integers(min_value=1, max_value=100000),
+        "uncertainty": st.floats(min_value=0.001, max_value=10.0, allow_nan=False),
+        "confidence": st.floats(min_value=0.0, max_value=1.0, allow_nan=False),
+    }))
+    @_PROP_SETTINGS
+    def test_claim_strength_always_three_elements(self, claim):
+        """P9: claim_strength() always returns exactly 3 elements.
+
+        For any combination of present/absent metadata fields,
+        the result must be a 3-element vector. This ensures Def 19
+        (Modgil & Prakken 2018) set comparisons are commensurable.
+        """
+        result = claim_strength(claim)
+        assert len(result) == 3
+
+    @given(st.lists(
+        st.floats(min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False),
+        min_size=3, max_size=3,
+    ), _comparisons)
+    @_PROP_SETTINGS
+    def test_strictly_weaker_irreflexive(self, v, mode):
+        """P10: No 3-element strength vector is strictly weaker than itself.
+
+        Irreflexivity — Modgil 2018 Def 19 implies this since
+        "exists x < all y" (elitist) and "forall x exists y, x < y"
+        (democratic) cannot hold when comparing identical sets, because
+        x < x is always false for strict ordering.
+        """
+        assert strictly_weaker(v, v, mode) is False
+
+    @given(
+        st.lists(
+            st.floats(min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False),
+            min_size=1, max_size=5,
+        ),
+        st.lists(
+            st.floats(min_value=0.0, max_value=10.0, allow_nan=False, allow_infinity=False),
+            min_size=1, max_size=5,
+        ),
+        _comparisons,
+    )
+    @_PROP_SETTINGS
+    def test_defeat_holds_undercuts_always_true(self, a, b, mode):
+        """P11: Undercutting always succeeds regardless of preferences.
+
+        Modgil & Prakken 2018, Def 9: undercutting is preference-independent.
+        No matter the strength vectors, undercuts always produces defeat.
+        """
+        assert defeat_holds("undercuts", a, b, mode) is True
