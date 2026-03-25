@@ -417,3 +417,49 @@ def test_acceptance_probs_sum_constraint():
     assert 0.0 <= pb <= 1.0
     # Symmetry: both should have similar acceptance probabilities
     assert abs(pa - pb) < 0.1
+
+
+# ---------------------------------------------------------------------------
+# 13. test_mc_confidence_affects_ci_width (RED — Finding F1 from audit-praf)
+# ---------------------------------------------------------------------------
+def test_mc_confidence_affects_ci_width():
+    """mc_confidence=0.99 should produce a wider CI than mc_confidence=0.95.
+
+    Bug: praf.py hardcodes z=1.96 on line 395 regardless of mc_confidence,
+    so both confidence levels produce identical CI half-widths.
+
+    Per Li et al. (2012, Eq. 4-5): the z-score in the CI formula must
+    correspond to the requested confidence level. z(0.95)=1.96, z(0.99)=2.576.
+    A 99% CI is always wider than a 95% CI for the same data.
+    """
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    # Mutual attack with uncertain defeats — forces MC sampling with
+    # non-trivial acceptance probabilities (not 0 or 1).
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b"}),
+        defeats=frozenset({("a", "b"), ("b", "a")}),
+    )
+    p_args = {a: Opinion.dogmatic_true() for a in af.arguments}
+    p_defeats = {d: from_probability(0.6, 5) for d in af.defeats}
+    praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
+
+    result_95 = compute_praf_acceptance(
+        praf, strategy="mc", mc_epsilon=0.05,
+        mc_confidence=0.95, rng_seed=42,
+    )
+    result_99 = compute_praf_acceptance(
+        praf, strategy="mc", mc_epsilon=0.05,
+        mc_confidence=0.99, rng_seed=42,
+    )
+
+    assert result_95.confidence_interval_half is not None
+    assert result_99.confidence_interval_half is not None
+
+    # 99% CI must be strictly wider than 95% CI (z=2.576 vs z=1.96).
+    # This SHOULD FAIL because both use hardcoded z=1.96.
+    assert result_99.confidence_interval_half > result_95.confidence_interval_half, (
+        f"99% CI half-width ({result_99.confidence_interval_half:.6f}) should be wider than "
+        f"95% CI half-width ({result_95.confidence_interval_half:.6f}), "
+        f"but mc_confidence is ignored (hardcoded z=1.96)"
+    )

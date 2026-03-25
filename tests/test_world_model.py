@@ -2038,3 +2038,116 @@ class TestBoundWorldPublicInterface:
         assert hasattr(bound, 'extract_variable_concepts')
         assert hasattr(bound, 'collect_known_values')
         assert hasattr(bound, 'extract_bindings')
+
+
+# ── RED tests: Float comparison bugs (audit findings F5.2, F5.3) ────
+
+
+class TestFloatEqualityBugs:
+    """Tests exposing float comparison bugs in resolution and conflict detection.
+
+    F5.3 (audit-error-handling): resolution.py:248 uses ``p == best_prob``
+    on MC-sampled acceptance probabilities. Two claims with acceptance probs
+    differing by ~1e-12 should be treated as tied, but exact ``==`` may
+    miss the tie or create false ties depending on FP arithmetic.
+
+    F5.2 (audit-error-handling): hypothetical.py:142 uses ``val_a != val_b``
+    on claim values. Two float values differing by FP noise (~1e-15) are
+    flagged as conflicting when they should be treated as equal.
+    """
+
+    def test_praf_resolution_float_tie_detection(self, world):
+        """Two claims with acceptance probs differing by ~1e-12 should tie.
+
+        Bug: resolution.py:248 uses ``p == best_prob`` which will NOT detect
+        these as tied because 0.7 != 0.7 + 1e-12 in IEEE 754.
+
+        This test SHOULD FAIL because the code uses exact float equality.
+        """
+        from unittest.mock import patch, MagicMock
+
+        from propstore.praf import PrAFResult
+        from propstore.world.resolution import _resolve_praf
+
+        # Two target claims competing for the same concept
+        target_claims = [
+            {"id": "claim_x", "concept_id": "concept2", "value": 800.0},
+            {"id": "claim_y", "concept_id": "concept2", "value": 810.0},
+        ]
+        active_claims = target_claims[:]
+
+        # Mock PrAF to return acceptance probs differing by 1e-12
+        mock_praf_result = PrAFResult(
+            acceptance_probs={
+                "claim_x": 0.7,
+                "claim_y": 0.7 + 1e-12,  # differs by FP noise
+            },
+            strategy_used="mc",
+            samples=1000,
+            confidence_interval_half=0.01,
+            semantics="grounded",
+        )
+
+        with patch("propstore.argumentation.build_praf") as mock_build, \
+             patch("propstore.praf.compute_praf_acceptance", return_value=mock_praf_result):
+            mock_build.return_value = MagicMock()
+            # WorldModel IS the ArtifactStore — pass it directly
+            winner_id, reason, probs = _resolve_praf(
+                target_claims, active_claims, world,
+                semantics="grounded", comparison="elitist",
+            )
+
+        # With tolerance-based comparison, both should tie (winner_id=None).
+        # With exact ==, claim_y wins as sole "best" because 0.7+1e-12 > 0.7.
+        # This assertion tests the CORRECT behavior (tolerance-based tie).
+        assert winner_id is None, (
+            f"Expected tie (winner_id=None) for probs differing by 1e-12, "
+            f"but got winner '{winner_id}'. "
+            f"Bug: resolution.py uses exact float == instead of tolerance-based comparison."
+        )
+
+    def test_hypothetical_recompute_fp_noise_not_conflict(self, world):
+        """Two claims with values differing by FP noise should NOT conflict.
+
+        Bug: hypothetical.py:142 uses ``val_a != val_b`` which treats
+        9.8 and 9.8 + 1e-15 as different values, flagging a false conflict.
+
+        This test SHOULD FAIL because != treats FP-close values as different.
+        """
+        bound = world.bind(task="speech")
+
+        # Two synthetic claims for the same concept with values
+        # that differ only by floating-point noise.
+        base_value = 9.8
+        fp_noise_value = 9.8 + 1e-15  # differs by less than machine epsilon relative to 9.8
+
+        sc_a = SyntheticClaim(
+            id="synth_fp_a", concept_id="concept2", value=base_value,
+            conditions=["task == 'speech'"],
+        )
+        sc_b = SyntheticClaim(
+            id="synth_fp_b", concept_id="concept2", value=fp_noise_value,
+            conditions=["task == 'speech'"],
+        )
+
+        # Remove all existing concept2 claims to isolate our test pair
+        existing_concept2_claims = bound.active_claims("concept2")
+        remove_ids = [c["id"] for c in existing_concept2_claims]
+
+        hypo = HypotheticalWorld(bound, remove=remove_ids, add=[sc_a, sc_b])
+        conflicts = hypo.recompute_conflicts()
+
+        # Filter to only conflicts between our two synthetic claims
+        fp_conflicts = [
+            c for c in conflicts
+            if {c["claim_a_id"], c["claim_b_id"]} == {"synth_fp_a", "synth_fp_b"}
+        ]
+
+        # These values differ by ~1e-15 — well within FP noise.
+        # They should NOT be flagged as conflicting.
+        # This SHOULD FAIL because val_a != val_b treats them as different.
+        assert len(fp_conflicts) == 0, (
+            f"Values {base_value} and {fp_noise_value} differ by {abs(fp_noise_value - base_value):.2e}, "
+            f"which is FP noise, but recompute_conflicts flagged them as conflicting. "
+            f"Bug: hypothetical.py uses val_a != val_b instead of tolerance-based comparison."
+        )
