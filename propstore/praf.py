@@ -273,8 +273,11 @@ def _sample_subgraph(
     sampled_defeats: set[tuple[str, str]] = set()
     for f, t in praf.framework.defeats:
         if f in sampled_args and t in sampled_args:
-            p_d = praf.p_defeats[(f, t)].expectation()
-            if rng.random() < p_d:
+            if (f, t) in praf.p_defeats:
+                if rng.random() < praf.p_defeats[(f, t)].expectation():
+                    sampled_defeats.add((f, t))
+            else:
+                # Deterministic defeat — always present
                 sampled_defeats.add((f, t))
 
     # Also filter attacks if present
