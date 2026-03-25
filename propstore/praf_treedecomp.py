@@ -78,13 +78,14 @@ class NiceTreeDecomposition:
 def _build_primal_graph(
     framework: ArgumentationFramework,
 ) -> dict[str, set[str]]:
-    """Build undirected primal graph from AF defeats.
+    """Build undirected primal graph from the semantic attack relation.
 
     Per Popescu & Wallner (2024, p.4): primal graph has arguments as
     nodes, undirected edges between attack endpoints.
     """
     adj: dict[str, set[str]] = {a: set() for a in framework.arguments}
-    for src, tgt in framework.defeats:
+    relation = framework.attacks if framework.attacks is not None else framework.defeats
+    for src, tgt in relation:
         adj[src].add(tgt)
         adj[tgt].add(src)
     return adj
@@ -368,6 +369,15 @@ def compute_exact_dp(
     Complexity: O(3^k * n * 2^d_bag) where k is treewidth, n is number
     of nodes, d_bag is max defeats per bag (Popescu & Wallner 2024, Theorem 7).
     """
+    if (
+        getattr(praf, "supports", frozenset())
+        or (
+            praf.framework.attacks is not None
+            and praf.framework.attacks != praf.framework.defeats
+        )
+    ):
+        return _compute_brute_force_fallback(praf, semantics)
+
     if semantics != "grounded":
         # Non-grounded: fall back to brute-force enumeration.
         # Per Popescu & Wallner (2024, Theorem 6): P_acc for
@@ -386,75 +396,9 @@ def _compute_brute_force_fallback(
     Per Popescu & Wallner (2024, Theorem 6): P_acc for multi-extension
     semantics is #.NP-complete. No efficient TD DP exists for these.
     """
-    from propstore.praf import _evaluate_semantics
+    from propstore.praf import _compute_exact_enumeration
 
-    af = praf.framework
-    args_list = sorted(af.arguments)
-
-    if not args_list:
-        return {}
-
-    p_arg: dict[str, float] = {a: praf.p_args[a].expectation() for a in af.arguments}
-    p_defeat: dict[tuple[str, str], float] = {
-        d: praf.p_defeats[d].expectation() for d in af.defeats
-    }
-    defeats_list = sorted(af.defeats)
-    n_args = len(args_list)
-
-    acceptance: dict[str, float] = {a: 0.0 for a in args_list}
-
-    for arg_mask in range(1 << n_args):
-        sampled_args = frozenset(
-            args_list[i] for i in range(n_args) if arg_mask & (1 << i)
-        )
-
-        p_args_present = 1.0
-        for i, a in enumerate(args_list):
-            p_a = p_arg[a]
-            if arg_mask & (1 << i):
-                p_args_present *= p_a
-            else:
-                p_args_present *= (1.0 - p_a)
-
-        if p_args_present < 1e-15:
-            continue
-
-        valid_defeats = [
-            (j, d) for j, d in enumerate(defeats_list)
-            if d[0] in sampled_args and d[1] in sampled_args
-        ]
-        n_valid = len(valid_defeats)
-
-        for def_mask in range(1 << n_valid):
-            sampled_defeats = frozenset(
-                valid_defeats[k][1]
-                for k in range(n_valid)
-                if def_mask & (1 << k)
-            )
-
-            p_defeats_config = 1.0
-            for k, (j, d) in enumerate(valid_defeats):
-                pd = p_defeat[d]
-                if def_mask & (1 << k):
-                    p_defeats_config *= pd
-                else:
-                    p_defeats_config *= (1.0 - pd)
-
-            total_prob = p_args_present * p_defeats_config
-            if total_prob < 1e-15:
-                continue
-
-            sub_af = ArgumentationFramework(
-                arguments=sampled_args,
-                defeats=sampled_defeats,
-            )
-            ext = _evaluate_semantics(sub_af, semantics)
-
-            for a in sampled_args:
-                if a in ext:
-                    acceptance[a] += total_prob
-
-    return acceptance
+    return _compute_exact_enumeration(praf, semantics).acceptance_probs
 
 
 # ===================================================================
@@ -537,7 +481,7 @@ def _compute_grounded_dp(praf: ProbabilisticAF) -> dict[str, float]:
     # Decompose into connected components.
     # Per Hunter & Thimm (2017, Prop 18): components are independent.
     from propstore.praf import _connected_components
-    components = _connected_components(af)
+    components = _connected_components(praf)
 
     acceptance: dict[str, float] = {}
     for comp_args in components:
@@ -548,6 +492,12 @@ def _compute_grounded_dp(praf: ProbabilisticAF) -> dict[str, float]:
         comp_af = ArgumentationFramework(
             arguments=frozenset(comp_args),
             defeats=comp_defeats,
+            attacks=(
+                frozenset(
+                    (f, t) for f, t in af.attacks
+                    if f in comp_args and t in comp_args
+                ) if af.attacks is not None else None
+            ),
         )
         comp_result = _compute_grounded_dp_component(
             comp_af, p_arg, p_defeat,
