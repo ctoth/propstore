@@ -100,10 +100,11 @@ def supersedes_scenario(conn):
 
 @pytest.fixture
 def vacuous_opinion_scenario(conn):
-    """Stances with vacuous opinion (u > 0.99) should be pruned.
+    """Stances with vacuous opinion (u > 0.99) survive AF construction.
 
     claim_x rebuts claim_y with vacuous opinion (opinion_uncertainty=1.0).
-    Per Josang (2001, p.8): vacuous opinion carries no information.
+    Per CLAUDE.md design checklist: no gates before render time.
+    Vacuous opinions (Josang 2001, p.8) are counted but not pruned.
     """
     _insert_claim(conn, "claim_x", "c1", 100.0, sample_size=100)
     _insert_claim(conn, "claim_y", "c1", 200.0, sample_size=100)
@@ -158,17 +159,19 @@ class TestBuildAF:
         # claim_a (sample=1000) rebuts claim_b (sample=10) → succeeds
         assert ("claim_a", "claim_b") in af.defeats
 
-    def test_vacuous_opinion_pruned(self, vacuous_opinion_scenario):
-        """Stances with vacuous opinion (u > 0.99) are pruned from the AF.
+    def test_vacuous_opinion_survives_af(self, vacuous_opinion_scenario):
+        """Stances with vacuous opinion (u > 0.99) survive AF construction.
 
-        Per Josang (2001, p.8): vacuous opinion (0,0,1,a) carries no
-        information. Per Li et al. (2012, Def 2): stances should participate
-        with their existence probability, not be binary gated.
+        Per CLAUDE.md design checklist: no gates before render time.
+        Vacuous opinions (Josang 2001, p.8) are counted but not pruned —
+        filtering is deferred to render/resolution time.
+        Per Li et al. (2012, Def 2): stances participate with their
+        existence probability, not binary gated.
         """
         af = build_argumentation_framework(
             SQLiteArgumentationStore(vacuous_opinion_scenario), {"claim_x", "claim_y"},
         )
-        assert ("claim_x", "claim_y") not in af.defeats
+        assert ("claim_x", "claim_y") in af.defeats
 
     def test_arguments_match_input(self, basic_scenario):
         """AF arguments match the active claim IDs passed in."""

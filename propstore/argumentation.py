@@ -129,16 +129,6 @@ def build_argumentation_framework(
         stance_type = stance["stance_type"]
         confidence = stance.get("confidence")
 
-        # Soft epsilon prune: only remove stances with zero information content
-        # Per Li et al. (2012, Def 2): stances should participate with their
-        # existence probability, not be binary gated
-        # Per CLAUDE.md design checklist: no gates before render time
-        opinion_u = stance.get("opinion_uncertainty")
-        if opinion_u is not None and opinion_u > 0.99:
-            # Vacuous opinion — no information content (Josang 2001, p.8)
-            # Prune as performance optimization only
-            continue
-
         # Skip stances referencing claims not in the active set — these are
         # stale references that should not participate in the AF.
         if source_id not in claims_by_id or target_id not in claims_by_id:
@@ -272,16 +262,17 @@ def stance_summary(
     Returns counts, opinion statistics, and model info so the render
     layer can explain which stances were included under what policy.
 
-    Stances are only pruned if they carry a vacuous opinion (u > 0.99),
-    per Josang (2001, p.8). All other stances participate regardless of
-    confidence, per Li et al. (2012, Def 2) and the CLAUDE.md design
-    checklist (no gates before render time).
+    All stances participate in AF construction regardless of opinion
+    uncertainty, per Li et al. (2012, Def 2) and the CLAUDE.md design
+    checklist (no gates before render time). Vacuous opinions
+    (Josang 2001, p.8) are counted but not pruned — filtering is
+    deferred to render/resolution time.
     """
     rows = store.stances_between(active_claim_ids)
 
     total = 0
     included = 0
-    pruned_vacuous = 0
+    vacuous_count = 0
     excluded_non_attack = 0
     models: set[str] = set()
     uncertainties: list[float] = []
@@ -296,21 +287,18 @@ def stance_summary(
             excluded_non_attack += 1
             continue
 
-        # Soft epsilon prune: only vacuous opinions are excluded
-        if opinion_u is not None and opinion_u > 0.99:
-            pruned_vacuous += 1
-            continue
-
         included += 1
         if model:
             models.add(model)
         if opinion_u is not None:
             uncertainties.append(opinion_u)
+            if opinion_u > 0.99:
+                vacuous_count += 1
 
     result: dict = {
         "total_stances": total,
         "included_as_attacks": included,
-        "pruned_vacuous": pruned_vacuous,
+        "vacuous_count": vacuous_count,
         "excluded_non_attack": excluded_non_attack,
         "models": sorted(models),
     }
