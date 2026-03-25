@@ -8,6 +8,15 @@ Connected component decomposition per Hunter & Thimm (2017, Prop 18).
 from __future__ import annotations
 
 import math
+
+_Z_SCORES = {0.90: 1.645, 0.95: 1.960, 0.99: 2.576}
+
+
+def _z_for_confidence(confidence: float) -> float:
+    """Z-score for two-tailed confidence interval."""
+    if confidence in _Z_SCORES:
+        return _Z_SCORES[confidence]
+    raise ValueError(f"Unsupported mc_confidence={confidence}; use 0.90, 0.95, or 0.99")
 import random as _random_mod
 from dataclasses import dataclass
 
@@ -392,7 +401,8 @@ def _compute_mc(
         for a in comp_args:
             p_hat = all_acceptance[a]
             if n > 0:
-                ci = 1.96 * math.sqrt(p_hat * (1.0 - p_hat) / n) if n > 1 else 1.0
+                z = _z_for_confidence(confidence)
+                ci = z * math.sqrt(p_hat * (1.0 - p_hat) / n) if n > 1 else 1.0
                 max_ci_half = max(max_ci_half, ci)
 
     return PrAFResult(

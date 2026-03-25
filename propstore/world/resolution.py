@@ -8,6 +8,7 @@ is only relevant when the strategy is ARGUMENTATION.
 from __future__ import annotations
 
 import json
+import math
 
 from propstore.world.types import (
     ArtifactStore,
@@ -245,7 +246,7 @@ def _resolve_praf(
         return None, "no target claims in PrAF", acceptance
 
     best_prob = max(target_probs.values())
-    best_claims = [cid for cid, p in target_probs.items() if p == best_prob]
+    best_claims = [cid for cid, p in target_probs.items() if math.isclose(p, best_prob, rel_tol=1e-9)]
 
     if len(best_claims) == 1:
         winner = best_claims[0]

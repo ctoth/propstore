@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 
 from propstore.world.bound import (
     BoundWorld,
@@ -10,6 +11,15 @@ from propstore.world.bound import (
 )
 from propstore.world.value_resolver import ActiveClaimResolver, collect_known_values
 from propstore.world.types import BeliefSpace, DerivedResult, ResolvedResult, SyntheticClaim, ValueResult
+
+
+def _values_conflict(val_a, val_b) -> bool:
+    """Check if two values are meaningfully different (not just FP noise)."""
+    try:
+        fa, fb = float(val_a), float(val_b)
+        return not math.isclose(fa, fb, rel_tol=1e-9)
+    except (ValueError, TypeError):
+        return val_a != val_b
 
 
 class HypotheticalWorld(BeliefSpace):
@@ -139,7 +149,7 @@ class HypotheticalWorld(BeliefSpace):
                     val_b = claims[j].get("value")
                     if val_a is None or val_b is None:
                         continue
-                    if val_a != val_b:
+                    if _values_conflict(val_a, val_b):
                         conflicts.append({
                             "concept_id": cid,
                             "claim_a_id": claims[i]["id"],
