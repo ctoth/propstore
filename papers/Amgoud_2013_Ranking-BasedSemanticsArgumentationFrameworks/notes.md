@@ -227,6 +227,31 @@ The postulate framework provides testable correctness criteria for any ranking i
 - [ ] What is the relationship between these postulates and Baroni & Giacomin 2007's principle-based evaluation?
 - [ ] Can defense precedence be strengthened without losing compatibility with other postulates?
 
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — foundational AF definition; Amgoud & Ben-Naim propose ranking-based semantics as a finer-grained alternative to Dung's extension-based semantics
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — methodological inspiration; Baroni & Giacomin's principle-based evaluation of extension semantics is mirrored here for ranking-based semantics
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — cited for the Discussion-based semantics origin (note: the collection paper is on bipolar argumentation, a different 2005 paper by same authors)
+- [[Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation]] — cited as [3] for SCC-recursiveness
+- [[Amgoud_2011_NewApproachPreference-basedArgumentation]] — same first author's prior work on preference-based argumentation (cited as [1])
+
+### New Leads (Not Yet in Collection)
+- Dunne, Hunter, McBurney, Parsons & Wooldridge 2011 — "Weighted argument systems" (AIJ) — weighted argumentation where weights are externally provided rather than derived from structure
+- Garcia & Simari 2004 — "Defeasible logic programming" — argumentative approach to logic programming
+- Dung, Mancarella & Toni 2007 — "Computing ideal skeptical argumentation" — ideal semantics computation
+
+### Cited By (in Collection)
+- [[Bonzon_2016_ComparativeStudyRanking-basedSemantics]] — directly compares Burden-based semantics (from this paper) against 16 axiomatic properties alongside four other ranking semantics; many of the properties originate from this paper's postulates
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — cites this paper in its reference list as part of the ranking-based semantics literature
+- [[Doutre_2018_ConstraintsChangesSurveyAbstract]] — cites this paper; identifies dynamics in ranking-based semantics as an open area
+- [[Matt_2008_Game-TheoreticMeasureArgumentStrength]] — conceptual competitor; game-theoretic argument strength is an alternative to the axiomatic ranking approach
+
+### Conceptual Links (not citation-based)
+- [[Gabbay_2012_EquationalApproachArgumentationNetworks]] — **Strong.** Both papers assign graded acceptability values to arguments in Dung AFs, but via fundamentally different methods: Gabbay uses fixed-point equations over [0,1] values (continuous numerical), while Amgoud & Ben-Naim use lexicographic comparison of discussion/burden sequences (discrete ordinal). Gabbay's Eq_max corresponds to Caminada complete labellings; Amgoud's Bbs refines Dung's extensions. The two approaches represent the numerical vs. ordinal branches of gradual argumentation semantics.
+- [[Matt_2008_Game-TheoreticMeasureArgumentStrength]] — **Strong.** Matt & Toni's game-theoretic semantics and Amgoud & Ben-Naim's axiomatic semantics solve the same problem (gradual argument ranking) from different foundations. Bonzon 2016 later compares both directly, finding they satisfy different subsets of properties. Matt & Toni fails CT and CP which Amgoud's semantics satisfy; Amgoud's Dbs fails DDP which Bbs satisfies.
+- [[Bonzon_2016_ComparativeStudyRanking-basedSemantics]] — **Strong.** Bonzon et al. provide the definitive comparative evaluation of five ranking semantics including both Dbs and Bbs from this paper, testing them against 16 properties (many originating here). The comparison paper is the empirical validation of this paper's axiomatic framework.
+
 ## Related Work Worth Reading
 - Cayrol & Lagasquie-Schiex 2005 "Graduality in Argumentation" (JAIR) --- gradual acceptability via weighted attacks
 - Baroni & Giacomin 2007 "On principle-based evaluation of extension-based argumentation semantics" (AIJ) --- principle-based evaluation framework (already in collection)
