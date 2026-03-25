@@ -41,7 +41,15 @@
 - Theorems 13-14: complete extensions = complete semantics; conditions for excluded middle
 - Definition 9: "condensed" labellings (no undec, relation-based)
 
-### Next Steps
-- Write notes.md, description.md, abstract.md, citations.md
-- Extract claims
-- Write report
+### Paper Output Files Written
+- notes.md: comprehensive, all 13 pages, 12 theorems, Table 1, all definitions
+- abstract.md: verbatim + interpretation
+- description.md: with tags
+- citations.md: 25 references + 5 key follow-ups
+- Committed as e2b1b2d
+
+### Claim Extraction In Progress
+- Concept registry has 270 concepts, key ones exist: reinstatement, complete_extension, preferred_extension, grounded_extension, stable_extension, semi_stable_extension, complete_labelling, argumentation_framework, admissible_set, credulous_reasoning
+- Context: ctx_abstract_argumentation (exists)
+- BLOCKER: concept counter at 396 but max existing ID is concept440. Counter needs bump to 441 before registering new concepts.
+- Missing concepts needed: reinstatement_labelling, af_labelling, floating_conclusion, condensed_labelling

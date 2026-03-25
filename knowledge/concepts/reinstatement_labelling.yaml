@@ -1,0 +1,8 @@
+id: concept441
+canonical_name: reinstatement_labelling
+status: proposed
+definition: A three-valued AF-labelling (in/out/undec) where an argument is out iff
+  it has an in-labelled attacker, and in iff all its attackers are out (Caminada 2006)
+domain: argumentation
+created_date: '2026-03-24'
+form: structural
