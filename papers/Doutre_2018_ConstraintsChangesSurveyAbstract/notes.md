@@ -191,3 +191,36 @@ This paper is directly relevant to propstore's argumentation layer. The typology
 - Dimopoulos, Mailly, Moraitis 2018 [38] — Control Argumentation Frameworks, handles uncertainty
 - Booth et al. 2013 [24] — propositional encoding of AF belief revision
 - Cayrol and Lagasquie-Schiex (multiple) — elementary changes and their effects on extensions
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — the foundational paper defining AFs, semantics, and extensions that this survey builds upon; all constraint/change operations operate over Dung's framework
+- [[Caminada_2006_IssueReinstatementArgumentation]] — labelling-based semantics (in/out/undec) used as an alternative to extension-based representation throughout the survey
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — elementary changes in bipolar AFs; Cayrol and Lagasquie-Schiex are the primary authors on structural dynamics
+- [[Cayrol_2014_ChangeAbstractArgumentationFrameworks]] — directly surveys Cayrol et al.'s work on adding/removing arguments and attacks (Def 7 change operations)
+- [[Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation]] — SCC decomposition used in analyzing how local changes propagate through AF structure
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — principle-based evaluation of semantics; the survey's quality criteria (Section 5) complement Baroni's axiomatic approach
+- [[Bonzon_2016_ComparativeStudyRanking-basedSemantics]] — ranking-based semantics; the survey identifies dynamics for ranking-based semantics as an open area
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — probabilistic argumentation; the survey does not cover probabilistic dynamics, a potential extension
+- [[Amgoud_2008_BipolarityArgumentationFrameworks]] — bipolar frameworks; Doutre & Mailly note that dynamics in bipolar settings need further study
+- [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — incomplete information in ASPIC+; closely related to the survey's discussion of enforcement under uncertainty
+- [[Verheij_2002_ExistenceMultiplicityExtensionsDialectical]] — extension existence/multiplicity; relevant to understanding when enforcement is possible
+
+### New Leads (Not Yet in Collection)
+- Baumann 2012 — "What does it take to enforce an argument?" — foundational enforcement result
+- Coste-Marquis, Konieczny, Mailly, Marquis 2015 — "Extension enforcement in abstract argumentation as an optimization problem" — computational enforcement framework
+- Wallner, Niskanen, Jarvisalo 2017 — "Complexity results and algorithms for extension enforcement" — complexity characterization
+- Diller, Haret, Linsbichler, Ruemmele, Woltran 2018 — "An extension-based approach to belief revision in abstract argumentation" — revision operators
+- Dimopoulos, Mailly, Moraitis 2018 — "Control Argumentation Frameworks" — enforcement under uncertainty via QBF
+
+### Supersedes or Recontextualizes
+- [[Cayrol_2014_ChangeAbstractArgumentationFrameworks]] — this survey subsumes and extends the Cayrol 2014 work on change operations, placing it in a broader typology alongside enforcement and revision approaches
+
+### Cited By (in Collection)
+- (none found — this is a 2018 survey, and the collection does not yet contain papers that cite it)
+
+### Conceptual Links (not citation-based)
+- [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — Odekerken's stability and relevance concepts directly address a gap identified in this survey: how to reason about enforcement when the AF is incomplete. Odekerken provides the formal tools (stability, relevance) for deciding whether enforcement is robust to future information, while Doutre & Mailly provide the enforcement operations themselves.
+- [[Bonzon_2016_ComparativeStudyRanking-basedSemantics]] — Doutre & Mailly explicitly identify dynamics in ranking-based semantics as an unexplored area (Section 6); Bonzon's axiomatic comparison of ranking semantics provides the formal properties that any future ranking-dynamics framework would need to preserve.
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — Hunter's epistemic probability approach and Doutre & Mailly's enforcement typology are complementary: enforcement under probabilistic uncertainty (enforcing expected acceptability rather than categorical membership) is an open problem connecting both papers.

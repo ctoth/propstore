@@ -195,3 +195,7 @@ The necessary/sufficient conditions in Tables 4-5 are directly implementable as 
 - Alchourron, C. E., Gardenfors, P., & Makinson, D. (1985). On the logic of theory change. (AGM postulates — foundational for belief revision)
 - Cayrol, C., Dupin de Saint-Cyr, F., & Lagasquie-Schiex, M. (2008). Revision of an argumentation system. (Earlier version of this work, restricted to one interaction)
 - Baumann, R. (2012). What does it take to enforce an argument? Minimal change in abstract argumentation. (Enforcement approach to AF change)
+
+---
+
+**See also:** [[Doutre_2018_ConstraintsChangesSurveyAbstract]] - Comprehensive survey that subsumes and extends this paper's change operations within a broader typology of constraints (structural, semantic, acceptability), changes, and quality criteria for argumentation dynamics.
