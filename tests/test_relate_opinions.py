@@ -380,3 +380,125 @@ class TestNoneStanceGetsZeroConfidence:
 
         result = asyncio.run(run())
         assert result["resolution"]["confidence"] == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Test 9: API failure returns error type, not none (F2.4)
+# ---------------------------------------------------------------------------
+
+class TestApiFailureReturnsErrorType:
+    """Bug F2.4: When the LLM API call raises an exception, relate.py returns
+    type="none" with confidence=0.0. This is indistinguishable from a genuine
+    "no relationship" classification. The type should be "error" (or some
+    distinct indicator) so downstream consumers can tell the difference."""
+
+    def test_api_exception_returns_error_not_none(self):
+        import asyncio
+        from propstore.relate import _classify_stance_async
+
+        claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
+        claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
+
+        async def run():
+            sem = asyncio.Semaphore(1)
+            with patch("propstore.relate._require_litellm") as mock_req:
+                mock_litellm = MagicMock()
+                mock_litellm.acompletion = AsyncMock(
+                    side_effect=ConnectionError("API unreachable")
+                )
+                mock_req.return_value = mock_litellm
+                return await _classify_stance_async(
+                    claim_a, claim_b, "test-model", sem, pass_number=1,
+                )
+
+        result = asyncio.run(run())
+        # Must NOT be "none" — errors are not negatives
+        assert result["type"] != "none", (
+            "API failure must not return type='none'; "
+            "errors must be distinguishable from genuine no-relationship"
+        )
+        assert result["type"] == "error", (
+            "API failure should return type='error'"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Test 10: JSON parse failure returns error type, not none (F2.5)
+# ---------------------------------------------------------------------------
+
+class TestJsonParseFailureReturnsErrorType:
+    """Bug F2.5: When the LLM returns invalid JSON, relate.py returns
+    type="none" with confidence=0.0. This silently drops the error and
+    makes it look like there's genuinely no relationship."""
+
+    def test_json_parse_failure_returns_error_not_none(self):
+        import asyncio
+        from propstore.relate import _classify_stance_async
+
+        # LLM returns non-JSON text
+        resp = MagicMock()
+        resp.choices = [MagicMock()]
+        resp.choices[0].message.content = "This is not valid JSON at all"
+
+        claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
+        claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
+
+        async def run():
+            sem = asyncio.Semaphore(1)
+            with patch("propstore.relate._require_litellm") as mock_req:
+                mock_litellm = MagicMock()
+                mock_litellm.acompletion = AsyncMock(return_value=resp)
+                mock_req.return_value = mock_litellm
+                return await _classify_stance_async(
+                    claim_a, claim_b, "test-model", sem, pass_number=1,
+                )
+
+        result = asyncio.run(run())
+        # Must NOT be "none" — parse failures are not negatives
+        assert result["type"] != "none", (
+            "JSON parse failure must not return type='none'; "
+            "errors must be distinguishable from genuine no-relationship"
+        )
+        assert result["type"] == "error", (
+            "JSON parse failure should return type='error'"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Test 11: Genuine "none" classification still works
+# ---------------------------------------------------------------------------
+
+class TestGenuineNoneStillWorks:
+    """A real LLM classification of type="none" (no relationship) must
+    pass through unchanged. This test ensures the fix for F2.4/F2.5
+    doesn't break genuine negatives."""
+
+    def test_genuine_none_passes_through(self):
+        import asyncio
+        from propstore.relate import _classify_stance_async
+
+        resp = MagicMock()
+        resp.choices = [MagicMock()]
+        resp.choices[0].message.content = json.dumps({
+            "type": "none",
+            "strength": "weak",
+            "note": "These claims are about entirely different topics",
+            "conditions_differ": None,
+        })
+
+        claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
+        claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
+
+        async def run():
+            sem = asyncio.Semaphore(1)
+            with patch("propstore.relate._require_litellm") as mock_req:
+                mock_litellm = MagicMock()
+                mock_litellm.acompletion = AsyncMock(return_value=resp)
+                mock_req.return_value = mock_litellm
+                return await _classify_stance_async(
+                    claim_a, claim_b, "test-model", sem, pass_number=1,
+                )
+
+        result = asyncio.run(run())
+        assert result["type"] == "none", "Genuine none must remain type='none'"
+        assert result["resolution"]["confidence"] == 0.0
