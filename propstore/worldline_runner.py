@@ -254,6 +254,39 @@ def run_worldline(
                         queryables=definition.policy.future_queryables,
                         future_limit=definition.policy.future_limit or 8,
                     )
+            elif reasoning_backend == "praf" and world.has_table("claim_stance"):
+                # Li et al. (2012): PrAF = (A, P_A, D, P_D).
+                # Build probabilistic AF and compute acceptance probabilities.
+                from propstore.argumentation import build_praf
+                from propstore.praf import compute_praf_acceptance
+
+                # Extract PrAF parameters from policy (same as resolution.py)
+                praf_strategy = definition.policy.praf_strategy or "auto"
+                praf_mc_epsilon = definition.policy.praf_mc_epsilon or 0.01
+                praf_mc_confidence = definition.policy.praf_mc_confidence or 0.95
+                praf_treewidth_cutoff = definition.policy.praf_treewidth_cutoff or 12
+                praf_mc_seed = definition.policy.praf_mc_seed
+
+                praf = build_praf(
+                    world, active_ids,
+                    comparison=definition.policy.comparison or "elitist",
+                )
+                praf_result = compute_praf_acceptance(
+                    praf,
+                    semantics=definition.policy.semantics or "grounded",
+                    strategy=praf_strategy,
+                    mc_epsilon=praf_mc_epsilon,
+                    mc_confidence=praf_mc_confidence,
+                    treewidth_cutoff=praf_treewidth_cutoff,
+                    rng_seed=praf_mc_seed,
+                )
+                argumentation_state = {
+                    "backend": "praf",
+                    "acceptance_probs": dict(praf_result.acceptance_probs),
+                    "strategy_used": praf_result.strategy_used,
+                    "samples": praf_result.samples,
+                    "semantics": praf_result.semantics,
+                }
 
             if argumentation_state is not None:
                 for cid in active_ids:
