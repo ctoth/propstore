@@ -24,11 +24,11 @@ def strictly_weaker(
       Elitist: set_a < set_b iff EXISTS x in set_a s.t. FORALL y in set_b, x < y
       Democratic: set_a < set_b iff FORALL x in set_a EXISTS y in set_b, x < y
     """
+    if not set_a or not set_b:
+        return False  # empty set cannot be strictly weaker or stronger
     if comparison == "elitist":
         return any(all(x < y for y in set_b) for x in set_a)
     elif comparison == "democratic":
-        if not set_a:
-            return False  # empty set is not strictly weaker (neutral case)
         return all(any(x < y for y in set_b) for x in set_a)
     else:
         raise ValueError(f"Unknown comparison: {comparison}")

@@ -74,10 +74,9 @@ class TestStrictlyWeakerConcrete:
         assert strictly_weaker([], [1.0], "democratic") is False
 
     def test_empty_set_b_not_dominated(self):
-        """Empty set B: elitist requires exists x forall y in {} which is vacuously true.
-        Democratic requires forall x exists y in {} which is false (no y)."""
-        assert strictly_weaker([1, 2], [], "elitist") is True  # exists 1, forall y in {} vacuously true
-        assert strictly_weaker([1, 2], [], "democratic") is False  # no y to dominate
+        """Empty set B: nothing to be weaker than — result is False for both comparisons."""
+        assert strictly_weaker([1, 2], [], "elitist") is False
+        assert strictly_weaker([1, 2], [], "democratic") is False
 
 
 class TestElitistEmptySetVacuousTruth:
