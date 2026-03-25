@@ -2256,7 +2256,12 @@ class TestHypotheticalWorldATMS:
     """
 
     def test_hypothetical_atms_resolution_raises(self, world):
-        """resolved_value() with ATMS backend raises NotImplementedError on HypotheticalWorld."""
+        """resolved_value() with ATMS backend raises NotImplementedError on HypotheticalWorld.
+
+        concept1 under speech is conflicted (claim1=200, claim2=350, claim7=250,
+        claim15=205), so resolve() reaches the ARGUMENTATION branch. The identity
+        HypotheticalWorld (no removals/additions) preserves that conflict.
+        """
         from propstore.world.types import ReasoningBackend
 
         bound = world.bind(
@@ -2266,7 +2271,8 @@ class TestHypotheticalWorldATMS:
                 reasoning_backend=ReasoningBackend.ATMS,
             ),
         )
-        hypo = HypotheticalWorld(bound, remove=["claim2", "claim7", "claim15"])
+        # Keep concept1 conflicted — identity hypothetical overlay
+        hypo = HypotheticalWorld(bound)
 
         # HypotheticalWorld has no atms_engine() method.
         # _resolve_atms_support checks getattr(view, "atms_engine", None)
