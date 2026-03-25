@@ -161,9 +161,11 @@ def write_yaml_file(path: Path, data: dict) -> None:
     """Write a dict to a YAML file with consistent formatting.
 
     Uses block style, preserves key order, and writes unicode directly.
+
+    Re-exported from :mod:`propstore.data_utils` for backward compatibility.
     """
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+    from propstore.data_utils import write_yaml_file as _write_yaml_file
+    _write_yaml_file(path, data)
 
 
 def write_concept_file(path: Path, data: dict) -> None:
