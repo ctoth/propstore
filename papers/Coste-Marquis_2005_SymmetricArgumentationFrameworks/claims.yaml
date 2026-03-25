@@ -1,0 +1,293 @@
+source:
+  paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-24"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A symmetric argumentation framework is a finite argumentation framework AF = (A, R) where R is symmetric and irreflexive — equivalently, an undirected graph with no self-loops."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - argumentation_framework
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 6
+      section: "3.1 Definitions and properties"
+      quote_fragment: "A symmetric argumentation framework is a finite argumentation framework AF = (A, R) where R is symmetric, irreflexive and nonempty"
+
+  - id: claim2
+    type: observation
+    statement: "No symmetric argumentation framework is well-founded."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - well_founded_framework
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 6
+      section: "3.1 Definitions and properties"
+      quote_fragment: "it is easy to show that no symmetric argumentation framework is among the previous ones"
+    notes: "Proposition 3. Proof: since R is irreflexive and symmetric, any attack (a,b) implies (b,a), creating an infinite descending chain."
+
+  - id: claim3
+    type: observation
+    statement: "Every symmetric argumentation framework is coherent — every preferred extension is also a stable extension."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - coherent_framework
+      - preferred_extension
+      - stable_extension
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 6
+      section: "3.1 Definitions and properties"
+      quote_fragment: "Every symmetric argumentation framework is coherent"
+    notes: "Proposition 5. Follows from Proposition 4 (every admissible set in a symmetric AF is conflict-free and extends to a naive extension) and the fact that every preferred extension is a naive extension."
+
+  - id: claim4
+    type: observation
+    statement: "In a symmetric argumentation framework, the set of preferred extensions equals the set of stable extensions equals the set of naive extensions."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - preferred_extension
+      - stable_extension
+      - naive_extension
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 6
+      section: "3.1 Definitions and properties"
+    notes: "Corollary of Propositions 4 and 5. This is the central collapse result."
+    stances:
+      - type: supports
+        target: "claim3"
+        strength: "strong"
+        note: "The collapse preferred=stable=naive implies coherence as a special case"
+
+  - id: claim5
+    type: equation
+    expression: "E_G = \\{a \\in A \\mid \\nexists b \\in A, (b, a) \\in R\\}"
+    sympy: "Eq(grounded_extension, SetBuilder(a, Not(Exists(b, attack(b, a)))))"
+    context: ctx_abstract_argumentation
+    variables:
+      - symbol: "E_G"
+        concept: "grounded_extension"
+        role: "dependent"
+      - symbol: "A"
+        concept: "argumentation_framework"
+        role: "independent"
+      - symbol: "R"
+        concept: "attack_relation"
+        role: "independent"
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 7
+      section: "3.1 Definitions and properties"
+      quote_fragment: "The grounded extension of AF is given by {a in A | not exists b in A, (b,a) in R}"
+    notes: "Proposition 7. In symmetric AFs, the grounded extension is simply the set of unattacked arguments. Computable in O(|AF|) time."
+
+  - id: claim6
+    type: observation
+    statement: "Every symmetric argumentation framework is relatively grounded — the grounded extension equals the intersection of all preferred extensions."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - relatively_grounded_framework
+      - grounded_extension
+      - preferred_extension
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 7
+      section: "3.1 Definitions and properties"
+      quote_fragment: "Every symmetric argumentation framework is relatively grounded"
+    notes: "Proposition 9. Immediate from Propositions 7 and 8."
+
+  - id: claim7
+    type: observation
+    statement: "In a symmetric argumentation framework, an argument belongs to every preferred extension if and only if it is not attacked by any argument."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - preferred_extension
+      - skeptical_reasoning
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 7
+      section: "3.1 Definitions and properties"
+      quote_fragment: "a in A belongs to every preferred (or equivalently, stable or naive) extension of AF if and only if there is no b in A s.t. (b,a) in R"
+    notes: "Proposition 8. Skeptical acceptability trivializes for symmetric AFs: only unattacked arguments are skeptically accepted."
+
+  - id: claim8
+    type: observation
+    statement: "In a symmetric argumentation framework, every argument belongs to at least one preferred extension."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - preferred_extension
+      - credulous_reasoning
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 6
+      section: "3.1 Definitions and properties"
+      quote_fragment: "Every a in A belongs to at least one preferred (or equivalently, stable or naive) extension of AF"
+    notes: "Proposition 6. Credulous acceptability for single arguments trivializes for symmetric AFs — every argument is credulously accepted."
+
+  - id: claim9
+    type: observation
+    statement: "For symmetric argumentation frameworks, there are at most two distinct forms of acceptability: skeptical acceptability (coinciding with the grounded extension) and credulous acceptability w.r.t. preferred/stable/naive extensions (all three coincide)."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - skeptical_reasoning
+      - credulous_reasoning
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 8
+      section: "3.2 Acceptability problems and complexity issues"
+    notes: "This collapse from the usual multiplicity of acceptability notions is the paper's main structural contribution."
+
+  - id: claim10
+    type: observation
+    statement: "Skeptical acceptability of a set of arguments under preferred semantics (ACCEPTABILITY_forall,P) is Pi_2^P-complete for symmetric argumentation frameworks."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - computational_complexity
+      - preferred_extension
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 8
+      section: "3.2 Acceptability problems and complexity issues"
+    notes: "Proposition 10. Same complexity as the general case."
+
+  - id: claim11
+    type: observation
+    statement: "Skeptical acceptability of a set of arguments under stable semantics (ACCEPTABILITY_forall,S) is coNP-complete for symmetric argumentation frameworks."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - computational_complexity
+      - stable_extension
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 8
+      section: "3.2 Acceptability problems and complexity issues"
+    notes: "Proposition 10."
+
+  - id: claim12
+    type: observation
+    statement: "Credulous acceptability of a set of arguments under preferred semantics (ACCEPTABILITY_exists,P) is NP-complete for symmetric argumentation frameworks."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - computational_complexity
+      - preferred_extension
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 9
+      section: "3.2 Acceptability problems and complexity issues"
+    notes: "Proposition 11. The NP-completeness comes from the connection to maximal independent set problems in graphs."
+
+  - id: claim13
+    type: observation
+    statement: "Skeptical and credulous acceptability of a set of arguments under grounded semantics is in P for symmetric argumentation frameworks."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - computational_complexity
+      - grounded_extension
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 8
+      section: "3.2 Acceptability problems and complexity issues"
+    notes: "Proposition 10. Grounded extension is just the unattacked arguments, checkable in linear time."
+
+  - id: claim14
+    type: observation
+    statement: "Skeptical acceptability of a set of arguments under naive semantics (ACCEPTABILITY_forall,N) is in P for symmetric argumentation frameworks."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - computational_complexity
+      - naive_extension
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 8
+      section: "3.2 Acceptability problems and complexity issues"
+    notes: "Proposition 10. A set S is in every naive extension iff S is conflict-free and each element of S is not attacked, which is checkable in polynomial time."
+
+  - id: claim15
+    type: mechanism
+    statement: "Symmetric argumentation frameworks correspond to undirected graphs, where conflict-free sets are independent sets, naive extensions are maximal independent sets, and stable extensions are maximal independent sets whose complement is dominated — enabling direct application of graph-theoretic complexity results."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - independent_set
+      - argumentation_framework
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 6
+      section: "3.1 Definitions and properties"
+    notes: "This graph-theoretic correspondence is the key technical insight enabling the complexity results. NP-completeness of credulous set acceptability follows from maximum independent set."
+
+  - id: claim16
+    type: mechanism
+    statement: "Symmetric attacks arise naturally in logic-based argumentation when the rebuttal relation is symmetric: if argument A's conclusion contradicts argument B's conclusion, then B also rebuts A."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - rebuttal
+      - logic_based_argumentation
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 1
+      section: "1 Introduction"
+      quote_fragment: "the rebuttal relation is symmetric"
+    notes: "Motivates the study: symmetric AFs are not an artificial restriction but arise from the structure of logical contradiction."
+
+  - id: claim17
+    type: limitation
+    statement: "Skeptical acceptability under the grounded semantics is rather poor for symmetric argumentation frameworks since it characterizes as acceptable only those arguments which are not attacked."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - grounded_extension
+      - skeptical_reasoning
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 8
+      section: "3.2 Acceptability problems and complexity issues"
+      quote_fragment: "skeptical acceptability is rather poor since it characterizes as acceptable only those arguments of A which are not attacked"
+    notes: "This motivates the shift to set-of-arguments acceptability problems for symmetric AFs."
+
+  - id: claim18
+    type: observation
+    statement: "The grounded extension of a symmetric argumentation framework can be computed in time linear in the size of the framework."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - grounded_extension
+      - computational_complexity
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 7
+      section: "3.1 Definitions and properties"
+      quote_fragment: "the grounded extension of AF can be computed in time linear in |AF| in the worst case"
+    notes: "Just scan arguments and check if any attacker exists. O(|A| + |R|)."
+
+  - id: claim19
+    type: comparison
+    statement: "Unlike the general case where Dung's semantics hierarchy (grounded, complete, preferred, stable, naive) produces five distinct classes with different properties and complexity, symmetric AFs collapse this to effectively two: grounded (unattacked arguments, P-time) and preferred/stable/naive (all equivalent, NP/coNP-complete for set acceptability)."
+    context: ctx_abstract_argumentation
+    concepts:
+      - symmetric_argumentation_framework
+      - argumentation_semantics
+      - computational_complexity
+    provenance:
+      paper: Coste-Marquis_2005_SymmetricArgumentationFrameworks
+      page: 10
+      section: "3.2 Acceptability problems and complexity issues"
+    notes: "Proposition 12 summarizes the complete complexity picture. The collapse is the paper's central finding."

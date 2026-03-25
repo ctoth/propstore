@@ -1,0 +1,8 @@
+id: concept471
+canonical_name: independent_set
+status: proposed
+definition: A set of vertices in a graph no two of which are adjacent; in argumentation,
+  corresponds to a conflict-free set of arguments
+domain: graph-theory
+created_date: '2026-03-24'
+form: structural
