@@ -1,0 +1,9 @@
+id: concept447
+canonical_name: prioritized_default_logic
+status: proposed
+definition: Brewka's extension of Reiter's default logic where defaults are stratified
+  into priority levels, with higher-priority defaults applied first to generate layered
+  extensions
+domain: argumentation
+created_date: '2026-03-24'
+form: structural

@@ -1,0 +1,129 @@
+source:
+  paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+  extraction_model: "claude-opus-4-6-20250514"
+  extraction_date: "2026-03-24"
+
+claims:
+  - id: claim1
+    type: mechanism
+    statement: "Default reasoning is a special case of inconsistency handling: defaults are distinguished from facts not by logical form but by the attitude taken toward them when conflicts arise, so nonmonotonic inference reduces to selecting preferred maximal consistent subsets of an inconsistent premise set."
+    concepts:
+      - nonmonotonic_reasoning
+      - preferred_subtheory
+      - maximal_consistent_subset
+    provenance:
+      paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+      page: 1
+      section: "1. Introduction"
+      quote_fragment: "What makes a default a default? Certainly our attitude towards it in case of a conflict, i.e. an inconsistency."
+    notes: "Central insight of the paper — reframes default reasoning as inconsistency handling rather than inference extension"
+
+  - id: claim2
+    type: observation
+    statement: "Weak provability (membership in at least one preferred subtheory) corresponds to credulous inference, while strong provability (membership in all preferred subtheories) corresponds to skeptical inference, paralleling the extension-based semantics of Reiter's default logic."
+    concepts:
+      - preferred_subtheory
+      - default_logic
+    provenance:
+      paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+      page: 2
+      section: "2. The Basic Idea"
+      quote_fragment: "A formula p is weakly provable from T iff there is a preferred subtheory S of T such that S |- p. A formula p is strongly provable from T iff for all preferred subtheories S of T we have S |- p."
+
+  - id: claim3
+    type: observation
+    statement: "Poole's THEORIST system (hypothetical reasoning with facts and possible hypotheses) is a special case of the preferred subtheory framework where preferred subtheories are defined as maximal consistent subsets that contain all facts."
+    concepts:
+      - preferred_subtheory
+    provenance:
+      paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+      page: 2
+      section: "3. Poole's Approach"
+      quote_fragment: "if we define the preferred subtheories of A' ∪ F as those containing F, then weak provability and Poole's explainability coincide"
+
+  - id: claim4
+    type: limitation
+    statement: "Poole's THEORIST cannot represent priorities between defaults — it can block a default in specific situations but cannot express that one default should have priority over a conflicting default in general."
+    concepts:
+      - nonmonotonic_reasoning
+    provenance:
+      paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+      page: 3
+      section: "3. Poole's Approach"
+      quote_fragment: "It is not difficult to imagine that the number of needed defaults may increase heavily in cases where more exceptions and exceptions of exceptions are involved."
+    notes: "This limitation motivates both generalizations in the paper"
+
+  - id: claim5
+    type: mechanism
+    statement: "Stratifying premises into reliability levels T = (T1, ..., Tn) with T1 most reliable enables default priority representation: preferred subtheories are built greedily by maximizing inclusion from the most reliable level first, then extending with lower levels while maintaining consistency."
+    concepts:
+      - preferred_subtheory
+      - nonmonotonic_reasoning
+    provenance:
+      paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+      page: 3
+      section: "4. First Generalization"
+      quote_fragment: "The idea is that the different levels of a theory represent different degrees of reliability. The innermost part is the most reliable one."
+    notes: "First generalization — no level is unrefutable, every formula is in principle defeasible"
+
+  - id: claim6
+    type: mechanism
+    statement: "Replacing reliability levels with a partial ordering over premises allows expressing priority between some defaults while leaving the priority between others unspecified, avoiding the forced total ordering of the level-based approach."
+    concepts:
+      - preferred_subtheory
+      - maximal_consistent_subset
+    provenance:
+      paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+      page: 4
+      section: "5. Second Generalization"
+      quote_fragment: "There seems to be no reason why we should want this. This problem can be avoided if we allow the degrees of reliability to be represented via an arbitrary partial ordering."
+    notes: "Second generalization — a maximal consistent subset S is preferred iff any excluded formula q was displaced only by more reliable formulas"
+
+  - id: claim7
+    type: observation
+    statement: "The level-based preferred subtheory framework is equivalent to Prioritized Default Logic (PDL) restricted to prerequisite-free normal defaults: a formula is strongly/weakly provable from T iff it is in all/some PDL extensions."
+    concepts:
+      - preferred_subtheory
+      - prioritized_default_logic
+      - default_logic
+    provenance:
+      paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+      page: 5
+      section: "6. Related Work"
+      quote_fragment: "It is not difficult to show that our default theories T=(T1,...,Tn) can be translated to PDL default theories D=(D1,...,Dn,{})"
+
+  - id: claim8
+    type: comparison
+    statement: "Unlike Konolige's hierarchic autoepistemic logic, which forces priority specification between all conflicting defaults (leading to inconsistency when priorities are unspecified), the preferred subtheory framework gracefully handles unspecified priorities by generating multiple extensions."
+    concepts:
+      - preferred_subtheory
+      - nonmonotonic_reasoning
+    provenance:
+      paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+      page: 5
+      section: "6. Related Work"
+      quote_fragment: "Unfortunately, it also forces to do so: conflicting defaults for which no priority has been specified lead to an inconsistency. This major drawback of Konolige's approach does not arise in our framework."
+
+  - id: claim9
+    type: limitation
+    statement: "The provable formulas of preferred subtheory theories depend on syntactic form: {A, B} and {A ∧ B} as premises yield different results because individual hypotheses can be independently retracted while a conjunction is all-or-nothing."
+    concepts:
+      - preferred_subtheory
+    provenance:
+      paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+      page: 6
+      section: "7. Conclusion"
+      quote_fragment: "It makes perfect sense to distinguish between situations where A as well as B are possible hypotheses or where A & B is one hypothesis."
+    notes: "Brewka argues this is a feature not a bug — syntactic sensitivity captures genuine distinctions about hypothesis granularity"
+
+  - id: claim10
+    type: observation
+    statement: "Specificity-based default priority can be automatically generated from the preferred subtheory framework: given facts F and defaults D, more specific defaults are placed at higher reliability levels, yielding correct inheritance reasoning without manual priority assignment."
+    concepts:
+      - preferred_subtheory
+      - nonmonotonic_reasoning
+    provenance:
+      paper: Brewka_1989_PreferredSubtheoriesExtendedLogical
+      page: 4
+      section: "4. First Generalization"
+      quote_fragment: "In some applications it is possible to generate the levels of reliability automatically. Assume we want to prefer the most specific information."
