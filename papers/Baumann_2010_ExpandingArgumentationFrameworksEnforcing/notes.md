@@ -187,3 +187,26 @@ Directly relevant to propstore's argumentation layer. The enforcement results te
 - Oikarinen and Woltran, 2008: Normal expansions for equivalence checking
 - Baroni and Giacomin, 2007: Principle-based evaluation (already in project corpus)
 - Caminada, 2006: Reinstatement (already in project corpus)
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — foundational framework; all definitions and results in this paper operate over Dung AFs
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — the abstract principles (admissibility, reinstatement, directionality) used throughout this paper come from Baroni & Giacomin's axiomatic framework
+- [[Caminada_2006_IssueReinstatementArgumentation]] — semi-stable semantics referenced; the paper's Definition 4 uses reinstatement as one of the abstract principles
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — Cayrol et al.'s work on AF revision (cited as [5]) is the most directly related prior work on AF dynamics
+
+### New Leads (Not Yet in Collection)
+- Oikarinen and Woltran 2008 — "Characterizing strong equivalence for argumentation frameworks" — normal expansion concept originates from this work on equivalence checking
+- Boella, Kaci, van der Torre 2009 — "Dynamics in argumentation with single extensions" — complementary perspective on what happens when arguments/attacks are added/removed
+- Rotstein et al. 2008 — "Argument theory change: Revision upon warrant" — AGM-style approach to argumentation revision
+
+### Supersedes or Recontextualizes
+- (none — this is an original contribution, not a revision of prior collection work)
+
+### Cited By (in Collection)
+- [[Doutre_2018_ConstraintsChangesSurveyAbstract]] — cites this as [14] for the foundational definitions of expansion types (normal/strong/weak) and enforcement results
+
+### Conceptual Links (not citation-based)
+- [[Doutre_2018_ConstraintsChangesSurveyAbstract]] — Strong: Doutre & Mailly's survey places Baumann & Brewka's expansion/enforcement typology within a comprehensive taxonomy of AF dynamics operations. The survey extends the scope beyond enforcement to include revision, contraction, and control frameworks.
+- [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — Moderate: Odekerken's stability and relevance concepts address enforcement robustness under incomplete information, complementing Baumann & Brewka's enforcement under complete information. Different problem framing but converges on the question of whether enforcement results hold when the AF changes.

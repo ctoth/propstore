@@ -217,6 +217,9 @@ This paper is directly relevant to propstore's argumentation layer. The typology
 ### Supersedes or Recontextualizes
 - [[Cayrol_2014_ChangeAbstractArgumentationFrameworks]] — this survey subsumes and extends the Cayrol 2014 work on change operations, placing it in a broader typology alongside enforcement and revision approaches
 
+### Now in Collection (previously listed as leads)
+- [[Baumann_2010_ExpandingArgumentationFrameworksEnforcing]] — Defines normal/strong/weak expansion types and conservative/liberal enforcement. Proves any conflict-free set can be enforced by adding a single argument (Theorem 4). Establishes monotonicity of extension counts and justification states for weak expansions under directional semantics. The foundational paper for the enforcement operations surveyed in Section 3.
+
 ### Cited By (in Collection)
 - (none found — this is a 2018 survey, and the collection does not yet contain papers that cite it)
 
