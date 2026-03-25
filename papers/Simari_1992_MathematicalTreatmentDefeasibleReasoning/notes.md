@@ -216,3 +216,4 @@ This is a foundational paper for argument-based defeasible reasoning. Its formal
 
 **Defeasible reasoning lineage:**
 - [[Prakken_2012_AppreciationJohnPollock'sWork]] — **Strong.** Prakken's survey of Pollock's contributions contextualizes the same theoretical tradition that Simari & Loui work in. Simari & Loui's critique of Pollock (rejecting specificity) and reformulation of Pollock's warrant theory are directly relevant to Prakken's assessment of Pollock's lasting contributions vs limitations.
+- [[Brewka_2010_AbstractDialecticalFrameworks]] — **Moderate.** Brewka & Woltran cite Simari & Loui for specificity-based preference ordering in defeasible reasoning. ADFs generalize Dung AFs (which Simari & Loui's dialectical trees instantiate) by allowing arbitrary acceptance conditions on nodes, subsuming the attack-only model that Simari & Loui's framework generates.

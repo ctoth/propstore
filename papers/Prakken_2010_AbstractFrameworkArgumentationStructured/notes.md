@@ -298,3 +298,4 @@ This paper provides the foundational definitions for ASPIC, the precursor to ASP
 - Pollock (1994) "Justification and defeat" -- undercutting defeat origin
 - Gordon et al. (2007) "Carneades model of argument and burden of proof" -- related structured argumentation
 - Bondarenko et al. (1997) "An abstract, argumentation-theoretic approach to default reasoning" -- ABA framework
+- [[Brewka_2010_AbstractDialecticalFrameworks]] — **Moderate.** Brewka & Woltran cite Prakken's ASPIC+ for structured argumentation. ADFs and ASPIC+ generalize Dung AFs in complementary directions: ADFs enrich the abstract level with per-node acceptance conditions (support, complex dependencies); ASPIC+ adds internal argument structure (premises, inference rules, conclusions). How the two interact remains an open question.
