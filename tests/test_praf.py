@@ -420,6 +420,100 @@ def test_acceptance_probs_sum_constraint():
 
 
 # ---------------------------------------------------------------------------
+# F28: MC with P_A < 1.0 — acceptance probability bounded by existence
+# ---------------------------------------------------------------------------
+def test_mc_pa_lt_one_acceptance_bounded():
+    """When P_A(a) < 1.0, acceptance_probability(a) <= P_A(a).expectation().
+
+    An argument cannot be accepted more often than it exists.
+    Per Li et al. (2012, Def 3): in each sampled world, argument a is
+    present with probability P_A(a).  If a is absent, it cannot appear
+    in any extension.  Therefore over all worlds:
+        acceptance_prob(a) <= P_A(a).expectation()
+
+    Audit Finding 10: no MC test exercises P_A < 1.0.
+    """
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    # Three arguments, no defeats.  Without defeats, every present
+    # argument is in the grounded extension.  So acceptance_prob(a)
+    # should equal P_A(a).expectation() (within MC error).
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b", "c"}),
+        defeats=frozenset(),
+    )
+    # Varying sub-unity existence probabilities
+    p_args = {
+        "a": from_probability(0.3, 10),   # E ~ 0.30
+        "b": from_probability(0.7, 10),   # E ~ 0.70
+        "c": Opinion.dogmatic_true(),     # E = 1.0 (control)
+    }
+    p_defeats: dict[tuple[str, str], Opinion] = {}
+    praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
+
+    result = compute_praf_acceptance(
+        praf, semantics="grounded", strategy="mc",
+        mc_epsilon=0.02, rng_seed=42,
+    )
+
+    # Core invariant: acceptance <= existence probability
+    for arg in af.arguments:
+        pa_exp = p_args[arg].expectation()
+        assert result.acceptance_probs[arg] <= pa_exp + 0.05, (
+            f"acceptance_prob({arg})={result.acceptance_probs[arg]:.4f} "
+            f"exceeds P_A expectation {pa_exp:.4f}"
+        )
+
+    # Stronger check: with no defeats, acceptance ~ P_A (within MC error)
+    for arg in af.arguments:
+        pa_exp = p_args[arg].expectation()
+        assert abs(result.acceptance_probs[arg] - pa_exp) < 0.07, (
+            f"acceptance_prob({arg})={result.acceptance_probs[arg]:.4f} "
+            f"should be close to P_A expectation {pa_exp:.4f} (no defeats)"
+        )
+
+
+def test_mc_pa_lt_one_with_defeats():
+    """P_A < 1.0 combined with uncertain defeats.
+
+    When argument a has P_A < 1.0, its acceptance probability must
+    still satisfy acceptance_prob(a) <= P_A(a).expectation().
+    Adding defeats can only reduce acceptance further.
+    """
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    # a -> b, both with sub-unity P_A
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b"}),
+        defeats=frozenset({("a", "b")}),
+    )
+    p_args = {
+        "a": from_probability(0.6, 10),  # E ~ 0.60
+        "b": from_probability(0.8, 10),  # E ~ 0.80
+    }
+    p_defeats = {("a", "b"): from_probability(0.9, 10)}
+    praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
+
+    result = compute_praf_acceptance(
+        praf, semantics="grounded", strategy="mc",
+        mc_epsilon=0.02, rng_seed=42,
+    )
+
+    # Core invariant: acceptance <= P_A for each argument
+    for arg in af.arguments:
+        pa_exp = p_args[arg].expectation()
+        assert result.acceptance_probs[arg] <= pa_exp + 0.05, (
+            f"acceptance_prob({arg})={result.acceptance_probs[arg]:.4f} "
+            f"exceeds P_A expectation {pa_exp:.4f}"
+        )
+
+    # b is attacked, so acceptance_prob(b) < P_A(b)
+    assert result.acceptance_probs["b"] < p_args["b"].expectation(), (
+        f"b's acceptance should be strictly less than its P_A due to defeat from a"
+    )
+
+
+# ---------------------------------------------------------------------------
 # 13. test_mc_confidence_affects_ci_width (RED — Finding F1 from audit-praf)
 # ---------------------------------------------------------------------------
 def test_mc_confidence_affects_ci_width():

@@ -3,6 +3,8 @@
 import math
 
 import pytest
+from hypothesis import given, settings, assume
+from hypothesis import strategies as st
 
 from propstore.opinion import (
     BetaEvidence,
@@ -351,3 +353,117 @@ class TestUncertaintyInterval:
         lo, hi = o.uncertainty_interval()
         assert lo == approx(1.0)
         assert hi == approx(1.0)
+
+
+# ── Hypothesis strategies for opinions ─────────────────────────────
+
+
+@st.composite
+def valid_opinions(draw, min_uncertainty=0.01):
+    """Generate random valid opinions with u > 0.
+
+    Opinions with u=0 are dogmatic and cannot be fused via consensus
+    (raises ValueError).  The min_uncertainty bound ensures fusibility.
+    """
+    # Draw b, d, u such that b + d + u = 1, all >= 0, u >= min_uncertainty
+    u = draw(st.floats(min_value=min_uncertainty, max_value=1.0 - 1e-6))
+    remaining = 1.0 - u
+    b = draw(st.floats(min_value=0.0, max_value=remaining))
+    d = remaining - b
+    # Clamp to avoid floating-point drift
+    d = max(0.0, d)
+    # Base rate in (0, 1)
+    a = draw(st.floats(min_value=0.01, max_value=0.99))
+    assume(abs(b + d + u - 1.0) < 1e-9)
+    assume(b >= 0.0 and d >= 0.0 and u >= 0.0)
+    return Opinion(b, d, u, a)
+
+
+# ── F29: Property tests for consensus algebra ──────────────────────
+
+
+class TestConsensusPropertyTests:
+    """Hypothesis property tests for consensus fusion (F29).
+
+    These fill coverage gaps from audit-opinion-algebra GAP 1:
+    commutativity and vacuous identity were only tested with
+    concrete examples, not with randomized inputs.
+    """
+
+    @given(valid_opinions(), valid_opinions())
+    @settings(max_examples=100, deadline=None)
+    def test_commutativity(self, op_a, op_b):
+        """fuse(a, b) == fuse(b, a) — Jøsang Theorem 7 is symmetric.
+
+        The consensus operator must be commutative for all valid
+        non-dogmatic opinion pairs.
+        """
+        ab = consensus_pair(op_a, op_b)
+        ba = consensus_pair(op_b, op_a)
+        assert math.isclose(ab.b, ba.b, abs_tol=1e-9), (
+            f"b mismatch: {ab.b} vs {ba.b}"
+        )
+        assert math.isclose(ab.d, ba.d, abs_tol=1e-9), (
+            f"d mismatch: {ab.d} vs {ba.d}"
+        )
+        assert math.isclose(ab.u, ba.u, abs_tol=1e-9), (
+            f"u mismatch: {ab.u} vs {ba.u}"
+        )
+        assert math.isclose(ab.a, ba.a, abs_tol=1e-9), (
+            f"a mismatch: {ab.a} vs {ba.a}"
+        )
+
+    @given(valid_opinions())
+    @settings(max_examples=100, deadline=None)
+    def test_vacuous_identity(self, op):
+        """fuse(a, vacuous) ≈ a — vacuous opinion is the identity element.
+
+        Per Jøsang 2001 Theorem 7: fusing with (0, 0, 1, a_v) should
+        return the original opinion unchanged (for b, d, u components).
+        The base rate of the result equals the original's base rate
+        when the other operand is vacuous (verified algebraically in
+        audit-opinion-algebra Finding 15).
+        """
+        vacuous = Opinion.vacuous(a=op.a)  # match base rate to avoid denom_a edge case
+        fused = consensus_pair(op, vacuous)
+        assert math.isclose(fused.b, op.b, abs_tol=1e-9), (
+            f"b: fused={fused.b}, original={op.b}"
+        )
+        assert math.isclose(fused.d, op.d, abs_tol=1e-9), (
+            f"d: fused={fused.d}, original={op.d}"
+        )
+        assert math.isclose(fused.u, op.u, abs_tol=1e-9), (
+            f"u: fused={fused.u}, original={op.u}"
+        )
+        assert math.isclose(fused.a, op.a, abs_tol=1e-9), (
+            f"a: fused={fused.a}, original={op.a}"
+        )
+
+    @given(valid_opinions())
+    @settings(max_examples=100, deadline=None)
+    def test_vacuous_identity_different_base_rate(self, op):
+        """fuse(a, vacuous_with_different_a) still preserves b, d, u of a.
+
+        The base rate of the result should equal op.a per the consensus
+        formula derivation (audit-opinion-algebra Finding 15 verified this
+        algebraically for the non-vacuous case).
+        """
+        # Use a different base rate for vacuous
+        vac_a = 1.0 - op.a  # guaranteed different and in (0, 1)
+        assume(0.01 < vac_a < 0.99)
+        vacuous = Opinion.vacuous(a=vac_a)
+        fused = consensus_pair(op, vacuous)
+        # b, d, u should be preserved regardless of vacuous base rate
+        assert math.isclose(fused.b, op.b, abs_tol=1e-9), (
+            f"b: fused={fused.b}, original={op.b}"
+        )
+        assert math.isclose(fused.d, op.d, abs_tol=1e-9), (
+            f"d: fused={fused.d}, original={op.d}"
+        )
+        assert math.isclose(fused.u, op.u, abs_tol=1e-9), (
+            f"u: fused={fused.u}, original={op.u}"
+        )
+        # Base rate should be original's base rate (vacuous contributes no information)
+        assert math.isclose(fused.a, op.a, abs_tol=1e-9), (
+            f"a: fused={fused.a}, original={op.a}"
+        )

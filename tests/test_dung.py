@@ -398,3 +398,83 @@ class TestCharacteristicFnProperties:
         grounded = grounded_extension(framework)
         f_grounded = characteristic_fn(grounded, args, defeats)
         assert f_empty <= f_grounded
+
+
+# ── Attacks ≠ Defeats property tests (F27) ─────────────────────────
+
+
+@st.composite
+def af_with_attacks_superset(draw, max_args=6):
+    """Generate AFs where attacks is a superset of defeats.
+
+    Some attacks are filtered by preference, producing a strict
+    subset as defeats.  This exercises the post-hoc attack-CF
+    pruning path in grounded_extension (dung.py lines 126-150).
+    """
+    args = draw(
+        st.frozensets(
+            st.text(alphabet="abcdef", min_size=1, max_size=2),
+            min_size=1,
+            max_size=max_args,
+        )
+    )
+    arg_list = sorted(args)
+    # Generate all attacks first
+    all_attacks = draw(
+        st.frozensets(
+            st.tuples(
+                st.sampled_from(arg_list),
+                st.sampled_from(arg_list),
+            ),
+            max_size=len(arg_list) ** 2,
+        )
+    )
+    # Defeats is a subset of attacks (some attacks filtered by preference)
+    defeats = draw(
+        st.frozensets(
+            st.sampled_from(sorted(all_attacks)) if all_attacks else st.nothing(),
+            max_size=len(all_attacks),
+        )
+    )
+    return ArgumentationFramework(
+        arguments=args,
+        defeats=defeats,
+        attacks=all_attacks,
+    )
+
+
+class TestAttacksDefeatsProperties:
+    """Property tests for AFs where attacks ≠ defeats (F27).
+
+    When attacks is a strict superset of defeats, the grounded extension
+    must still satisfy the fundamental Dung theorems.  These tests fill
+    the coverage gap identified in audit Finding 6: the existing strategy
+    always generates attacks=None.
+    """
+
+    @given(af_with_attacks_superset())
+    @settings(max_examples=100, deadline=None)
+    def test_grounded_subset_of_every_preferred(self, framework):
+        """Grounded ⊆ every preferred extension, even when attacks ≠ defeats.
+
+        Per Dung 1995 Theorem 25 + Modgil & Prakken 2018 Def 14.
+        """
+        grounded = grounded_extension(framework)
+        for pref in preferred_extensions(framework, backend="brute"):
+            assert grounded <= pref, (
+                f"Grounded {grounded} is not a subset of preferred {pref} "
+                f"with attacks={framework.attacks}, defeats={framework.defeats}"
+            )
+
+    @given(af_with_attacks_superset())
+    @settings(max_examples=100, deadline=None)
+    def test_grounded_conflict_free_wrt_attacks(self, framework):
+        """Grounded extension is conflict-free w.r.t. attacks.
+
+        Per Modgil & Prakken 2018 Def 14.
+        """
+        ext = grounded_extension(framework)
+        cf_relation = framework.attacks if framework.attacks is not None else framework.defeats
+        assert conflict_free(ext, cf_relation), (
+            f"Grounded {ext} is not conflict-free w.r.t. attacks {cf_relation}"
+        )
