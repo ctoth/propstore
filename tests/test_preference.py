@@ -167,10 +167,10 @@ class TestClaimStrengthConcrete:
         assert a[0] > b[0]
 
     def test_lower_uncertainty_stronger(self):
-        """Claim with lower uncertainty is stronger (single-dim comparison)."""
+        """Claim with lower uncertainty is stronger (inverse_uncertainty dimension)."""
         a = claim_strength({"uncertainty": 0.01})
         b = claim_strength({"uncertainty": 0.5})
-        assert a[0] > b[0]
+        assert a[1] > b[1]  # inverse_uncertainty is dimension [1]
 
     def test_missing_metadata_not_zero(self):
         """Missing metadata produces neutral strength, not zero."""
@@ -262,17 +262,18 @@ class TestClaimStrengthProperties:
 
 class TestClaimStrengthNormalization:
     def test_multi_signal_not_inflated(self):
-        """Adding a weak signal should not inflate strength past the strongest single signal.
+        """Adding a weak signal should not inflate the strong dimension.
 
-        With multi-dim return, each dimension is independent so this checks
-        that adding a weak dimension doesn't inflate the mean.
+        With fixed-length 3-element vectors, each dimension is independent.
+        The inverse_uncertainty dimension should be the same regardless of
+        whether confidence is also provided.
         """
-        dims_unc = claim_strength({"uncertainty": 0.01})  # single dim
-        dims_both = claim_strength({"uncertainty": 0.01, "confidence": 0.9})  # two dims
-        # Mean of multi-dim should be less than single strong dimension
-        mean_unc = sum(dims_unc) / len(dims_unc)
-        mean_both = sum(dims_both) / len(dims_both)
-        assert mean_both < mean_unc
+        dims_unc = claim_strength({"uncertainty": 0.01})
+        dims_both = claim_strength({"uncertainty": 0.01, "confidence": 0.9})
+        # inverse_uncertainty dimension [1] should be identical
+        assert dims_unc[1] == dims_both[1]
+        # confidence dimension [2] differs: default 0.5 vs provided 0.9
+        assert dims_both[2] > dims_unc[2]
 
     def test_same_signals_preserve_ordering(self):
         """Claims with the same signal set preserve relative ordering after normalization."""
@@ -304,14 +305,15 @@ class TestClaimStrengthMultiDim:
 
         A claim with high sample_size but low confidence should have
         dimensions that reflect this — one high, one low.
+        Fixed-length: [log_sample_size, inverse_uncertainty, confidence].
         """
         dims = claim_strength({"sample_size": 10000, "confidence": 0.1})
         assert isinstance(dims, list)
-        assert len(dims) == 2
-        # One dimension should be high (sample_size log-scaled) and
-        # one should be low (confidence = 0.1)
-        assert max(dims) > 1.0  # log1p(10000) is large
-        assert min(dims) < 0.5  # confidence 0.1 is low
+        assert len(dims) == 3
+        # log_sample_size dimension should be high
+        assert dims[0] > 1.0  # log1p(10000) is large
+        # confidence dimension should be low
+        assert dims[2] < 0.5  # confidence 0.1 is low
 
     def test_elitist_vs_democratic_diverge(self):
         """Elitist and democratic set comparison must produce different results.
@@ -335,11 +337,14 @@ class TestClaimStrengthMultiDim:
     def test_elitist_democratic_diverge_from_claims(self):
         """End-to-end: two claims where elitist and democratic defeat differ.
 
-        Claim A: high sample_size, low confidence => [high_dim, low_dim]
-        Claim B: moderate sample_size, moderate confidence => [mod_dim, mod_dim]
+        Claim A: high sample_size, low confidence => high dim[0], low dim[2]
+        Claim B: moderate sample_size, moderate confidence => mod dim[0], mod dim[2]
 
         Under elitist, A's low confidence dimension makes it strictly weaker.
         Under democratic, A's high sample_size dimension saves it.
+
+        Fixed-length 3-element vectors: both have same inverse_uncertainty
+        default (1.0), so divergence comes from dim[0] vs dim[2].
         """
         claim_a = {"sample_size": 10000, "confidence": 0.1}
         claim_b = {"sample_size": 50, "confidence": 0.5}
@@ -347,8 +352,8 @@ class TestClaimStrengthMultiDim:
         dims_b = claim_strength(claim_b)
         assert isinstance(dims_a, list)
         assert isinstance(dims_b, list)
-        assert len(dims_a) == 2
-        assert len(dims_b) == 2
+        assert len(dims_a) == 3
+        assert len(dims_b) == 3
         # A's sample_size dimension should dominate B's
         # A's confidence dimension should be weaker than B's
         # So elitist (has a weak point) and democratic (every point beaten) should differ
@@ -367,22 +372,34 @@ class TestClaimStrengthMultiDim:
         assert scalar > 0.0
 
     def test_neutral_claim_dimensions(self):
-        """Claim with no metadata returns list of neutral values [1.0]."""
+        """Claim with no metadata returns 3-element vector of neutral defaults."""
         result = claim_strength({})
         assert isinstance(result, list)
-        assert result == [1.0]
+        assert result == [0.0, 1.0, 0.5]
 
-    def test_single_dim_backward_compat(self):
-        """Claims with only one signal produce valid single-element lists.
+    def test_single_signal_backward_compat(self):
+        """Claims with one signal produce fixed-length 3-element vectors.
 
-        These work correctly with defeat_holds (which already accepts list[float]).
+        These work correctly with defeat_holds (which accepts list[float]).
+        The confidence-only claim gets defaults for the other two dimensions.
+
+        With fixed-length vectors, two claims differing only in confidence
+        share identical dim[0] and dim[1]. Neither is strictly weaker under
+        elitist or democratic comparison because shared dimensions tie.
+        This is correct: single-dimension differences are not enough to
+        establish strict weakness across all 3 dimensions.
         """
         result = claim_strength({"confidence": 0.7})
         assert isinstance(result, list)
-        assert len(result) == 1
-        # Single-element lists should work with defeat_holds
-        assert defeat_holds("rebuts", result, [0.5], "elitist") is True  # 0.7 not weaker than 0.5
-        assert defeat_holds("rebuts", [0.5], result, "elitist") is False  # 0.5 IS strictly weaker than 0.7
+        assert len(result) == 3
+        assert result[2] == 0.7  # confidence in dimension [2]
+        # Fixed-length vectors work with defeat_holds without crashing
+        weak = claim_strength({"confidence": 0.3})
+        assert len(weak) == 3
+        assert weak[2] == 0.3
+        # Both rebuts succeed: neither is strictly weaker (shared dims tie)
+        assert defeat_holds("rebuts", result, weak, "elitist") is True
+        assert defeat_holds("rebuts", weak, result, "elitist") is True
 
 
 # ── Phase 3: Fixed-length preference vector tests ──────────────────

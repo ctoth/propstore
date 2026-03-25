@@ -27,11 +27,12 @@ from tests.conftest import create_argumentation_schema
 
 def _insert_claim(conn: sqlite3.Connection, claim_id: str, concept_id: str,
                    value: float, sample_size: int | None = None,
-                   uncertainty: float | None = None) -> None:
+                   uncertainty: float | None = None,
+                   confidence: float | None = None) -> None:
     conn.execute(
-        "INSERT INTO claim (id, type, concept_id, value, sample_size, uncertainty) "
-        "VALUES (?, 'parameter', ?, ?, ?, ?)",
-        (claim_id, concept_id, value, sample_size, uncertainty),
+        "INSERT INTO claim (id, type, concept_id, value, sample_size, uncertainty, confidence) "
+        "VALUES (?, 'parameter', ?, ?, ?, ?, ?)",
+        (claim_id, concept_id, value, sample_size, uncertainty, confidence),
     )
 
 
@@ -59,9 +60,16 @@ def basic_scenario(conn):
     """Set up a basic scenario with known defeats.
 
     Claims for concept "c1":
-      - claim_a: value=200, sample_size=1000 (strong)
-      - claim_b: value=300, sample_size=10 (weak)
-      - claim_c: value=250, sample_size=500 (medium)
+      - claim_a: value=200, sample_size=1000, uncertainty=0.05, confidence=0.9 (strong)
+      - claim_b: value=300, sample_size=10, uncertainty=0.8, confidence=0.2 (weak)
+      - claim_c: value=250, sample_size=500, uncertainty=0.2, confidence=0.7 (medium)
+
+    With fixed-length 3-element vectors (Phase 3), all three dimensions must
+    differ for elitist comparison (Modgil & Prakken 2018 Def 19) to distinguish
+    weak from strong claims. Vectors:
+      - claim_a: [log1p(1000)=6.91, 1/0.05=20.0, 0.9]
+      - claim_b: [log1p(10)=2.40, 1/0.8=1.25, 0.2]  — min(0.2) < min(claim_a=0.9)
+      - claim_c: [log1p(500)=6.22, 1/0.2=5.0, 0.7]
 
     Stances:
       - claim_b rebuts claim_a (weak attacks strong → blocked by preference)
@@ -69,9 +77,9 @@ def basic_scenario(conn):
       - claim_c undercuts claim_b (always succeeds)
       - claim_a supports claim_c (NOT a defeat — excluded)
     """
-    _insert_claim(conn, "claim_a", "c1", 200.0, sample_size=1000)
-    _insert_claim(conn, "claim_b", "c1", 300.0, sample_size=10)
-    _insert_claim(conn, "claim_c", "c1", 250.0, sample_size=500)
+    _insert_claim(conn, "claim_a", "c1", 200.0, sample_size=1000, uncertainty=0.05, confidence=0.9)
+    _insert_claim(conn, "claim_b", "c1", 300.0, sample_size=10, uncertainty=0.8, confidence=0.2)
+    _insert_claim(conn, "claim_c", "c1", 250.0, sample_size=500, uncertainty=0.2, confidence=0.7)
     _insert_stance(conn, "claim_b", "claim_a", "rebuts")      # weak → strong (blocked)
     _insert_stance(conn, "claim_a", "claim_b", "rebuts")      # strong → weak (succeeds)
     _insert_stance(conn, "claim_c", "claim_b", "undercuts")   # always succeeds

@@ -18,6 +18,7 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
             value REAL,
             sample_size INTEGER,
             uncertainty REAL,
+            confidence REAL,
             uncertainty_type TEXT,
             unit TEXT,
             conditions_cel TEXT,

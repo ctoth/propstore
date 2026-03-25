@@ -37,11 +37,11 @@ from tests.conftest import create_argumentation_schema
 
 
 def _insert_claim(conn, claim_id, concept_id="c1", value=1.0,
-                   sample_size=100, uncertainty=None):
+                   sample_size=100, uncertainty=None, confidence=None):
     conn.execute(
-        "INSERT INTO claim (id, type, concept_id, value, sample_size, uncertainty) "
-        "VALUES (?, 'parameter', ?, ?, ?, ?)",
-        (claim_id, concept_id, value, sample_size, uncertainty),
+        "INSERT INTO claim (id, type, concept_id, value, sample_size, uncertainty, confidence) "
+        "VALUES (?, 'parameter', ?, ?, ?, ?, ?)",
+        (claim_id, concept_id, value, sample_size, uncertainty, confidence),
     )
 
 
@@ -220,9 +220,13 @@ class TestBipolarAFConstruction:
         assert af.defeats == frozenset()
 
     def test_attacks_set_is_pre_preference(self, conn):
-        """Attacks set contains all attack stances, even those blocked by preference."""
-        _insert_claim(conn, "weak", sample_size=1)
-        _insert_claim(conn, "strong", sample_size=10000)
+        """Attacks set contains all attack stances, even those blocked by preference.
+
+        With fixed-length 3-element vectors (Phase 3), all dimensions must
+        differ for elitist comparison to distinguish weak from strong.
+        """
+        _insert_claim(conn, "weak", sample_size=1, uncertainty=0.9, confidence=0.1)
+        _insert_claim(conn, "strong", sample_size=10000, uncertainty=0.01, confidence=0.95)
         _insert_stance(conn, "weak", "strong", "rebuts")  # blocked by preference
         conn.commit()
 
@@ -292,8 +296,8 @@ class TestAttackBasedConflictFree:
         Under defeat-based CF, they could coexist since no defeat exists.
         Under attack-based CF, the attack still prevents coexistence.
         """
-        _insert_claim(conn, "weak", sample_size=1)
-        _insert_claim(conn, "strong", sample_size=10000)
+        _insert_claim(conn, "weak", sample_size=1, uncertainty=0.9, confidence=0.1)
+        _insert_claim(conn, "strong", sample_size=10000, uncertainty=0.01, confidence=0.95)
         _insert_stance(conn, "weak", "strong", "rebuts")  # blocked
         conn.commit()
 
@@ -423,9 +427,9 @@ class TestBipolarExtensions:
 
     def test_existing_test_scenario_still_works(self, conn):
         """Reproduce the basic_scenario from test_argumentation_integration."""
-        _insert_claim(conn, "claim_a", "c1", 200.0, sample_size=1000)
-        _insert_claim(conn, "claim_b", "c1", 300.0, sample_size=10)
-        _insert_claim(conn, "claim_c", "c1", 250.0, sample_size=500)
+        _insert_claim(conn, "claim_a", "c1", 200.0, sample_size=1000, uncertainty=0.05, confidence=0.9)
+        _insert_claim(conn, "claim_b", "c1", 300.0, sample_size=10, uncertainty=0.8, confidence=0.2)
+        _insert_claim(conn, "claim_c", "c1", 250.0, sample_size=500, uncertainty=0.2, confidence=0.7)
         _insert_stance(conn, "claim_b", "claim_a", "rebuts")      # weak -> strong (blocked)
         _insert_stance(conn, "claim_a", "claim_b", "rebuts")      # strong -> weak (succeeds)
         _insert_stance(conn, "claim_c", "claim_b", "undercuts")   # always succeeds

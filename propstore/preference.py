@@ -58,35 +58,29 @@ def defeat_holds(
 
 
 def claim_strength(claim: dict) -> list[float]:
-    """Compute heuristic multi-dimensional strength from claim metadata.
+    """Compute fixed-length 3-element strength vector from claim metadata.
 
-    This is literature-inspired rather than literature-faithful ASPIC+.
-    Each available metadata signal becomes a separate dimension so the
-    current claim-graph backend can reuse elitist vs democratic comparison.
+    Always returns exactly 3 dimensions so that Def 19 (Modgil & Prakken
+    2018, p.21) Elitist/Democratic set comparisons are commensurable
+    across claims with different metadata profiles.
 
-    Dimensions (when present):
-      - sample_size: log-scaled (diminishing returns)
-      - uncertainty: inverse (lower = stronger)
-      - confidence: direct (stance classification confidence)
+    Fixed dimensions:
+      [0] log_sample_size:    log1p(sample_size), default 0.0 (no samples)
+      [1] inverse_uncertainty: 1/uncertainty,      default 1.0 (max uncertainty)
+      [2] confidence:          direct value,        default 0.5 (coin flip)
 
-    Missing signals are omitted — only dimensions with data are included.
-    If NO metadata is available, returns [1.0] (single neutral element).
+    Neutral defaults represent honest ignorance — they neither advantage
+    nor disadvantage a claim in pairwise comparison.
+
+    References:
+        Modgil & Prakken 2018, Def 19: Elitist/Democratic set comparison
+        requires commensurable vectors of the same dimensionality.
     """
-    dims: list[float] = []
-
     sample_size = claim.get("sample_size")
-    if sample_size is not None and sample_size > 0:
-        dims.append(math.log1p(sample_size))
-
     uncertainty = claim.get("uncertainty")
-    if uncertainty is not None and uncertainty > 0:
-        dims.append(1.0 / uncertainty)
-
     confidence = claim.get("confidence")
-    if confidence is not None:
-        dims.append(float(confidence))
-
-    if not dims:
-        return [1.0]  # neutral default for claims with no metadata
-
-    return dims
+    return [
+        math.log1p(sample_size) if sample_size and sample_size > 0 else 0.0,
+        1.0 / uncertainty if uncertainty and uncertainty > 0 else 1.0,
+        confidence if confidence is not None else 0.5,
+    ]

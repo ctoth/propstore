@@ -27,11 +27,12 @@ from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 from tests.conftest import create_argumentation_schema
 
 
-def _insert_claim(conn, claim_id, concept_id, value, sample_size=None):
+def _insert_claim(conn, claim_id, concept_id, value, sample_size=None,
+                   uncertainty=None, confidence=None):
     conn.execute(
-        "INSERT INTO claim (id, type, concept_id, value, sample_size) "
-        "VALUES (?, 'parameter', ?, ?, ?)",
-        (claim_id, concept_id, value, sample_size),
+        "INSERT INTO claim (id, type, concept_id, value, sample_size, uncertainty, confidence) "
+        "VALUES (?, 'parameter', ?, ?, ?, ?, ?)",
+        (claim_id, concept_id, value, sample_size, uncertainty, confidence),
     )
 
 
@@ -307,10 +308,10 @@ class TestVacuousSurvivesAFConstruction:
         The vacuous attack carries no information and should not eliminate
         the target. This is render-time behavior — the test should PASS.
         """
-        # claim_s: strong, high sample size
-        _insert_claim(conn, "claim_s", "c1", 200.0, sample_size=1000)
-        # claim_v: weak, low sample size
-        _insert_claim(conn, "claim_v", "c1", 300.0, sample_size=10)
+        # claim_s: strong across all dimensions
+        _insert_claim(conn, "claim_s", "c1", 200.0, sample_size=1000, uncertainty=0.05, confidence=0.9)
+        # claim_v: weak across all dimensions
+        _insert_claim(conn, "claim_v", "c1", 300.0, sample_size=10, uncertainty=0.8, confidence=0.2)
         # claim_v rebuts claim_s with vacuous opinion — should not eliminate claim_s
         _insert_stance(conn, "claim_v", "claim_s", "rebuts", confidence=0.5,
                        opinion_uncertainty=1.0)
