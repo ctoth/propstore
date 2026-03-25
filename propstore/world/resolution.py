@@ -224,10 +224,6 @@ def _resolve_praf(
         treewidth_cutoff = policy.praf_treewidth_cutoff
         rng_seed = policy.praf_mc_seed
 
-    # Reject dfquad — implemented in Phase 5B-3
-    if strategy == "dfquad":
-        raise NotImplementedError("DF-QuAD implemented in Phase 5B-3")
-
     # Build PrAF and compute acceptance probabilities
     praf = build_praf(world, active_ids, comparison=comparison)
     praf_result = compute_praf_acceptance(

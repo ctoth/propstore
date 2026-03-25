@@ -1352,10 +1352,23 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
               type=click.Choice(["elitist", "democratic"]),
               help="Set comparison for preference ordering (default: elitist)")
 @click.option("--context", default=None, help="Context to scope the argumentation")
+@click.option("--praf-strategy", "praf_strategy", default="auto",
+              type=click.Choice(["auto", "mc", "exact", "dfquad"]),
+              help="PrAF computation strategy (default: auto)")
+@click.option("--praf-epsilon", "praf_epsilon", default=0.01,
+              type=float, help="PrAF MC error tolerance (default: 0.01)")
+@click.option("--praf-confidence", "praf_confidence", default=0.95,
+              type=float, help="PrAF MC confidence level (default: 0.95)")
+@click.option("--praf-seed", "praf_seed", default=None,
+              type=int, help="PrAF MC RNG seed (default: random)")
 @click.pass_obj
 def world_extensions(obj: dict, args: tuple[str, ...],
                      backend_name: str, semantics: str, set_comparison: str,
-                     context: str | None) -> None:
+                     context: str | None,
+                     praf_strategy: str,
+                     praf_epsilon: float,
+                     praf_confidence: float,
+                     praf_seed: int | None) -> None:
     """Show argumentation extensions — all claims that survive scrutiny.
 
     Usage: pks world extensions domain=example --semantics grounded
@@ -1397,6 +1410,10 @@ def world_extensions(obj: dict, args: tuple[str, ...],
         praf = build_praf(wm, claim_ids, comparison=set_comparison)
         praf_result = compute_praf_acceptance(
             praf, semantics=semantics,
+            strategy=praf_strategy,
+            mc_epsilon=praf_epsilon,
+            mc_confidence=praf_confidence,
+            rng_seed=praf_seed,
         )
         summary = stance_summary(wm, claim_ids)
         click.echo(f"Backend: {backend.value}")

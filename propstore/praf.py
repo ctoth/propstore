@@ -418,7 +418,6 @@ def _compute_exact_enumeration(
     args_list = sorted(praf.framework.arguments)
     defeats_list = sorted(praf.framework.defeats)
     n_args = len(args_list)
-    n_defeats = len(defeats_list)
 
     # Per-argument acceptance probability accumulator
     acceptance: dict[str, float] = {a: 0.0 for a in args_list}

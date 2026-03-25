@@ -15,6 +15,10 @@ This principle governs every design decision. The system is lazy until rendering
 3. Does this add a gate anywhere before render time? If yes → WRONG.
 4. Is filtering happening at build time or render time? If build → WRONG.
 
+### Honest ignorance over fabricated confidence
+
+When the system lacks evidence, it must say so — not fabricate a number. Vacuous opinions (Jøsang 2001, p.8) represent total ignorance honestly. Calibration (Guo et al. 2017) bridges raw model outputs to the opinion algebra. Every probability that enters the argumentation layer must carry provenance: either empirical evidence counts, a calibrated model output, or an explicit vacuous marker. "I don't know" is a valid and important signal; a made-up 0.75 is not.
+
 ## Architectural Layers (one-way dependencies, top depends on bottom)
 
 1. **Source-of-truth storage** — Claims, concepts, forms, contexts, conditions, provenance. Immutable except by explicit user migration. Never mutated by heuristic or LLM output.
@@ -36,6 +40,13 @@ This principle governs every design decision. The system is lazy until rendering
 | Pollock 1987 | Rebutting vs undercutting defeat, warrant = ultimately undefeated argument |
 | Cayrol 2005 | Bipolar argumentation: support creates new defeat paths |
 | Odekerken 2023 | ASPIC+ with incomplete information: stability and relevance |
+| Jøsang 2001 | Subjective Logic: Opinion = (b,d,u,a), expectation E(ω) = b + a·u, consensus fusion |
+| Guo et al. 2017 | Temperature scaling for neural network calibration; ECE metric |
+| Sensoy et al. 2018 | Evidential deep learning: Dirichlet-based uncertainty from evidence counts |
+| Hunter & Thimm 2017 | Probabilistic argumentation: acceptance probability, COH constraint, component decomposition |
+| Li et al. 2012 | PrAF = (A, P_A, D, P_D): MC sampling with Agresti-Coull stopping for probabilistic AFs |
+| Denoeux 2019 | Decision-making with belief functions: pignistic, Hurwicz, interval criteria |
+| Fang et al. 2025 | DF-QuAD gradual semantics for quantitative bipolar argumentation frameworks |
 
 ## Technical Conventions
 

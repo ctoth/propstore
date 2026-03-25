@@ -352,10 +352,10 @@ def test_worldline_policy_backward_compat():
 
 
 # ---------------------------------------------------------------------------
-# 10. test_praf_strategy_dfquad_not_yet
+# 10. test_praf_strategy_dfquad_dispatch
 # ---------------------------------------------------------------------------
-def test_praf_strategy_dfquad_not_yet():
-    """praf_strategy='dfquad' raises NotImplementedError with clear message."""
+def test_praf_strategy_dfquad_dispatch():
+    """praf_strategy='dfquad' dispatches through resolution and returns acceptance probs."""
     from propstore.world.resolution import resolve
     from propstore.world.types import (
         ReasoningBackend,
@@ -373,5 +373,11 @@ def test_praf_strategy_dfquad_not_yet():
         praf_strategy="dfquad",
     )
 
-    with pytest.raises(NotImplementedError, match="DF-QuAD implemented in Phase 5B-3"):
-        resolve(view, "temp", policy=policy, world=store)
+    result = resolve(view, "temp", policy=policy, world=store)
+
+    # DF-QuAD should produce acceptance_probs
+    assert result.acceptance_probs is not None
+    assert isinstance(result.acceptance_probs, dict)
+    # All probs in [0, 1]
+    for prob in result.acceptance_probs.values():
+        assert 0.0 <= prob <= 1.0

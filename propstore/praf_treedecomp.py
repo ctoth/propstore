@@ -572,11 +572,6 @@ def _compute_grounded_dp_component(
     if not args_list:
         return {}
 
-    # Build attack lookup.
-    attackers_of: dict[str, list[str]] = {a: [] for a in af.arguments}
-    for src, tgt in af.defeats:
-        attackers_of[tgt].append(src)
-
     defeat_set: set[tuple[str, str]] = set(af.defeats)
 
     # Compute tree decomposition and nice TD.
