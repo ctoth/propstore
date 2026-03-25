@@ -43,17 +43,28 @@ class WorldModel(ArtifactStore):
     @classmethod
     def from_path(cls, knowledge_dir: str | Path) -> WorldModel:
         """Open a world model from a knowledge directory path."""
-        from propstore.cli.repository import Repository
+        sidecar = Path(knowledge_dir) / "sidecar" / "propstore.sqlite"
+        return cls(sidecar_path=sidecar)
 
-        return cls(Repository(Path(knowledge_dir)))
-
-    def __init__(self, repo: Repository) -> None:
-        sidecar_path = repo.sidecar_path
-        if not sidecar_path.exists():
-            raise FileNotFoundError(
-                f"Sidecar not found at {sidecar_path}. Run 'pks build' first."
+    def __init__(
+        self,
+        repo: Repository | None = None,
+        *,
+        sidecar_path: Path | None = None,
+    ) -> None:
+        if sidecar_path is not None:
+            resolved = sidecar_path
+        elif repo is not None:
+            resolved = repo.sidecar_path
+        else:
+            raise TypeError(
+                "WorldModel requires either sidecar_path or repo argument"
             )
-        self._conn = sqlite3.connect(sidecar_path)
+        if not resolved.exists():
+            raise FileNotFoundError(
+                f"Sidecar not found at {resolved}. Run 'pks build' first."
+            )
+        self._conn = sqlite3.connect(resolved)
         self._conn.row_factory = sqlite3.Row
         self._solver: Z3ConditionSolver | None = None
         self._registry: dict[str, ConceptInfo] | None = None
