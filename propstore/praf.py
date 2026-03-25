@@ -31,7 +31,7 @@ from propstore.dung import (
     preferred_extensions,
     stable_extensions,
 )
-from propstore.opinion import Opinion, from_probability
+from propstore.opinion import Opinion, W, from_probability
 from propstore.probabilistic_relations import (
     ProbabilisticRelation,
     relation_from_row,
@@ -132,6 +132,93 @@ def p_relation_from_stance(stance: dict) -> Opinion:
 def p_defeat_from_stance(stance: dict) -> Opinion:
     """Backward-compatible alias for relation-existence opinions."""
     return p_relation_from_stance(stance)
+
+
+def enforce_coh(praf: ProbabilisticAF) -> ProbabilisticAF:
+    """Enforce COH rationality postulate on argument existence probabilities.
+
+    Per Hunter & Thimm (2017, p.9): for every attack (A, B) in the AF,
+    P(A) + P(B) <= 1.  Self-attacks imply P(A) <= 0.5.
+
+    Algorithm: iterative proportional scaling.  For each violating attack pair
+    (A, B) where E(A) + E(B) > 1.0, scale both expectations proportionally so
+    their sum equals 1.0, then rebuild opinions preserving evidence counts.
+
+    Returns a new ProbabilisticAF with adjusted p_args.  p_defeats are unchanged
+    (COH constrains P_A, not P_D).
+    """
+    attacks = praf.framework.attacks if praf.framework.attacks is not None else praf.framework.defeats
+
+    # Work with mutable copy of expectations and evidence counts
+    expectations: dict[str, float] = {}
+    evidence_n: dict[str, float] = {}
+    base_rates: dict[str, float] = {}
+
+    for arg, op in praf.p_args.items():
+        expectations[arg] = op.expectation()
+        base_rates[arg] = op.a
+        # Recover evidence count n from uncertainty: u = W / (r + s + W) = W / (n + W)
+        # so n = W/u - W = W * (1/u - 1).  For dogmatic opinions (u~0), use default.
+        if op.u > 1e-9:
+            evidence_n[arg] = W * (1.0 / op.u - 1.0)
+        else:
+            evidence_n[arg] = 10.0  # default for dogmatic opinions
+
+    changed = False
+    max_iterations = 100
+    for _ in range(max_iterations):
+        any_violation = False
+        for src, tgt in attacks:
+            if src == tgt:
+                # Self-attack: P(A) + P(A) <= 1 => P(A) <= 0.5
+                if expectations[src] > 0.5 + 1e-12:
+                    expectations[src] = 0.5
+                    any_violation = True
+                    changed = True
+            else:
+                total = expectations[src] + expectations[tgt]
+                if total > 1.0 + 1e-12:
+                    factor = 1.0 / total
+                    expectations[src] *= factor
+                    expectations[tgt] *= factor
+                    any_violation = True
+                    changed = True
+        if not any_violation:
+            break
+
+    if not changed:
+        return praf
+
+    # Rebuild opinions from adjusted expectations.
+    # from_probability(p, n, a) yields E = (p*n + a*W)/(n+W), not E = p.
+    # Invert: p = (E_target*(n+W) - a*W) / n  to hit the desired expectation.
+    new_p_args: dict[str, Opinion] = {}
+    for arg in praf.p_args:
+        if abs(expectations[arg] - praf.p_args[arg].expectation()) < 1e-12:
+            # Unchanged — keep original opinion
+            new_p_args[arg] = praf.p_args[arg]
+        else:
+            n = evidence_n[arg]
+            a = base_rates[arg]
+            e_target = expectations[arg]
+            # Solve for p: E = (p*n + a*W)/(n+W) => p = (E*(n+W) - a*W)/n
+            p = (e_target * (n + W) - a * W) / n if n > 1e-12 else e_target
+            # Clamp to valid range
+            p = max(0.0, min(1.0, p))
+            new_p_args[arg] = from_probability(p, n, a)
+
+    return ProbabilisticAF(
+        framework=praf.framework,
+        p_args=new_p_args,
+        p_defeats=praf.p_defeats,
+        p_attacks=praf.p_attacks,
+        supports=praf.supports,
+        p_supports=praf.p_supports,
+        base_defeats=praf.base_defeats,
+        attack_relations=praf.attack_relations,
+        support_relations=praf.support_relations,
+        direct_defeat_relations=praf.direct_defeat_relations,
+    )
 
 
 def _is_deterministic_opinion(opinion: Opinion | None) -> bool:
