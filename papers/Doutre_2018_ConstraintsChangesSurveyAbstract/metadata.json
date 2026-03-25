@@ -1,0 +1,13 @@
+{
+  "title": "Constraints and changes: A survey of abstract argumentation dynamics",
+  "authors": [
+    "S. Doutre",
+    "Jean-Guy Mailly"
+  ],
+  "year": "2018",
+  "arxiv_id": null,
+  "doi": "10.3233/AAC-180425",
+  "abstract": "This paper addresses the issue of the dynamic enforcement of a constraint in an argumentation system. The system consists in (1) an argumentation framework, made up, notably, of a set of arguments and of an attack relation, (2) an evaluation semantics, and (3) the evaluation result, computed from (1) and (2). An agent may want another agent to consider a new attack, or to have a given argument accepted, or even to relax the definition of the semantics. A constraint on any of the three components is thus defined, and it has to be enforced in the system. The enforcement may result in changes on components of the system. The paper surveys existing approaches for the dynamic enforcement of a constraint and its consequences, and reveals challenging enforcement cases that remain to be investigated.",
+  "url": "https://www.semanticscholar.org/paper/102031c151140cce591babbbd6a9974fc50c35de",
+  "pdf_url": "http://oatao.univ-toulouse.fr/22510/1/doutre_22510.pdf"
+}
