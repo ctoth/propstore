@@ -167,3 +167,25 @@ This paper provides a principled gradual semantics for abstract argumentation fr
 - Baroni, P., Giacomin, M.: Semantics of abstract argument systems (Ch. 2, 2009) — broader survey of semantics
 - Rahwan, I., Larson, K.: Mechanism Design for Abstract Argumentation (AAMAS 2008) — game-theoretic mechanisms in argumentation
 - Pollock, J.L.: How to reason defeasibly (AIJ 1992) — defeasible reasoning foundations
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — foundational AF = (Arg, att) definition on which this entire paper builds
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — cited as extending Dung with support relations; Matt & Toni's gradual approach provides an alternative to Cayrol's bipolar extensions
+- [[Baroni_2005_SCC-recursivenessGeneralSchemaArgumentation]] — SCC-recursiveness and evaluation of argumentation semantics; provides the decomposition structure this paper's game operates over
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — principle-based evaluation of extension semantics; Matt & Toni's properties (Prop 2-9) serve an analogous role for gradual semantics
+- [[Pollock_1987_DefeasibleReasoning]] — defeasible reasoning foundations; Pollock 1992 (cited) builds on this
+- [[Besnard_2001_Logic-basedTheoryDeductiveArguments]] — logic-based deductive arguments; origin of the Categoriser function that is an alternative strength measure
+
+### New Leads (Not Yet in Collection)
+- Rahwan & Larson (2008) — "Mechanism Design for Abstract Argumentation" — another game-theoretic approach to argumentation but focused on incentive compatibility rather than strength measurement
+- Coste-Marquis et al. (2006) — "Weighted attacks in argumentation frameworks" — weighted attacks provide an alternative parameterization of argument strength
+
+### Cited By (in Collection)
+- [[Bonzon_2016_ComparativeStudyRanking-basedSemantics]] — directly compares Matt & Toni semantics against 16 axiomatic properties alongside four other ranking semantics; finds M&T satisfies Abs, VP+, DP, SCT, TAB, TDB, +AB, Ext, Ind, Null but not CT, CP, DDP, QP
+
+### Conceptual Links (not citation-based)
+- [[Amgoud_2013_Ranking-BasedSemanticsArgumentationFrameworks]] — proposes the axiomatic postulate framework that Bonzon 2016 later uses to evaluate Matt & Toni's semantics; Amgoud's Burden-based and Discussion-based semantics are direct competitors to the game-theoretic approach, solving the same problem (gradual argument ranking) from an axiomatic rather than game-theoretic foundation
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — addresses argument strength from a probabilistic rather than game-theoretic perspective; both provide continuous [0,1] strength values for arguments in Dung AFs but with different interpretations (probability of acceptability vs. game value)
+- [[Li_2011_ProbabilisticArgumentationFrameworks]] — another approach to graded argument assessment using probability distributions over sub-frameworks; complements the game-theoretic approach with a Bayesian perspective

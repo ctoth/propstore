@@ -158,18 +158,20 @@ Directly relevant to the argumentation layer. The propstore needs to compute arg
 - **Hunter_2017_ProbabilisticReasoningAbstractArgumentation** — Cites a related 2016 COMMA paper by same authors on propagation-based ranking semantics.
 - **Järvisalo_2025_ICCMA20235thInternational** — Cites this paper directly as [9].
 
+### Now in Collection (previously listed as leads)
+- [[Besnard_2001_Logic-basedTheoryDeductiveArguments]] — Origin of the Categoriser function, one of the five ranking semantics compared in this paper. Defines deductive arguments from classical logic with undercut-based defeat.
+- [[Amgoud_2013_Ranking-BasedSemanticsArgumentationFrameworks]] — Proposes the axiomatic postulate framework (8 postulates) for ranking-based semantics and constructs Discussion-based and Burden-based semantics. Many of the 16 properties in Bonzon 2016 originate here.
+- [[Matt_2008_Game-TheoreticMeasureArgumentStrength]] — Defines argument strength as the value of a two-person zero-sum game between proponent and opponent, computed via LP/simplex. One of the five ranking semantics compared; satisfies Abs, VP+, DP, SCT, TAB, TDB, +AB, Ext, Ind, Null but not CT, CP, DDP, QP.
+
 ### New leads (not in collection)
-- **Besnard and Hunter 2001** — "A logic-based theory of deductive arguments." Origin of the Categoriser function.
-- **Amgoud and Ben-Naim 2013** — "Ranking-based semantics for argumentation frameworks." Burden-based semantics and many properties used here.
-- **Matt and Toni 2008** — "A game-theoretic measure of argument strength." One of the five semantics compared.
 - **Pu, Luo, et al. 2014** — Argument ranking with categoriser function (KSEM'14).
 - **Leite and Martins 2011** — Social abstract argumentation. Defines SAFs used in this paper.
 
 ## Related Work Worth Reading
-- Besnard and Hunter 2001 — Categoriser function origin
-- Amgoud and Ben-Naim 2013 — Burden-based semantics with axiomatic properties
+- Besnard and Hunter 2001 — Categoriser function origin → NOW IN COLLECTION: [[Besnard_2001_Logic-basedTheoryDeductiveArguments]]
+- Amgoud and Ben-Naim 2013 — Burden-based semantics with axiomatic properties → NOW IN COLLECTION: [[Amgoud_2013_Ranking-BasedSemanticsArgumentationFrameworks]]
 - Cayrol and Lagasquie-Schiex 2005 — Discussion-based and Tuples semantics
-- Matt and Toni 2008 — Game-theoretic argument strength
+- Matt and Toni 2008 — Game-theoretic argument strength → NOW IN COLLECTION: [[Matt_2008_Game-TheoreticMeasureArgumentStrength]]
 - Pu, Luo, et al. 2014 — Argument ranking with categoriser function (KSEM'14)
 - Leite and Martins 2011 — Social abstract argumentation
 - Baroni 2007 — Principle-based evaluation (extension-based counterpart to this work)
