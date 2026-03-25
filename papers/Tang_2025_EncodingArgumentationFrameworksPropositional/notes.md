@@ -198,9 +198,11 @@ Directly relevant to the propstore's argumentation framework implementation. The
 - [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — cited as [6], extends Dung's framework with support relations; Tang's conclusion mentions extending the encoding methodology to bipolar AFs as future work
 
 ### New Leads (Not Yet in Collection)
-- Gabbay (2012) — "Equational approach to argumentation networks" Argum. & Comput. 3(2-3), 87-142 — cited as [12], foundational for the equational semantics (Eq^R_max, Eq^R_inverse) that Tang proves correspond to Godel and Product fuzzy logic encodings
 - Besnard & Doutre (2004) — "Checking the acceptability of a set of arguments" NMR pp. 59-64 — cited as [29], the original model checking approach encoding AFs as PL2 formulas that Tang generalizes to PL3 and PL[0,1]
 - Baroni, Caminada & Giacomin (2011) — "An introduction to argumentation semantics" Knowledge Engineering Review 26(4), 365-410 — cited as [48], comprehensive survey of labelling-based semantics used throughout Tang's paper
+
+### Now in Collection (previously listed as leads)
+- [[Gabbay_2012_EquationalApproachArgumentationNetworks]] — Defines equational semantics for argumentation frameworks, assigning [0,1] values via equations over attacker values. Tang proves that Gabbay's Eq_max corresponds to Godel fuzzy logic encoding and Eq_inverse to Product fuzzy logic encoding, and that every continuous encoded equational system is a Gabbay real equational system. Key tension: Gabbay does not require decreasing monotonicity, which Tang argues is essential for argumentation semantics.
 
 ### Supersedes or Recontextualizes
 - (none)
