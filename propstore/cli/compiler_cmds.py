@@ -1296,48 +1296,45 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
         bindings, _ = _parse_bindings(args)
         resolved = wm.resolve_alias(concept_id) or concept_id
         bound = wm.bind(**bindings)
+        strat = ResolutionStrategy(strategy)
+        overrides_dict = {resolved: override_id} if override_id else None
+        backend = ReasoningBackend(reasoning_backend)
 
-    strat = ResolutionStrategy(strategy)
-    overrides_dict = {resolved: override_id} if override_id else None
-    backend = ReasoningBackend(reasoning_backend)
-
-    policy = RenderPolicy(
-        reasoning_backend=backend,
-        strategy=strat,
-        semantics=semantics,
-        comparison=set_comparison,
-        decision_criterion=decision_criterion,
-        pessimism_index=pessimism_index,
-        praf_strategy=praf_strategy,
-        praf_mc_epsilon=praf_epsilon,
-        praf_mc_confidence=praf_confidence,
-        praf_mc_seed=praf_seed,
-        overrides=overrides_dict or {},
-    )
-
-    try:
-        result = resolve(
-            bound, resolved, policy=policy, world=wm,
+        policy = RenderPolicy(
+            reasoning_backend=backend,
+            strategy=strat,
+            semantics=semantics,
+            comparison=set_comparison,
+            decision_criterion=decision_criterion,
+            pessimism_index=pessimism_index,
+            praf_strategy=praf_strategy,
+            praf_mc_epsilon=praf_epsilon,
+            praf_mc_confidence=praf_confidence,
+            praf_mc_seed=praf_seed,
+            overrides=overrides_dict or {},
         )
-    except (ValueError, NotImplementedError) as e:
-        click.echo(f"ERROR: {e}", err=True)
-        wm.close()
-        sys.exit(1)
 
-    click.echo(f"{resolved}: {result.status}")
-    if result.value is not None:
-        click.echo(f"  value: {result.value}")
-    if result.winning_claim_id:
-        click.echo(f"  winner: {result.winning_claim_id}")
-    if result.strategy:
-        click.echo(f"  strategy: {result.strategy}")
-    if result.reason:
-        click.echo(f"  reason: {result.reason}")
-    if result.acceptance_probs:
-        click.echo("  acceptance_probs:")
-        for cid, prob in sorted(result.acceptance_probs.items()):
-            click.echo(f"    {cid}: {prob:.4f}")
-    wm.close()
+        try:
+            result = resolve(
+                bound, resolved, policy=policy, world=wm,
+            )
+        except (ValueError, NotImplementedError) as e:
+            click.echo(f"ERROR: {e}", err=True)
+            sys.exit(1)
+
+        click.echo(f"{resolved}: {result.status}")
+        if result.value is not None:
+            click.echo(f"  value: {result.value}")
+        if result.winning_claim_id:
+            click.echo(f"  winner: {result.winning_claim_id}")
+        if result.strategy:
+            click.echo(f"  strategy: {result.strategy}")
+        if result.reason:
+            click.echo(f"  reason: {result.reason}")
+        if result.acceptance_probs:
+            click.echo("  acceptance_probs:")
+            for cid, prob in sorted(result.acceptance_probs.items()):
+                click.echo(f"    {cid}: {prob:.4f}")
 
 
 @world.command("extensions")
@@ -1384,220 +1381,206 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             bound = wm.bind(env)
         else:
             bound = wm.bind(**bindings)
+        active = bound.active_claims()
+        if not active:
+            click.echo("No active claims for given bindings.")
+            return
 
-    active = bound.active_claims()
-    if not active:
-        click.echo("No active claims for given bindings.")
-        wm.close()
-        return
+        claim_ids = {c["id"] for c in active}
+        backend = ReasoningBackend(backend_name)
 
-    claim_ids = {c["id"] for c in active}
-    backend = ReasoningBackend(backend_name)
+        if backend == ReasoningBackend.ATMS:
+            click.echo(
+                "ERROR: backend 'atms' does not expose Dung extensions; "
+                "use worldline or resolve with reasoning_backend=atms instead.",
+                err=True,
+            )
+            sys.exit(2)
 
-    if backend == ReasoningBackend.ATMS:
-        click.echo(
-            "ERROR: backend 'atms' does not expose Dung extensions; "
-            "use worldline or resolve with reasoning_backend=atms instead.",
-            err=True,
-        )
-        wm.close()
-        sys.exit(2)
+        if backend == ReasoningBackend.PRAF:
+            from propstore.argumentation import build_praf
+            from propstore.praf import compute_praf_acceptance
 
-    if backend == ReasoningBackend.PRAF:
-        from propstore.argumentation import build_praf
-        from propstore.praf import compute_praf_acceptance
+            praf = build_praf(wm, claim_ids, comparison=set_comparison)
+            praf_result = compute_praf_acceptance(
+                praf, semantics=semantics,
+                strategy=praf_strategy,
+                mc_epsilon=praf_epsilon,
+                mc_confidence=praf_confidence,
+                rng_seed=praf_seed,
+            )
+            summary = stance_summary(wm, claim_ids)
+            click.echo(f"Backend: {backend.value}")
+            click.echo(f"Semantics: {semantics}")
+            click.echo(f"Strategy used: {praf_result.strategy_used}")
+            if praf_result.samples is not None:
+                click.echo(f"MC samples: {praf_result.samples}")
+            click.echo(f"Active claims: {len(claim_ids)}")
+            click.echo(f"Stances: {summary['total_stances']} total, "
+                       f"{summary['included_as_attacks']} included as attacks")
+            click.echo("\nAcceptance probabilities:")
+            claim_map = {c["id"]: c for c in active}
+            for cid, prob in sorted(
+                praf_result.acceptance_probs.items(),
+                key=lambda x: -x[1],
+            ):
+                c = claim_map.get(cid)
+                label = cid
+                if c:
+                    value = c.get("value")
+                    concept_id_val = c.get("concept_id")
+                    if concept_id_val:
+                        concept = wm.get_concept(concept_id_val)
+                        cname = concept.get("canonical_name", concept_id_val) if concept else concept_id_val
+                        if value is not None:
+                            label = f"{cid}: {cname} = {value}"
+                        else:
+                            label = f"{cid}: {cname}"
+                click.echo(f"  {label}  P(accepted) = {prob:.4f}")
+            return
 
-        praf = build_praf(wm, claim_ids, comparison=set_comparison)
-        praf_result = compute_praf_acceptance(
-            praf, semantics=semantics,
-            strategy=praf_strategy,
-            mc_epsilon=praf_epsilon,
-            mc_confidence=praf_confidence,
-            rng_seed=praf_seed,
-        )
+        if backend == ReasoningBackend.CLAIM_GRAPH:
+            from propstore.argumentation import (
+                build_argumentation_framework,
+                compute_claim_graph_justified_claims,
+            )
+
+            result = compute_claim_graph_justified_claims(
+                wm, claim_ids,
+                semantics=semantics,
+                comparison=set_comparison,
+            )
+            af = build_argumentation_framework(
+                wm, claim_ids,
+                comparison=set_comparison,
+            )
+            arg_to_claim = {cid: cid for cid in claim_ids}
+        elif backend == ReasoningBackend.STRUCTURED_PROJECTION:
+            from propstore.structured_argument import (
+                build_structured_projection,
+                compute_structured_justified_arguments,
+            )
+
+            support_metadata: dict[str, tuple[object | None, object]] = {}
+            claim_support = getattr(bound, "claim_support", None)
+            if callable(claim_support):
+                for claim in active:
+                    claim_id = claim.get("id")
+                    if claim_id:
+                        support_metadata[claim_id] = claim_support(claim)
+
+            projection = build_structured_projection(
+                wm,
+                active,
+                support_metadata=support_metadata,
+                comparison=set_comparison,
+            )
+            result = compute_structured_justified_arguments(
+                projection,
+                semantics=semantics,
+            )
+            af = projection.framework
+            arg_to_claim = dict(projection.argument_to_claim_id)
+        else:
+            raise NotImplementedError(f"Unknown backend: {backend.value}")
+
         summary = stance_summary(wm, claim_ids)
         click.echo(f"Backend: {backend.value}")
         click.echo(f"Semantics: {semantics}")
-        click.echo(f"Strategy used: {praf_result.strategy_used}")
-        if praf_result.samples is not None:
-            click.echo(f"MC samples: {praf_result.samples}")
+        click.echo(f"Set comparison: {set_comparison}")
         click.echo(f"Active claims: {len(claim_ids)}")
         click.echo(f"Stances: {summary['total_stances']} total, "
-                   f"{summary['included_as_attacks']} included as attacks")
-        click.echo("\nAcceptance probabilities:")
+                   f"{summary['included_as_attacks']} included as attacks, "
+                   f"{summary['vacuous_count']} vacuous, "
+                   f"{summary['excluded_non_attack']} non-attack")
+        if summary["models"]:
+            click.echo(f"Models: {', '.join(summary['models'])}")
+
         claim_map = {c["id"]: c for c in active}
-        for cid, prob in sorted(
-            praf_result.acceptance_probs.items(),
-            key=lambda x: -x[1],
-        ):
+
+        def _claim_label(cid: str) -> str:
+            """Format a claim for display: id (type) concept = value."""
             c = claim_map.get(cid)
-            label = cid
-            if c:
-                value = c.get("value")
-                concept_id_val = c.get("concept_id")
-                if concept_id_val:
-                    concept = wm.get_concept(concept_id_val)
-                    cname = concept.get("canonical_name", concept_id_val) if concept else concept_id_val
-                    if value is not None:
-                        label = f"{cid}: {cname} = {value}"
-                    else:
-                        label = f"{cid}: {cname}"
-            click.echo(f"  {label}  P(accepted) = {prob:.4f}")
-        wm.close()
-        return
-
-    if backend == ReasoningBackend.CLAIM_GRAPH:
-        from propstore.argumentation import (
-            build_argumentation_framework,
-            compute_claim_graph_justified_claims,
-        )
-
-        result = compute_claim_graph_justified_claims(
-            wm, claim_ids,
-            semantics=semantics,
-            comparison=set_comparison,
-        )
-        af = build_argumentation_framework(
-            wm, claim_ids,
-            comparison=set_comparison,
-        )
-        arg_to_claim = {cid: cid for cid in claim_ids}
-    elif backend == ReasoningBackend.STRUCTURED_PROJECTION:
-        from propstore.structured_argument import (
-            build_structured_projection,
-            compute_structured_justified_arguments,
-        )
-
-        support_metadata: dict[str, tuple[object | None, object]] = {}
-        claim_support = getattr(bound, "claim_support", None)
-        if callable(claim_support):
-            for claim in active:
-                claim_id = claim.get("id")
-                if claim_id:
-                    support_metadata[claim_id] = claim_support(claim)
-
-        projection = build_structured_projection(
-            wm,
-            active,
-            support_metadata=support_metadata,
-            comparison=set_comparison,
-        )
-        result = compute_structured_justified_arguments(
-            projection,
-            semantics=semantics,
-        )
-        af = projection.framework
-        arg_to_claim = dict(projection.argument_to_claim_id)
-    else:
-        raise NotImplementedError(f"Unknown backend: {backend.value}")
-
-    # Render explanation: what stances were used under what policy
-    summary = stance_summary(wm, claim_ids)
-    click.echo(f"Backend: {backend.value}")
-    click.echo(f"Semantics: {semantics}")
-    click.echo(f"Set comparison: {set_comparison}")
-    click.echo(f"Active claims: {len(claim_ids)}")
-    click.echo(f"Stances: {summary['total_stances']} total, "
-               f"{summary['included_as_attacks']} included as attacks, "
-               f"{summary['pruned_vacuous']} vacuous pruned, "
-               f"{summary['excluded_non_attack']} non-attack")
-    if summary["models"]:
-        click.echo(f"Models: {', '.join(summary['models'])}")
-
-    # Build lookup helpers
-    claim_map = {c["id"]: c for c in active}
-
-    def _claim_label(cid: str) -> str:
-        """Format a claim for display: id (type) concept = value."""
-        c = claim_map.get(cid)
-        if c is None:
-            return cid
-        ctype = c.get("type", "?")
-        concept_id = c.get("concept_id")
-        value = c.get("value")
-        # Resolve concept name
-        cname = None
-        if concept_id:
-            concept = wm.get_concept(concept_id)
-            if concept:
-                cname = concept.get("canonical_name", concept_id)
-        if ctype == "parameter" and value is not None:
-            return f"{cid}: {cname} = {value}"
-        elif ctype == "equation":
-            expr = c.get("expression", "")
-            return f"{cid}: {expr}" if expr else f"{cid} ({ctype})"
-        elif ctype in ("observation", "limitation", "mechanism", "comparison"):
-            stmt = c.get("statement") or c.get("description") or ""
-            if len(stmt) > 60:
-                stmt = stmt[:57] + "..."
-            return f"{cid}: {stmt}" if stmt else f"{cid} ({ctype})"
-        elif value is not None:
-            return f"{cid}: {cname} = {value}" if cname else f"{cid} = {value}"
-        else:
+            if c is None:
+                return cid
+            ctype = c.get("type", "?")
+            concept_id = c.get("concept_id")
+            value = c.get("value")
+            cname = None
+            if concept_id:
+                concept = wm.get_concept(concept_id)
+                if concept:
+                    cname = concept.get("canonical_name", concept_id)
+            if ctype == "parameter" and value is not None:
+                return f"{cid}: {cname} = {value}"
+            if ctype == "equation":
+                expr = c.get("expression", "")
+                return f"{cid}: {expr}" if expr else f"{cid} ({ctype})"
+            if ctype in ("observation", "limitation", "mechanism", "comparison"):
+                stmt = c.get("statement") or c.get("description") or ""
+                if len(stmt) > 60:
+                    stmt = stmt[:57] + "..."
+                return f"{cid}: {stmt}" if stmt else f"{cid} ({ctype})"
+            if value is not None:
+                return f"{cid}: {cname} = {value}" if cname else f"{cid} = {value}"
             return f"{cid} ({ctype})"
 
-    # Group justified claims by type
-    def _group_by_type(cids):
-        groups: dict[str, list[str]] = {}
-        for cid in sorted(cids):
-            c = claim_map.get(cid)
-            ctype = c.get("type", "unknown") if c else "unknown"
-            groups.setdefault(ctype, []).append(cid)
-        return groups
+        def _group_by_type(cids: set[str]) -> dict[str, list[str]]:
+            groups: dict[str, list[str]] = {}
+            for cid in sorted(cids):
+                c = claim_map.get(cid)
+                ctype = c.get("type", "unknown") if c else "unknown"
+                groups.setdefault(ctype, []).append(cid)
+            return groups
 
-    if semantics == "grounded":
-        # Defeaters: for each defeated claim, find what attacks it
-        if backend == ReasoningBackend.STRUCTURED_PROJECTION:
-            assert isinstance(result, frozenset)
-            justified_claims = {arg_to_claim[arg_id] for arg_id in result}
-        else:
-            assert isinstance(result, frozenset)
-            justified_claims = set(result)
+        if semantics == "grounded":
+            if backend == ReasoningBackend.STRUCTURED_PROJECTION:
+                assert isinstance(result, frozenset)
+                justified_claims = {arg_to_claim[arg_id] for arg_id in result}
+            else:
+                assert isinstance(result, frozenset)
+                justified_claims = set(result)
 
-        defeated = claim_ids - justified_claims
-        defeaters_map: dict[str, list[str]] = {}
-        for src, tgt in af.defeats:
-            src_claim = arg_to_claim.get(src, src)
-            tgt_claim = arg_to_claim.get(tgt, tgt)
-            if tgt_claim in defeated:
-                defeaters_map.setdefault(tgt_claim, []).append(src_claim)
+            defeated = claim_ids - justified_claims
+            defeaters_map: dict[str, list[str]] = {}
+            for src, tgt in af.defeats:
+                src_claim = arg_to_claim.get(src, src)
+                tgt_claim = arg_to_claim.get(tgt, tgt)
+                if tgt_claim in defeated:
+                    defeaters_map.setdefault(tgt_claim, []).append(src_claim)
 
-        # Print accepted, grouped by type
-        accepted_groups = _group_by_type(justified_claims)
-        click.echo(f"Accepted ({len(justified_claims)} claims):")
-        for ctype, cids in sorted(accepted_groups.items()):
-            click.echo(f"  {ctype} ({len(cids)}):")
-            for cid in cids:
-                click.echo(f"    {_claim_label(cid)}")
-
-        # Print defeated with defeaters
-        if defeated:
-            click.echo(f"Defeated ({len(defeated)} claims):")
-            for cid in sorted(defeated):
-                defeaters = defeaters_map.get(cid, [])
-                if defeaters:
-                    by = ", ".join(sorted(defeaters))
-                    click.echo(f"  {_claim_label(cid)}")
-                    click.echo(f"    defeated by: {by}")
-                else:
-                    click.echo(f"  {_claim_label(cid)}")
-    else:
-        assert isinstance(result, list)
-        click.echo(f"Extensions ({len(result)}):")
-        for i, ext in enumerate(result):
-            ext_claims = (
-                {arg_to_claim[arg_id] for arg_id in ext}
-                if backend == ReasoningBackend.STRUCTURED_PROJECTION
-                else set(ext)
-            )
-            click.echo(f"  Extension {i + 1} ({len(ext_claims)} claims):")
-            groups = _group_by_type(ext_claims)
-            for ctype, cids in sorted(groups.items()):
-                click.echo(f"    {ctype}:")
+            accepted_groups = _group_by_type(justified_claims)
+            click.echo(f"Accepted ({len(justified_claims)} claims):")
+            for ctype, cids in sorted(accepted_groups.items()):
+                click.echo(f"  {ctype} ({len(cids)}):")
                 for cid in cids:
-                    click.echo(f"      {_claim_label(cid)}")
+                    click.echo(f"    {_claim_label(cid)}")
 
-    wm.close()
+            if defeated:
+                click.echo(f"Defeated ({len(defeated)} claims):")
+                for cid in sorted(defeated):
+                    defeaters = defeaters_map.get(cid, [])
+                    if defeaters:
+                        by = ", ".join(sorted(defeaters))
+                        click.echo(f"  {_claim_label(cid)}")
+                        click.echo(f"    defeated by: {by}")
+                    else:
+                        click.echo(f"  {_claim_label(cid)}")
+        else:
+            assert isinstance(result, list)
+            click.echo(f"Extensions ({len(result)}):")
+            for i, ext in enumerate(result):
+                ext_claims = (
+                    {arg_to_claim[arg_id] for arg_id in ext}
+                    if backend == ReasoningBackend.STRUCTURED_PROJECTION
+                    else set(ext)
+                )
+                click.echo(f"  Extension {i + 1} ({len(ext_claims)} claims):")
+                groups = _group_by_type(ext_claims)
+                for ctype, cids in sorted(groups.items()):
+                    click.echo(f"    {ctype}:")
+                    for cid in cids:
+                        click.echo(f"      {_claim_label(cid)}")
 
 
 @world.command("hypothetical")
@@ -1617,30 +1600,28 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
         bound = wm.bind(**bindings)
+        synthetics: list[SyntheticClaim] = []
+        if add_json:
+            data = json.loads(add_json)
+            if isinstance(data, dict):
+                data = [data]
+            for d in data:
+                synthetics.append(SyntheticClaim(
+                    id=d["id"],
+                    concept_id=d["concept_id"],
+                    type=d.get("type", "parameter"),
+                    value=d.get("value"),
+                    conditions=d.get("conditions", []),
+                ))
 
-    synthetics: list[SyntheticClaim] = []
-    if add_json:
-        data = json.loads(add_json)
-        if isinstance(data, dict):
-            data = [data]
-        for d in data:
-            synthetics.append(SyntheticClaim(
-                id=d["id"],
-                concept_id=d["concept_id"],
-                type=d.get("type", "parameter"),
-                value=d.get("value"),
-                conditions=d.get("conditions", []),
-            ))
+        hypo = HypotheticalWorld(bound, remove=list(remove), add=synthetics)
+        diff = hypo.diff()
 
-    hypo = HypotheticalWorld(bound, remove=list(remove), add=synthetics)
-    diff = hypo.diff()
-
-    if not diff:
-        click.echo("No changes detected.")
-    else:
-        for cid, (base_vr, hypo_vr) in diff.items():
-            click.echo(f"{cid}: {base_vr.status} → {hypo_vr.status}")
-    wm.close()
+        if not diff:
+            click.echo("No changes detected.")
+        else:
+            for cid, (base_vr, hypo_vr) in diff.items():
+                click.echo(f"{cid}: {base_vr.status} → {hypo_vr.status}")
 
 
 @world.command("chain")
@@ -1661,25 +1642,23 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
         resolved = wm.resolve_alias(concept_id) or concept_id
+        strat = ResolutionStrategy(strategy) if strategy else None
+        result = wm.chain_query(resolved, strategy=strat, **bindings)
 
-    strat = ResolutionStrategy(strategy) if strategy else None
-    result = wm.chain_query(resolved, strategy=strat, **bindings)
+        def _label(cid: str) -> str:
+            """Return 'conceptN (canonical_name)' or just the id if no name."""
+            c = wm.get_concept(cid)
+            name = c.get("canonical_name", "") if c else ""
+            return f"{cid} ({name})" if name else cid
 
-    def _label(cid: str) -> str:
-        """Return 'conceptN (canonical_name)' or just the id if no name."""
-        c = wm.get_concept(cid)
-        name = c.get("canonical_name", "") if c else ""
-        return f"{cid} ({name})" if name else cid
-
-    click.echo(f"Target: {_label(resolved)}")
-    click.echo(f"Result: {result.result.status}")
-    from propstore.world import DerivedResult
-    if isinstance(result.result, DerivedResult) and result.result.value is not None:
-        click.echo(f"  value: {result.result.value}")
-    click.echo(f"Steps ({len(result.steps)}):")
-    for step in result.steps:
-        click.echo(f"  {_label(step.concept_id)}: {step.value} ({step.source})")
-    wm.close()
+        click.echo(f"Target: {_label(resolved)}")
+        click.echo(f"Result: {result.result.status}")
+        from propstore.world import DerivedResult
+        if isinstance(result.result, DerivedResult) and result.result.value is not None:
+            click.echo(f"  value: {result.result.value}")
+        click.echo(f"Steps ({len(result.steps)}):")
+        for step in result.steps:
+            click.echo(f"  {_label(step.concept_id)}: {step.value} ({step.source})")
 
 
 @world.command("export-graph")
@@ -1702,21 +1681,18 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
         bound = wm.bind(**bindings) if bindings else None
+        graph = build_knowledge_graph(wm, bound=bound, group_id=group_id)
 
-    graph = build_knowledge_graph(wm, bound=bound, group_id=group_id)
+        if fmt == "json":
+            output = json.dumps(graph.to_json(), indent=2)
+        else:
+            output = graph.to_dot()
 
-    if fmt == "json":
-        output = json.dumps(graph.to_json(), indent=2)
-    else:
-        output = graph.to_dot()
-
-    if output_file:
-        Path(output_file).write_text(output)
-        click.echo(f"Graph written to {output_file}")
-    else:
-        click.echo(output)
-
-    wm.close()
+        if output_file:
+            Path(output_file).write_text(output)
+            click.echo(f"Graph written to {output_file}")
+        else:
+            click.echo(output)
 
 
 @world.command("sensitivity")
@@ -1738,45 +1714,41 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
         bindings, _ = _parse_bindings(args)
         resolved = wm.resolve_alias(concept_id) or concept_id
         bound = wm.bind(**bindings)
+        result = analyze_sensitivity(wm, resolved, bound)
 
-    result = analyze_sensitivity(wm, resolved, bound)
+        if result is None:
+            click.echo(f"No sensitivity analysis available for {resolved}.")
+            return
 
-    if result is None:
-        click.echo(f"No sensitivity analysis available for {resolved}.")
-        wm.close()
-        return
-
-    if fmt == "json":
-        data = {
-            "concept_id": result.concept_id,
-            "formula": result.formula,
-            "output_value": result.output_value,
-            "input_values": result.input_values,
-            "entries": [
-                {
-                    "input_concept_id": e.input_concept_id,
-                    "partial_derivative_expr": e.partial_derivative_expr,
-                    "partial_derivative_value": e.partial_derivative_value,
-                    "elasticity": e.elasticity,
-                }
-                for e in result.entries
-            ],
-        }
-        click.echo(json.dumps(data, indent=2))
-    else:
-        click.echo(f"Sensitivity: {resolved}")
-        click.echo(f"Formula: {result.formula}")
-        click.echo(f"Output value: {result.output_value}")
-        click.echo(f"Inputs: {result.input_values}")
-        click.echo("")
-        click.echo(f"{'Input':<25} {'Partial':>12} {'Elasticity':>12}")
-        click.echo("-" * 51)
-        for e in result.entries:
-            pval = f"{e.partial_derivative_value:.6g}" if e.partial_derivative_value is not None else "N/A"
-            elast = f"{e.elasticity:.4f}" if e.elasticity is not None else "N/A"
-            click.echo(f"{e.input_concept_id:<25} {pval:>12} {elast:>12}")
-
-    wm.close()
+        if fmt == "json":
+            data = {
+                "concept_id": result.concept_id,
+                "formula": result.formula,
+                "output_value": result.output_value,
+                "input_values": result.input_values,
+                "entries": [
+                    {
+                        "input_concept_id": e.input_concept_id,
+                        "partial_derivative_expr": e.partial_derivative_expr,
+                        "partial_derivative_value": e.partial_derivative_value,
+                        "elasticity": e.elasticity,
+                    }
+                    for e in result.entries
+                ],
+            }
+            click.echo(json.dumps(data, indent=2))
+        else:
+            click.echo(f"Sensitivity: {resolved}")
+            click.echo(f"Formula: {result.formula}")
+            click.echo(f"Output value: {result.output_value}")
+            click.echo(f"Inputs: {result.input_values}")
+            click.echo("")
+            click.echo(f"{'Input':<25} {'Partial':>12} {'Elasticity':>12}")
+            click.echo("-" * 51)
+            for e in result.entries:
+                pval = f"{e.partial_derivative_value:.6g}" if e.partial_derivative_value is not None else "N/A"
+                elast = f"{e.elasticity:.4f}" if e.elasticity is not None else "N/A"
+                click.echo(f"{e.input_concept_id:<25} {pval:>12} {elast:>12}")
 
 
 @world.command("check-consistency")
@@ -1795,51 +1767,46 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
+        if transitive:
+            from propstore.conflict_detector import detect_transitive_conflicts
+            from propstore.validate_claims import load_claim_files
 
-    if transitive:
-        from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.validate_claims import load_claim_files
+            claim_files = load_claim_files(repo.claims_dir)
+            concept_registry: dict[str, dict] = {}
+            for cdata in wm.all_concepts():
+                cdata = dict(cdata)
+                cid = cdata["id"]
+                param_rows = wm.parameterizations_for(cid)
+                if param_rows:
+                    cdata["parameterization_relationships"] = []
+                    for pr in param_rows:
+                        prd = dict(pr)
+                        cdata["parameterization_relationships"].append({
+                            "inputs": json.loads(prd["concept_ids"]),
+                            "sympy": prd.get("sympy"),
+                            "exactness": prd.get("exactness"),
+                            "conditions": json.loads(prd["conditions_cel"]) if prd.get("conditions_cel") else [],
+                        })
+                concept_registry[cid] = cdata
 
-        claim_files = load_claim_files(repo.claims_dir)
-        # Build concept_registry from sidecar
-        concept_registry: dict[str, dict] = {}
-        for cdata in wm.all_concepts():
-            cdata = dict(cdata)
-            cid = cdata["id"]
-            # Load parameterization_relationships from parameterization table
-            param_rows = wm.parameterizations_for(cid)
-            if param_rows:
-                cdata["parameterization_relationships"] = []
-                for pr in param_rows:
-                    prd = dict(pr)
-                    cdata["parameterization_relationships"].append({
-                        "inputs": json.loads(prd["concept_ids"]),
-                        "sympy": prd.get("sympy"),
-                        "exactness": prd.get("exactness"),
-                        "conditions": json.loads(prd["conditions_cel"]) if prd.get("conditions_cel") else [],
-                    })
-            concept_registry[cid] = cdata
-
-        records = detect_transitive_conflicts(claim_files, concept_registry)
-        if not records:
-            click.echo("No transitive conflicts found.")
+            records = detect_transitive_conflicts(claim_files, concept_registry)
+            if not records:
+                click.echo("No transitive conflicts found.")
+            else:
+                click.echo(f"Found {len(records)} transitive conflict(s):")
+                for r in records:
+                    click.echo(f"  {r.concept_id}: {r.value_a} vs {r.value_b}")
+                    if r.derivation_chain:
+                        click.echo(f"    chain: {r.derivation_chain}")
         else:
-            click.echo(f"Found {len(records)} transitive conflict(s):")
-            for r in records:
-                click.echo(f"  {r.concept_id}: {r.value_a} vs {r.value_b}")
-                if r.derivation_chain:
-                    click.echo(f"    chain: {r.derivation_chain}")
-    else:
-        bound = wm.bind(**bindings)
-        conflicts = bound.conflicts()
-        if not conflicts:
-            click.echo("No conflicts under current bindings.")
-        else:
-            click.echo(f"Found {len(conflicts)} conflict(s):")
-            for c in conflicts:
-                click.echo(
-                    f"  {c['concept_id']}: {c.get('warning_class', '?')} "
-                    f"({c['claim_a_id']} vs {c['claim_b_id']})"
-                )
-
-    wm.close()
+            bound = wm.bind(**bindings)
+            conflicts = bound.conflicts()
+            if not conflicts:
+                click.echo("No conflicts under current bindings.")
+            else:
+                click.echo(f"Found {len(conflicts)} conflict(s):")
+                for c in conflicts:
+                    click.echo(
+                        f"  {c['concept_id']}: {c.get('warning_class', '?')} "
+                        f"({c['claim_a_id']} vs {c['claim_b_id']})"
+                    )
