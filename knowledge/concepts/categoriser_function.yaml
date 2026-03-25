@@ -1,0 +1,9 @@
+id: concept449
+canonical_name: categoriser_function
+status: proposed
+definition: A ranking-based semantics for abstract argumentation where each argument's
+  score is computed recursively as 1/(1 + sum of attacker scores), with unattacked
+  arguments receiving score 1, introduced by Besnard and Hunter (2001)
+domain: argumentation
+created_date: '2026-03-24'
+form: structural

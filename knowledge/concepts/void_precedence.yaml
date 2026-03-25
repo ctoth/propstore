@@ -1,0 +1,8 @@
+id: concept450
+canonical_name: void_precedence
+status: proposed
+definition: An axiomatic property of ranking-based semantics requiring that any non-attacked
+  argument is ranked strictly higher than any attacked argument
+domain: argumentation
+created_date: '2026-03-24'
+form: structural

@@ -1,0 +1,9 @@
+id: concept456
+canonical_name: quality_precedence
+status: proposed
+definition: An axiomatic property of ranking-based semantics requiring that for two
+  arguments each attacked by exactly one direct attacker, the one whose attacker is
+  weaker ranks strictly higher
+domain: argumentation
+created_date: '2026-03-24'
+form: structural
