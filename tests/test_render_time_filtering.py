@@ -261,6 +261,72 @@ class TestStanceSummary:
         assert "excluded_by_threshold" not in summary
 
 
+class TestVacuousSurvivesAFConstruction:
+    """Vacuous stances must survive into the AF and only be filtered at render time.
+
+    Finding 11 / F14: argumentation.py:137 prunes vacuous opinions (u > 0.99)
+    at AF construction time. This is a build-time gate that violates the design
+    checklist: "Does this add a gate anywhere before render time? If yes → WRONG."
+
+    Per CLAUDE.md: vacuous stances should flow into storage/AF with provenance
+    and only be filtered at render/resolution time.
+    """
+
+    def test_vacuous_stance_survives_af_construction(self, vacuous_stances):
+        """A stance with opinion_uncertainty > 0.99 MUST be present in the AF.
+
+        The AF is a structural representation of all arguments and attacks.
+        Filtering out vacuous stances at construction time is a build-time gate.
+        The stance should appear as an attack edge in the AF, even if its
+        opinion is vacuous. Render-time filtering (resolution strategies,
+        extension computation) will handle it appropriately.
+
+        EXPECTED TO FAIL: current code prunes vacuous stances at line 137.
+        """
+        ids = {"claim_a", "claim_b", "claim_c"}
+        af = build_argumentation_framework(
+            SQLiteArgumentationStore(vacuous_stances), ids,
+        )
+        # claim_a -> claim_b has u=1.0 (vacuous) — should still be in the AF
+        # as an attack edge. The AF is structural; filtering is for render time.
+        assert ("claim_a", "claim_b") in af.attacks, (
+            "Vacuous stance (u=1.0) was pruned at AF construction time. "
+            "This is a build-time gate that violates the design checklist."
+        )
+
+    def test_vacuous_stance_does_not_win_resolution(self, conn):
+        """A vacuous stance should not cause its source to win resolution.
+
+        When claim_v (vacuous attacker, u=1.0) attacks claim_s (strong, no
+        vacuous opinion), claim_s should still win in the grounded extension.
+        The vacuous attack carries no information and should not eliminate
+        the target. This is render-time behavior — the test should PASS.
+        """
+        # claim_s: strong, high sample size
+        _insert_claim(conn, "claim_s", "c1", 200.0, sample_size=1000)
+        # claim_v: weak, low sample size
+        _insert_claim(conn, "claim_v", "c1", 300.0, sample_size=10)
+        # claim_v rebuts claim_s with vacuous opinion — should not eliminate claim_s
+        _insert_stance(conn, "claim_v", "claim_s", "rebuts", confidence=0.5,
+                       opinion_uncertainty=1.0)
+        # claim_s rebuts claim_v with strong opinion — should eliminate claim_v
+        _insert_stance(conn, "claim_s", "claim_v", "rebuts", confidence=0.9,
+                       opinion_uncertainty=0.1)
+        conn.commit()
+
+        ids = {"claim_s", "claim_v"}
+        result = compute_claim_graph_justified_claims(
+            SQLiteArgumentationStore(conn), ids, semantics="grounded",
+        )
+        # claim_s should survive — it has a strong attack on claim_v,
+        # and claim_v's vacuous attack should not eliminate claim_s
+        # (either because it's filtered at render time, or because
+        # the preference ordering blocks the weak attacker anyway)
+        assert "claim_s" in result, (
+            "Strong claim was eliminated by a vacuous attacker"
+        )
+
+
 class TestNoDefeatTable:
     """The defeat table must not exist in the sidecar schema."""
 
