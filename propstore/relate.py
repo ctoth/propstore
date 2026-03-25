@@ -151,7 +151,7 @@ async def _classify_stance_async(
             logging.warning("Stance classification failed for %s vs %s: %s", claim_a["id"], claim_b["id"], exc)
             return {
                 "target": claim_b["id"],
-                "type": "none",
+                "type": "error",
                 "strength": "weak",
                 "note": "classification failed",
                 "conditions_differ": None,
@@ -171,7 +171,7 @@ async def _classify_stance_async(
     except json.JSONDecodeError:
         return {
             "target": claim_b["id"],
-            "type": "none",
+            "type": "error",
             "strength": "weak",
             "note": "JSON parse failed",
             "conditions_differ": None,
