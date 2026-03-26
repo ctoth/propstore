@@ -119,3 +119,99 @@ class Rule:
     consequent: Literal
     kind: str  # "strict" or "defeasible"
     name: str | None = None  # n(r) for defeasible rules
+
+
+def _has_contradictory_antecedents(rule: Rule) -> bool:
+    """Check if a rule has a contradictory pair among its antecedents.
+
+    A rule with both φ and ~φ in its antecedents is degenerate: it can
+    only fire when contradictory information is already present, and its
+    transpositions will always produce rules where the consequent appears
+    in the antecedents (trivially true / ill-formed).
+
+    Modgil & Prakken 2018, Def 12 (p.13): transposition closure requires
+    well-formed rules. Rules with contradictory antecedent pairs cannot
+    be properly closed under transposition.
+    """
+    antes = rule.antecedents
+    for lit in antes:
+        if lit.contrary in antes:
+            return True
+    return False
+
+
+def transposition_closure(
+    rules: frozenset[Rule],
+    language: frozenset[Literal],
+    contrariness: ContrarinessFn,
+) -> frozenset[Rule]:
+    """Compute the transposition closure of strict rules.
+
+    Modgil & Prakken 2018, Def 12 (p.13); Prakken 2010, Def 5.1 (p.141).
+
+    For each strict rule A1,...,An -> C and each i (1 <= i <= n):
+    the transposed rule A1,...,~C,...,An -> ~Ai must also be in R_s.
+
+    Iterates until fixpoint (no new rules produced).
+
+    Only strict rules are transposed. Defeasible rules are never transposed
+    (Def 12 applies to R_s only). The fixpoint always terminates because L
+    is finite, bounding the number of possible rules.
+
+    Rules with contradictory antecedent pairs (both φ and ~φ) are excluded:
+    they are degenerate (ex falso quodlibet) and their transpositions
+    produce rules where the consequent appears in the antecedents,
+    violating well-formedness. Similarly, any generated transposition
+    whose consequent appears in its own antecedents is excluded.
+
+    Args:
+        rules: The initial set of strict rules.
+        language: The logical language L (set of all valid literals).
+        contrariness: The contrariness function (unused directly — contraries
+            are computed via Literal.contrary — but required for interface
+            completeness since the language and contrariness are coupled).
+
+    Returns:
+        The smallest frozenset of well-formed Rules closed under
+        transposition, containing all well-formed input rules.
+    """
+    # Filter out degenerate seed rules with contradictory antecedent pairs
+    closed: set[Rule] = {
+        r for r in rules
+        if not _has_contradictory_antecedents(r)
+    }
+    changed = True
+    while changed:
+        changed = False
+        new_rules: set[Rule] = set()
+        for r in closed:
+            if r.kind != "strict":
+                continue
+            for i, ante_i in enumerate(r.antecedents):
+                # Transposed antecedents: replace a_i with ~C
+                transposed_antes = list(r.antecedents)
+                transposed_antes[i] = r.consequent.contrary
+                # Transposed consequent: ~a_i
+                transposed_consequent = ante_i.contrary
+                # Filter: all literals must be in L
+                if transposed_consequent not in language:
+                    continue
+                if any(a not in language for a in transposed_antes):
+                    continue
+                # Skip degenerate rules: consequent in antecedents
+                if transposed_consequent in transposed_antes:
+                    continue
+                new_rule = Rule(
+                    antecedents=tuple(transposed_antes),
+                    consequent=transposed_consequent,
+                    kind="strict",
+                    name=None,
+                )
+                # Skip rules with contradictory antecedent pairs
+                if _has_contradictory_antecedents(new_rule):
+                    continue
+                if new_rule not in closed:
+                    new_rules.add(new_rule)
+                    changed = True
+        closed.update(new_rules)
+    return frozenset(closed)
