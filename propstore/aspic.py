@@ -13,6 +13,7 @@ References:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Union
 
 
 @dataclass(frozen=True)
@@ -119,6 +120,46 @@ class Rule:
     consequent: Literal
     kind: str  # "strict" or "defeasible"
     name: str | None = None  # n(r) for defeasible rules
+
+
+@dataclass(frozen=True)
+class PremiseArg:
+    """Argument from a premise. Modgil & Prakken 2018, Def 5 clause 1."""
+    premise: Literal
+    is_axiom: bool  # True if in K_n, False if in K_p
+
+
+@dataclass(frozen=True)
+class StrictArg:
+    """Argument via strict rule. Modgil & Prakken 2018, Def 5 clause 2."""
+    sub_args: tuple[Argument, ...]
+    rule: Rule  # must have kind == "strict"
+
+
+@dataclass(frozen=True)
+class DefeasibleArg:
+    """Argument via defeasible rule. Modgil & Prakken 2018, Def 5 clause 3."""
+    sub_args: tuple[Argument, ...]
+    rule: Rule  # must have kind == "defeasible"
+
+
+Argument = Union[PremiseArg, StrictArg, DefeasibleArg]
+
+
+@dataclass(frozen=True)
+class KnowledgeBase:
+    """KB = (K_n, K_p). Modgil & Prakken 2018, Def 4 (p.9)."""
+    axioms: frozenset[Literal]    # K_n — not attackable
+    premises: frozenset[Literal]  # K_p — attackable
+
+
+@dataclass(frozen=True)
+class ArgumentationSystem:
+    """AS = (L, contrariness, R_s, R_d, n). Modgil & Prakken 2018, Def 2."""
+    language: frozenset[Literal]
+    contrariness: ContrarinessFn
+    strict_rules: frozenset[Rule]
+    defeasible_rules: frozenset[Rule]
 
 
 def _has_contradictory_antecedents(rule: Rule) -> bool:
