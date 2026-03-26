@@ -601,3 +601,195 @@ def compute_attacks(
                             ))
 
     return frozenset(attacks)
+
+
+# ── Defeat determination ──────────────────────────────────────────
+
+
+def _set_strictly_less(
+    gamma: frozenset,
+    gamma_prime: frozenset,
+    base_order: frozenset[tuple],
+    comparison: str,
+) -> bool:
+    """Set comparison Gamma <_s Gamma' per Modgil & Prakken 2018, Def 19 (p.21).
+
+    Determines if set ``gamma`` is strictly less than ``gamma_prime``
+    under a base ordering, using either Elitist or Democratic comparison.
+
+    Def 19 (p.21):
+    - Empty Gamma is never strictly less than anything.
+    - Elitist: exists X in Gamma s.t. forall Y in Gamma', (X, Y) in base_order.
+    - Democratic: forall X in Gamma, exists Y in Gamma' s.t. (X, Y) in base_order.
+
+    The base_order contains (weaker, stronger) pairs — i.e., (X, Y) means X < Y.
+
+    Args:
+        gamma: The candidate weaker set.
+        gamma_prime: The candidate stronger set.
+        base_order: Pairs (weaker, stronger) forming a strict partial order.
+        comparison: "elitist" or "democratic" (Def 19, p.21).
+
+    Returns:
+        True if gamma <_s gamma_prime.
+    """
+    # Def 19 (p.21): empty set is never strictly less than anything.
+    # When gamma_prime is empty with non-empty gamma, the elitist
+    # formula "forall Y in gamma'" is vacuously true, but this would
+    # make every non-empty set weaker than the empty set, which is
+    # wrong: an argument with defeasible components is not weaker
+    # than one with none just because the "none" set is empty.
+    # Both sets must be non-empty for a meaningful comparison.
+    if not gamma or not gamma_prime:
+        return False
+
+    if comparison == "elitist":
+        # Def 19 (p.21), Elitist: Gamma <_Eli Gamma' iff
+        # exists Y in Gamma' s.t. forall X in Gamma, X < Y.
+        # Gamma is weaker if some element in Gamma' dominates all of Gamma.
+        for y in gamma_prime:
+            if all((x, y) in base_order for x in gamma):
+                return True
+        return False
+    elif comparison == "democratic":
+        # Def 19 (p.21), Democratic: Gamma <_Dem Gamma' iff
+        # forall X in Gamma, exists Y in Gamma' s.t. X < Y.
+        # Gamma is weaker if every element in Gamma is dominated by
+        # something in Gamma'.
+        for x in gamma:
+            if not any((x, y) in base_order for y in gamma_prime):
+                return False
+        return True
+    else:
+        raise ValueError(f"Unknown comparison mode: {comparison}")
+
+
+def _strictly_weaker(
+    a: Argument,
+    b: Argument,
+    pref: PreferenceConfig,
+    kb: KnowledgeBase,
+) -> bool:
+    """Determine if argument ``a`` is strictly weaker than ``b``.
+
+    Uses the configured preference principle to derive argument ordering
+    from the base orderings over rules and premises.
+
+    Modgil & Prakken 2018:
+    - Def 20 (p.21): Last-link principle.
+    - Def 21 (p.21): Weakest-link principle.
+    - Def 22 (p.22): The inducing ordering is a strict partial order.
+
+    Args:
+        a: Candidate weaker argument.
+        b: Candidate stronger argument.
+        pref: Preference configuration with orderings and comparison mode.
+        kb: Knowledge base (needed to determine firm/strict status).
+
+    Returns:
+        True if a is strictly weaker than b (a prec b).
+    """
+    if pref.link == "last":
+        # Def 20 (p.21): Last-link principle
+        # a prec b iff:
+        #   LastDefRules(a) <_s LastDefRules(b)
+        #   OR (both have empty LastDefRules AND Prem_p(a) <_s Prem_p(b))
+        ldr_a = last_def_rules(a)
+        ldr_b = last_def_rules(b)
+        if ldr_a or ldr_b:
+            # At least one has last defeasible rules — compare rules
+            return _set_strictly_less(
+                ldr_a, ldr_b, pref.rule_order, pref.comparison
+            )
+        else:
+            # Both have empty LastDefRules — compare ordinary premises
+            return _set_strictly_less(
+                prem_p(a), prem_p(b), pref.premise_order, pref.comparison
+            )
+    elif pref.link == "weakest":
+        # Def 21 (p.21): Weakest-link principle
+        # a prec b iff:
+        #   If both strict: Prem_p(a) <_s Prem_p(b)
+        #   If both firm: DefRules(a) <_s DefRules(b)
+        #   Otherwise: Prem_p(a) <_s Prem_p(b) AND DefRules(a) <_s DefRules(b)
+        a_strict = is_strict(a)
+        b_strict = is_strict(b)
+        a_firm = is_firm(a)
+        b_firm = is_firm(b)
+
+        if a_strict and b_strict:
+            # Both strict — compare ordinary premises only
+            return _set_strictly_less(
+                prem_p(a), prem_p(b), pref.premise_order, pref.comparison
+            )
+        elif a_firm and b_firm:
+            # Both firm — compare defeasible rules only
+            return _set_strictly_less(
+                def_rules(a), def_rules(b), pref.rule_order, pref.comparison
+            )
+        else:
+            # General case — both conditions must hold
+            return (
+                _set_strictly_less(
+                    prem_p(a), prem_p(b), pref.premise_order, pref.comparison
+                )
+                and _set_strictly_less(
+                    def_rules(a), def_rules(b), pref.rule_order, pref.comparison
+                )
+            )
+    else:
+        raise ValueError(f"Unknown link mode: {pref.link}")
+
+
+def compute_defeats(
+    attacks: frozenset[Attack],
+    arguments: frozenset[Argument],
+    system: ArgumentationSystem,
+    kb: KnowledgeBase,
+    pref: PreferenceConfig,
+) -> frozenset[Attack]:
+    """Filter attacks into defeats using preference orderings.
+
+    Modgil & Prakken 2018, Def 9 (p.12):
+    - Undercutting: ALWAYS a defeat. No preference check.
+      (Pollock 1987, Def 2.5, p.485)
+    - Rebutting A on B': defeat iff A is NOT strictly weaker than B'.
+    - Undermining A on B': defeat iff A is NOT strictly weaker than B'.
+
+    The preference comparison is between the attacker A and the targeted
+    sub-argument B' (attack.target_sub), not the whole target B.
+
+    Args:
+        attacks: The set of all attacks from compute_attacks.
+        arguments: The set of all arguments.
+        system: The argumentation system.
+        kb: The knowledge base.
+        pref: Preference configuration (orderings, comparison, link).
+
+    Returns:
+        Frozenset of Attack instances that succeed as defeats.
+    """
+    defeats: set[Attack] = set()
+
+    for atk in attacks:
+        if atk.kind == "undercutting":
+            # Undercutting always succeeds (Def 9, p.12;
+            # Pollock 1987, Def 2.5, p.485)
+            defeats.add(atk)
+        elif atk.attacker == atk.target:
+            # Self-attacks always succeed as defeats. An argument that
+            # attacks itself is already self-conflicted; the preference
+            # comparison A vs B' (where B' is a sub-argument of A = B)
+            # is moot because A cannot be in any admissible extension
+            # with itself regardless. This follows from irreflexivity of
+            # the argument ordering (Def 22, p.22): A ⊁ A, and by
+            # extension no argument can be "defeated by itself" in a
+            # way that preferences could prevent.
+            defeats.add(atk)
+        else:
+            # Rebutting or undermining: defeat iff attacker is NOT
+            # strictly weaker than the targeted sub-argument (Def 9, p.12)
+            if not _strictly_weaker(atk.attacker, atk.target_sub, pref, kb):
+                defeats.add(atk)
+
+    return frozenset(defeats)
