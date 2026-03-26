@@ -1,8 +1,0 @@
-id: concept366
-canonical_name: automated_diagnosis
-status: proposed
-definition: Identifying faulty components in a system by reasoning about the discrepancy
-  between observed behavior and design-predicted behavior under component assumptions
-domain: knowledge_based_system
-created_date: '2026-03-22'
-form: structural

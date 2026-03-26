@@ -1,8 +1,0 @@
-id: concept186
-canonical_name: incomplete_information
-status: proposed
-definition: Reasoning scenario where not all premises or observations are known; some
-  literals have unsettled truth values
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

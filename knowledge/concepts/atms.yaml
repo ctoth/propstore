@@ -1,8 +1,0 @@
-id: concept289
-canonical_name: atms
-status: proposed
-definition: Assumption-based Truth Maintenance System that associates each inferred
-  assertion directly with the sets of assumptions it depends on
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

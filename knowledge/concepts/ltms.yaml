@@ -1,8 +1,0 @@
-id: concept288
-canonical_name: ltms
-status: proposed
-definition: Logic-based Truth Maintenance System that adds inference rules in clause
-  form to justifications, using three-valued labels (true, false, unknown)
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

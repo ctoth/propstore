@@ -1,9 +1,0 @@
-id: concept479
-canonical_name: dialogue_game
-status: proposed
-definition: A rule-governed interaction between two or more participants who make
-  utterances (locutions) according to defined commencement, combination, commitment,
-  and termination rules, used to structure argumentation-based agent communication
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

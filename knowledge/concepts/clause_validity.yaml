@@ -1,9 +1,0 @@
-id: concept246
-canonical_name: clause_validity
-status: proposed
-definition: A mechanism where clauses have an associated validity node; the clause
-  is active only when the validity node is true, enabling effective removal without
-  physical deletion
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

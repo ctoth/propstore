@@ -1,9 +1,0 @@
-id: concept419
-canonical_name: soft_constraint
-status: proposed
-definition: A constraint in an optimization problem that may be violated at a cost,
-  as opposed to a hard constraint that must be satisfied; each soft constraint carries
-  a weight representing the penalty for violation
-domain: formal-methods
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-id: concept399
-canonical_name: stage_extension
-status: proposed
-definition: An extension of an argumentation framework that is a conflict-free set
-  with maximal range, similar to semi-stable but without requiring admissibility
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

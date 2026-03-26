@@ -1,7 +1,0 @@
-id: concept205
-canonical_name: deductive_closure
-status: proposed
-definition: The operation of closing a set of sentences under logical consequence
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

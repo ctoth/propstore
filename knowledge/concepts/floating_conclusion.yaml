@@ -1,9 +1,0 @@
-id: concept443
-canonical_name: floating_conclusion
-status: proposed
-definition: A conclusion supported by arguments in every preferred extension but not
-  in the grounded extension, arising when the supporting arguments are each part of
-  different extensions that cannot coexist
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

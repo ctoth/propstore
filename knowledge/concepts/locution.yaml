@@ -1,9 +1,0 @@
-id: concept481
-canonical_name: locution
-status: proposed
-definition: A permitted utterance type in a dialogue game protocol, such as assert,
-  question, challenge, justify, propose, or retract, each with defined effects on
-  commitment stores and dialogue state
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

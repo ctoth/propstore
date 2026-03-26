@@ -1,8 +1,0 @@
-id: concept284
-canonical_name: belief_revision_system
-status: proposed
-definition: A subsystem of a knowledge-based system responsible for detecting contradictions,
-  identifying culprits, and maintaining consistency
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

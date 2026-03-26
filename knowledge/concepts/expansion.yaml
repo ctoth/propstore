@@ -1,8 +1,0 @@
-id: concept179
-canonical_name: expansion
-status: proposed
-definition: An operation that adds a new belief to a theory by taking the deductive
-  closure of the union
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-name: flow
-dimensionless: false
-kind: quantity
-unit_symbol: "m\u00B3/s"
-dimensions:
-  L: 3
-  T: -1
-note: Volumetric flow rate.

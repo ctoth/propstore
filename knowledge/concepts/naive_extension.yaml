@@ -1,8 +1,0 @@
-id: concept468
-canonical_name: naive_extension
-status: proposed
-definition: A maximal conflict-free set of arguments in a Dung argumentation framework,
-  equivalently a maximal independent set in the attack graph
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

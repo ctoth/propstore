@@ -1,8 +1,0 @@
-id: concept349
-canonical_name: consumer_architecture
-status: proposed
-definition: A problem-solving architecture where modular consumers are attached to
-  ATMS nodes and fire when antecedent labels become nonempty, producing new justifications
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

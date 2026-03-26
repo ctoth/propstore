@@ -1,8 +1,0 @@
-id: concept473
-canonical_name: argumentation_semantics
-status: proposed
-definition: A function mapping argumentation frameworks to sets of extensions (acceptable
-  sets of arguments), including grounded, preferred, stable, complete, and naive semantics
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

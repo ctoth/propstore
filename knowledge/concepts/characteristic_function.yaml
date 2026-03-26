@@ -1,8 +1,0 @@
-id: concept204
-canonical_name: characteristic_function
-status: proposed
-definition: The function F_AF mapping sets of arguments to sets of acceptable arguments
-  with respect to that set
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

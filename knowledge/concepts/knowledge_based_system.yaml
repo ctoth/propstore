@@ -1,8 +1,0 @@
-id: concept282
-canonical_name: knowledge_based_system
-status: proposed
-definition: A system consisting of a knowledge base of assertions, inference methods,
-  and a belief revision subsystem
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

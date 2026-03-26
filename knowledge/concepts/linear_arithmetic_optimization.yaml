@@ -1,9 +1,0 @@
-id: concept417
-canonical_name: linear_arithmetic_optimization
-status: proposed
-definition: The problem of finding the maximum or minimum value of a linear objective
-  function subject to constraints expressible in linear arithmetic over rationals
-  or integers
-domain: formal-methods
-created_date: '2026-03-22'
-form: structural

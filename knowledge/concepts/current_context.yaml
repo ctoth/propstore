@@ -1,8 +1,0 @@
-id: concept265
-canonical_name: current_context
-status: proposed
-definition: The context currently under consideration, scoping all retrieval and inference
-  operations
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

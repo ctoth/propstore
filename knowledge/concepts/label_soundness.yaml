@@ -1,8 +1,0 @@
-id: concept333
-canonical_name: label_soundness
-status: proposed
-definition: The property that every environment in a node's label entails the node
-  given the justifications; no context contains a datum it should not
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

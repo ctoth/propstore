@@ -1,9 +1,0 @@
-id: concept408
-canonical_name: t_norm
-status: proposed
-definition: 'A triangular norm: a binary operation on [0,1] that is commutative, associative,
-  monotone, and has 1 as identity element, used as the generalized conjunction in
-  fuzzy logic'
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-id: concept358
-canonical_name: counterfactual_reasoning
-status: proposed
-definition: Reasoning about what would be the case if some condition were different
-  from actuality, formalized through possible worlds semantics or truth function operations
-domain: logic
-created_date: '2026-03-22'
-form: structural

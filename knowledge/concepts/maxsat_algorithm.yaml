@@ -1,9 +1,0 @@
-id: concept415
-canonical_name: maxsat_algorithm
-status: proposed
-definition: An algorithm for solving the maximum satisfiability problem, finding an
-  assignment that satisfies the maximum number (or maximum weight) of clauses in a
-  propositional formula
-domain: formal-methods
-created_date: '2026-03-22'
-form: structural

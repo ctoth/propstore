@@ -1,8 +1,0 @@
-id: concept232
-canonical_name: defeasible_reasoning
-status: proposed
-definition: Reasoning using inference rules that can be defeated by new information,
-  producing conclusions that are rationally compelling but deductively invalid
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

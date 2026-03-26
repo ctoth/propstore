@@ -1,8 +1,0 @@
-id: concept286
-canonical_name: jtms
-status: proposed
-definition: Justification-based Truth Maintenance System using propositional dependency
-  graphs with in/out labels and justification arcs
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

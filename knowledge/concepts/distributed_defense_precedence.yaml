@@ -1,9 +1,0 @@
-id: concept452
-canonical_name: distributed_defense_precedence
-status: proposed
-definition: An axiomatic property of ranking-based semantics requiring that an argument
-  with defense distributed across multiple independent paths is preferred over one
-  with the same amount of defense concentrated in a single path
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

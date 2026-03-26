@@ -1,8 +1,0 @@
-id: concept243
-canonical_name: defeat_status_assignment
-status: proposed
-definition: An assignment of in/out labels to nodes of an inference graph, where preferred
-  assignments maximize the labelled set and grounded assignments minimize it
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

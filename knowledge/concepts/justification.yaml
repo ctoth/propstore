@@ -1,8 +1,0 @@
-id: concept180
-canonical_name: justification
-status: proposed
-definition: A recorded reason for believing a node, consisting of references to other
-  nodes whose belief statuses must hold for the justification to be valid
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

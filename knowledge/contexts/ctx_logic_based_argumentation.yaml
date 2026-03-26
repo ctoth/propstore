@@ -1,6 +1,0 @@
-id: ctx_logic_based_argumentation
-name: ctx_logic_based_argumentation
-description: Classical logic-based argumentation tradition — arguments as minimal
-  consistent subsets of a knowledge base paired with deductive consequences, with
-  defeaters, canonical undercuts, argument trees, and aggregation via categoriser/accumulator
-  functions, originating from Besnard and Hunter 2001

@@ -1,8 +1,0 @@
-id: concept206
-canonical_name: relevance
-status: proposed
-definition: Property of an unsettled observation (queryable) whose resolution could
-  change a literal's justification status
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

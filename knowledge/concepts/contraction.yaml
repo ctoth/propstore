@@ -1,8 +1,0 @@
-id: concept175
-canonical_name: contraction
-status: proposed
-definition: An operation that removes a belief from a theory while preserving consistency
-  and satisfying rationality postulates
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-id: concept335
-canonical_name: label_minimality
-status: proposed
-definition: The property that no environment in a label is a superset of another environment
-  in the same label; each disjunct has the fewest assumptions
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

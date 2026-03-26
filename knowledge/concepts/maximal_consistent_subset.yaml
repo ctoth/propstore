@@ -1,8 +1,0 @@
-id: concept446
-canonical_name: maximal_consistent_subset
-status: proposed
-definition: A subset of a set of formulas that is classically consistent and cannot
-  be extended with any remaining formula without losing consistency
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

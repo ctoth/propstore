@@ -1,8 +1,0 @@
-id: concept272
-canonical_name: culprit_selection
-status: proposed
-definition: The process of choosing which hypothesis to retract when a contradiction
-  is detected
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

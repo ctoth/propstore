@@ -1,9 +1,0 @@
-id: concept455
-canonical_name: cardinality_precedence
-status: proposed
-definition: An axiomatic property of ranking-based semantics requiring that among
-  arguments attacked only by non-attacked arguments, one with strictly fewer attackers
-  ranks strictly higher
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

@@ -1,8 +1,0 @@
-id: concept168
-canonical_name: dependency_directed_backtracking
-status: proposed
-definition: A procedure that traces the maximal assumptions underlying a contradiction,
-  creates a nogood, selects a culprit assumption, and retracts it
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

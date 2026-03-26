@@ -1,9 +1,0 @@
-id: concept424
-canonical_name: par2_score
-status: proposed
-definition: 'PAR-2 (Penalized Average Runtime with factor 2) scoring metric for solver
-  competitions: the average runtime across all instances where unsolved instances
-  are penalized with 2 times the time limit'
-domain: argumentation
-created_date: '2026-03-22'
-form: score

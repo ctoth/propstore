@@ -1,9 +1,0 @@
-id: concept438
-canonical_name: exponential_time_hypothesis
-status: proposed
-definition: The complexity-theoretic assumption that SAT cannot be solved in time
-  2^o(n) where n is the number of variables, used to establish conditional lower bounds
-  for computational problems
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

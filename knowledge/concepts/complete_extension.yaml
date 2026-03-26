@@ -1,8 +1,0 @@
-id: concept202
-canonical_name: complete_extension
-status: proposed
-definition: An admissible set S where every argument acceptable with respect to S
-  belongs to S
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

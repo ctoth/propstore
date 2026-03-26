@@ -1,9 +1,0 @@
-id: concept361
-canonical_name: three_valued_truth_function
-status: proposed
-definition: A mapping from propositions to truth values {true, false, unknown}, supporting
-  partial knowledge representation where truth values of some propositions are genuinely
-  uncertain
-domain: logic
-created_date: '2026-03-22'
-form: structural

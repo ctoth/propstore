@@ -1,8 +1,0 @@
-id: concept221
-canonical_name: logic_programming
-status: proposed
-definition: Programming paradigm based on formal logic, using negation as failure
-  for nonmonotonic reasoning
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

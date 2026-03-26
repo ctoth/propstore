@@ -1,9 +1,0 @@
-id: concept378
-canonical_name: k_relation
-status: proposed
-definition: A relation whose tuples are annotated with elements from a commutative
-  semiring K, generalizing set semantics (Boolean), bag semantics (natural numbers),
-  and provenance tracking (polynomials) through algebraic operations on annotations
-domain: database_theory
-created_date: '2026-03-23'
-form: structural

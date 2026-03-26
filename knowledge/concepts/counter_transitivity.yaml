@@ -1,9 +1,0 @@
-id: concept451
-canonical_name: counter_transitivity
-status: proposed
-definition: An axiomatic property of ranking-based semantics requiring that if argument
-  a is at least as acceptable as b, then an argument attacked only by b is at least
-  as acceptable as one attacked only by a
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

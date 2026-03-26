@@ -1,9 +1,0 @@
-id: concept429
-canonical_name: treewidth
-status: proposed
-definition: A graph parameter measuring how tree-like a graph is, defined as the minimum
-  width over all tree decompositions where width equals maximum bag size minus one;
-  enables fixed-parameter tractable algorithms for NP-hard problems
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

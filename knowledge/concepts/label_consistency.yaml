@@ -1,8 +1,0 @@
-id: concept336
-canonical_name: label_consistency
-status: proposed
-definition: The property that all inconsistent environments are identified and excluded
-  from node labels in the ATMS
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

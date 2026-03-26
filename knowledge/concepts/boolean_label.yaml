@@ -1,8 +1,0 @@
-id: concept276
-canonical_name: boolean_label
-status: proposed
-definition: A Boolean expression over beads encoding an assertion's status across
-  all data pools simultaneously
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

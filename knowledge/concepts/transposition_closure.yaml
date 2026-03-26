@@ -1,8 +1,0 @@
-id: concept362
-canonical_name: transposition_closure
-status: proposed
-definition: Property requiring that all transpositions of strict rules are also strict
-  rules, ensuring consistency of extensions
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

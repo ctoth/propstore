@@ -1,9 +1,0 @@
-id: concept480
-canonical_name: commitment_store
-status: proposed
-definition: A public record of propositions a dialogue participant has committed to
-  through their utterances, maintained according to protocol-specific rules that determine
-  how assertions, retractions, and challenges affect the store
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

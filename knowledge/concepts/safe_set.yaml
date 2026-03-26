@@ -1,8 +1,0 @@
-id: concept341
-canonical_name: safe_set
-status: proposed
-definition: A set of arguments where no argument is simultaneously set-defeated and
-  set-supported or contained by the set
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-id: concept215
-canonical_name: answer_set_programming
-status: proposed
-definition: Logic programming paradigm used to encode and solve computational argumentation
-  problems via stable model semantics
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

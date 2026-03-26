@@ -1,5 +1,0 @@
-name: level
-dimensionless: false
-kind: quantity
-unit_symbol: dB
-note: Logarithmic level quantity (e.g. sound pressure level, signal level).

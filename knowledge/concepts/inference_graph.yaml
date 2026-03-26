@@ -1,8 +1,0 @@
-id: concept234
-canonical_name: inference_graph
-status: proposed
-definition: A graph structure where arguments share subarguments and a proposition
-  can be supported by multiple independent arguments, as opposed to tree-based representations
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

@@ -1,7 +1,0 @@
-name: frequency
-dimensionless: false
-kind: quantity
-unit_symbol: Hz
-dimensions:
-  T: -1
-note: Number of occurrences per unit time.

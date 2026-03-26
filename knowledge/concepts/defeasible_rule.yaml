@@ -1,8 +1,0 @@
-id: concept355
-canonical_name: defeasible_rule
-status: proposed
-definition: An inference rule that creates a presumption for its conclusion, can be
-  attacked via undercutting
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

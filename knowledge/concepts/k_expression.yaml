@@ -1,9 +1,0 @@
-id: concept401
-canonical_name: k_expression
-status: proposed
-definition: An algebraic term that constructs a graph using k colors via four operations
-  (create vertex, disjoint union, relabeling, edge introduce), defining a parse tree
-  whose structure guides decomposition-based algorithms
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

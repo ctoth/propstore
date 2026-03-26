@@ -1,9 +1,0 @@
-id: concept411
-canonical_name: translatable_semantics
-status: proposed
-definition: An argumentation semantics that can be exactly captured by models of a
-  propositional logic system formula via an encoding, establishing a bijection between
-  extensions and models
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

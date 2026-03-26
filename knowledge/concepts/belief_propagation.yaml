@@ -1,8 +1,0 @@
-id: concept370
-canonical_name: belief_propagation
-status: proposed
-definition: Automatic propagation of belief changes through a dependency network when
-  antecedent beliefs change, terminating when changes fall below a threshold
-domain: knowledge_based_system
-created_date: '2026-03-22'
-form: structural

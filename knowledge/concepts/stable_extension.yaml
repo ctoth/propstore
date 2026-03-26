@@ -1,7 +1,0 @@
-id: concept198
-canonical_name: stable_extension
-status: proposed
-definition: A conflict-free set S that attacks every argument not in S
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

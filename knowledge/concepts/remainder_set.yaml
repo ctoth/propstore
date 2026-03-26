@@ -1,7 +1,0 @@
-id: concept184
-canonical_name: remainder_set
-status: proposed
-definition: The set of all maximal subsets of a theory that do not imply a given sentence
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

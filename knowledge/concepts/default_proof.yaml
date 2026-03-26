@@ -1,8 +1,0 @@
-id: concept256
-canonical_name: default_proof
-status: proposed
-definition: A finite sequence of default sets satisfying conditions P1-P4 that demonstrates
-  membership of a formula in an extension of a closed normal default theory
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

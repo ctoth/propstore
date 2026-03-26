@@ -1,9 +1,0 @@
-id: concept466
-canonical_name: minimal_change
-status: proposed
-definition: A quality criterion for argumentation framework modification requiring
-  that enforcement operations minimize the number of structural, semantic, or acceptability
-  changes applied to the system
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

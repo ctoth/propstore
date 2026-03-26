@@ -1,9 +1,0 @@
-id: concept444
-canonical_name: condensed_labelling
-status: proposed
-definition: An AF-labelling where out requires an in-attacker (as in reinstatement)
-  but in only requires all attackers to be out without requiring the converse, capturing
-  the excluded middle principle
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

@@ -1,9 +1,0 @@
-id: concept400
-canonical_name: ddg_reduction
-status: proposed
-definition: A directed decomposition-guided reduction that translates argumentation
-  problems to SAT/QSAT while linearly preserving the directed incidence clique-width
-  of the input graph
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

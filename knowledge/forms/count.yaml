@@ -1,4 +1,0 @@
-name: count
-dimensionless: true
-kind: quantity
-note: Discrete count of items or events.

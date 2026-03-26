@@ -1,9 +1,0 @@
-id: concept414
-canonical_name: weighted_maxsmt
-status: proposed
-definition: The optimization problem of finding a satisfying assignment that minimizes
-  the total weight of violated soft constraints in an SMT formula with both hard and
-  weighted soft constraints
-domain: formal-methods
-created_date: '2026-03-22'
-form: structural

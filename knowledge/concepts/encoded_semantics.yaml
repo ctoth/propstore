@@ -1,9 +1,0 @@
-id: concept409
-canonical_name: encoded_semantics
-status: proposed
-definition: The set of models of an encoded argumentation framework formula under
-  a given propositional logic system, inducing an argumentation semantics via the
-  encoding methodology
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

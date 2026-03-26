@@ -1,8 +1,0 @@
-id: concept260
-canonical_name: semi_monotonicity
-status: proposed
-definition: Property that adding normal defaults to a normal default theory can never
-  reduce the number of extensions
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

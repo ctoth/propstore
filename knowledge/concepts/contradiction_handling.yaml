@@ -1,8 +1,0 @@
-id: concept178
-canonical_name: contradiction_handling
-status: proposed
-definition: The process of detecting and resolving contradictions in a belief system,
-  typically by retracting assumptions that contribute to the contradiction
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-id: concept252
-canonical_name: default_theory
-status: proposed
-definition: A pair (D, W) consisting of a set of default rules D and a set of first-order
-  axioms W
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

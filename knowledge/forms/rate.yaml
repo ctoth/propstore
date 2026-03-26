@@ -1,4 +1,0 @@
-name: rate
-dimensionless: true
-kind: quantity
-note: Dimensionless rate (e.g. proportion per unit, percentage).

@@ -1,8 +1,0 @@
-id: concept222
-canonical_name: meta_interpreter
-status: proposed
-definition: A logic program architecture separating argument generation (AGU) from
-  argument processing (APU)
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

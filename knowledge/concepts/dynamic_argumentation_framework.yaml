@@ -1,9 +1,0 @@
-id: concept404
-canonical_name: dynamic_argumentation_framework
-status: proposed
-definition: An extension of Dung's abstract argumentation framework that supports
-  incremental changes to the attack relation over time, enabling reasoning about evolving
-  argument structures without full recomputation
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

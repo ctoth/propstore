@@ -1,8 +1,0 @@
-id: concept271
-canonical_name: snebr
-status: proposed
-definition: SNePS Belief Revision system, a concrete implementation of the MBR model
-  using semantic networks
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

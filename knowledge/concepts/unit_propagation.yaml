@@ -1,8 +1,0 @@
-id: concept250
-canonical_name: unit_propagation
-status: proposed
-definition: A deduction mechanism where a clause with exactly one unknown term forces
-  that term's truth value to satisfy the clause
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

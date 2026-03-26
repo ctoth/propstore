@@ -1,8 +1,0 @@
-id: concept344
-canonical_name: c_admissible
-status: proposed
-definition: A conflict-free set closed under support that defends all its elements,
-  the strongest bipolar admissibility
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

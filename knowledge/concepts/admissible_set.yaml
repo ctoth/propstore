@@ -1,8 +1,0 @@
-id: concept194
-canonical_name: admissible_set
-status: proposed
-definition: A conflict-free set of arguments S where each argument in S is acceptable
-  with respect to S
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

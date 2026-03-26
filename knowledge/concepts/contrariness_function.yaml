@@ -1,8 +1,0 @@
-id: concept374
-canonical_name: contrariness_function
-status: proposed
-definition: A function mapping formulas to sets of contraries and contradictories,
-  generalizing classical negation to allow asymmetric conflict
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

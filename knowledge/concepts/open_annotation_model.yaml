@@ -1,8 +1,0 @@
-id: concept244
-canonical_name: open_annotation_model
-status: proposed
-definition: W3C standard for contextualizing annotations within documents using oa:Annotation,
-  oa:hasBody, oa:hasTarget selectors
-domain: scientific_communication
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-id: concept320
-canonical_name: defeat_cycle
-status: proposed
-definition: A cycle in the defeat relation among arguments, either even (mutual defeat
-  between pairs) or odd (three or more arguments in a cycle)
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

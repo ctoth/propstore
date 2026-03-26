@@ -1,8 +1,0 @@
-id: concept273
-canonical_name: data_pool
-status: proposed
-definition: A hierarchical database context mechanism pairing a bead identifier with
-  a set of assertions
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

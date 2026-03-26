@@ -1,8 +1,0 @@
-id: concept247
-canonical_name: attack_defeat_distinction
-status: proposed
-definition: The separation between attack (a structural relation between arguments)
-  and defeat (attack that succeeds after considering preferences or strength)
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

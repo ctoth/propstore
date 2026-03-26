@@ -1,7 +1,0 @@
-name: time
-dimensionless: false
-kind: quantity
-unit_symbol: s
-dimensions:
-  T: 1
-note: Duration or temporal quantity.

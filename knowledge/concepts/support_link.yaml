@@ -1,9 +1,0 @@
-id: concept371
-canonical_name: support_link
-status: proposed
-definition: A directed dependency link in a belief maintenance system connecting antecedent
-  nodes to consequent nodes, typed as hard (direct computation) or invertible (evidence
-  subtractable via inverse Dempster rule)
-domain: knowledge_based_system
-created_date: '2026-03-22'
-form: structural

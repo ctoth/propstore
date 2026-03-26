@@ -1,9 +1,0 @@
-id: concept421
-canonical_name: lexicographic_optimization
-status: proposed
-definition: A multi-objective optimization strategy that optimizes objectives in a
-  fixed priority order, maximizing the first objective, then the second among solutions
-  tied on the first, and so on
-domain: optimization
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-id: concept297
-canonical_name: minimality_of_information_loss
-status: proposed
-definition: AGM constraint that the amount of information lost in a belief change
-  should be kept minimal
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

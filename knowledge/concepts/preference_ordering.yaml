@@ -1,8 +1,0 @@
-id: concept357
-canonical_name: preference_ordering
-status: proposed
-definition: An ordering on arguments used to determine whether an attack succeeds
-  as a defeat
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

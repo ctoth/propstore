@@ -1,8 +1,0 @@
-id: concept373
-canonical_name: attack_based_conflict_free
-status: proposed
-definition: A revision to the standard conflict-free definition where no argument
-  in the set attacks another, strictly stronger than defeat-based conflict-free
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

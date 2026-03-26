@@ -1,8 +1,0 @@
-id: concept166
-canonical_name: support_status
-status: proposed
-definition: 'The belief status of a node in a TMS: in (believed, has valid justification)
-  or out (not believed, lacks valid justification)'
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-id: concept170
-canonical_name: non_monotonic_reasoning
-status: proposed
-definition: Reasoning where the addition of new information can cause previously held
-  beliefs to be retracted, in contrast to monotonic reasoning where beliefs only accumulate
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

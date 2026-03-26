@@ -1,9 +1,0 @@
-id: concept233
-canonical_name: defeasible_argumentation
-status: proposed
-definition: A framework for reasoning where conclusions can be defeated by new evidence
-  or arguments, grounded in Toulmin's model of claims, data, warrants, backing, qualifiers,
-  and rebuttals
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

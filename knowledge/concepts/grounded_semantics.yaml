@@ -1,8 +1,0 @@
-id: concept319
-canonical_name: grounded_semantics
-status: proposed
-definition: An argumentation semantics that assigns a unique minimal complete extension
-  (grounded extension) via the least fixed point of the characteristic function
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

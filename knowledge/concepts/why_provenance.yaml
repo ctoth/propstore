@@ -1,9 +1,0 @@
-id: concept379
-canonical_name: why_provenance
-status: proposed
-definition: A provenance model that records which sets of source tuples jointly contribute
-  to deriving an output tuple, represented as a set of witness sets forming a semiring
-  homomorphic image of provenance polynomials
-domain: database_theory
-created_date: '2026-03-23'
-form: structural

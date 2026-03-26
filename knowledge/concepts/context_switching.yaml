@@ -1,8 +1,0 @@
-id: concept337
-canonical_name: context_switching
-status: proposed
-definition: The process of changing from one consistent set of assumptions to another
-  in a TMS, which is expensive in single-state systems but free in the ATMS
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

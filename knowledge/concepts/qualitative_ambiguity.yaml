@@ -1,9 +1,0 @@
-id: concept300
-canonical_name: qualitative_ambiguity
-status: proposed
-definition: The phenomenon where qualitative constraint satisfaction yields multiple
-  valid interpretations because qualitative addition is not invertible over {+, 0,
-  -}
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

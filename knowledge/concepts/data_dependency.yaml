@@ -1,8 +1,0 @@
-id: concept274
-canonical_name: data_dependency
-status: proposed
-definition: A mechanism tracking reasons for beliefs via justification tuples of in-justifiers
-  and out-justifiers
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

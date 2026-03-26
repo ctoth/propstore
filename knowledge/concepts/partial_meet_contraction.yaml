@@ -1,8 +1,0 @@
-id: concept187
-canonical_name: partial_meet_contraction
-status: proposed
-definition: A contraction operation defined as the intersection of selected elements
-  from a remainder set
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

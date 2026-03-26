@@ -1,8 +1,0 @@
-id: concept292
-canonical_name: qualitative_value
-status: proposed
-definition: A variable's value in qualitative physics, drawn from the set {+, 0, -}
-  representing positive, zero, or negative
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

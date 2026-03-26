@@ -1,8 +1,0 @@
-id: concept331
-canonical_name: network_authority
-status: proposed
-definition: Citation-derived authority status computed via social network analysis
-  methods such as Kleinberg's HITS algorithm on a citation graph
-domain: scientific_communication
-created_date: '2026-03-22'
-form: structural

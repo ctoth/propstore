@@ -1,8 +1,0 @@
-id: concept212
-canonical_name: coherent_framework
-status: proposed
-definition: An argumentation framework where every preferred extension is also a stable
-  extension
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

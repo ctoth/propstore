@@ -1,8 +1,0 @@
-id: concept167
-canonical_name: well_founded_justification
-status: proposed
-definition: A non-circular supporting justification where the justified node does
-  not appear in its own foundations via the supporting-justification chain
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

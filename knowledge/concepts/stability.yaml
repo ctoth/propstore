@@ -1,8 +1,0 @@
-id: concept203
-canonical_name: stability
-status: proposed
-definition: Property of a literal whose justification status will not change regardless
-  of how unsettled observations are resolved
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

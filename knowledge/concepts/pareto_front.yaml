@@ -1,8 +1,0 @@
-id: concept416
-canonical_name: pareto_front
-status: proposed
-definition: The set of non-dominated solutions in a multi-objective optimization problem,
-  where no solution can improve one objective without worsening another
-domain: optimization
-created_date: '2026-03-22'
-form: structural

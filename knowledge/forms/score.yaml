@@ -1,4 +1,0 @@
-name: score
-dimensionless: true
-kind: quantity
-note: Numeric score or index value.

@@ -1,8 +1,0 @@
-id: concept207
-canonical_name: well_founded_framework
-status: proposed
-definition: An argumentation framework with no infinite sequence of arguments where
-  each attacks its predecessor
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

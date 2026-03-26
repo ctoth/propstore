@@ -1,8 +1,0 @@
-id: concept339
-canonical_name: supported_defeat
-status: proposed
-definition: A composite defeat where a support chain from A leads to an argument that
-  directly defeats B
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

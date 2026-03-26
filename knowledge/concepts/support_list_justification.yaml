@@ -1,8 +1,0 @@
-id: concept164
-canonical_name: support_list_justification
-status: proposed
-definition: A justification of the form (SL inlist outlist) where the justified node
-  is believed if all inlist nodes are in and all outlist nodes are out
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

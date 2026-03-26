@@ -1,9 +1,0 @@
-id: concept372
-canonical_name: frame_of_discernment
-status: proposed
-definition: A user-defined exhaustive set of mutually exclusive possibilities in Dempster-Shafer
-  theory, where evidence for one possibility automatically updates beliefs for all
-  others
-domain: logic
-created_date: '2026-03-22'
-form: structural

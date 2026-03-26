@@ -1,9 +1,0 @@
-id: concept460
-canonical_name: canonical_undercut
-status: proposed
-definition: A maximally conservative undercut for an argument that uses the canonical
-  enumeration of the support set; Besnard & Hunter 2001 prove these are the only defeaters
-  that need to be considered when constructing argument trees
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

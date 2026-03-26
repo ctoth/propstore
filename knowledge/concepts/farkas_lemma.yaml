@@ -1,9 +1,0 @@
-id: concept418
-canonical_name: farkas_lemma
-status: proposed
-definition: A theorem in linear programming stating that a system of linear inequalities
-  has no solution if and only if there exists a non-negative linear combination of
-  the inequalities that yields a contradiction
-domain: formal-methods
-created_date: '2026-03-22'
-form: structural

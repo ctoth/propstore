@@ -1,8 +1,0 @@
-id: concept296
-canonical_name: device_topology
-status: proposed
-definition: A graph representation of a physical system where nodes are components
-  and edges are conduits that transport material between components
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-id: concept269
-canonical_name: supported_wff
-status: proposed
-definition: A well-formed formula annotated with origin tag, origin set, and restriction
-  set
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

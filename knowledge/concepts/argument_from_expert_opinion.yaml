@@ -1,8 +1,0 @@
-id: concept309
-canonical_name: argument_from_expert_opinion
-status: proposed
-definition: An argumentation scheme where the conclusion is supported by the assertion
-  of an expert in the relevant domain
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

@@ -1,9 +1,0 @@
-id: concept318
-canonical_name: aspic_plus
-status: proposed
-definition: A structured argumentation framework combining strict and defeasible inference
-  rules with three attack types (undermining, rebutting, undercutting) and preference-based
-  defeat
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

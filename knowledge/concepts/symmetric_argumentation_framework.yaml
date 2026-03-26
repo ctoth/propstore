@@ -1,8 +1,0 @@
-id: concept467
-canonical_name: symmetric_argumentation_framework
-status: proposed
-definition: A Dung argumentation framework where the attack relation is symmetric
-  and irreflexive, corresponding to an undirected graph where every attack is mutual
-domain: argumentation
-created_date: '2026-03-24'
-form: structural

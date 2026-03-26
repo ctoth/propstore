@@ -1,8 +1,0 @@
-id: concept295
-canonical_name: rdf_named_graph
-status: proposed
-definition: An RDF extension that assigns a URI to an RDF graph, enabling statements
-  about the graph such as provenance and attribution metadata
-domain: semantic_web
-created_date: '2026-03-22'
-form: structural

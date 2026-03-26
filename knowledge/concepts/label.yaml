@@ -1,8 +1,0 @@
-id: concept259
-canonical_name: label
-status: proposed
-definition: The set of minimal consistent environments in which a proposition is derivable
-  in an ATMS
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

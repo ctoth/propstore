@@ -1,8 +1,0 @@
-id: concept397
-canonical_name: sat_encoding
-status: proposed
-definition: A translation of a computational problem into a Boolean satisfiability
-  formula whose models correspond to solutions of the original problem
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

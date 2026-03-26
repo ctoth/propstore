@@ -1,8 +1,0 @@
-id: concept280
-canonical_name: latent_assertion
-status: proposed
-definition: An assertion stored but not indexed, whose label evaluates to OUT in the
-  current data pool
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

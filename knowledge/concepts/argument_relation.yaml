@@ -1,8 +1,0 @@
-id: concept346
-canonical_name: argument_relation
-status: proposed
-definition: A directed relation between argument components, classified as support
-  (source backs target) or attack (source contradicts target)
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

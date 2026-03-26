@@ -1,8 +1,0 @@
-id: concept375
-canonical_name: reasonable_ordering
-status: proposed
-definition: A preference ordering on arguments where strict-firm arguments dominate
-  plausible-defeasible ones and strict continuation preserves preference status
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

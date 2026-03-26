@@ -1,8 +1,0 @@
-id: concept299
-canonical_name: entrenchment_based_priority
-status: proposed
-definition: AGM constraint that more entrenched beliefs should be retained preferentially
-  during belief revision
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

@@ -1,8 +1,0 @@
-id: concept185
-canonical_name: selection_function
-status: proposed
-definition: A function that chooses non-empty subsets from a remainder set to determine
-  which beliefs to retain during contraction
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

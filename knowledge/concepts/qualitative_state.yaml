@@ -1,8 +1,0 @@
-id: concept291
-canonical_name: qualitative_state
-status: proposed
-definition: A region in a component's operating range governed by a specific set of
-  confluences, defined by inequality specifications over non-derivative variables
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

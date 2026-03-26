@@ -1,9 +1,0 @@
-id: concept396
-canonical_name: clique_width
-status: proposed
-definition: A graph parameter measuring the structural complexity of a graph via k-expressions;
-  more general than treewidth as it can be small for dense graphs where treewidth
-  is large
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

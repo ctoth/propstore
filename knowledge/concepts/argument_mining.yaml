@@ -1,8 +1,0 @@
-id: concept311
-canonical_name: argument_mining
-status: proposed
-definition: The computational task of automatically identifying and classifying arguments
-  in natural language text
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

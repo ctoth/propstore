@@ -1,8 +1,0 @@
-id: concept283
-canonical_name: maxichoice_contraction
-status: proposed
-definition: A contraction where the selection function always picks a single element
-  from the remainder set
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

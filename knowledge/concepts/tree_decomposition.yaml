@@ -1,9 +1,0 @@
-id: concept428
-canonical_name: tree_decomposition
-status: proposed
-definition: A mapping of a graph into a tree structure where each tree node contains
-  a subset of graph vertices called a bag, satisfying running intersection property,
-  used to exploit bounded treewidth for efficient dynamic programming
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

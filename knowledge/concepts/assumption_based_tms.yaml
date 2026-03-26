@@ -1,8 +1,0 @@
-id: concept255
-canonical_name: assumption_based_tms
-status: proposed
-definition: A truth maintenance system that tracks dependencies in terms of underlying
-  assumptions rather than direct justifications
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

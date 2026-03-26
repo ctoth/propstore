@@ -1,8 +1,0 @@
-id: concept268
-canonical_name: origin_tag
-status: proposed
-definition: 'A tag indicating how a proposition was introduced: hypothesis, derived,
-  or external'
-domain: argumentation
-created_date: '2026-03-22'
-form: structural

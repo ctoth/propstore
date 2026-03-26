@@ -1,8 +1,0 @@
-id: concept301
-canonical_name: concept_identifier
-status: proposed
-definition: A unique, unambiguous identifier for a concept, typically a URI, enabling
-  shared reference across systems and publications
-domain: semantic_web
-created_date: '2026-03-22'
-form: structural
