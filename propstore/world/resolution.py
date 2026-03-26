@@ -107,11 +107,16 @@ def _resolve_claim_graph_argumentation(
     if isinstance(result, frozenset):
         survivors = result & target_ids
     else:
-        # For preferred/stable, take intersection across all extensions
         if not result:
-            survivors = frozenset()
-        else:
-            survivors = frozenset.intersection(*result) & target_ids
+            if semantics == "stable":
+                return None, "no stable extensions"
+            return None, f"no {semantics} extensions"
+        survivors = frozenset.intersection(*result) & target_ids
+        if len(survivors) == 0:
+            credulous_survivors = frozenset().union(*result) & target_ids
+            if credulous_survivors:
+                return None, f"no skeptically accepted claim in {semantics} extensions"
+            return None, f"all target claims absent from every {semantics} extension"
 
     if len(survivors) == 0:
         return None, "all claims defeated"
@@ -169,9 +174,19 @@ def _resolve_structured_argumentation(
         survivor_args = result & target_arg_ids
     else:
         if not result:
-            survivor_args = frozenset()
-        else:
-            survivor_args = frozenset.intersection(*result) & target_arg_ids
+            if semantics == "stable":
+                return None, "no stable structured projection extensions"
+            return None, f"no {semantics} structured projection extensions"
+        survivor_args = frozenset.intersection(*result) & target_arg_ids
+        if len(survivor_args) == 0:
+            credulous_args = frozenset().union(*result) & target_arg_ids
+            if credulous_args:
+                return None, (
+                    f"no skeptically accepted claim in {semantics} structured projection"
+                )
+            return None, (
+                f"all target claims absent from every {semantics} structured projection"
+            )
 
     survivor_claims = {
         projection.argument_to_claim_id[arg_id]
