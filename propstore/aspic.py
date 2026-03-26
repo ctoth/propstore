@@ -12,6 +12,7 @@ References:
 
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Union
 
@@ -209,17 +210,21 @@ class ArgumentationSystem:
     defeasible_rules: frozenset[Rule]
 
 
-def _has_contradictory_antecedents(rule: Rule) -> bool:
-    """Check if a rule has a contradictory pair among its antecedents.
+def _is_degenerate_rule(rule: Rule) -> bool:
+    """Check if a strict rule is degenerate and should be excluded.
 
-    A rule with both φ and ~φ in its antecedents is degenerate: it can
-    only fire when contradictory information is already present, and its
-    transpositions will always produce rules where the consequent appears
-    in the antecedents (trivially true / ill-formed).
+    A rule is degenerate if it has a contradictory pair among its
+    antecedents (both φ and ~φ). Such rules can only fire when
+    contradictory information is already present, and their
+    transpositions produce ill-formed rules.
 
     Modgil & Prakken 2018, Def 12 (p.13): transposition closure requires
     well-formed rules. Rules with contradictory antecedent pairs cannot
     be properly closed under transposition.
+
+    Note: rules where an antecedent is the contrary of the consequent
+    (e.g., ~r, p -> ~p) are NOT degenerate — they are valid transpositions
+    needed for the rationality postulates (Thm 14, p.18: direct consistency).
     """
     antes = rule.antecedents
     for lit in antes:
@@ -266,7 +271,7 @@ def transposition_closure(
     # Filter out degenerate seed rules with contradictory antecedent pairs
     closed: set[Rule] = {
         r for r in rules
-        if not _has_contradictory_antecedents(r)
+        if not _is_degenerate_rule(r)
     }
     changed = True
     while changed:
@@ -296,19 +301,65 @@ def transposition_closure(
                     name=None,
                 )
                 # Skip rules with contradictory antecedent pairs
-                if _has_contradictory_antecedents(new_rule):
+                if _is_degenerate_rule(new_rule):
                     continue
                 if new_rule not in closed:
                     new_rules.add(new_rule)
                     changed = True
         closed.update(new_rules)
-    return frozenset(closed)
+
+    # Axiom consistency check (Def 12, p.13): verify that no single
+    # literal's strict closure is self-contradictory. If Cl_Rs({φ})
+    # contains ~φ for any φ in L, the rule set makes ANY knowledge base
+    # containing φ axiom-inconsistent. Such rule sets cannot form
+    # well-defined c-SAFs, so we prune to the empty set.
+    # This catches multi-step contradiction chains (e.g., ~p -> q, q -> p
+    # makes Cl_Rs({~p}) = {~p, q, p} which is inconsistent).
+    result = frozenset(closed)
+    for lit in language:
+        cl = strict_closure(frozenset({lit}), result)
+        if lit.contrary in cl:
+            return frozenset()
+    return result
+
+
+def strict_closure(
+    conclusions: frozenset[Literal],
+    strict_rules: frozenset[Rule],
+) -> frozenset[Literal]:
+    """Closure of literal set under strict rules.
+
+    Modgil & Prakken 2018, Def 3 (p.8).
+    Cl_Rs(S) = smallest superset of S closed under R_s.
+
+    If all antecedents of a strict rule are in the set, the consequent
+    is added. Iterates until fixpoint (no new literals produced).
+
+    Args:
+        conclusions: The initial set of literals to close.
+        strict_rules: The set of strict rules R_s.
+
+    Returns:
+        The smallest frozenset containing conclusions that is closed
+        under strict_rules.
+    """
+    result = set(conclusions)
+    changed = True
+    while changed:
+        changed = False
+        for rule in strict_rules:
+            if rule.kind == "strict" and all(a in result for a in rule.antecedents):
+                if rule.consequent not in result:
+                    result.add(rule.consequent)
+                    changed = True
+    return frozenset(result)
 
 
 # ── Computed property functions ───────────────────────────────────
 # All per Modgil & Prakken 2018, Def 5 (pp.9-10) unless noted.
 
 
+@functools.cache
 def conc(a: Argument) -> Literal:
     """Conclusion of argument. Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
@@ -318,6 +369,7 @@ def conc(a: Argument) -> Literal:
     raise TypeError(f"Unknown argument type: {type(a)}")
 
 
+@functools.cache
 def prem(a: Argument) -> frozenset[Literal]:
     """All premises (recursive). Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
@@ -327,6 +379,7 @@ def prem(a: Argument) -> frozenset[Literal]:
     raise TypeError(f"Unknown argument type: {type(a)}")
 
 
+@functools.cache
 def sub(a: Argument) -> frozenset[Argument]:
     """All sub-arguments including self. Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
@@ -336,6 +389,7 @@ def sub(a: Argument) -> frozenset[Argument]:
     raise TypeError(f"Unknown argument type: {type(a)}")
 
 
+@functools.cache
 def top_rule(a: Argument) -> Rule | None:
     """Top-level rule. None for PremiseArg. Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
@@ -345,6 +399,7 @@ def top_rule(a: Argument) -> Rule | None:
     raise TypeError(f"Unknown argument type: {type(a)}")
 
 
+@functools.cache
 def def_rules(a: Argument) -> frozenset[Rule]:
     """All defeasible rules used. Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
@@ -356,6 +411,7 @@ def def_rules(a: Argument) -> frozenset[Rule]:
     raise TypeError(f"Unknown argument type: {type(a)}")
 
 
+@functools.cache
 def last_def_rules(a: Argument) -> frozenset[Rule]:
     """Last defeasible rules before strict-only chain.
 
@@ -372,6 +428,7 @@ def last_def_rules(a: Argument) -> frozenset[Rule]:
     raise TypeError(f"Unknown argument type: {type(a)}")
 
 
+@functools.cache
 def prem_p(a: Argument) -> frozenset[Literal]:
     """Ordinary premises only (K_p members). Modgil & Prakken 2018, p.10."""
     if isinstance(a, PremiseArg):
@@ -529,29 +586,6 @@ def compute_attacks(
         b: sub(b) for b in arguments
     }
 
-    # Pre-compute which arguments have a defeasible sub-argument with
-    # the same conclusion (needed for rebutting eligibility).
-    # An argument whose conclusion is not defeasibly supported cannot
-    # participate as a rebutter: its conclusion derives from strict
-    # rules alone (relative to its defeasible sub-arguments), making
-    # it deductively certain at that level. Rebutting requires both
-    # sides to be defeasible (Pollock 1987, Def 2.4, p.485).
-    # Modgil & Prakken 2018, Def 11 (p.13): c-SAFs restrict to
-    # c-consistent arguments; arguments whose strict closure contradicts
-    # their own defeasible sub-conclusions are pathological.
-    def _has_defeasible_conclusion(a: Argument) -> bool:
-        """True if A has a defeasible sub-argument with same conclusion."""
-        c = conc(a)
-        for s in sub_cache[a]:
-            tr = top_rule(s)
-            if tr is not None and tr.kind == "defeasible" and conc(s) == c:
-                return True
-        return False
-
-    rebut_eligible: set[Argument] = {
-        a for a in arguments if _has_defeasible_conclusion(a)
-    }
-
     for a in arguments:
         conc_a = conc(a)
         for b in arguments:
@@ -571,25 +605,19 @@ def compute_attacks(
                         ))
 
                 # (b) Rebutting (Def 8b, p.11)
-                # Rebutting requires the attacker's conclusion to be
-                # defeasibly supported — i.e., A has a defeasible
-                # sub-argument with the same conclusion as A. This
-                # ensures the symmetric dialectical exchange that
-                # defines rebutting: both sides must be defeasible.
-                # Pollock 1987, Def 2.4 (p.485): rebutting defeaters
-                # are arguments whose conclusions conflict, where both
-                # conclusions arise from defeasible reasoning.
+                # A rebuts B on B' iff TopRule(B') is defeasible and
+                # Conc(A) is contrary or contradictory to Conc(B').
+                # No constraint on the attacker beyond its conclusion.
                 tr = top_rule(b_prime)
                 if tr is not None and tr.kind == "defeasible":
-                    if a in rebut_eligible:
-                        conc_b_prime = conc(b_prime)
-                        if (cfn.is_contrary(conc_a, conc_b_prime)
-                                or cfn.is_contradictory(
-                                    conc_a, conc_b_prime)):
-                            attacks.add(Attack(
-                                attacker=a, target=b,
-                                target_sub=b_prime, kind="rebutting",
-                            ))
+                    conc_b_prime = conc(b_prime)
+                    if (cfn.is_contrary(conc_a, conc_b_prime)
+                            or cfn.is_contradictory(
+                                conc_a, conc_b_prime)):
+                        attacks.add(Attack(
+                            attacker=a, target=b,
+                            target_sub=b_prime, kind="rebutting",
+                        ))
 
                     # (c) Undercutting (Def 8c, p.11)
                     # No attacker eligibility constraint — undercutting
