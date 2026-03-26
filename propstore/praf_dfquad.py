@@ -138,7 +138,10 @@ def compute_dfquad_strengths(
     # Evaluate in topological order (acyclic portion)
     for arg in topo_order:
         attacker_strs = [strengths[a] for a in attackers_of[arg]]
-        supporter_strs = [strengths[a] for a in supporters_of[arg]]
+        supporter_strs = [
+            min(1.0, max(0.0, strengths[a] * supports[(a, arg)]))
+            for a in supporters_of[arg]
+        ]
         combined = dfquad_combine(supporter_strs, attacker_strs)
         strengths[arg] = dfquad_aggregate(base_scores[arg], combined)
 
@@ -150,7 +153,10 @@ def compute_dfquad_strengths(
             max_delta = 0.0
             for arg in remaining:
                 attacker_strs = [strengths[a] for a in attackers_of[arg]]
-                supporter_strs = [strengths[a] for a in supporters_of[arg]]
+                supporter_strs = [
+                    min(1.0, max(0.0, strengths[a] * supports[(a, arg)]))
+                    for a in supporters_of[arg]
+                ]
                 combined = dfquad_combine(supporter_strs, attacker_strs)
                 new_strength = dfquad_aggregate(base_scores[arg], combined)
                 max_delta = max(max_delta, abs(new_strength - strengths[arg]))

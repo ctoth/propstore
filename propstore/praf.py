@@ -12,8 +12,11 @@ over the primitive semantic dependency graph.
 from __future__ import annotations
 
 import math
+import random as _random_mod
+from dataclasses import dataclass
 
 _Z_SCORES = {0.90: 1.645, 0.95: 1.960, 0.99: 2.576}
+_DETERMINISTIC_EPSILON = 1e-12
 
 
 def _z_for_confidence(confidence: float) -> float:
@@ -21,8 +24,6 @@ def _z_for_confidence(confidence: float) -> float:
     if confidence in _Z_SCORES:
         return _Z_SCORES[confidence]
     raise ValueError(f"Unsupported mc_confidence={confidence}; use 0.90, 0.95, or 0.99")
-import random as _random_mod
-from dataclasses import dataclass
 
 from propstore.dung import (
     ArgumentationFramework,
@@ -36,10 +37,6 @@ from propstore.probabilistic_relations import (
     ProbabilisticRelation,
     relation_from_row,
 )
-
-# Threshold for treating P_D as deterministic (all defeats certain).
-_DETERMINISTIC_THRESHOLD = 0.999
-
 
 @dataclass(frozen=True)
 class ProbabilisticAF:
@@ -226,15 +223,15 @@ def _is_deterministic_opinion(opinion: Opinion | None) -> bool:
         return True
     expectation = opinion.expectation()
     return (
-        expectation >= _DETERMINISTIC_THRESHOLD
-        or expectation <= (1.0 - _DETERMINISTIC_THRESHOLD)
+        expectation >= 1.0 - _DETERMINISTIC_EPSILON
+        or expectation <= _DETERMINISTIC_EPSILON
     )
 
 
 def _edge_is_present(opinion: Opinion | None) -> bool:
     if opinion is None:
         return True
-    return opinion.expectation() >= _DETERMINISTIC_THRESHOLD
+    return opinion.expectation() >= 1.0 - _DETERMINISTIC_EPSILON
 
 
 def _primitive_attacks(praf: ProbabilisticAF) -> frozenset[tuple[str, str]]:
@@ -311,6 +308,14 @@ def _all_structure_deterministic(praf: ProbabilisticAF) -> bool:
         if not _is_deterministic_opinion(opinion):
             return False
     return True
+
+
+def _public_exact_dp_enabled(
+    praf: ProbabilisticAF,
+    semantics: str,
+) -> bool:
+    """Gate public exact-DP routing until the backend is differential-safe."""
+    return False
 
 
 def _deterministic_world(
@@ -458,6 +463,8 @@ def compute_praf_acceptance(
     if strategy == "exact_enum":
         return _compute_exact_enumeration(praf, semantics)
     if strategy == "exact_dp":
+        if not _public_exact_dp_enabled(praf, semantics):
+            return _compute_exact_enumeration(praf, semantics)
         return _compute_exact_dp(praf, semantics)
     if strategy == "dfquad":
         return _compute_dfquad(praf, semantics)
@@ -484,7 +491,7 @@ def compute_praf_acceptance(
     from propstore.praf_treedecomp import estimate_treewidth
 
     tw = estimate_treewidth(praf.framework)
-    if tw <= treewidth_cutoff:
+    if tw <= treewidth_cutoff and _public_exact_dp_enabled(praf, semantics):
         return _compute_exact_dp(praf, semantics)
 
     # Default: MC
@@ -636,6 +643,7 @@ def _compute_mc(
     Min 30 samples before convergence check.
     """
     rng = _random_mod.Random(seed)
+    z = _z_for_confidence(confidence)
 
     # Decompose into connected components per Hunter & Thimm (2017, Prop 18)
     components = _connected_components(praf)
@@ -725,10 +733,13 @@ def _compute_mc(
             if n >= min_samples:
                 converged = True
                 for a in comp_args:
-                    p_hat = counts[a] / n
-                    # Required N per Agresti-Coull: N > 4*p*(1-p)/eps^2 - 4
-                    required_n = (4.0 * p_hat * (1.0 - p_hat)) / (epsilon ** 2) - 4.0
-                    if n <= required_n:
+                    adjusted_n = n + z * z
+                    adjusted_count = counts[a] + (z * z) / 2.0
+                    adjusted_p = adjusted_count / adjusted_n
+                    ci_half = z * math.sqrt(
+                        adjusted_p * (1.0 - adjusted_p) / adjusted_n
+                    )
+                    if ci_half > epsilon:
                         converged = False
                         break
                 if converged:
@@ -745,10 +756,13 @@ def _compute_mc(
 
         # Compute CI half-width for this component
         for a in comp_args:
-            p_hat = all_acceptance[a]
             if n > 0:
-                z = _z_for_confidence(confidence)
-                ci = z * math.sqrt(p_hat * (1.0 - p_hat) / n) if n > 1 else 1.0
+                adjusted_n = n + z * z
+                adjusted_count = counts[a] + (z * z) / 2.0
+                adjusted_p = adjusted_count / adjusted_n
+                ci = z * math.sqrt(
+                    adjusted_p * (1.0 - adjusted_p) / adjusted_n
+                )
                 max_ci_half = max(max_ci_half, ci)
 
     return PrAFResult(
@@ -916,8 +930,17 @@ def _compute_dfquad(
     """
     from propstore.praf_dfquad import compute_dfquad_strengths
 
+    if semantics != "grounded":
+        raise ValueError(
+            "DF-QuAD is a gradual semantics, not a Dung semantics label; "
+            "leave semantics at the default or use the dedicated DF-QuAD result."
+        )
+
     if supports is None:
         supports = {}
+        for edge in praf.supports:
+            opinion = _support_opinion(praf, edge)
+            supports[edge] = opinion.expectation() if opinion is not None else 1.0
 
     strengths = compute_dfquad_strengths(praf, supports)
 
@@ -926,5 +949,5 @@ def _compute_dfquad(
         strategy_used="dfquad",
         samples=None,
         confidence_interval_half=None,
-        semantics=semantics,
+        semantics="dfquad",
     )

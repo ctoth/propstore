@@ -464,11 +464,8 @@ class TestDPWitness:
 # 13. test_hybrid_dispatch_selects_dp
 # ===================================================================
 class TestHybridDispatch:
-    def test_hybrid_dispatch_selects_dp(self):
-        """AF with 20 arguments and low treewidth → auto strategy selects exact DP.
-
-        Per plan Section 2.4: medium AF with low treewidth → exact DP.
-        """
+    def test_hybrid_dispatch_selects_mc_when_exact_dp_is_gated(self):
+        """Auto should avoid the unsound public exact-DP route until fixed."""
         from propstore.praf import compute_praf_acceptance
 
         # Build a path graph with 20 nodes (treewidth 1)
@@ -479,7 +476,7 @@ class TestHybridDispatch:
         result = compute_praf_acceptance(
             praf, semantics="grounded", strategy="auto"
         )
-        assert result.strategy_used == "exact_dp"
+        assert result.strategy_used == "mc"
 
     # ---------------------------------------------------------------
     # 14. test_hybrid_dispatch_selects_mc

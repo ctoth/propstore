@@ -273,6 +273,75 @@ class TestPrAFDispatch:
         assert "A" in result.acceptance_probs
         assert "B" in result.acceptance_probs
 
+    def test_dfquad_dispatch_uses_praf_support_edges(self) -> None:
+        """Public DF-QuAD dispatch must consume the PrAF support relation.
+
+        Freedman-style gradual strengths are support-sensitive. A support-only
+        QBAF should not collapse to the target's base score when invoked through
+        compute_praf_acceptance().
+        """
+        from propstore.opinion import from_probability
+
+        af = ArgumentationFramework(arguments=frozenset({"A", "B"}), defeats=frozenset())
+        praf = ProbabilisticAF(
+            framework=af,
+            p_args={
+                "A": from_probability(0.9, 1000),
+                "B": from_probability(0.3, 1000),
+            },
+            p_defeats={},
+            supports=frozenset({("A", "B")}),
+            p_supports={("A", "B"): from_probability(0.8, 1000)},
+        )
+
+        direct = compute_dfquad_strengths(
+            praf,
+            {("A", "B"): praf.p_supports[("A", "B")].expectation()},
+        )
+        dispatched = compute_praf_acceptance(praf, strategy="dfquad")
+
+        assert dispatched.acceptance_probs["B"] == pytest.approx(direct["B"], abs=1e-9)
+        assert dispatched.acceptance_probs["B"] > praf.p_args["B"].expectation()
+
+    def test_dfquad_dispatch_respects_support_weight_changes(self) -> None:
+        """Changing support weight should change the target's gradual strength."""
+        from propstore.opinion import from_probability
+
+        af = ArgumentationFramework(arguments=frozenset({"A", "B"}), defeats=frozenset())
+        weak = ProbabilisticAF(
+            framework=af,
+            p_args={
+                "A": from_probability(0.9, 1000),
+                "B": from_probability(0.3, 1000),
+            },
+            p_defeats={},
+            supports=frozenset({("A", "B")}),
+            p_supports={("A", "B"): from_probability(0.2, 1000)},
+        )
+        strong = ProbabilisticAF(
+            framework=af,
+            p_args=weak.p_args,
+            p_defeats={},
+            supports=frozenset({("A", "B")}),
+            p_supports={("A", "B"): from_probability(0.9, 1000)},
+        )
+
+        weak_result = compute_praf_acceptance(weak, strategy="dfquad")
+        strong_result = compute_praf_acceptance(strong, strategy="dfquad")
+
+        assert strong_result.acceptance_probs["B"] > weak_result.acceptance_probs["B"]
+
+    def test_dfquad_rejects_irrelevant_dung_semantics_argument(self) -> None:
+        """DF-QuAD is a gradual semantics and should reject Dung labels."""
+        praf = _make_praf(["A", "B"], [("A", "B")], {"A": 0.8, "B": 0.6})
+
+        with pytest.raises(ValueError, match="DF-QuAD"):
+            compute_praf_acceptance(
+                praf,
+                strategy="dfquad",
+                semantics="stable",
+            )
+
 
 # ---------------------------------------------------------------------------
 # Test 10: DF-QuAD vs deterministic for extreme case
