@@ -256,3 +256,184 @@ def transposition_closure(
                     changed = True
         closed.update(new_rules)
     return frozenset(closed)
+
+
+# ── Computed property functions ───────────────────────────────────
+# All per Modgil & Prakken 2018, Def 5 (pp.9-10) unless noted.
+
+
+def conc(a: Argument) -> Literal:
+    """Conclusion of argument. Modgil & Prakken 2018, Def 5."""
+    if isinstance(a, PremiseArg):
+        return a.premise
+    if isinstance(a, (StrictArg, DefeasibleArg)):
+        return a.rule.consequent
+    raise TypeError(f"Unknown argument type: {type(a)}")
+
+
+def prem(a: Argument) -> frozenset[Literal]:
+    """All premises (recursive). Modgil & Prakken 2018, Def 5."""
+    if isinstance(a, PremiseArg):
+        return frozenset({a.premise})
+    if isinstance(a, (StrictArg, DefeasibleArg)):
+        return frozenset().union(*(prem(s) for s in a.sub_args))
+    raise TypeError(f"Unknown argument type: {type(a)}")
+
+
+def sub(a: Argument) -> frozenset[Argument]:
+    """All sub-arguments including self. Modgil & Prakken 2018, Def 5."""
+    if isinstance(a, PremiseArg):
+        return frozenset({a})
+    if isinstance(a, (StrictArg, DefeasibleArg)):
+        return frozenset({a}).union(*(sub(s) for s in a.sub_args))
+    raise TypeError(f"Unknown argument type: {type(a)}")
+
+
+def top_rule(a: Argument) -> Rule | None:
+    """Top-level rule. None for PremiseArg. Modgil & Prakken 2018, Def 5."""
+    if isinstance(a, PremiseArg):
+        return None
+    if isinstance(a, (StrictArg, DefeasibleArg)):
+        return a.rule
+    raise TypeError(f"Unknown argument type: {type(a)}")
+
+
+def def_rules(a: Argument) -> frozenset[Rule]:
+    """All defeasible rules used. Modgil & Prakken 2018, Def 5."""
+    if isinstance(a, PremiseArg):
+        return frozenset()
+    if isinstance(a, StrictArg):
+        return frozenset().union(*(def_rules(s) for s in a.sub_args))
+    if isinstance(a, DefeasibleArg):
+        return frozenset({a.rule}).union(*(def_rules(s) for s in a.sub_args))
+    raise TypeError(f"Unknown argument type: {type(a)}")
+
+
+def last_def_rules(a: Argument) -> frozenset[Rule]:
+    """Last defeasible rules before strict-only chain.
+
+    Modgil & Prakken 2018, p.10: LastDefRules returns the set of
+    defeasible rules at the boundary between defeasible and strict
+    inference in the argument tree.
+    """
+    if isinstance(a, PremiseArg):
+        return frozenset()
+    if isinstance(a, DefeasibleArg):
+        return frozenset({a.rule})
+    if isinstance(a, StrictArg):
+        return frozenset().union(*(last_def_rules(s) for s in a.sub_args))
+    raise TypeError(f"Unknown argument type: {type(a)}")
+
+
+def prem_p(a: Argument) -> frozenset[Literal]:
+    """Ordinary premises only (K_p members). Modgil & Prakken 2018, p.10."""
+    if isinstance(a, PremiseArg):
+        return frozenset() if a.is_axiom else frozenset({a.premise})
+    if isinstance(a, (StrictArg, DefeasibleArg)):
+        return frozenset().union(*(prem_p(s) for s in a.sub_args))
+    raise TypeError(f"Unknown argument type: {type(a)}")
+
+
+def is_firm(a: Argument) -> bool:
+    """True if all premises are axioms (K_n). Prakken 2010, Def 3.8."""
+    return len(prem_p(a)) == 0
+
+
+def is_strict(a: Argument) -> bool:
+    """True if no defeasible rules used. Prakken 2010, Def 3.8."""
+    return len(def_rules(a)) == 0
+
+
+# ── Argument construction ─────────────────────────────────────────
+
+
+def build_arguments(
+    system: ArgumentationSystem, kb: KnowledgeBase
+) -> frozenset[Argument]:
+    """Bottom-up fixpoint argument construction.
+
+    Modgil & Prakken 2018, Def 5 (pp.9-10); Prakken 2010, Def 3.6 (p.36).
+
+    1. Seed: create PremiseArg for each literal in K_n (axiom) and K_p (ordinary).
+    2. Index arguments by their conclusion literal.
+    3. Iterate until fixpoint: for each rule, enumerate all combinations of
+       existing arguments whose conclusions match the rule's antecedents,
+       and create the corresponding StrictArg or DefeasibleArg.
+    4. Return frozenset of all arguments.
+
+    Terminates because L is finite, bounding the number of distinct conclusions,
+    and arguments are deduplicated (frozen dataclasses are hashable).
+    """
+    import itertools
+
+    # Step 1: Seed with premise arguments
+    all_args: set[Argument] = set()
+    # Index: conclusion literal -> set of arguments with that conclusion
+    conc_index: dict[Literal, set[Argument]] = {}
+
+    def _add(arg: Argument) -> bool:
+        """Add argument to set and index. Returns True if new."""
+        if arg in all_args:
+            return False
+        all_args.add(arg)
+        c = conc(arg)
+        if c not in conc_index:
+            conc_index[c] = set()
+        conc_index[c].add(arg)
+        return True
+
+    for lit in kb.axioms:
+        _add(PremiseArg(premise=lit, is_axiom=True))
+    for lit in kb.premises:
+        _add(PremiseArg(premise=lit, is_axiom=False))
+
+    def _all_concs(arg: Argument) -> frozenset[Literal]:
+        """All conclusions reachable in the sub-argument tree."""
+        if isinstance(arg, PremiseArg):
+            return frozenset({arg.premise})
+        if isinstance(arg, (StrictArg, DefeasibleArg)):
+            return frozenset({arg.rule.consequent}).union(
+                *(_all_concs(s) for s in arg.sub_args)
+            )
+        return frozenset()  # pragma: no cover
+
+    # Step 2-3: Iterate until fixpoint
+    all_rules = list(system.strict_rules | system.defeasible_rules)
+    changed = True
+    while changed:
+        changed = False
+        for rule in all_rules:
+            # For each rule, get the sets of arguments matching each antecedent
+            ante_arg_sets = []
+            skip = False
+            for ante_lit in rule.antecedents:
+                args_for_lit = conc_index.get(ante_lit)
+                if not args_for_lit:
+                    skip = True
+                    break
+                ante_arg_sets.append(args_for_lit)
+            if skip:
+                continue
+
+            # Enumerate all combinations via Cartesian product
+            for combo in itertools.product(*ante_arg_sets):
+                # Acyclicity: the rule's consequent must not already
+                # appear as a conclusion in any sub-argument tree.
+                # This prevents infinite nesting from rule cycles
+                # (e.g., p->q, q->p producing ever-deeper arguments).
+                # ASPIC+ arguments are finite trees (Def 5); a conclusion
+                # appearing in a sub-argument would create a cycle.
+                combo_concs = frozenset().union(
+                    *(_all_concs(s) for s in combo)
+                )
+                if rule.consequent in combo_concs:
+                    continue
+
+                if rule.kind == "strict":
+                    new_arg = StrictArg(sub_args=combo, rule=rule)
+                else:
+                    new_arg = DefeasibleArg(sub_args=combo, rule=rule)
+                if _add(new_arg):
+                    changed = True
+
+    return frozenset(all_args)
