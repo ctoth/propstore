@@ -355,6 +355,25 @@ def strict_closure(
     return frozenset(result)
 
 
+@functools.cache
+def is_c_consistent(
+    literals: frozenset[Literal],
+    strict_rules: frozenset[Rule],
+    contrariness: ContrarinessFn,
+) -> bool:
+    """Whether a set of literals is c-consistent.
+
+    Modgil & Prakken 2018, Def 6 (p.10): a set S is c-consistent iff
+    its strict closure does not derive conflicting literals.
+    """
+    closed = tuple(sorted(strict_closure(literals, strict_rules), key=repr))
+    for i, left in enumerate(closed):
+        for right in closed[i + 1:]:
+            if contrariness.is_contrary(left, right) or contrariness.is_contrary(right, left):
+                return False
+    return True
+
+
 # ── Computed property functions ───────────────────────────────────
 # All per Modgil & Prakken 2018, Def 5 (pp.9-10) unless noted.
 
@@ -454,16 +473,18 @@ def is_strict(a: Argument) -> bool:
 def build_arguments(
     system: ArgumentationSystem, kb: KnowledgeBase
 ) -> frozenset[Argument]:
-    """Bottom-up fixpoint argument construction.
+    """Bottom-up c-consistent argument construction.
 
-    Modgil & Prakken 2018, Def 5 (pp.9-10); Prakken 2010, Def 3.6 (p.36).
+    Modgil & Prakken 2018, Def 5 (pp.9-10), Def 7 (p.11);
+    Prakken 2010, Def 3.6 (p.36).
 
     1. Seed: create PremiseArg for each literal in K_n (axiom) and K_p (ordinary).
     2. Index arguments by their conclusion literal.
     3. Iterate until fixpoint: for each rule, enumerate all combinations of
        existing arguments whose conclusions match the rule's antecedents,
        and create the corresponding StrictArg or DefeasibleArg.
-    4. Return frozenset of all arguments.
+    4. Keep only c-consistent arguments: A is included iff Prem(A) is
+       c-consistent under the strict rules.
 
     Terminates because L is finite, bounding the number of distinct conclusions,
     and arguments are deduplicated (frozen dataclasses are hashable).
@@ -475,8 +496,19 @@ def build_arguments(
     # Index: conclusion literal -> set of arguments with that conclusion
     conc_index: dict[Literal, set[Argument]] = {}
 
+    consistency_cache: dict[frozenset[Literal], bool] = {}
+
     def _add(arg: Argument) -> bool:
         """Add argument to set and index. Returns True if new."""
+        premises = prem(arg)
+        if premises not in consistency_cache:
+            consistency_cache[premises] = is_c_consistent(
+                premises,
+                system.strict_rules,
+                system.contrariness,
+            )
+        if not consistency_cache[premises]:
+            return False
         if arg in all_args:
             return False
         all_args.add(arg)

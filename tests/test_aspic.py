@@ -33,7 +33,7 @@ from propstore.aspic import (
     _set_strictly_less,
     conc, prem, sub, top_rule,
     def_rules, last_def_rules, prem_p, is_firm, is_strict,
-    CSAF, strict_closure,
+    CSAF, is_c_consistent, strict_closure,
 )
 from propstore.dung import (
     ArgumentationFramework,
@@ -607,6 +607,43 @@ def knowledge_base(draw, language, strict_rules, defeasible_rules):
     return KnowledgeBase(axioms=K_n, premises=K_p)
 
 
+@st.composite
+def well_defined_knowledge_base(draw, language, strict_rules, defeasible_rules, contrariness):
+    """Generate a KB whose axioms and full base are c-consistent."""
+    L_list = sorted(language, key=repr)
+    all_rules = list(strict_rules) + list(defeasible_rules)
+
+    forced_premises: frozenset[Literal] = frozenset()
+    candidate_rules = [
+        rule for rule in all_rules
+        if is_c_consistent(frozenset(rule.antecedents), strict_rules, contrariness)
+    ]
+    if candidate_rules:
+        target = draw(st.sampled_from(candidate_rules))
+        forced_premises = frozenset(target.antecedents)
+
+    extra_kp = draw(
+        st.frozensets(st.sampled_from(L_list), max_size=4)
+    )
+    K_p = forced_premises | extra_kp
+
+    K_n_candidates = draw(
+        st.frozensets(st.sampled_from(L_list), max_size=2)
+    )
+    K_n = frozenset()
+    for lit in K_n_candidates:
+        if lit in K_p:
+            continue
+        tentative = K_n | {lit}
+        if (
+            is_c_consistent(tentative, strict_rules, contrariness)
+            and is_c_consistent(tentative | K_p, strict_rules, contrariness)
+        ):
+            K_n = tentative
+
+    return KnowledgeBase(axioms=K_n, premises=K_p)
+
+
 # ── Phase 3: Argument construction property tests ─────────────────
 
 
@@ -698,6 +735,19 @@ class TestArgumentConstructionProperties:
             assert prem(arg) <= all_kb, (
                 f"prem({arg}) = {prem(arg)} not subset of K = {all_kb}"
             )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_every_built_argument_is_c_consistent(self, data):
+        """Public build_arguments() should emit only c-consistent arguments."""
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        for arg in arguments:
+            assert is_c_consistent(prem(arg), system.strict_rules, system.contrariness)
 
     @given(data=st.data())
     @settings(max_examples=200, deadline=None)
@@ -854,7 +904,8 @@ class TestArgumentConstructionProperties:
 
         This is the non-triviality guarantee from the knowledge_base
         strategy: it forces at least one rule's antecedents into K_p,
-        ensuring build_arguments produces compound arguments.
+        ensuring build_arguments produces compound arguments when a
+        c-consistent rule antecedent set is available.
         See reports/hypothesis-aspic-feasibility.md Section 3, Level 4.
         """
         L, cfn = data.draw(logical_language())
@@ -865,6 +916,15 @@ class TestArgumentConstructionProperties:
         system = ArgumentationSystem(L, cfn, R_s, R_d)
         kb = data.draw(knowledge_base(L, R_s, R_d))
         arguments = build_arguments(system, kb)
+        assume(any(
+            frozenset(rule.antecedents) <= (kb.axioms | kb.premises)
+            and is_c_consistent(
+                frozenset(rule.antecedents),
+                system.strict_rules,
+                system.contrariness,
+            )
+            for rule in all_rules
+        ))
         non_premise = [
             a for a in arguments if not isinstance(a, PremiseArg)
         ]
@@ -940,6 +1000,49 @@ class TestArgumentConstructionConcrete:
         assert conc(compound) == r, (
             f"Expected conc = r, got {conc(compound)}"
         )
+
+    def test_c_inconsistent_argument_is_not_constructed(self):
+        """An argument with c-inconsistent premises must be excluded."""
+        p = Literal("p")
+        not_p = p.contrary
+        q = Literal("q")
+        not_q = q.contrary
+        r = Literal("r")
+        not_r = r.contrary
+
+        L = frozenset({p, not_p, q, not_q, r, not_r})
+        cfn = ContrarinessFn(contradictories=frozenset({
+            (p, not_p), (q, not_q), (r, not_r),
+        }))
+        strict_rules = transposition_closure(
+            frozenset({
+                Rule((p,), q, "strict"),
+                Rule((not_q,), not_p, "strict"),
+                Rule((p, not_q), r, "strict"),
+            }),
+            L,
+            cfn,
+        )
+        system = ArgumentationSystem(
+            language=L,
+            contrariness=cfn,
+            strict_rules=strict_rules,
+            defeasible_rules=frozenset(),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset({not_q}),
+            premises=frozenset({p}),
+        )
+
+        arguments = build_arguments(system, kb)
+        inconsistent_arg = StrictArg(
+            sub_args=(
+                PremiseArg(premise=p, is_axiom=False),
+                PremiseArg(premise=not_q, is_axiom=True),
+            ),
+            rule=Rule((p, not_q), r, "strict"),
+        )
+        assert inconsistent_arg not in arguments
 
 
 # ── Phase 4: Attack determination property tests ─────────────────
@@ -1884,12 +1987,12 @@ class TestDefeatConcrete:
 def well_formed_csaf(draw, max_atoms=4, max_strict=3, max_defeasible=4):
     """Generate a well-formed c-SAF per Modgil & Prakken 2018, Def 12.
 
-    Chains: logical_language -> strict_rules -> defeasible_rules -> knowledge_base
+    Chains: logical_language -> strict_rules -> defeasible_rules -> well_defined_knowledge_base
     Then runs: build_arguments -> compute_attacks -> compute_defeats
     Finally emits: dung.ArgumentationFramework for extension computation.
 
     Guarantees:
-    - Axiom consistency (K_n contains no formula and its contrary)
+    - Axiom consistency (Cl_Rs(K_n) is c-consistent)
     - Well-formed contrariness (contradictories symmetric)
     - Transposition closure (R_s = Cl(R_s))
     - At least one non-premise argument (non-triviality)
@@ -1901,7 +2004,7 @@ def well_formed_csaf(draw, max_atoms=4, max_strict=3, max_defeasible=4):
     R_s = draw(strict_rules(L, cfn, max_rules=max_strict))
     R_d = draw(defeasible_rules(L, max_rules=max_defeasible))
     system = ArgumentationSystem(L, cfn, R_s, R_d)
-    kb = draw(knowledge_base(L, R_s, R_d))
+    kb = draw(well_defined_knowledge_base(L, R_s, R_d, cfn))
     pref = draw(preference_config(R_d, kb.premises))
 
     # Computed (not drawn)
