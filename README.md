@@ -820,7 +820,7 @@ pks world algorithms [--stage S]  List algorithm claims
 
 ## Integration with research-papers-plugin
 
-propstore consumes claims extracted by the [research-papers-plugin](../research-papers-plugin). The concept-first workflow:
+propstore consumes claims extracted by the [research-papers-plugin](https://github.com/ctoth/research-papers-plugin). The concept-first workflow:
 
 1. **Read papers** — `paper-reader` skill extracts structured notes from PDFs
 2. **Extract claims** — `extract-claims` skill reads the concept registry, creates missing concepts via `pks concept add`, then produces `claims.yaml` referencing only registered concepts
