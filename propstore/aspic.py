@@ -169,6 +169,35 @@ class KnowledgeBase:
 
 
 @dataclass(frozen=True)
+class PreferenceConfig:
+    """Configuration for preference-based defeat filtering.
+
+    Modgil & Prakken 2018, Defs 19-21 (p.21).
+
+    Defeat filtering uses preference orderings to determine when attacks
+    succeed as defeats. Undercutting always succeeds (Def 9, p.12).
+    Rebutting and undermining succeed only when the attacker is not
+    strictly weaker than the targeted sub-argument (Def 9, p.12).
+
+    The preference ordering over arguments is derived from orderings
+    over rules and premises via set comparison (Def 19) and either
+    last-link (Def 20) or weakest-link (Def 21) principles.
+
+    Attributes:
+        rule_order: Pairs (weaker, stronger) of defeasible rules forming
+            a strict partial order (irreflexive, transitive). Def 22 (p.22).
+        premise_order: Pairs (weaker, stronger) of ordinary premises forming
+            a strict partial order (irreflexive, transitive). Def 22 (p.22).
+        comparison: Set comparison mode — "elitist" or "democratic" (Def 19, p.21).
+        link: Preference principle — "last" or "weakest" (Defs 20-21, p.21).
+    """
+    rule_order: frozenset[tuple[Rule, Rule]]      # (weaker, stronger) pairs
+    premise_order: frozenset[tuple[Literal, Literal]]  # (weaker, stronger) pairs
+    comparison: str  # "elitist" or "democratic"
+    link: str        # "last" or "weakest"
+
+
+@dataclass(frozen=True)
 class ArgumentationSystem:
     """AS = (L, contrariness, R_s, R_d, n). Modgil & Prakken 2018, Def 2."""
     language: frozenset[Literal]

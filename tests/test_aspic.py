@@ -28,8 +28,9 @@ from hypothesis import strategies as st
 from propstore.aspic import (
     Literal, ContrarinessFn, Rule, transposition_closure,
     PremiseArg, StrictArg, DefeasibleArg, Argument, Attack,
-    KnowledgeBase, ArgumentationSystem,
-    build_arguments, compute_attacks, conc, prem, sub, top_rule,
+    KnowledgeBase, ArgumentationSystem, PreferenceConfig,
+    build_arguments, compute_attacks, compute_defeats,
+    conc, prem, sub, top_rule,
     def_rules, last_def_rules, prem_p, is_firm, is_strict,
 )
 
@@ -1279,4 +1280,478 @@ class TestAttackConcrete:
         )
         assert expected in attacks, (
             f"Expected undercutting attack {expected} not found in {attacks}"
+        )
+
+
+# ── Phase 5: Preference ordering strategy ─────────────────────────
+
+
+@st.composite
+def preference_config(draw, defeasible_rules_set, premises):
+    """Generate a preference ordering configuration.
+
+    Modgil & Prakken 2018, Defs 19-21 (p.21).
+    Def 22 (p.22): the inducing ordering must be a strict partial order
+    (irreflexive and transitive).
+
+    Generates random partial orderings over rules and premises by:
+    1. Drawing a random subset of pairs.
+    2. Ensuring irreflexivity (no self-pairs).
+    3. Computing transitive closure.
+    4. Checking for cycles; if cyclic, falling back to empty ordering.
+    """
+    # Build rule ordering: random subset of (weaker, stronger) pairs
+    rules_list = sorted(defeasible_rules_set, key=repr)
+    rule_pairs: set[tuple[Rule, Rule]] = set()
+    if len(rules_list) >= 2:
+        n_pairs = draw(st.integers(min_value=0, max_value=len(rules_list)))
+        for _ in range(n_pairs):
+            r1 = draw(st.sampled_from(rules_list))
+            r2 = draw(st.sampled_from(rules_list))
+            if r1 != r2:  # irreflexivity
+                rule_pairs.add((r1, r2))
+        # Transitive closure
+        rule_pairs = _transitive_closure_pairs(rule_pairs)
+        # Check for cycles (antisymmetry): if (a,b) and (b,a) both in set, discard all
+        if _has_cycle(rule_pairs):
+            rule_pairs = set()
+
+    # Build premise ordering: random subset of (weaker, stronger) pairs
+    prem_list = sorted(premises, key=repr)
+    prem_pairs: set[tuple[Literal, Literal]] = set()
+    if len(prem_list) >= 2:
+        n_pairs = draw(st.integers(min_value=0, max_value=len(prem_list)))
+        for _ in range(n_pairs):
+            p1 = draw(st.sampled_from(prem_list))
+            p2 = draw(st.sampled_from(prem_list))
+            if p1 != p2:  # irreflexivity
+                prem_pairs.add((p1, p2))
+        # Transitive closure
+        prem_pairs = _transitive_closure_pairs(prem_pairs)
+        # Check for cycles
+        if _has_cycle(prem_pairs):
+            prem_pairs = set()
+
+    comparison = draw(st.sampled_from(["elitist", "democratic"]))
+    link = draw(st.sampled_from(["last", "weakest"]))
+
+    return PreferenceConfig(
+        rule_order=frozenset(rule_pairs),
+        premise_order=frozenset(prem_pairs),
+        comparison=comparison,
+        link=link,
+    )
+
+
+def _transitive_closure_pairs(pairs):
+    """Compute transitive closure of a set of (a, b) pairs."""
+    closed = set(pairs)
+    changed = True
+    while changed:
+        changed = False
+        new = set()
+        for a, b in closed:
+            for c, d in closed:
+                if b == c and (a, d) not in closed and a != d:
+                    new.add((a, d))
+        if new:
+            closed.update(new)
+            changed = True
+    return closed
+
+
+def _has_cycle(pairs):
+    """Check if a set of (a, b) pairs contains a cycle (a,b) and (b,a)."""
+    for a, b in pairs:
+        if (b, a) in pairs:
+            return True
+    return False
+
+
+# ── Phase 5: Defeat property tests ────────────────────────────────
+
+
+class TestDefeatProperties:
+    """Property tests for defeat filtering via preference orderings.
+
+    Modgil & Prakken 2018:
+    - Def 9 (p.12): when attacks succeed as defeats
+    - Def 19 (p.21): Elitist and Democratic set comparison
+    - Def 20 (p.21): Last-link principle
+    - Def 21 (p.21): Weakest-link principle
+    """
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_undercutting_always_defeats(self, data):
+        """Every undercutting attack is a defeat regardless of preference ordering.
+
+        Modgil & Prakken 2018, Def 9 (p.12): undercutting attacks are
+        preference-independent — they always succeed as defeats.
+        Pollock 1987, Def 2.5 (p.485): undercutting defeats the
+        connection between premise and conclusion.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        pref = data.draw(preference_config(R_d, kb.premises))
+        defeats = compute_defeats(attacks, arguments, system, kb, pref)
+
+        # Every undercutting attack must appear in defeats
+        undercutting_attacks = {
+            (atk.attacker, atk.target)
+            for atk in attacks if atk.kind == "undercutting"
+        }
+        defeat_pairs = {(d.attacker, d.target) for d in defeats}
+        for pair in undercutting_attacks:
+            assert pair in defeat_pairs, (
+                f"Undercutting attack {pair} not in defeats — "
+                f"undercutting must always succeed (Def 9, p.12)"
+            )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_defeats_subset_of_attacks(self, data):
+        """Every defeat (a,b) corresponds to an attack from a on b.
+
+        Modgil & Prakken 2018, Def 9 (p.12): defeats are a subset
+        of attacks — an attack must exist for a defeat to occur.
+        Defeats ⊆ Attacks.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        pref = data.draw(preference_config(R_d, kb.premises))
+        defeats = compute_defeats(attacks, arguments, system, kb, pref)
+
+        attack_pairs = {
+            (atk.attacker, atk.target, atk.target_sub)
+            for atk in attacks
+        }
+        for d in defeats:
+            assert (d.attacker, d.target, d.target_sub) in attack_pairs, (
+                f"Defeat {d} has no corresponding attack"
+            )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_empty_ordering_all_attacks_defeat(self, data):
+        """With empty rule_order and premise_order, every attack succeeds as defeat.
+
+        Modgil & Prakken 2018, Def 9 (p.12): rebutting/undermining succeed
+        when the attacker is NOT strictly weaker. With no preference ordering,
+        no argument is strictly weaker than any other, so all attacks succeed.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        empty_pref = PreferenceConfig(
+            rule_order=frozenset(),
+            premise_order=frozenset(),
+            comparison="elitist",
+            link="last",
+        )
+        defeats = compute_defeats(attacks, arguments, system, kb, empty_pref)
+
+        attack_triples = {
+            (atk.attacker, atk.target, atk.target_sub)
+            for atk in attacks
+        }
+        defeat_triples = {
+            (d.attacker, d.target, d.target_sub)
+            for d in defeats
+        }
+        assert attack_triples == defeat_triples, (
+            f"With empty preferences, defeats should equal attacks. "
+            f"Missing: {attack_triples - defeat_triples}"
+        )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_defeat_is_directed(self, data):
+        """If (a,b) is a defeat, it means a defeats b — directionality is preserved.
+
+        Modgil & Prakken 2018, Def 9 (p.12): defeat is a directed relation.
+        The attacker and target roles must be consistent with the attack.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        pref = data.draw(preference_config(R_d, kb.premises))
+        defeats = compute_defeats(attacks, arguments, system, kb, pref)
+
+        for d in defeats:
+            # The defeat must correspond to an attack in the same direction
+            matching_attack = any(
+                atk.attacker == d.attacker
+                and atk.target == d.target
+                and atk.target_sub == d.target_sub
+                for atk in attacks
+            )
+            assert matching_attack, (
+                f"Defeat from {d.attacker} to {d.target} has no matching "
+                f"attack in the same direction"
+            )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_last_link_irreflexive(self, data):
+        """No argument is strictly weaker than itself under last-link.
+
+        Modgil & Prakken 2018, Def 20 (p.21): the last-link principle
+        derives argument orderings from rule/premise orderings. Since the
+        inducing ordering is irreflexive (Def 22, p.22), no argument
+        can be strictly weaker than itself.
+
+        Consequence: if A attacks itself, the attack always succeeds
+        (A is not strictly weaker than A).
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        pref = data.draw(preference_config(R_d, kb.premises))
+        # Force last-link
+        pref_last = PreferenceConfig(
+            rule_order=pref.rule_order,
+            premise_order=pref.premise_order,
+            comparison=pref.comparison,
+            link="last",
+        )
+        defeats = compute_defeats(attacks, arguments, system, kb, pref_last)
+
+        # Every self-attack must succeed as a self-defeat
+        for atk in attacks:
+            if atk.attacker == atk.target:
+                assert any(
+                    d.attacker == atk.attacker and d.target == atk.target
+                    for d in defeats
+                ), (
+                    f"Self-attack {atk} should succeed as defeat under "
+                    f"last-link (irreflexivity: A not < A)"
+                )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_weakest_link_irreflexive(self, data):
+        """No argument is strictly weaker than itself under weakest-link.
+
+        Modgil & Prakken 2018, Def 21 (p.21): same irreflexivity
+        property as last-link, but under the weakest-link principle.
+        Def 22 (p.22): inducing ordering is irreflexive.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        pref = data.draw(preference_config(R_d, kb.premises))
+        # Force weakest-link
+        pref_weakest = PreferenceConfig(
+            rule_order=pref.rule_order,
+            premise_order=pref.premise_order,
+            comparison=pref.comparison,
+            link="weakest",
+        )
+        defeats = compute_defeats(attacks, arguments, system, kb, pref_weakest)
+
+        # Every self-attack must succeed as a self-defeat
+        for atk in attacks:
+            if atk.attacker == atk.target:
+                assert any(
+                    d.attacker == atk.attacker and d.target == atk.target
+                    for d in defeats
+                ), (
+                    f"Self-attack {atk} should succeed as defeat under "
+                    f"weakest-link (irreflexivity: A not < A)"
+                )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_firm_strict_never_defeated(self, data):
+        """If A is firm+strict, no argument B can defeat A.
+
+        Modgil & Prakken 2018, Def 18 (p.16): firm+strict arguments
+        are never strictly weaker than any argument. Since they have
+        no ordinary premises and no defeasible rules, they cannot be
+        targets of undermining, rebutting, or undercutting attacks.
+
+        Consequence of Def 18 conditions 1.i and 1.ii: strict+firm
+        arguments dominate all plausible/defeasible arguments, and
+        are never dominated.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        pref = data.draw(preference_config(R_d, kb.premises))
+        defeats = compute_defeats(attacks, arguments, system, kb, pref)
+
+        for d in defeats:
+            assert not (is_firm(d.target) and is_strict(d.target)), (
+                f"Firm+strict argument {d.target} appears as defeat target — "
+                f"firm+strict arguments cannot be defeated (Def 18, p.16)"
+            )
+
+
+class TestDefeatConcrete:
+    """Hand-constructed examples for defeat with preferences.
+
+    Modgil & Prakken 2018, Def 9 (p.12), Defs 19-21 (p.21).
+    """
+
+    def test_stronger_rebutter_defeats(self):
+        """Two defeasible arguments for contradictory conclusions.
+        Give one a stronger rule ordering. The stronger defeats the weaker,
+        not vice versa.
+
+        Modgil & Prakken 2018, Def 9 (p.12): rebutting succeeds as defeat
+        iff the attacker is NOT strictly weaker than the targeted sub-argument.
+        If B prec A (B is weaker), then B's rebutting attack on A fails,
+        but A's rebutting attack on B succeeds.
+        """
+        p = Literal("p")
+        not_p = p.contrary
+        q = Literal("q")
+        not_q = q.contrary
+
+        L = frozenset({p, not_p, q, not_q})
+        cfn = ContrarinessFn(contradictories=frozenset({
+            (p, not_p), (q, not_q),
+        }))
+
+        # Two defeasible rules: both from p, one to q, one to ~q
+        rule_strong = Rule(
+            antecedents=(p,), consequent=q,
+            kind="defeasible", name="d_strong",
+        )
+        rule_weak = Rule(
+            antecedents=(p,), consequent=not_q,
+            kind="defeasible", name="d_weak",
+        )
+
+        system = ArgumentationSystem(
+            language=L, contrariness=cfn,
+            strict_rules=frozenset(),
+            defeasible_rules=frozenset({rule_strong, rule_weak}),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset(),
+            premises=frozenset({p}),
+        )
+
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+
+        # Preference: rule_weak < rule_strong (weak is strictly weaker)
+        pref = PreferenceConfig(
+            rule_order=frozenset({(rule_weak, rule_strong)}),
+            premise_order=frozenset(),
+            comparison="elitist",
+            link="last",
+        )
+        defeats = compute_defeats(attacks, arguments, system, kb, pref)
+
+        prem_p_arg = PremiseArg(premise=p, is_axiom=False)
+        arg_q = DefeasibleArg(sub_args=(prem_p_arg,), rule=rule_strong)
+        arg_not_q = DefeasibleArg(sub_args=(prem_p_arg,), rule=rule_weak)
+
+        # Strong defeats weak (A's attack on B succeeds: A not < B)
+        defeat_pairs = {(d.attacker, d.target) for d in defeats}
+        assert (arg_q, arg_not_q) in defeat_pairs, (
+            f"Stronger argument should defeat weaker. "
+            f"Defeats: {defeat_pairs}"
+        )
+        # Weak does NOT defeat strong (B's attack on A fails: B < A)
+        assert (arg_not_q, arg_q) not in defeat_pairs, (
+            f"Weaker argument should not defeat stronger. "
+            f"Defeats: {defeat_pairs}"
+        )
+
+    def test_equal_strength_mutual_defeat(self):
+        """Two equally-ranked defeasible arguments with contradictory conclusions.
+        Both attacks succeed as defeats (neither is strictly weaker).
+
+        Modgil & Prakken 2018, Def 9 (p.12): rebutting succeeds iff
+        A is NOT strictly weaker. If neither is weaker (equal or
+        incomparable), both attacks succeed as mutual defeats.
+        """
+        p = Literal("p")
+        not_p = p.contrary
+        q = Literal("q")
+        not_q = q.contrary
+
+        L = frozenset({p, not_p, q, not_q})
+        cfn = ContrarinessFn(contradictories=frozenset({
+            (p, not_p), (q, not_q),
+        }))
+
+        rule_a = Rule(
+            antecedents=(p,), consequent=q,
+            kind="defeasible", name="d_a",
+        )
+        rule_b = Rule(
+            antecedents=(p,), consequent=not_q,
+            kind="defeasible", name="d_b",
+        )
+
+        system = ArgumentationSystem(
+            language=L, contrariness=cfn,
+            strict_rules=frozenset(),
+            defeasible_rules=frozenset({rule_a, rule_b}),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset(),
+            premises=frozenset({p}),
+        )
+
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+
+        # Empty preference: neither rule is weaker
+        pref = PreferenceConfig(
+            rule_order=frozenset(),
+            premise_order=frozenset(),
+            comparison="elitist",
+            link="last",
+        )
+        defeats = compute_defeats(attacks, arguments, system, kb, pref)
+
+        prem_p_arg = PremiseArg(premise=p, is_axiom=False)
+        arg_q = DefeasibleArg(sub_args=(prem_p_arg,), rule=rule_a)
+        arg_not_q = DefeasibleArg(sub_args=(prem_p_arg,), rule=rule_b)
+
+        defeat_pairs = {(d.attacker, d.target) for d in defeats}
+        # Both directions should be defeats (mutual defeat)
+        assert (arg_q, arg_not_q) in defeat_pairs, (
+            f"Equal-strength: arg_q should defeat arg_not_q. "
+            f"Defeats: {defeat_pairs}"
+        )
+        assert (arg_not_q, arg_q) in defeat_pairs, (
+            f"Equal-strength: arg_not_q should defeat arg_q. "
+            f"Defeats: {defeat_pairs}"
         )
