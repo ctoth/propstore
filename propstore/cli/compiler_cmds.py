@@ -5,6 +5,7 @@ import json
 import re
 import sqlite3
 import sys
+import unicodedata
 from pathlib import Path
 
 import click
@@ -353,6 +354,24 @@ def _resolve_concept_refs(
     return claim, resolved, unresolved
 
 
+def _sanitize_claim_source_prefix(source_name: str) -> str:
+    """Normalize a paper/source name into a validator-safe claim ID prefix.
+
+    Claim validation currently accepts ASCII letters/digits/underscore/hyphen/
+    apostrophe in the optional ``source:`` prefix. Imported paper directory names
+    may contain Unicode punctuation, spaces, or other filesystem-safe but
+    validator-unsafe characters. Preserve the name as much as possible while
+    guaranteeing a valid prefix.
+    """
+    normalized = unicodedata.normalize("NFKC", source_name)
+    sanitized = re.sub(r"[^A-Za-z0-9_'\-]+", "_", normalized).strip("_")
+    if not sanitized:
+        return "source"
+    if not sanitized[0].isalnum():
+        sanitized = f"source_{sanitized}"
+    return sanitized
+
+
 @click.command("import-papers")
 @click.option(
     "--papers-root",
@@ -420,12 +439,13 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
             source = {}
             data["source"] = source
         source_name = source_path.parent.name
+        source_prefix = _sanitize_claim_source_prefix(source_name)
         source["paper"] = source_name
         # Prefix claim IDs with knowledge source for global uniqueness
         for claim in data.get("claims", []) or []:
             if isinstance(claim, dict):
                 if "id" in claim and ":" not in claim["id"]:
-                    claim["id"] = f"{source_name}:{claim['id']}"
+                    claim["id"] = f"{source_prefix}:{claim['id']}"
                 total_claims += 1
                 # Prefix inline stance targets only if they reference
                 # claims within this same file (local IDs)
@@ -438,7 +458,7 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
                     if isinstance(stance, dict):
                         target = stance.get("target")
                         if target and ":" not in target and target in local_ids:
-                            stance["target"] = f"{source_name}:{target}"
+                            stance["target"] = f"{source_prefix}:{target}"
                 # Resolve concept names to IDs
                 _, r, u = _resolve_concept_refs(claim, name_to_id)
                 total_resolved += r

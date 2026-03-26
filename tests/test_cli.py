@@ -1046,6 +1046,33 @@ class TestImportPapersSourcePrefix:
         stance = data["claims"][0]["stances"][0]
         assert stance["target"] == "PaperC_2022_Baz:claim2"
 
+    def test_sanitizes_validator_unsafe_source_prefix(self, workspace):
+        """Unicode punctuation in paper dir names must be normalized for claim IDs."""
+        papers = workspace / "papers"
+        paper = papers / "McNeil_2018_EffectAspirinAll‐CauseMortality"
+        paper.mkdir(parents=True)
+        claim_data = {
+            "source": {"paper": "McNeil_2018_EffectAspirinAll‐CauseMortality"},
+            "claims": [{
+                "id": "claim1",
+                "type": "observation",
+                "statement": "Mortality signal.",
+                "concepts": ["fundamental_frequency"],
+                "provenance": {"paper": "McNeil_2018_EffectAspirinAll‐CauseMortality", "page": 1},
+            }],
+        }
+        (paper / "claims.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False))
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["import-papers", "--papers-root", str(papers)])
+        assert result.exit_code == 0, f"Import failed: {result.output}"
+
+        claims_dir = workspace / "knowledge" / "claims"
+        with open(claims_dir / "McNeil_2018_EffectAspirinAll‐CauseMortality.yaml") as f:
+            data = yaml.safe_load(f)
+        assert data["claims"][0]["id"] == "McNeil_2018_EffectAspirinAll_CauseMortality:claim1"
+
 
 class TestConceptCategoryValues:
     def test_add_category_with_values(self, workspace: Path) -> None:
