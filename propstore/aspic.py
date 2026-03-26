@@ -13,7 +13,10 @@ References:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Union
+from typing import TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    from propstore.dung import ArgumentationFramework
 
 
 @dataclass(frozen=True)
@@ -793,3 +796,39 @@ def compute_defeats(
                 defeats.add(atk)
 
     return frozenset(defeats)
+
+
+# ── Complete Structured Argumentation Framework ──────────────────
+
+
+@dataclass(frozen=True)
+class CSAF:
+    """Complete Structured Argumentation Framework.
+
+    Bundles all components of a well-formed c-SAF for property testing:
+    the argumentation system, knowledge base, preference configuration,
+    computed arguments/attacks/defeats, and the derived Dung AF.
+
+    Modgil & Prakken 2018, Def 12 (p.13): a c-SAF is well-defined iff
+    it is axiom consistent, well-formed, and closed under transposition.
+
+    Attributes:
+        system: The argumentation system (L, contrariness, R_s, R_d).
+        kb: The knowledge base (K_n, K_p).
+        pref: The preference configuration (orderings, comparison, link).
+        arguments: All arguments built from the system and KB.
+        attacks: All attacks between arguments (Attack objects).
+        defeats: Defeat pairs (attacker, target) after preference filtering.
+        framework: The derived Dung AF for extension computation.
+        arg_to_id: Mapping from Argument to string ID.
+        id_to_arg: Mapping from string ID to Argument.
+    """
+    system: ArgumentationSystem
+    kb: KnowledgeBase
+    pref: PreferenceConfig
+    arguments: frozenset[Argument]
+    attacks: frozenset[Attack]
+    defeats: frozenset[tuple[Argument, Argument]]
+    framework: ArgumentationFramework  # from dung.py
+    arg_to_id: dict  # Argument -> str
+    id_to_arg: dict  # str -> Argument

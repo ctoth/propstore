@@ -32,6 +32,13 @@ from propstore.aspic import (
     build_arguments, compute_attacks, compute_defeats,
     conc, prem, sub, top_rule,
     def_rules, last_def_rules, prem_p, is_firm, is_strict,
+    CSAF, strict_closure,
+)
+from propstore.dung import (
+    ArgumentationFramework,
+    complete_extensions,
+    grounded_extension,
+    conflict_free,
 )
 
 
@@ -1754,4 +1761,361 @@ class TestDefeatConcrete:
         assert (arg_not_q, arg_q) in defeat_pairs, (
             f"Equal-strength: arg_not_q should defeat arg_q. "
             f"Defeats: {defeat_pairs}"
+        )
+
+
+# ── Phase 6: Rationality postulate strategies and tests ──────────
+
+
+@st.composite
+def well_formed_csaf(draw, max_atoms=4, max_strict=3, max_defeasible=4):
+    """Generate a well-formed c-SAF per Modgil & Prakken 2018, Def 12.
+
+    Chains: logical_language -> strict_rules -> defeasible_rules -> knowledge_base
+    Then runs: build_arguments -> compute_attacks -> compute_defeats
+    Finally emits: dung.ArgumentationFramework for extension computation.
+
+    Guarantees:
+    - Axiom consistency (K_n contains no formula and its contrary)
+    - Well-formed contrariness (contradictories symmetric)
+    - Transposition closure (R_s = Cl(R_s))
+    - At least one non-premise argument (non-triviality)
+
+    Modgil & Prakken 2018, Def 12 (p.13): a c-SAF is well-defined iff
+    it is axiom consistent, well-formed, and closed under transposition.
+    """
+    L, cfn = draw(logical_language(max_atoms=max_atoms))
+    R_s = draw(strict_rules(L, cfn, max_rules=max_strict))
+    R_d = draw(defeasible_rules(L, max_rules=max_defeasible))
+    system = ArgumentationSystem(L, cfn, R_s, R_d)
+    kb = draw(knowledge_base(L, R_s, R_d))
+    pref = draw(preference_config(R_d, kb.premises))
+
+    # Computed (not drawn)
+    arguments = build_arguments(system, kb)
+    attacks = compute_attacks(arguments, system)
+    defeat_attacks = compute_defeats(attacks, arguments, system, kb, pref)
+
+    # Extract defeat pairs (Argument, Argument) from Attack objects
+    defeats = frozenset(
+        (atk.attacker, atk.target) for atk in defeat_attacks
+    )
+
+    # Build Dung AF
+    # Assign string IDs to arguments for the Dung layer
+    arg_list = sorted(arguments, key=lambda a: repr(a))  # deterministic ordering
+    arg_to_id = {a: f"arg_{i}" for i, a in enumerate(arg_list)}
+    id_to_arg = {v: k for k, v in arg_to_id.items()}
+
+    af = ArgumentationFramework(
+        arguments=frozenset(arg_to_id.values()),
+        defeats=frozenset(
+            (arg_to_id[a], arg_to_id[b])
+            for a, b in defeats
+            if a in arg_to_id and b in arg_to_id
+        ),
+        attacks=frozenset(
+            (arg_to_id[atk.attacker], arg_to_id[atk.target])
+            for atk in attacks
+            if atk.attacker in arg_to_id and atk.target in arg_to_id
+        ),
+    )
+
+    return CSAF(
+        system=system, kb=kb, pref=pref, arguments=arguments,
+        attacks=attacks, defeats=defeats, framework=af,
+        arg_to_id=arg_to_id, id_to_arg=id_to_arg,
+    )
+
+
+# ── Phase 6: The 8 Rationality Postulate Tests ──────────────────
+
+
+class TestRationalityPostulates:
+    """Property tests for the 8 rationality postulates of ASPIC+.
+
+    These are the crown jewel: if all 8 hold on 200 random well-formed
+    c-SAFs, the implementation is correct per Modgil & Prakken 2018.
+
+    All use @given(well_formed_csaf()) with max_examples=200, deadline=None.
+    """
+
+    @given(well_formed_csaf())
+    @settings(max_examples=200, deadline=None)
+    def test_sub_argument_closure(self, csaf):
+        """Postulate 1 — Sub-argument closure (Thm 12, p.18).
+
+        If A is in a complete extension E and A' is in Sub(A),
+        then A' is also in E. Extensions are closed under sub-arguments.
+
+        Modgil & Prakken 2018, Theorem 12 (p.18): for every attack-
+        conflict-free complete extension E of a well-defined c-SAF
+        with reasonable ordering, Sub(E) = E.
+        """
+        for ext_ids in complete_extensions(csaf.framework):
+            for aid in ext_ids:
+                arg = csaf.id_to_arg[aid]
+                for sub_arg in sub(arg):
+                    assert csaf.arg_to_id[sub_arg] in ext_ids, (
+                        f"Sub-argument {sub_arg} of {arg} not in extension"
+                    )
+
+    @given(well_formed_csaf())
+    @settings(max_examples=200, deadline=None)
+    def test_strict_closure(self, csaf):
+        """Postulate 2 — Closure under strict rules (Thm 13, p.18).
+
+        Cl_Rs(Conc(E)) = Conc(E): the set of conclusions of arguments
+        in a complete extension is already closed under strict rules.
+
+        Modgil & Prakken 2018, Theorem 13 (p.18): for every attack-
+        conflict-free complete extension E of a well-defined c-SAF
+        with reasonable ordering, Cl_Rs(Conc(E)) = Conc(E).
+        """
+        for ext_ids in complete_extensions(csaf.framework):
+            conclusions = frozenset(
+                conc(csaf.id_to_arg[aid]) for aid in ext_ids
+            )
+            closed = strict_closure(conclusions, csaf.system.strict_rules)
+            assert closed == conclusions, (
+                f"Strict closure added: {closed - conclusions}"
+            )
+
+    @given(well_formed_csaf())
+    @settings(max_examples=200, deadline=None)
+    def test_direct_consistency(self, csaf):
+        """Postulate 3 — Direct consistency (Thm 14, p.18).
+
+        No two conclusions in a complete extension are contraries or
+        contradictories. The extension conclusions are directly consistent.
+
+        Modgil & Prakken 2018, Theorem 14 (p.18): for every attack-
+        conflict-free complete extension E of a well-defined c-SAF
+        with reasonable ordering, Conc(E) is consistent.
+        """
+        for ext_ids in complete_extensions(csaf.framework):
+            conclusions = [conc(csaf.id_to_arg[aid]) for aid in ext_ids]
+            for i, c1 in enumerate(conclusions):
+                for c2 in conclusions[i + 1:]:
+                    assert not csaf.system.contrariness.is_contradictory(c1, c2), (
+                        f"Direct inconsistency: {c1} and {c2} are contradictories"
+                    )
+                    assert not csaf.system.contrariness.is_contrary(c1, c2), (
+                        f"Direct inconsistency: {c1} is a contrary of {c2}"
+                    )
+
+    @given(well_formed_csaf())
+    @settings(max_examples=200, deadline=None)
+    def test_indirect_consistency(self, csaf):
+        """Postulate 4 — Indirect consistency (Thm 15, p.19).
+
+        Cl_Rs(Conc(E)) is consistent: the strict closure of conclusions
+        contains no contradictory pair.
+
+        Modgil & Prakken 2018, Theorem 15 (p.19): for every attack-
+        conflict-free complete extension E of a well-defined c-SAF
+        with reasonable ordering, Cl_Rs(Conc(E)) is consistent.
+        """
+        for ext_ids in complete_extensions(csaf.framework):
+            conclusions = frozenset(
+                conc(csaf.id_to_arg[aid]) for aid in ext_ids
+            )
+            closed = strict_closure(conclusions, csaf.system.strict_rules)
+            closed_list = list(closed)
+            for i, c1 in enumerate(closed_list):
+                for c2 in closed_list[i + 1:]:
+                    assert not csaf.system.contrariness.is_contradictory(c1, c2), (
+                        f"Indirect inconsistency: {c1} and {c2} are "
+                        f"contradictories in Cl_Rs(Conc(E))"
+                    )
+
+    @given(well_formed_csaf())
+    @settings(max_examples=200, deadline=None)
+    def test_firm_strict_in_every_complete(self, csaf):
+        """Postulate 5 — Firm+strict in every complete extension (Def 18).
+
+        Every argument that is both firm (all premises are axioms) and
+        strict (no defeasible rules) must be in every complete extension.
+
+        Modgil & Prakken 2018, Def 18 (p.16): reasonable orderings
+        require that firm+strict arguments are never strictly weaker
+        than any argument. Combined with the fundamental lemma (Props
+        9-11, p.17), this means they are in every complete extension.
+        """
+        firm_strict_ids = {
+            csaf.arg_to_id[a] for a in csaf.arguments
+            if is_firm(a) and is_strict(a)
+        }
+        for ext_ids in complete_extensions(csaf.framework):
+            assert firm_strict_ids <= ext_ids, (
+                f"Firm+strict args {firm_strict_ids - ext_ids} "
+                f"not in complete extension"
+            )
+
+    @given(well_formed_csaf())
+    @settings(max_examples=200, deadline=None)
+    def test_undercutting_always_defeats(self, csaf):
+        """Postulate 6 — Undercutting always defeats (Def 9).
+
+        Every undercutting attack succeeds as a defeat regardless of
+        the preference ordering. Undercutting is preference-independent.
+
+        Modgil & Prakken 2018, Def 9 (p.12): undercutting attacks
+        always succeed as defeats.
+        Pollock 1987, Def 2.5 (p.485): undercutting defeaters.
+        """
+        for atk in csaf.attacks:
+            if atk.kind == "undercutting":
+                pair = (csaf.arg_to_id[atk.attacker], csaf.arg_to_id[atk.target])
+                assert pair in csaf.framework.defeats, (
+                    f"Undercutting attack {atk} not in framework defeats"
+                )
+
+    @given(well_formed_csaf())
+    @settings(max_examples=200, deadline=None)
+    def test_attack_based_conflict_free(self, csaf):
+        """Postulate 7 — Attack-based conflict-free (Def 14).
+
+        Every complete extension is conflict-free with respect to the
+        attack relation (not just the defeat relation).
+
+        Modgil & Prakken 2018, Def 14 (p.14): a set S is attack-based
+        conflict-free iff no argument in S attacks another argument in S.
+        This is strictly stronger than defeat-based conflict-free.
+        """
+        for ext_ids in complete_extensions(csaf.framework):
+            assert conflict_free(ext_ids, csaf.framework.attacks), (
+                f"Complete extension {ext_ids} is not attack-based "
+                f"conflict-free"
+            )
+
+    @given(well_formed_csaf())
+    @settings(max_examples=200, deadline=None)
+    def test_transposition_closure_maintained(self, csaf):
+        """Postulate 8 — Transposition closure (Def 12).
+
+        The strict rules in the argumentation system are already closed
+        under transposition. Applying transposition_closure again
+        produces the same set.
+
+        Modgil & Prakken 2018, Def 12 (p.13): well-definedness requires
+        closure under transposition.
+        Prakken 2010, Theorem 6.10: transposition closure is REQUIRED
+        for the rationality postulates to hold.
+        """
+        closed = transposition_closure(
+            csaf.system.strict_rules,
+            csaf.system.language,
+            csaf.system.contrariness,
+        )
+        assert closed == csaf.system.strict_rules, (
+            f"Strict rules not closed under transposition: "
+            f"{len(closed)} rules after closure vs {len(csaf.system.strict_rules)}"
+        )
+
+
+# ── Phase 6: Concrete regression test ───────────────────────────
+
+
+class TestRationalityPostulatesConcrete:
+    """Hand-crafted regression tests for rationality postulates.
+
+    These complement the property tests with known examples from the
+    literature, providing deterministic coverage of specific scenarios.
+    """
+
+    def test_married_bachelor_consistency(self):
+        """The married/bachelor example from Modgil 2014, Example 4.4.
+
+        L = {married, ~married, bachelor, ~bachelor}
+        Strict rule: married -> ~bachelor (with transposition: bachelor -> ~married)
+        K_p = {married, bachelor}
+
+        Build CSAF. Compute grounded extension.
+        Assert: the extension does NOT contain both bachelor and ~bachelor
+        (direct consistency holds).
+
+        This is a classic example of how transposition closure ensures
+        consistency: the strict rule generates a counter-argument that
+        prevents contradictory conclusions from coexisting in any extension.
+        """
+        married = Literal("married")
+        not_married = Literal("married", negated=True)
+        bachelor = Literal("bachelor")
+        not_bachelor = Literal("bachelor", negated=True)
+
+        L = frozenset({married, not_married, bachelor, not_bachelor})
+        cfn = ContrarinessFn(contradictories=frozenset({
+            (married, not_married),
+            (bachelor, not_bachelor),
+        }))
+
+        # Strict rule: married -> ~bachelor
+        rule_m_nb = Rule(
+            antecedents=(married,),
+            consequent=not_bachelor,
+            kind="strict",
+            name=None,
+        )
+
+        # Compute transposition closure: adds bachelor -> ~married
+        R_s = transposition_closure(frozenset({rule_m_nb}), L, cfn)
+
+        system = ArgumentationSystem(
+            language=L, contrariness=cfn,
+            strict_rules=R_s,
+            defeasible_rules=frozenset(),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset(),
+            premises=frozenset({married, bachelor}),
+        )
+        pref = PreferenceConfig(
+            rule_order=frozenset(),
+            premise_order=frozenset(),
+            comparison="elitist",
+            link="last",
+        )
+
+        # Build CSAF manually
+        arguments = build_arguments(system, kb)
+        attacks_set = compute_attacks(arguments, system)
+        defeat_attacks = compute_defeats(attacks_set, arguments, system, kb, pref)
+        defeats = frozenset(
+            (atk.attacker, atk.target) for atk in defeat_attacks
+        )
+
+        arg_list = sorted(arguments, key=lambda a: repr(a))
+        arg_to_id = {a: f"arg_{i}" for i, a in enumerate(arg_list)}
+        id_to_arg = {v: k for k, v in arg_to_id.items()}
+
+        af = ArgumentationFramework(
+            arguments=frozenset(arg_to_id.values()),
+            defeats=frozenset(
+                (arg_to_id[a], arg_to_id[b])
+                for a, b in defeats
+                if a in arg_to_id and b in arg_to_id
+            ),
+            attacks=frozenset(
+                (arg_to_id[atk.attacker], arg_to_id[atk.target])
+                for atk in attacks_set
+                if atk.attacker in arg_to_id and atk.target in arg_to_id
+            ),
+        )
+
+        csaf = CSAF(
+            system=system, kb=kb, pref=pref, arguments=arguments,
+            attacks=attacks_set, defeats=defeats, framework=af,
+            arg_to_id=arg_to_id, id_to_arg=id_to_arg,
+        )
+
+        # Compute grounded extension
+        ext = grounded_extension(csaf.framework)
+
+        # Direct consistency: extension should NOT contain both
+        # bachelor and ~bachelor conclusions
+        ext_conclusions = {conc(csaf.id_to_arg[aid]) for aid in ext}
+        assert not (bachelor in ext_conclusions and not_bachelor in ext_conclusions), (
+            f"Grounded extension contains both bachelor and ~bachelor — "
+            f"direct consistency violated. Conclusions: {ext_conclusions}"
         )
