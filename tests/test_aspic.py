@@ -30,6 +30,7 @@ from propstore.aspic import (
     PremiseArg, StrictArg, DefeasibleArg, Argument, Attack,
     KnowledgeBase, ArgumentationSystem, PreferenceConfig,
     build_arguments, compute_attacks, compute_defeats,
+    _set_strictly_less,
     conc, prem, sub, top_rule,
     def_rules, last_def_rules, prem_p, is_firm, is_strict,
     CSAF, strict_closure,
@@ -1640,6 +1641,15 @@ class TestDefeatConcrete:
     Modgil & Prakken 2018, Def 9 (p.12), Defs 19-21 (p.21).
     """
 
+    def test_elitist_set_comparison_matches_definition_19(self):
+        """Elitist comparison quantifies over Gamma, not Gamma'."""
+        assert _set_strictly_less(
+            frozenset({1, 5}),
+            frozenset({3, 4}),
+            frozenset({(1, 3), (1, 4)}),
+            "elitist",
+        )
+
     def test_stronger_rebutter_defeats(self):
         """Two defeasible arguments for contradictory conclusions.
         Give one a stronger rule ordering. The stronger defeats the weaker,
@@ -1771,6 +1781,44 @@ class TestDefeatConcrete:
             f"Equal-strength: arg_not_q should defeat arg_q. "
             f"Defeats: {defeat_pairs}"
         )
+
+    def test_elitist_last_link_blocks_rebut_when_attacker_is_strictly_weaker(self):
+        """A rebut must fail when one attacker rule is below every target rule."""
+        a = Literal("a")
+        b = Literal("b")
+        c = Literal("c")
+        x = Literal("x")
+        y = Literal("y")
+        q = Literal("q")
+        not_q = q.contrary
+
+        d1 = Rule((a,), x, "defeasible", "d1")
+        d2 = Rule((b,), y, "defeasible", "d2")
+        t1 = Rule((c,), q, "defeasible", "t1")
+        s1 = Rule((x, y), not_q, "strict")
+
+        system = ArgumentationSystem(
+            language=frozenset({a, b, c, x, y, q, not_q}),
+            contrariness=ContrarinessFn(frozenset({(q, not_q)})),
+            strict_rules=frozenset({s1}),
+            defeasible_rules=frozenset({d1, d2, t1}),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset(),
+            premises=frozenset({a, b, c}),
+        )
+
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        pref = PreferenceConfig(
+            rule_order=frozenset({(d1, t1)}),
+            premise_order=frozenset(),
+            comparison="elitist",
+            link="last",
+        )
+
+        defeats = compute_defeats(attacks, arguments, system, kb, pref)
+        assert defeats == frozenset()
 
 
 # ── Phase 6: Rationality postulate strategies and tests ──────────

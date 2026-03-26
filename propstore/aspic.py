@@ -687,10 +687,11 @@ def _set_strictly_less(
 
     if comparison == "elitist":
         # Def 19 (p.21), Elitist: Gamma <_Eli Gamma' iff
-        # exists Y in Gamma' s.t. forall X in Gamma, X < Y.
-        # Gamma is weaker if some element in Gamma' dominates all of Gamma.
-        for y in gamma_prime:
-            if all((x, y) in base_order for x in gamma):
+        # exists X in Gamma s.t. forall Y in Gamma', X < Y.
+        # Gamma is weaker if one of its own elements is below every
+        # element of Gamma'.
+        for x in gamma:
+            if all((x, y) in base_order for y in gamma_prime):
                 return True
         return False
     elif comparison == "democratic":
