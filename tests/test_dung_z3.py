@@ -21,7 +21,7 @@ from propstore.dung_z3 import (
     credulously_accepted,
     skeptically_accepted,
 )
-from tests.test_dung import argumentation_frameworks, af
+from tests.test_dung import argumentation_frameworks, af, af_with_attacks_superset
 
 
 class TestZ3StableConcrete:
@@ -110,6 +110,37 @@ class TestZ3MatchesBruteForce:
     def test_preferred_matches(self, framework):
         assert set(z3_preferred_extensions(framework)) == set(
             preferred_extensions(framework)
+        )
+
+
+class TestZ3MatchesBruteForceWithAttacksDefeatsDivergence:
+    """Property tests for AFs where attacks is a superset of defeats.
+
+    These characterize the extended Modgil & Prakken semantics:
+    conflict-freeness is checked against attacks while defense is checked
+    against defeats. The z3 backend must match the brute-force reference
+    on these mixed-relation frameworks too.
+    """
+
+    @given(af_with_attacks_superset())
+    @settings(max_examples=100, deadline=10000)
+    def test_stable_matches(self, framework):
+        assert set(z3_stable_extensions(framework)) == set(
+            stable_extensions(framework, backend="brute")
+        )
+
+    @given(af_with_attacks_superset())
+    @settings(max_examples=100, deadline=10000)
+    def test_complete_matches(self, framework):
+        assert set(z3_complete_extensions(framework)) == set(
+            complete_extensions(framework, backend="brute")
+        )
+
+    @given(af_with_attacks_superset())
+    @settings(max_examples=100, deadline=10000)
+    def test_preferred_matches(self, framework):
+        assert set(z3_preferred_extensions(framework)) == set(
+            preferred_extensions(framework, backend="brute")
         )
 
 
