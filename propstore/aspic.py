@@ -91,3 +91,31 @@ class ContrarinessFn:
         Asymmetric contraries will be added in later phases.
         """
         return self.is_contradictory(a, b)
+
+
+@dataclass(frozen=True)
+class Rule:
+    """A strict or defeasible inference rule.
+
+    Modgil & Prakken 2018, Def 2 (p.8).
+    Strict rules: antecedents -> consequent (no exceptions).
+    Defeasible rules: antecedents => consequent (presumptive).
+    Defeasible rules have a name n(r) for undercutting attacks.
+
+    Prakken 2010, Def 3.4 (p.47-48):
+        - Strict rule: phi_1, ..., phi_n -> phi
+        - Defeasible rule: phi_1, ..., phi_n => phi
+
+    Attributes:
+        antecedents: Tuple of literals forming the rule body.
+        consequent: The literal concluded by the rule.
+        kind: Either "strict" or "defeasible".
+        name: n(r) for defeasible rules (Modgil & Prakken 2018, Def 2, p.8).
+            Required for defeasible rules to enable undercutting attacks.
+            None for strict rules.
+    """
+
+    antecedents: tuple[Literal, ...]
+    consequent: Literal
+    kind: str  # "strict" or "defeasible"
+    name: str | None = None  # n(r) for defeasible rules
