@@ -216,6 +216,25 @@ _DEFAULT_BASE_RATES: dict[str, float] = {
 }
 
 
+def load_calibration_counts(conn) -> dict[tuple[int, str], tuple[int, int]] | None:
+    """Load calibration validation data from sidecar.
+
+    Returns dict mapping (pass_number, category) to (correct, total),
+    or None if no calibration data exists.
+    Per Guo et al. (2017): raw outputs need calibration against validation data.
+    """
+    try:
+        rows = conn.execute(
+            "SELECT pass_number, category, correct_count, total_count "
+            "FROM calibration_counts"
+        ).fetchall()
+    except Exception:
+        return None
+    if not rows:
+        return None
+    return {(row[0], row[1]): (row[2], row[3]) for row in rows}
+
+
 def categorical_to_opinion(
     category: str,
     pass_number: int,

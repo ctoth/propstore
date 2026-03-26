@@ -113,6 +113,8 @@ async def _classify_stance_async(
     embedding_distance: float | None = None,
     pass_number: int = 1,
     shared_concepts: list[str] | None = None,
+    reference_distances: list[float] | None = None,
+    calibration_counts: dict[tuple[int, str], tuple[int, int]] | None = None,
 ) -> dict:
     """Classify the epistemic relationship between two claims via async LLM call.
 
@@ -191,9 +193,27 @@ async def _classify_stance_async(
 
     strength = result.get("strength", "moderate")
     if stance_type != "none":
-        # Compute opinion from categorical classification (Jøsang 2001, p.8)
+        # 1. Categorical opinion (Jøsang 2001, p.8)
         # Without calibration data, returns vacuous opinion (honest ignorance)
-        opinion = categorical_to_opinion(strength, pass_number)
+        opinion = categorical_to_opinion(strength, pass_number, calibration_counts=calibration_counts)
+
+        # 2. Corpus-distance opinion: fuse via consensus (Jøsang 2001, Theorem 7, p.25)
+        if reference_distances is not None and embedding_distance is not None and len(reference_distances) > 0:
+            from propstore.calibrate import CorpusCalibrator
+            from propstore.opinion import consensus_pair
+            corpus_cal = CorpusCalibrator(reference_distances)
+            corpus_opinion = corpus_cal.to_opinion(embedding_distance)
+            # Guard: consensus_pair raises if both opinions are dogmatic (u_A = u_B = 0)
+            # If either is dogmatic, skip fusion and use that opinion directly
+            if opinion.u < 1e-9 and corpus_opinion.u < 1e-9:
+                pass  # Both dogmatic — keep categorical opinion
+            elif opinion.u < 1e-9:
+                pass  # Categorical is dogmatic — keep it
+            elif corpus_opinion.u < 1e-9:
+                opinion = corpus_opinion  # Corpus is dogmatic — use it
+            else:
+                opinion = consensus_pair(opinion, corpus_opinion)
+
         # Backward-compatible confidence = probability expectation (Jøsang 2001, p.5, Def 6)
         confidence = opinion.expectation()  # E(ω) = b + a·u
     else:

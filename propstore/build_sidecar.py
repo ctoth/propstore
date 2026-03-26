@@ -858,6 +858,14 @@ def _create_claim_tables(conn: sqlite3.Connection):
             )
         );
 
+        CREATE TABLE IF NOT EXISTS calibration_counts (
+            pass_number INTEGER NOT NULL,
+            category TEXT NOT NULL,
+            correct_count INTEGER NOT NULL,
+            total_count INTEGER NOT NULL,
+            PRIMARY KEY (pass_number, category)
+        );
+
         CREATE TABLE conflicts (
             concept_id TEXT NOT NULL,
             claim_a_id TEXT NOT NULL,
