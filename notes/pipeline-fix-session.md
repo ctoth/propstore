@@ -102,6 +102,32 @@ Close propstore's broken pipeline loops: wire opinions, conflicts, decision crit
 
 Final test count: 1355 passed, 1 deselected (pre-existing hypothesis flake)
 
+## NEXT: ASPIC+ and ATMS Composition Planning
+
+### Literature scouts complete:
+- ASPIC+ requirements: reports/aspic-literature-requirements.md
+  - 11 missing components, 6-phase implementation plan
+  - Data model: rules table, argument nodes, premises, contrariness
+  - Claims→premises, support stances→defeasible rules, concept contradictions→contrariness
+- ATMS composition: reports/atms-composition-literature-requirements.md
+  - Tractable engineering, not research
+  - Architecture C: iterated fixpoint (ATMS labels → per-environment AF → surviving labels)
+  - Odekerken 2023 provides formal semantics for stability/relevance
+
+### Hypothesis feasibility: CONFIRMED
+- reports/hypothesis-aspic-feasibility.md — YES with bounded size
+- |L|<=8, |R_s|<=4 seed, |R_d|<=4, |K|<=6 — ~10ms/example
+- @st.composite nesting to 5 levels, generate-then-close for transposition
+- Non-triviality by construction (force rule antecedents into K_p)
+
+### Prior art search: NO PRIOR ART EXISTS
+- reports/aspic-property-testing-prior-art.md
+- Web search confirmed: nobody has done property-based testing of ASPIC+ rationality postulates
+- Closest: Van Gijzel 2016 (Agda proofs), ICCMA (random AF benchmarks), TweetyProject (hand-crafted examples)
+- This would be genuinely novel
+
+### Status: Ready to plan ASPIC+ implementation with Hypothesis strategies as specification
+
 ## FILES
 - Plan: ~/.claude/plans/cheerful-jingling-waffle.md
 - Notes: notes/code-deep-read.md, notes/paper-requirements-deep-read.md, notes/infrastructure-deep-read.md, notes/wiring-survey.md
