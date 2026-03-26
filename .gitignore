@@ -18,3 +18,5 @@ main.py
 .ropeproject
 **/pngs/
 **/*.pdf
+/notes/
+/notes-*.md
