@@ -115,17 +115,14 @@ class TestGroundedConcrete:
         assert result == frozenset({"A", "C"})
 
     def test_grounded_extension_conflict_free_wrt_attacks(self):
-        """Modgil & Prakken 2018 Def 14: grounded must be conflict-free w.r.t. attacks."""
+        """Attack-only conflicts must not produce an invented grounded winner."""
         fw = ArgumentationFramework(
             arguments=frozenset({"A", "B"}),
             defeats=frozenset(),  # no defeats, so characteristic fn accepts both
             attacks=frozenset({("A", "B")}),  # but A attacks B
         )
         ext = grounded_extension(fw)
-        # With no defeats, the characteristic fn would accept both A and B.
-        # But {A, B} is NOT conflict-free w.r.t. attacks.
-        # The grounded extension must be conflict-free w.r.t. attacks.
-        assert not ({"A", "B"} <= ext), "grounded should not contain both A and B when A attacks B"
+        assert ext == frozenset()
 
 
 class TestPreferredConcrete:
@@ -520,3 +517,12 @@ class TestAttacksDefeatsProperties:
         assert conflict_free(ext, cf_relation), (
             f"Grounded {ext} is not conflict-free w.r.t. attacks {cf_relation}"
         )
+
+    @given(af_with_attacks_superset())
+    @settings(max_examples=100, deadline=None)
+    def test_grounded_is_complete_when_complete_exists(self, framework):
+        """If the hybrid semantics has a complete extension, grounded must be one."""
+        completes = complete_extensions(framework, backend="brute")
+        assume(completes)
+        grounded = grounded_extension(framework)
+        assert grounded in completes

@@ -368,20 +368,14 @@ class TestAttackBasedConflictFree:
         assert frozenset({"A", "B"}) not in exts
 
     def test_grounded_extension_respects_attacks(self):
-        """Modgil & Prakken 2018 Def 14: grounded must be conflict-free w.r.t. attacks.
-
-        The grounded extension computation iterates F using defeats, then
-        filters for attack-based conflict-freeness. Even with no defeats,
-        the result must not contain arguments that attack each other.
-        """
+        """Attack-only conflicts should not yield an invented grounded survivor."""
         fw = ArgumentationFramework(
             arguments=frozenset({"A", "B"}),
             defeats=frozenset(),
             attacks=frozenset({("A", "B")}),
         )
         ext = grounded_extension(fw)
-        # A attacks B, so {A, B} is not conflict-free w.r.t. attacks
-        assert not ({"A", "B"} <= ext), "grounded should not contain both A and B when A attacks B"
+        assert ext == frozenset()
 
 
 # ── Extension-level tests with bipolar examples ──────────────────────

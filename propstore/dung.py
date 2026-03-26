@@ -156,16 +156,32 @@ def admissible(
 def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
     """Compute the unique grounded extension.
 
-    The grounded extension is the least fixed point of F, filtered
-    for attack-based conflict-freeness.
+    For a standard Dung framework (or any framework where ``attacks`` is
+    absent / identical to ``defeats``), the grounded extension is the least
+    fixed point of the characteristic function.
 
-    Start with S = {} and iterate F until fixed point, then enforce
-    conflict-freeness w.r.t. attacks (not just defeats).
+    When ``attacks`` and ``defeats`` diverge, post-hoc pruning of the
+    defeat-based fixpoint is not a valid grounded-semantics construction:
+    it can return a set that is not complete. In that case, compute the
+    least complete extension of the hybrid semantics when it exists.
+    If no least complete extension exists, return the empty skeptical set
+    rather than inventing a non-complete "grounded" result.
 
     References:
         Dung 1995, Definition 20 + Theorem 25 (least fixed point).
         Modgil & Prakken 2018, Definition 14 (attack-based conflict-free).
     """
+    cf_relation = framework.attacks if framework.attacks is not None else framework.defeats
+    if cf_relation != framework.defeats:
+        completes = complete_extensions(framework)
+        if not completes:
+            return frozenset()
+        least = [
+            ext for ext in completes
+            if all(ext <= other for other in completes)
+        ]
+        return least[0] if len(least) == 1 else frozenset()
+
     s: frozenset[str] = frozenset()
     attackers_index = _attackers_index(framework.defeats)
     while True:
@@ -178,37 +194,6 @@ def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
         if next_s == s:
             break
         s = next_s
-
-    # Modgil & Prakken 2018 Def 14: conflict-free uses attacks, not defeats.
-    # The characteristic function computes defense via defeats (correct per
-    # Dung 1995), but the result must also be conflict-free w.r.t. attacks.
-    cf_relation = framework.attacks if framework.attacks is not None else framework.defeats
-    if cf_relation != framework.defeats:
-        # Remove arguments attacked by peers, then re-verify the fixpoint.
-        # Iterate until stable: removing an argument may leave another undefended.
-        while True:
-            attacked_in_ext = frozenset(
-                b for (a, b) in cf_relation if a in s and b in s
-            )
-            if not attacked_in_ext:
-                break
-            s = s - attacked_in_ext
-            # Re-compute fixpoint on the reduced set: some members may now
-            # lack defenders, so shrink to the grounded kernel.
-            while True:
-                next_s = frozenset(
-                    a for a in s
-                    if defends(
-                        s,
-                        a,
-                        framework.arguments,
-                        framework.defeats,
-                        attackers_index=attackers_index,
-                    )
-                )
-                if next_s == s:
-                    break
-                s = next_s
 
     return s
 

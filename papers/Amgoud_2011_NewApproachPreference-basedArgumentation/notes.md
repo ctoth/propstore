@@ -86,7 +86,9 @@ Where: for all a ∈ E, for all a' ∈ E', if (a'Ra and not(a > a')) or (aRa' an
 
 **Strong defense** (Definition 13): E strongly defends argument a from attacks, where for each attacker of a, either the attack is "won" by a (via preferences) or there is a defender in E. *(p.14)*
 
-**Pref-grounded extension**: The least fixpoint of the strong defense function F, starting from ∅. *(p.14)*
+**Pref-grounded semantics**: The paper defines a dominance relation `≽_g` over subsets: `E ≽_g E'` iff `E` is conflict-free while `E'` is not, or every argument in `E` is strongly defended against attacks coming from `E'`. Extensions are the maximal elements of this relation. *(p.14)*
+
+**Implementation caution**: The paper page does not directly define pref-grounded as a simple unary characteristic-function least fixpoint. Any implementation that replaces the relation on subsets with a post-hoc pruning of a defeat-only fixpoint is making an extra move that needs its own justification. *(p.14-15)*
 
 ### Additional Characterization Postulates (Section 6.1)
 

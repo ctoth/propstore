@@ -302,13 +302,10 @@ def build_argumentation_framework(
       4. Compute derived defeats from support chains (Cayrol 2005 Def 3)
       5. Return AF with attacks (pre-preference) and defeats (post-preference + derived)
 
-    **Design note:** Grounded extension computation uses defeat-based iteration
-    with post-hoc attack-conflict-free pruning (re-iterate defense after removing
-    attack-conflicting arguments). This is not a standard least fixed point of
-    a single well-defined characteristic function. Modgil & Prakken 2018 expect
-    the defeat relation to already encode preference information. The post-hoc
-    reconciliation may diverge from standard semantics in edge cases with
-    complex attack/defeat interactions.
+    **Design note:** When attacks and defeats diverge, this produces a hybrid
+    attack/defeat framework rather than a standard Dung AF. Grounded evaluation
+    must therefore avoid synthesizing a post-hoc "grounded" set by pruning a
+    defeat-only fixpoint; that can yield non-complete results.
     """
     _, _, relations = _collect_claim_graph_relations(
         store,
