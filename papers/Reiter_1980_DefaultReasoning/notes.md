@@ -250,7 +250,7 @@ This paper is the foundational reference for default reasoning in the propstore'
 
 ## Open Questions
 - [ ] Relationship between extensions and model theory (model-theoretic characterization of extensions) *(p.129)*
-- [ ] Relationship between default logic and McCarthy's circumscription *(p.129)*
+- [ ] Relationship between default logic and McCarthy's circumscription *(p.129)* [Addressed by McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning — McCarthy proves circumscriptive inference is sound w.r.t. minimal entailment (Section 6), and domain circumscription reduces to predicate circumscription. The general relationship to default logic extensions remains open in the 1980 paper as well.]
 - [ ] Efficient heuristics for the satisfiability test in default proofs *(p.129--130)*
 - [ ] Techniques for choosing between competing extensions *(p.130)*
 - [ ] How to handle priorities among defaults *(p.130)*
@@ -274,6 +274,9 @@ This paper is the foundational reference for default reasoning in the propstore'
 - McDermott, D. and Doyle, J. (1978) --- "Non-monotonic Logic I" --- the competing modal logic approach to nonmonotonic reasoning *(p.93)*
 - McCarthy, J. (1977) --- "Epistemological problems of Artificial Intelligence" --- circumscription as an alternative formalization *(p.129)*
 - Clark, K. (1978) --- "Negation as failure" --- formalizes the connection between PROLOG's negation-as-failure and the closed world assumption as a special case of normal defaults *(p.129)*
+
+### Now in Collection (previously listed as leads)
+- [[McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning]] --- McCarthy's circumscription formalism, published in the same special issue. Formalizes the conjecture that entities satisfying a predicate are only those provably required, via a sentence schema added to first-order theories. Reiter notes the relationship between circumscription and default logic is unresolved for the general case (Section 8). Note: the lead listed McCarthy 1977 (the earlier qualification problem paper); the 1980 circumscription paper is the formalization of that idea.
 
 ### Supersedes or Recontextualizes
 - (none)

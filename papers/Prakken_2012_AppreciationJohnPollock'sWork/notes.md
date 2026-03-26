@@ -313,6 +313,9 @@ This paper provides essential historical context for understanding the foundatio
 ### Cited By (in Collection)
 - (none found -- no collection paper cites this specific 2012 appreciation paper)
 
+### Now in Collection (previously unlisted)
+- [[Prakken_2006_FormalSystemsPersuasionDialogue]] — Same author's earlier review of formal persuasion dialogue systems; provides the speech act taxonomy (claim/why/since/concede/retract) and commitment store framework that connects to the structured argumentation discussed in this appreciation paper. The dialogue protocol design space complements the ASPIC+-based argumentation framework perspective taken here.
+
 ### Conceptual Links (not citation-based)
 **Argumentation foundations:**
 - [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] -- Cayrol's bipolar argumentation extends Dung's framework with support relations; Prakken & Horty's survey identifies the lack of support relations as a gap in Pollock's system, making bipolar frameworks a natural extension of the ideas discussed here

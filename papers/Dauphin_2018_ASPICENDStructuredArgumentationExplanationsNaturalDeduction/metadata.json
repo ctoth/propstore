@@ -1,0 +1,14 @@
+{
+  "title": "ASPIC-END: Structured Argumentation with Explanations and Natural Deduction",
+  "authors": [
+    "Jeremie Dauphin",
+    "Marcos Cramer"
+  ],
+  "year": "2018",
+  "arxiv_id": null,
+  "doi": "10.1007/978-3-319-75553-3_5",
+  "abstract": "We propose ASPIC-END, an adaptation of the structured argumentation framework ASPIC+ which can incorporate explanations and natural deduction style arguments. We discuss an instantiation of ASPIC-END that models argumentation about explanations of semantic paradoxes (e.g. the Liar paradox), and we show that ASPIC-END satisfies rationality postulates akin to those satisfied by ASPIC+.",
+  "url": "https://doi.org/10.1007/978-3-319-75553-3_5",
+  "pdf_url": "https://icr.uni.lu/mcramer/downloads/TAFA.pdf",
+  "venue": "Computational Models of Argument"
+}

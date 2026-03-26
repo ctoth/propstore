@@ -1,0 +1,151 @@
+source:
+  paper: Fan_2015_ComputingExplanationsArgumentation
+  extraction_model: "claude-opus-4-6-20250514"
+  extraction_date: "2026-03-24"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Related admissibility is a new argumentation semantics that restricts admissible sets to include only arguments that actively contribute to defending the target argument, filtering out freeloading arguments that are admissible but irrelevant to the explanation."
+    concepts:
+      - related_admissibility
+      - admissible_set
+      - acceptability
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 2
+      section: "Explanations in AA"
+      quote_fragment: "a belief does not contribute to the justification of p, should not be in the explanation of p"
+
+  - id: claim2
+    type: observation
+    statement: "Every related admissible set is admissible, but not every admissible set is related admissible — standard admissibility permits inclusion of arguments with no role in defending the target."
+    concepts:
+      - related_admissibility
+      - admissible_set
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 2
+      section: "Explanations in AA"
+
+  - id: claim3
+    type: observation
+    statement: "In a related admissible set S for argument A, every member B distinct from A must defend some element of S against attack — this is the defining constraint that excludes freeloading arguments."
+    concepts:
+      - related_admissibility
+      - admissible_set
+      - argumentation_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 2
+      section: "Explanations in AA"
+
+  - id: claim4
+    type: observation
+    statement: "The maximal explanation (MaE) for an argument is unique, and every minimal explanation (MiE) and compact explanation (CoE) is a subset of the MaE."
+    concepts:
+      - related_admissibility
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 3
+      section: "Explanations in AA"
+      quote_fragment: "MiEs and CoEs are subsets whereas MaE and VaE are complementary"
+
+  - id: claim5
+    type: mechanism
+    statement: "Dispute forests provide a sound and complete computational mechanism for related admissibility: the proponent nodes of an admissible dispute tree form a related admissible set, and conversely every related admissible set can be obtained from an admissible dispute forest."
+    concepts:
+      - dispute_forest
+      - dispute_tree
+      - related_admissibility
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 3
+      section: "Computing Explanations in AA"
+      quote_fragment: "dispute trees can be used to compute related admissible assumptions"
+
+  - id: claim6
+    type: mechanism
+    statement: "Different types of explanations correspond to different properties of dispute forests: minimal explanations correspond to smallest admissible dispute forests, while maximal explanations correspond to largest admissible dispute forests."
+    concepts:
+      - dispute_forest
+      - related_admissibility
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 3
+      section: "Computing Explanations in AA"
+
+  - id: claim7
+    type: observation
+    statement: "Related admissibility extends naturally from Abstract Argumentation to Assumption-based Argumentation, where it operates over sets of assumptions rather than arguments, with the same property that every assumption must contribute to defense."
+    concepts:
+      - related_admissibility
+      - assumption_based_argumentation
+      - assumption
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 5
+      section: "Explanations in ABA and their Computation"
+
+  - id: claim8
+    type: comparison
+    statement: "Unlike standard argumentation semantics (grounded, preferred, stable, complete) which identify only which arguments are acceptable, related admissibility provides concrete justifications for why arguments are acceptable, addressing the explanation gap in formal argumentation."
+    concepts:
+      - related_admissibility
+      - grounded_extension
+      - preferred_extension
+      - stable_extension
+      - complete_extension
+      - acceptability
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 1
+      section: "Introduction"
+      quote_fragment: "existing argumentation semantics are developed for identifying acceptable arguments within a set, rather than giving concrete justifications"
+
+  - id: claim9
+    type: comparison
+    statement: "Garcia and Sarmiento (2013) use 'explanations' to refer to sets of dialectical trees, whereas related admissibility defines explanation as a semantic property with formal soundness and completeness results — a principled semantic notion rather than a structural artifact."
+    concepts:
+      - related_admissibility
+      - dialectical_argumentation
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 6
+      section: "Related Work"
+
+  - id: claim10
+    type: limitation
+    statement: "Related admissibility is defined only for admissibility-based semantics and does not directly extend to preferred or stable extensions."
+    concepts:
+      - related_admissibility
+      - admissible_set
+      - preferred_extension
+      - stable_extension
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 2
+      section: "Explanations in AA"
+    notes: "The paper works within the admissibility framework; extending to preferred/stable semantics is left as future work"
+
+  - id: claim11
+    type: limitation
+    statement: "The paper focuses on generating explanations and does not address how to evaluate explanation quality or present explanations to end users."
+    concepts:
+      - related_admissibility
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Fan_2015_ComputingExplanationsArgumentation
+      page: 6
+      section: "Related Work"
+    notes: "Presentation and user evaluation of argumentative explanations is left as future work"

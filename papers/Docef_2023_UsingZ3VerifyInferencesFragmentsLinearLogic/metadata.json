@@ -1,0 +1,14 @@
+{
+  "title": "Using Z3 to Verify Inferences in Fragments of Linear Logic",
+  "authors": [
+    "Alen Docef",
+    "Radu Negulescu",
+    "Mihai Prunescu"
+  ],
+  "year": 2023,
+  "arxiv_id": null,
+  "doi": "10.4204/EPTCS.389.2",
+  "abstract": "Linear logic is a substructural logic proposed as a refinement of classical and intuitionistic logics, with applications in programming languages, game semantics, and quantum physics. We present a template for Gentzen-style linear logic sequents that supports verification of logic inference rules using automatic theorem proving. Specifically, we use the Z3 Theorem Prover to validate several derived inference rules that are presumed to be valid. To demonstrate the approach, we apply it to validate several derived inference rules in two different fragments of linear logic: MLL+Mix and MILL.",
+  "url": "https://doi.org/10.4204/EPTCS.389.2",
+  "pdf_url": ""
+}

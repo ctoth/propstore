@@ -1,0 +1,4 @@
+---
+tags: [argumentation, explainable-ai, survey, abstract-argumentation, bipolar-argumentation]
+---
+Surveys the landscape of XAI approaches built on computational argumentation frameworks, cataloguing works by explanation type (intrinsic, complete post-hoc, approximate post-hoc), argumentation framework used (AA, BA, QBA, ABA, ASPIC+, DeLP, and variants), and explanation form (sub-graph, structure-based, dialogical, extension-based, change-based). Key contribution is a systematic taxonomy showing how AF-based explanations serve both as native reasoning components in "explainable by design" systems and as post-hoc overlays on non-argumentative models like recommenders, classifiers, and planners. Directly relevant to propstore's argumentation layer as a reference for choosing explanation delivery methods when surfacing Dung AF and ASPIC+ reasoning results to users.

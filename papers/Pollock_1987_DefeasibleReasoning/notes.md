@@ -409,7 +409,9 @@ This paper provides the philosophical and formal foundations for defeasible reas
 ### New Leads (Not Yet in Collection)
 - Pollock, J.L. (1986) -- "Contemporary theories of knowledge" -- full epistemological theory underlying this paper *(p.483)*
 - Harman, G. (1986) -- "Change in view" -- competing philosophical account of belief revision *(p.505)*
-- McCarthy, J. (1980) -- "Circumscription" -- model-theoretic minimization approach to nonmonotonic reasoning *(p.482)*
+
+### Now in Collection (previously listed as leads)
+- [[McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning]] -- McCarthy's circumscription formalism formalizes the conjecture that entities satisfying a predicate are only those provably required, using a sentence schema in first-order logic. Pollock critiques this approach (along with Reiter and McDermott-Doyle) for overlooking undercutting defeaters — circumscription handles only predicate minimization, not the epistemological distinction between rebutting and undercutting defeat that Pollock identifies as essential.
 
 ### Supersedes or Recontextualizes
 - (none)

@@ -1,0 +1,310 @@
+source:
+  paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+  extraction_model: claude-opus-4-6-20250514
+  extraction_date: '2026-03-24'
+
+claims:
+- id: claim1
+  type: observation
+  statement: All argumentation semantics operating at Dung's abstract level satisfy the
+    language independence principle, since isomorphic argumentation frameworks always
+    yield isomorphic extension sets.
+  context: ctx_abstract_argumentation
+  concepts:
+  - language_independence
+  - argumentation_framework
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 3
+    section: "Section 3.1"
+  stances:
+  - type: supports
+    target: "Dung_1995_AcceptabilityArguments:claim1"
+    note: "Confirms that the abstract nature of Dung's framework guarantees language independence"
+
+- id: claim2
+  type: observation
+  statement: CF2 semantics does not satisfy the reinstatement principle — there exist
+    argumentation frameworks where an argument acceptable with respect to a CF2 extension
+    is not included in that extension.
+  context: ctx_abstract_argumentation
+  concepts:
+  - cf2_semantics
+  - reinstatement
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 13
+    section: "Table 1, Section 6.1"
+
+- id: claim3
+  type: observation
+  statement: CF2 semantics does not satisfy the admissibility principle — CF2 extensions
+    are not necessarily admissible sets.
+  context: ctx_abstract_argumentation
+  concepts:
+  - cf2_semantics
+  - admissible_set
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 13
+    section: "Table 1, Section 6.1"
+
+- id: claim4
+  type: observation
+  statement: Stable semantics does not satisfy the directionality criterion because
+    stable extensions may fail to exist for some argumentation frameworks, making the
+    restriction to unattacked subsets potentially empty while the sub-framework has
+    a stable extension.
+  context: ctx_abstract_argumentation
+  concepts:
+  - stable_extension
+  - directionality
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 17
+    section: "Section 6.3"
+    quote_fragment: "Fig. 4 shows stable semantics does not satisfy directionality"
+
+- id: claim5
+  type: observation
+  statement: Every SCC-recursive argumentation semantics satisfies the directionality
+    criterion.
+  context: ctx_abstract_argumentation
+  concepts:
+  - scc_recursiveness
+  - directionality
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 17
+    section: "Proposition 55"
+
+- id: claim6
+  type: observation
+  statement: Preferred and stable semantics are the only two among grounded, complete,
+    preferred, stable, semi-stable, ideal, CF2, and prudent that satisfy all evaluation
+    criteria including both skepticism adequacy and resolution adequacy.
+  context: ctx_abstract_argumentation
+  concepts:
+  - preferred_extension
+  - stable_extension
+  - skepticism_adequacy
+  - resolution_adequacy
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 23
+    section: "Section 7"
+
+- id: claim7
+  type: observation
+  statement: Grounded semantics does not satisfy skepticism adequacy — removing attacks
+    from an argumentation framework can make the grounded extension more skeptical
+    (smaller) rather than less.
+  context: ctx_abstract_argumentation
+  concepts:
+  - grounded_extension
+  - skepticism_adequacy
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 14
+    section: "Table 2, Section 6.4"
+
+- id: claim8
+  type: observation
+  statement: Semi-stable, ideal, and CF2 semantics all satisfy skepticism adequacy
+    but do not satisfy resolution adequacy.
+  context: ctx_abstract_argumentation
+  concepts:
+  - semi_stable_extension
+  - ideal_extension
+  - cf2_semantics
+  - skepticism_adequacy
+  - resolution_adequacy
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 14
+    section: "Table 2"
+
+- id: claim9
+  type: mechanism
+  statement: SCC-recursive semantics decompose an argumentation framework along its
+    strongly connected components, processing each SCC with a local base function
+    while propagating defeat information (which arguments are defeated by selections
+    in ancestor SCCs) in topological order, ensuring that local decisions in one SCC
+    do not depend on unrelated distant parts of the framework.
+  context: ctx_abstract_argumentation
+  concepts:
+  - scc_recursiveness
+  - argumentation_framework
+  - directionality
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 11
+    section: "Section 5.2"
+
+- id: claim10
+  type: observation
+  statement: The SCC-recursive schema is a general framework that captures multiple
+    argumentation semantics as instances by varying the base function — CF2 uses
+    maximal conflict-free sets, while grounded, preferred, and complete semantics
+    can also be expressed as SCC-recursive with appropriate base functions.
+  context: ctx_abstract_argumentation
+  concepts:
+  - scc_recursiveness
+  - cf2_semantics
+  - grounded_extension
+  - preferred_extension
+  - complete_extension
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 12
+    section: "Section 5.2"
+
+- id: claim11
+  type: observation
+  statement: Complete semantics is the only one among the eight evaluated that does
+    not satisfy I-maximality — complete extensions can be proper subsets of other
+    complete extensions.
+  context: ctx_abstract_argumentation
+  concepts:
+  - complete_extension
+  - i_maximality
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 13
+    section: "Table 1"
+  stances:
+  - type: supports
+    target: "Dung_1995_AcceptabilityArguments:claim14"
+    note: "Follows from grounded being the least complete extension — other complete extensions are strictly larger"
+
+- id: claim12
+  type: observation
+  statement: Prudent semantics (grounded prudent, preferred prudent, stable prudent)
+    do not satisfy directionality because indirect attacks can cross strongly connected
+    component boundaries, causing distant parts of the framework to affect local
+    extension computation.
+  context: ctx_abstract_argumentation
+  concepts:
+  - prudent_semantics
+  - directionality
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 13
+    section: "Table 1, Section 6.3"
+
+- id: claim13
+  type: comparison
+  statement: Unlike ad hoc example-based comparisons previously used to evaluate argumentation
+    semantics, the principle-based approach provides formal criteria that can be
+    systematically applied to any extension-based semantics, enabling rigorous and
+    reproducible evaluation.
+  context: ctx_abstract_argumentation
+  concepts:
+  - argumentation_framework
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 1
+    section: "Introduction"
+
+- id: claim14
+  type: observation
+  statement: The conjunction of weak reinstatement and strong admissibility provides
+    a characterization of grounded semantics — any semantics whose extensions are
+    not included in the grounded extension cannot satisfy both properties simultaneously.
+  context: ctx_abstract_argumentation
+  concepts:
+  - grounded_extension
+  - reinstatement
+  - admissible_set
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 14
+    section: "Section 6.2, Proposition 48"
+
+- id: claim15
+  type: observation
+  statement: For any argumentation framework, the union resolution of preferred semantics
+    (taking the union of preferred extensions across all resolutions) is at least
+    as skeptical as the preferred extensions of the original framework.
+  context: ctx_abstract_argumentation
+  concepts:
+  - preferred_extension
+  - resolution_adequacy
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 20
+    section: "Section 6.5, Proposition 65"
+
+- id: claim16
+  type: limitation
+  statement: The principle-based evaluation framework addresses only extension-based
+    argumentation semantics and does not cover labelling-based approaches, which
+    may require their own set of evaluation criteria.
+  context: ctx_abstract_argumentation
+  concepts:
+  - argumentation_framework
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 23
+    section: "Section 7"
+
+- id: claim17
+  type: limitation
+  statement: The evaluation criteria proposed are necessary conditions for a good
+    semantics but are not sufficient to uniquely determine a best semantics — multiple
+    semantics (preferred and stable) satisfy all criteria, yet they differ in extension
+    existence guarantees.
+  context: ctx_abstract_argumentation
+  concepts:
+  - preferred_extension
+  - stable_extension
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 23
+    section: "Section 7"
+
+- id: claim18
+  type: observation
+  statement: Ideal semantics produces a unique extension that is the maximal admissible
+    set contained in every preferred extension, providing the most skeptical admissibility-based
+    position.
+  context: ctx_abstract_argumentation
+  concepts:
+  - ideal_extension
+  - preferred_extension
+  - admissible_set
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 12
+    section: "Section 5.4, Definition 42"
+
+- id: claim19
+  type: observation
+  statement: Semi-stable semantics selects complete extensions that maximize the union
+    of the extension and the set of arguments attacked by it, guaranteeing at least
+    one extension exists for every argumentation framework while coinciding with
+    stable semantics whenever stable extensions exist.
+  context: ctx_abstract_argumentation
+  concepts:
+  - semi_stable_extension
+  - complete_extension
+  - stable_extension
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 12
+    section: "Section 5.3"
+
+- id: claim20
+  type: observation
+  statement: Grounded prudent semantics satisfies the unique-status property (produces
+    exactly one extension) while preferred prudent and stable prudent semantics do
+    not satisfy skepticism adequacy.
+  context: ctx_abstract_argumentation
+  concepts:
+  - prudent_semantics
+  - grounded_extension
+  - skepticism_adequacy
+  provenance:
+    paper: Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation
+    page: 14
+    section: "Table 2"

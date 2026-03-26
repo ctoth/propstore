@@ -1,0 +1,4 @@
+---
+tags: [aspic-plus, answer-set-programming, computational-argumentation, structured-argumentation]
+---
+This paper develops a direct ASP-based approach to computing argumentation semantics in ASPIC+ without preferences, reformulating extensions as "assumptions" — pairs of ordinary premises and defeasible rules — that are polynomially bounded and biject with AF extensions. The authors prove complexity results (NP-complete for credulous reasoning, up to Pi-2-P for skeptical preferred) and provide complete ASP encodings for conflict-free, admissible, complete, stable, and preferred semantics that scale to frameworks with thousands of atoms. This work is directly relevant to propstore's argumentation layer as it provides a practical, formally grounded computational backend for ASPIC+ that avoids the exponential blowup of translating to abstract argumentation frameworks.

@@ -1,0 +1,15 @@
+{
+  "title": "A formalisation of argumentation schemes for legal case-based reasoning in ASPIC+",
+  "authors": [
+    "H. Prakken",
+    "A. Wyner",
+    "T. Bench-Capon",
+    "K. Atkinson"
+  ],
+  "year": "2013",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "In this paper we offer a formal account of reasoning with legal cases in terms of argumentation schemes. These schemes and undercutting attacks and with them, are formalised as defeasible rules of inference within the ASPIC+ framework. We begin by modelling the style of reasoning with cases developed by Aleven and Ashley in the CATO project, which describes cases using factors, and then extend the account to accommodate the dimensions used in Rissland and Ashley's earlier HYPO project. Some additional scope for argumentation is then identified and formalised.",
+  "url": null,
+  "pdf_url": null
+}

@@ -1,0 +1,18 @@
+{
+  "title": "Formal systems for persuasion dialogue",
+  "authors": [
+    {
+      "name": "Henry Prakken"
+    }
+  ],
+  "year": 2006,
+  "doi": "10.1017/S0269888906000865",
+  "url": "https://www.cambridge.org/core/journals/knowledge-engineering-review/article/abs/formal-systems-for-persuasion-dialogue/6308104ED846C3B1A25996A9E0C8A5AD",
+  "source": "author-website",
+  "journal": "The Knowledge Engineering Review",
+  "volume": "21",
+  "issue": "2",
+  "pages": "163-188",
+  "abstract": "This article reviews formal systems that regulate persuasion dialogues. In such dialogues two or more participants aim to resolve a difference of opinion, each trying to persuade the other participants to adopt their point of view. Taking a game-theoretic view on dialogue systems, this review proposes a formal specification of the main elements of dialogue systems for persuasion, and then uses it to critically review some of the main formal systems for persuasion dialogue that have been proposed in the literature on computational argumentation.",
+  "semantic_scholar_id": "f77319062deb29b7da5ec0e3d502de85de5c420f"
+}

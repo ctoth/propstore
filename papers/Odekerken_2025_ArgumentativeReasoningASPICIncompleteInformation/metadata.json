@@ -1,0 +1,14 @@
+{
+  "title": "Argumentative Reasoning in ASPIC+ under Incomplete Information",
+  "authors": [
+    "Daphne Odekerken",
+    "Tuomo Lehtonen",
+    "Johannes P. Wallner",
+    "Matti Järvisalo"
+  ],
+  "year": "2025",
+  "doi": "10.1613/jair.1.18404",
+  "venue": "Journal of Artificial Intelligence Research 83, Article 28",
+  "abstract": "Reasoning under incomplete information is an important research direction in the study of computational argumentation. Most advances in this direction so far have focused on abstract argumentation frameworks. In particular, development of computational approaches to reasoning under incomplete information in structured formalisms remains to a large extent a challenge. We address this challenge by studying the problems of determining stability and relevance—with the aim of analyzing aspects of resilience of acceptance statuses in light of new information—in the central structured formalism of ASPIC+. The specific ASPIC+ instantiation and grounded argumentation semantics we focus on are motivated by current applications in criminal investigation at the Netherlands Police. Our contributions consist of a theoretical analysis of the complexity of deciding stability and relevance as well as first exact algorithms for reasoning about stability and relevance in incomplete ASPIC+ theories. In terms of complexity results, we show that deciding stability is coNP-complete for incomplete ASPIC+ when assuming a preference ordering on defeasible rules via the last-link ordering, while deciding relevance is significantly more complex, namely Sigma_2^P-complete. Complementing the complexity results, we develop practical algorithms for deciding stability and relevance based on the declarative paradigm of answer set programming (ASP). Furthermore, we provide an open-source implementation of the algorithms, and show empirically that the implementation exhibits promising scalability on both real-world and synthetic data. Our exact approach to stability is competitive with a previously proposed inexact approach, and the run times of our algorithms for both stability and relevance are sufficiently low on real-world data to be used in online settings.",
+  "url": "https://doi.org/10.1613/jair.1.18404"
+}

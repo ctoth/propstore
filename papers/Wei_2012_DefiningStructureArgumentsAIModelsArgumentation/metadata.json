@@ -1,0 +1,15 @@
+{
+  "title": "Defining the structure of arguments with AI models of argumentation",
+  "authors": [
+    "Bin Wei",
+    "Henry Prakken"
+  ],
+  "year": "2012",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "The structure of arguments is an important issue in the field of informal logic and argumentation theory. In this paper we discuss how the standard approach of Walton, Freeman and others can be analysed from a formal perspective. We use the ASPIC+ framework for making the standard model of argument structure complete and for introducing a distinction between types of individual arguments and types of argument structures. We then show that Vorobej's extension of the standard model with a new type of hybrid arguments is not needed if our formal approach is adopted.",
+  "url": null,
+  "pdf_url": null,
+  "venue": "Proceedings of the ECAI-12 Workshop on Computational Models of Natural Argument (CMNA-12)",
+  "pages": "1-5"
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Stability and Relevance in Incomplete Argumentation Frameworks",
+  "authors": [
+    "Daphne Odekerken",
+    "A. Borg",
+    "Floris Bex"
+  ],
+  "year": "2022",
+  "arxiv_id": null,
+  "doi": "10.3233/FAIA220159",
+  "abstract": ". We explore the computational complexity of stability and relevance in incomplete argumentation frameworks (IAFs), abstract argumentation frameworks that encode qualitative uncertainty by distinguishing between certain and uncertain arguments and attacks. IAFs can be speciﬁed by, e.g., making uncertain arguments or attacks certain; the justiﬁcation status of arguments in an IAF is determined on the basis of the certain arguments and attacks. An argument is stable if its justiﬁcation status is the same in all speciﬁcations of the IAF. For arguments that are not stable in an IAF, the relevance problem is of interest: which uncertain arguments or attacks should be investigated for the argument to become stable? We redeﬁne stability and deﬁne relevance for IAFs and study their complexity.",
+  "url": "https://www.semanticscholar.org/paper/5049552ac6f59228f7bcf3d73e5591dc6756d2b7",
+  "pdf_url": "https://ebooks.iospress.nl/pdf/doi/10.3233/FAIA220159"
+}

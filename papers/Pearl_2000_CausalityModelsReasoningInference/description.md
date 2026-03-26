@@ -1,0 +1,4 @@
+---
+tags: [causality, structural-causal-models, do-calculus, counterfactuals, causal-inference]
+---
+Pearl's foundational book establishes structural causal models (SCMs) as the mathematical framework for causal reasoning, introducing the do-calculus -- three inference rules that are provably complete for identifying causal effects from observational data given a causal graph. The book unifies interventional reasoning (via the do-operator and back-door/front-door criteria), counterfactual logic (via structural equation submodels), and actual causation (via sustenance and causal beams) into a single coherent framework. Directly relevant to propstore's argumentation and reasoning layers: the causal hierarchy (association/intervention/counterfactual) maps to different query types, and the do-operator formalizes the distinction between observation and intervention needed for hypothetical world queries.

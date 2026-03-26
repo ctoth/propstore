@@ -1,0 +1,13 @@
+{
+  "title": "Evidential Deep Learning to Quantify Classification Uncertainty",
+  "authors": [
+    "Murat Sensoy",
+    "Lance Kaplan",
+    "Melih Kandemir"
+  ],
+  "year": 2018,
+  "arxiv_id": "1806.01768",
+  "url": "https://arxiv.org/abs/1806.01768",
+  "source": "arxiv",
+  "abstract": "Deterministic neural nets (NNs) are increasingly used in tasks that require the quantification of predictive uncertainty. Despite their high accuracy on in-distribution data, NNs provide poorly calibrated and overconfident predictions for out-of-distribution inputs. We propose a novel method for training a NN to learn a Dirichlet distribution over the class probabilities and use the induced uncertainty measures for misclassification detection, data-shift detection, and calibration. Specifically, we place a Dirichlet distribution on the class probabilities and train the NN to output its parameters. We use the expected mean of the Dirichlet to predict the class label and the total evidence to quantify the overall predictive uncertainty."
+}

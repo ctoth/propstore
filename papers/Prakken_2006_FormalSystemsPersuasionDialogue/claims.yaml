@@ -1,0 +1,200 @@
+source:
+  paper: Prakken_2006_FormalSystemsPersuasionDialogue
+  extraction_model: "claude-opus-4-6-20250514"
+  extraction_date: "2026-03-24"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A persuasion dialogue system can be formally specified as a tuple of communication language, topic language, participants with roles, protocol function, commitment stores, context, topic, effect rules, turntaking rules, and termination conditions."
+    concepts:
+      - persuasion_dialogue
+      - dialogue_protocol
+      - commitment_store
+      - locution
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 4
+      section: "3 Elements of dialogue systems"
+      quote_fragment: "dialogue systems have a dialogue pool and at least two participants"
+
+  - id: claim2
+    type: observation
+    statement: "The core speech acts for persuasion dialogue are claim, why, concede, retract, since, and question, where each has defined effects on commitment stores and defined reply structures."
+    concepts:
+      - locution
+      - commitment_store
+      - persuasion_dialogue
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 6
+      section: "5 Instantiations: obvious choices"
+      quote_fragment: "claim, why, concede, retract, since, question"
+
+  - id: claim3
+    type: mechanism
+    statement: "Commitment stores provide a publicly observable record of participant positions that enables protocol enforcement, because unlike internal belief states, commitments are created and modified only through defined speech act effects that all participants can observe."
+    concepts:
+      - commitment_store
+      - locution
+      - dialogue_protocol
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 4
+      section: "3 Elements of dialogue systems"
+      quote_fragment: "commitment stores record what participants have committed to through their moves"
+
+  - id: claim4
+    type: observation
+    statement: "Assertion attitudes in persuasion dialogue range from cautious (only claim what you can currently support) through bold (claim freely, defend when challenged) to thoughtful (cautious about assertions but cannot be forced to concede without sufficient basis) and skeptical (requires stronger proof to concede)."
+    concepts:
+      - assertion_attitude
+      - commitment_store
+      - persuasion_dialogue
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 11
+      section: "7.1 Assertion and acceptance attitudes"
+      quote_fragment: "a cautious agent accepts if it can construct an acceptable argument"
+
+  - id: claim5
+    type: comparison
+    statement: "Multiple-reply protocols allow more natural dialogue structure than unique-reply protocols because they permit branching responses to a single move, but unique-reply protocols are simpler to analyze formally and guarantee bounded dialogue length."
+    concepts:
+      - dialogue_protocol
+      - persuasion_dialogue
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 9
+      section: "6 Instantiations: some distinctions"
+      quote_fragment: "a protocol is unique-reply if at most one reply to a move is allowed throughout a dialogue"
+
+  - id: claim6
+    type: comparison
+    statement: "Mackenzie's (1979) dialogue system lacks explicit reply structure and is incomplete — participants cannot always build adequate arguments — while Walton & Krabbe's PPD system adds dark-side commitments but lacks formal turntaking rules."
+    concepts:
+      - dialogue_game
+      - commitment_store
+      - dialogue_protocol
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 13
+      section: "8.1 Mackenzie (1979)"
+      quote_fragment: "Mackenzie's protocol is unique-response but simulates multiple-reply"
+    notes: "Identifies two major early systems' limitations as motivation for more complete formal specifications"
+
+  - id: claim7
+    type: mechanism
+    statement: "Separating the topic language from the communication language enables the same dialogue protocol to be instantiated with different underlying logics (propositional, first-order, defeasible), because speech acts operate on the communication language while argument evaluation operates on the topic language."
+    concepts:
+      - locution
+      - dialogue_protocol
+      - persuasion_dialogue
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 4
+      section: "3 Elements of dialogue systems"
+      quote_fragment: "a topic language and a communication language"
+
+  - id: claim8
+    type: observation
+    statement: "Persuasion dialogues differ from conflict resolution dialogues in that conflict resolution requires participants to have opposing initial commitments, while persuasion only requires that one side has a positive point of view and the other has a doubtful attitude."
+    concepts:
+      - persuasion_dialogue
+      - dialogue_typology
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 5
+      section: "4 Persuasion"
+      quote_fragment: "the participants have a positive point of view and a doubtful attitude"
+
+  - id: claim9
+    type: observation
+    statement: "A dialogue system is for pure persuasion if and only if for any terminated dialogue, the outcome is fully determined by the participants' final commitment stores and the protocol's termination conditions."
+    concepts:
+      - persuasion_dialogue
+      - commitment_store
+      - dialogue_protocol
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 8
+      section: "6 Instantiations: some distinctions"
+      quote_fragment: "a dialogue system is for pure persuasion iff for any terminated dialogue it holds that"
+
+  - id: claim10
+    type: limitation
+    statement: "No existing formal persuasion dialogue system provides a complete treatment of all identified design elements (communication language, protocol, commitment rules, turntaking, termination, outcome), with most systems neglecting turntaking and termination conditions."
+    concepts:
+      - persuasion_dialogue
+      - dialogue_protocol
+      - dialogue_game
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 24
+      section: "10 Conclusion"
+      quote_fragment: "a formal unification of persuasion is still in early stages"
+
+  - id: claim11
+    type: limitation
+    statement: "The formal framework for persuasion dialogue is limited primarily to two-party dialogues; extending to multi-party persuasion with more than two participants remains an open problem."
+    concepts:
+      - persuasion_dialogue
+      - dialogue_game
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 24
+      section: "10 Conclusion"
+      quote_fragment: "the demands of multi-party dialogues between uncooperative participants"
+
+  - id: claim12
+    type: mechanism
+    statement: "Dialectical obligations force speakers to either support their claims with arguments when challenged or retract them, creating a protocol-enforced duty to provide reasons that prevents unsupported assertions from persisting in the dialogue."
+    concepts:
+      - commitment_store
+      - locution
+      - dialogue_protocol
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 8
+      section: "7 Types of protocol rules"
+      quote_fragment: "dialectical obligations force the speaker to support claims when challenged or retract"
+
+  - id: claim13
+    type: observation
+    statement: "The Toulouse-Liverpool approach to dialogue systems defines a general framework applicable to multiple dialogue types (persuasion, negotiation, information-seeking, inquiry) using a common communication language of claims, challenges, concessions, and questions with explicit reply structure."
+    concepts:
+      - dialogue_game
+      - dialogue_typology
+      - locution
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 16
+      section: "8.7 The Toulouse-Liverpool approach"
+      quote_fragment: "a series of papers from Toulouse and Liverpool have developed an approach to specify dialogue systems for various types"
+
+  - id: claim14
+    type: mechanism
+    statement: "Prakken's (2005) dialogue framework models dialogue state as a move tree where each node is classified as open, closed, used, or dead, enabling flexible turntaking by allowing participants to reply to any open node rather than only the most recent move."
+    concepts:
+      - dialogue_game
+      - dialogue_protocol
+      - argument_tree
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 19
+      section: "8.4 Prakken's framework"
+      quote_fragment: "the dialogue state is a move tree: open nodes, closed, used, and dead"
+
+  - id: claim15
+    type: comparison
+    statement: "Argument games are a special case of dialogue systems where a proponent and opponent exchange arguments, and they can serve as proof theory for argumentation logics when the background theory from which arguments are constructed is given in advance."
+    concepts:
+      - dialogue_game
+      - argumentation_framework
+      - argumentation_semantics
+    provenance:
+      paper: Prakken_2006_FormalSystemsPersuasionDialogue
+      page: 23
+      section: "8.8 Argument games"
+      quote_fragment: "a special case of a dialogue system is an argument game"
+    notes: "Links dialogue systems to proof-theoretic argumentation; when background theory is not given, game properties may change"

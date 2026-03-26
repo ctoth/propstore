@@ -1,0 +1,178 @@
+source:
+  paper: Čyras_2021_ArgumentativeXAISurvey
+  extraction_model: "claude-opus-4-6"
+  extraction_date: "2026-03-24"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "AF-based explanations divide into three categories: intrinsic (argumentation IS the model), complete post-hoc (sound bidirectional mapping between model and AF), and approximate post-hoc (partial/lossy mapping)."
+    concepts:
+      - argumentation_framework
+      - argumentation_semantics
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 1
+      section: "Introduction"
+      quote_fragment: "intrinsic and post-hoc"
+
+  - id: claim2
+    type: observation
+    statement: "AF-based explanations take five distinct forms: sub-graph explanations, structure-based explanations, dialogical explanations, extension-based explanations, and change-based explanations."
+    concepts:
+      - argumentation_framework
+      - dispute_tree
+      - extension
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 5
+      section: "Forms of AF-Based Explanations"
+
+  - id: claim3
+    type: mechanism
+    statement: "Dispute trees provide sub-graph explanations with formal guarantees of existence, correctness, and relevance for the acceptance status of a topic argument, because they encode the dialectical exchange between proponent and opponent as a tree structure rooted at the topic argument."
+    concepts:
+      - dispute_tree
+      - argumentation_framework
+      - admissible_set
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 5
+      section: "Forms of AF-Based Explanations"
+      quote_fragment: "dispute trees form popular sub-graph explanations with theoretical guarantees"
+
+  - id: claim4
+    type: mechanism
+    statement: "Extension-based explanations work by presenting conflict-free sets that defend all attackers of the topic argument, keeping the attack relationships implicit rather than showing the full AF structure."
+    concepts:
+      - extension
+      - conflict_free_set
+      - admissible_set
+      - attack_relation
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 5
+      section: "Forms of AF-Based Explanations"
+      quote_fragment: "explanations as related admissible extensions"
+
+  - id: claim5
+    type: mechanism
+    statement: "Change-based explanations identify the addition or removal of arguments and/or attack relations that would alter the acceptability status of the topic argument, providing contrastive explanations of why a particular outcome holds."
+    concepts:
+      - argumentation_framework
+      - attack_relation
+      - acceptability
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 5
+      section: "Forms of AF-Based Explanations"
+
+  - id: claim6
+    type: observation
+    statement: "Complete post-hoc AF-based explanations preserve soundness: every explanation derived from the AF corresponds to a real property of the original model, because the mapping between model and AF is faithful."
+    concepts:
+      - argumentation_framework
+      - argumentation_semantics
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 3
+      section: "Complete Post-Hoc Approaches"
+
+  - id: claim7
+    type: observation
+    statement: "Approximate post-hoc AF-based explanations sacrifice completeness/soundness guarantees in exchange for applicability to models where no complete mapping to an AF exists."
+    concepts:
+      - argumentation_framework
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 4
+      section: "Approximate Post-Hoc Approaches"
+
+  - id: claim8
+    type: comparison
+    statement: "Intrinsic AF-based approaches provide explanations that are native to the reasoning model, while post-hoc approaches must extract or construct an AF overlay on top of an existing non-argumentative model, introducing potential fidelity loss in the approximate case."
+    concepts:
+      - argumentation_framework
+      - argumentation_semantics
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 1
+      section: "Introduction"
+
+  - id: claim9
+    type: observation
+    statement: "Dialogical explanations arise naturally from argumentation because structured, rule-guided, goal-oriented exchanges of arguments directly implement the dialectical process that dispute trees formalize."
+    concepts:
+      - dispute_tree
+      - argumentation_framework
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 5
+      section: "Forms of AF-Based Explanations"
+      quote_fragment: "participants engage in structured, rule-guided, goal-oriented exchange"
+
+  - id: claim10
+    type: observation
+    statement: "Tractable membership reasoning for grounded extensions in abstract argumentation supports efficient intrinsic AF-based explanation approaches."
+    concepts:
+      - grounded_extension
+      - computational_complexity
+      - argumentation_framework
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 6
+      section: "Roadmap - Computational Aspects"
+
+  - id: claim11
+    type: limitation
+    statement: "Properties of AF-based explanations remain largely understudied: most work focuses on defining and computing explanations, not on evaluating their quality against desirable properties like cognitive tractability, transparency, or trust."
+    concepts:
+      - argumentation_framework
+      - argumentation_semantics
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 6
+      section: "Roadmap - Properties"
+
+  - id: claim12
+    type: limitation
+    statement: "AF-based explanations are sparsely deployed in machine learning settings despite ML being the area of strongest current XAI demand."
+    concepts:
+      - argumentation_framework
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 6
+      section: "Roadmap - Extending Applications"
+
+  - id: claim13
+    type: limitation
+    statement: "Human evaluation of argumentative explanations is sparse across the surveyed literature, leaving open whether the theoretical advantages of argumentation-based explanations translate into improved human understanding."
+    concepts:
+      - argumentation_framework
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 6
+      section: "Roadmap - Properties"
+
+  - id: claim14
+    type: observation
+    statement: "Quantitative Bipolar Argumentation frameworks with gradual semantics are deployed for intrinsic explanations in recommender systems, where argument base scores represent review aggregations and the dialectical structure captures competitive relationships between items."
+    concepts:
+      - bipolar_argumentation_framework
+      - argument_strength
+      - ranking_based_semantics
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 3
+      section: "Intrinsic Approaches"
+
+  - id: claim15
+    type: observation
+    statement: "Assumption-Based Argumentation provides the most common structured argumentation substrate for complete post-hoc mappings, with demonstrated sound mappings for decision graphs, planning problems, and logic programming."
+    concepts:
+      - assumption_based_argumentation
+      - argumentation_framework
+    provenance:
+      paper: Čyras_2021_ArgumentativeXAISurvey
+      page: 3
+      section: "Complete Post-Hoc Approaches"

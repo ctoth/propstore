@@ -1,0 +1,13 @@
+{
+  "title": "On Computing Explanations in Argumentation",
+  "authors": [
+    "Xiuyi Fan",
+    "Francesca Toni"
+  ],
+  "year": "2015",
+  "arxiv_id": null,
+  "doi": "10.1609/aaai.v29i1.9420",
+  "abstract": "\n \n Argumentation can be viewed as a process of generating explanations. However, existing argumentation semantics are developed for identifying acceptable arguments within a set, rather than giving concrete justifications for them. In this work, we propose a new argumentation semantics, related admissibility, designed for giving explanations to arguments in both Abstract Argumentation and Assumption-based Argumentation. We identify different types of explanations defined in terms of the new semantics. We also give a correct computational counterpart for explanations using dispute forests.\n \n",
+  "url": "https://www.semanticscholar.org/paper/6f43bfb88f671d1f10c44c80e34adc8de1b77ed8",
+  "pdf_url": "https://ojs.aaai.org/index.php/AAAI/article/download/9420/9279"
+}

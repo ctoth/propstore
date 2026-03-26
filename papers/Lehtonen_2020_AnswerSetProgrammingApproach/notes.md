@@ -211,6 +211,7 @@ This paper is directly relevant to propstore's argumentation layer (Layer 4). It
 - [[Dung_1995_AcceptabilityArguments]] — cited as foundational; AF semantics (admissible, preferred, stable, complete) are the target that Theorem 5 connects σ-assumptions to
 - [[Modgil_2018_GeneralAccountArgumentationPreferences]] — cited as "Modgil & Prakken 2013"; defines the full ASPIC+ framework with preferences that this paper restricts to the preference-free case
 - [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] — the tutorial introduction to ASPIC+ that presents the framework this paper implements computationally
+- [[Prakken_2013_FormalisationArgumentationSchemesLegalCaseBasedReasoningASPICPlus]] — technical-report precursor to the 2015 journal article cited in this paper; same formalization of CATO-style legal case-based reasoning in ASPIC+
 - [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — co-authored by Lehtonen and Wallner; extends this paper's ASP encodings with incomplete-information reasoning (stability and relevance)
 
 ### New Leads (Not Yet in Collection)

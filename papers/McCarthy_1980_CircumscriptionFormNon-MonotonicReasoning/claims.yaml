@@ -1,0 +1,181 @@
+source:
+  paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+  extraction_model: "claude-opus-4-6-20250514"
+  extraction_date: "2026-03-24"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Circumscription is a formalized rule of conjecture (not inference) for first-order logic that allows jumping to the conclusion that the entities satisfying a predicate are only those that can be shown to satisfy it from the known facts."
+    concepts:
+      - circumscription
+      - non_monotonic_reasoning
+      - predicate_circumscription
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 27
+      section: "Abstract / Section 1"
+      quote_fragment: "Circumscription formalizes such conjectural reasoning"
+    notes: "The foundational definition — circumscription is explicitly a rule of conjecture, not inference, meaning its conclusions can be wrong and must sometimes be retracted."
+
+  - id: claim2
+    type: equation
+    expression: "A(\\Phi) \\land \\forall \\bar{x}.(\\Phi(\\bar{x}) \\supset P(\\bar{x})) \\supset \\forall \\bar{x}.(P(\\bar{x}) \\supset \\Phi(\\bar{x}))"
+    sympy: null
+    variables:
+      - symbol: "A"
+        concept: "default_theory"
+        role: "parameter"
+      - symbol: "P"
+        concept: "predicate_circumscription"
+        role: "dependent"
+      - symbol: "Phi"
+        concept: "circumscription"
+        role: "independent"
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 32
+      section: "4. The Formalism of Circumscription"
+      quote_fragment: "The circumscription of P in A(P) is the sentence schema"
+    notes: "The core circumscription schema. Phi is an arbitrary predicate parameter; the schema asserts P is the minimal predicate satisfying A. Not expressible as a single SymPy equation due to second-order quantification over predicate variables."
+
+  - id: claim3
+    type: mechanism
+    statement: "Circumscription achieves non-monotonic reasoning by adding a sentence schema to a first-order theory rather than modifying the underlying logic, avoiding the complications of creating a separate non-monotonic logic."
+    concepts:
+      - circumscription
+      - non_monotonic_reasoning
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 37
+      section: "8. Remarks and Acknowledgments"
+      quote_fragment: "it is better to avoid modifying the logic if at all possible"
+    notes: "Design rationale — McCarthy explicitly prefers sentence schemata over modal logic modifications (remark 1)."
+
+  - id: claim4
+    type: observation
+    statement: "Circumscriptive inference is non-monotonic: adding more sentences to the axiom set A can invalidate previously derivable conclusions, because the minimal predicate extension may grow."
+    concepts:
+      - circumscription
+      - non_monotonic_reasoning
+      - monotonic_reasoning
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 29
+      section: "2. The Need for Non-Monotonic Reasoning"
+      quote_fragment: "Since adding more sentences to A might make P applicable to more tuples, circumscription is not monotonic"
+
+  - id: claim5
+    type: observation
+    statement: "Domain circumscription (minimizing the domain of discourse) can be reduced to predicate circumscription by introducing a new predicate 'all' and relativizing the axioms."
+    concepts:
+      - domain_circumscription
+      - predicate_circumscription
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 35
+      section: "5. Domain Circumscription"
+      quote_fragment: "Domain circumscription can be reduced to predicate circumscription by relativizing A"
+
+  - id: claim6
+    type: observation
+    statement: "Circumscriptive inference is sound with respect to minimal entailment: any sentence derivable by circumscribing P in A is true in all minimal models of A with respect to P."
+    concepts:
+      - circumscription
+      - minimal_entailment
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 35
+      section: "6. The Model Theory of Predicate Circumscription"
+      quote_fragment: "Any instance of the circumscription of P in A is true in all models of A minimal in P"
+    notes: "Proved as Theorem + Corollary on p.35. Soundness but not completeness — the converse is left open."
+
+  - id: claim7
+    type: observation
+    statement: "Circumscription of the isnatnum predicate with natural number axioms yields exactly the axiom schema of mathematical induction, showing induction is a special case of circumscription."
+    concepts:
+      - circumscription
+      - predicate_circumscription
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 34
+      section: "4. The Formalism of Circumscription"
+      quote_fragment: "this is essentially the usual axiom schema of induction"
+
+  - id: claim8
+    type: mechanism
+    statement: "The frame problem in blocks world can be addressed by circumscribing a 'prevents' predicate: axiomatize what prevents an action, then circumscribe to conclude that the only preventers are those enumerated, allowing the inference that actions succeed when no known preventer exists."
+    concepts:
+      - circumscription
+      - qualification_problem
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 36
+      section: "7. More on Blocks"
+      quote_fragment: "The predicate lambda z.prevents(z, move(A,C), s0) can be circumscribed"
+    notes: "The prevents predicate pattern is structurally analogous to undercutting defeat in argumentation — conditions that block the inference rather than denying the conclusion."
+
+  - id: claim9
+    type: comparison
+    statement: "Circumscription is preferable to probability-based approaches for the qualification problem because we mentally exclude extraneous possibilities before even considering their probabilities — the non-bridge, non-sea-monster interpretation is formed before probabilities enter."
+    concepts:
+      - circumscription
+      - qualification_problem
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 31
+      section: "3. Missionaries and Cannibals (discussion)"
+      quote_fragment: "we mentally propose to ourselves the normal non-bridge non-sea-monster interpretation before considering these extraneous possibilities"
+
+  - id: claim10
+    type: limitation
+    statement: "Circumscription is a rule of conjecture, not a logic: its conclusions can be wrong and may need to be retracted when new information arrives, requiring domain-dependent heuristics to decide when to circumscribe and when to retract."
+    concepts:
+      - circumscription
+      - non_monotonic_reasoning
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 37
+      section: "8. Remarks and Acknowledgments"
+      quote_fragment: "Circumscription is not a 'non-monotonic logic.' It is a form of non-monotonic reasoning"
+
+  - id: claim11
+    type: limitation
+    statement: "The results of circumscription depend on the choice of predicates used to axiomatize the domain — different representations yield different circumscriptive conclusions, and the choice of representation has epistemological consequences."
+    concepts:
+      - circumscription
+      - predicate_circumscription
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 38
+      section: "8. Remarks and Acknowledgments"
+      quote_fragment: "the results of circumscription depend on the set of predicates used to express the facts"
+
+  - id: claim12
+    type: limitation
+    statement: "Default case reasoning via circumscription is less general than full default reasoning: concluding that a block is not on another block unless stated requires separate default statements for each individual block, rather than a single default schema."
+    concepts:
+      - circumscription
+      - default_logic
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 37
+      section: "8. Remarks and Acknowledgments"
+    notes: "This limitation is part of the motivation for Reiter's default logic, which handles default schemas more naturally."
+    stances:
+      - type: supports
+        target: "Reiter_1980_DefaultReasoning:claim1"
+        strength: "moderate"
+        note: "McCarthy acknowledges circumscription's limitation that motivates default logic's approach"
+
+  - id: claim13
+    type: observation
+    statement: "Using circumscription requires introducing into the ontology categories for things that might prevent actions or violate expectations — entities that include 'something wrong with a boat' or 'something that may prevent its use' — which is the price of avoiding the qualification problem."
+    concepts:
+      - circumscription
+      - qualification_problem
+    provenance:
+      paper: McCarthy_1980_CircumscriptionFormNon-MonotonicReasoning
+      page: 30
+      section: "1. Introduction"
+      quote_fragment: "The price is introducing as entities in our language the 'somethings' that may prevent the use of the boat"

@@ -1,0 +1,13 @@
+{
+  "title": "Approximate Reasoning with ASPIC+ by Argument Sampling",
+  "authors": [
+    "Matthias Thimm",
+    "Tjitze Rienstra"
+  ],
+  "year": "2020",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "We present approximation algorithms for reasoning in structured argumentation approaches as ASPIC+. While classical approaches consist in constructing all arguments from a knowledge base, and determine acceptable arguments from the resulting argument graph, we sample only a small number of arguments and thus only consider a subgraph of the complete argument graph. We develop two approaches for sampling arguments, one which samples arguments independently and one which samples arguments dependently on a query. We present results of an extensive experimental evaluation that show that runtimes can be drastically reduced while the accuracy is only marginally affected.",
+  "url": null,
+  "pdf_url": null
+}

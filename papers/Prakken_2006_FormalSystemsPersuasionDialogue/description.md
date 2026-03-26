@@ -1,0 +1,4 @@
+---
+tags: [persuasion-dialogue, argumentation, dialogue-systems, commitment-stores, speech-acts]
+---
+Proposes a formal specification framework for the core elements of persuasion dialogue systems — communication language, protocol rules, commitment stores, turntaking, termination, and outcome — and uses it to critically compare nine major formal systems from computational argumentation. Key contributions include a taxonomy of speech acts (claim, why, since, concede, retract, question), a classification of commitment rules by assertion/acceptance attitudes, and identification of design tensions between unique-reply vs. multiple-reply protocols and strict vs. liberal turntaking. Directly relevant to propstore's argumentation and agent workflow layers, providing formal grounding for structured claim exchange, stance tracking via commitment stores, and protocol design for automated argumentation systems.

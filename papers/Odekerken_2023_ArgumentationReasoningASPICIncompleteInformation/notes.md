@@ -23,6 +23,9 @@ Standard ASPIC+ assumes complete knowledge bases where all premises are known. I
 5. **ASP-based algorithms**: Practical algorithms for computing justification labels, stability, and relevance using Answer Set Programming encodings.
 6. **Empirical evaluation**: Experiments on both synthetic and real-world argumentation benchmarks demonstrating practical feasibility.
 
+## Collection Cross-References
+- [[Odekerken_2025_ArgumentativeReasoningASPICIncompleteInformation]] - final JAIR version of this line of work; use this entry as the canonical current paper. The JAIR article adds general complexity bounds, a stronger relevance algorithm, a revised implementation, and a broader empirical study.
+
 ## Methodology
 
 ### ASPIC+ Background (Definitions 1-5)

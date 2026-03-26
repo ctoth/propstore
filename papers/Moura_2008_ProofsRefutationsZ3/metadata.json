@@ -1,0 +1,15 @@
+{
+  "title": "Proofs and Refutations, and Z3",
+  "authors": [
+    "Leonardo de Moura",
+    "Nikolaj Bj\u00f8rner"
+  ],
+  "year": "2008",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "Z3 is a state-of-the-art Satisfiability Modulo Theories solver freely available from Microsoft Research. It solves the decision problem for quantifier-free formulas with respect to combinations of theories, such as arithmetic, bit-vectors, arrays, and uninterpreted functions. Z3 is used in various software analysis and test-case generation projects at Microsoft Research and elsewhere. The requirements from the user-base range from establishing validity, dually unsatisfiability, of first-order formulas; to identify invalid, dually satisfiable, formulas. In both cases, there is often a need for more than just a yes/no answer from the prover. A model can exhibit why an invalid formula is not provable, and a proof-object can certify the validity of a formula. This paper describes the proof-producing internals of Z3. We also briefly introduce the model-producing facilities. We emphasize two features that can be of general interest: (1) we introduce a notion of implicit quotation to avoid introducing auxiliary variables, it simplifies the creation of proof objects considerably; (2) it can produce natural deduction style proofs to facilitate modular proof re-construction.",
+  "url": null,
+  "pdf_url": null,
+  "venue": "SMT 2008 workshop paper",
+  "pages": "1-10"
+}

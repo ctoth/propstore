@@ -1,0 +1,15 @@
+{
+  "title": "EpiPEn: A DSL for Solving Epistemic Logic Puzzles with Z3",
+  "authors": [
+    "Josh Horowitz",
+    "Jack Zhang"
+  ],
+  "year": "2021",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "No standalone abstract is present in the paper. The work describes the logical encoding behind EpiPEn, a Python DSL on top of Z3 for epistemic logic puzzles, its design and implementation, and results on six example puzzles.",
+  "url": null,
+  "pdf_url": null,
+  "venue": "Project report",
+  "pages": "1-6"
+}
