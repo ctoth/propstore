@@ -37,9 +37,29 @@ class ArgumentationFramework:
     attacks: frozenset[tuple[str, str]] | None = None
 
 
-def attackers_of(arg: str, defeats: frozenset[tuple[str, str]]) -> frozenset[str]:
+def _attackers_index(
+    defeats: frozenset[tuple[str, str]],
+) -> dict[str, frozenset[str]]:
+    """Build target -> attackers adjacency for a defeat relation."""
+    attackers: dict[str, set[str]] = {}
+    for attacker, target in defeats:
+        attackers.setdefault(target, set()).add(attacker)
+    return {
+        target: frozenset(sources)
+        for target, sources in attackers.items()
+    }
+
+
+def attackers_of(
+    arg: str,
+    defeats: frozenset[tuple[str, str]],
+    *,
+    attackers_index: dict[str, frozenset[str]] | None = None,
+) -> frozenset[str]:
     """Return the set of all arguments that defeat `arg`."""
-    return frozenset(a for a, t in defeats if t == arg)
+    if attackers_index is None:
+        attackers_index = _attackers_index(defeats)
+    return attackers_index.get(arg, frozenset())
 
 
 def conflict_free(s: frozenset[str], relation: frozenset[tuple[str, str]]) -> bool:
@@ -61,9 +81,13 @@ def defends(
     arg: str,
     all_args: frozenset[str],  # noqa: ARG001
     defeats: frozenset[tuple[str, str]],
+    *,
+    attackers_index: dict[str, frozenset[str]] | None = None,
 ) -> bool:
     """Check if s defends arg: for every attacker of arg, s counter-attacks it."""
-    for attacker in attackers_of(arg, defeats):
+    if attackers_index is None:
+        attackers_index = _attackers_index(defeats)
+    for attacker in attackers_of(arg, defeats, attackers_index=attackers_index):
         if not any((d, attacker) in defeats for d in s):
             return False
     return True
@@ -73,12 +97,26 @@ def characteristic_fn(
     s: frozenset[str],
     all_args: frozenset[str],
     defeats: frozenset[tuple[str, str]],
+    *,
+    attackers_index: dict[str, frozenset[str]] | None = None,
 ) -> frozenset[str]:
     """Characteristic function F(S) = {A in Args | A is defended by S}.
 
     Reference: Dung 1995, Definition 17.
     """
-    return frozenset(a for a in all_args if defends(s, a, all_args, defeats))
+    if attackers_index is None:
+        attackers_index = _attackers_index(defeats)
+    return frozenset(
+        a
+        for a in all_args
+        if defends(
+            s,
+            a,
+            all_args,
+            defeats,
+            attackers_index=attackers_index,
+        )
+    )
 
 
 def admissible(
@@ -87,6 +125,7 @@ def admissible(
     defeats: frozenset[tuple[str, str]],
     *,
     attacks: frozenset[tuple[str, str]] | None = None,
+    attackers_index: dict[str, frozenset[str]] | None = None,
 ) -> bool:
     """Check if s is admissible: conflict-free and defends all its members.
 
@@ -97,8 +136,16 @@ def admissible(
     cf_relation = attacks if attacks is not None else defeats
     if not conflict_free(s, cf_relation):
         return False
+    if attackers_index is None:
+        attackers_index = _attackers_index(defeats)
     for a in s:
-        if not defends(s, a, all_args, defeats):
+        if not defends(
+            s,
+            a,
+            all_args,
+            defeats,
+            attackers_index=attackers_index,
+        ):
             return False
     return True
 
@@ -117,8 +164,14 @@ def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
         Modgil & Prakken 2018, Definition 14 (attack-based conflict-free).
     """
     s: frozenset[str] = frozenset()
+    attackers_index = _attackers_index(framework.defeats)
     while True:
-        next_s = characteristic_fn(s, framework.arguments, framework.defeats)
+        next_s = characteristic_fn(
+            s,
+            framework.arguments,
+            framework.defeats,
+            attackers_index=attackers_index,
+        )
         if next_s == s:
             break
         s = next_s
@@ -142,7 +195,13 @@ def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
             while True:
                 next_s = frozenset(
                     a for a in s
-                    if defends(s, a, framework.arguments, framework.defeats)
+                    if defends(
+                        s,
+                        a,
+                        framework.arguments,
+                        framework.defeats,
+                        attackers_index=attackers_index,
+                    )
                 )
                 if next_s == s:
                     break
@@ -167,13 +226,23 @@ def complete_extensions(
     args = framework.arguments
     defeats = framework.defeats
     attacks = framework.attacks
+    attackers_index = _attackers_index(defeats)
     results: list[frozenset[str]] = []
 
     for size in range(len(args) + 1):
         for subset in combinations(sorted(args), size):
             s = frozenset(subset)
-            if characteristic_fn(s, args, defeats) == s and admissible(
-                s, args, defeats, attacks=attacks
+            if characteristic_fn(
+                s,
+                args,
+                defeats,
+                attackers_index=attackers_index,
+            ) == s and admissible(
+                s,
+                args,
+                defeats,
+                attacks=attacks,
+                attackers_index=attackers_index,
             ):
                 results.append(s)
 

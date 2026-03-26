@@ -12,9 +12,9 @@ References:
 
 from __future__ import annotations
 
-from z3 import Bool, And, Or, Not, Implies, Solver, sat
+from z3 import Bool, BoolVal, And, Or, Not, Solver, sat
 
-from propstore.dung import ArgumentationFramework, attackers_of
+from propstore.dung import ArgumentationFramework, _attackers_index
 
 
 def _make_vars(
@@ -60,6 +60,46 @@ def _block_solution(
     return [Or(*clause_parts)] if clause_parts else []
 
 
+def _or_vars(v: dict[str, Bool], arguments: tuple[str, ...]):
+    """Build a disjunction over argument-membership variables."""
+    if not arguments:
+        return BoolVal(False)
+    if len(arguments) == 1:
+        return v[arguments[0]]
+    return Or(*(v[arg] for arg in arguments))
+
+
+def _defended_expressions(
+    args: list[str],
+    v: dict[str, Bool],
+    attackers_index: dict[str, frozenset[str]],
+) -> dict[str, object]:
+    """Build one defended-expression per argument.
+
+    defended(a) means: every attacker of ``a`` is itself attacked by some
+    accepted argument. Unattacked arguments are always defended.
+    """
+    defender_exprs: dict[str, object] = {
+        target: _or_vars(v, tuple(sorted(attackers)))
+        for target, attackers in attackers_index.items()
+    }
+    defended: dict[str, object] = {}
+    for arg in args:
+        attackers = tuple(sorted(attackers_index.get(arg, frozenset())))
+        if not attackers:
+            defended[arg] = BoolVal(True)
+            continue
+        if any(attacker not in defender_exprs for attacker in attackers):
+            defended[arg] = BoolVal(False)
+            continue
+        parts = tuple(defender_exprs[attacker] for attacker in attackers)
+        if len(parts) == 1:
+            defended[arg] = parts[0]
+        else:
+            defended[arg] = And(*parts)
+    return defended
+
+
 # ── Stable extensions ──────────────────────────────────────────────
 
 
@@ -77,6 +117,7 @@ def z3_stable_extensions(
     v = _make_vars(framework)
     args = sorted(framework.arguments)
     defeats = framework.defeats
+    attackers_index = _attackers_index(defeats)
 
     base_constraints = []
 
@@ -85,11 +126,11 @@ def z3_stable_extensions(
 
     # Every outsider must be attacked by some member of S
     for a in args:
-        atks = attackers_of(a, defeats)
+        atks = tuple(sorted(attackers_index.get(a, frozenset())))
         if atks:
             # If a is out, some attacker must be in
             base_constraints.append(
-                Or(v[a], Or(*[v[b] for b in atks]))
+                Or(v[a], *(v[b] for b in atks))
             )
         else:
             # No attackers: a must be in (undefeated)
@@ -126,50 +167,20 @@ def z3_complete_extensions(
     v = _make_vars(framework)
     args = sorted(framework.arguments)
     defeats = framework.defeats
+    attackers_index = _attackers_index(defeats)
+    defended_exprs = _defended_expressions(args, v, attackers_index)
 
     base_constraints = []
 
     # Conflict-free
     base_constraints.extend(_conflict_free_constraints(framework, v))
 
-    # Defense: if a is in S, then for each attacker b of a,
-    # some defender d in S must attack b
+    # Completeness can be expressed directly as:
+    #   v[a] <-> defended(a)
+    # This subsumes both admissibility-for-members and "every defended
+    # argument must be in" while keeping the encoding compact.
     for a in args:
-        for b in attackers_of(a, defeats):
-            defenders = [d for d in args if (d, b) in defeats]
-            if defenders:
-                base_constraints.append(
-                    Implies(v[a], Or(*[v[d] for d in defenders]))
-                )
-            else:
-                # b has no counter-attackers, so a can't be in S if b exists
-                base_constraints.append(Not(v[a]))
-
-    # Fixed point (completeness): if a is defended by S, then a must be in S.
-    # defended(a) means: for every attacker b of a, some d in S attacks b.
-    # We encode: if for every attacker b of a there exists d in S with (d,b),
-    # then a must be in S.
-    for a in args:
-        atks = list(attackers_of(a, defeats))
-        if not atks:
-            # No attackers => always defended => must be in S
-            base_constraints.append(v[a])
-        else:
-            # defended(a) = AND over attackers b: OR over defenders d: v[d]
-            defended_parts = []
-            all_defended = True
-            for b in atks:
-                defenders = [d for d in args if (d, b) in defeats]
-                if defenders:
-                    defended_parts.append(Or(*[v[d] for d in defenders]))
-                else:
-                    # b has no counter-attackers, so a is never defended
-                    all_defended = False
-                    break
-
-            if all_defended and defended_parts:
-                defended_a = And(*defended_parts) if len(defended_parts) > 1 else defended_parts[0]
-                base_constraints.append(Implies(defended_a, v[a]))
+        base_constraints.append(v[a] == defended_exprs[a])
 
     # Enumerate
     results: list[frozenset[str]] = []
