@@ -372,6 +372,30 @@ def _sanitize_claim_source_prefix(source_name: str) -> str:
     return sanitized
 
 
+def _normalize_import_output_dir(output_dir: Path | None, repo: Repository) -> tuple[Path, str | None]:
+    """Return a build-visible import destination and an optional notice."""
+    if output_dir is None:
+        return repo.claims_dir, None
+
+    resolved_output = output_dir.resolve()
+    repo_root = repo.root.resolve()
+    claims_dir = repo.claims_dir.resolve()
+
+    if resolved_output == repo_root:
+        return repo.claims_dir, (
+            f"--output-dir pointed at repository root; writing imported claims to {repo.claims_dir}"
+        )
+
+    if resolved_output != claims_dir:
+        raise click.ClickException(
+            f"--output-dir must be {repo.claims_dir} "
+            f"(or repository root {repo.root}, which maps there); "
+            f"build only reads claim files from {repo.claims_dir}"
+        )
+
+    return repo.claims_dir, None
+
+
 @click.command("import-papers")
 @click.option(
     "--papers-root",
@@ -393,8 +417,9 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
     from propstore.validate import load_concepts
 
     repo: Repository = obj["repo"]
-    if output_dir is None:
-        output_dir = repo.claims_dir
+    output_dir, output_dir_notice = _normalize_import_output_dir(output_dir, repo)
+    if output_dir_notice:
+        click.echo(output_dir_notice, err=True)
     paper_dirs = sorted(entry for entry in papers_root.iterdir() if entry.is_dir())
     imports: list[tuple[Path, Path]] = []
     for paper_dir in paper_dirs:

@@ -714,6 +714,62 @@ class TestImportPapers:
         assert imported["claims"][0]["id"] == "Author_2025_Title:claim1"
         assert imported["claims"][1]["id"] == "Author_2025_Title:claim2"
 
+    def test_import_papers_repo_root_output_dir_maps_to_claims_dir(self, workspace: Path) -> None:
+        """Passing knowledge/ as --output-dir should still write to knowledge/claims."""
+        papers_root = workspace / "plugin-papers"
+        paper_dir = papers_root / "Author_2025_Title"
+        paper_dir.mkdir(parents=True)
+        (paper_dir / "claims.yaml").write_text(yaml.dump({
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 100.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "ignored", "page": 2},
+                },
+            ]
+        }, default_flow_style=False, sort_keys=False))
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "import-papers",
+            "--papers-root", str(papers_root),
+            "--output-dir", str(workspace / "knowledge"),
+        ])
+        assert result.exit_code == 0, result.output
+        assert "writing imported claims to" in result.output
+        assert (workspace / "knowledge" / "claims" / "Author_2025_Title.yaml").exists()
+        assert not (workspace / "knowledge" / "Author_2025_Title.yaml").exists()
+
+    def test_import_papers_rejects_build_invisible_output_dir(self, workspace: Path) -> None:
+        """Reject arbitrary output dirs that build will not read."""
+        papers_root = workspace / "plugin-papers"
+        paper_dir = papers_root / "Author_2025_Title"
+        paper_dir.mkdir(parents=True)
+        (paper_dir / "claims.yaml").write_text(yaml.dump({
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 100.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "ignored", "page": 2},
+                },
+            ]
+        }, default_flow_style=False, sort_keys=False))
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "import-papers",
+            "--papers-root", str(papers_root),
+            "--output-dir", str(workspace / "scratch"),
+        ])
+        assert result.exit_code != 0
+        assert "build only reads claim files from" in result.output
+
 
 # ── build (extended) ────────────────────────────────────────────────
 
