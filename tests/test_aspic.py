@@ -1105,15 +1105,17 @@ class TestAttackProperties:
     @given(data=st.data())
     @settings(max_examples=200, deadline=None)
     def test_rebutting_symmetry_for_contradictories(self, data):
-        """If A rebuts B on B' where Conc(A) and Conc(B') are contradictories,
-        then there exists an attack from some argument with same conclusion as
-        B' (or B' itself) back on A or a sub-argument of A.
+        """Contradictory rebut is symmetric when both sides are defeasible.
 
         Modgil & Prakken 2018, Def 2 (p.8): contradictories are symmetric.
         Def 8b (p.11): rebutting requires Conc(A) in contrariness of Conc(B').
-        Since contradictories are symmetric (phi in bar(psi) AND psi in bar(phi)),
-        if A rebuts B' then an argument concluding Conc(B') can rebut A
-        (or a defeasible sub-argument of A).
+
+        The symmetry applies at the level of rebuttable defeasible conclusions.
+        If A rebuts B' and both A and B' have defeasible top rules with
+        contradictory conclusions, then B' must also rebut A.
+
+        This does NOT hold when the attacker is only a premise or a strict
+        conclusion: Def 8b constrains the target structure, not the attacker.
         """
         L, cfn = data.draw(logical_language())
         R_s = data.draw(strict_rules(L, cfn))
@@ -1126,22 +1128,29 @@ class TestAttackProperties:
         for atk in attacks:
             if atk.kind != "rebutting":
                 continue
+            tr_a = top_rule(atk.attacker)
+            if tr_a is None or tr_a.kind != "defeasible":
+                continue
             conc_a = conc(atk.attacker)
             conc_b_prime = conc(atk.target_sub)
             # Only check when they are contradictories (symmetric)
             if not cfn.is_contradictory(conc_a, conc_b_prime):
                 continue
-            # There must exist a reverse attack: some argument with
-            # conclusion == conc(B') attacks A or a sub-argument of A
+            tr_b = top_rule(atk.target_sub)
+            if tr_b is None or tr_b.kind != "defeasible":
+                continue
+            # There must exist a reverse rebutting attack from the same
+            # contradictory defeasible conclusion back onto A.
             reverse_exists = any(
                 atk2.kind == "rebutting"
                 and conc(atk2.attacker) == conc_b_prime
-                and atk2.target_sub in sub(atk.attacker)
+                and atk2.target_sub == atk.attacker
                 for atk2 in attacks
             )
             assert reverse_exists, (
-                f"Rebutting attack from {conc_a} on {conc_b_prime} is "
-                f"contradictory-symmetric, but no reverse rebutting found"
+                f"Rebutting attack from defeasible {conc_a} on defeasible "
+                f"{conc_b_prime} is contradictory-symmetric, but no reverse "
+                f"rebutting attack onto the attacker was found"
             )
 
     @given(data=st.data())

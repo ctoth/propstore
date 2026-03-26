@@ -581,55 +581,66 @@ def compute_attacks(
     cfn = system.contrariness
     attacks: set[Attack] = set()
 
-    # Pre-compute sub-arguments for each argument
+    # Pre-compute sub-arguments and conclusion index so we can reason from
+    # potentially attackable target literals to candidate attackers, instead
+    # of scanning every argument against every target/sub-target pair.
     sub_cache: dict[Argument, frozenset[Argument]] = {
         b: sub(b) for b in arguments
     }
+    conc_index: dict[Literal, set[Argument]] = {}
+    for arg in arguments:
+        conc_index.setdefault(conc(arg), set()).add(arg)
 
-    for a in arguments:
-        conc_a = conc(a)
-        for b in arguments:
-            for b_prime in sub_cache[b]:
-                # Skip firm+strict sub-arguments — unattackable
-                # (Def 18, p.16: no ordinary premises, no defeasible rules)
-                if is_firm(b_prime) and is_strict(b_prime):
-                    continue
+    attack_points: list[tuple[str, Argument, Argument, Literal]] = []
+    target_literals: set[Literal] = set()
 
-                # (a) Undermining (Def 8a, p.11)
-                if isinstance(b_prime, PremiseArg) and not b_prime.is_axiom:
-                    if (cfn.is_contrary(conc_a, b_prime.premise)
-                            or cfn.is_contradictory(conc_a, b_prime.premise)):
-                        attacks.add(Attack(
-                            attacker=a, target=b,
-                            target_sub=b_prime, kind="undermining",
-                        ))
+    for b in arguments:
+        for b_prime in sub_cache[b]:
+            # Skip firm+strict sub-arguments — unattackable
+            # (Def 18, p.16: no ordinary premises, no defeasible rules)
+            if is_firm(b_prime) and is_strict(b_prime):
+                continue
 
-                # (b) Rebutting (Def 8b, p.11)
-                # A rebuts B on B' iff TopRule(B') is defeasible and
-                # Conc(A) is contrary or contradictory to Conc(B').
-                # No constraint on the attacker beyond its conclusion.
-                tr = top_rule(b_prime)
-                if tr is not None and tr.kind == "defeasible":
-                    conc_b_prime = conc(b_prime)
-                    if (cfn.is_contrary(conc_a, conc_b_prime)
-                            or cfn.is_contradictory(
-                                conc_a, conc_b_prime)):
-                        attacks.add(Attack(
-                            attacker=a, target=b,
-                            target_sub=b_prime, kind="rebutting",
-                        ))
+            # (a) Undermining (Def 8a, p.11)
+            if isinstance(b_prime, PremiseArg) and not b_prime.is_axiom:
+                target_lit = b_prime.premise
+                attack_points.append(("undermining", b, b_prime, target_lit))
+                target_literals.add(target_lit)
 
-                    # (c) Undercutting (Def 8c, p.11)
-                    # No attacker eligibility constraint — undercutting
-                    # is preference-independent (Def 9, p.12).
-                    if tr.name is not None:
-                        name_lit = Literal(tr.name, False)
-                        if (cfn.is_contrary(conc_a, name_lit)
-                                or cfn.is_contradictory(conc_a, name_lit)):
-                            attacks.add(Attack(
-                                attacker=a, target=b,
-                                target_sub=b_prime, kind="undercutting",
-                            ))
+            tr = top_rule(b_prime)
+            if tr is None or tr.kind != "defeasible":
+                continue
+
+            # (b) Rebutting (Def 8b, p.11)
+            rebut_target = conc(b_prime)
+            attack_points.append(("rebutting", b, b_prime, rebut_target))
+            target_literals.add(rebut_target)
+
+            # (c) Undercutting (Def 8c, p.11)
+            if tr.name is not None:
+                name_lit = Literal(tr.name, False)
+                attack_points.append(("undercutting", b, b_prime, name_lit))
+                target_literals.add(name_lit)
+
+    candidate_attackers: dict[Literal, frozenset[Argument]] = {}
+    for target_lit in target_literals:
+        candidates: set[Argument] = set()
+        for conc_lit, args_with_conc in conc_index.items():
+            if (
+                cfn.is_contrary(conc_lit, target_lit)
+                or cfn.is_contradictory(conc_lit, target_lit)
+            ):
+                candidates.update(args_with_conc)
+        candidate_attackers[target_lit] = frozenset(candidates)
+
+    for kind, target, target_sub, target_lit in attack_points:
+        for attacker in candidate_attackers.get(target_lit, frozenset()):
+            attacks.add(Attack(
+                attacker=attacker,
+                target=target,
+                target_sub=target_sub,
+                kind=kind,
+            ))
 
     return frozenset(attacks)
 
