@@ -147,6 +147,21 @@ Argument = Union[PremiseArg, StrictArg, DefeasibleArg]
 
 
 @dataclass(frozen=True)
+class Attack:
+    """An attack from argument A on sub-argument B' of B.
+
+    Modgil & Prakken 2018, Def 8 (p.11): three types of attack:
+    - Undermining (Def 8a): A attacks ordinary premise of B'
+    - Rebutting (Def 8b): A attacks defeasible conclusion of B'
+    - Undercutting (Def 8c): A attacks defeasible rule applicability of B'
+    """
+    attacker: Argument
+    target: Argument       # B — the argument being attacked
+    target_sub: Argument   # B' — the specific sub-argument targeted
+    kind: str              # "undermining", "rebutting", or "undercutting"
+
+
+@dataclass(frozen=True)
 class KnowledgeBase:
     """KB = (K_n, K_p). Modgil & Prakken 2018, Def 4 (p.9)."""
     axioms: frozenset[Literal]    # K_n — not attackable

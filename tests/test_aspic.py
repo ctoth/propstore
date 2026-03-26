@@ -27,9 +27,9 @@ from hypothesis import strategies as st
 
 from propstore.aspic import (
     Literal, ContrarinessFn, Rule, transposition_closure,
-    PremiseArg, StrictArg, DefeasibleArg, Argument,
+    PremiseArg, StrictArg, DefeasibleArg, Argument, Attack,
     KnowledgeBase, ArgumentationSystem,
-    build_arguments, conc, prem, sub, top_rule,
+    build_arguments, compute_attacks, conc, prem, sub, top_rule,
     def_rules, last_def_rules, prem_p, is_firm, is_strict,
 )
 
@@ -930,4 +930,353 @@ class TestArgumentConstructionConcrete:
         # Conclusion of the compound is r
         assert conc(compound) == r, (
             f"Expected conc = r, got {conc(compound)}"
+        )
+
+
+# ── Phase 4: Attack determination property tests ─────────────────
+
+
+class TestAttackProperties:
+    """Property tests for three-type attack determination on sub-arguments.
+
+    Modgil & Prakken 2018, Def 8 (p.11): undermining, rebutting, undercutting.
+    Pollock 1987, Defs 2.4-2.5 (p.485): rebutting vs undercutting defeaters.
+
+    All tests use compute_attacks() which DOES NOT EXIST YET — tests
+    fail with ImportError.
+    """
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_undermining_targets_ordinary_premises(self, data):
+        """Every undermining attack targets a PremiseArg with is_axiom == False.
+
+        Modgil & Prakken 2018, Def 8a (p.11): A undermines B on B' iff
+        B' is a PremiseArg with ordinary premise phi (phi in K_p).
+        Axiom premises (K_n) cannot be undermined.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        for atk in attacks:
+            if atk.kind == "undermining":
+                assert isinstance(atk.target_sub, PremiseArg), (
+                    f"Undermining target_sub is {type(atk.target_sub).__name__}, "
+                    f"expected PremiseArg"
+                )
+                assert not atk.target_sub.is_axiom, (
+                    f"Undermining attack targets axiom premise "
+                    f"{atk.target_sub.premise} — axioms cannot be undermined"
+                )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_rebutting_targets_defeasible_conclusions(self, data):
+        """Every rebutting attack targets a sub-argument whose top_rule() is defeasible.
+
+        Modgil & Prakken 2018, Def 8b (p.11): A rebuts B on B' iff
+        TopRule(B') is defeasible, and Conc(A) is in the contrariness of Conc(B').
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        for atk in attacks:
+            if atk.kind == "rebutting":
+                tr = top_rule(atk.target_sub)
+                assert tr is not None, (
+                    f"Rebutting target_sub has no top rule (PremiseArg)"
+                )
+                assert tr.kind == "defeasible", (
+                    f"Rebutting target_sub top rule is {tr.kind}, "
+                    f"expected 'defeasible'"
+                )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_undercutting_targets_defeasible_rules(self, data):
+        """Every undercutting attack targets a sub-argument whose top_rule() is defeasible.
+
+        Modgil & Prakken 2018, Def 8c (p.11): A undercuts B on B' iff
+        TopRule(B') is a defeasible rule r, and Conc(A) is in the
+        contrariness of n(r). Strict rules cannot be undercut.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        for atk in attacks:
+            if atk.kind == "undercutting":
+                tr = top_rule(atk.target_sub)
+                assert tr is not None, (
+                    f"Undercutting target_sub has no top rule (PremiseArg)"
+                )
+                assert tr.kind == "defeasible", (
+                    f"Undercutting target_sub top rule is {tr.kind}, "
+                    f"expected 'defeasible'"
+                )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_no_attack_on_firm_strict_subarg(self, data):
+        """No attack targets a sub-argument B' where is_firm(B') and is_strict(B').
+
+        Modgil & Prakken 2018, Def 18 (p.16): firm+strict sub-arguments
+        are unattackable — they use only axiom premises and strict rules.
+        Consequence of Def 8: undermining requires ordinary premises,
+        rebutting requires defeasible top rule, undercutting requires
+        defeasible top rule. Firm+strict satisfies none of these.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        for atk in attacks:
+            assert not (is_firm(atk.target_sub) and is_strict(atk.target_sub)), (
+                f"Attack {atk.kind} targets firm+strict sub-argument "
+                f"{atk.target_sub}"
+            )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_attacker_and_target_in_arguments(self, data):
+        """Every attack's attacker and target are both in the argument set.
+
+        compute_attacks operates over the argument set; it should not
+        introduce arguments from outside that set.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        for atk in attacks:
+            assert atk.attacker in arguments, (
+                f"Attacker {atk.attacker} not in argument set"
+            )
+            assert atk.target in arguments, (
+                f"Target {atk.target} not in argument set"
+            )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_target_sub_in_sub_of_target(self, data):
+        """Every attack's target_sub is in sub(attack.target).
+
+        Modgil & Prakken 2018, Def 8 (p.11): all three attack types
+        require B' in Sub(B) — the attacked sub-argument must be a
+        sub-argument of the target argument.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        for atk in attacks:
+            assert atk.target_sub in sub(atk.target), (
+                f"target_sub {atk.target_sub} not in sub({atk.target})"
+            )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_rebutting_symmetry_for_contradictories(self, data):
+        """If A rebuts B on B' where Conc(A) and Conc(B') are contradictories,
+        then there exists an attack from some argument with same conclusion as
+        B' (or B' itself) back on A or a sub-argument of A.
+
+        Modgil & Prakken 2018, Def 2 (p.8): contradictories are symmetric.
+        Def 8b (p.11): rebutting requires Conc(A) in contrariness of Conc(B').
+        Since contradictories are symmetric (phi in bar(psi) AND psi in bar(phi)),
+        if A rebuts B' then an argument concluding Conc(B') can rebut A
+        (or a defeasible sub-argument of A).
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+
+        for atk in attacks:
+            if atk.kind != "rebutting":
+                continue
+            conc_a = conc(atk.attacker)
+            conc_b_prime = conc(atk.target_sub)
+            # Only check when they are contradictories (symmetric)
+            if not cfn.is_contradictory(conc_a, conc_b_prime):
+                continue
+            # There must exist a reverse attack: some argument with
+            # conclusion == conc(B') attacks A or a sub-argument of A
+            reverse_exists = any(
+                atk2.kind == "rebutting"
+                and conc(atk2.attacker) == conc_b_prime
+                and atk2.target_sub in sub(atk.attacker)
+                for atk2 in attacks
+            )
+            assert reverse_exists, (
+                f"Rebutting attack from {conc_a} on {conc_b_prime} is "
+                f"contradictory-symmetric, but no reverse rebutting found"
+            )
+
+    @given(data=st.data())
+    @settings(max_examples=200, deadline=None)
+    def test_attack_kind_is_valid(self, data):
+        """Every attack has kind in {"undermining", "rebutting", "undercutting"}.
+
+        Modgil & Prakken 2018, Def 8 (p.11): exactly three attack types.
+        """
+        L, cfn = data.draw(logical_language())
+        R_s = data.draw(strict_rules(L, cfn))
+        R_d = data.draw(defeasible_rules(L))
+        system = ArgumentationSystem(L, cfn, R_s, R_d)
+        kb = data.draw(knowledge_base(L, R_s, R_d))
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        valid_kinds = {"undermining", "rebutting", "undercutting"}
+        for atk in attacks:
+            assert atk.kind in valid_kinds, (
+                f"Attack kind '{atk.kind}' not in {valid_kinds}"
+            )
+
+
+class TestAttackConcrete:
+    """Hand-constructed examples for attack determination.
+
+    Modgil & Prakken 2018, Def 8 (p.11).
+    Pollock 1987, Defs 2.4-2.5 (p.485).
+    """
+
+    def test_undermining_example(self):
+        """K_p = {p, ~p}. Defeasible rule: p => q.
+        The argument for ~p undermines the argument for q on sub-argument PremiseArg(p).
+
+        Modgil & Prakken 2018, Def 8a (p.11): A undermines B on B' iff
+        B' in Sub(B), B' is a PremiseArg with ordinary premise phi (phi in K_p),
+        and Conc(A) is in the contrariness of phi.
+
+        Here: Conc(A) = ~p, phi = p, ~p in bar(p) (contradictories). So A
+        undermines B on PremiseArg(p).
+        """
+        p = Literal("p")
+        not_p = p.contrary
+        q = Literal("q")
+        not_q = q.contrary
+
+        L = frozenset({p, not_p, q, not_q})
+        cfn = ContrarinessFn(contradictories=frozenset({
+            (p, not_p), (q, not_q),
+        }))
+
+        rule_p_q = Rule(
+            antecedents=(p,), consequent=q,
+            kind="defeasible", name="d0",
+        )
+
+        system = ArgumentationSystem(
+            language=L, contrariness=cfn,
+            strict_rules=frozenset(),
+            defeasible_rules=frozenset({rule_p_q}),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset(),
+            premises=frozenset({p, not_p}),
+        )
+
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+
+        prem_p_arg = PremiseArg(premise=p, is_axiom=False)
+        prem_not_p_arg = PremiseArg(premise=not_p, is_axiom=False)
+        compound_q = DefeasibleArg(
+            sub_args=(prem_p_arg,), rule=rule_p_q,
+        )
+
+        # The argument for ~p undermines the argument for q on PremiseArg(p)
+        expected = Attack(
+            attacker=prem_not_p_arg,
+            target=compound_q,
+            target_sub=prem_p_arg,
+            kind="undermining",
+        )
+        assert expected in attacks, (
+            f"Expected undermining attack {expected} not found in {attacks}"
+        )
+
+    def test_undercutting_example(self):
+        """K_p = {p, ~d0}. Defeasible rule d0: p => q (name="d0").
+        The argument for ~d0 undercuts the argument for q.
+
+        Modgil & Prakken 2018, Def 8c (p.11): A undercuts B on B' iff
+        B' in Sub(B), TopRule(B') is a defeasible rule r, and Conc(A)
+        is in the contrariness of n(r).
+
+        Here: n(r) = d0 (as a Literal), Conc(A) = ~d0. ~d0 in bar(d0)
+        (contradictories). So A undercuts B on B'.
+
+        Pollock 1987, Def 2.5 (p.485): undercutting defeats the connection
+        between premise and conclusion, not the conclusion itself.
+        """
+        p = Literal("p")
+        not_p = p.contrary
+        q = Literal("q")
+        not_q = q.contrary
+        d0 = Literal("d0")
+        not_d0 = d0.contrary
+
+        L = frozenset({p, not_p, q, not_q, d0, not_d0})
+        cfn = ContrarinessFn(contradictories=frozenset({
+            (p, not_p), (q, not_q), (d0, not_d0),
+        }))
+
+        rule_p_q = Rule(
+            antecedents=(p,), consequent=q,
+            kind="defeasible", name="d0",
+        )
+
+        system = ArgumentationSystem(
+            language=L, contrariness=cfn,
+            strict_rules=frozenset(),
+            defeasible_rules=frozenset({rule_p_q}),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset(),
+            premises=frozenset({p, not_d0}),
+        )
+
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+
+        prem_p_arg = PremiseArg(premise=p, is_axiom=False)
+        prem_not_d0_arg = PremiseArg(premise=not_d0, is_axiom=False)
+        compound_q = DefeasibleArg(
+            sub_args=(prem_p_arg,), rule=rule_p_q,
+        )
+
+        # The argument for ~d0 undercuts the argument for q
+        expected = Attack(
+            attacker=prem_not_d0_arg,
+            target=compound_q,
+            target_sub=compound_q,
+            kind="undercutting",
+        )
+        assert expected in attacks, (
+            f"Expected undercutting attack {expected} not found in {attacks}"
         )
