@@ -29,6 +29,7 @@ from propstore.world import (
     ResolutionStrategy,
     SyntheticClaim,
     ValueResult,
+    ValueStatus,
     WorldModel,
     resolve,
 )
@@ -2247,16 +2248,15 @@ class TestWorldModelSidecarPath:
 
 
 class TestHypotheticalWorldATMS:
-    """HypotheticalWorld lacks atms_engine(), so ATMS-backend resolution crashes.
+    """HypotheticalWorld degrades ATMS resolution to a supported backend.
 
-    Finding 10 from audit-atms-world.md: HypotheticalWorld creates its own
-    ActiveClaimResolver but has no atms_engine() method.  If resolved_value()
-    is called with an ATMS-backend policy, _resolve_atms_support() (resolution.py)
-    calls getattr(view, "atms_engine", None) and raises NotImplementedError.
+    The overlay mutates the active claim set but does not rebuild ATMS state.
+    It must therefore avoid routing ATMS-backed resolution into a stale or
+    missing engine and should explicitly downgrade to a supported backend.
     """
 
-    def test_hypothetical_atms_resolution_raises(self, world):
-        """resolved_value() with ATMS backend raises NotImplementedError on HypotheticalWorld.
+    def test_hypothetical_atms_resolution_degrades_backend(self, world):
+        """resolved_value() with ATMS backend falls back instead of crashing.
 
         concept1 under speech is conflicted (claim1=200, claim2=350, claim7=250,
         claim15=205), so resolve() reaches the ARGUMENTATION branch. The identity
@@ -2274,8 +2274,7 @@ class TestHypotheticalWorldATMS:
         # Keep concept1 conflicted — identity hypothetical overlay
         hypo = HypotheticalWorld(bound)
 
-        # HypotheticalWorld has no atms_engine() method.
-        # _resolve_atms_support checks getattr(view, "atms_engine", None)
-        # and raises NotImplementedError when it's not callable.
-        with pytest.raises(NotImplementedError, match="ATMS backend requires"):
-            hypo.resolved_value("concept1")
+        result = hypo.resolved_value("concept1")
+        assert result.status in {ValueStatus.CONFLICTED, ValueStatus.RESOLVED}
+        assert result.reason is not None
+        assert "downgraded ATMS backend to claim_graph" in result.reason

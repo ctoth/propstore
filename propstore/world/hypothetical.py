@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 import math
 
@@ -10,7 +11,16 @@ from propstore.world.bound import (
     _recomputed_conflicts,
 )
 from propstore.world.value_resolver import ActiveClaimResolver, collect_known_values
-from propstore.world.types import BeliefSpace, DerivedResult, ResolvedResult, SyntheticClaim, ValueResult
+from propstore.world.types import (
+    BeliefSpace,
+    DerivedResult,
+    ReasoningBackend,
+    RenderPolicy,
+    ResolvedResult,
+    ResolutionStrategy,
+    SyntheticClaim,
+    ValueResult,
+)
 
 
 def _values_conflict(val_a, val_b) -> bool:
@@ -98,7 +108,22 @@ class HypotheticalWorld(BeliefSpace):
     def resolved_value(self, concept_id: str) -> ResolvedResult:
         from propstore.world.resolution import resolve
 
-        return resolve(self, concept_id, policy=self._base._policy, world=self._base._store)
+        policy = self._base._policy
+        downgraded = (
+            policy is not None
+            and policy.strategy == ResolutionStrategy.ARGUMENTATION
+            and policy.reasoning_backend == ReasoningBackend.ATMS
+        )
+        effective_policy = (
+            replace(policy, reasoning_backend=ReasoningBackend.CLAIM_GRAPH)
+            if downgraded
+            else policy
+        )
+        result = resolve(self, concept_id, policy=effective_policy, world=self._base._store)
+        if downgraded:
+            suffix = "hypothetical overlay downgraded ATMS backend to claim_graph"
+            result.reason = f"{result.reason}; {suffix}" if result.reason else suffix
+        return result
 
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status == "determined"
