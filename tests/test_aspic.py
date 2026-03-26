@@ -1635,6 +1635,62 @@ class TestDefeatProperties:
             )
 
 
+class TestSetComparisonProperties:
+    """Property tests for Def. 19 over finite induced orders."""
+
+    @given(
+        st.permutations((0, 1, 2, 3)),
+        st.sets(st.integers(min_value=0, max_value=3), min_size=1, max_size=4),
+        st.sets(st.integers(min_value=0, max_value=3), min_size=1, max_size=4),
+    )
+    @settings(max_examples=200, deadline=None)
+    def test_elitist_matches_definition_19(self, ranking, gamma, gamma_prime):
+        order_index = {item: idx for idx, item in enumerate(ranking)}
+        base_order = frozenset(
+            (x, y)
+            for x in ranking
+            for y in ranking
+            if order_index[x] < order_index[y]
+        )
+        expected = any(
+            all((x, y) in base_order for y in gamma_prime)
+            for x in gamma
+        )
+        actual = _set_strictly_less(
+            frozenset(gamma),
+            frozenset(gamma_prime),
+            base_order,
+            "elitist",
+        )
+        assert actual == expected
+
+    @given(
+        st.permutations((0, 1, 2, 3)),
+        st.sets(st.integers(min_value=0, max_value=3), min_size=1, max_size=4),
+        st.sets(st.integers(min_value=0, max_value=3), min_size=1, max_size=4),
+    )
+    @settings(max_examples=200, deadline=None)
+    def test_democratic_matches_definition_19(self, ranking, gamma, gamma_prime):
+        order_index = {item: idx for idx, item in enumerate(ranking)}
+        base_order = frozenset(
+            (x, y)
+            for x in ranking
+            for y in ranking
+            if order_index[x] < order_index[y]
+        )
+        expected = all(
+            any((x, y) in base_order for y in gamma_prime)
+            for x in gamma
+        )
+        actual = _set_strictly_less(
+            frozenset(gamma),
+            frozenset(gamma_prime),
+            base_order,
+            "democratic",
+        )
+        assert actual == expected
+
+
 class TestDefeatConcrete:
     """Hand-constructed examples for defeat with preferences.
 
