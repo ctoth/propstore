@@ -24,8 +24,9 @@ class ArgumentationFramework:
     (attacks surviving preference filter). Attacks is the full
     set of attacks before preference filtering.
 
-    When attacks is None (pure Dung AF without preferences),
-    the defeat relation is used for both conflict-free and defense.
+    Pure Dung semantics use ``defeats`` only. Hybrid consumers may
+    still consult ``attacks`` explicitly for attack-based
+    conflict-freeness.
 
     References:
         Dung 1995: AF = (Args, Defeats)
@@ -156,32 +157,13 @@ def admissible(
 def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
     """Compute the unique grounded extension.
 
-    For a standard Dung framework (or any framework where ``attacks`` is
-    absent / identical to ``defeats``), the grounded extension is the least
-    fixed point of the characteristic function.
-
-    When ``attacks`` and ``defeats`` diverge, post-hoc pruning of the
-    defeat-based fixpoint is not a valid grounded-semantics construction:
-    it can return a set that is not complete. In that case, compute the
-    least complete extension of the hybrid semantics when it exists.
-    If no least complete extension exists, return the empty skeptical set
-    rather than inventing a non-complete "grounded" result.
+    This is pure Dung grounded semantics: the least fixed point of the
+    characteristic function over ``defeats`` only. Attack metadata is
+    ignored here.
 
     References:
         Dung 1995, Definition 20 + Theorem 25 (least fixed point).
-        Modgil & Prakken 2018, Definition 14 (attack-based conflict-free).
     """
-    cf_relation = framework.attacks if framework.attacks is not None else framework.defeats
-    if cf_relation != framework.defeats:
-        completes = complete_extensions(framework)
-        if not completes:
-            return frozenset()
-        least = [
-            ext for ext in completes
-            if all(ext <= other for other in completes)
-        ]
-        return least[0] if len(least) == 1 else frozenset()
-
     s: frozenset[str] = frozenset()
     attackers_index = _attackers_index(framework.defeats)
     while True:
@@ -196,6 +178,26 @@ def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
         s = next_s
 
     return s
+
+
+def hybrid_grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
+    """Explicit attack-aware grounded fallback for hybrid frameworks.
+
+    This preserves the old attack-sensitive behavior for callers that
+    intentionally want it. It is not Dung grounded semantics.
+    """
+    cf_relation = framework.attacks if framework.attacks is not None else framework.defeats
+    if cf_relation == framework.defeats:
+        return grounded_extension(framework)
+
+    completes = complete_extensions(framework)
+    if not completes:
+        return frozenset()
+    least = [
+        ext for ext in completes
+        if all(ext <= other for other in completes)
+    ]
+    return least[0] if len(least) == 1 else frozenset()
 
 
 def _resolve_backend(

@@ -10,9 +10,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from propstore.bipolar import (
+    BipolarArgumentationFramework,
+    c_preferred_extensions,
+    cayrol_derived_defeats as _cayrol_derived_defeats_impl,
+    d_preferred_extensions,
+    s_preferred_extensions,
+    stable_extensions as bipolar_stable_extensions,
+)
 from propstore.dung import (
     ArgumentationFramework,
     grounded_extension,
+    hybrid_grounded_extension,
     preferred_extensions,
     stable_extensions,
 )
@@ -53,63 +62,8 @@ def _cayrol_derived_defeats(
     defeats: set[tuple[str, str]],
     supports: set[tuple[str, str]],
 ) -> set[tuple[str, str]]:
-    """Compute derived defeats per Cayrol 2005 Definition 3.
-
-    Supported defeat: A →sup ... →sup B →def C  ⟹  (A, C)
-      A supports B (transitively), B defeats C.
-
-    Indirect defeat: A →def B →sup ... →sup C  ⟹  (A, C)
-      A defeats B, B supports C (transitively).
-
-    Derived defeats can chain: if (A,C) is a derived defeat and C
-    supports D, then (A,D) is also a derived indirect defeat. This
-    requires fixpoint iteration — each pass may produce new defeats
-    that enable further derivations in the next pass.
-    """
-    # Pre-compute transitive support reachability for each argument
-    all_support_sources = {a for a, _ in supports}
-    support_reach: dict[str, set[str]] = {}
-    for src in all_support_sources:
-        support_reach[src] = _transitive_support_targets(src, supports)
-
-    # Working set: original defeats plus all derived defeats found so far
-    working_defeats = set(defeats)
-    all_derived: set[tuple[str, str]] = set()
-
-    while True:
-        new_derived: set[tuple[str, str]] = set()
-
-        # Supported defeat: A supports* B, B defeats C → (A, C)
-        for b, c in working_defeats:
-            for a, targets in support_reach.items():
-                if b in targets:
-                    pair = (a, c)
-                    if pair not in working_defeats:
-                        new_derived.add(pair)
-
-        # Indirect defeat: A defeats B, B supports* C → (A, C)
-        for a, b in working_defeats:
-            if b in support_reach:
-                for c in support_reach[b]:
-                    pair = (a, c)
-                    if pair not in working_defeats:
-                        new_derived.add(pair)
-
-        # Filter self-loops: derived self-defeats (A,A) are degenerate —
-        # a self-defeating argument is already excluded from all admissible
-        # extensions by Dung 1995 Def 6 (conflict-free). Allowing self-loops
-        # to seed further derivation creates spurious defeats: e.g.
-        # A defeats A (self), A supports B → derived (A,B). This conflates
-        # structural impossibility with directed attack.
-        new_derived = {(a, c) for a, c in new_derived if a != c}
-
-        if not new_derived:
-            break
-
-        working_defeats |= new_derived
-        all_derived |= new_derived
-
-    return {(a, c) for a, c in all_derived if a != c}
+    """Compatibility wrapper for Cayrol 2005 derived defeats."""
+    return set(_cayrol_derived_defeats_impl(frozenset(defeats), frozenset(supports)))
 
 
 def _collect_claim_graph_relations(
@@ -323,6 +277,25 @@ def build_argumentation_framework(
     )
 
 
+def build_bipolar_framework(
+    store: ArtifactStore,
+    active_claim_ids: set[str],
+    *,
+    comparison: str = "elitist",
+) -> BipolarArgumentationFramework:
+    """Build an explicit Cayrol-style bipolar framework over active claim rows."""
+    _, _, relations = _collect_claim_graph_relations(
+        store,
+        active_claim_ids,
+        comparison=comparison,
+    )
+    return BipolarArgumentationFramework(
+        arguments=frozenset(active_claim_ids),
+        defeats=relations.direct_defeats,
+        supports=relations.supports,
+    )
+
+
 def build_praf(
     store: ArtifactStore,
     active_claim_ids: set[str],
@@ -397,12 +370,28 @@ def compute_claim_graph_justified_claims(
     For preferred/stable: returns a list of frozensets.
     """
     af = build_argumentation_framework(
-        store, active_claim_ids,
+        store,
+        active_claim_ids,
+        comparison=comparison,
+    )
+    bipolar = build_bipolar_framework(
+        store,
+        active_claim_ids,
         comparison=comparison,
     )
 
     if semantics == "grounded":
         return grounded_extension(af)
+    elif semantics in {"legacy_grounded", "hybrid_grounded", "hybrid-grounded", "bipolar-grounded"}:
+        return hybrid_grounded_extension(af)
+    elif semantics == "d-preferred":
+        return [frozenset(ext) for ext in d_preferred_extensions(bipolar)]
+    elif semantics == "s-preferred":
+        return [frozenset(ext) for ext in s_preferred_extensions(bipolar)]
+    elif semantics == "c-preferred":
+        return [frozenset(ext) for ext in c_preferred_extensions(bipolar)]
+    elif semantics in {"bipolar-stable", "bipolar_stable"}:
+        return [frozenset(ext) for ext in bipolar_stable_extensions(bipolar)]
     elif semantics == "preferred":
         return [frozenset(e) for e in preferred_extensions(af)]
     elif semantics == "stable":

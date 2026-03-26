@@ -23,6 +23,7 @@ from propstore.dung import (
     complete_extensions,
     defends,
     grounded_extension,
+    hybrid_grounded_extension,
     preferred_extensions,
     stable_extensions,
 )
@@ -114,15 +115,24 @@ class TestGroundedConcrete:
         )
         assert result == frozenset({"A", "C"})
 
-    def test_grounded_extension_conflict_free_wrt_attacks(self):
-        """Attack-only conflicts must not produce an invented grounded winner."""
+    def test_grounded_name_not_used_for_hybrid_attack_defeat_fallback_without_opt_in(self):
+        """Plain grounded is Dung-only and must reject hybrid attack/defeat frameworks."""
         fw = ArgumentationFramework(
             arguments=frozenset({"A", "B"}),
-            defeats=frozenset(),  # no defeats, so characteristic fn accepts both
-            attacks=frozenset({("A", "B")}),  # but A attacks B
+            defeats=frozenset(),
+            attacks=frozenset({("A", "B")}),
         )
-        ext = grounded_extension(fw)
-        assert ext == frozenset()
+        with pytest.raises(ValueError, match="hybrid_grounded_extension"):
+            grounded_extension(fw)
+
+    def test_hybrid_grounded_extension_is_explicitly_named(self):
+        """Hybrid attack-aware grounded evaluation must be opt-in."""
+        fw = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset(),
+            attacks=frozenset({("A", "B")}),
+        )
+        assert hybrid_grounded_extension(fw) == frozenset()
 
 
 class TestPreferredConcrete:
@@ -482,47 +492,30 @@ def af_with_attacks_superset(draw, max_args=6):
     )
 
 
-class TestAttacksDefeatsProperties:
-    """Property tests for AFs where attacks ≠ defeats (F27).
-
-    When attacks is a strict superset of defeats, the grounded extension
-    must still satisfy the fundamental Dung theorems.  These tests fill
-    the coverage gap identified in audit Finding 6: the existing strategy
-    always generates attacks=None.
-    """
+class TestHybridGroundedProperties:
+    """Properties for the explicitly named hybrid grounded fallback."""
 
     @given(af_with_attacks_superset())
     @settings(max_examples=100, deadline=None)
     def test_grounded_subset_of_every_preferred(self, framework):
-        """Grounded ⊆ every preferred extension, even when attacks ≠ defeats.
-
-        Per Dung 1995 Theorem 25 + Modgil & Prakken 2018 Def 14.
-        """
-        grounded = grounded_extension(framework)
+        """The explicit hybrid helper must still return a least complete set."""
+        grounded = hybrid_grounded_extension(framework)
         for pref in preferred_extensions(framework, backend="brute"):
-            assert grounded <= pref, (
-                f"Grounded {grounded} is not a subset of preferred {pref} "
-                f"with attacks={framework.attacks}, defeats={framework.defeats}"
-            )
+            assert grounded <= pref
 
     @given(af_with_attacks_superset())
     @settings(max_examples=100, deadline=None)
     def test_grounded_conflict_free_wrt_attacks(self, framework):
-        """Grounded extension is conflict-free w.r.t. attacks.
-
-        Per Modgil & Prakken 2018 Def 14.
-        """
-        ext = grounded_extension(framework)
+        """The explicit hybrid helper must respect attack-based conflict-freeness."""
+        ext = hybrid_grounded_extension(framework)
         cf_relation = framework.attacks if framework.attacks is not None else framework.defeats
-        assert conflict_free(ext, cf_relation), (
-            f"Grounded {ext} is not conflict-free w.r.t. attacks {cf_relation}"
-        )
+        assert conflict_free(ext, cf_relation)
 
     @given(af_with_attacks_superset())
     @settings(max_examples=100, deadline=None)
     def test_grounded_is_complete_when_complete_exists(self, framework):
-        """If the hybrid semantics has a complete extension, grounded must be one."""
+        """The explicit hybrid helper returns a complete extension when one exists."""
         completes = complete_extensions(framework, backend="brute")
         assume(completes)
-        grounded = grounded_extension(framework)
+        grounded = hybrid_grounded_extension(framework)
         assert grounded in completes

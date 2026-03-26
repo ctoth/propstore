@@ -24,12 +24,19 @@ from propstore.argumentation import (
     build_argumentation_framework,
     compute_claim_graph_justified_claims,
 )
+from propstore.bipolar import (
+    BipolarArgumentationFramework,
+    c_preferred_extensions,
+    d_preferred_extensions,
+    s_preferred_extensions,
+)
 from propstore.dung import (
     ArgumentationFramework,
     admissible,
     conflict_free,
     complete_extensions,
     grounded_extension,
+    hybrid_grounded_extension,
     stable_extensions,
 )
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
@@ -367,15 +374,25 @@ class TestAttackBasedConflictFree:
         # No stable extensions: no CF set can defeat all outsiders (no defeats)
         assert frozenset({"A", "B"}) not in exts
 
-    def test_grounded_extension_respects_attacks(self):
-        """Attack-only conflicts should not yield an invented grounded survivor."""
+    def test_hybrid_grounded_extension_respects_attacks(self):
+        """Attack-aware grounded semantics are now explicit and opt-in."""
         fw = ArgumentationFramework(
             arguments=frozenset({"A", "B"}),
             defeats=frozenset(),
             attacks=frozenset({("A", "B")}),
         )
-        ext = grounded_extension(fw)
+        ext = hybrid_grounded_extension(fw)
         assert ext == frozenset()
+
+    def test_grounded_name_not_used_for_hybrid_attack_defeat_fallback_without_opt_in(self):
+        """Plain grounded must ignore attack metadata."""
+        fw = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset(),
+            attacks=frozenset({("A", "B")}),
+        )
+        assert grounded_extension(fw) == frozenset({"A", "B"})
+        assert hybrid_grounded_extension(fw) == frozenset()
 
 
 # ── Extension-level tests with bipolar examples ──────────────────────
@@ -395,8 +412,13 @@ class TestBipolarExtensions:
         _insert_stance(conn, "B", "C", "rebuts")
         conn.commit()
 
+        with pytest.raises(ValueError, match="legacy_grounded"):
+            compute_claim_graph_justified_claims(
+                SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="grounded"
+            )
+
         result = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="grounded"
+            SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="legacy_grounded"
         )
         assert "A" in result
         assert "B" in result
@@ -412,7 +434,7 @@ class TestBipolarExtensions:
         conn.commit()
 
         result = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="grounded"
+            SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="legacy_grounded"
         )
         assert "A" in result
         assert "B" not in result
@@ -448,7 +470,53 @@ class TestBipolarExtensions:
 
         # Grounded should still work
         result = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(conn), {"claim_a", "claim_b", "claim_c"}, semantics="grounded"
+            SQLiteArgumentationStore(conn), {"claim_a", "claim_b", "claim_c"}, semantics="legacy_grounded"
         )
         assert "claim_a" in result
         assert "claim_b" not in result
+
+    def test_claim_graph_exposes_explicit_bipolar_preferred_semantics(self, conn):
+        """Claim-graph callers can request Cayrol d/s/c preferred semantics explicitly."""
+        _insert_claim(conn, "A")
+        _insert_claim(conn, "B")
+        _insert_claim(conn, "C")
+        _insert_claim(conn, "H")
+        _insert_stance(conn, "A", "B", "undercuts")
+        _insert_stance(conn, "C", "B", "supports")
+        conn.commit()
+
+        store = SQLiteArgumentationStore(conn)
+        d_result = compute_claim_graph_justified_claims(
+            store, {"A", "B", "C", "H"}, semantics="d-preferred"
+        )
+        s_result = compute_claim_graph_justified_claims(
+            store, {"A", "B", "C", "H"}, semantics="s-preferred"
+        )
+        c_result = compute_claim_graph_justified_claims(
+            store, {"A", "B", "C", "H"}, semantics="c-preferred"
+        )
+
+        assert frozenset({"A", "C", "H"}) in d_result
+        assert frozenset({"A", "C", "H"}) not in s_result
+        assert frozenset({"A", "C", "H"}) not in c_result
+
+    def test_bipolar_helpers_match_claim_graph_fixture(self, conn):
+        """The explicit bipolar helper layer agrees with the claim-graph relation extraction."""
+        _insert_claim(conn, "A")
+        _insert_claim(conn, "B")
+        _insert_claim(conn, "C", sample_size=10)
+        _insert_stance(conn, "A", "B", "supports")
+        _insert_stance(conn, "B", "C", "rebuts")
+        conn.commit()
+
+        store = SQLiteArgumentationStore(conn)
+        af = build_argumentation_framework(store, {"A", "B", "C"})
+        bipolar = BipolarArgumentationFramework(
+            arguments=af.arguments,
+            defeats=frozenset({("B", "C")}),
+            supports=frozenset({("A", "B")}),
+        )
+
+        assert frozenset({"A", "B"}) in d_preferred_extensions(bipolar)
+        assert frozenset({"A", "B"}) in s_preferred_extensions(bipolar)
+        assert frozenset({"A", "B"}) in c_preferred_extensions(bipolar)
