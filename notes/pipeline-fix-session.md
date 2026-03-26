@@ -126,7 +126,30 @@ Final test count: 1355 passed, 1 deselected (pre-existing hypothesis flake)
 - Closest: Van Gijzel 2016 (Agda proofs), ICCMA (random AF benchmarks), TweetyProject (hand-crafted examples)
 - This would be genuinely novel
 
-### Status: Ready to plan ASPIC+ implementation with Hypothesis strategies as specification
+### ASPIC+ Implementation: IN PROGRESS
+
+#### Phase 1: Language — COMPLETE
+- Red: 9b82457 — 7 tests. Green: df3f05c — 7/7 pass.
+
+#### Phase 2: Rules + Transposition — COMPLETE
+- Red: 176db32 — 10 tests. Green: 51f0540 — 17/17 pass.
+
+#### Phase 3: Arguments — COMPLETE
+- Red: 3bebb58 — 13 tests, all fail ImportError for build_arguments
+- Green: 04bbc18 — 30/30 pass (15.75s)
+- build_arguments() fixpoint with acyclicity guard for rule cycles
+- 9 property functions: conc, prem, sub, top_rule, def_rules, last_def_rules, prem_p, is_firm, is_strict
+#### Phase 4: Attacks — COMPLETE
+- Red: 5455096 — 10 tests. Green: 987f395 — 40/40 pass (651s — Hypothesis thorough)
+- compute_attacks() with undermining/rebutting/undercutting on sub-arguments
+- Rebutting eligibility constraint: attacker must have defeasible sub-arg (Pollock 1987)
+- Q flagged 5 hardening issues (Rule.kind validation, KB disjointness, contrariness generality, seed rule validation, acyclicity docs) — defer to post-Phase-6 postulate gate
+#### Phase 5: Defeats + Preferences — COMPLETE
+- Red: 53c1271 — 9 tests. Green: a35c1e6 — 49/49 pass (295s)
+- compute_defeats() with last-link/weakest-link, elitist/democratic
+- Undercutting always succeeds, defeats ⊆ attacks
+- No report file (agent timed out on report but commit landed, tests verified)
+- Next: Phase 6 (The 8 Postulates — the crown jewel)
 
 ## FILES
 - Plan: ~/.claude/plans/cheerful-jingling-waffle.md
