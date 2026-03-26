@@ -1429,12 +1429,24 @@ class TestWorldQuerySIValues:
         assert "kHz" in result.output
         assert "200" in result.output
 
+    def test_world_query_accepts_canonical_name(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["world", "query", "fundamental_frequency"])
+        assert result.exit_code == 0, result.output
+        assert "fundamental_frequency (concept1)" in result.output
+
     def test_world_bind_shows_si_value(self, freq_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["world", "bind", "concept1"])
         assert result.exit_code == 0, result.output
         assert "0.2" in result.output
         assert "200" in result.output
+
+    def test_world_bind_accepts_canonical_name(self, freq_workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["world", "bind", "fundamental_frequency"])
+        assert result.exit_code == 0, result.output
+        assert "concept1: determined" in result.output
 
 
 class TestWorldCommandsKeepConnectionOpen:

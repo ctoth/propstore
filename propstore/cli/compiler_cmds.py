@@ -621,6 +621,11 @@ def world(obj: dict) -> None:
     pass
 
 
+def _resolve_world_target(wm, target: str) -> str:
+    """Resolve a world command target by alias, concept ID, or canonical name."""
+    return wm.resolve_concept(target) or target
+
+
 @world.command("status")
 @click.pass_obj
 def world_status(obj: dict) -> None:
@@ -644,8 +649,7 @@ def world_query(obj: dict, concept_id: str) -> None:
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
-        # Try alias resolution
-        resolved = wm.resolve_alias(concept_id) or concept_id
+        resolved = _resolve_world_target(wm, concept_id)
         concept = wm.get_concept(resolved)
         if concept is None:
             click.echo(f"Unknown concept: {concept_id}", err=True)
@@ -691,7 +695,7 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
         bound = wm.bind(**parsed)
 
         if query_concept:
-            resolved = wm.resolve_alias(query_concept) or query_concept
+            resolved = _resolve_world_target(wm, query_concept)
             result = bound.value_of(resolved)
             click.echo(f"{resolved}: {result.status}")
             for c in result.claims:
@@ -842,7 +846,7 @@ def world_atms_status(obj: dict, args: tuple[str, ...], context: str | None) -> 
 
     resolved = None
     if concept_id:
-        resolved = wm.resolve_alias(concept_id) or concept_id
+        resolved = _resolve_world_target(wm, concept_id)
     active_claims = sorted(bound.active_claims(resolved), key=lambda claim: claim["id"])
     if not active_claims:
         click.echo("No active claims for the current ATMS view.")
@@ -878,7 +882,7 @@ def world_atms_context(obj: dict, args: tuple[str, ...], context: str | None) ->
 
     claim_ids = bound.claims_in_environment(environment_key)
     if concept_id:
-        resolved = wm.resolve_alias(concept_id) or concept_id
+        resolved = _resolve_world_target(wm, concept_id)
         allowed = {
             claim["id"]
             for claim in bound.active_claims(resolved)
@@ -969,7 +973,7 @@ def world_atms_futures(
         wm.close()
         return
 
-    resolved = wm.resolve_alias(target) or target
+    resolved = _resolve_world_target(wm, target)
     concept_report = bound.concept_future_statuses(resolved, parsed_queryables, limit=limit)
     if not concept_report:
         click.echo("No active claims for the requested ATMS future view.")
@@ -1029,7 +1033,7 @@ def world_atms_why_out(
         wm.close()
         return
 
-    resolved = wm.resolve_alias(target) or target
+    resolved = _resolve_world_target(wm, target)
     concept_report = bound.why_concept_out(resolved, parsed_queryables, limit=limit)
     click.echo(
             f"{resolved}: value_status={concept_report['value_status']} "
@@ -1082,7 +1086,7 @@ def world_atms_stability(
         wm.close()
         return
 
-    resolved = wm.resolve_alias(target) or target
+    resolved = _resolve_world_target(wm, target)
     report = bound.concept_stability(resolved, parsed_queryables, limit=limit)
     click.echo(
         f"{resolved}: value_status={report['current_status']} "
@@ -1137,7 +1141,7 @@ def world_atms_relevance(
         wm.close()
         return
 
-    resolved = wm.resolve_alias(target) or target
+    resolved = _resolve_world_target(wm, target)
     report = bound.concept_relevance(resolved, parsed_queryables, limit=limit)
     click.echo(
         f"{resolved}: current_status={report['current_status']} "
@@ -1193,7 +1197,7 @@ def world_atms_interventions(
         wm.close()
         return
 
-    resolved = wm.resolve_alias(target) or target
+    resolved = _resolve_world_target(wm, target)
     plans = bound.concept_interventions(resolved, parsed_queryables, target_status, limit=limit)
     for plan in plans:
         status_val = plan["result_status"]
@@ -1243,7 +1247,7 @@ def world_atms_next_query(
         wm.close()
         return
 
-    resolved = wm.resolve_alias(target) or target
+    resolved = _resolve_world_target(wm, target)
     suggestions = bound.concept_next_queryables(resolved, parsed_queryables, target_status, limit=limit)
     for suggestion in suggestions:
         click.echo(
@@ -1268,7 +1272,7 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        resolved = wm.resolve_alias(concept_id) or concept_id
+        resolved = _resolve_world_target(wm, concept_id)
         bound = wm.bind(**bindings)
         result = bound.derived_value(resolved)
 
@@ -1339,7 +1343,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        resolved = wm.resolve_alias(concept_id) or concept_id
+        resolved = _resolve_world_target(wm, concept_id)
         bound = wm.bind(**bindings)
         strat = ResolutionStrategy(strategy)
         overrides_dict = {resolved: override_id} if override_id else None
@@ -1686,7 +1690,7 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        resolved = wm.resolve_alias(concept_id) or concept_id
+        resolved = _resolve_world_target(wm, concept_id)
         strat = ResolutionStrategy(strategy) if strategy else None
         result = wm.chain_query(resolved, strategy=strat, **bindings)
 
@@ -1757,7 +1761,7 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        resolved = wm.resolve_alias(concept_id) or concept_id
+        resolved = _resolve_world_target(wm, concept_id)
         bound = wm.bind(**bindings)
         result = analyze_sensitivity(wm, resolved, bound)
 
