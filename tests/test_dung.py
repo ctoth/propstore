@@ -400,6 +400,48 @@ class TestCharacteristicFnProperties:
         assert f_empty <= f_grounded
 
 
+class TestAutoBackendDispatch:
+    def test_complete_auto_avoids_z3_on_small_framework(self, monkeypatch):
+        framework = af({"A", "B"}, {("A", "B")})
+
+        def _fail(*args, **kwargs):
+            raise AssertionError("z3 backend should not be used for tiny frameworks")
+
+        monkeypatch.setattr("propstore.dung_z3.z3_complete_extensions", _fail)
+
+        assert complete_extensions(framework, backend="auto") == [frozenset({"A"})]
+
+    def test_complete_auto_uses_z3_on_large_framework(self, monkeypatch):
+        args = {f"a{i}" for i in range(13)}
+        framework = af(args, {(f"a{i}", f"a{(i + 1) % 13}") for i in range(13)})
+        sentinel = [frozenset({"a0"})]
+
+        monkeypatch.setattr(
+            "propstore.dung_z3.z3_complete_extensions",
+            lambda fw: sentinel,
+        )
+
+        assert complete_extensions(framework, backend="auto") == sentinel
+
+    def test_preferred_auto_matches_explicit_backends(self):
+        framework = af({"A", "B", "C"}, {("A", "B"), ("B", "C")})
+
+        assert preferred_extensions(framework, backend="auto") == preferred_extensions(
+            framework,
+            backend="brute",
+        )
+
+    def test_stable_auto_matches_explicit_backends_on_large_framework(self):
+        framework = af(
+            {f"a{i}" for i in range(13)},
+            {(f"a{i}", f"a{(i + 1) % 13}") for i in range(13)},
+        )
+
+        assert set(stable_extensions(framework, backend="auto")) == set(
+            stable_extensions(framework, backend="z3")
+        )
+
+
 # ── Attacks ≠ Defeats property tests (F27) ─────────────────────────
 
 

@@ -37,6 +37,9 @@ class ArgumentationFramework:
     attacks: frozenset[tuple[str, str]] | None = None
 
 
+_AUTO_BACKEND_MAX_ARGS = 12
+
+
 def _attackers_index(
     defeats: frozenset[tuple[str, str]],
 ) -> dict[str, frozenset[str]]:
@@ -210,8 +213,26 @@ def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
     return s
 
 
+def _resolve_backend(
+    framework: ArgumentationFramework,
+    backend: str,
+) -> str:
+    """Resolve an extension-computation backend.
+
+    `auto` prefers brute force for very small frameworks where Python-level
+    Z3 expression construction can cost more than simple subset enumeration.
+    """
+    if backend == "auto":
+        if len(framework.arguments) <= _AUTO_BACKEND_MAX_ARGS:
+            return "brute"
+        return "z3"
+    if backend in {"brute", "z3"}:
+        return backend
+    raise ValueError(f"Unknown backend: {backend}")
+
+
 def complete_extensions(
-    framework: ArgumentationFramework, *, backend: str = "z3"
+    framework: ArgumentationFramework, *, backend: str = "auto"
 ) -> list[frozenset[str]]:
     """Compute all complete extensions.
 
@@ -219,6 +240,7 @@ def complete_extensions(
 
     Reference: Dung 1995, Definition 10.
     """
+    backend = _resolve_backend(framework, backend)
     if backend == "z3":
         from propstore.dung_z3 import z3_complete_extensions
 
@@ -250,7 +272,7 @@ def complete_extensions(
 
 
 def preferred_extensions(
-    framework: ArgumentationFramework, *, backend: str = "z3"
+    framework: ArgumentationFramework, *, backend: str = "auto"
 ) -> list[frozenset[str]]:
     """Compute all preferred extensions.
 
@@ -259,6 +281,7 @@ def preferred_extensions(
 
     Reference: Dung 1995, Definition 8.
     """
+    backend = _resolve_backend(framework, backend)
     if backend == "z3":
         from propstore.dung_z3 import z3_preferred_extensions
 
@@ -272,7 +295,7 @@ def preferred_extensions(
 
 
 def stable_extensions(
-    framework: ArgumentationFramework, *, backend: str = "z3"
+    framework: ArgumentationFramework, *, backend: str = "auto"
 ) -> list[frozenset[str]]:
     """Compute all stable extensions.
 
@@ -281,6 +304,7 @@ def stable_extensions(
     Reference: Dung 1995, Definition 12.
     WARNING: Stable extensions may not exist.
     """
+    backend = _resolve_backend(framework, backend)
     if backend == "z3":
         from propstore.dung_z3 import z3_stable_extensions
 
