@@ -9,6 +9,7 @@ Concrete tests verify known comparison outcomes.
 
 from __future__ import annotations
 
+import propstore.preference as preference
 from hypothesis import given, settings, assume
 from hypothesis import strategies as st
 
@@ -158,6 +159,11 @@ class TestDefeatHoldsConcrete:
 
 class TestClaimStrengthConcrete:
     """Concrete examples for claim strength computation."""
+
+    def test_metadata_strength_vector_is_honest_name_for_heuristic(self):
+        """The metadata heuristic should be available under an honest name."""
+        claim = {"sample_size": 25, "uncertainty": 0.2, "confidence": 0.8}
+        assert preference.metadata_strength_vector(claim) == claim_strength(claim)
 
     def test_larger_sample_stronger(self):
         """Claim with larger sample_size is stronger (single-dim comparison)."""

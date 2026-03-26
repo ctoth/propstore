@@ -227,6 +227,46 @@ class TestLanguageConcrete:
         assert not cfn.is_contradictory(not_p, q)
         assert not cfn.is_contradictory(not_p, not_q)
 
+    def test_asymmetric_contrary_is_one_way(self):
+        """A contrary is directional, while contradictories remain symmetric."""
+        p = Literal("p")
+        q = Literal("q")
+        cfn = ContrarinessFn(
+            contradictories=frozenset(),
+            contraries=frozenset({(p, q)}),
+        )
+
+        assert cfn.is_contrary(p, q) is True
+        assert cfn.is_contrary(q, p) is False
+        assert cfn.is_contradictory(p, q) is False
+
+    def test_asymmetric_contrary_generates_one_way_attack(self):
+        """Only the attacking direction licensed by the contrary should appear."""
+        p = Literal("p")
+        q = Literal("q")
+        system = ArgumentationSystem(
+            language=frozenset({p, q}),
+            contrariness=ContrarinessFn(
+                contradictories=frozenset(),
+                contraries=frozenset({(p, q)}),
+            ),
+            strict_rules=frozenset(),
+            defeasible_rules=frozenset(),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset(),
+            premises=frozenset({p, q}),
+        )
+
+        arg_p = PremiseArg(premise=p, is_axiom=False)
+        arg_q = PremiseArg(premise=q, is_axiom=False)
+
+        attacks = compute_attacks(build_arguments(system, kb), system)
+        attack_pairs = {(attack.attacker, attack.target) for attack in attacks}
+
+        assert (arg_p, arg_q) in attack_pairs
+        assert (arg_q, arg_p) not in attack_pairs
+
 
 # ── Phase 2: Rule strategies ─────────────────────────────────────
 
@@ -625,7 +665,11 @@ def well_defined_knowledge_base(draw, language, strict_rules, defeasible_rules, 
     extra_kp = draw(
         st.frozensets(st.sampled_from(L_list), max_size=4)
     )
-    K_p = forced_premises | extra_kp
+    K_p = frozenset(forced_premises)
+    for lit in extra_kp:
+        tentative = K_p | {lit}
+        if is_c_consistent(tentative, strict_rules, contrariness):
+            K_p = tentative
 
     K_n_candidates = draw(
         st.frozensets(st.sampled_from(L_list), max_size=2)
@@ -641,6 +685,10 @@ def well_defined_knowledge_base(draw, language, strict_rules, defeasible_rules, 
         ):
             K_n = tentative
 
+    # Guard the full knowledge base, not just the incremental construction path.
+    # This keeps the rationality-postulate generators on genuinely well-defined
+    # c-SAF inputs even when Hypothesis shrinks toward edge cases.
+    assume(is_c_consistent(K_n | K_p, strict_rules, contrariness))
     return KnowledgeBase(axioms=K_n, premises=K_p)
 
 
@@ -1978,6 +2026,107 @@ class TestDefeatConcrete:
 
         defeats = compute_defeats(attacks, arguments, system, kb, pref)
         assert defeats == frozenset()
+
+    def test_contrary_undermining_ignores_preference_ordering(self):
+        """Contrary undermining is preference-independent and always defeats."""
+        p = Literal("p")
+        q = Literal("q")
+        system = ArgumentationSystem(
+            language=frozenset({p, q}),
+            contrariness=ContrarinessFn(
+                contradictories=frozenset(),
+                contraries=frozenset({(p, q)}),
+            ),
+            strict_rules=frozenset(),
+            defeasible_rules=frozenset(),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset(),
+            premises=frozenset({p, q}),
+        )
+        pref = PreferenceConfig(
+            rule_order=frozenset(),
+            premise_order=frozenset({(p, q)}),
+            comparison="elitist",
+            link="last",
+        )
+
+        arg_p = PremiseArg(premise=p, is_axiom=False)
+        arg_q = PremiseArg(premise=q, is_axiom=False)
+
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+        defeats = compute_defeats(attacks, arguments, system, kb, pref)
+        defeat_pairs = {(defeat.attacker, defeat.target) for defeat in defeats}
+
+        assert (arg_p, arg_q) in defeat_pairs
+        assert (arg_q, arg_p) not in defeat_pairs
+
+    def test_last_and_weakest_link_can_diverge(self):
+        """A weak earlier rule can matter under weakest-link but not last-link."""
+        a = Literal("a")
+        b = Literal("b")
+        x = Literal("x")
+        q = Literal("q")
+        not_q = q.contrary
+
+        d_weak = Rule((a,), x, "defeasible", "d_weak")
+        d_strong = Rule((x,), not_q, "defeasible", "d_strong")
+        t_mid = Rule((b,), q, "defeasible", "t_mid")
+
+        system = ArgumentationSystem(
+            language=frozenset({a, b, x, q, not_q}),
+            contrariness=ContrarinessFn(
+                contradictories=frozenset({(q, not_q)}),
+            ),
+            strict_rules=frozenset(),
+            defeasible_rules=frozenset({d_weak, d_strong, t_mid}),
+        )
+        kb = KnowledgeBase(
+            axioms=frozenset({a, b}),
+            premises=frozenset(),
+        )
+        arguments = build_arguments(system, kb)
+        attacks = compute_attacks(arguments, system)
+
+        pref_last = PreferenceConfig(
+            rule_order=frozenset({
+                (d_weak, t_mid),
+                (t_mid, d_strong),
+                (d_weak, d_strong),
+            }),
+            premise_order=frozenset(),
+            comparison="elitist",
+            link="last",
+        )
+        pref_weakest = PreferenceConfig(
+            rule_order=pref_last.rule_order,
+            premise_order=frozenset(),
+            comparison="elitist",
+            link="weakest",
+        )
+
+        arg_a = PremiseArg(premise=a, is_axiom=True)
+        arg_b = PremiseArg(premise=b, is_axiom=True)
+        arg_not_q = DefeasibleArg(
+            sub_args=(DefeasibleArg(sub_args=(arg_a,), rule=d_weak),),
+            rule=d_strong,
+        )
+        arg_q = DefeasibleArg(sub_args=(arg_b,), rule=t_mid)
+
+        last_pairs = {
+            (defeat.attacker, defeat.target)
+            for defeat in compute_defeats(attacks, arguments, system, kb, pref_last)
+        }
+        weakest_pairs = {
+            (defeat.attacker, defeat.target)
+            for defeat in compute_defeats(attacks, arguments, system, kb, pref_weakest)
+        }
+
+        assert (arg_not_q, arg_q) in last_pairs
+        assert (arg_q, arg_not_q) not in last_pairs
+        assert (arg_not_q, arg_q) not in weakest_pairs
+        assert (arg_q, arg_not_q) in weakest_pairs
 
 
 # ── Phase 6: Rationality postulate strategies and tests ──────────

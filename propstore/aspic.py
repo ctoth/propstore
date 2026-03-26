@@ -67,17 +67,17 @@ class ContrarinessFn:
         - If phi in bar(psi) AND psi in bar(phi): contradictories
         - If phi in bar(psi) AND psi NOT in bar(phi): phi is a contrary of psi
 
-    For Phase 1, only contradictories are stored. Asymmetric contraries
-    will be added in later phases; for now ``is_contrary`` delegates
-    to ``is_contradictory``.
-
     Attributes:
         contradictories: Frozenset of (Literal, Literal) pairs that are
             contradictory. Only one direction need be stored; lookup
             checks both orderings.
+        contraries: Frozenset of directed (Literal, Literal) pairs where
+            the left literal is a contrary of the right literal but the
+            reverse direction need not hold.
     """
 
     contradictories: frozenset[tuple[Literal, Literal]]
+    contraries: frozenset[tuple[Literal, Literal]] = frozenset()
 
     def is_contradictory(self, a: Literal, b: Literal) -> bool:
         """True if a and b are contradictories (symmetric conflict).
@@ -85,17 +85,28 @@ class ContrarinessFn:
         Modgil & Prakken 2018, Def 2 (p.8): phi and psi are
         contradictories iff phi in bar(psi) AND psi in bar(phi).
         """
+        if a == b:
+            return False
         return (a, b) in self.contradictories or (b, a) in self.contradictories
 
     def is_contrary(self, a: Literal, b: Literal) -> bool:
         """True if a is a contrary of b.
 
         Modgil & Prakken 2018, Def 2 (p.8): phi is a contrary of psi
-        iff phi in bar(psi). For Phase 1, only symmetric contradictories
-        are supported, so this delegates to ``is_contradictory``.
-        Asymmetric contraries will be added in later phases.
+        iff phi in bar(psi) and psi is not in bar(phi). Contraries are
+        therefore directional and exclude contradictories.
         """
-        return self.is_contradictory(a, b)
+        if a == b or self.is_contradictory(a, b):
+            return False
+        return (a, b) in self.contraries
+
+    def is_conflicting(self, a: Literal, b: Literal) -> bool:
+        """True if the literals conflict in either contrary direction or by contradiction."""
+        return (
+            self.is_contradictory(a, b)
+            or self.is_contrary(a, b)
+            or self.is_contrary(b, a)
+        )
 
 
 @dataclass(frozen=True)
@@ -369,7 +380,7 @@ def is_c_consistent(
     closed = tuple(sorted(strict_closure(literals, strict_rules), key=repr))
     for i, left in enumerate(closed):
         for right in closed[i + 1:]:
-            if contrariness.is_contrary(left, right) or contrariness.is_contrary(right, left):
+            if contrariness.is_conflicting(left, right):
                 return False
     return True
 
@@ -465,6 +476,36 @@ def is_firm(a: Argument) -> bool:
 def is_strict(a: Argument) -> bool:
     """True if no defeasible rules used. Prakken 2010, Def 3.8."""
     return len(def_rules(a)) == 0
+
+
+def _attack_target_literal(attack: Attack) -> Literal:
+    """Return the literal targeted by an ASPIC+ attack."""
+    if attack.kind == "undermining":
+        assert isinstance(attack.target_sub, PremiseArg)
+        return attack.target_sub.premise
+    if attack.kind == "rebutting":
+        return conc(attack.target_sub)
+    if attack.kind == "undercutting":
+        rule = top_rule(attack.target_sub)
+        if rule is None or rule.name is None:
+            raise ValueError("Undercutting attack must target a named defeasible rule")
+        return Literal(rule.name, False)
+    raise ValueError(f"Unknown attack kind: {attack.kind}")
+
+
+def _is_preference_independent_attack(attack: Attack, system: ArgumentationSystem) -> bool:
+    """True if the attack succeeds regardless of the preference ordering.
+
+    Modgil & Prakken 2018, Def 9 (p.12): undercutting and attacks based on
+    directional contraries are preference-independent. Contradictory attacks
+    remain preference-dependent unless they are undercuts.
+    """
+    if attack.kind == "undercutting":
+        return True
+    return system.contrariness.is_contrary(
+        conc(attack.attacker),
+        _attack_target_literal(attack),
+    )
 
 
 # ── Argument construction ─────────────────────────────────────────
@@ -828,8 +869,9 @@ def compute_defeats(
     Modgil & Prakken 2018, Def 9 (p.12):
     - Undercutting: ALWAYS a defeat. No preference check.
       (Pollock 1987, Def 2.5, p.485)
-    - Rebutting A on B': defeat iff A is NOT strictly weaker than B'.
-    - Undermining A on B': defeat iff A is NOT strictly weaker than B'.
+    - Contrary rebutting / undermining: ALWAYS a defeat.
+    - Contradictory rebutting / undermining: defeat iff A is NOT strictly
+      weaker than B'.
 
     The preference comparison is between the attacker A and the targeted
     sub-argument B' (attack.target_sub), not the whole target B.
@@ -847,9 +889,9 @@ def compute_defeats(
     defeats: set[Attack] = set()
 
     for atk in attacks:
-        if atk.kind == "undercutting":
-            # Undercutting always succeeds (Def 9, p.12;
-            # Pollock 1987, Def 2.5, p.485)
+        if _is_preference_independent_attack(atk, system):
+            # Undercutting and directional-contrary attacks always succeed
+            # (Modgil & Prakken 2018, Def 9, p.12).
             defeats.add(atk)
         elif atk.attacker == atk.target:
             # Self-attacks always succeed as defeats. An argument that

@@ -1,15 +1,19 @@
-"""Preference ordering for claim-graph argumentation.
-
-Determines which attacks survive as defeats based on argument strength.
+"""Preference helpers for claim-graph and structured argumentation.
 
 References:
     Modgil, S. & Prakken, H. (2018). An abstract framework for
     argumentation with structured arguments. Argument & Computation.
     Def 9 (defeat), Def 19 (set comparisons).
 
-This module implements a claim-metadata heuristic inspired by ASPIC+
-set comparison, not a full Def. 19 / Defs. 20-21 structured-argument
-ordering over premises and defeasible rules.
+This module contains two distinct layers:
+
+- literature-backed set-comparison helpers (`strictly_weaker`,
+  `defeat_holds`) used for generic strength-set comparisons; and
+- a metadata-derived heuristic (`metadata_strength_vector`) for
+  flat claim graphs.
+
+The metadata heuristic is not a full ASPIC+ Def. 19 / Defs. 20-21
+structured-argument ordering over premises and defeasible rules.
 """
 
 from __future__ import annotations
@@ -57,8 +61,8 @@ def defeat_holds(
     raise ValueError(f"Unknown attack type: {attack_type}")
 
 
-def claim_strength(claim: dict) -> list[float]:
-    """Compute fixed-length 3-element strength vector from claim metadata.
+def metadata_strength_vector(claim: dict) -> list[float]:
+    """Compute a heuristic fixed-length strength vector from claim metadata.
 
     Always returns exactly 3 dimensions so that Def 19 (Modgil & Prakken
     2018, p.21) Elitist/Democratic set comparisons are commensurable
@@ -84,3 +88,13 @@ def claim_strength(claim: dict) -> list[float]:
         1.0 / uncertainty if uncertainty and uncertainty > 0 else 1.0,
         confidence if confidence is not None else 0.5,
     ]
+
+
+def claim_strength(claim: dict) -> list[float]:
+    """Backward-compatible alias for the metadata heuristic.
+
+    This name remains for compatibility with the existing claim-graph code,
+    but the behavior is heuristic rather than literature-equivalent.
+    Prefer ``metadata_strength_vector`` in new code and tests.
+    """
+    return metadata_strength_vector(claim)
