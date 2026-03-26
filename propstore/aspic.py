@@ -452,3 +452,123 @@ def build_arguments(
                     changed = True
 
     return frozenset(all_args)
+
+
+# ── Attack determination ─────────────────────────────────────────
+
+
+def compute_attacks(
+    arguments: frozenset[Argument], system: ArgumentationSystem
+) -> frozenset[Attack]:
+    """Compute all attacks between arguments.
+
+    Modgil & Prakken 2018, Def 8 (p.11): three attack types.
+
+    For each ordered pair (A, B) in arguments, and each B' in sub(B):
+
+    (a) Undermining: A undermines B on B' iff B' is a PremiseArg with
+        is_axiom=False (ordinary premise) and conc(A) is contrary or
+        contradictory to B'.premise. (Def 8a, p.11)
+
+    (b) Rebutting: A rebuts B on B' iff top_rule(B') is defeasible and
+        conc(A) is contrary or contradictory to conc(B'). (Def 8b, p.11;
+        Pollock 1987, Def 2.4, p.485)
+
+    (c) Undercutting: A undercuts B on B' iff top_rule(B') is a defeasible
+        rule r with name n(r), and conc(A) is contrary or contradictory to
+        Literal(n(r), False). (Def 8c, p.11; Pollock 1987, Def 2.5, p.485)
+
+    Firm+strict sub-arguments are never targeted: they have no ordinary
+    premises (so no undermining) and no defeasible rules (so no rebutting
+    or undercutting). This is a consequence of Def 18 (p.16).
+
+    Args:
+        arguments: The set of all arguments built from the system and KB.
+        system: The argumentation system providing the contrariness function.
+
+    Returns:
+        Frozenset of all Attack instances.
+    """
+    cfn = system.contrariness
+    attacks: set[Attack] = set()
+
+    # Pre-compute sub-arguments for each argument
+    sub_cache: dict[Argument, frozenset[Argument]] = {
+        b: sub(b) for b in arguments
+    }
+
+    # Pre-compute which arguments have a defeasible sub-argument with
+    # the same conclusion (needed for rebutting eligibility).
+    # An argument whose conclusion is not defeasibly supported cannot
+    # participate as a rebutter: its conclusion derives from strict
+    # rules alone (relative to its defeasible sub-arguments), making
+    # it deductively certain at that level. Rebutting requires both
+    # sides to be defeasible (Pollock 1987, Def 2.4, p.485).
+    # Modgil & Prakken 2018, Def 11 (p.13): c-SAFs restrict to
+    # c-consistent arguments; arguments whose strict closure contradicts
+    # their own defeasible sub-conclusions are pathological.
+    def _has_defeasible_conclusion(a: Argument) -> bool:
+        """True if A has a defeasible sub-argument with same conclusion."""
+        c = conc(a)
+        for s in sub_cache[a]:
+            tr = top_rule(s)
+            if tr is not None and tr.kind == "defeasible" and conc(s) == c:
+                return True
+        return False
+
+    rebut_eligible: set[Argument] = {
+        a for a in arguments if _has_defeasible_conclusion(a)
+    }
+
+    for a in arguments:
+        conc_a = conc(a)
+        for b in arguments:
+            for b_prime in sub_cache[b]:
+                # Skip firm+strict sub-arguments — unattackable
+                # (Def 18, p.16: no ordinary premises, no defeasible rules)
+                if is_firm(b_prime) and is_strict(b_prime):
+                    continue
+
+                # (a) Undermining (Def 8a, p.11)
+                if isinstance(b_prime, PremiseArg) and not b_prime.is_axiom:
+                    if (cfn.is_contrary(conc_a, b_prime.premise)
+                            or cfn.is_contradictory(conc_a, b_prime.premise)):
+                        attacks.add(Attack(
+                            attacker=a, target=b,
+                            target_sub=b_prime, kind="undermining",
+                        ))
+
+                # (b) Rebutting (Def 8b, p.11)
+                # Rebutting requires the attacker's conclusion to be
+                # defeasibly supported — i.e., A has a defeasible
+                # sub-argument with the same conclusion as A. This
+                # ensures the symmetric dialectical exchange that
+                # defines rebutting: both sides must be defeasible.
+                # Pollock 1987, Def 2.4 (p.485): rebutting defeaters
+                # are arguments whose conclusions conflict, where both
+                # conclusions arise from defeasible reasoning.
+                tr = top_rule(b_prime)
+                if tr is not None and tr.kind == "defeasible":
+                    if a in rebut_eligible:
+                        conc_b_prime = conc(b_prime)
+                        if (cfn.is_contrary(conc_a, conc_b_prime)
+                                or cfn.is_contradictory(
+                                    conc_a, conc_b_prime)):
+                            attacks.add(Attack(
+                                attacker=a, target=b,
+                                target_sub=b_prime, kind="rebutting",
+                            ))
+
+                    # (c) Undercutting (Def 8c, p.11)
+                    # No attacker eligibility constraint — undercutting
+                    # is preference-independent (Def 9, p.12).
+                    if tr.name is not None:
+                        name_lit = Literal(tr.name, False)
+                        if (cfn.is_contrary(conc_a, name_lit)
+                                or cfn.is_contradictory(conc_a, name_lit)):
+                            attacks.add(Attack(
+                                attacker=a, target=b,
+                                target_sub=b_prime, kind="undercutting",
+                            ))
+
+    return frozenset(attacks)
