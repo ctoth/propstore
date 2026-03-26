@@ -385,13 +385,14 @@ class TestAttackBasedConflictFree:
         assert ext == frozenset()
 
     def test_grounded_name_not_used_for_hybrid_attack_defeat_fallback_without_opt_in(self):
-        """Plain grounded must ignore attack metadata."""
+        """Plain grounded must reject hybrid attack metadata without opt-in."""
         fw = ArgumentationFramework(
             arguments=frozenset({"A", "B"}),
             defeats=frozenset(),
             attacks=frozenset({("A", "B")}),
         )
-        assert grounded_extension(fw) == frozenset({"A", "B"})
+        with pytest.raises(ValueError, match="hybrid_grounded_extension"):
+            grounded_extension(fw)
         assert hybrid_grounded_extension(fw) == frozenset()
 
 

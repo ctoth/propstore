@@ -164,6 +164,12 @@ def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
     References:
         Dung 1995, Definition 20 + Theorem 25 (least fixed point).
     """
+    if framework.attacks is not None and framework.attacks != framework.defeats:
+        raise ValueError(
+            "grounded_extension() is only defined for pure Dung AFs; "
+            "use hybrid_grounded_extension() for hybrid attack/defeat frameworks."
+        )
+
     s: frozenset[str] = frozenset()
     attackers_index = _attackers_index(framework.defeats)
     while True:

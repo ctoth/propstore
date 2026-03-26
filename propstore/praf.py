@@ -29,6 +29,7 @@ from propstore.dung import (
     ArgumentationFramework,
     complete_extensions,
     grounded_extension,
+    hybrid_grounded_extension,
     preferred_extensions,
     stable_extensions,
 )
@@ -533,6 +534,8 @@ def _evaluate_semantics(
     """
     if semantics == "grounded":
         return grounded_extension(af)
+    elif semantics == "hybrid-grounded":
+        return hybrid_grounded_extension(af)
     elif semantics == "preferred":
         exts = preferred_extensions(af, backend="brute")
         return frozenset().union(*exts) if exts else frozenset()

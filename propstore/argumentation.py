@@ -381,6 +381,12 @@ def compute_claim_graph_justified_claims(
     )
 
     if semantics == "grounded":
+        if af.attacks is not None and af.attacks != af.defeats:
+            raise ValueError(
+                "grounded is ambiguous for hybrid claim graphs; "
+                "use legacy_grounded or explicit bipolar semantics such as "
+                "d-preferred, s-preferred, or c-preferred."
+            )
         return grounded_extension(af)
     elif semantics in {"legacy_grounded", "hybrid_grounded", "hybrid-grounded", "bipolar-grounded"}:
         return hybrid_grounded_extension(af)
