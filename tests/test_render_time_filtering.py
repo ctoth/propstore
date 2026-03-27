@@ -304,7 +304,7 @@ class TestVacuousSurvivesAFConstruction:
         """A vacuous stance should not cause its source to win resolution.
 
         When claim_v (vacuous attacker, u=1.0) attacks claim_s (strong, no
-        vacuous opinion), claim_s should still win in the grounded extension.
+        vacuous opinion), claim_s should still win under legacy grounded semantics.
         The vacuous attack carries no information and should not eliminate
         the target. This is render-time behavior — the test should PASS.
         """
@@ -322,7 +322,7 @@ class TestVacuousSurvivesAFConstruction:
 
         ids = {"claim_s", "claim_v"}
         result = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(conn), ids, semantics="grounded",
+            SQLiteArgumentationStore(conn), ids, semantics="legacy_grounded",
         )
         # claim_s should survive — it has a strong attack on claim_v,
         # and claim_v's vacuous attack should not eliminate claim_s

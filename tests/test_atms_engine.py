@@ -658,7 +658,7 @@ def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> 
 
     result = run_worldline(worldline, world)
 
-    assert worldline.policy.reasoning_backend == "atms"
+    assert worldline.policy.reasoning_backend == ReasoningBackend.ATMS
     assert result.argumentation is not None
     assert result.argumentation["backend"] == "atms"
     assert result.argumentation["supported"] == ["claim_exact"]

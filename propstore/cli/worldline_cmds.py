@@ -69,7 +69,7 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
     if override_dict:
         inputs["overrides"] = override_dict
     if context:
-        inputs["context"] = context
+        inputs["context_id"] = context
     if inputs:
         definition["inputs"] = inputs
 
@@ -129,7 +129,7 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
         if override_dict:
             inputs["overrides"] = override_dict
         if context:
-            inputs["context"] = context
+            inputs["context_id"] = context
         if inputs:
             definition["inputs"] = inputs
         if strategy:
@@ -178,12 +178,12 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
     wl = WorldlineDefinition.from_file(path)
 
     click.echo(f"Worldline: {wl.name or wl.id}")
-    if wl.inputs.bindings:
-        click.echo(f"  Bindings: {wl.inputs.bindings}")
+    if wl.inputs.environment.bindings:
+        click.echo(f"  Bindings: {dict(wl.inputs.environment.bindings)}")
     if wl.inputs.overrides:
         click.echo(f"  Overrides: {wl.inputs.overrides}")
-    if wl.inputs.context:
-        click.echo(f"  Context: {wl.inputs.context}")
+    if wl.inputs.environment.context_id:
+        click.echo(f"  Context: {wl.inputs.environment.context_id}")
     click.echo(f"  Targets: {wl.targets}")
 
     if wl.results is None:
@@ -312,8 +312,11 @@ def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
     click.echo(f"Comparing: {wl_a.id} vs {wl_b.id}")
 
     # Show input differences
-    if wl_a.inputs.bindings != wl_b.inputs.bindings:
-        click.echo(f"  Bindings: {wl_a.inputs.bindings} vs {wl_b.inputs.bindings}")
+    if wl_a.inputs.environment.bindings != wl_b.inputs.environment.bindings:
+        click.echo(
+            f"  Bindings: {dict(wl_a.inputs.environment.bindings)} vs "
+            f"{dict(wl_b.inputs.environment.bindings)}"
+        )
     if wl_a.inputs.overrides != wl_b.inputs.overrides:
         click.echo(f"  Overrides: {wl_a.inputs.overrides} vs {wl_b.inputs.overrides}")
 

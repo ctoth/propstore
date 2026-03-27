@@ -51,39 +51,18 @@ def run_worldline(
     WorldlineResult
         The answer — values, steps, dependencies, content hash.
     """
-    from propstore.world import (
-        Environment,
-        ReasoningBackend,
-        RenderPolicy,
-        ResolutionStrategy,
-    )
+    from propstore.world import ReasoningBackend, ResolutionStrategy
 
     # ── 1. Build the query environment ─────────────────────────────
-    bindings = dict(definition.inputs.bindings)
-    context_id = definition.inputs.context
+    environment = definition.inputs.environment
+    bindings = dict(environment.bindings)
+    context_id = environment.context_id
     overrides = dict(definition.inputs.overrides)
 
-    # Build policy
-    strategy = None
-    if definition.policy.strategy:
-        strategy = ResolutionStrategy(definition.policy.strategy)
-    policy = RenderPolicy(
-        reasoning_backend=ReasoningBackend(definition.policy.reasoning_backend),
-        strategy=strategy,
-        semantics=definition.policy.semantics,
-        comparison=definition.policy.comparison,
-        decision_criterion=definition.policy.decision_criterion,
-        pessimism_index=definition.policy.pessimism_index,
-        show_uncertainty_interval=definition.policy.show_uncertainty_interval,
-        praf_strategy=definition.policy.praf_strategy,
-        praf_mc_epsilon=definition.policy.praf_mc_epsilon,
-        praf_mc_confidence=definition.policy.praf_mc_confidence,
-        praf_treewidth_cutoff=definition.policy.praf_treewidth_cutoff,
-        praf_mc_seed=definition.policy.praf_mc_seed,
-    )
+    policy = definition.policy
+    strategy = policy.strategy
 
     # Bind the world with conditions and context
-    environment = Environment(bindings=bindings, context_id=context_id)
     bound = world.bind(environment, policy=policy)
 
     # ── 2. Resolve override concept names to IDs ─────────────────
@@ -187,13 +166,13 @@ def run_worldline(
     # ── 5. Argumentation state (if strategy=argumentation) ─────
     argumentation_state: dict[str, Any] | None = None
     stance_dependencies: list[str] = []
-    if strategy is not None and strategy.value == "argumentation":
+    if strategy == ResolutionStrategy.ARGUMENTATION:
         try:
             active = bound.active_claims()
             active_ids = {c["id"] for c in active}
             reasoning_backend = definition.policy.reasoning_backend
             if (
-                reasoning_backend == "claim_graph"
+                reasoning_backend == ReasoningBackend.CLAIM_GRAPH
                 and world.has_table("claim_stance")
             ):
                 from propstore.argumentation import compute_claim_graph_justified_claims
@@ -210,7 +189,7 @@ def run_worldline(
                         "defeated": sorted(defeated),
                     }
             elif (
-                reasoning_backend == "structured_projection"
+                reasoning_backend == ReasoningBackend.STRUCTURED_PROJECTION
                 and world.has_table("claim_stance")
             ):
                 from propstore.structured_argument import (
@@ -247,14 +226,17 @@ def run_worldline(
                         "justified": sorted(justified),
                         "defeated": sorted(defeated),
                     }
-            elif reasoning_backend == "atms":
+            elif reasoning_backend == ReasoningBackend.ATMS:
                 atms_engine = getattr(bound, "atms_engine", None)
                 if callable(atms_engine):
                     argumentation_state = atms_engine().argumentation_state(
                         queryables=definition.policy.future_queryables,
                         future_limit=definition.policy.future_limit or 8,
                     )
-            elif reasoning_backend == "praf" and world.has_table("claim_stance"):
+            elif (
+                reasoning_backend == ReasoningBackend.PRAF
+                and world.has_table("claim_stance")
+            ):
                 # Li et al. (2012): PrAF = (A, P_A, D, P_D).
                 # Build probabilistic AF and compute acceptance probabilities.
                 from propstore.argumentation import build_praf

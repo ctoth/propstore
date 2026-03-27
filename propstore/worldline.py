@@ -19,139 +19,30 @@ from typing import Any
 
 import yaml
 
+from propstore.world.types import Environment, RenderPolicy
+
 
 @dataclass
 class WorldlineInputs:
     """The input specification for a worldline query."""
 
-    bindings: dict[str, Any] = field(default_factory=dict)
+    environment: Environment = field(default_factory=Environment)
     overrides: dict[str, float | str] = field(default_factory=dict)
-    context: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict | None) -> WorldlineInputs:
         if not data:
             return cls()
         return cls(
-            bindings=dict(data.get("bindings") or {}),
+            environment=Environment.from_dict(data),
             overrides=dict(data.get("overrides") or {}),
-            context=data.get("context"),
         )
 
     def to_dict(self) -> dict:
-        d: dict[str, Any] = {}
-        if self.bindings:
-            d["bindings"] = dict(self.bindings)
+        d = self.environment.to_dict()
         if self.overrides:
             d["overrides"] = dict(self.overrides)
-        if self.context is not None:
-            d["context"] = self.context
         return d
-
-
-@dataclass
-class WorldlinePolicy:
-    """Render policy for a worldline.
-
-    `reasoning_backend` identifies the argumentation backend used when
-    `strategy` asks for argumentation-based conflict resolution. `atms`
-    selects the global label/nogood propagation backend rather than a
-    Dung-style extension backend. `future_queryables` and `future_limit`
-    opt into bounded ATMS future, stability, and relevance analysis over
-    replayed bound worlds. They do not imply AGM-style revision semantics.
-    """
-
-    reasoning_backend: str = "claim_graph"
-    strategy: str | None = None
-    semantics: str = "grounded"
-    comparison: str = "elitist"
-    # Decision criterion for interpreting opinion uncertainty at render time
-    # Per Denoeux (2019, p.17-18): pignistic is the default
-    decision_criterion: str = "pignistic"
-    # Hurwicz pessimism index α ∈ [0,1] — Per Denoeux (2019, p.17)
-    pessimism_index: float = 0.5
-    # Whether to include [Bel, Pl] uncertainty interval in output
-    # Per Jøsang (2001, p.4)
-    show_uncertainty_interval: bool = False
-    # PrAF-specific fields (Li et al. 2012, Popescu 2024)
-    praf_strategy: str = "auto"  # "auto", "mc", "exact", "dfquad"
-    praf_mc_epsilon: float = 0.01  # MC error tolerance (Li 2012, p.8)
-    praf_mc_confidence: float = 0.95  # MC confidence level
-    praf_treewidth_cutoff: int = 12  # max treewidth for exact DP (Popescu 2024, p.8)
-    praf_mc_seed: int | None = None  # RNG seed (None = random)
-    future_queryables: list[str] = field(default_factory=list)
-    future_limit: int | None = None
-
-    @classmethod
-    def from_dict(cls, data: dict | None) -> WorldlinePolicy:
-        if not data:
-            return cls()
-        reasoning_backend = data.get("reasoning_backend", "claim_graph")
-        from propstore.world.types import ReasoningBackend
-
-        try:
-            ReasoningBackend(reasoning_backend)
-        except ValueError as exc:
-            raise ValueError(
-                f"Unknown reasoning_backend '{reasoning_backend}'"
-            ) from exc
-        return cls(
-            reasoning_backend=reasoning_backend,
-            strategy=data.get("strategy"),
-            semantics=data.get("semantics", "grounded"),
-            comparison=data.get("comparison", "elitist"),
-            decision_criterion=data.get("decision_criterion", "pignistic"),
-            pessimism_index=float(data.get("pessimism_index", 0.5)),
-            show_uncertainty_interval=bool(data.get("show_uncertainty_interval", False)),
-            praf_strategy=data.get("praf_strategy", "auto"),
-            praf_mc_epsilon=float(data.get("praf_mc_epsilon", 0.01)),
-            praf_mc_confidence=float(data.get("praf_mc_confidence", 0.95)),
-            praf_treewidth_cutoff=int(data.get("praf_treewidth_cutoff", 12)),
-            praf_mc_seed=(
-                None
-                if data.get("praf_mc_seed") is None
-                else int(data["praf_mc_seed"])
-            ),
-            future_queryables=list(data.get("future_queryables") or []),
-            future_limit=(
-                None
-                if data.get("future_limit") is None
-                else int(data["future_limit"])
-            ),
-        )
-
-    def to_dict(self) -> dict:
-        d: dict[str, Any] = {}
-        if self.reasoning_backend != "claim_graph":
-            d["reasoning_backend"] = self.reasoning_backend
-        if self.strategy:
-            d["strategy"] = self.strategy
-        if self.semantics != "grounded":
-            d["semantics"] = self.semantics
-        if self.comparison != "elitist":
-            d["comparison"] = self.comparison
-        if self.decision_criterion != "pignistic":
-            d["decision_criterion"] = self.decision_criterion
-        if self.pessimism_index != 0.5:
-            d["pessimism_index"] = self.pessimism_index
-        if self.show_uncertainty_interval:
-            d["show_uncertainty_interval"] = self.show_uncertainty_interval
-        if self.praf_strategy != "auto":
-            d["praf_strategy"] = self.praf_strategy
-        if self.praf_mc_epsilon != 0.01:
-            d["praf_mc_epsilon"] = self.praf_mc_epsilon
-        if self.praf_mc_confidence != 0.95:
-            d["praf_mc_confidence"] = self.praf_mc_confidence
-        if self.praf_treewidth_cutoff != 12:
-            d["praf_treewidth_cutoff"] = self.praf_treewidth_cutoff
-        if self.praf_mc_seed is not None:
-            d["praf_mc_seed"] = self.praf_mc_seed
-        if self.future_queryables:
-            d["future_queryables"] = list(self.future_queryables)
-        if self.future_limit is not None:
-            d["future_limit"] = self.future_limit
-        return d
-
 
 @dataclass
 class WorldlineResult:
@@ -208,7 +99,7 @@ class WorldlineDefinition:
     name: str = ""
     created: str = ""
     inputs: WorldlineInputs = field(default_factory=WorldlineInputs)
-    policy: WorldlinePolicy = field(default_factory=WorldlinePolicy)
+    policy: RenderPolicy = field(default_factory=RenderPolicy)
     targets: list[str] = field(default_factory=list)
     results: WorldlineResult | None = None
 
@@ -227,7 +118,7 @@ class WorldlineDefinition:
             name=data.get("name", ""),
             created=data.get("created", ""),
             inputs=WorldlineInputs.from_dict(data.get("inputs")),
-            policy=WorldlinePolicy.from_dict(data.get("policy")),
+            policy=RenderPolicy.from_dict(data.get("policy")),
             targets=list(targets),
             results=results,
         )

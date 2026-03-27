@@ -110,14 +110,14 @@ class ATMSInspection:
     kind: str | None = None
 
 
-class ResolutionStrategy(Enum):
+class ResolutionStrategy(StrEnum):
     RECENCY = "recency"
     SAMPLE_SIZE = "sample_size"
     ARGUMENTATION = "argumentation"
     OVERRIDE = "override"
 
 
-class ReasoningBackend(Enum):
+class ReasoningBackend(StrEnum):
     """Argumentation implementation selector.
 
     Only consulted inside the ARGUMENTATION resolution strategy to choose
@@ -152,6 +152,63 @@ class Environment:
     context_id: str | None = None
     effective_assumptions: tuple[str, ...] = field(default_factory=tuple)
     assumptions: tuple[AssumptionRef, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "bindings", dict(self.bindings))
+        object.__setattr__(
+            self,
+            "effective_assumptions",
+            tuple(self.effective_assumptions),
+        )
+        object.__setattr__(self, "assumptions", tuple(self.assumptions))
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any] | None) -> Environment:
+        if not data:
+            return cls()
+
+        raw_assumptions = data.get("assumptions") or ()
+        assumptions: list[AssumptionRef] = []
+        for entry in raw_assumptions:
+            if isinstance(entry, AssumptionRef):
+                assumptions.append(entry)
+                continue
+            if isinstance(entry, Mapping):
+                assumptions.append(
+                    AssumptionRef(
+                        assumption_id=str(entry["assumption_id"]),
+                        kind=str(entry["kind"]),
+                        source=str(entry["source"]),
+                        cel=str(entry["cel"]),
+                    )
+                )
+
+        return cls(
+            bindings=dict(data.get("bindings") or {}),
+            context_id=data.get("context_id"),
+            effective_assumptions=tuple(data.get("effective_assumptions") or ()),
+            assumptions=tuple(assumptions),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {}
+        if self.bindings:
+            data["bindings"] = dict(self.bindings)
+        if self.context_id is not None:
+            data["context_id"] = self.context_id
+        if self.effective_assumptions:
+            data["effective_assumptions"] = list(self.effective_assumptions)
+        if self.assumptions:
+            data["assumptions"] = [
+                {
+                    "assumption_id": assumption.assumption_id,
+                    "kind": assumption.kind,
+                    "source": assumption.source,
+                    "cel": assumption.cel,
+                }
+                for assumption in self.assumptions
+            ]
+        return data
 
 
 @dataclass
@@ -209,8 +266,133 @@ class RenderPolicy:
     praf_mc_confidence: float = 0.95  # MC confidence level
     praf_treewidth_cutoff: int = 12  # max treewidth for exact DP (Popescu 2024, p.8)
     praf_mc_seed: int | None = None  # RNG seed (None = random)
+    future_queryables: tuple[str, ...] = field(default_factory=tuple)
+    future_limit: int | None = None
     overrides: Mapping[str, str] = field(default_factory=dict)
     concept_strategies: Mapping[str, ResolutionStrategy] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.reasoning_backend, ReasoningBackend):
+            raise TypeError("RenderPolicy.reasoning_backend must be a ReasoningBackend")
+        if self.strategy is not None and not isinstance(self.strategy, ResolutionStrategy):
+            raise TypeError("RenderPolicy.strategy must be a ResolutionStrategy or None")
+        object.__setattr__(
+            self,
+            "future_queryables",
+            tuple(self.future_queryables),
+        )
+        object.__setattr__(self, "overrides", dict(self.overrides))
+        concept_strategies: dict[str, ResolutionStrategy] = {}
+        for concept_id, strategy in self.concept_strategies.items():
+            if not isinstance(strategy, ResolutionStrategy):
+                raise TypeError(
+                    "RenderPolicy.concept_strategies values must be ResolutionStrategy"
+                )
+            concept_strategies[concept_id] = strategy
+        object.__setattr__(
+            self,
+            "concept_strategies",
+            concept_strategies,
+        )
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any] | None) -> RenderPolicy:
+        if not data:
+            return cls()
+
+        strategy_value = data.get("strategy")
+        reasoning_backend_value = data.get("reasoning_backend", ReasoningBackend.CLAIM_GRAPH)
+        try:
+            reasoning_backend = (
+                reasoning_backend_value
+                if isinstance(reasoning_backend_value, ReasoningBackend)
+                else ReasoningBackend(str(reasoning_backend_value))
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"Unknown reasoning_backend '{reasoning_backend_value}'"
+            ) from exc
+        concept_strategies = {
+            str(concept_id): (
+                strategy
+                if isinstance(strategy, ResolutionStrategy)
+                else ResolutionStrategy(str(strategy))
+            )
+            for concept_id, strategy in (data.get("concept_strategies") or {}).items()
+        }
+        return cls(
+            reasoning_backend=reasoning_backend,
+            strategy=(
+                None
+                if strategy_value is None
+                else (
+                    strategy_value
+                    if isinstance(strategy_value, ResolutionStrategy)
+                    else ResolutionStrategy(str(strategy_value))
+                )
+            ),
+            semantics=str(data.get("semantics", "grounded")),
+            comparison=str(data.get("comparison", "elitist")),
+            decision_criterion=str(data.get("decision_criterion", "pignistic")),
+            pessimism_index=float(data.get("pessimism_index", 0.5)),
+            show_uncertainty_interval=bool(data.get("show_uncertainty_interval", False)),
+            praf_strategy=str(data.get("praf_strategy", "auto")),
+            praf_mc_epsilon=float(data.get("praf_mc_epsilon", 0.01)),
+            praf_mc_confidence=float(data.get("praf_mc_confidence", 0.95)),
+            praf_treewidth_cutoff=int(data.get("praf_treewidth_cutoff", 12)),
+            praf_mc_seed=(
+                None
+                if data.get("praf_mc_seed") is None
+                else int(data["praf_mc_seed"])
+            ),
+            future_queryables=tuple(data.get("future_queryables") or ()),
+            future_limit=(
+                None
+                if data.get("future_limit") is None
+                else int(data["future_limit"])
+            ),
+            overrides=dict(data.get("overrides") or {}),
+            concept_strategies=concept_strategies,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {}
+        if self.reasoning_backend != ReasoningBackend.CLAIM_GRAPH:
+            data["reasoning_backend"] = self.reasoning_backend.value
+        if self.strategy is not None:
+            data["strategy"] = self.strategy.value
+        if self.semantics != "grounded":
+            data["semantics"] = self.semantics
+        if self.comparison != "elitist":
+            data["comparison"] = self.comparison
+        if self.decision_criterion != "pignistic":
+            data["decision_criterion"] = self.decision_criterion
+        if self.pessimism_index != 0.5:
+            data["pessimism_index"] = self.pessimism_index
+        if self.show_uncertainty_interval:
+            data["show_uncertainty_interval"] = self.show_uncertainty_interval
+        if self.praf_strategy != "auto":
+            data["praf_strategy"] = self.praf_strategy
+        if self.praf_mc_epsilon != 0.01:
+            data["praf_mc_epsilon"] = self.praf_mc_epsilon
+        if self.praf_mc_confidence != 0.95:
+            data["praf_mc_confidence"] = self.praf_mc_confidence
+        if self.praf_treewidth_cutoff != 12:
+            data["praf_treewidth_cutoff"] = self.praf_treewidth_cutoff
+        if self.praf_mc_seed is not None:
+            data["praf_mc_seed"] = self.praf_mc_seed
+        if self.future_queryables:
+            data["future_queryables"] = list(self.future_queryables)
+        if self.future_limit is not None:
+            data["future_limit"] = self.future_limit
+        if self.overrides:
+            data["overrides"] = dict(self.overrides)
+        if self.concept_strategies:
+            data["concept_strategies"] = {
+                concept_id: strategy.value
+                for concept_id, strategy in self.concept_strategies.items()
+            }
+        return data
 
 
 def apply_decision_criterion(

@@ -130,30 +130,30 @@ Intent: remove duplicate policy/environment concepts before introducing the grap
 
 ### TDD Tasks
 
-- [ ] Write failing tests asserting one canonical policy definition is shared by world and worldline code paths.
-- [ ] Write failing tests for policy serialization round-trip.
-- [ ] Write failing tests for environment serialization round-trip.
-- [ ] Write failing tests for worldline parity using the shared policy/environment type.
+- [x] Write failing tests asserting one canonical policy definition is shared by world and worldline code paths.
+- [x] Write failing tests for policy serialization round-trip.
+- [x] Write failing tests for environment serialization round-trip.
+- [x] Write failing tests for worldline parity using the shared policy/environment type.
 
 ### Implementation Tasks
 
-- [ ] Make `worldline.py` use the same `RenderPolicy` concept as `world/types.py`.
-- [ ] Make `worldline.py` use the same `Environment` concept as `world/types.py`.
-- [ ] Remove string-vs-enum drift where practical, keeping compatibility adapters only where required.
-- [ ] Minimize duplicate field definitions across `worldline.py` and `world/types.py`.
+- [x] Make `worldline.py` use the same `RenderPolicy` concept as `world/types.py`.
+- [x] Make `worldline.py` use the same `Environment` concept as `world/types.py`.
+- [x] Remove string-vs-enum drift where practical, keeping compatibility adapters only where required.
+- [x] Minimize duplicate field definitions across `worldline.py` and `world/types.py`.
 
 ### Files Likely Touched
 
-- [ ] `propstore/world/types.py`
-- [ ] `propstore/worldline.py`
-- [ ] `propstore/worldline_runner.py`
-- [ ] CLI or serializer tests as needed
+- [x] `propstore/world/types.py`
+- [x] `propstore/worldline.py`
+- [x] `propstore/worldline_runner.py`
+- [x] CLI or serializer tests as needed
 
 ### Completion Criteria
 
-- [ ] There is one runtime definition of render policy.
-- [ ] There is one runtime definition of environment.
-- [ ] Worldline behavior remains compatible.
+- [x] There is one runtime definition of render policy.
+- [x] There is one runtime definition of environment.
+- [x] Worldline behavior remains compatible.
 
 ### Commit
 

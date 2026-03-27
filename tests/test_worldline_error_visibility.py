@@ -19,10 +19,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from propstore.world import Environment
+from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy
 from propstore.worldline import (
     WorldlineDefinition,
     WorldlineInputs,
-    WorldlinePolicy,
 )
 from propstore.worldline_runner import run_worldline
 
@@ -33,14 +34,14 @@ from propstore.worldline_runner import run_worldline
 def _make_definition(
     *,
     targets: list[str],
-    strategy: str | None = None,
-    reasoning_backend: str = "claim_graph",
+    strategy: ResolutionStrategy | None = None,
+    reasoning_backend: ReasoningBackend = ReasoningBackend.CLAIM_GRAPH,
 ) -> WorldlineDefinition:
     return WorldlineDefinition(
         id="test-err-visibility",
         name="error visibility test",
-        inputs=WorldlineInputs(bindings={}, overrides={}),
-        policy=WorldlinePolicy(
+        inputs=WorldlineInputs(environment=Environment(), overrides={}),
+        policy=RenderPolicy(
             strategy=strategy,
             reasoning_backend=reasoning_backend,
         ),
@@ -185,8 +186,8 @@ class TestArgumentationErrorVisibility:
         error indicator — not silently return argumentation=None."""
         definition = _make_definition(
             targets=["output_qty"],
-            strategy="argumentation",
-            reasoning_backend="claim_graph",
+            strategy=ResolutionStrategy.ARGUMENTATION,
+            reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
         )
 
         world = _FakeWorld()

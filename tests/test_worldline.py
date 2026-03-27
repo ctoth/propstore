@@ -18,7 +18,7 @@ from propstore.build_sidecar import build_sidecar
 from propstore.cli.worldline_cmds import _parse_kv_args
 from propstore.validate import load_concepts
 from propstore.validate_claims import load_claim_files
-from propstore.world import Environment
+from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
 
@@ -322,8 +322,31 @@ class TestWorldlineDefinition:
         wl = WorldlineDefinition.from_dict(worldline_yaml_question)
         assert wl.id == "test_wl_1"
         assert wl.targets == ["force", "gravitational_acceleration"]
-        assert wl.inputs.bindings == {"location": "earth"}
+        assert dict(wl.inputs.environment.bindings) == {"location": "earth"}
         assert wl.inputs.overrides == {"mass": 10.0}
+        assert isinstance(wl.policy, RenderPolicy)
+        assert isinstance(wl.inputs.environment, Environment)
+
+    def test_worldline_definition_uses_canonical_environment_and_policy_types(self):
+        """Worldlines should store the shared runtime Environment and RenderPolicy objects."""
+        from propstore.worldline import WorldlineDefinition
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "canonical_types",
+            "targets": ["force"],
+            "inputs": {
+                "bindings": {"location": "earth"},
+                "context_id": "ctx_physics",
+            },
+            "policy": {
+                "strategy": "argumentation",
+                "reasoning_backend": "atms",
+            },
+        })
+
+        assert isinstance(wl.inputs.environment, Environment)
+        assert wl.inputs.environment.context_id == "ctx_physics"
+        assert isinstance(wl.policy, RenderPolicy)
 
     def test_worldline_definition_from_file(self, worldline_yaml_file):
         """Can load a WorldlineDefinition from a YAML file."""
@@ -339,7 +362,7 @@ class TestWorldlineDefinition:
         wl2 = WorldlineDefinition.from_dict(exported)
         assert wl.id == wl2.id
         assert wl.targets == wl2.targets
-        assert wl.inputs.bindings == wl2.inputs.bindings
+        assert wl.inputs.environment == wl2.inputs.environment
         assert wl.inputs.overrides == wl2.inputs.overrides
 
     def test_worldline_definition_requires_id(self):
@@ -529,7 +552,7 @@ class TestWorldlineRunner:
             assert abs(force["value"] - expected) < 1e-9
 
     def test_run_uses_world_context_scope(self):
-        """inputs.context is passed as bind environment context, not as a fake binding."""
+        """inputs.environment.context_id is passed as bind environment context, not as a fake binding."""
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline_runner import run_worldline
 
@@ -586,7 +609,7 @@ class TestWorldlineRunner:
         wl = WorldlineDefinition.from_dict({
             "id": "test_context",
             "targets": ["target"],
-            "inputs": {"context": "ctx_physics"},
+            "inputs": {"context_id": "ctx_physics"},
         })
         world = FakeWorld()
 
@@ -866,7 +889,7 @@ class TestWorldlineDependencyLiveness:
         wl = WorldlineDefinition.from_dict({
             "id": "context_liveness",
             "targets": ["target"],
-            "inputs": {"context": "ctx_physics"},
+            "inputs": {"context_id": "ctx_physics"},
         })
         original_world = FakeWorld(True)
         changed_world = FakeWorld(False)

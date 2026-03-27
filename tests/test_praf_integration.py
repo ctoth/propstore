@@ -311,12 +311,12 @@ def test_praf_strategy_mc_seeded():
 # 8. test_worldline_policy_praf_roundtrip
 # ---------------------------------------------------------------------------
 def test_worldline_policy_praf_roundtrip():
-    """WorldlinePolicy with praf fields serializes to dict and back without loss."""
-    from propstore.worldline import WorldlinePolicy
+    """RenderPolicy with praf fields serializes to dict and back without loss."""
+    from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy
 
-    policy = WorldlinePolicy(
-        reasoning_backend="praf",
-        strategy="argumentation",
+    policy = RenderPolicy(
+        reasoning_backend=ReasoningBackend.PRAF,
+        strategy=ResolutionStrategy.ARGUMENTATION,
         praf_strategy="mc",
         praf_mc_epsilon=0.005,
         praf_mc_confidence=0.99,
@@ -325,9 +325,10 @@ def test_worldline_policy_praf_roundtrip():
     )
 
     d = policy.to_dict()
-    restored = WorldlinePolicy.from_dict(d)
+    restored = RenderPolicy.from_dict(d)
 
-    assert restored.reasoning_backend == "praf"
+    assert restored.reasoning_backend == ReasoningBackend.PRAF
+    assert restored.strategy == ResolutionStrategy.ARGUMENTATION
     assert restored.praf_strategy == "mc"
     assert restored.praf_mc_epsilon == 0.005
     assert restored.praf_mc_confidence == 0.99
@@ -339,10 +340,10 @@ def test_worldline_policy_praf_roundtrip():
 # 9. test_worldline_policy_backward_compat
 # ---------------------------------------------------------------------------
 def test_worldline_policy_backward_compat():
-    """WorldlinePolicy.from_dict({}) uses defaults for all praf fields."""
-    from propstore.worldline import WorldlinePolicy
+    """RenderPolicy.from_dict({}) uses defaults for all praf fields."""
+    from propstore.world.types import RenderPolicy
 
-    policy = WorldlinePolicy.from_dict({})
+    policy = RenderPolicy.from_dict({})
 
     assert policy.praf_strategy == "auto"
     assert policy.praf_mc_epsilon == 0.01

@@ -132,7 +132,7 @@ def test_worldline_policy_accepts_structured_projection_backend() -> None:
         "policy": {"reasoning_backend": "structured_projection"},
     })
 
-    assert worldline.policy.reasoning_backend == "structured_projection"
+    assert worldline.policy.reasoning_backend == ReasoningBackend.STRUCTURED_PROJECTION
 
 
 def test_structured_projection_uses_stable_argument_ids_and_exact_labels() -> None:

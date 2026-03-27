@@ -11,8 +11,7 @@ from __future__ import annotations
 import pytest
 
 from propstore.opinion import Opinion
-from propstore.world.types import RenderPolicy, apply_decision_criterion
-from propstore.worldline import WorldlinePolicy
+from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy, apply_decision_criterion
 
 
 # ── 1. Default decision criterion ───────────────────────────────
@@ -121,27 +120,29 @@ def test_show_uncertainty_interval():
     assert policy_on.show_uncertainty_interval is True
 
 
-# ── 8. WorldlinePolicy serialization roundtrip ───────────────────
+# ── 8. RenderPolicy serialization roundtrip ───────────────────
 
 def test_worldline_policy_serialization_roundtrip():
-    """WorldlinePolicy with new fields serializes to dict and back without loss."""
-    policy = WorldlinePolicy(
+    """RenderPolicy with worldline-used fields serializes to dict and back without loss."""
+    policy = RenderPolicy(
+        reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
+        strategy=ResolutionStrategy.ARGUMENTATION,
         decision_criterion="hurwicz",
         pessimism_index=0.7,
         show_uncertainty_interval=True,
     )
     d = policy.to_dict()
-    restored = WorldlinePolicy.from_dict(d)
+    restored = RenderPolicy.from_dict(d)
     assert restored.decision_criterion == "hurwicz"
     assert restored.pessimism_index == pytest.approx(0.7)
     assert restored.show_uncertainty_interval is True
 
 
-# ── 9. WorldlinePolicy backward compat ──────────────────────────
+# ── 9. RenderPolicy defaults via dict parsing ──────────────────────────
 
 def test_worldline_policy_backward_compat():
-    """WorldlinePolicy.from_dict({}) (empty/old format) uses defaults for new fields."""
-    policy = WorldlinePolicy.from_dict({})
+    """RenderPolicy.from_dict({}) uses defaults for worldline-used fields."""
+    policy = RenderPolicy.from_dict({})
     assert policy.decision_criterion == "pignistic"
     assert policy.pessimism_index == pytest.approx(0.5)
     assert policy.show_uncertainty_interval is False
