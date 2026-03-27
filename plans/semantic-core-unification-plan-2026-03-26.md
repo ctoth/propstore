@@ -226,7 +226,7 @@ Intent: make worldlines a first-class consumer of the same semantic pipeline.
 
 ### Commit
 
-- [ ] Commit: `refactor: run worldlines against shared semantic core`
+- [x] Commit: `refactor: run worldlines against shared semantic core`
 
 ## Phase 8: ATMS On The Shared Core
 
@@ -340,8 +340,8 @@ Intent: normalize the sidecar only after the runtime architecture is unified.
 
 - [x] PR 5: Phase 4
 - [x] PR 6: Phase 5
-- [ ] PR 7: Phase 6
-- [ ] PR 8: Phase 7
+- [x] PR 7: Phase 6
+- [x] PR 8: Phase 7
 - [ ] PR 9: Phase 8
 - [ ] PR 10: Phase 9
 - [ ] PR 11: Phase 10
