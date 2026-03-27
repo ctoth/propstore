@@ -175,6 +175,54 @@ def test_graph_delta_add_remove_inverse_returns_to_same_graph() -> None:
     assert add_then_remove.apply(base) == base
 
 
+def test_graph_delta_preserves_concepts_and_removes_dangling_relations_and_conflicts() -> None:
+    from propstore.core.graph_types import (
+        ClaimNode,
+        CompiledWorldGraph,
+        ConceptNode,
+        ConflictWitness,
+        GraphDelta,
+        RelationEdge,
+    )
+
+    graph = CompiledWorldGraph(
+        concepts=(
+            ConceptNode(concept_id="concept1", canonical_name="concept1"),
+        ),
+        claims=(
+            ClaimNode(
+                claim_id="claim_a",
+                concept_id="concept1",
+                claim_type="parameter",
+                scalar_value=1.0,
+            ),
+            ClaimNode(
+                claim_id="claim_b",
+                concept_id="concept1",
+                claim_type="parameter",
+                scalar_value=2.0,
+            ),
+        ),
+        relations=(
+            RelationEdge(source_id="claim_a", target_id="claim_b", relation_type="rebuts"),
+        ),
+        conflicts=(
+            ConflictWitness(
+                left_claim_id="claim_a",
+                right_claim_id="claim_b",
+                kind="CONFLICT",
+            ),
+        ),
+    )
+
+    result = GraphDelta(remove_claim_ids=("claim_b",)).apply(graph)
+
+    assert result.concepts == graph.concepts
+    assert tuple(claim.claim_id for claim in result.claims) == ("claim_a",)
+    assert result.relations == ()
+    assert result.conflicts == ()
+
+
 def test_active_world_graph_roundtrip_is_stable() -> None:
     from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
 

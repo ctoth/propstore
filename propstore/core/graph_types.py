@@ -362,11 +362,26 @@ class GraphDelta:
         }
         for claim in self.add_claims:
             claims[claim.claim_id] = claim
+        claim_ids = set(claims)
+        original_claim_ids = {claim.claim_id for claim in graph.claims}
+
+        def _relation_is_valid(edge: RelationEdge) -> bool:
+            source_is_claim = edge.source_id in original_claim_ids or edge.source_id in claim_ids
+            target_is_claim = edge.target_id in original_claim_ids or edge.target_id in claim_ids
+            if source_is_claim or target_is_claim:
+                return edge.source_id in claim_ids and edge.target_id in claim_ids
+            return True
+
         return CompiledWorldGraph(
+            concepts=graph.concepts,
             claims=tuple(claims.values()),
-            relations=graph.relations,
+            relations=tuple(edge for edge in graph.relations if _relation_is_valid(edge)),
             parameterizations=graph.parameterizations,
-            conflicts=graph.conflicts,
+            conflicts=tuple(
+                conflict
+                for conflict in graph.conflicts
+                if conflict.left_claim_id in claim_ids and conflict.right_claim_id in claim_ids
+            ),
         )
 
     def then(self, other: GraphDelta) -> GraphDelta:

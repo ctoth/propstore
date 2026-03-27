@@ -167,29 +167,29 @@ Intent: make overlays compose with all analyzers instead of bypassing the core.
 
 ### TDD Tasks
 
-- [ ] Write failing tests for empty-delta identity.
-- [ ] Write failing tests for add/remove inverse identity.
-- [ ] Write failing tests asserting overlay parity for current `claim_graph`.
-- [ ] Write failing tests asserting overlay parity for current `praf`.
-- [ ] Write failing tests exposing and then eliminating the current `ATMS` downgrade behavior.
+- [x] Write failing tests for empty-delta identity.
+- [x] Write failing tests for add/remove inverse identity.
+- [x] Write failing tests asserting overlay parity for current `claim_graph`.
+- [x] Write failing tests asserting overlay parity for current `praf`.
+- [x] Write failing tests exposing and then eliminating the current `ATMS` downgrade behavior.
 
 ### Implementation Tasks
 
-- [ ] Replace synthetic-claim dict overlay logic with a `GraphDelta`.
-- [ ] Apply deltas to `ActiveWorldGraph`.
-- [ ] Remove analyzer-specific overlay downgrades.
-- [ ] Preserve current public hypothetical interfaces if possible.
+- [x] Replace synthetic-claim dict overlay logic with a `GraphDelta`.
+- [x] Apply deltas to `ActiveWorldGraph`.
+- [x] Remove analyzer-specific overlay downgrades.
+- [x] Preserve current public hypothetical interfaces if possible.
 
 ### Files Likely Touched
 
-- [ ] `propstore/world/hypothetical.py`
-- [ ] `propstore/core/graph_types.py`
-- [ ] graph application helpers in core
+- [x] `propstore/world/hypothetical.py`
+- [x] `propstore/core/graph_types.py`
+- [x] graph application helpers in core
 
 ### Completion Criteria
 
-- [ ] Hypotheticals operate over the semantic core.
-- [ ] No backend silently downgrades because of overlays.
+- [x] Hypotheticals operate over the semantic core.
+- [x] No backend silently downgrades because of overlays.
 
 ### Commit
 

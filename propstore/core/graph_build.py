@@ -93,6 +93,23 @@ def _parse_json_list(value: Any) -> tuple[str, ...]:
 
 
 def build_compiled_world_graph(store) -> CompiledWorldGraph:
+    all_concepts = getattr(store, "all_concepts", lambda: [])
+    claims_for = getattr(store, "claims_for", lambda _concept_id: [])
+    all_relationships = getattr(store, "all_relationships", lambda: [])
+    all_parameterizations = getattr(store, "all_parameterizations", lambda: [])
+    conflicts_fn = getattr(store, "conflicts", lambda: [])
+    all_claim_stances_fn = getattr(store, "all_claim_stances", None)
+    if callable(all_claim_stances_fn):
+        claim_stance_rows = all_claim_stances_fn()
+    else:
+        claim_ids = {
+            str(row["id"])
+            for row in claims_for(None)
+            if row.get("id") is not None
+        }
+        stances_between = getattr(store, "stances_between", lambda _claim_ids: [])
+        claim_stance_rows = stances_between(claim_ids)
+
     concepts = tuple(
         ConceptNode(
             concept_id=str(row["id"]),
@@ -102,7 +119,7 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
             kind_type=(None if row.get("kind_type") is None else str(row["kind_type"])),
             attributes=_concept_attributes(row),
         )
-        for row in store.all_concepts()
+        for row in all_concepts()
     )
 
     claims = tuple(
@@ -114,7 +131,7 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
             provenance=_row_provenance(row, source_table="claim", source_id=str(row["id"])),
             attributes=_claim_attributes(row),
         )
-        for row in store.claims_for(None)
+        for row in claims_for(None)
     )
 
     concept_relationships = tuple(
@@ -129,7 +146,7 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
             ),
             attributes=_relation_attributes(row, known={"source_id", "target_id", "type"}),
         )
-        for row in store.all_relationships()
+        for row in all_relationships()
     )
     claim_stances = tuple(
         RelationEdge(
@@ -146,7 +163,7 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
                 known={"claim_id", "target_claim_id", "stance_type"},
             ),
         )
-        for row in store.all_claim_stances()
+        for row in claim_stance_rows
     )
 
     parameterizations = tuple(
@@ -163,7 +180,7 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
                 source_id=f"{row['output_concept_id']}:{row.get('formula') or row.get('sympy') or 'parameterization'}",
             ),
         )
-        for row in store.all_parameterizations()
+        for row in all_parameterizations()
     )
 
     conflicts = tuple(
@@ -177,7 +194,7 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
                 if key not in {"claim_a_id", "claim_b_id", "warning_class", "conflict_class"} and value is not None
             },
         )
-        for row in store.conflicts()
+        for row in conflicts_fn()
         if row.get("claim_a_id") is not None and row.get("claim_b_id") is not None
     )
 

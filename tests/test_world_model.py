@@ -9,6 +9,7 @@ TDD tests:
 - Feature 4: chain_query (multi-step binding chains)
 """
 
+import json
 import sqlite3
 
 import pytest
@@ -25,6 +26,7 @@ from propstore.world import (
     Environment,
     HypotheticalWorld,
     RenderPolicy,
+    ReasoningBackend,
     ResolvedResult,
     ResolutionStrategy,
     SyntheticClaim,
@@ -2275,20 +2277,10 @@ class TestWorldModelSidecarPath:
 
 
 class TestHypotheticalWorldATMS:
-    """HypotheticalWorld degrades ATMS resolution to a supported backend.
-
-    The overlay mutates the active claim set but does not rebuild ATMS state.
-    It must therefore avoid routing ATMS-backed resolution into a stale or
-    missing engine and should explicitly downgrade to a supported backend.
-    """
+    """HypotheticalWorld preserves ATMS behavior without silent downgrade."""
 
     def test_hypothetical_atms_resolution_degrades_backend(self, world):
-        """resolved_value() with ATMS backend falls back instead of crashing.
-
-        concept1 under speech is conflicted (claim1=200, claim2=350, claim7=250,
-        claim15=205), so resolve() reaches the ARGUMENTATION branch. The identity
-        HypotheticalWorld (no removals/additions) preserves that conflict.
-        """
+        """Identity overlays should match the base ATMS result without downgrade."""
         from propstore.world.types import ReasoningBackend
 
         bound = world.bind(
@@ -2301,7 +2293,159 @@ class TestHypotheticalWorldATMS:
         # Keep concept1 conflicted — identity hypothetical overlay
         hypo = HypotheticalWorld(bound)
 
+        expected = bound.resolved_value("concept1")
         result = hypo.resolved_value("concept1")
-        assert result.status in {ValueStatus.CONFLICTED, ValueStatus.RESOLVED}
-        assert result.reason is not None
-        assert "downgraded ATMS backend to claim_graph" in result.reason
+        assert result == expected
+        if result.reason is not None:
+            assert "downgraded ATMS backend to claim_graph" not in result.reason
+
+
+class _Phase6ExactMatchSolver:
+    def are_disjoint(self, left: list[str], right: list[str]) -> bool:
+        return set(left).isdisjoint(right)
+
+
+class _Phase6HypotheticalStore:
+    def __init__(self) -> None:
+        self._claims = [
+            {
+                "id": "claim_a",
+                "concept_id": "concept_x",
+                "type": "parameter",
+                "value": 10.0,
+                "sample_size": 50,
+                "conditions_cel": json.dumps(["mode == 'speech'"]),
+            },
+        ]
+
+    def claims_for(self, concept_id: str | None) -> list[dict]:
+        if concept_id is None:
+            return list(self._claims)
+        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+
+    def get_claim(self, claim_id: str) -> dict | None:
+        return next((claim for claim in self._claims if claim["id"] == claim_id), None)
+
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
+        return {
+            claim["id"]: dict(claim)
+            for claim in self._claims
+            if claim["id"] in claim_ids
+        }
+
+    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+        return []
+
+    def conflicts(self) -> list[dict]:
+        return []
+
+    def parameterizations_for(self, concept_id: str) -> list[dict]:
+        return []
+
+    def condition_solver(self) -> _Phase6ExactMatchSolver:
+        return _Phase6ExactMatchSolver()
+
+    def explain(self, claim_id: str) -> list[dict]:
+        return []
+
+    def has_table(self, name: str) -> bool:
+        return name == "claim_stance"
+
+    def all_concepts(self) -> list[dict]:
+        return [{"id": "concept_x", "canonical_name": "concept_x"}]
+
+
+def _phase6_bound_world(policy: RenderPolicy) -> BoundWorld:
+    return BoundWorld(
+        _Phase6HypotheticalStore(),
+        environment=Environment(bindings={"mode": "speech"}),
+        policy=policy,
+    )
+
+
+class TestSemanticCorePhase6HypotheticalDeltas:
+    def test_empty_overlay_builds_identity_graph_delta(self, world):
+        bound = world.bind(task="speech")
+        hypo = HypotheticalWorld(bound)
+
+        assert hypo._graph_delta.is_identity
+        assert hypo._active_graph == bound._active_graph
+        assert hypo.resolved_value("concept1") == bound.resolved_value("concept1")
+
+    def test_remove_add_inverse_overlay_returns_same_active_graph(self, world):
+        bound = world.bind(task="speech")
+        restored_claim = world.get_claim("claim2")
+        assert restored_claim is not None
+
+        hypo = HypotheticalWorld(
+            bound,
+            remove=["claim2"],
+            add=[
+                SyntheticClaim(
+                    id="claim2",
+                    concept_id=restored_claim["concept_id"],
+                    type=restored_claim.get("type") or "parameter",
+                    value=restored_claim["value"],
+                    conditions=json.loads(restored_claim["conditions_cel"]),
+                ),
+            ],
+        )
+
+        assert hypo._active_graph == bound._active_graph
+        assert hypo.value_of("concept1") == bound.value_of("concept1")
+
+    def test_claim_graph_overlay_uses_delta_backed_conflicts(self):
+        bound = _phase6_bound_world(
+            RenderPolicy(
+                strategy=ResolutionStrategy.ARGUMENTATION,
+                reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
+                semantics="hybrid-grounded",
+            )
+        )
+        hypo = HypotheticalWorld(
+            bound,
+            add=[
+                SyntheticClaim(
+                    id="synth_b",
+                    concept_id="concept_x",
+                    value=20.0,
+                    conditions=["mode == 'speech'"],
+                ),
+            ],
+        )
+
+        assert "synth_b" in hypo._active_graph.active_claim_ids
+        result = hypo.resolved_value("concept_x")
+
+        assert result.status == ValueStatus.RESOLVED
+        assert result.winning_claim_id == "claim_a"
+        assert result.reason == "sole survivor in hybrid-grounded extension"
+
+    def test_praf_overlay_uses_delta_backed_conflicts(self):
+        bound = _phase6_bound_world(
+            RenderPolicy(
+                strategy=ResolutionStrategy.ARGUMENTATION,
+                reasoning_backend=ReasoningBackend.PRAF,
+                semantics="hybrid-grounded",
+                praf_strategy="exact_enum",
+            )
+        )
+        hypo = HypotheticalWorld(
+            bound,
+            add=[
+                SyntheticClaim(
+                    id="synth_b",
+                    concept_id="concept_x",
+                    value=20.0,
+                    conditions=["mode == 'speech'"],
+                ),
+            ],
+        )
+
+        result = hypo.resolved_value("concept_x")
+
+        assert result.status == ValueStatus.RESOLVED
+        assert result.winning_claim_id == "claim_a"
+        assert result.acceptance_probs is not None
+        assert result.acceptance_probs["claim_a"] > result.acceptance_probs["synth_b"]
+        assert result.acceptance_probs["synth_b"] < 1.0
