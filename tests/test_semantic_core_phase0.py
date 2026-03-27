@@ -1,0 +1,149 @@
+from __future__ import annotations
+
+import json
+
+from propstore.world import BoundWorld, Environment, HypotheticalWorld, RenderPolicy, ResolutionStrategy, SyntheticClaim
+from propstore.world.labelled import compile_environment_assumptions
+
+
+class _ExactMatchSolver:
+    def are_disjoint(self, left: list[str], right: list[str]) -> bool:
+        return set(left).isdisjoint(right)
+
+
+class _Store:
+    def __init__(self) -> None:
+        self._claims = [
+            {
+                "id": "claim_low",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 10.0,
+                "sample_size": 5,
+                "conditions_cel": json.dumps(["x == 1", "y == 2"]),
+            },
+            {
+                "id": "claim_high",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 20.0,
+                "sample_size": 50,
+                "conditions_cel": json.dumps(["x == 1", "y == 2"]),
+            },
+            {
+                "id": "claim_left",
+                "concept_id": "concept2",
+                "type": "parameter",
+                "value": 5.0,
+                "conditions_cel": json.dumps(["x == 1", "y == 2"]),
+            },
+            {
+                "id": "claim_right",
+                "concept_id": "concept4",
+                "type": "parameter",
+                "value": 7.0,
+                "conditions_cel": json.dumps(["x == 1", "y == 2"]),
+            },
+        ]
+        self._parameterizations = {
+            "concept3": [
+                {
+                    "concept_ids": json.dumps(["concept2", "concept4"]),
+                    "sympy": "Eq(concept3, concept2 + concept4)",
+                    "formula": "concept3 = concept2 + concept4",
+                    "exactness": "exact",
+                    "conditions_cel": json.dumps(["x == 1", "y == 2"]),
+                }
+            ]
+        }
+
+    def claims_for(self, concept_id: str | None) -> list[dict]:
+        if concept_id is None:
+            return list(self._claims)
+        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+
+    def get_claim(self, claim_id: str) -> dict | None:
+        return next((claim for claim in self._claims if claim["id"] == claim_id), None)
+
+    def parameterizations_for(self, concept_id: str) -> list[dict]:
+        return list(self._parameterizations.get(concept_id, []))
+
+    def condition_solver(self) -> _ExactMatchSolver:
+        return _ExactMatchSolver()
+
+    def conflicts(self) -> list[dict]:
+        return []
+
+    def explain(self, claim_id: str) -> list[dict]:
+        return []
+
+
+def _make_bound(*, bindings: dict[str, object]) -> BoundWorld:
+    environment = Environment(
+        bindings=bindings,
+        assumptions=compile_environment_assumptions(bindings=bindings),
+    )
+    return BoundWorld(
+        _Store(),
+        environment=environment,
+        policy=RenderPolicy(strategy=ResolutionStrategy.SAMPLE_SIZE),
+    )
+
+
+def test_binding_order_does_not_change_active_or_resolved_semantics() -> None:
+    forward = _make_bound(bindings={"x": 1, "y": 2})
+    reverse = _make_bound(bindings={"y": 2, "x": 1})
+
+    assert [claim["id"] for claim in forward.active_claims()] == [
+        claim["id"] for claim in reverse.active_claims()
+    ]
+
+    forward_value = forward.value_of("concept1")
+    reverse_value = reverse.value_of("concept1")
+    assert forward_value.status == reverse_value.status == "conflicted"
+    assert [claim["id"] for claim in forward_value.claims] == [
+        claim["id"] for claim in reverse_value.claims
+    ]
+
+    forward_derived = forward.derived_value("concept3")
+    reverse_derived = reverse.derived_value("concept3")
+    assert forward_derived.status == reverse_derived.status == "derived"
+    assert forward_derived.value == reverse_derived.value == 12.0
+
+    forward_resolved = forward.resolved_value("concept1")
+    reverse_resolved = reverse.resolved_value("concept1")
+    assert forward_resolved.status == reverse_resolved.status == "resolved"
+    assert forward_resolved.winning_claim_id == reverse_resolved.winning_claim_id == "claim_high"
+    assert forward_resolved.value == reverse_resolved.value == 20.0
+
+
+def test_empty_hypothetical_overlay_is_identity_transform() -> None:
+    bound = _make_bound(bindings={"x": 1, "y": 2})
+    hypothetical = HypotheticalWorld(bound)
+
+    assert [claim["id"] for claim in hypothetical.active_claims()] == [
+        claim["id"] for claim in bound.active_claims()
+    ]
+    assert hypothetical.value_of("concept1") == bound.value_of("concept1")
+    assert hypothetical.derived_value("concept3") == bound.derived_value("concept3")
+    assert hypothetical.resolved_value("concept1") == bound.resolved_value("concept1")
+
+
+def test_remove_and_add_inverse_overlay_returns_same_semantic_state() -> None:
+    bound = _make_bound(bindings={"x": 1, "y": 2})
+    inverse = HypotheticalWorld(
+        bound,
+        remove=["claim_left"],
+        add=[
+            SyntheticClaim(
+                id="claim_left",
+                concept_id="concept2",
+                value=5.0,
+                conditions=["x == 1", "y == 2"],
+            )
+        ],
+    )
+
+    assert [claim["id"] for claim in inverse.active_claims("concept2")] == ["claim_left"]
+    assert inverse.value_of("concept2") == bound.value_of("concept2")
+    assert inverse.derived_value("concept3") == bound.derived_value("concept3")

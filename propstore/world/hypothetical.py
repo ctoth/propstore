@@ -10,6 +10,7 @@ from propstore.world.bound import (
     BoundWorld,
     _recomputed_conflicts,
 )
+from propstore.world.labelled import combine_labels, merge_labels
 from propstore.world.value_resolver import ActiveClaimResolver, collect_known_values
 from propstore.world.types import (
     BeliefSpace,
@@ -91,7 +92,9 @@ class HypotheticalWorld(BeliefSpace):
 
     def value_of(self, concept_id: str) -> ValueResult:
         active = self.active_claims(concept_id)
-        return self._resolver.value_of_from_active(active, concept_id)
+        return self._attach_value_label(
+            self._resolver.value_of_from_active(active, concept_id)
+        )
 
     def derived_value(
         self,
@@ -100,10 +103,98 @@ class HypotheticalWorld(BeliefSpace):
         override_values: dict[str, float | str | None] | None = None,
     ) -> DerivedResult:
         """Derive using this hypothetical world's active claims."""
-        return self._resolver.derived_value(
-            concept_id,
+        return self._attach_derived_label(
+            self._resolver.derived_value(
+                concept_id,
+                override_values=override_values,
+            ),
             override_values=override_values,
         )
+
+    def _claim_support_label(self, claim: dict):
+        return self._base._claim_support_label(claim)
+
+    def _attach_value_label(self, result: ValueResult) -> ValueResult:
+        if result.status != "determined" or not result.claims:
+            return result
+
+        claim_labels = []
+        for claim in result.claims:
+            claim_label = self._claim_support_label(claim)
+            if claim_label is None:
+                return result
+            claim_labels.append(claim_label)
+        return replace(result, label=merge_labels(claim_labels))
+
+    def _attach_derived_label(
+        self,
+        result: DerivedResult,
+        *,
+        override_values: dict[str, float | str | None] | None,
+    ) -> DerivedResult:
+        if result.status != "derived":
+            return result
+
+        input_labels = []
+        for input_id in result.input_values:
+            input_label = self._label_for_input(
+                input_id,
+                override_values=override_values,
+                seen={result.concept_id},
+            )
+            if input_label is None:
+                return result
+            input_labels.append(input_label)
+        return replace(result, label=combine_labels(*input_labels))
+
+    def _attach_resolved_label(
+        self,
+        concept_id: str,
+        result: ResolvedResult,
+    ) -> ResolvedResult:
+        if result.status == "determined":
+            return replace(result, label=self.value_of(concept_id).label)
+
+        if result.status != "resolved" or not result.winning_claim_id:
+            return result
+
+        winning_claim = next(
+            (claim for claim in result.claims if claim.get("id") == result.winning_claim_id),
+            None,
+        )
+        if winning_claim is None:
+            return result
+
+        claim_label = self._claim_support_label(winning_claim)
+        if claim_label is None:
+            return result
+        return replace(result, label=claim_label)
+
+    def _label_for_input(
+        self,
+        concept_id: str,
+        *,
+        override_values: dict[str, float | str | None] | None,
+        seen: set[str],
+    ):
+        if override_values and concept_id in override_values:
+            return None
+
+        value_result = self.value_of(concept_id)
+        if value_result.status == "determined":
+            return value_result.label
+
+        if concept_id in seen:
+            return None
+
+        seen.add(concept_id)
+        try:
+            derived = self.derived_value(concept_id, override_values=override_values)
+        finally:
+            seen.discard(concept_id)
+        if derived.status == "derived":
+            return derived.label
+        return None
 
     def resolved_value(self, concept_id: str) -> ResolvedResult:
         from propstore.world.resolution import resolve
@@ -123,7 +214,7 @@ class HypotheticalWorld(BeliefSpace):
         if downgraded:
             suffix = "hypothetical overlay downgraded ATMS backend to claim_graph"
             result.reason = f"{result.reason}; {suffix}" if result.reason else suffix
-        return result
+        return self._attach_resolved_label(concept_id, result)
 
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status == "determined"
