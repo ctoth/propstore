@@ -157,7 +157,7 @@ Intent: remove duplicate policy/environment concepts before introducing the grap
 
 ### Commit
 
-- [ ] Commit: `refactor: unify render policy and environment across world and worldline`
+- [x] Commit: `refactor: unify render policy and environment across world and worldline`
 
 ## Phase 2: Introduce Canonical Semantic Types
 
@@ -165,33 +165,33 @@ Intent: add a new core without migrating behavior yet.
 
 ### TDD Tasks
 
-- [ ] Write failing tests for deterministic equality/ordering of graph objects.
-- [ ] Write failing tests for provenance normalization.
-- [ ] Write failing tests for graph delta identity behavior.
-- [ ] Write failing tests for analyzer result dataclass stability and round-trip where relevant.
+- [x] Write failing tests for deterministic equality/ordering of graph objects.
+- [x] Write failing tests for provenance normalization.
+- [x] Write failing tests for graph delta identity behavior.
+- [x] Write failing tests for analyzer result dataclass stability and round-trip where relevant.
 
 ### Implementation Tasks
 
-- [ ] Create `propstore/core/graph_types.py` for typed claim nodes, relation edges, parameterization edges, provenance records, labels, justifications, and graph deltas.
-- [ ] Create `propstore/core/results.py` for analyzer result dataclasses if needed.
-- [ ] Keep types runtime-oriented and independent of SQLite.
-- [ ] Do not migrate callers yet.
+- [x] Create `propstore/core/graph_types.py` for typed claim nodes, relation edges, parameterization edges, provenance records, labels, justifications, and graph deltas.
+- [x] Create `propstore/core/results.py` for analyzer result dataclasses if needed.
+- [x] Keep types runtime-oriented and independent of SQLite.
+- [x] Do not migrate callers yet.
 
 ### Suggested New Types
 
-- [ ] `CompiledWorldGraph`
-- [ ] `ActiveWorldGraph`
-- [ ] `ClaimNode`
-- [ ] `RelationEdge`
-- [ ] `ParameterizationEdge`
-- [ ] `ConflictWitness`
-- [ ] `GraphDelta`
-- [ ] analyzer output records
+- [x] `CompiledWorldGraph`
+- [x] `ActiveWorldGraph`
+- [x] `ClaimNode`
+- [x] `RelationEdge`
+- [x] `ParameterizationEdge`
+- [x] `ConflictWitness`
+- [x] `GraphDelta`
+- [x] analyzer output records
 
 ### Completion Criteria
 
-- [ ] Core graph types exist and are tested.
-- [ ] No external behavior changes yet.
+- [x] Core graph types exist and are tested.
+- [x] No external behavior changes yet.
 
 ### Commit
 
