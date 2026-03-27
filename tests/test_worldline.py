@@ -983,6 +983,306 @@ class TestWorldlineDependencyLiveness:
         assert result.values["target"]["value"] == 42.0
 
 
+class TestSemanticCorePhase7Worldlines:
+    def _graph_only_world(self):
+        from propstore.core.graph_types import (
+            ActiveWorldGraph,
+            ClaimNode,
+            CompiledWorldGraph,
+            RelationEdge,
+        )
+
+        claims = {
+            "claim_a": {"id": "claim_a", "concept_id": "concept1", "value": 10.0, "content_hash": "hash-a"},
+            "claim_b": {"id": "claim_b", "concept_id": "concept1", "value": 20.0, "content_hash": "hash-b"},
+        }
+        compiled = CompiledWorldGraph(
+            claims=(
+                ClaimNode(
+                    claim_id="claim_a",
+                    concept_id="concept1",
+                    claim_type="parameter",
+                    scalar_value=10.0,
+                    attributes={"content_hash": "hash-a"},
+                ),
+                ClaimNode(
+                    claim_id="claim_b",
+                    concept_id="concept1",
+                    claim_type="parameter",
+                    scalar_value=20.0,
+                    attributes={"content_hash": "hash-b"},
+                ),
+            ),
+            relations=(
+                RelationEdge(
+                    source_id="claim_b",
+                    target_id="claim_a",
+                    relation_type="rebuts",
+                    attributes={"confidence": 0.8, "note": "rebuts-note"},
+                ),
+            ),
+        )
+        active_graph = ActiveWorldGraph(
+            compiled=compiled,
+            environment=Environment(),
+            active_claim_ids=("claim_a", "claim_b"),
+            inactive_claim_ids=(),
+        )
+
+        class _Bound:
+            def __init__(self, claim_order):
+                self._bindings = {}
+                self._claims = claims
+                self._claim_order = claim_order
+                self._active_graph = active_graph
+
+            def value_of(self, concept_id):
+                return ValueResult(
+                    concept_id=concept_id,
+                    status="conflicted",
+                    claims=[self._claims[claim_id] for claim_id in self._claim_order],
+                )
+
+            def derived_value(self, concept_id, override_values=None):
+                return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+            def active_claims(self, concept_id=None):
+                return [self._claims[claim_id] for claim_id in self._claim_order]
+
+        class _World:
+            def __init__(self):
+                self._bind_calls = 0
+
+            def bind(self, environment=None, *, policy=None, **conditions):
+                self._bind_calls += 1
+                order = ["claim_a", "claim_b"] if self._bind_calls % 2 else ["claim_b", "claim_a"]
+                return _Bound(order)
+
+            def resolve_concept(self, name):
+                return "concept1" if name == "target" else None
+
+            def get_concept(self, concept_id):
+                if concept_id == "concept1":
+                    return {"id": "concept1", "canonical_name": "target"}
+                return None
+
+            def get_claim(self, claim_id):
+                return claims.get(claim_id)
+
+            def has_table(self, name):
+                return name == "claim_stance"
+
+        return _World(), active_graph
+
+    def test_claim_graph_worldline_capture_uses_active_graph_without_store_analyzer_path(
+        self,
+        monkeypatch,
+    ):
+        from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        world, active_graph = self._graph_only_world()
+
+        def fail_old_path(*args, **kwargs):
+            raise AssertionError("worldline claim_graph capture must not use the old store path")
+
+        monkeypatch.setattr(
+            "propstore.argumentation.compute_claim_graph_justified_claims",
+            fail_old_path,
+        )
+
+        def fake_shared(graph, **kwargs):
+            assert graph == active_graph
+            return "shared-claim-graph"
+
+        def fake_analyze(shared, *, semantics="grounded", target_claim_ids=None):
+            assert shared == "shared-claim-graph"
+            target_ids = tuple(sorted(target_claim_ids or ()))
+            projection = None
+            if target_claim_ids is not None:
+                projection = ClaimProjection(
+                    target_claim_ids=target_ids,
+                    survivor_claim_ids=("claim_a",),
+                    witness_claim_ids=target_ids,
+                )
+            return AnalyzerResult(
+                backend="claim_graph",
+                semantics=semantics,
+                extensions=(ExtensionResult(name=semantics, accepted_claim_ids=("claim_a",)),),
+                projection=projection,
+            )
+
+        monkeypatch.setattr(
+            "propstore.core.analyzers.shared_analyzer_input_from_active_graph",
+            fake_shared,
+        )
+        monkeypatch.setattr(
+            "propstore.core.analyzers.analyze_claim_graph",
+            fake_analyze,
+        )
+
+        result = run_worldline(
+            WorldlineDefinition.from_dict({
+                "id": "phase7_claim_graph",
+                "targets": ["target"],
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "claim_graph",
+                    "semantics": "legacy_grounded",
+                },
+            }),
+            world,
+        )
+
+        assert result.values["target"]["value"] == 10.0
+        assert result.argumentation == {
+            "justified": ["claim_a"],
+            "defeated": ["claim_b"],
+        }
+        assert result.dependencies["stances"]
+
+    def test_praf_worldline_capture_uses_active_graph_without_store_praf_path(
+        self,
+        monkeypatch,
+    ):
+        from propstore.core.results import AnalyzerResult, ClaimProjection
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        world, active_graph = self._graph_only_world()
+
+        def fail_old_path(*args, **kwargs):
+            raise AssertionError("worldline praf capture must not use the old store path")
+
+        monkeypatch.setattr("propstore.argumentation.build_praf", fail_old_path)
+
+        def fake_shared(graph, **kwargs):
+            assert graph == active_graph
+            return "shared-praf"
+
+        def fake_analyze(
+            shared,
+            *,
+            semantics="grounded",
+            strategy="auto",
+            mc_epsilon=0.01,
+            mc_confidence=0.95,
+            treewidth_cutoff=12,
+            rng_seed=None,
+            target_claim_ids=None,
+        ):
+            assert shared == "shared-praf"
+            target_ids = tuple(sorted(target_claim_ids or ()))
+            projection = None
+            if target_claim_ids is not None:
+                projection = ClaimProjection(
+                    target_claim_ids=target_ids,
+                    survivor_claim_ids=("claim_a",),
+                    witness_claim_ids=target_ids,
+                )
+            return AnalyzerResult(
+                backend="praf",
+                semantics=semantics,
+                projection=projection,
+                metadata=(
+                    ("acceptance_probs", {"claim_a": 0.75, "claim_b": 0.25}),
+                    ("strategy_used", "exact_enum"),
+                    ("samples", None),
+                    ("confidence_interval_half", None),
+                    ("comparison", "elitist"),
+                ),
+            )
+
+        monkeypatch.setattr(
+            "propstore.core.analyzers.shared_analyzer_input_from_active_graph",
+            fake_shared,
+        )
+        monkeypatch.setattr(
+            "propstore.core.analyzers.analyze_praf",
+            fake_analyze,
+        )
+
+        result = run_worldline(
+            WorldlineDefinition.from_dict({
+                "id": "phase7_praf",
+                "targets": ["target"],
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "praf",
+                    "semantics": "grounded",
+                    "praf_strategy": "exact_enum",
+                },
+            }),
+            world,
+        )
+
+        assert result.values["target"]["value"] == 10.0
+        assert result.argumentation is not None
+        assert result.argumentation["backend"] == "praf"
+        assert result.argumentation["acceptance_probs"] == {"claim_a": 0.75, "claim_b": 0.25}
+        assert result.dependencies["stances"]
+
+    def test_graph_backed_worldline_materialization_is_stable_under_repeated_execution(
+        self,
+        monkeypatch,
+    ):
+        from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
+        from propstore.worldline import WorldlineDefinition, WorldlineResult
+        from propstore.worldline_runner import run_worldline
+
+        world, active_graph = self._graph_only_world()
+
+        monkeypatch.setattr(
+            "propstore.argumentation.compute_claim_graph_justified_claims",
+            lambda *args, **kwargs: (_ for _ in ()).throw(
+                AssertionError("worldline claim_graph capture must not use the old store path")
+            ),
+        )
+        monkeypatch.setattr(
+            "propstore.core.analyzers.shared_analyzer_input_from_active_graph",
+            lambda graph, **kwargs: active_graph,
+        )
+        monkeypatch.setattr(
+            "propstore.core.analyzers.analyze_claim_graph",
+            lambda shared, *, semantics="grounded", target_claim_ids=None: AnalyzerResult(
+                backend="claim_graph",
+                semantics=semantics,
+                extensions=(ExtensionResult(name=semantics, accepted_claim_ids=("claim_a",)),),
+                projection=(
+                    None
+                    if target_claim_ids is None
+                    else ClaimProjection(
+                        target_claim_ids=tuple(sorted(target_claim_ids)),
+                        survivor_claim_ids=("claim_a",),
+                        witness_claim_ids=tuple(sorted(target_claim_ids)),
+                    )
+                ),
+            ),
+        )
+
+        definition = WorldlineDefinition.from_dict({
+            "id": "phase7_stability",
+            "targets": ["target"],
+            "policy": {
+                "strategy": "argumentation",
+                "reasoning_backend": "claim_graph",
+                "semantics": "legacy_grounded",
+            },
+        })
+
+        result_a = run_worldline(definition, world)
+        result_b = run_worldline(definition, world)
+        restored = WorldlineResult.from_dict(result_a.to_dict())
+
+        assert result_a.values == result_b.values
+        assert result_a.dependencies == result_b.dependencies
+        assert result_a.argumentation == result_b.argumentation
+        assert result_a.content_hash == result_b.content_hash
+        assert restored is not None
+        assert restored.to_dict() == result_a.to_dict()
+
+
 class TestWorldlineCliParsing:
     def test_parse_kv_args_coerces_scalar_bindings(self):
         """CLI bindings preserve basic scalar types instead of stringifying all input."""

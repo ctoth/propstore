@@ -193,7 +193,7 @@ Intent: make overlays compose with all analyzers instead of bypassing the core.
 
 ### Commit
 
-- [ ] Commit: `refactor: implement hypothetical overlays as graph deltas`
+- [x] Commit: `refactor: implement hypothetical overlays as graph deltas`
 
 ## Phase 7: Worldlines On The Shared Core
 
@@ -201,28 +201,28 @@ Intent: make worldlines a first-class consumer of the same semantic pipeline.
 
 ### TDD Tasks
 
-- [ ] Write failing tests for worldline parity after core migration.
-- [ ] Write failing tests for stable worldline serialization.
-- [ ] Write failing tests for dependency capture parity.
-- [ ] Add a property test that worldline materialization is stable under repeated execution on unchanged semantic inputs.
+- [x] Write failing tests for worldline parity after core migration.
+- [x] Write failing tests for stable worldline serialization.
+- [x] Write failing tests for dependency capture parity.
+- [x] Add a property test that worldline materialization is stable under repeated execution on unchanged semantic inputs.
 
 ### Implementation Tasks
 
-- [ ] Refactor `worldline_runner.py` to consume `ActiveWorldGraph` and shared analyzer results.
-- [ ] Eliminate policy/environment duplication already reduced in Phase 1.
-- [ ] Keep file format compatible where possible.
+- [x] Refactor `worldline_runner.py` to consume `ActiveWorldGraph` and shared analyzer results.
+- [x] Eliminate policy/environment duplication already reduced in Phase 1.
+- [x] Keep file format compatible where possible.
 - [ ] If practical, improve dependencies from flat consulted-claim bags toward witness subgraphs, but only if compatibility can be preserved or versioned safely.
 
 ### Files Likely Touched
 
 - [ ] `propstore/worldline.py`
-- [ ] `propstore/worldline_runner.py`
+- [x] `propstore/worldline_runner.py`
 - [ ] core analyzer/result modules
 
 ### Completion Criteria
 
-- [ ] Worldlines are no longer a parallel runtime path.
-- [ ] Worldlines reuse the same semantic center as world queries.
+- [x] Worldlines are no longer a parallel runtime path.
+- [x] Worldlines reuse the same semantic center as world queries.
 
 ### Commit
 

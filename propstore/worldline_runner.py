@@ -170,19 +170,42 @@ def run_worldline(
         try:
             active = bound.active_claims()
             active_ids = {c["id"] for c in active}
+            active_graph = getattr(bound, "_active_graph", None)
             reasoning_backend = definition.policy.reasoning_backend
             if (
                 reasoning_backend == ReasoningBackend.CLAIM_GRAPH
                 and world.has_table("claim_stance")
             ):
-                from propstore.argumentation import compute_claim_graph_justified_claims
+                justified: frozenset[str] | None = None
+                if active_graph is not None:
+                    from propstore.core.analyzers import (
+                        analyze_claim_graph,
+                        shared_analyzer_input_from_active_graph,
+                    )
 
-                justified = compute_claim_graph_justified_claims(
-                    world, active_ids,
-                    semantics=definition.policy.semantics,
-                    comparison=definition.policy.comparison,
-                )
-                if isinstance(justified, frozenset):
+                    analyzer_result = analyze_claim_graph(
+                        shared_analyzer_input_from_active_graph(
+                            active_graph,
+                            comparison=definition.policy.comparison,
+                        ),
+                        semantics=definition.policy.semantics,
+                    )
+                    if len(analyzer_result.extensions) == 1:
+                        justified = frozenset(
+                            analyzer_result.extensions[0].accepted_claim_ids
+                        )
+                else:
+                    from propstore.argumentation import compute_claim_graph_justified_claims
+
+                    current = compute_claim_graph_justified_claims(
+                        world, active_ids,
+                        semantics=definition.policy.semantics,
+                        comparison=definition.policy.comparison,
+                    )
+                    if isinstance(current, frozenset):
+                        justified = current
+
+                if justified is not None:
                     defeated = active_ids - justified
                     argumentation_state = {
                         "justified": sorted(justified),
@@ -237,11 +260,6 @@ def run_worldline(
                 reasoning_backend == ReasoningBackend.PRAF
                 and world.has_table("claim_stance")
             ):
-                # Li et al. (2012): PrAF = (A, P_A, D, P_D).
-                # Build probabilistic AF and compute acceptance probabilities.
-                from propstore.argumentation import build_praf
-                from propstore.praf import compute_praf_acceptance
-
                 # Extract PrAF parameters from policy (same as resolution.py)
                 praf_strategy = definition.policy.praf_strategy or "auto"
                 praf_mc_epsilon = definition.policy.praf_mc_epsilon or 0.01
@@ -249,25 +267,60 @@ def run_worldline(
                 praf_treewidth_cutoff = definition.policy.praf_treewidth_cutoff or 12
                 praf_mc_seed = definition.policy.praf_mc_seed
 
-                praf = build_praf(
-                    world, active_ids,
-                    comparison=definition.policy.comparison or "elitist",
-                )
-                praf_result = compute_praf_acceptance(
-                    praf,
-                    semantics=definition.policy.semantics or "grounded",
-                    strategy=praf_strategy,
-                    mc_epsilon=praf_mc_epsilon,
-                    mc_confidence=praf_mc_confidence,
-                    treewidth_cutoff=praf_treewidth_cutoff,
-                    rng_seed=praf_mc_seed,
-                )
+                if active_graph is not None:
+                    from propstore.core.analyzers import (
+                        analyze_praf,
+                        shared_analyzer_input_from_active_graph,
+                    )
+
+                    analyzer_result = analyze_praf(
+                        shared_analyzer_input_from_active_graph(
+                            active_graph,
+                            comparison=definition.policy.comparison or "elitist",
+                        ),
+                        semantics=definition.policy.semantics or "grounded",
+                        strategy=praf_strategy,
+                        mc_epsilon=praf_mc_epsilon,
+                        mc_confidence=praf_mc_confidence,
+                        treewidth_cutoff=praf_treewidth_cutoff,
+                        rng_seed=praf_mc_seed,
+                    )
+                    metadata = dict(analyzer_result.metadata)
+                    acceptance_probs = dict(metadata["acceptance_probs"])
+                    strategy_used = metadata["strategy_used"]
+                    samples = metadata["samples"]
+                    confidence_interval_half = metadata["confidence_interval_half"]
+                else:
+                    # Li et al. (2012): PrAF = (A, P_A, D, P_D).
+                    # Build probabilistic AF and compute acceptance probabilities.
+                    from propstore.argumentation import build_praf
+                    from propstore.praf import compute_praf_acceptance
+
+                    praf = build_praf(
+                        world, active_ids,
+                        comparison=definition.policy.comparison or "elitist",
+                    )
+                    praf_result = compute_praf_acceptance(
+                        praf,
+                        semantics=definition.policy.semantics or "grounded",
+                        strategy=praf_strategy,
+                        mc_epsilon=praf_mc_epsilon,
+                        mc_confidence=praf_mc_confidence,
+                        treewidth_cutoff=praf_treewidth_cutoff,
+                        rng_seed=praf_mc_seed,
+                    )
+                    acceptance_probs = dict(praf_result.acceptance_probs)
+                    strategy_used = praf_result.strategy_used
+                    samples = praf_result.samples
+                    confidence_interval_half = praf_result.confidence_interval_half
+
                 argumentation_state = {
                     "backend": "praf",
-                    "acceptance_probs": dict(praf_result.acceptance_probs),
-                    "strategy_used": praf_result.strategy_used,
-                    "samples": praf_result.samples,
-                    "semantics": praf_result.semantics,
+                    "acceptance_probs": acceptance_probs,
+                    "strategy_used": strategy_used,
+                    "samples": samples,
+                    "confidence_interval_half": confidence_interval_half,
+                    "semantics": definition.policy.semantics or "grounded",
                 }
 
             if argumentation_state is not None:
@@ -275,13 +328,11 @@ def run_worldline(
                     dependency_claims.add(cid)
                 if (
                     argumentation_state.get("backend") != "atms"
-                    and hasattr(world, "stances_between")
-                    and world.has_table("claim_stance")
                 ):
-                    stance_rows = world.stances_between(active_ids)
-                    stance_dependencies = sorted(
-                        _stance_dependency_key(row)
-                        for row in stance_rows
+                    stance_dependencies = _active_stance_dependencies(
+                        bound,
+                        world,
+                        active_ids,
                     )
         except Exception as exc:
             logger.warning("argumentation capture failed", exc_info=True)
@@ -761,6 +812,39 @@ def _stance_dependency_key(row: dict[str, Any]) -> str:
         separators=(",", ":"),
         default=str,
     )
+
+
+def _active_stance_dependencies(
+    bound,
+    world,
+    active_ids: set[str],
+) -> list[str]:
+    """Collect active stance dependencies from the graph core when available."""
+    active_graph = getattr(bound, "_active_graph", None)
+    graph_relation_types = {"rebuts", "undercuts", "undermines", "supersedes", "supports", "explains"}
+
+    if active_graph is not None:
+        stance_rows: list[dict[str, Any]] = []
+        for edge in active_graph.compiled.relations:
+            if edge.relation_type not in graph_relation_types:
+                continue
+            if edge.source_id not in active_ids or edge.target_id not in active_ids:
+                continue
+            row = {
+                "claim_id": edge.source_id,
+                "target_claim_id": edge.target_id,
+                "stance_type": edge.relation_type,
+            }
+            row.update(dict(edge.attributes))
+            stance_rows.append(row)
+        return sorted(_stance_dependency_key(row) for row in stance_rows)
+
+    if hasattr(world, "stances_between") and world.has_table("claim_stance"):
+        return sorted(
+            _stance_dependency_key(row)
+            for row in world.stances_between(active_ids)
+        )
+    return []
 
 
 def _context_dependencies(bound, context_id: str | None) -> list[str]:
