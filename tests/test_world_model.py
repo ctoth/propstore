@@ -2041,6 +2041,33 @@ class TestBoundWorldPublicInterface:
         assert hasattr(bound, 'extract_bindings')
 
 
+class TestSemanticCorePhase4Activation:
+    def test_bind_builds_active_graph_with_parity_to_active_and_inactive_claims(self, world):
+        bound = world.bind(task="speech")
+
+        assert tuple(sorted(c["id"] for c in bound.active_claims())) == (
+            bound._active_graph.active_claim_ids
+        )
+        assert tuple(sorted(c["id"] for c in bound.inactive_claims())) == (
+            bound._active_graph.inactive_claim_ids
+        )
+
+    def test_active_graph_construction_is_binding_order_invariant(self, world):
+        env_a = Environment(bindings={
+            "task": "speech",
+            "fundamental_frequency": 200,
+        })
+        env_b = Environment(bindings={
+            "fundamental_frequency": 200,
+            "task": "speech",
+        })
+
+        bound_a = world.bind(env_a)
+        bound_b = world.bind(env_b)
+
+        assert bound_a._active_graph == bound_b._active_graph
+
+
 # ── RED tests: Float comparison bugs (audit findings F5.2, F5.3) ────
 
 

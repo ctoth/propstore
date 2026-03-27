@@ -7,6 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from propstore.core.activation import is_claim_mapping_active
 from propstore.world.labelled import (
     AssumptionRef,
     EnvironmentKey,
@@ -30,6 +31,7 @@ from propstore.world.types import (
 )
 
 if TYPE_CHECKING:
+    from propstore.core.graph_types import ActiveWorldGraph
     from propstore.validate_contexts import ContextHierarchy
     from propstore.world.atms import ATMSEngine
     from propstore.world.model import WorldModel
@@ -127,12 +129,20 @@ class BoundWorld(BeliefSpace):
         *,
         environment: Environment | None = None,
         policy: RenderPolicy | None = None,
+        active_graph: ActiveWorldGraph | None = None,
     ) -> None:
         self._store = world
         if environment is None:
             environment = Environment(bindings=bindings or {}, context_id=context_id)
         self._environment = environment
         self._policy = policy
+        self._active_graph = active_graph
+        self._active_claim_id_set = (
+            set(active_graph.active_claim_ids) if active_graph is not None else None
+        )
+        self._inactive_claim_id_set = (
+            set(active_graph.inactive_claim_ids) if active_graph is not None else None
+        )
         self._atms_engine: ATMSEngine | None = None
         self._bindings = dict(environment.bindings)
         self._binding_conds = self._bindings_to_cel(self._bindings)
@@ -168,26 +178,21 @@ class BoundWorld(BeliefSpace):
 
     def is_active(self, claim: dict) -> bool:
         """Check if a claim is active under the current bindings and context."""
-        # Step 1: Context membership check
-        if self._context_visible is not None:
-            claim_ctx = claim.get("context_id")
-            if claim_ctx is not None:
-                if claim_ctx not in self._context_visible:
-                    return False
-            # Claims with no context (NULL) are always visible
+        claim_id = claim.get("id")
+        if claim_id is not None and self._active_claim_id_set is not None:
+            if claim_id in self._active_claim_id_set:
+                return True
+            if claim_id in self._inactive_claim_id_set:
+                return False
 
-        # Step 2: Existing CEL condition check
-        conds_json = claim.get("conditions_cel")
-        if not conds_json:
-            return True  # unconditional → always active
-        claim_conds = json.loads(conds_json)
-        if not claim_conds:
-            return True  # empty conditions → always active
-        if not self._binding_conds:
-            return True  # no bindings → everything active
-
-        solver = self._store.condition_solver()
-        return not solver.are_disjoint(self._binding_conds, claim_conds)
+        solver_getter = getattr(self._store, "condition_solver", None)
+        solver = solver_getter() if callable(solver_getter) else None
+        return is_claim_mapping_active(
+            claim,
+            environment=self._environment,
+            solver=solver,
+            context_hierarchy=self._context_hierarchy,
+        )
 
     def is_param_compatible(self, conditions_cel: str | None) -> bool:
         """Check if parameterization conditions are compatible with bindings."""
@@ -202,10 +207,22 @@ class BoundWorld(BeliefSpace):
         return not solver.are_disjoint(self._binding_conds, conds)
 
     def active_claims(self, concept_id: str | None = None) -> list[dict]:
+        if self._active_claim_id_set is not None:
+            all_claims = self._store.claims_for(concept_id)
+            return [
+                claim for claim in all_claims
+                if claim.get("id") in self._active_claim_id_set
+            ]
         all_claims = self._store.claims_for(concept_id)
         return [c for c in all_claims if self.is_active(c)]
 
     def inactive_claims(self, concept_id: str | None = None) -> list[dict]:
+        if self._inactive_claim_id_set is not None:
+            all_claims = self._store.claims_for(concept_id)
+            return [
+                claim for claim in all_claims
+                if claim.get("id") in self._inactive_claim_id_set
+            ]
         all_claims = self._store.claims_for(concept_id)
         return [c for c in all_claims if not self.is_active(c)]
 

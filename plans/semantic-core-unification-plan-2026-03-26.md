@@ -8,6 +8,8 @@ This plan was written against the current codebase and is binding; do not audit,
 
 Goal: Refactor `propstore` toward one canonical semantic core without losing current functionality, using TDD, self-contained phases, and one commit per completed phase.
 
+Completed phases 0 through 3 have been moved to `plans/semantic-core-unification-plan-2026-03-26-completed.md` so this file tracks only the remaining work.
+
 ## North Star
 
 Make the system revolve around one canonical semantic object:
@@ -88,179 +90,38 @@ These are the architectural center and should move toward one shared core:
 - [ ] `propstore/worldline.py`
 - [ ] `propstore/worldline_runner.py`
 
-## Phase 0: Behavior Net
-
-Intent: lock current externally meaningful behavior before refactoring internals.
-
-### TDD Tasks
-
-- [x] Add or expand parity tests for `bind -> active_claims -> value_of -> derived_value -> resolved_value`.
-- [x] Add parity tests for `claim_graph`, `praf`, and `atms` over the same fixture family.
-- [x] Add parity tests for hypothetical overlays under each currently supported backend path.
-- [x] Add parity tests for worldline materialization and round-trip.
-- [x] Add parity tests for active-view conflict recomputation.
-- [x] Add property tests for binding-order invariance.
-- [x] Add property tests for environment/label normalization and antichain minimality.
-
-### Likely Test Files
-
-- [x] `tests/test_world_model.py`
-- [x] `tests/test_worldline.py`
-- [x] `tests/test_worldline_properties.py`
-- [x] `tests/test_worldline_error_visibility.py`
-- [x] `tests/test_argumentation_integration.py`
-- [x] `tests/test_praf_integration.py`
-- [x] `tests/test_atms_engine.py`
-- [x] `tests/test_conflict_detector.py`
-- [x] add a new properties-focused test file if the current suite needs separation
-
-### Completion Criteria
-
-- [x] New tests fail before implementation adjustments.
-- [x] All tests pass after only compatibility-preserving fixes.
-- [x] The suite clearly exposes the current hypothetical `ATMS` downgrade behavior as a documented compatibility fact.
-
-### Commit
-
-- [x] Commit: `test: lock world, backend, overlay, and worldline semantics`
-
-## Phase 1: Unify Policy and Environment
-
-Intent: remove duplicate policy/environment concepts before introducing the graph core.
-
-### TDD Tasks
-
-- [x] Write failing tests asserting one canonical policy definition is shared by world and worldline code paths.
-- [x] Write failing tests for policy serialization round-trip.
-- [x] Write failing tests for environment serialization round-trip.
-- [x] Write failing tests for worldline parity using the shared policy/environment type.
-
-### Implementation Tasks
-
-- [x] Make `worldline.py` use the same `RenderPolicy` concept as `world/types.py`.
-- [x] Make `worldline.py` use the same `Environment` concept as `world/types.py`.
-- [x] Remove string-vs-enum drift where practical, keeping compatibility adapters only where required.
-- [x] Minimize duplicate field definitions across `worldline.py` and `world/types.py`.
-
-### Files Likely Touched
-
-- [x] `propstore/world/types.py`
-- [x] `propstore/worldline.py`
-- [x] `propstore/worldline_runner.py`
-- [x] CLI or serializer tests as needed
-
-### Completion Criteria
-
-- [x] There is one runtime definition of render policy.
-- [x] There is one runtime definition of environment.
-- [x] Worldline behavior remains compatible.
-
-### Commit
-
-- [x] Commit: `refactor: unify render policy and environment across world and worldline`
-
-## Phase 2: Introduce Canonical Semantic Types
-
-Intent: add a new core without migrating behavior yet.
-
-### TDD Tasks
-
-- [x] Write failing tests for deterministic equality/ordering of graph objects.
-- [x] Write failing tests for provenance normalization.
-- [x] Write failing tests for graph delta identity behavior.
-- [x] Write failing tests for analyzer result dataclass stability and round-trip where relevant.
-
-### Implementation Tasks
-
-- [x] Create `propstore/core/graph_types.py` for typed claim nodes, relation edges, parameterization edges, provenance records, labels, justifications, and graph deltas.
-- [x] Create `propstore/core/results.py` for analyzer result dataclasses if needed.
-- [x] Keep types runtime-oriented and independent of SQLite.
-- [x] Do not migrate callers yet.
-
-### Suggested New Types
-
-- [x] `CompiledWorldGraph`
-- [x] `ActiveWorldGraph`
-- [x] `ClaimNode`
-- [x] `RelationEdge`
-- [x] `ParameterizationEdge`
-- [x] `ConflictWitness`
-- [x] `GraphDelta`
-- [x] analyzer output records
-
-### Completion Criteria
-
-- [x] Core graph types exist and are tested.
-- [x] No external behavior changes yet.
-
-### Commit
-
-- [ ] Commit: `feat: introduce canonical semantic graph and result dataclasses`
-
-## Phase 3: Build Canonical Graph From Existing Sidecar
-
-Intent: bridge the old storage world into the new in-memory semantic core.
-
-### TDD Tasks
-
-- [x] Write failing tests asserting the graph builder preserves all current claims, concepts, stances, conflicts, and parameterizations from fixture sidecars.
-- [x] Write failing tests for row-order independence.
-- [x] Write failing tests for stable graph build output over repeated loads.
-
-### Implementation Tasks
-
-- [x] Create `propstore/core/graph_build.py`.
-- [x] Add sidecar-row to graph-node/edge mapping.
-- [x] Preserve current semantics exactly, including any oddities that are part of compatibility.
-- [x] Expose graph construction hooks from `WorldModel`.
-
-### Files Likely Touched
-
-- [x] `propstore/core/graph_build.py`
-- [x] `propstore/world/model.py`
-- [x] test fixtures/helpers as needed
-
-### Completion Criteria
-
-- [x] A canonical graph can be built entirely from the existing sidecar.
-- [x] Existing runtime paths still work unchanged.
-
-### Commit
-
-- [ ] Commit: `feat: build canonical world graph from existing sidecar`
-
 ## Phase 4: Activation Layer Over the Graph
 
 Intent: make activation and context restriction graph-native.
 
 ### TDD Tasks
 
-- [ ] Write failing tests asserting activated graph claim sets match current `BoundWorld.active_claims()`.
-- [ ] Write failing tests asserting inactive sets match current behavior.
-- [ ] Write failing tests for context visibility parity.
-- [ ] Write failing tests for binding-order invariance over active graph construction.
+- [x] Write failing tests asserting activated graph claim sets match current `BoundWorld.active_claims()`.
+- [x] Write failing tests asserting inactive sets match current behavior.
+- [x] Write failing tests for context visibility parity.
+- [x] Write failing tests for binding-order invariance over active graph construction.
 
 ### Implementation Tasks
 
-- [ ] Create `propstore/core/activation.py`.
-- [ ] Make `WorldModel.bind()` produce or internally cache an `ActiveWorldGraph`.
-- [ ] Refactor `BoundWorld` into a graph-backed facade.
-- [ ] Keep current public methods intact while reducing direct row-centric logic.
+- [x] Create `propstore/core/activation.py`.
+- [x] Make `WorldModel.bind()` produce or internally cache an `ActiveWorldGraph`.
+- [x] Refactor `BoundWorld` into a graph-backed facade.
+- [x] Keep current public methods intact while reducing direct row-centric logic.
 
 ### Files Likely Touched
 
-- [ ] `propstore/core/activation.py`
-- [ ] `propstore/world/model.py`
-- [ ] `propstore/world/bound.py`
+- [x] `propstore/core/activation.py`
+- [x] `propstore/world/model.py`
+- [x] `propstore/world/bound.py`
 
 ### Completion Criteria
 
-- [ ] Activation is expressed in terms of the graph core.
-- [ ] `BoundWorld` remains compatible but is substantially thinner.
+- [x] Activation is expressed in terms of the graph core.
+- [x] `BoundWorld` remains compatible but is substantially thinner.
 
 ### Commit
 
-- [ ] Commit: `refactor: move activation onto active world graph`
+- [x] Commit: `refactor: move activation onto active world graph`
 
 ## Phase 5: Shared Analyzer Pipeline
 
@@ -477,11 +338,7 @@ Intent: normalize the sidecar only after the runtime architecture is unified.
 
 ## Suggested PR Sequence
 
-- [ ] PR 1: Phase 0
-- [ ] PR 2: Phase 1
-- [ ] PR 3: Phase 2
-- [ ] PR 4: Phase 3
-- [ ] PR 5: Phase 4
+- [x] PR 5: Phase 4
 - [ ] PR 6: Phase 5
 - [ ] PR 7: Phase 6
 - [ ] PR 8: Phase 7

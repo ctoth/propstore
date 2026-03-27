@@ -109,7 +109,7 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
         ClaimNode(
             claim_id=str(row["id"]),
             concept_id=str(row.get("concept_id") or row.get("target_concept") or ""),
-            claim_type=str(row["type"]),
+            claim_type=str(row.get("type") or "unknown"),
             scalar_value=row.get("value"),
             provenance=_row_provenance(row, source_table="claim", source_id=str(row["id"])),
             attributes=_claim_attributes(row),

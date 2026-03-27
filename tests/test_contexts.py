@@ -763,6 +763,61 @@ class TestBoundWorldContext:
         finally:
             wm.close()
 
+    def test_world_model_bind_active_graph_matches_context_visibility(self, tmp_path):
+        """The active graph produced by bind() must match current context-filtered visibility."""
+        sidecar = tmp_path / "propstore.sqlite"
+        conn = sqlite3.connect(sidecar)
+        conn.executescript("""
+            CREATE TABLE claim (
+                id TEXT PRIMARY KEY,
+                concept_id TEXT,
+                conditions_cel TEXT,
+                context_id TEXT
+            );
+            CREATE TABLE context (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                inherits TEXT
+            );
+            CREATE TABLE context_assumption (
+                context_id TEXT NOT NULL,
+                assumption_cel TEXT NOT NULL,
+                seq INTEGER NOT NULL
+            );
+            CREATE TABLE context_exclusion (
+                context_a TEXT NOT NULL,
+                context_b TEXT NOT NULL
+            );
+        """)
+        conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_root', 'Root', NULL)")
+        conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_child', 'Child', 'ctx_root')")
+        conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_other', 'Other', NULL)")
+        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_root', 'c1', NULL, 'ctx_root')")
+        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_child', 'c1', NULL, 'ctx_child')")
+        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_other', 'c1', NULL, 'ctx_other')")
+        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_universal', 'c1', NULL, NULL)")
+        conn.commit()
+        conn.close()
+
+        class _Repo:
+            sidecar_path = sidecar
+
+        from propstore.world import WorldModel
+        from propstore.world.types import Environment
+
+        wm = WorldModel(_Repo())
+        try:
+            bound = wm.bind(Environment(context_id="ctx_child"))
+            assert tuple(sorted(c["id"] for c in bound.active_claims())) == (
+                bound._active_graph.active_claim_ids
+            )
+            assert tuple(sorted(c["id"] for c in bound.inactive_claims())) == (
+                bound._active_graph.inactive_claim_ids
+            )
+        finally:
+            wm.close()
+
 
 # ── Step 5: Context-aware conflict detection ─────────────────────────
 

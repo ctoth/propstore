@@ -72,6 +72,8 @@ class WorldModel(ArtifactStore):
         self._context_hierarchy_loaded = False
         self._table_cache: dict[str, bool] = {}
         self._claim_has_target_concept: bool | None = None
+        self._compiled_graph_cache = None
+        self._active_graph_cache: dict[str, Any] = {}
 
     def __enter__(self) -> WorldModel:
         return self
@@ -80,6 +82,8 @@ class WorldModel(ArtifactStore):
         self.close()
 
     def close(self) -> None:
+        self._compiled_graph_cache = None
+        self._active_graph_cache.clear()
         self._conn.close()
 
     # ── Lazy Z3 setup ────────────────────────────────────────────────
@@ -289,6 +293,8 @@ class WorldModel(ArtifactStore):
         return [dict(r) for r in rows]
 
     def all_concepts(self) -> list[dict]:
+        if not self._has_table("concept"):
+            return []
         rows = self._conn.execute("SELECT * FROM concept").fetchall()
         return [dict(row) for row in rows]
 
@@ -454,9 +460,33 @@ class WorldModel(ArtifactStore):
 
     def compiled_graph(self):
         """Build the canonical compiled semantic graph from the current sidecar."""
+        from propstore.core.graph_types import CompiledWorldGraph
         from propstore.core.graph_build import build_compiled_world_graph
 
-        return build_compiled_world_graph(self)
+        if self._compiled_graph_cache is None:
+            self._compiled_graph_cache = build_compiled_world_graph(self)
+        return CompiledWorldGraph.from_dict(self._compiled_graph_cache.to_dict())
+
+    def active_graph(
+        self,
+        environment: Environment,
+        *,
+        context_hierarchy: ContextHierarchy | None = None,
+    ):
+        from propstore.core.activation import activate_compiled_world_graph
+        from propstore.core.graph_types import ActiveWorldGraph
+
+        hierarchy = context_hierarchy or self._load_context_hierarchy()
+        cache_key = json.dumps(environment.to_dict(), sort_keys=True)
+        if cache_key not in self._active_graph_cache:
+            self._active_graph_cache[cache_key] = activate_compiled_world_graph(
+                self.compiled_graph(),
+                environment=environment,
+                solver=self.condition_solver(),
+                context_hierarchy=hierarchy,
+            )
+        cached = self._active_graph_cache[cache_key]
+        return ActiveWorldGraph.from_dict(cached.to_dict())
 
     def _group_members(self, concept_id: str) -> list[str]:
         """Get all concept_ids in the same parameterization group."""
@@ -554,6 +584,10 @@ class WorldModel(ArtifactStore):
             environment=environment,
             context_hierarchy=context_hierarchy,
             policy=policy,
+            active_graph=self.active_graph(
+                environment,
+                context_hierarchy=context_hierarchy,
+            ),
         )
 
     # ── Chain query ──────────────────────────────────────────────────
