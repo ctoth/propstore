@@ -129,37 +129,37 @@ Intent: stop writing one-off resolution plumbing per backend.
 
 ### TDD Tasks
 
-- [ ] Write failing tests for analyzer pipeline parity with current `claim_graph`.
-- [ ] Write failing tests for analyzer pipeline parity with current `praf`.
-- [ ] Write failing tests for target projection independence from active-id ordering.
-- [ ] Write failing tests for stable extension/grounded/preferred result parity.
+- [x] Write failing tests for analyzer pipeline parity with current `claim_graph`.
+- [x] Write failing tests for analyzer pipeline parity with current `praf`.
+- [x] Write failing tests for target projection independence from active-id ordering.
+- [x] Write failing tests for stable extension/grounded/preferred result parity.
 
 ### Implementation Tasks
 
-- [ ] Create a shared pipeline abstraction such as:
+- [x] Create a shared pipeline abstraction such as:
   - relation collection
   - framework construction
   - semantics computation
   - projection back to target claims
-- [ ] Migrate `claim_graph` first.
-- [ ] Migrate `praf` second.
-- [ ] Keep leaf solvers unchanged where possible.
+- [x] Migrate `claim_graph` first.
+- [x] Migrate `praf` second.
+- [x] Keep leaf solvers unchanged where possible.
 
 ### Files Likely Touched
 
-- [ ] `propstore/argumentation.py`
-- [ ] `propstore/world/resolution.py`
-- [ ] possibly a new `propstore/core/analyzers/` package
+- [x] `propstore/argumentation.py`
+- [x] `propstore/world/resolution.py`
+- [x] possibly a new `propstore/core/analyzers/` package
 - [ ] `propstore/praf.py` only as needed for cleaner inputs
 
 ### Completion Criteria
 
-- [ ] `claim_graph` and `praf` consume the same active graph abstraction.
-- [ ] Survivor projection logic is no longer duplicated across multiple functions.
+- [x] `claim_graph` and `praf` consume the same active graph abstraction.
+- [x] Survivor projection logic is no longer duplicated across multiple functions.
 
 ### Commit
 
-- [ ] Commit: `refactor: route claim graph and praf through shared analyzer pipeline`
+- [x] Commit: `refactor: route claim graph and praf through shared analyzer pipeline`
 
 ## Phase 6: Hypothetical Overlays As Graph Deltas
 
@@ -339,7 +339,7 @@ Intent: normalize the sidecar only after the runtime architecture is unified.
 ## Suggested PR Sequence
 
 - [x] PR 5: Phase 4
-- [ ] PR 6: Phase 5
+- [x] PR 6: Phase 5
 - [ ] PR 7: Phase 6
 - [ ] PR 8: Phase 7
 - [ ] PR 9: Phase 8
@@ -348,11 +348,11 @@ Intent: normalize the sidecar only after the runtime architecture is unified.
 
 ## Commands To Run At The End Of Every Phase
 
-- [ ] run the targeted tests added in that phase
-- [ ] run the surrounding subsystem tests
-- [ ] run the full test suite if phase scope touched the architectural center
-- [ ] inspect diff for accidental semantic drift
-- [ ] commit with the phase-specific message
+- [x] run the targeted tests added in that phase
+- [x] run the surrounding subsystem tests
+- [x] run the full test suite if phase scope touched the architectural center
+- [x] inspect diff for accidental semantic drift
+- [x] commit with the phase-specific message
 
 ## Stop Conditions
 

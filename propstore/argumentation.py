@@ -10,28 +10,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.bipolar import (
-    BipolarArgumentationFramework,
-    c_preferred_extensions,
-    cayrol_derived_defeats as _cayrol_derived_defeats_impl,
-    d_preferred_extensions,
-    s_preferred_extensions,
-    stable_extensions as bipolar_stable_extensions,
+from propstore.bipolar import BipolarArgumentationFramework, cayrol_derived_defeats as _cayrol_derived_defeats_impl
+from propstore.core.analyzers import (
+    analyze_claim_graph,
+    build_praf_from_shared_input,
+    shared_analyzer_input_from_store,
 )
-from propstore.dung import (
-    ArgumentationFramework,
-    grounded_extension,
-    hybrid_grounded_extension,
-    preferred_extensions,
-    stable_extensions,
-)
+from propstore.dung import ArgumentationFramework
 from propstore.preference import claim_strength, defeat_holds
-from propstore.probabilistic_relations import (
-    ClaimGraphRelations,
-    ProbabilisticRelation,
-    relation_from_row,
-    relation_map,
-)
 from propstore.world.types import ArtifactStore
 
 _ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
@@ -51,10 +37,10 @@ def _transitive_support_targets(
         visited = set()
     visited.add(source)
     targets: set[str] = set()
-    for a, b in supports:
-        if a == source and b not in visited:
-            targets.add(b)
-            targets |= _transitive_support_targets(b, supports, visited)
+    for left_id, right_id in supports:
+        if left_id == source and right_id not in visited:
+            targets.add(right_id)
+            targets |= _transitive_support_targets(right_id, supports, visited)
     return targets
 
 
@@ -64,181 +50,6 @@ def _cayrol_derived_defeats(
 ) -> set[tuple[str, str]]:
     """Compatibility wrapper for Cayrol 2005 derived defeats."""
     return set(_cayrol_derived_defeats_impl(frozenset(defeats), frozenset(supports)))
-
-
-def _collect_claim_graph_relations(
-    store: ArtifactStore,
-    active_claim_ids: set[str],
-    *,
-    comparison: str,
-) -> tuple[dict[str, dict], list[dict], ClaimGraphRelations]:
-    """Collect primitive and derived graph relations for active claims."""
-    from propstore.praf import p_relation_from_stance
-
-    claims_by_id = store.claims_by_ids(active_claim_ids)
-    stances = store.stances_between(active_claim_ids)
-
-    # --- Synthesize rebuts from conflict records (Phase 2) ---
-    # Conflicts represent structural value disagreements detected by the
-    # conflict detector. When no LLM-classified stance covers a conflict
-    # pair, we inject a symmetric "rebuts" stance with a vacuous opinion
-    # (b=0, d=0, u=1, a=0.5) — honest ignorance per Jøsang 2001 p.8.
-    # Synthetic stances are ephemeral: generated at render time, never
-    # persisted. Real stances always take precedence (Pollock 1987 p.485).
-    _REAL_CONFLICT_CLASSES = {"CONFLICT", "OVERLAP", "PARAM_CONFLICT"}
-    try:
-        all_conflicts = store.conflicts()
-    except (AttributeError, TypeError):
-        all_conflicts = []
-
-    existing_stance_pairs = {
-        (s["claim_id"], s["target_claim_id"]) for s in stances
-    }
-    # Undirected pairs with any real stance between them.
-    existing_stance_undirected: set[frozenset[str]] = {
-        frozenset({s["claim_id"], s["target_claim_id"]}) for s in stances
-    }
-    # Undirected pairs with a real attack-type stance.
-    existing_attack_undirected: set[frozenset[str]] = {
-        frozenset({s["claim_id"], s["target_claim_id"]})
-        for s in stances if s["stance_type"] in _ATTACK_TYPES
-    }
-    # Claims that participate in any real stance (as source or target).
-    # Used to detect when an LLM has classified a claim with other claims
-    # but intentionally omitted a stance for a particular pair.
-    claims_with_stances: set[str] = set()
-    for s in stances:
-        claims_with_stances.add(s["claim_id"])
-        claims_with_stances.add(s["target_claim_id"])
-
-    for conflict in all_conflicts:
-        wc = conflict.get("warning_class", "")
-        if wc not in _REAL_CONFLICT_CLASSES:
-            continue
-        a_id = conflict["claim_a_id"]
-        b_id = conflict["claim_b_id"]
-        if a_id not in active_claim_ids or b_id not in active_claim_ids:
-            continue
-        pair_key = frozenset({a_id, b_id})
-        # If a real attack stance covers this pair → fully handled, skip.
-        if pair_key in existing_attack_undirected:
-            continue
-        # If the pair has a non-attack stance: the LLM classified the
-        # pair but not as an attack. Synthesize only the uncovered direction
-        # (the LLM's classification in the covered direction takes precedence).
-        if pair_key in existing_stance_undirected:
-            for src, tgt in [(a_id, b_id), (b_id, a_id)]:
-                if (src, tgt) not in existing_stance_pairs:
-                    stances.append({
-                        "claim_id": src,
-                        "target_claim_id": tgt,
-                        "stance_type": "rebuts",
-                        "confidence": 0.5,
-                        "opinion_belief": 0.0,
-                        "opinion_disbelief": 0.0,
-                        "opinion_uncertainty": 1.0,
-                        "opinion_base_rate": 0.5,
-                    })
-            continue
-        # No stance between this pair at all. If either claim participates
-        # in stances with OTHER claims, the LLM had the opportunity to
-        # classify this pair and chose not to — skip. Only synthesize for
-        # truly unclassified (orphan) claim pairs.
-        if a_id in claims_with_stances or b_id in claims_with_stances:
-            continue
-        # Synthesize two directed stances (a→b and b→a).
-        for src, tgt in [(a_id, b_id), (b_id, a_id)]:
-            stances.append({
-                "claim_id": src,
-                "target_claim_id": tgt,
-                "stance_type": "rebuts",
-                "confidence": 0.5,
-                "opinion_belief": 0.0,
-                "opinion_disbelief": 0.0,
-                "opinion_uncertainty": 1.0,
-                "opinion_base_rate": 0.5,
-            })
-
-    attacks: set[tuple[str, str]] = set()
-    direct_defeats: set[tuple[str, str]] = set()
-    supports: set[tuple[str, str]] = set()
-    attack_relations: list[ProbabilisticRelation] = []
-    support_relations: list[ProbabilisticRelation] = []
-    direct_defeat_relations: list[ProbabilisticRelation] = []
-
-    for stance in stances:
-        source_id = stance["claim_id"]
-        target_id = stance["target_claim_id"]
-        stance_type = stance["stance_type"]
-
-        if source_id not in claims_by_id or target_id not in claims_by_id:
-            continue
-
-        if stance_type in _SUPPORT_TYPES:
-            supports.add((source_id, target_id))
-            support_relations.append(
-                relation_from_row(
-                    kind="support",
-                    source=source_id,
-                    target=target_id,
-                    opinion=p_relation_from_stance(stance),
-                    row=stance,
-                )
-            )
-            continue
-
-        if stance_type not in _ATTACK_TYPES:
-            continue
-
-        attacks.add((source_id, target_id))
-        attack_opinion = p_relation_from_stance(stance)
-        attack_relations.append(
-            relation_from_row(
-                kind="attack",
-                source=source_id,
-                target=target_id,
-                opinion=attack_opinion,
-                row=stance,
-            )
-        )
-
-        if stance_type in _UNCONDITIONAL_TYPES:
-            direct_defeats.add((source_id, target_id))
-            direct_defeat_relations.append(
-                relation_from_row(
-                    kind="direct_defeat",
-                    source=source_id,
-                    target=target_id,
-                    opinion=attack_opinion,
-                    row=stance,
-                )
-            )
-        elif stance_type in _PREFERENCE_TYPES:
-            attacker_claim = claims_by_id.get(source_id, {})
-            target_claim = claims_by_id.get(target_id, {})
-            attacker_s = claim_strength(attacker_claim)
-            target_s = claim_strength(target_claim)
-            if defeat_holds(stance_type, attacker_s, target_s, comparison):
-                direct_defeats.add((source_id, target_id))
-                direct_defeat_relations.append(
-                    relation_from_row(
-                        kind="direct_defeat",
-                        source=source_id,
-                        target=target_id,
-                        opinion=attack_opinion,
-                        row=stance,
-                    )
-                )
-
-    return claims_by_id, stances, ClaimGraphRelations(
-        arguments=frozenset(active_claim_ids),
-        attacks=frozenset(attacks),
-        direct_defeats=frozenset(direct_defeats),
-        supports=frozenset(supports),
-        attack_relations=tuple(attack_relations),
-        support_relations=tuple(support_relations),
-        direct_defeat_relations=tuple(direct_defeat_relations),
-    )
 
 
 def build_argumentation_framework(
@@ -261,20 +72,12 @@ def build_argumentation_framework(
     must therefore avoid synthesizing a post-hoc "grounded" set by pruning a
     defeat-only fixpoint; that can yield non-complete results.
     """
-    _, _, relations = _collect_claim_graph_relations(
+    shared = shared_analyzer_input_from_store(
         store,
         active_claim_ids,
         comparison=comparison,
     )
-    defeats = set(relations.direct_defeats)
-    if relations.supports and relations.direct_defeats:
-        defeats |= _cayrol_derived_defeats(set(relations.direct_defeats), set(relations.supports))
-
-    return ArgumentationFramework(
-        arguments=frozenset(active_claim_ids),
-        defeats=frozenset(defeats),
-        attacks=relations.attacks,
-    )
+    return shared.argumentation_framework
 
 
 def build_bipolar_framework(
@@ -284,16 +87,12 @@ def build_bipolar_framework(
     comparison: str = "elitist",
 ) -> BipolarArgumentationFramework:
     """Build an explicit Cayrol-style bipolar framework over active claim rows."""
-    _, _, relations = _collect_claim_graph_relations(
+    shared = shared_analyzer_input_from_store(
         store,
         active_claim_ids,
         comparison=comparison,
     )
-    return BipolarArgumentationFramework(
-        arguments=frozenset(active_claim_ids),
-        defeats=relations.direct_defeats,
-        supports=relations.supports,
-    )
+    return shared.bipolar_framework
 
 
 def build_praf(
@@ -317,44 +116,12 @@ def build_praf(
       4. Set P_A for each argument
       5. Return ProbabilisticAF
     """
-    from propstore.praf import ProbabilisticAF, p_arg_from_claim
-
-    claims_by_id, _, relations = _collect_claim_graph_relations(
+    shared = shared_analyzer_input_from_store(
         store,
         active_claim_ids,
         comparison=comparison,
     )
-
-    derived_defeats = (
-        _cayrol_derived_defeats(set(relations.direct_defeats), set(relations.supports))
-        if relations.supports and relations.direct_defeats
-        else set()
-    )
-    af = ArgumentationFramework(
-        arguments=frozenset(active_claim_ids),
-        defeats=frozenset(set(relations.direct_defeats) | derived_defeats),
-        attacks=relations.attacks,
-    )
-    p_defeats = relation_map(relations.direct_defeat_relations)
-
-    # Step 4: P_A for each argument
-    p_args: dict[str, "Opinion"] = {}
-    for arg_id in af.arguments:
-        claim = claims_by_id.get(arg_id, {"claim_id": arg_id})
-        p_args[arg_id] = p_arg_from_claim(claim)
-
-    return ProbabilisticAF(
-        framework=af,
-        p_args=p_args,
-        p_defeats=p_defeats,
-        p_attacks=relation_map(relations.attack_relations),
-        supports=relations.supports,
-        p_supports=relation_map(relations.support_relations),
-        base_defeats=relations.direct_defeats,
-        attack_relations=relations.attack_relations,
-        support_relations=relations.support_relations,
-        direct_defeat_relations=relations.direct_defeat_relations,
-    )
+    return build_praf_from_shared_input(shared)
 
 
 def compute_claim_graph_justified_claims(
@@ -369,41 +136,18 @@ def compute_claim_graph_justified_claims(
     For grounded: returns a single frozenset (the unique grounded extension).
     For preferred/stable: returns a list of frozensets.
     """
-    af = build_argumentation_framework(
-        store,
-        active_claim_ids,
-        comparison=comparison,
+    result = analyze_claim_graph(
+        shared_analyzer_input_from_store(
+            store,
+            active_claim_ids,
+            comparison=comparison,
+        ),
+        semantics=semantics,
     )
-    bipolar = build_bipolar_framework(
-        store,
-        active_claim_ids,
-        comparison=comparison,
-    )
-
-    if semantics == "grounded":
-        if af.attacks is not None and af.attacks != af.defeats:
-            raise ValueError(
-                "grounded is ambiguous for hybrid claim graphs; "
-                "use legacy_grounded or explicit bipolar semantics such as "
-                "d-preferred, s-preferred, or c-preferred."
-            )
-        return grounded_extension(af)
-    elif semantics in {"legacy_grounded", "hybrid_grounded", "hybrid-grounded", "bipolar-grounded"}:
-        return hybrid_grounded_extension(af)
-    elif semantics == "d-preferred":
-        return [frozenset(ext) for ext in d_preferred_extensions(bipolar)]
-    elif semantics == "s-preferred":
-        return [frozenset(ext) for ext in s_preferred_extensions(bipolar)]
-    elif semantics == "c-preferred":
-        return [frozenset(ext) for ext in c_preferred_extensions(bipolar)]
-    elif semantics in {"bipolar-stable", "bipolar_stable"}:
-        return [frozenset(ext) for ext in bipolar_stable_extensions(bipolar)]
-    elif semantics == "preferred":
-        return [frozenset(e) for e in preferred_extensions(af)]
-    elif semantics == "stable":
-        return [frozenset(e) for e in stable_extensions(af)]
-    else:
-        raise ValueError(f"Unknown semantics: {semantics}")
+    accepted = [frozenset(extension.accepted_claim_ids) for extension in result.extensions]
+    if semantics in {"grounded", "legacy_grounded", "hybrid_grounded", "hybrid-grounded", "bipolar-grounded"}:
+        return accepted[0] if accepted else frozenset()
+    return accepted
 
 
 

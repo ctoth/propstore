@@ -751,6 +751,7 @@ class TestWorldlineDependencyLiveness:
 
     def test_argumentation_worldline_records_stance_dependencies_and_detects_staleness(self, monkeypatch):
         """Argumentation-sensitive worldlines must record stance inputs and go stale when they flip."""
+        from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
         from propstore.world.types import DerivedResult, ValueResult
         from propstore.worldline import WorldlineDefinition
         from propstore.worldline_runner import run_worldline
@@ -816,6 +817,36 @@ class TestWorldlineDependencyLiveness:
         monkeypatch.setattr(
             "propstore.argumentation.compute_claim_graph_justified_claims",
             fake_justified_claims,
+        )
+        monkeypatch.setattr(
+            "propstore.core.analyzers.shared_analyzer_input_from_store",
+            lambda world, active_claim_ids, **kwargs: world,
+        )
+
+        def fake_analyze_claim_graph(world, *, semantics="grounded", target_claim_ids=None):
+            target_ids = tuple(sorted(target_claim_ids or ()))
+            survivor_ids = ()
+            if world._winner_id in target_ids:
+                survivor_ids = (world._winner_id,)
+            return AnalyzerResult(
+                backend="claim_graph",
+                semantics=semantics,
+                extensions=(
+                    ExtensionResult(
+                        name=semantics,
+                        accepted_claim_ids=(world._winner_id,),
+                    ),
+                ),
+                projection=ClaimProjection(
+                    target_claim_ids=target_ids,
+                    survivor_claim_ids=survivor_ids,
+                    witness_claim_ids=survivor_ids,
+                ),
+            )
+
+        monkeypatch.setattr(
+            "propstore.core.analyzers.analyze_claim_graph",
+            fake_analyze_claim_graph,
         )
 
         wl = WorldlineDefinition.from_dict({

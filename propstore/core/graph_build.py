@@ -170,11 +170,11 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
         ConflictWitness(
             left_claim_id=str(row["claim_a_id"]),
             right_claim_id=str(row["claim_b_id"]),
-            kind=str(row.get("conflict_class") or "conflict"),
+            kind=str(row.get("warning_class") or row.get("conflict_class") or "conflict"),
             details={
                 str(key): value
                 for key, value in row.items()
-                if key not in {"claim_a_id", "claim_b_id", "conflict_class"} and value is not None
+                if key not in {"claim_a_id", "claim_b_id", "warning_class", "conflict_class"} and value is not None
             },
         )
         for row in store.conflicts()

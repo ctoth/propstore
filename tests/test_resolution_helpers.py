@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from propstore.world.resolution import (
     _resolve_claim_graph_argumentation,
     _resolve_structured_argumentation,
@@ -18,12 +19,25 @@ class _View:
 
 
 def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> None:
-    def _compute(*args, **kwargs):
-        return [frozenset({"claim_a"}), frozenset({"claim_b"})]
-
     monkeypatch.setattr(
-        "propstore.argumentation.compute_claim_graph_justified_claims",
-        _compute,
+        "propstore.core.analyzers.shared_analyzer_input_from_store",
+        lambda *args, **kwargs: object(),
+    )
+    monkeypatch.setattr(
+        "propstore.core.analyzers.analyze_claim_graph",
+        lambda *args, **kwargs: AnalyzerResult(
+            backend="claim_graph",
+            semantics="preferred",
+            extensions=(
+                ExtensionResult(name="preferred:1", accepted_claim_ids=("claim_a",)),
+                ExtensionResult(name="preferred:2", accepted_claim_ids=("claim_b",)),
+            ),
+            projection=ClaimProjection(
+                target_claim_ids=("claim_a", "claim_b"),
+                survivor_claim_ids=(),
+                witness_claim_ids=("claim_a", "claim_b"),
+            ),
+        ),
     )
 
     winner, reason = _resolve_claim_graph_argumentation(
@@ -39,8 +53,16 @@ def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> 
 
 def test_claim_graph_resolution_distinguishes_no_stable_extension(monkeypatch) -> None:
     monkeypatch.setattr(
-        "propstore.argumentation.compute_claim_graph_justified_claims",
-        lambda *args, **kwargs: [],
+        "propstore.core.analyzers.shared_analyzer_input_from_store",
+        lambda *args, **kwargs: object(),
+    )
+    monkeypatch.setattr(
+        "propstore.core.analyzers.analyze_claim_graph",
+        lambda *args, **kwargs: AnalyzerResult(
+            backend="claim_graph",
+            semantics="stable",
+            extensions=(),
+        ),
     )
 
     winner, reason = _resolve_claim_graph_argumentation(

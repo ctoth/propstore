@@ -1,5 +1,15 @@
 """Canonical semantic-core types."""
 
+from propstore.core.analyzers import (
+    SharedAnalyzerInput,
+    analyze_claim_graph,
+    analyze_praf,
+    build_praf_from_shared_input,
+    project_acceptance_result,
+    project_extension_result,
+    shared_analyzer_input_from_active_graph,
+    shared_analyzer_input_from_store,
+)
 from propstore.core.graph_types import (
     ActiveWorldGraph,
     ClaimNode,
@@ -26,4 +36,12 @@ __all__ = [
     "ParameterizationEdge",
     "ProvenanceRecord",
     "RelationEdge",
+    "SharedAnalyzerInput",
+    "analyze_claim_graph",
+    "analyze_praf",
+    "build_praf_from_shared_input",
+    "project_acceptance_result",
+    "project_extension_result",
+    "shared_analyzer_input_from_active_graph",
+    "shared_analyzer_input_from_store",
 ]

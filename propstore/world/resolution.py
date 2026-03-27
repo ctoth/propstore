@@ -85,40 +85,49 @@ def _resolve_claim_graph_argumentation(
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
+    active_graph=None,
 ) -> tuple[str | None, str | None]:
     """Resolve in the current claim-graph backend.
 
     The AF is built over the whole active belief space, then projected back
     to the target concept's active claims.
     """
-    from propstore.argumentation import compute_claim_graph_justified_claims
+    from propstore.core.analyzers import (
+        analyze_claim_graph,
+        shared_analyzer_input_from_active_graph,
+        shared_analyzer_input_from_store,
+    )
 
     if not world.has_table("claim_stance"):
         return None, "no stance data"
 
     active_ids = {c["id"] for c in active_claims}
     target_ids = {c["id"] for c in target_claims}
-    result = compute_claim_graph_justified_claims(
-        world, active_ids,
-        semantics=semantics,
-        comparison=comparison,
+    shared = (
+        shared_analyzer_input_from_active_graph(active_graph, comparison=comparison)
+        if active_graph is not None
+        else shared_analyzer_input_from_store(world, active_ids, comparison=comparison)
     )
+    result = analyze_claim_graph(
+        shared,
+        semantics=semantics,
+        target_claim_ids=target_ids,
+    )
+    projection = result.projection
 
-    if isinstance(result, frozenset):
-        survivors = result & target_ids
-    else:
-        if not result:
-            if semantics == "stable":
-                return None, "no stable extensions"
-            return None, f"no {semantics} extensions"
-        survivors = frozenset.intersection(*result) & target_ids
-        if len(survivors) == 0:
-            credulous_survivors = frozenset().union(*result) & target_ids
-            if credulous_survivors:
-                return None, f"no skeptically accepted claim in {semantics} extensions"
-            return None, f"all target claims absent from every {semantics} extension"
+    if len(result.extensions) == 0:
+        if semantics == "stable":
+            return None, "no stable extensions"
+        return None, f"no {semantics} extensions"
+
+    survivors = frozenset(projection.survivor_claim_ids if projection is not None else ())
+    witness_claims = frozenset(projection.witness_claim_ids if projection is not None else ())
 
     if len(survivors) == 0:
+        if len(result.extensions) > 1:
+            if witness_claims:
+                return None, f"no skeptically accepted claim in {semantics} extensions"
+            return None, f"all target claims absent from every {semantics} extension"
         return None, "all claims defeated"
     if len(survivors) == 1:
         winner = next(iter(survivors))
@@ -209,6 +218,7 @@ def _resolve_praf(
     semantics: str = "grounded",
     comparison: str = "elitist",
     policy: RenderPolicy | None = None,
+    active_graph=None,
 ) -> tuple[str | None, str | None, dict[str, float] | None]:
     """Resolve via Probabilistic Argumentation Framework.
 
@@ -218,8 +228,11 @@ def _resolve_praf(
 
     Returns (winner_id, reason, acceptance_probs).
     """
-    from propstore.argumentation import build_praf
-    from propstore.praf import compute_praf_acceptance
+    from propstore.core.analyzers import (
+        analyze_praf,
+        shared_analyzer_input_from_active_graph,
+        shared_analyzer_input_from_store,
+    )
 
     if not world.has_table("claim_stance"):
         return None, "no stance data", None
@@ -241,19 +254,25 @@ def _resolve_praf(
         treewidth_cutoff = policy.praf_treewidth_cutoff
         rng_seed = policy.praf_mc_seed
 
-    # Build PrAF and compute acceptance probabilities
-    praf = build_praf(world, active_ids, comparison=comparison)
-    praf_result = compute_praf_acceptance(
-        praf,
+    shared = (
+        shared_analyzer_input_from_active_graph(active_graph, comparison=comparison)
+        if active_graph is not None
+        else shared_analyzer_input_from_store(world, active_ids, comparison=comparison)
+    )
+    result = analyze_praf(
+        shared,
         semantics=semantics,
         strategy=strategy,
         mc_epsilon=mc_epsilon,
         mc_confidence=mc_confidence,
         treewidth_cutoff=treewidth_cutoff,
         rng_seed=rng_seed,
+        target_claim_ids=target_ids,
     )
-
-    acceptance = praf_result.acceptance_probs
+    metadata = dict(result.metadata)
+    acceptance = metadata["acceptance_probs"]
+    strategy_used = metadata["strategy_used"]
+    projection = result.projection
 
     # Filter to target claims and find winner by highest acceptance prob
     target_probs = {cid: acceptance.get(cid, 0.0) for cid in target_ids}
@@ -262,14 +281,13 @@ def _resolve_praf(
         return None, "no target claims in PrAF", acceptance
 
     best_prob = max(target_probs.values())
-    best_claims = [cid for cid, p in target_probs.items() if math.isclose(p, best_prob, rel_tol=1e-9)]
+    best_claims = list(projection.survivor_claim_ids if projection is not None else ())
 
     if len(best_claims) == 1:
         winner = best_claims[0]
         return (
             winner,
-            f"highest PrAF acceptance ({best_prob:.4f}) "
-            f"via {praf_result.strategy_used} ({semantics})",
+            f"highest PrAF acceptance ({best_prob:.4f}) via {strategy_used} ({semantics})",
             acceptance,
         )
 
@@ -309,15 +327,13 @@ def _resolve_praf(
                 return (
                     winner,
                     f"PrAF acceptance tie ({best_prob:.4f}) broken by "
-                    f"{decision_criterion} ({best_dv:.4f}) "
-                    f"via {praf_result.strategy_used} ({semantics})",
+                    f"{decision_criterion} ({best_dv:.4f}) via {strategy_used} ({semantics})",
                     acceptance,
                 )
 
     return (
         None,
-        f"{len(best_claims)} claims tied at acceptance {best_prob:.4f} "
-        f"via {praf_result.strategy_used} ({semantics})",
+        f"{len(best_claims)} claims tied at acceptance {best_prob:.4f} via {strategy_used} ({semantics})",
         acceptance,
     )
 
@@ -402,6 +418,7 @@ def resolve(
     winner_id: str | None = None
     reason: str | None = None
     _acceptance_probs: dict[str, float] | None = None
+    active_graph = getattr(view, "_active_graph", None)
 
     if strategy == ResolutionStrategy.OVERRIDE:
         override_id = (overrides or {}).get(concept_id)
@@ -437,6 +454,7 @@ def resolve(
                 world,
                 semantics=semantics,
                 comparison=comparison,
+                active_graph=active_graph,
             )
         elif reasoning_backend == ReasoningBackend.STRUCTURED_PROJECTION:
             winner_id, reason = _resolve_structured_argumentation(
@@ -455,6 +473,7 @@ def resolve(
                 semantics=semantics,
                 comparison=comparison,
                 policy=policy,
+                active_graph=active_graph,
             )
         elif reasoning_backend == ReasoningBackend.ATMS:
             winner_id, reason = _resolve_atms_support(active, view)
