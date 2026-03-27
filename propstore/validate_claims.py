@@ -280,6 +280,8 @@ def _validate_stances(
             result.errors.append(
                 f"{filename}: claim '{cid}' stance #{index} missing target"
             )
+        elif ":" in target_claim_id:
+            pass  # Cross-paper reference — resolved at import time
         elif target_claim_id not in extant_claim_ids:
             result.errors.append(
                 f"{filename}: claim '{cid}' stance #{index} references "
