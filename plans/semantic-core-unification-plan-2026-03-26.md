@@ -263,42 +263,47 @@ Intent: preserve the good ATMS machinery while removing its dependence on `Bound
 
 - [x] Commit: `refactor: migrate atms engine onto canonical graph`
 
-## Phase 9: Structured Projection Decision
+## Phase 9: Real Structured Arguments From Canonical Justifications
 
-Intent: stop carrying a misleading abstraction.
+Intent: replace the flat placeholder projection with real structured arguments built from semantic-core justifications.
+
+Chosen Direction: Option A.
+
+- upstream dependency: extend the research-papers pipeline to emit intra-paper justifications/premise-conclusion structure
+- local runtime goal: consume canonical justifications and build real argument/subargument graphs
 
 ### TDD Tasks
 
-- [ ] Write failing tests that capture the chosen direction:
-  - real structured arguments with premises/subarguments
-  - or explicit demotion/rename with compatibility aliases
+- [x] Write failing tests for real structured arguments with non-empty premises.
+- [x] Write failing tests for non-empty subargument graphs built from chained justifications.
+- [x] Write failing tests for rebut / undermine / undercut distinctions over structured targets.
+- [x] Write failing tests for parity between extracted canonical justifications and the structured runtime graph.
+- [x] Add property tests for stable argument IDs and graph determinism under justification order changes.
 
-### Implementation Options
+### Implementation Tasks
 
-Option A: Make it real.
-
-- [ ] Build actual justifications/subarguments from the semantic core.
-- [ ] Add tests for non-empty premises and subargument graphs.
-
-Option B: Make it honest.
-
-- [ ] Rename/demote `structured_projection`.
-- [ ] Keep compatibility shims if needed.
-- [ ] Ensure errors/docs clearly reflect capability.
+- [x] Add canonical justification records to the semantic core.
+- [x] Build actual structured arguments and subarguments from those justifications.
+- [x] Separate attacks on conclusions, premises, and inference rules.
+- [x] Keep current backend entrypoints compatible while the real implementation replaces the placeholder.
+- [ ] Use the upstream justification extraction artifact as the paper-facing source of truth once available.
 
 ### Files Likely Touched
 
-- [ ] `propstore/structured_argument.py`
-- [ ] `propstore/world/resolution.py`
-- [ ] related tests
+- [x] `propstore/structured_argument.py`
+- [x] `propstore/world/resolution.py`
+- [x] canonical core graph/justification modules
+- [x] related tests
 
 ### Completion Criteria
 
-- [ ] The code no longer implies stronger structured capability than it actually provides.
+- [x] Structured arguments have real premises and subargument structure.
+- [x] The backend no longer relies on one-claim-one-argument projection as its semantic core.
+- [x] Undercuts, undermines, and rebuts are represented against the right structured targets.
 
 ### Commit
 
-- [ ] Commit: `refactor: make structured projection honest`
+- [x] Commit: `feat: build real structured arguments from canonical justifications`
 
 ## Phase 10: Storage Normalization
 
@@ -343,7 +348,7 @@ Intent: normalize the sidecar only after the runtime architecture is unified.
 - [x] PR 7: Phase 6
 - [x] PR 8: Phase 7
 - [x] PR 9: Phase 8
-- [ ] PR 10: Phase 9
+- [x] PR 10: Phase 9
 - [ ] PR 11: Phase 10
 
 ## Commands To Run At The End Of Every Phase

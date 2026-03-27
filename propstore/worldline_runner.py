@@ -233,6 +233,7 @@ def run_worldline(
                     active,
                     support_metadata=support_metadata,
                     comparison=definition.policy.comparison,
+                    active_graph=active_graph,
                 )
                 justified_args = compute_structured_justified_arguments(
                     projection,

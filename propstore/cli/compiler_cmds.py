@@ -1523,6 +1523,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                 active,
                 support_metadata=support_metadata,
                 comparison=set_comparison,
+                active_graph=getattr(bound, "_active_graph", None),
             )
             result = compute_structured_justified_arguments(
                 projection,

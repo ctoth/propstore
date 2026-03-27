@@ -233,7 +233,117 @@ def test_structured_projection_support_induces_additional_defeat_path() -> None:
 
     projection = build_structured_projection(store, store.claims_for(None))
 
-    assert ("arg:claim_supporter", "arg:claim_target") in projection.framework.defeats
+    derived_attackers = [
+        argument.arg_id
+        for argument in projection.arguments
+        if argument.claim_id == "claim_attacker"
+        and argument.premise_claim_ids == ("claim_supporter",)
+        and "arg:claim_supporter" in argument.subargument_ids
+    ]
+
+    assert derived_attackers
+    assert any(
+        (arg_id, "arg:claim_target") in projection.framework.defeats
+        for arg_id in derived_attackers
+    )
+
+
+def test_structured_projection_builds_real_premises_and_subargument_graphs() -> None:
+    store = _ProjectionStore(
+        claims=[
+            {"id": "claim_a", "concept_id": "concept1", "type": "parameter", "value": 1.0},
+            {"id": "claim_b", "concept_id": "concept2", "type": "parameter", "value": 2.0},
+            {"id": "claim_c", "concept_id": "concept3", "type": "parameter", "value": 3.0},
+        ],
+        stances=[
+            {"claim_id": "claim_a", "target_claim_id": "claim_b", "stance_type": "supports"},
+            {"claim_id": "claim_b", "target_claim_id": "claim_c", "stance_type": "explains"},
+        ],
+    )
+
+    projection = build_structured_projection(store, store.claims_for(None))
+    by_claim = {}
+    for argument in projection.arguments:
+        by_claim.setdefault(argument.claim_id, []).append(argument)
+
+    claim_b_args = by_claim["claim_b"]
+    claim_c_args = by_claim["claim_c"]
+
+    assert any(argument.premise_claim_ids == ("claim_a",) for argument in claim_b_args)
+    assert any(argument.subargument_ids for argument in claim_b_args)
+    assert any(argument.premise_claim_ids == ("claim_b",) for argument in claim_c_args)
+    assert any("arg:claim_b" in argument.subargument_ids for argument in claim_c_args)
+    assert any("arg:claim_a" in argument.subargument_ids for argument in claim_c_args)
+    assert any(argument.justification_id == "supports:claim_a->claim_b" for argument in claim_b_args)
+    assert any(argument.justification_id == "explains:claim_b->claim_c" for argument in claim_c_args)
+
+
+def test_structured_projection_undermines_target_premise_dependent_arguments_not_base_claims() -> None:
+    store = _ProjectionStore(
+        claims=[
+            {"id": "claim_target", "concept_id": "concept1", "type": "parameter", "value": 1.0},
+            {"id": "claim_premise", "concept_id": "concept2", "type": "parameter", "value": 2.0},
+            {"id": "claim_attacker", "concept_id": "concept3", "type": "parameter", "value": 3.0},
+        ],
+        stances=[
+            {"claim_id": "claim_premise", "target_claim_id": "claim_target", "stance_type": "supports"},
+            {"claim_id": "claim_attacker", "target_claim_id": "claim_premise", "stance_type": "undermines"},
+        ],
+    )
+
+    projection = build_structured_projection(store, store.claims_for(None))
+    attacker_args = projection.claim_to_argument_ids["claim_attacker"]
+    target_base_arg = "arg:claim_target"
+    target_support_args = [
+        argument.arg_id
+        for argument in projection.arguments
+        if argument.claim_id == "claim_target" and argument.top_rule_kind == "supports"
+    ]
+
+    assert target_support_args
+    assert all(
+        (source_arg, target_base_arg) not in projection.framework.attacks
+        for source_arg in attacker_args
+    )
+    assert any(
+        (source_arg, target_arg) in projection.framework.attacks
+        for source_arg in attacker_args
+        for target_arg in target_support_args
+    )
+
+
+def test_structured_projection_undercuts_target_inference_rules_not_base_claims() -> None:
+    store = _ProjectionStore(
+        claims=[
+            {"id": "claim_target", "concept_id": "concept1", "type": "parameter", "value": 1.0},
+            {"id": "claim_support", "concept_id": "concept2", "type": "parameter", "value": 2.0},
+            {"id": "claim_attacker", "concept_id": "concept3", "type": "parameter", "value": 3.0},
+        ],
+        stances=[
+            {"claim_id": "claim_support", "target_claim_id": "claim_target", "stance_type": "supports"},
+            {"claim_id": "claim_attacker", "target_claim_id": "claim_target", "stance_type": "undercuts"},
+        ],
+    )
+
+    projection = build_structured_projection(store, store.claims_for(None))
+    attacker_args = projection.claim_to_argument_ids["claim_attacker"]
+    target_base_arg = "arg:claim_target"
+    target_support_args = [
+        argument.arg_id
+        for argument in projection.arguments
+        if argument.claim_id == "claim_target" and argument.top_rule_kind == "supports"
+    ]
+
+    assert target_support_args
+    assert all(
+        (source_arg, target_base_arg) not in projection.framework.attacks
+        for source_arg in attacker_args
+    )
+    assert any(
+        (source_arg, target_arg) in projection.framework.attacks
+        for source_arg in attacker_args
+        for target_arg in target_support_args
+    )
 
 
 def test_structured_projection_defaults_unconditional_claim_to_exact_empty_label() -> None:

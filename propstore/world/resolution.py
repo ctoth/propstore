@@ -168,6 +168,7 @@ def _resolve_structured_argumentation(
         active_claims,
         support_metadata=support_metadata,
         comparison=comparison,
+        active_graph=getattr(view, "_active_graph", None),
     )
     result = compute_structured_justified_arguments(
         projection,
