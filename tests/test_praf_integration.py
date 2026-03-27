@@ -33,7 +33,7 @@ class _MockStore:
         ]
 
     def has_table(self, name: str) -> bool:
-        return name == "claim_stance"
+        return name == "relation_edge"
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:

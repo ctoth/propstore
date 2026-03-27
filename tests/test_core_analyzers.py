@@ -7,7 +7,7 @@ import pytest
 from propstore.argumentation import build_praf, compute_claim_graph_justified_claims
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph, RelationEdge
 from propstore.praf import compute_praf_acceptance
-from tests.conftest import create_argumentation_schema
+from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 
 
@@ -19,10 +19,13 @@ def _insert_claim(
     *,
     sample_size: int,
 ) -> None:
-    conn.execute(
-        "INSERT INTO claim (id, type, concept_id, value, sample_size) "
-        "VALUES (?, 'parameter', ?, ?, ?)",
-        (claim_id, concept_id, value, sample_size),
+    insert_claim(
+        conn,
+        claim_id,
+        claim_type="parameter",
+        concept_id=concept_id,
+        value=value,
+        sample_size=sample_size,
     )
 
 
@@ -38,21 +41,16 @@ def _insert_stance(
     opinion_uncertainty: float | None = None,
     opinion_base_rate: float | None = None,
 ) -> None:
-    conn.execute(
-        "INSERT INTO claim_stance ("
-        "claim_id, target_claim_id, stance_type, confidence, "
-        "opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate"
-        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (
-            claim_id,
-            target_claim_id,
-            stance_type,
-            confidence,
-            opinion_belief,
-            opinion_disbelief,
-            opinion_uncertainty,
-            opinion_base_rate,
-        ),
+    insert_stance(
+        conn,
+        claim_id,
+        target_claim_id,
+        stance_type,
+        confidence=confidence,
+        opinion_belief=opinion_belief,
+        opinion_disbelief=opinion_disbelief,
+        opinion_uncertainty=opinion_uncertainty,
+        opinion_base_rate=opinion_base_rate,
     )
 
 

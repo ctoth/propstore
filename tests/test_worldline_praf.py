@@ -84,7 +84,7 @@ class FakeWorld:
         return self._claims.get(claim_id)
 
     def has_table(self, name):
-        return name == "claim_stance"
+        return name == "relation_edge"
 
     def claims_by_ids(self, claim_ids):
         return {

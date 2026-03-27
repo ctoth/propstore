@@ -137,7 +137,7 @@ def _relation_edge_from_row(row: dict) -> RelationEdge:
         target_id=str(row["target_claim_id"]),
         relation_type=str(row["stance_type"]),
         provenance=ProvenanceRecord(
-            source_table="claim_stance",
+            source_table="relation_edge",
             source_id=(
                 f"{row['claim_id']}->{row['target_claim_id']}:{row['stance_type']}"
             ),

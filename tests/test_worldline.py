@@ -795,7 +795,7 @@ class TestWorldlineDependencyLiveness:
                 return self._claims.get(claim_id)
 
             def has_table(self, name):
-                return name == "claim_stance"
+                return name == "relation_edge"
 
             def claims_by_ids(self, claim_ids):
                 return {cid: self._claims[cid] for cid in claim_ids if cid in self._claims}
@@ -1070,7 +1070,7 @@ class TestSemanticCorePhase7Worldlines:
                 return claims.get(claim_id)
 
             def has_table(self, name):
-                return name == "claim_stance"
+                return name == "relation_edge"
 
         return _World(), active_graph
 
@@ -1508,7 +1508,7 @@ class TestSilentExceptionLogging:
                 return FakeDerivedResult()
 
             def has_table(self, name):
-                return True  # claim_stance exists
+                return name == "relation_edge"
 
             def active_claims(self):
                 raise RuntimeError("argumentation kaboom")

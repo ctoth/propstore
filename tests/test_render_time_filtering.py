@@ -24,25 +24,33 @@ from propstore.argumentation import (
     stance_summary,
 )
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
-from tests.conftest import create_argumentation_schema
+from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 
 
 def _insert_claim(conn, claim_id, concept_id, value, sample_size=None,
                    uncertainty=None, confidence=None):
-    conn.execute(
-        "INSERT INTO claim (id, type, concept_id, value, sample_size, uncertainty, confidence) "
-        "VALUES (?, 'parameter', ?, ?, ?, ?, ?)",
-        (claim_id, concept_id, value, sample_size, uncertainty, confidence),
+    insert_claim(
+        conn,
+        claim_id,
+        claim_type="parameter",
+        concept_id=concept_id,
+        value=value,
+        sample_size=sample_size,
+        uncertainty=uncertainty,
+        confidence=confidence,
     )
 
 
 def _insert_stance(conn, claim_id, target, stype, confidence=0.9, model=None,
                    opinion_uncertainty=None):
-    conn.execute(
-        "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, "
-        "confidence, resolution_model, opinion_uncertainty) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (claim_id, target, stype, confidence, model, opinion_uncertainty),
+    insert_stance(
+        conn,
+        claim_id,
+        target,
+        stype,
+        confidence=confidence,
+        resolution_model=model,
+        opinion_uncertainty=opinion_uncertainty,
     )
 
 

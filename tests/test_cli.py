@@ -849,7 +849,7 @@ class TestBuildExtended:
         assert result.exit_code == 0, result.output
 
         conn = sqlite3.connect(sidecar)
-        count = conn.execute("SELECT count(*) FROM claim").fetchone()[0]
+        count = conn.execute("SELECT count(*) FROM claim_core").fetchone()[0]
         conn.close()
         assert count == 1
 

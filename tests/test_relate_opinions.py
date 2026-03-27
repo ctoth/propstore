@@ -232,23 +232,42 @@ class TestSidecarPopulatesOpinionColumns:
         conn = sqlite3.connect(":memory:")
         conn.row_factory = sqlite3.Row
         conn.executescript("""
-            CREATE TABLE claim (id TEXT PRIMARY KEY, source_paper TEXT NOT NULL DEFAULT 'test',
-                                provenance_page INTEGER NOT NULL DEFAULT 1);
-            CREATE TABLE claim_stance (
-                claim_id TEXT NOT NULL, target_claim_id TEXT NOT NULL,
-                stance_type TEXT NOT NULL, strength TEXT,
-                conditions_differ TEXT, note TEXT,
-                resolution_method TEXT, resolution_model TEXT,
-                embedding_model TEXT, embedding_distance REAL,
-                pass_number INTEGER, confidence REAL,
-                opinion_belief REAL, opinion_disbelief REAL,
-                opinion_uncertainty REAL, opinion_base_rate REAL DEFAULT 0.5,
-                FOREIGN KEY (claim_id) REFERENCES claim(id),
-                FOREIGN KEY (target_claim_id) REFERENCES claim(id)
+            CREATE TABLE claim_core (
+                id TEXT PRIMARY KEY,
+                content_hash TEXT,
+                seq INTEGER,
+                type TEXT,
+                concept_id TEXT,
+                target_concept TEXT,
+                source_paper TEXT NOT NULL DEFAULT 'test',
+                provenance_page INTEGER NOT NULL DEFAULT 1,
+                provenance_json TEXT,
+                context_id TEXT
+            );
+            CREATE TABLE relation_edge (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_kind TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                relation_type TEXT NOT NULL,
+                target_kind TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                strength TEXT,
+                conditions_differ TEXT,
+                note TEXT,
+                resolution_method TEXT,
+                resolution_model TEXT,
+                embedding_model TEXT,
+                embedding_distance REAL,
+                pass_number INTEGER,
+                confidence REAL,
+                opinion_belief REAL,
+                opinion_disbelief REAL,
+                opinion_uncertainty REAL,
+                opinion_base_rate REAL DEFAULT 0.5
             );
         """)
-        conn.execute("INSERT INTO claim (id) VALUES ('c1')")
-        conn.execute("INSERT INTO claim (id) VALUES ('c2')")
+        conn.execute("INSERT INTO claim_core VALUES ('c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)")
+        conn.execute("INSERT INTO claim_core VALUES ('c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)")
 
         stances_dir = tmp_path / "stances"
         stances_dir.mkdir()
@@ -276,7 +295,9 @@ class TestSidecarPopulatesOpinionColumns:
 
         _populate_stances_from_files(conn, stances_dir)
 
-        row = conn.execute("SELECT * FROM claim_stance WHERE claim_id='c1'").fetchone()
+        row = conn.execute(
+            "SELECT * FROM relation_edge WHERE source_kind='claim' AND target_kind='claim' AND source_id='c1'"
+        ).fetchone()
         assert row["opinion_belief"] == pytest.approx(0.0)
         assert row["opinion_disbelief"] == pytest.approx(0.0)
         assert row["opinion_uncertainty"] == pytest.approx(1.0)
@@ -295,23 +316,42 @@ class TestSidecarHandlesOldFormatYaml:
         conn = sqlite3.connect(":memory:")
         conn.row_factory = sqlite3.Row
         conn.executescript("""
-            CREATE TABLE claim (id TEXT PRIMARY KEY, source_paper TEXT NOT NULL DEFAULT 'test',
-                                provenance_page INTEGER NOT NULL DEFAULT 1);
-            CREATE TABLE claim_stance (
-                claim_id TEXT NOT NULL, target_claim_id TEXT NOT NULL,
-                stance_type TEXT NOT NULL, strength TEXT,
-                conditions_differ TEXT, note TEXT,
-                resolution_method TEXT, resolution_model TEXT,
-                embedding_model TEXT, embedding_distance REAL,
-                pass_number INTEGER, confidence REAL,
-                opinion_belief REAL, opinion_disbelief REAL,
-                opinion_uncertainty REAL, opinion_base_rate REAL DEFAULT 0.5,
-                FOREIGN KEY (claim_id) REFERENCES claim(id),
-                FOREIGN KEY (target_claim_id) REFERENCES claim(id)
+            CREATE TABLE claim_core (
+                id TEXT PRIMARY KEY,
+                content_hash TEXT,
+                seq INTEGER,
+                type TEXT,
+                concept_id TEXT,
+                target_concept TEXT,
+                source_paper TEXT NOT NULL DEFAULT 'test',
+                provenance_page INTEGER NOT NULL DEFAULT 1,
+                provenance_json TEXT,
+                context_id TEXT
+            );
+            CREATE TABLE relation_edge (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_kind TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                relation_type TEXT NOT NULL,
+                target_kind TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                strength TEXT,
+                conditions_differ TEXT,
+                note TEXT,
+                resolution_method TEXT,
+                resolution_model TEXT,
+                embedding_model TEXT,
+                embedding_distance REAL,
+                pass_number INTEGER,
+                confidence REAL,
+                opinion_belief REAL,
+                opinion_disbelief REAL,
+                opinion_uncertainty REAL,
+                opinion_base_rate REAL DEFAULT 0.5
             );
         """)
-        conn.execute("INSERT INTO claim (id) VALUES ('c1')")
-        conn.execute("INSERT INTO claim (id) VALUES ('c2')")
+        conn.execute("INSERT INTO claim_core VALUES ('c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)")
+        conn.execute("INSERT INTO claim_core VALUES ('c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)")
 
         stances_dir = tmp_path / "stances"
         stances_dir.mkdir()
@@ -336,7 +376,9 @@ class TestSidecarHandlesOldFormatYaml:
 
         _populate_stances_from_files(conn, stances_dir)
 
-        row = conn.execute("SELECT * FROM claim_stance WHERE claim_id='c1'").fetchone()
+        row = conn.execute(
+            "SELECT * FROM relation_edge WHERE source_kind='claim' AND target_kind='claim' AND source_id='c1'"
+        ).fetchone()
         assert row["opinion_belief"] is None
         assert row["opinion_disbelief"] is None
         assert row["opinion_uncertainty"] is None

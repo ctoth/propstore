@@ -11,7 +11,7 @@ from propstore.world.resolution import (
 
 class _World:
     def has_table(self, name: str) -> bool:
-        return name == "claim_stance"
+        return name == "relation_edge"
 
 
 class _View:

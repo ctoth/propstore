@@ -15,7 +15,7 @@ from propstore.calibrate import (
     expected_calibration_error,
 )
 from propstore.opinion import Opinion
-from tests.conftest import create_argumentation_schema
+from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 
 
 # ---------------------------------------------------------------------------
@@ -458,22 +458,20 @@ class TestOpinionSchemaConstraints:
         create_argumentation_schema(conn)
 
         # Insert FK targets
-        conn.execute(
-            "INSERT INTO claim (id, type, concept_id, value, source_paper, provenance_page) "
-            "VALUES ('c1', 'parameter', 'concept1', 1.0, 'paper1', 1)"
-        )
-        conn.execute(
-            "INSERT INTO claim (id, type, concept_id, value, source_paper, provenance_page) "
-            "VALUES ('c2', 'parameter', 'concept1', 2.0, 'paper1', 1)"
-        )
+        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
+        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
 
         # This INSERT has b+d+u = 2.7, which is clearly invalid.
         # A proper CHECK constraint would reject it.
         with pytest.raises(sqlite3.IntegrityError):
-            conn.execute(
-                "INSERT INTO claim_stance "
-                "(claim_id, target_claim_id, stance_type, confidence, "
-                "opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                ("c1", "c2", "supports", 0.8, 0.9, 0.9, 0.9, 0.5),
+            insert_stance(
+                conn,
+                "c1",
+                "c2",
+                "supports",
+                confidence=0.8,
+                opinion_belief=0.9,
+                opinion_disbelief=0.9,
+                opinion_uncertainty=0.9,
+                opinion_base_rate=0.5,
             )

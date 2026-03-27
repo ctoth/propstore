@@ -34,6 +34,47 @@ def make_context(id, name, description="", **kwargs):
     return d
 
 
+def insert_claim_row(
+    conn: sqlite3.Connection,
+    claim_id: str,
+    *,
+    concept_id: str | None = None,
+    conditions_cel: str | None = None,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO claim_core (
+            id, content_hash, seq, type, concept_id, target_concept,
+            source_paper, provenance_page, provenance_json, context_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (claim_id, None, None, "observation", concept_id, None, "test", 1, None, None),
+    )
+    conn.execute(
+        """
+        INSERT INTO claim_numeric_payload (
+            claim_id, value, lower_bound, upper_bound, uncertainty,
+            uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (claim_id, None, None, None, None, None, None, None, None, None, None),
+    )
+    conn.execute(
+        """
+        INSERT INTO claim_text_payload (
+            claim_id, conditions_cel, statement, expression, sympy_generated,
+            sympy_error, name, measure, listener_population, methodology,
+            notes, description, auto_summary
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (claim_id, conditions_cel, None, None, None, None, None, None, None, None, None, None, None),
+    )
+    conn.execute(
+        "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, stage) VALUES (?, ?, ?, ?, ?)",
+        (claim_id, None, None, None, None),
+    )
+
+
 _ASSUMPTION_POOL = [
     "framework == 'general'",
     "framework == 'specialized'",
@@ -543,21 +584,44 @@ class TestBoundWorldContext:
         )
 
         # Claims in different contexts
-        base_cols = ("id, content_hash, seq, type, concept_id, statement, "
-                     "source_paper, provenance_page, provenance_json, context_id")
-
-        # claim in root context
-        conn.execute(f"INSERT INTO claim ({base_cols}) VALUES "
-                     "('claim1', 'h1', 1, 'observation', 'c1', 'Root claim', 'paper1', 1, '{}', 'ctx_root')")
-        # claim in child context
-        conn.execute(f"INSERT INTO claim ({base_cols}) VALUES "
-                     "('claim2', 'h2', 2, 'observation', 'c1', 'Child claim', 'paper2', 2, '{}', 'ctx_child')")
-        # claim in other context
-        conn.execute(f"INSERT INTO claim ({base_cols}) VALUES "
-                     "('claim3', 'h3', 3, 'observation', 'c1', 'Other claim', 'paper3', 3, '{}', 'ctx_other')")
-        # universal claim (no context)
-        conn.execute(f"INSERT INTO claim ({base_cols}) VALUES "
-                     "('claim4', 'h4', 4, 'observation', 'c1', 'Universal claim', 'paper4', 4, '{}', NULL)")
+        for claim_id, context_id, statement, paper, page in (
+            ("claim1", "ctx_root", "Root claim", "paper1", 1),
+            ("claim2", "ctx_child", "Child claim", "paper2", 2),
+            ("claim3", "ctx_other", "Other claim", "paper3", 3),
+            ("claim4", None, "Universal claim", "paper4", 4),
+        ):
+            conn.execute(
+                """
+                INSERT INTO claim_core (
+                    id, content_hash, seq, type, concept_id, target_concept,
+                    source_paper, provenance_page, provenance_json, context_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (claim_id, f"h{page}", page, "observation", "c1", None, paper, page, "{}", context_id),
+            )
+            conn.execute(
+                """
+                INSERT INTO claim_numeric_payload (
+                    claim_id, value, lower_bound, upper_bound, uncertainty,
+                    uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (claim_id, None, None, None, None, None, None, None, None, None, None),
+            )
+            conn.execute(
+                """
+                INSERT INTO claim_text_payload (
+                    claim_id, conditions_cel, statement, expression, sympy_generated,
+                    sympy_error, name, measure, listener_population, methodology,
+                    notes, description, auto_summary
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (claim_id, None, statement, None, None, None, None, None, None, None, None, None, None),
+            )
+            conn.execute(
+                "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, stage) VALUES (?, ?, ?, ?, ?)",
+                (claim_id, None, None, None, None),
+            )
 
         conn.commit()
 
@@ -592,8 +656,30 @@ class TestBoundWorldContext:
                 self._solver = None
                 self._registry = None
             def claims_for(self, cid):
-                return [dict(r) for r in self._conn.execute(
-                    "SELECT * FROM claim WHERE concept_id = ?", (cid,)).fetchall()]
+                return [
+                    dict(r)
+                    for r in self._conn.execute(
+                        """
+                        SELECT
+                            core.id, core.content_hash, core.seq, core.type, core.concept_id,
+                            num.value, num.lower_bound, num.upper_bound, num.uncertainty,
+                            num.uncertainty_type, num.sample_size, num.unit,
+                            txt.conditions_cel, txt.statement, txt.expression,
+                            txt.sympy_generated, txt.sympy_error, txt.name,
+                            core.target_concept, txt.measure, txt.listener_population,
+                            txt.methodology, txt.notes, txt.description, txt.auto_summary,
+                            alg.body, alg.canonical_ast, alg.variables_json, alg.stage,
+                            core.source_paper, core.provenance_page, core.provenance_json,
+                            num.value_si, num.lower_bound_si, num.upper_bound_si, core.context_id
+                        FROM claim_core AS core
+                        LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+                        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+                        LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
+                        WHERE core.concept_id = ?
+                        """,
+                        (cid,),
+                    ).fetchall()
+                ]
             def _has_table(self, name):
                 return True
             def _ensure_solver(self):
@@ -645,11 +731,52 @@ class TestBoundWorldContext:
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
         conn.executescript("""
-            CREATE TABLE claim (
+            CREATE TABLE claim_core (
                 id TEXT PRIMARY KEY,
+                content_hash TEXT,
+                seq INTEGER,
+                type TEXT,
                 concept_id TEXT,
-                conditions_cel TEXT,
+                target_concept TEXT,
+                source_paper TEXT NOT NULL DEFAULT 'test',
+                provenance_page INTEGER NOT NULL DEFAULT 1,
+                provenance_json TEXT,
                 context_id TEXT
+            );
+            CREATE TABLE claim_numeric_payload (
+                claim_id TEXT PRIMARY KEY,
+                value REAL,
+                lower_bound REAL,
+                upper_bound REAL,
+                uncertainty REAL,
+                uncertainty_type TEXT,
+                sample_size INTEGER,
+                unit TEXT,
+                value_si REAL,
+                lower_bound_si REAL,
+                upper_bound_si REAL
+            );
+            CREATE TABLE claim_text_payload (
+                claim_id TEXT PRIMARY KEY,
+                conditions_cel TEXT,
+                statement TEXT,
+                expression TEXT,
+                sympy_generated TEXT,
+                sympy_error TEXT,
+                name TEXT,
+                measure TEXT,
+                listener_population TEXT,
+                methodology TEXT,
+                notes TEXT,
+                description TEXT,
+                auto_summary TEXT
+            );
+            CREATE TABLE claim_algorithm_payload (
+                claim_id TEXT PRIMARY KEY,
+                body TEXT,
+                canonical_ast TEXT,
+                variables_json TEXT,
+                stage TEXT
             );
             CREATE TABLE context (
                 id TEXT PRIMARY KEY,
@@ -670,10 +797,13 @@ class TestBoundWorldContext:
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_root', 'Root', NULL)")
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_child', 'Child', 'ctx_root')")
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_other', 'Other', NULL)")
-        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_root', 'c1', NULL, 'ctx_root')")
-        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_child', 'c1', NULL, 'ctx_child')")
-        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_other', 'c1', NULL, 'ctx_other')")
-        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_universal', 'c1', NULL, NULL)")
+        insert_claim_row(conn, "claim_root", concept_id="c1")
+        insert_claim_row(conn, "claim_child", concept_id="c1")
+        insert_claim_row(conn, "claim_other", concept_id="c1")
+        insert_claim_row(conn, "claim_universal", concept_id="c1")
+        conn.execute("UPDATE claim_core SET context_id = 'ctx_root' WHERE id = 'claim_root'")
+        conn.execute("UPDATE claim_core SET context_id = 'ctx_child' WHERE id = 'claim_child'")
+        conn.execute("UPDATE claim_core SET context_id = 'ctx_other' WHERE id = 'claim_other'")
         conn.commit()
         conn.close()
 
@@ -696,11 +826,52 @@ class TestBoundWorldContext:
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
         conn.executescript("""
-            CREATE TABLE claim (
+            CREATE TABLE claim_core (
                 id TEXT PRIMARY KEY,
+                content_hash TEXT,
+                seq INTEGER,
+                type TEXT,
                 concept_id TEXT,
-                conditions_cel TEXT,
+                target_concept TEXT,
+                source_paper TEXT NOT NULL DEFAULT 'test',
+                provenance_page INTEGER NOT NULL DEFAULT 1,
+                provenance_json TEXT,
                 context_id TEXT
+            );
+            CREATE TABLE claim_numeric_payload (
+                claim_id TEXT PRIMARY KEY,
+                value REAL,
+                lower_bound REAL,
+                upper_bound REAL,
+                uncertainty REAL,
+                uncertainty_type TEXT,
+                sample_size INTEGER,
+                unit TEXT,
+                value_si REAL,
+                lower_bound_si REAL,
+                upper_bound_si REAL
+            );
+            CREATE TABLE claim_text_payload (
+                claim_id TEXT PRIMARY KEY,
+                conditions_cel TEXT,
+                statement TEXT,
+                expression TEXT,
+                sympy_generated TEXT,
+                sympy_error TEXT,
+                name TEXT,
+                measure TEXT,
+                listener_population TEXT,
+                methodology TEXT,
+                notes TEXT,
+                description TEXT,
+                auto_summary TEXT
+            );
+            CREATE TABLE claim_algorithm_payload (
+                claim_id TEXT PRIMARY KEY,
+                body TEXT,
+                canonical_ast TEXT,
+                variables_json TEXT,
+                stage TEXT
             );
             CREATE TABLE context (
                 id TEXT PRIMARY KEY,
@@ -728,18 +899,9 @@ class TestBoundWorldContext:
             "INSERT INTO context_assumption (context_id, assumption_cel, seq) VALUES (?, ?, ?)",
             ("ctx_child", "variant == 'specific'", 1),
         )
-        conn.execute(
-            "INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES (?, ?, ?, ?)",
-            ("claim_general", "c1", "[\"framework == 'general'\"]", None),
-        )
-        conn.execute(
-            "INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES (?, ?, ?, ?)",
-            ("claim_specific", "c1", "[\"variant == 'specific'\"]", None),
-        )
-        conn.execute(
-            "INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES (?, ?, ?, ?)",
-            ("claim_other", "c1", "[\"framework == 'other'\"]", None),
-        )
+        insert_claim_row(conn, "claim_general", concept_id="c1", conditions_cel="[\"framework == 'general'\"]")
+        insert_claim_row(conn, "claim_specific", concept_id="c1", conditions_cel="[\"variant == 'specific'\"]")
+        insert_claim_row(conn, "claim_other", concept_id="c1", conditions_cel="[\"framework == 'other'\"]")
         conn.commit()
         conn.close()
 
@@ -768,11 +930,52 @@ class TestBoundWorldContext:
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
         conn.executescript("""
-            CREATE TABLE claim (
+            CREATE TABLE claim_core (
                 id TEXT PRIMARY KEY,
+                content_hash TEXT,
+                seq INTEGER,
+                type TEXT,
                 concept_id TEXT,
-                conditions_cel TEXT,
+                target_concept TEXT,
+                source_paper TEXT NOT NULL DEFAULT 'test',
+                provenance_page INTEGER NOT NULL DEFAULT 1,
+                provenance_json TEXT,
                 context_id TEXT
+            );
+            CREATE TABLE claim_numeric_payload (
+                claim_id TEXT PRIMARY KEY,
+                value REAL,
+                lower_bound REAL,
+                upper_bound REAL,
+                uncertainty REAL,
+                uncertainty_type TEXT,
+                sample_size INTEGER,
+                unit TEXT,
+                value_si REAL,
+                lower_bound_si REAL,
+                upper_bound_si REAL
+            );
+            CREATE TABLE claim_text_payload (
+                claim_id TEXT PRIMARY KEY,
+                conditions_cel TEXT,
+                statement TEXT,
+                expression TEXT,
+                sympy_generated TEXT,
+                sympy_error TEXT,
+                name TEXT,
+                measure TEXT,
+                listener_population TEXT,
+                methodology TEXT,
+                notes TEXT,
+                description TEXT,
+                auto_summary TEXT
+            );
+            CREATE TABLE claim_algorithm_payload (
+                claim_id TEXT PRIMARY KEY,
+                body TEXT,
+                canonical_ast TEXT,
+                variables_json TEXT,
+                stage TEXT
             );
             CREATE TABLE context (
                 id TEXT PRIMARY KEY,
@@ -793,10 +996,13 @@ class TestBoundWorldContext:
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_root', 'Root', NULL)")
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_child', 'Child', 'ctx_root')")
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_other', 'Other', NULL)")
-        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_root', 'c1', NULL, 'ctx_root')")
-        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_child', 'c1', NULL, 'ctx_child')")
-        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_other', 'c1', NULL, 'ctx_other')")
-        conn.execute("INSERT INTO claim (id, concept_id, conditions_cel, context_id) VALUES ('claim_universal', 'c1', NULL, NULL)")
+        insert_claim_row(conn, "claim_root", concept_id="c1")
+        insert_claim_row(conn, "claim_child", concept_id="c1")
+        insert_claim_row(conn, "claim_other", concept_id="c1")
+        insert_claim_row(conn, "claim_universal", concept_id="c1")
+        conn.execute("UPDATE claim_core SET context_id = 'ctx_root' WHERE id = 'claim_root'")
+        conn.execute("UPDATE claim_core SET context_id = 'ctx_child' WHERE id = 'claim_child'")
+        conn.execute("UPDATE claim_core SET context_id = 'ctx_other' WHERE id = 'claim_other'")
         conn.commit()
         conn.close()
 
@@ -1154,6 +1360,6 @@ class TestContextCLIIntegration:
         import sqlite3
         conn = sqlite3.connect(ws / "knowledge" / "sidecar" / "propstore.sqlite")
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT context_id FROM claim WHERE id = 'claim1'").fetchone()
+        row = conn.execute("SELECT context_id FROM claim_core WHERE id = 'claim1'").fetchone()
         assert row["context_id"] == "ctx_atms"
         conn.close()

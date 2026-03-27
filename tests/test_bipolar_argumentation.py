@@ -40,24 +40,31 @@ from propstore.dung import (
     stable_extensions,
 )
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
-from tests.conftest import create_argumentation_schema
+from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 
 
 def _insert_claim(conn, claim_id, concept_id="c1", value=1.0,
                    sample_size=100, uncertainty=None, confidence=None):
-    conn.execute(
-        "INSERT INTO claim (id, type, concept_id, value, sample_size, uncertainty, confidence) "
-        "VALUES (?, 'parameter', ?, ?, ?, ?, ?)",
-        (claim_id, concept_id, value, sample_size, uncertainty, confidence),
+    insert_claim(
+        conn,
+        claim_id,
+        claim_type="parameter",
+        concept_id=concept_id,
+        value=value,
+        sample_size=sample_size,
+        uncertainty=uncertainty,
+        confidence=confidence,
     )
 
 
 def _insert_stance(conn, claim_id, target_claim_id, stance_type,
-                    confidence=0.9):
-    conn.execute(
-        "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, confidence) "
-        "VALUES (?, ?, ?, ?)",
-        (claim_id, target_claim_id, stance_type, confidence),
+                     confidence=0.9):
+    insert_stance(
+        conn,
+        claim_id,
+        target_claim_id,
+        stance_type,
+        confidence=confidence,
     )
 
 

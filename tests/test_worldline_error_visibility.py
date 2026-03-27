@@ -79,7 +79,7 @@ class _FakeWorld:
         return {"canonical_name": cid.replace("concept:", "")}
 
     def has_table(self, name: str) -> bool:
-        return name == "claim_stance"
+        return name == "relation_edge"
 
     def parameterizations_for(self, cid: str) -> list:
         return []

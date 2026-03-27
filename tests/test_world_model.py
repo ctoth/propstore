@@ -577,19 +577,69 @@ class TestUnboundQueries:
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
         conn.executescript("""
-            CREATE TABLE claim (
+            CREATE TABLE claim_core (
                 id TEXT PRIMARY KEY,
+                content_hash TEXT,
+                seq INTEGER,
                 type TEXT,
                 concept_id TEXT,
                 target_concept TEXT,
-                value REAL,
-                conditions_cel TEXT,
+                source_paper TEXT NOT NULL DEFAULT 'test',
+                provenance_page INTEGER NOT NULL DEFAULT 1,
+                provenance_json TEXT,
                 context_id TEXT
+            );
+            CREATE TABLE claim_numeric_payload (
+                claim_id TEXT PRIMARY KEY,
+                value REAL,
+                lower_bound REAL,
+                upper_bound REAL,
+                uncertainty REAL,
+                uncertainty_type TEXT,
+                sample_size INTEGER,
+                unit TEXT,
+                value_si REAL,
+                lower_bound_si REAL,
+                upper_bound_si REAL
+            );
+            CREATE TABLE claim_text_payload (
+                claim_id TEXT PRIMARY KEY,
+                conditions_cel TEXT,
+                statement TEXT,
+                expression TEXT,
+                sympy_generated TEXT,
+                sympy_error TEXT,
+                name TEXT,
+                measure TEXT,
+                listener_population TEXT,
+                methodology TEXT,
+                notes TEXT,
+                description TEXT,
+                auto_summary TEXT
+            );
+            CREATE TABLE claim_algorithm_payload (
+                claim_id TEXT PRIMARY KEY,
+                body TEXT,
+                canonical_ast TEXT,
+                variables_json TEXT,
+                stage TEXT
             );
         """)
         conn.execute(
-            "INSERT INTO claim (id, type, concept_id, target_concept, value, conditions_cel, context_id) "
-            "VALUES ('measurement1', 'measurement', NULL, 'concept2', 0.14, NULL, NULL)"
+            "INSERT INTO claim_core (id, content_hash, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
+            "VALUES ('measurement1', 'h1', 1, 'measurement', NULL, 'concept2', 'test', 1, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "
+            "VALUES ('measurement1', 0.14, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_text_payload (claim_id, conditions_cel, statement, expression, sympy_generated, sympy_error, name, measure, listener_population, methodology, notes, description, auto_summary) "
+            "VALUES ('measurement1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, stage) "
+            "VALUES ('measurement1', NULL, NULL, NULL, NULL)"
         )
         conn.commit()
         conn.close()
@@ -607,20 +657,73 @@ class TestUnboundQueries:
         finally:
             wm.close()
 
-    def test_claims_for_caches_target_concept_schema_probe(self, tmp_path):
+    def test_claims_for_works_without_schema_probe_state(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
         conn.executescript("""
-            CREATE TABLE claim (
+            CREATE TABLE claim_core (
                 id TEXT PRIMARY KEY,
+                content_hash TEXT,
+                seq INTEGER,
                 type TEXT,
                 concept_id TEXT,
-                target_concept TEXT
+                target_concept TEXT,
+                source_paper TEXT NOT NULL DEFAULT 'test',
+                provenance_page INTEGER NOT NULL DEFAULT 1,
+                provenance_json TEXT,
+                context_id TEXT
+            );
+            CREATE TABLE claim_numeric_payload (
+                claim_id TEXT PRIMARY KEY,
+                value REAL,
+                lower_bound REAL,
+                upper_bound REAL,
+                uncertainty REAL,
+                uncertainty_type TEXT,
+                sample_size INTEGER,
+                unit TEXT,
+                value_si REAL,
+                lower_bound_si REAL,
+                upper_bound_si REAL
+            );
+            CREATE TABLE claim_text_payload (
+                claim_id TEXT PRIMARY KEY,
+                conditions_cel TEXT,
+                statement TEXT,
+                expression TEXT,
+                sympy_generated TEXT,
+                sympy_error TEXT,
+                name TEXT,
+                measure TEXT,
+                listener_population TEXT,
+                methodology TEXT,
+                notes TEXT,
+                description TEXT,
+                auto_summary TEXT
+            );
+            CREATE TABLE claim_algorithm_payload (
+                claim_id TEXT PRIMARY KEY,
+                body TEXT,
+                canonical_ast TEXT,
+                variables_json TEXT,
+                stage TEXT
             );
         """)
         conn.execute(
-            "INSERT INTO claim (id, type, concept_id, target_concept) "
-            "VALUES ('measurement1', 'measurement', NULL, 'concept2')"
+            "INSERT INTO claim_core (id, content_hash, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
+            "VALUES ('measurement1', 'h1', 1, 'measurement', NULL, 'concept2', 'test', 1, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "
+            "VALUES ('measurement1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_text_payload (claim_id, conditions_cel, statement, expression, sympy_generated, sympy_error, name, measure, listener_population, methodology, notes, description, auto_summary) "
+            "VALUES ('measurement1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, stage) "
+            "VALUES ('measurement1', NULL, NULL, NULL, NULL)"
         )
         conn.commit()
         conn.close()
@@ -632,9 +735,9 @@ class TestUnboundQueries:
         try:
             assert wm._claim_has_target_concept is None
             assert [claim["id"] for claim in wm.claims_for("concept2")] == ["measurement1"]
-            assert wm._claim_has_target_concept is True
+            assert wm._claim_has_target_concept is None
             assert [claim["id"] for claim in wm.claims_for("concept2")] == ["measurement1"]
-            assert wm._claim_has_target_concept is True
+            assert wm._claim_has_target_concept is None
         finally:
             wm.close()
 
@@ -2349,7 +2452,7 @@ class _Phase6HypotheticalStore:
         return []
 
     def has_table(self, name: str) -> bool:
-        return name == "claim_stance"
+        return name == "relation_edge"
 
     def all_concepts(self) -> list[dict]:
         return [{"id": "concept_x", "canonical_name": "concept_x"}]

@@ -174,7 +174,7 @@ def run_worldline(
             reasoning_backend = definition.policy.reasoning_backend
             if (
                 reasoning_backend == ReasoningBackend.CLAIM_GRAPH
-                and world.has_table("claim_stance")
+                and world.has_table("relation_edge")
             ):
                 justified: frozenset[str] | None = None
                 if active_graph is not None:
@@ -213,7 +213,7 @@ def run_worldline(
                     }
             elif (
                 reasoning_backend == ReasoningBackend.STRUCTURED_PROJECTION
-                and world.has_table("claim_stance")
+                and world.has_table("relation_edge")
             ):
                 from propstore.structured_argument import (
                     build_structured_projection,
@@ -259,7 +259,7 @@ def run_worldline(
                     )
             elif (
                 reasoning_backend == ReasoningBackend.PRAF
-                and world.has_table("claim_stance")
+                and world.has_table("relation_edge")
             ):
                 # Extract PrAF parameters from policy (same as resolution.py)
                 praf_strategy = definition.policy.praf_strategy or "auto"
@@ -840,7 +840,7 @@ def _active_stance_dependencies(
             stance_rows.append(row)
         return sorted(_stance_dependency_key(row) for row in stance_rows)
 
-    if hasattr(world, "stances_between") and world.has_table("claim_stance"):
+    if hasattr(world, "stances_between") and world.has_table("relation_edge"):
         return sorted(
             _stance_dependency_key(row)
             for row in world.stances_between(active_ids)

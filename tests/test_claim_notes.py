@@ -189,9 +189,16 @@ class TestClaimNotesSidecar:
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT * FROM claim WHERE id='claim1'"
+            """
+            SELECT core.*, num.*, txt.*, alg.*
+            FROM claim_core AS core
+            LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+            LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
+            WHERE core.id='claim1'
+            """
         ).fetchone()
-        assert "notes" in row.keys(), "notes column missing from claim table"
+        assert "notes" in row.keys(), "notes column missing from normalized claim storage"
         assert row["notes"] == "This is a test note"
         conn.close()
 
@@ -329,7 +336,7 @@ class TestClaimNotesProperties:
             try:
                 conn.row_factory = sqlite3.Row
                 row = conn.execute(
-                    "SELECT notes FROM claim WHERE id='claim1'"
+                    "SELECT notes FROM claim_text_payload WHERE claim_id='claim1'"
                 ).fetchone()
                 assert row is not None, "claim1 not found in sidecar"
                 assert row["notes"] == notes_text, (

@@ -20,7 +20,12 @@ from propstore.argumentation import (
 from propstore.dung import conflict_free, grounded_extension, hybrid_grounded_extension
 from propstore.preference import claim_strength
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
-from tests.conftest import create_argumentation_schema
+from tests.conftest import (
+    create_argumentation_schema,
+    insert_claim,
+    insert_conflict,
+    insert_stance,
+)
 
 
 # ── SQLite fixture ──────────────────────────────────────────────────
@@ -30,20 +35,27 @@ def _insert_claim(conn: sqlite3.Connection, claim_id: str, concept_id: str,
                    value: float, sample_size: int | None = None,
                    uncertainty: float | None = None,
                    confidence: float | None = None) -> None:
-    conn.execute(
-        "INSERT INTO claim (id, type, concept_id, value, sample_size, uncertainty, confidence) "
-        "VALUES (?, 'parameter', ?, ?, ?, ?, ?)",
-        (claim_id, concept_id, value, sample_size, uncertainty, confidence),
+    insert_claim(
+        conn,
+        claim_id,
+        claim_type="parameter",
+        concept_id=concept_id,
+        value=value,
+        sample_size=sample_size,
+        uncertainty=uncertainty,
+        confidence=confidence,
     )
 
 
 def _insert_stance(conn: sqlite3.Connection, claim_id: str,
-                    target_claim_id: str, stance_type: str,
-                    confidence: float = 0.9) -> None:
-    conn.execute(
-        "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, confidence) "
-        "VALUES (?, ?, ?, ?)",
-        (claim_id, target_claim_id, stance_type, confidence),
+                     target_claim_id: str, stance_type: str,
+                     confidence: float = 0.9) -> None:
+    insert_stance(
+        conn,
+        claim_id,
+        target_claim_id,
+        stance_type,
+        confidence=confidence,
     )
 
 
@@ -117,10 +129,13 @@ def vacuous_opinion_scenario(conn):
     """
     _insert_claim(conn, "claim_x", "c1", 100.0, sample_size=100)
     _insert_claim(conn, "claim_y", "c1", 200.0, sample_size=100)
-    conn.execute(
-        "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, "
-        "confidence, opinion_uncertainty) VALUES (?, ?, ?, ?, ?)",
-        ("claim_x", "claim_y", "rebuts", 0.3, 1.0),
+    insert_stance(
+        conn,
+        "claim_x",
+        "claim_y",
+        "rebuts",
+        confidence=0.3,
+        opinion_uncertainty=1.0,
     )
     conn.commit()
     return conn
@@ -405,10 +420,14 @@ def _insert_conflict(
     value_a: str | None = None,
     value_b: str | None = None,
 ) -> None:
-    conn.execute(
-        "INSERT INTO conflicts (concept_id, claim_a_id, claim_b_id, warning_class, "
-        "value_a, value_b) VALUES (?, ?, ?, ?, ?, ?)",
-        (concept_id, claim_a_id, claim_b_id, warning_class, value_a, value_b),
+    insert_conflict(
+        conn,
+        concept_id=concept_id,
+        claim_a_id=claim_a_id,
+        claim_b_id=claim_b_id,
+        warning_class=warning_class,
+        value_a=value_a,
+        value_b=value_b,
     )
 
 

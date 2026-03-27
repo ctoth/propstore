@@ -155,7 +155,7 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
             relation_type=str(row["stance_type"]),
             provenance=_row_provenance(
                 row,
-                source_table="claim_stance",
+                source_table="relation_edge",
                 source_id=f"{row['claim_id']}->{row['target_claim_id']}:{row['stance_type']}",
             ),
             attributes=_relation_attributes(

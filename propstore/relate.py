@@ -81,7 +81,12 @@ Respond with ONLY a JSON object:
 def _get_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict | None:
     """Get claim statement/expression and source paper."""
     row = conn.execute(
-        "SELECT id, auto_summary, statement, expression, source_paper FROM claim WHERE id = ?",
+        """
+        SELECT core.id, txt.auto_summary, txt.statement, txt.expression, core.source_paper
+        FROM claim_core AS core
+        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+        WHERE core.id = ?
+        """,
         (claim_id,)
     ).fetchone()
     if not row:
@@ -93,8 +98,14 @@ def _get_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict | None:
 
 def _find_shared_concepts(conn: sqlite3.Connection, claim_a_id: str, claim_b_id: str) -> list[str]:
     """Find concept names referenced by both claims."""
-    a_concept = conn.execute("SELECT concept_id FROM claim WHERE id = ?", (claim_a_id,)).fetchone()
-    b_concept = conn.execute("SELECT concept_id FROM claim WHERE id = ?", (claim_b_id,)).fetchone()
+    a_concept = conn.execute(
+        "SELECT concept_id FROM claim_core WHERE id = ?",
+        (claim_a_id,),
+    ).fetchone()
+    b_concept = conn.execute(
+        "SELECT concept_id FROM claim_core WHERE id = ?",
+        (claim_b_id,),
+    ).fetchone()
     shared = set()
     if a_concept and b_concept and a_concept[0] and b_concept[0]:
         if a_concept[0] == b_concept[0]:
@@ -371,7 +382,7 @@ async def _relate_all_async(
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
         embedding_model = str(models[0]["model_name"])
 
-    all_claim_rows = conn.execute("SELECT id FROM claim").fetchall()
+    all_claim_rows = conn.execute("SELECT id FROM claim_core").fetchall()
     total = len(all_claim_rows)
 
     # Phase 1: Gather all (claim_a, candidate_b, distance) pairs from embeddings (fast, no LLM)

@@ -124,8 +124,27 @@ class _EmbedConfig:
     pre_batch_hook: Callable[[sqlite3.Connection, list[dict]], Any] | None = None
 
 
+_CLAIM_QUERY = """
+(
+    SELECT
+        core.id,
+        core.seq,
+        core.content_hash,
+        txt.auto_summary,
+        txt.statement,
+        txt.expression,
+        txt.name,
+        core.type,
+        core.source_paper,
+        core.concept_id
+    FROM claim_core AS core
+    LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+)
+"""
+
+
 _CLAIM_CONFIG = _EmbedConfig(
-    entity_table="claim",
+    entity_table=_CLAIM_QUERY,
     select_columns="id, seq, content_hash, auto_summary, statement, expression, name",
     status_table="embedding_status",
     status_id_column="claim_id",
@@ -283,7 +302,10 @@ class _FindConfig:
 
 def _resolve_claim_id(conn: sqlite3.Connection, claim_id: str) -> tuple[str, int]:
     """Resolve a claim ID to (id, seq)."""
-    row = conn.execute("SELECT id, seq FROM claim WHERE id = ?", (claim_id,)).fetchone()
+    row = conn.execute(
+        "SELECT id, seq FROM claim_core WHERE id = ?",
+        (claim_id,),
+    ).fetchone()
     if not row:
         raise ValueError(f"Claim {claim_id} not found")
     return row["id"], row["seq"]
@@ -291,7 +313,7 @@ def _resolve_claim_id(conn: sqlite3.Connection, claim_id: str) -> tuple[str, int
 
 _FIND_CLAIM_CONFIG = _FindConfig(
     vec_prefix="claim_vec",
-    entity_table="claim",
+    entity_table=_CLAIM_QUERY,
     join_columns="c.id, c.type, c.auto_summary, c.statement, c.source_paper, c.concept_id",
     resolve_id=_resolve_claim_id,
 )
@@ -544,7 +566,7 @@ def extract_embeddings(conn: sqlite3.Connection) -> EmbeddingSnapshot | None:
                 f"""SELECT v.rowid, es.claim_id, v.embedding
                     FROM [{table_name}] v
                     JOIN embedding_status es ON es.model_key = ?
-                    JOIN claim c ON c.seq = v.rowid AND c.id = es.claim_id
+                    JOIN claim_core c ON c.seq = v.rowid AND c.id = es.claim_id
                     WHERE es.model_key = ?""",
                 (m["model_key"], m["model_key"])
             ).fetchall()
@@ -601,7 +623,9 @@ def restore_embeddings(
     # Build claim_id -> (seq, content_hash) map from new sidecar
     current_claims = {}
     try:
-        for r in conn.execute("SELECT id, seq, content_hash FROM claim").fetchall():
+        for r in conn.execute(
+            "SELECT id, seq, content_hash FROM claim_core"
+        ).fetchall():
             current_claims[r["id"]] = (r["seq"], r["content_hash"])
     except sqlite3.OperationalError as e:
         if "no such table" not in str(e):

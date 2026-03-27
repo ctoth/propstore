@@ -7,7 +7,7 @@ Verifies that the four subjective logic opinion columns
 import sqlite3
 import pytest
 
-from tests.conftest import create_argumentation_schema
+from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 
 
 @pytest.fixture
@@ -20,14 +20,8 @@ def conn():
 
 def _insert_claims(conn):
     """Insert two claims for FK targets."""
-    conn.execute(
-        "INSERT INTO claim (id, type, concept_id, value, source_paper, provenance_page) "
-        "VALUES ('c1', 'parameter', 'concept1', 1.0, 'paper1', 1)"
-    )
-    conn.execute(
-        "INSERT INTO claim (id, type, concept_id, value, source_paper, provenance_page) "
-        "VALUES ('c2', 'parameter', 'concept1', 2.0, 'paper1', 1)"
-    )
+    insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
+    insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
 
 
 class TestOpinionSchemaColumns:
@@ -36,7 +30,7 @@ class TestOpinionSchemaColumns:
     def test_opinion_columns_exist(self, conn):
         """claim_stance must have opinion_belief, opinion_disbelief,
         opinion_uncertainty, opinion_base_rate columns."""
-        cur = conn.execute("PRAGMA table_info(claim_stance)")
+        cur = conn.execute("PRAGMA table_info(relation_edge)")
         columns = {row[1] for row in cur.fetchall()}
         assert "opinion_belief" in columns
         assert "opinion_disbelief" in columns
@@ -48,16 +42,15 @@ class TestOpinionSchemaColumns:
         _insert_claims(conn)
 
         # Insert stance with opinion values: b=0.7, d=0.1, u=0.2, a=0.5
-        conn.execute(
-            "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, confidence, "
-            "opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            ("c1", "c2", "supports", 0.8, 0.7, 0.1, 0.2, 0.5),
+        insert_stance(
+            conn, "c1", "c2", "supports",
+            confidence=0.8, opinion_belief=0.7, opinion_disbelief=0.1,
+            opinion_uncertainty=0.2, opinion_base_rate=0.5,
         )
 
         row = conn.execute(
             "SELECT opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate "
-            "FROM claim_stance WHERE claim_id = 'c1'"
+            "FROM relation_edge WHERE source_kind='claim' AND source_id = 'c1'"
         ).fetchone()
 
         assert row is not None
@@ -72,15 +65,11 @@ class TestOpinionSchemaColumns:
         _insert_claims(conn)
 
         # Insert stance WITHOUT opinion values — backward compat
-        conn.execute(
-            "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, confidence) "
-            "VALUES (?, ?, ?, ?)",
-            ("c1", "c2", "supports", 0.9),
-        )
+        insert_stance(conn, "c1", "c2", "supports", confidence=0.9)
 
         row = conn.execute(
             "SELECT opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate "
-            "FROM claim_stance WHERE claim_id = 'c1'"
+            "FROM relation_edge WHERE source_kind='claim' AND source_id = 'c1'"
         ).fetchone()
 
         assert row is not None
@@ -93,15 +82,14 @@ class TestOpinionSchemaColumns:
         """Existing confidence column must be completely unaffected by new columns."""
         _insert_claims(conn)
 
-        conn.execute(
-            "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, confidence, "
-            "opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            ("c1", "c2", "supports", 0.85, 0.6, 0.2, 0.2, 0.5),
+        insert_stance(
+            conn, "c1", "c2", "supports",
+            confidence=0.85, opinion_belief=0.6, opinion_disbelief=0.2,
+            opinion_uncertainty=0.2, opinion_base_rate=0.5,
         )
 
         row = conn.execute(
-            "SELECT confidence FROM claim_stance WHERE claim_id = 'c1'"
+            "SELECT confidence FROM relation_edge WHERE source_kind='claim' AND source_id = 'c1'"
         ).fetchone()
 
         assert row is not None
@@ -111,17 +99,16 @@ class TestOpinionSchemaColumns:
         """SELECT * must include opinion columns in result dicts."""
         _insert_claims(conn)
 
-        conn.execute(
-            "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, confidence, "
-            "opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            ("c1", "c2", "supports", 0.8, 0.7, 0.1, 0.2, 0.5),
+        insert_stance(
+            conn, "c1", "c2", "supports",
+            confidence=0.8, opinion_belief=0.7, opinion_disbelief=0.1,
+            opinion_uncertainty=0.2, opinion_base_rate=0.5,
         )
 
         # Use row_factory to get dict-like access
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT * FROM claim_stance WHERE claim_id = 'c1'"
+            "SELECT * FROM relation_edge WHERE source_kind='claim' AND source_id = 'c1'"
         ).fetchone()
 
         assert row["opinion_belief"] is not None

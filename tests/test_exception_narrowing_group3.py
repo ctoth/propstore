@@ -93,13 +93,55 @@ class TestEmbedLitellmCall:
 
             conn = sqlite3.connect(":memory:")
             conn.row_factory = sqlite3.Row
-            conn.execute("CREATE TABLE claim (seq INTEGER PRIMARY KEY, id TEXT, content_hash TEXT, auto_summary TEXT, statement TEXT, expression TEXT, name TEXT)")
-            conn.execute("INSERT INTO claim VALUES (1, 'c1', 'h1', 'summary', 'stmt', NULL, NULL)")
+            conn.executescript("""
+                CREATE TABLE claim_core (
+                    id TEXT PRIMARY KEY,
+                    content_hash TEXT,
+                    seq INTEGER,
+                    type TEXT,
+                    concept_id TEXT,
+                    target_concept TEXT,
+                    source_paper TEXT NOT NULL DEFAULT 'test',
+                    provenance_page INTEGER NOT NULL DEFAULT 1,
+                    provenance_json TEXT,
+                    context_id TEXT
+                );
+                CREATE TABLE claim_text_payload (
+                    claim_id TEXT PRIMARY KEY,
+                    conditions_cel TEXT,
+                    statement TEXT,
+                    expression TEXT,
+                    sympy_generated TEXT,
+                    sympy_error TEXT,
+                    name TEXT,
+                    measure TEXT,
+                    listener_population TEXT,
+                    methodology TEXT,
+                    notes TEXT,
+                    description TEXT,
+                    auto_summary TEXT
+                );
+            """)
+            conn.execute("INSERT INTO claim_core VALUES ('c1', 'h1', 1, 'observation', NULL, NULL, 'test', 1, NULL, NULL)")
+            conn.execute("INSERT INTO claim_text_payload VALUES ('c1', NULL, 'stmt', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'summary')")
             conn.execute("CREATE TABLE embedding_model (model_key TEXT, model_name TEXT, dimensions INTEGER, updated_at TEXT)")
             conn.execute("CREATE TABLE embedding_status (claim_id TEXT, model_key TEXT, content_hash TEXT)")
 
             config = _EmbedConfig(
-                entity_table="claim",
+                entity_table="""
+                    (
+                        SELECT
+                            core.id,
+                            core.seq,
+                            core.content_hash,
+                            txt.auto_summary,
+                            txt.statement,
+                            txt.expression,
+                            txt.name
+                        FROM claim_core AS core
+                        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+                    )
+                """,
                 select_columns="id, seq, content_hash, auto_summary, statement, expression, name",
                 status_table="embedding_status",
                 status_id_column="claim_id",

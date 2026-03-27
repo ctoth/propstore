@@ -65,7 +65,7 @@ class ClaimGraphRelations:
     direct_defeat_relations: tuple[ProbabilisticRelation, ...] = ()
 
 
-def provenance_from_row(row: dict, *, source_table: str = "claim_stance") -> RelationProvenance:
+def provenance_from_row(row: dict, *, source_table: str = "relation_edge") -> RelationProvenance:
     """Build stable provenance from a stance-like mapping."""
     row_identity = tuple(
         (key, repr(row[key]))

@@ -2,7 +2,7 @@
 
 Date: 2026-03-26
 
-Status: In Progress
+Status: Complete
 
 This plan was written against the current codebase and is binding; do not audit, reinterpret, simplify, substitute, or “validate it against the repo” before execution, and if you believe a blocker exists, stop and report the exact blocker before making any edits.
 
@@ -311,35 +311,42 @@ Intent: normalize the sidecar only after the runtime architecture is unified.
 
 ### TDD Tasks
 
-- [ ] Write failing migration-parity tests asserting old and new sidecar layouts build identical canonical graphs.
-- [ ] Write failing tests for sidecar build determinism.
-- [ ] Write failing tests for backward compatibility if dual-read support is needed temporarily.
+- [x] Write failing tests asserting the normalized sidecar layout builds the same canonical graph as the runtime-facing store projection.
+- [x] Write failing tests for sidecar build determinism.
+- [x] Upgrade direct-SQL tests and callers to the normalized schema with no fallback path.
 
 ### Implementation Tasks
 
-- [ ] Consider splitting the current wide `claim` table into:
+- [x] Split the current wide claim storage into:
   - `claim_core`
   - typed payload tables
   - `relation_edge`
+  - `conflict_witness`
   - `justification`
-  - possibly compiled activation or support metadata tables
-- [ ] Keep the graph builder as the semantic boundary.
-- [ ] Do not let raw schema become the new center.
+- [x] Keep the graph builder as the semantic boundary.
+- [x] Remove legacy wide-table projections and runtime fallback paths.
+- [x] Do not let raw schema become the new center.
 
 ### Files Likely Touched
 
-- [ ] `propstore/build_sidecar.py`
-- [ ] `propstore/world/model.py`
-- [ ] graph builder and migration tests
+- [x] `propstore/build_sidecar.py`
+- [x] `propstore/world/model.py`
+- [x] `propstore/embed.py`
+- [x] `propstore/relate.py`
+- [x] `propstore/world/resolution.py`
+- [x] `propstore/worldline_runner.py`
+- [x] graph builder and storage/runtime tests
 
 ### Completion Criteria
 
-- [ ] Storage is cleaner without changing semantics.
-- [ ] The graph builder remains the sole semantic adapter boundary.
+- [x] Storage is cleaner without changing semantics.
+- [x] The graph builder remains the sole semantic adapter boundary.
+- [x] Tests and callers use the normalized schema directly.
+- [x] No migration or dual-read fallback path remains in the runtime.
 
 ### Commit
 
-- [ ] Commit: `refactor: normalize sidecar schema behind canonical graph builder`
+- [x] Commit: `refactor: normalize sidecar schema behind canonical graph builder`
 
 ## Suggested PR Sequence
 
@@ -349,7 +356,7 @@ Intent: normalize the sidecar only after the runtime architecture is unified.
 - [x] PR 8: Phase 7
 - [x] PR 9: Phase 8
 - [x] PR 10: Phase 9
-- [ ] PR 11: Phase 10
+- [x] PR 11: Phase 10
 
 ## Commands To Run At The End Of Every Phase
 
@@ -370,10 +377,10 @@ Pause the rollout and reassess if any of these happen:
 
 ## Definition Of Done
 
-- [ ] world queries, worldlines, hypotheticals, and analyzers all share one semantic center
-- [ ] policy and environment are single-source concepts
-- [ ] activation is graph-native
-- [ ] overlays are graph deltas
-- [ ] ATMS and non-ATMS analyzers compose over the same active graph
-- [ ] the remaining leaf modules stay leaf-like
-- [ ] any remaining “structured” capability claims are honest
+- [x] world queries, worldlines, hypotheticals, and analyzers all share one semantic center
+- [x] policy and environment are single-source concepts
+- [x] activation is graph-native
+- [x] overlays are graph deltas
+- [x] ATMS and non-ATMS analyzers compose over the same active graph
+- [x] the remaining leaf modules stay leaf-like
+- [x] any remaining “structured” capability claims are honest

@@ -53,13 +53,60 @@ def _make_conn_with_schema():
     """Create an in-memory connection with the tables embed.py expects."""
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
+    conn.executescript("""
+        CREATE TABLE claim_core (
+            id TEXT PRIMARY KEY,
+            content_hash TEXT,
+            seq INTEGER,
+            type TEXT,
+            concept_id TEXT,
+            target_concept TEXT,
+            source_paper TEXT NOT NULL DEFAULT 'test',
+            provenance_page INTEGER NOT NULL DEFAULT 1,
+            provenance_json TEXT,
+            context_id TEXT
+        );
+        CREATE TABLE claim_numeric_payload (
+            claim_id TEXT PRIMARY KEY,
+            value REAL,
+            lower_bound REAL,
+            upper_bound REAL,
+            uncertainty REAL,
+            uncertainty_type TEXT,
+            sample_size INTEGER,
+            unit TEXT,
+            value_si REAL,
+            lower_bound_si REAL,
+            upper_bound_si REAL
+        );
+        CREATE TABLE claim_text_payload (
+            claim_id TEXT PRIMARY KEY,
+            conditions_cel TEXT,
+            statement TEXT,
+            expression TEXT,
+            sympy_generated TEXT,
+            sympy_error TEXT,
+            name TEXT,
+            measure TEXT,
+            listener_population TEXT,
+            methodology TEXT,
+            notes TEXT,
+            description TEXT,
+            auto_summary TEXT
+        );
+        CREATE TABLE claim_algorithm_payload (
+            claim_id TEXT PRIMARY KEY,
+            body TEXT,
+            canonical_ast TEXT,
+            variables_json TEXT,
+            stage TEXT
+        );
+    """)
     conn.execute(
-        "CREATE TABLE claim "
-        "(seq INTEGER PRIMARY KEY, id TEXT, content_hash TEXT, "
-        "auto_summary TEXT, statement TEXT, expression TEXT, name TEXT)"
+        "INSERT INTO claim_core VALUES ('c1', 'h1', 1, 'observation', NULL, NULL, 'test', 1, NULL, NULL)"
     )
     conn.execute(
-        "INSERT INTO claim VALUES (1, 'c1', 'h1', 'summary', NULL, NULL, NULL)"
+        "INSERT INTO claim_text_payload VALUES ('c1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'summary')"
     )
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS embedding_model (
@@ -109,7 +156,20 @@ class TestEmbedEntitiesOperationalError:
         from propstore.embed import _embed_entities, _EmbedConfig
 
         config = _EmbedConfig(
-            entity_table="claim",
+            entity_table="""
+                (
+                    SELECT
+                        core.id,
+                        core.seq,
+                        core.content_hash,
+                        txt.auto_summary,
+                        txt.statement,
+                        txt.expression,
+                        txt.name
+                    FROM claim_core AS core
+                    LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+                )
+            """,
             select_columns="id, seq, content_hash, auto_summary, statement, expression, name",
             status_table="embedding_status",
             status_id_column="claim_id",

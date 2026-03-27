@@ -71,7 +71,7 @@ class _ProjectionStore:
         ]
 
     def has_table(self, name: str) -> bool:
-        return name == "claim_stance" and self._has_stance_table
+        return name == "relation_edge" and self._has_stance_table
 
     def condition_solver(self):
         return self._solver

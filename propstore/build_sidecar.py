@@ -6,8 +6,7 @@ Reads validated concept files and builds a SQLite database with:
 - relationship table
 - parameterization table
 - FTS5 index over names, aliases, definitions, conditions
-- claim table (when claim files provided)
-- conflicts table (when claim files provided)
+- normalized claim/relation/conflict tables (when claim files provided)
 - claim FTS5 index (when claim files provided)
 """
 
@@ -141,14 +140,14 @@ def _claim_content_hash(claim: dict, source_paper: str) -> str:
 
 
 def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) -> int:
-    """Read stance YAML files and insert into claim_stance table."""
+    """Read stance YAML files and insert into normalized relation storage."""
     if not stances_dir or not stances_dir.exists():
         return 0
 
     count = 0
 
     # Build set of valid claim IDs for validation
-    valid_claims = {r[0] for r in conn.execute("SELECT id FROM claim").fetchall()}
+    valid_claims = {r[0] for r in conn.execute("SELECT id FROM claim_core").fetchall()}
 
     for f in sorted(stances_dir.glob("*.yaml")):
         with open(f, encoding="utf-8") as fh:
@@ -184,17 +183,26 @@ def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) ->
             if isinstance(cond_differ, list):
                 cond_differ = json.dumps(cond_differ)
 
-            conn.execute(
-                "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
-                "conditions_differ, note, resolution_method, resolution_model, embedding_model, "
-                "embedding_distance, pass_number, confidence, "
-                "opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate"
-                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (source_claim, target, stype, s.get("strength"), cond_differ, s.get("note"),
-                 res.get("method"), res.get("model"), res.get("embedding_model"),
-                 res.get("embedding_distance"), res.get("pass_number"), res.get("confidence"),
-                 res.get("opinion_belief"), res.get("opinion_disbelief"),
-                 res.get("opinion_uncertainty"), res.get("opinion_base_rate"))
+            _insert_claim_stance_row(
+                conn,
+                (
+                    source_claim,
+                    target,
+                    stype,
+                    s.get("strength"),
+                    cond_differ,
+                    s.get("note"),
+                    res.get("method"),
+                    res.get("model"),
+                    res.get("embedding_model"),
+                    res.get("embedding_distance"),
+                    res.get("pass_number"),
+                    res.get("confidence"),
+                    res.get("opinion_belief"),
+                    res.get("opinion_disbelief"),
+                    res.get("opinion_uncertainty"),
+                    res.get("opinion_base_rate"),
+                ),
             )
             count += 1
 
@@ -214,9 +222,9 @@ def build_sidecar(
 ) -> bool:
     """Build the SQLite sidecar from concept data.
 
-    When claim_files is provided, also creates claim, conflicts, and claim_fts
-    tables. concept_registry is required for conflict detection when claim_files
-    is provided.
+    When claim_files is provided, also creates normalized claim/relation/conflict
+    tables plus claim_fts. concept_registry is required for conflict detection
+    when claim_files is provided.
 
     Returns True if the sidecar was rebuilt, False if skipped.
     """
@@ -327,6 +335,9 @@ def build_sidecar(
         if repo is not None and claim_files is not None:
             _populate_stances_from_files(conn, repo.stances_dir)
 
+        if claim_files is not None:
+            _populate_justifications(conn)
+
 
         conn.commit()
     except BaseException:
@@ -396,6 +407,29 @@ def _create_tables(conn: sqlite3.Connection):
             FOREIGN KEY (concept_id) REFERENCES concept(id)
         );
 
+        CREATE TABLE relation_edge (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_kind TEXT NOT NULL,
+            source_id TEXT NOT NULL,
+            relation_type TEXT NOT NULL,
+            target_kind TEXT NOT NULL,
+            target_id TEXT NOT NULL,
+            conditions_cel TEXT,
+            strength TEXT,
+            conditions_differ TEXT,
+            note TEXT,
+            resolution_method TEXT,
+            resolution_model TEXT,
+            embedding_model TEXT,
+            embedding_distance REAL,
+            pass_number INTEGER,
+            confidence REAL,
+            opinion_belief REAL,
+            opinion_disbelief REAL,
+            opinion_uncertainty REAL,
+            opinion_base_rate REAL DEFAULT 0.5
+        );
+
         CREATE TABLE form (
             name TEXT PRIMARY KEY,
             kind TEXT NOT NULL,
@@ -419,6 +453,9 @@ def _create_tables(conn: sqlite3.Connection):
         CREATE INDEX idx_alias_concept ON alias(concept_id);
         CREATE INDEX idx_rel_source ON relationship(source_id);
         CREATE INDEX idx_rel_target ON relationship(target_id);
+        CREATE INDEX idx_relation_edge_source ON relation_edge(source_kind, source_id);
+        CREATE INDEX idx_relation_edge_target ON relation_edge(target_kind, target_id);
+        CREATE INDEX idx_relation_edge_type ON relation_edge(relation_type);
         CREATE INDEX idx_param_group ON parameterization_group(group_id);
         CREATE INDEX idx_form_algebra_output ON form_algebra(output_form);
     """)
@@ -647,11 +684,16 @@ def _populate_relationships(conn: sqlite3.Connection, concepts: list[LoadedConce
         source_id = d.get("id")
         for rel in d.get("relationships", []) or []:
             conditions = rel.get("conditions", []) or []
+            conditions_json = json.dumps(conditions) if conditions else None
             conn.execute(
                 "INSERT INTO relationship (source_id, type, target_id, conditions_cel, note) VALUES (?, ?, ?, ?, ?)",
                 (source_id, rel.get("type"), rel.get("target"),
-                 json.dumps(conditions) if conditions else None,
-                 rel.get("note")),
+                 conditions_json, rel.get("note")),
+            )
+            conn.execute(
+                "INSERT INTO relation_edge (source_kind, source_id, relation_type, target_kind, target_id, conditions_cel, note) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                ("concept", source_id, rel.get("type"), "concept", rel.get("target"), conditions_json, rel.get("note")),
             )
 
 
@@ -668,6 +710,99 @@ def _populate_parameterizations(conn: sqlite3.Connection, concepts: list[LoadedC
                  param.get("exactness"),
                  json.dumps(conditions) if conditions else None),
             )
+
+
+def _insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
+    conn.execute(
+        "INSERT INTO claim_core (id, content_hash, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            row["id"],
+            row["content_hash"],
+            row["seq"],
+            row["type"],
+            row["concept_id"],
+            row["target_concept"],
+            row["source_paper"],
+            row["provenance_page"],
+            row["provenance_json"],
+            row["context_id"],
+        ),
+    )
+    conn.execute(
+        "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            row["id"],
+            row["value"],
+            row["lower_bound"],
+            row["upper_bound"],
+            row["uncertainty"],
+            row["uncertainty_type"],
+            row["sample_size"],
+            row["unit"],
+            row["value_si"],
+            row["lower_bound_si"],
+            row["upper_bound_si"],
+        ),
+    )
+    conn.execute(
+        "INSERT INTO claim_text_payload (claim_id, conditions_cel, statement, expression, sympy_generated, sympy_error, name, measure, listener_population, methodology, notes, description, auto_summary) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            row["id"],
+            row["conditions_cel"],
+            row["statement"],
+            row["expression"],
+            row["sympy_generated"],
+            row["sympy_error"],
+            row["name"],
+            row["measure"],
+            row["listener_population"],
+            row["methodology"],
+            row["notes"],
+            row["description"],
+            row["auto_summary"],
+        ),
+    )
+    conn.execute(
+        "INSERT INTO claim_algorithm_payload (claim_id, body, canonical_ast, variables_json, stage) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (
+            row["id"],
+            row["body"],
+            row["canonical_ast"],
+            row["variables_json"],
+            row["stage"],
+        ),
+    )
+
+
+def _insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> None:
+    conn.execute(
+        "INSERT INTO relation_edge (source_kind, source_id, relation_type, target_kind, target_id, strength, conditions_differ, note, resolution_method, resolution_model, embedding_model, embedding_distance, pass_number, confidence, opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            "claim",
+            stance_row[0],
+            stance_row[2],
+            "claim",
+            stance_row[1],
+            stance_row[3],
+            stance_row[4],
+            stance_row[5],
+            stance_row[6],
+            stance_row[7],
+            stance_row[8],
+            stance_row[9],
+            stance_row[10],
+            stance_row[11],
+            stance_row[12],
+            stance_row[13],
+            stance_row[14],
+            stance_row[15],
+        ),
+    )
 
 
 def _populate_parameterization_groups(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
@@ -789,12 +924,22 @@ def _build_fts_index(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
 
 def _create_claim_tables(conn: sqlite3.Connection):
     conn.executescript("""
-        CREATE TABLE claim (
+        CREATE TABLE claim_core (
             id TEXT PRIMARY KEY,
             content_hash TEXT NOT NULL,
             seq INTEGER NOT NULL,
             type TEXT NOT NULL,
             concept_id TEXT,
+            target_concept TEXT,
+            source_paper TEXT NOT NULL,
+            provenance_page INTEGER NOT NULL,
+            provenance_json TEXT,
+            context_id TEXT,
+            FOREIGN KEY (context_id) REFERENCES context(id)
+        );
+
+        CREATE TABLE claim_numeric_payload (
+            claim_id TEXT PRIMARY KEY,
             value REAL,
             lower_bound REAL,
             upper_bound REAL,
@@ -802,60 +947,59 @@ def _create_claim_tables(conn: sqlite3.Connection):
             uncertainty_type TEXT,
             sample_size INTEGER,
             unit TEXT,
+            value_si REAL,
+            lower_bound_si REAL,
+            upper_bound_si REAL,
+            FOREIGN KEY (claim_id) REFERENCES claim_core(id)
+        );
+
+        CREATE TABLE claim_text_payload (
+            claim_id TEXT PRIMARY KEY,
             conditions_cel TEXT,
             statement TEXT,
             expression TEXT,
             sympy_generated TEXT,
             sympy_error TEXT,
             name TEXT,
-            target_concept TEXT,
             measure TEXT,
             listener_population TEXT,
             methodology TEXT,
             notes TEXT,
             description TEXT,
             auto_summary TEXT,
+            FOREIGN KEY (claim_id) REFERENCES claim_core(id)
+        );
+
+        CREATE TABLE claim_algorithm_payload (
+            claim_id TEXT PRIMARY KEY,
             body TEXT,
             canonical_ast TEXT,
             variables_json TEXT,
             stage TEXT,
-            source_paper TEXT NOT NULL,
-            provenance_page INTEGER NOT NULL,
-            provenance_json TEXT,
-            value_si REAL,
-            lower_bound_si REAL,
-            upper_bound_si REAL,
-            context_id TEXT,
-            FOREIGN KEY (context_id) REFERENCES context(id)
+            FOREIGN KEY (claim_id) REFERENCES claim_core(id)
         );
 
-        CREATE TABLE claim_stance (
-            claim_id TEXT NOT NULL,
-            target_claim_id TEXT NOT NULL,
-            stance_type TEXT NOT NULL,
-            strength TEXT,
-            conditions_differ TEXT,
-            note TEXT,
-            resolution_method TEXT,
-            resolution_model TEXT,
-            embedding_model TEXT,
-            embedding_distance REAL,
-            pass_number INTEGER,
-            confidence REAL,
-            -- Opinion columns: subjective logic opinion tuple (Jøsang 2001, Def 9, p.7)
-            -- b (belief) + d (disbelief) + u (uncertainty) = 1, a = base rate
-            -- Vacuous opinion (0, 0, 1, 0.5) = total ignorance
-            -- See propstore/opinion.py for the full algebra
-            opinion_belief REAL,
-            opinion_disbelief REAL,
-            opinion_uncertainty REAL,
-            opinion_base_rate REAL DEFAULT 0.5,
-            FOREIGN KEY (claim_id) REFERENCES claim(id),
-            FOREIGN KEY (target_claim_id) REFERENCES claim(id),
-            CHECK (
-                opinion_belief IS NULL
-                OR abs(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) < 0.01
-            )
+        CREATE TABLE conflict_witness (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            concept_id TEXT NOT NULL,
+            claim_a_id TEXT NOT NULL,
+            claim_b_id TEXT NOT NULL,
+            warning_class TEXT NOT NULL,
+            conditions_a TEXT,
+            conditions_b TEXT,
+            value_a TEXT,
+            value_b TEXT,
+            derivation_chain TEXT
+        );
+
+        CREATE TABLE justification (
+            id TEXT PRIMARY KEY,
+            justification_kind TEXT NOT NULL,
+            conclusion_claim_id TEXT NOT NULL,
+            premise_claim_ids TEXT NOT NULL,
+            source_relation_type TEXT,
+            source_claim_id TEXT,
+            provenance_json TEXT
         );
 
         CREATE TABLE IF NOT EXISTS calibration_counts (
@@ -866,20 +1010,6 @@ def _create_claim_tables(conn: sqlite3.Connection):
             PRIMARY KEY (pass_number, category)
         );
 
-        CREATE TABLE conflicts (
-            concept_id TEXT NOT NULL,
-            claim_a_id TEXT NOT NULL,
-            claim_b_id TEXT NOT NULL,
-            warning_class TEXT NOT NULL,
-            conditions_a TEXT,
-            conditions_b TEXT,
-            value_a TEXT,
-            value_b TEXT,
-            derivation_chain TEXT,
-            FOREIGN KEY (claim_a_id) REFERENCES claim(id),
-            FOREIGN KEY (claim_b_id) REFERENCES claim(id)
-        );
-
         CREATE VIRTUAL TABLE claim_fts USING fts5(
             claim_id UNINDEXED,
             statement,
@@ -887,14 +1017,11 @@ def _create_claim_tables(conn: sqlite3.Connection):
             expression
         );
 
-        CREATE INDEX idx_claim_concept ON claim(concept_id);
-        CREATE INDEX idx_claim_type ON claim(type);
-        CREATE INDEX idx_claim_stance_claim ON claim_stance(claim_id);
-        CREATE INDEX idx_claim_stance_target ON claim_stance(target_claim_id);
-        CREATE INDEX idx_conflicts_concept ON conflicts(concept_id);
-        CREATE INDEX idx_conflicts_class ON conflicts(warning_class);
-
-        CREATE INDEX idx_claim_stage ON claim(stage);
+        CREATE INDEX idx_claim_core_concept ON claim_core(concept_id);
+        CREATE INDEX idx_claim_core_target ON claim_core(target_concept);
+        CREATE INDEX idx_claim_core_type ON claim_core(type);
+        CREATE INDEX idx_claim_algorithm_stage ON claim_algorithm_payload(stage);
+        CREATE INDEX idx_conflict_witness_concept ON conflict_witness(concept_id);
     """)
 
 
@@ -919,24 +1046,12 @@ def _populate_claims(
                 concept_registry=concept_registry,
                 form_registry=form_registry,
             )
-            cols = ", ".join(row.keys())
-            placeholders = ", ".join("?" * len(row))
-            conn.execute(
-                f"INSERT INTO claim ({cols}) VALUES ({placeholders})",
-                tuple(row.values()),
-            )
+            _insert_claim_row(conn, row)
             deferred_stances.extend(_extract_deferred_stance_rows(claim, valid_claim_ids))
 
     # Insert stances after all claims are in, so target_claim_id FKs resolve
     for stance_row in deferred_stances:
-        conn.execute(
-            "INSERT INTO claim_stance (claim_id, target_claim_id, stance_type, strength, "
-            "conditions_differ, note, resolution_method, resolution_model, embedding_model, "
-            "embedding_distance, pass_number, confidence, "
-            "opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate"
-            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            stance_row,
-        )
+        _insert_claim_stance_row(conn, stance_row)
 
 
 def _collect_valid_claim_ids(claim_files: Sequence[LoadedClaimFile]) -> set[str]:
@@ -1300,7 +1415,7 @@ def _populate_conflicts(
     records.extend(transitive_records)
     for r in records:
         conn.execute(
-            "INSERT INTO conflicts (concept_id, claim_a_id, claim_b_id, "
+            "INSERT INTO conflict_witness (concept_id, claim_a_id, claim_b_id, "
             "warning_class, conditions_a, conditions_b, value_a, value_b, "
             "derivation_chain) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (r.concept_id, r.claim_a_id, r.claim_b_id,
@@ -1309,6 +1424,61 @@ def _populate_conflicts(
              json.dumps(r.conditions_b),
              r.value_a, r.value_b,
              r.derivation_chain),
+        )
+
+
+def _populate_justifications(conn: sqlite3.Connection) -> None:
+    claim_rows = conn.execute(
+        "SELECT id, provenance_json FROM claim_core ORDER BY id"
+    ).fetchall()
+    for claim_id, provenance_json in claim_rows:
+        conn.execute(
+            "INSERT OR IGNORE INTO justification (id, justification_kind, conclusion_claim_id, premise_claim_ids, source_relation_type, source_claim_id, provenance_json) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                f"reported:{claim_id}",
+                "reported",
+                claim_id,
+                json.dumps([]),
+                None,
+                claim_id,
+                provenance_json,
+            ),
+        )
+
+    relation_rows = conn.execute(
+        """
+        SELECT source_id, relation_type, target_id, note, resolution_method, resolution_model
+        FROM relation_edge
+        WHERE source_kind = 'claim'
+          AND target_kind = 'claim'
+          AND relation_type IN ('supports', 'explains')
+        ORDER BY source_id, relation_type, target_id
+        """
+    ).fetchall()
+    for source_id, relation_type, target_id, note, resolution_method, resolution_model in relation_rows:
+        provenance = {
+            "source_table": "relation_edge",
+            "source_id": f"{source_id}->{target_id}:{relation_type}",
+        }
+        if note is not None:
+            provenance["note"] = note
+        if resolution_method is not None:
+            provenance["resolution_method"] = resolution_method
+        if resolution_model is not None:
+            provenance["resolution_model"] = resolution_model
+        conn.execute(
+            "INSERT OR IGNORE INTO justification (id, justification_kind, conclusion_claim_id, premise_claim_ids, source_relation_type, source_claim_id, provenance_json) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                f"{relation_type}:{source_id}->{target_id}",
+                relation_type,
+                target_id,
+                json.dumps([source_id]),
+                relation_type,
+                source_id,
+                json.dumps(provenance),
+            ),
         )
 
 

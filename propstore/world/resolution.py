@@ -98,7 +98,7 @@ def _resolve_claim_graph_argumentation(
         shared_analyzer_input_from_store,
     )
 
-    if not world.has_table("claim_stance"):
+    if not world.has_table("relation_edge"):
         return None, "no stance data"
 
     active_ids = {c["id"] for c in active_claims}
@@ -151,7 +151,7 @@ def _resolve_structured_argumentation(
         compute_structured_justified_arguments,
     )
 
-    if not world.has_table("claim_stance"):
+    if not world.has_table("relation_edge"):
         return None, "no stance data"
 
     support_metadata: dict[str, tuple[object | None, object]] = {}
@@ -235,7 +235,7 @@ def _resolve_praf(
         shared_analyzer_input_from_store,
     )
 
-    if not world.has_table("claim_stance"):
+    if not world.has_table("relation_edge"):
         return None, "no stance data", None
 
     active_ids = {c["id"] for c in active_claims}

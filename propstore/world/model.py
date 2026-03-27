@@ -190,6 +190,59 @@ class WorldModel(ArtifactStore):
 
     # ── Unbound queries ──────────────────────────────────────────────
 
+    _CLAIM_SELECT_SQL = """
+        SELECT
+            core.id,
+            core.content_hash,
+            core.seq,
+            core.type,
+            core.concept_id,
+            num.value,
+            num.lower_bound,
+            num.upper_bound,
+            num.uncertainty,
+            num.uncertainty_type,
+            num.sample_size,
+            num.unit,
+            txt.conditions_cel,
+            txt.statement,
+            txt.expression,
+            txt.sympy_generated,
+            txt.sympy_error,
+            txt.name,
+            core.target_concept,
+            txt.measure,
+            txt.listener_population,
+            txt.methodology,
+            txt.notes,
+            txt.description,
+            txt.auto_summary,
+            alg.body,
+            alg.canonical_ast,
+            alg.variables_json,
+            alg.stage,
+            core.source_paper,
+            core.provenance_page,
+            core.provenance_json,
+            num.value_si,
+            num.lower_bound_si,
+            num.upper_bound_si,
+            core.context_id
+        FROM claim_core AS core
+        LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+        LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
+    """
+
+    def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[dict]:
+        if not self._has_table("claim_core"):
+            return []
+        rows = self._conn.execute(
+            f"{self._CLAIM_SELECT_SQL} {where_sql}",
+            params,
+        ).fetchall()
+        return [dict(row) for row in rows]
+
     def get_concept(self, concept_id: str) -> dict | None:
         row = self._conn.execute(
             "SELECT * FROM concept WHERE id = ?", (concept_id,)
@@ -206,12 +259,10 @@ class WorldModel(ArtifactStore):
         return {c["id"]: c["canonical_name"] for c in self.all_concepts()}
 
     def get_claim(self, claim_id: str) -> dict | None:
-        if not self._has_table("claim"):
+        if not self._has_table("claim_core"):
             return None
-        row = self._conn.execute(
-            "SELECT * FROM claim WHERE id = ?", (claim_id,)
-        ).fetchone()
-        return dict(row) if row else None
+        rows = self._claim_rows("WHERE core.id = ?", (claim_id,))
+        return rows[0] if rows else None
 
     def resolve_alias(self, alias: str) -> str | None:
         row = self._conn.execute(
@@ -236,60 +287,78 @@ class WorldModel(ArtifactStore):
         return row["id"] if row else None
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
-        if not self._has_table("claim"):
+        if not self._has_table("claim_core"):
             return []
         if concept_id is None:
-            rows = self._conn.execute("SELECT * FROM claim").fetchall()
-        else:
-            if self._claim_has_target_concept is None:
-                self._claim_has_target_concept = (
-                    self._conn.execute(
-                        "SELECT 1 FROM pragma_table_info('claim') WHERE name = 'target_concept'"
-                    ).fetchone()
-                    is not None
-                )
-            if self._claim_has_target_concept:
-                rows = self._conn.execute(
-                    "SELECT * FROM claim WHERE concept_id = ? OR target_concept = ?",
-                    (concept_id, concept_id),
-                ).fetchall()
-            else:
-                rows = self._conn.execute(
-                    "SELECT * FROM claim WHERE concept_id = ?", (concept_id,)
-                ).fetchall()
-        return [dict(r) for r in rows]
+            return self._claim_rows("ORDER BY core.id")
+        return self._claim_rows(
+            "WHERE core.concept_id = ? OR core.target_concept = ? ORDER BY core.id",
+            (concept_id, concept_id),
+        )
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
-        if not claim_ids or not self._has_table("claim"):
+        if not claim_ids or not self._has_table("claim_core"):
             return {}
         placeholders = ",".join("?" for _ in claim_ids)
-        rows = self._conn.execute(
-            f"SELECT * FROM claim WHERE id IN ({placeholders})",  # noqa: S608
-            list(claim_ids),
-        ).fetchall()
-        return {row["id"]: dict(row) for row in rows}
+        rows = self._claim_rows(
+            f"WHERE core.id IN ({placeholders})",  # noqa: S608
+            tuple(claim_ids),
+        )
+        return {row["id"]: row for row in rows}
 
     def stances_between(self, claim_ids: set[str]) -> list[dict]:
-        if not claim_ids or not self._has_table("claim_stance"):
+        if not claim_ids or not self._has_table("relation_edge"):
             return []
         placeholders = ",".join("?" for _ in claim_ids)
         rows = self._conn.execute(
-            f"SELECT * FROM claim_stance "  # noqa: S608
-            f"WHERE claim_id IN ({placeholders}) "
-            f"AND target_claim_id IN ({placeholders})",
+            f"""
+            SELECT
+                source_id AS claim_id,
+                target_id AS target_claim_id,
+                relation_type AS stance_type,
+                strength,
+                conditions_differ,
+                note,
+                resolution_method,
+                resolution_model,
+                embedding_model,
+                embedding_distance,
+                pass_number,
+                confidence,
+                opinion_belief,
+                opinion_disbelief,
+                opinion_uncertainty,
+                opinion_base_rate
+            FROM relation_edge
+            WHERE source_kind = 'claim'
+              AND target_kind = 'claim'
+              AND source_id IN ({placeholders})
+              AND target_id IN ({placeholders})
+            """,  # noqa: S608
             list(claim_ids) + list(claim_ids),
         ).fetchall()
         return [dict(row) for row in rows]
 
     def conflicts(self, concept_id: str | None = None) -> list[dict]:
-        if not self._has_table("conflicts"):
+        if not self._has_table("conflict_witness"):
             return []
         if concept_id is not None:
             rows = self._conn.execute(
-                "SELECT * FROM conflicts WHERE concept_id = ?", (concept_id,)
+                """
+                SELECT concept_id, claim_a_id, claim_b_id, warning_class,
+                       conditions_a, conditions_b, value_a, value_b, derivation_chain
+                FROM conflict_witness WHERE concept_id = ?
+                """,
+                (concept_id,),
             ).fetchall()
         else:
-            rows = self._conn.execute("SELECT * FROM conflicts").fetchall()
+            rows = self._conn.execute(
+                """
+                SELECT concept_id, claim_a_id, claim_b_id, warning_class,
+                       conditions_a, conditions_b, value_a, value_b, derivation_chain
+                FROM conflict_witness
+                """
+            ).fetchall()
         return [dict(r) for r in rows]
 
     def all_concepts(self) -> list[dict]:
@@ -305,15 +374,43 @@ class WorldModel(ArtifactStore):
         return [dict(row) for row in rows]
 
     def all_relationships(self) -> list[dict]:
-        if not self._has_table("relationship"):
+        if not self._has_table("relation_edge"):
             return []
-        rows = self._conn.execute("SELECT * FROM relationship").fetchall()
+        rows = self._conn.execute(
+            """
+            SELECT source_id, relation_type AS type, target_id, conditions_cel, note
+            FROM relation_edge
+            WHERE source_kind = 'concept' AND target_kind = 'concept'
+            """
+        ).fetchall()
         return [dict(row) for row in rows]
 
     def all_claim_stances(self) -> list[dict]:
-        if not self._has_table("claim_stance"):
+        if not self._has_table("relation_edge"):
             return []
-        rows = self._conn.execute("SELECT * FROM claim_stance").fetchall()
+        rows = self._conn.execute(
+            """
+            SELECT
+                source_id AS claim_id,
+                target_id AS target_claim_id,
+                relation_type AS stance_type,
+                strength,
+                conditions_differ,
+                note,
+                resolution_method,
+                resolution_model,
+                embedding_model,
+                embedding_distance,
+                pass_number,
+                confidence,
+                opinion_belief,
+                opinion_disbelief,
+                opinion_uncertainty,
+                opinion_base_rate
+            FROM relation_edge
+            WHERE source_kind = 'claim' AND target_kind = 'claim'
+            """
+        ).fetchall()
         return [dict(row) for row in rows]
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
@@ -433,12 +530,12 @@ class WorldModel(ArtifactStore):
 
     def stats(self) -> dict:
         concepts = self._conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0]
-        if self._has_table("claim"):
-            claims = self._conn.execute("SELECT COUNT(*) FROM claim").fetchone()[0]
+        if self._has_table("claim_core"):
+            claims = self._conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
         else:
             claims = 0
-        if self._has_table("conflicts"):
-            conflicts = self._conn.execute("SELECT COUNT(*) FROM conflicts").fetchone()[0]
+        if self._has_table("conflict_witness"):
+            conflicts = self._conn.execute("SELECT COUNT(*) FROM conflict_witness").fetchone()[0]
         else:
             conflicts = 0
         return {"concepts": concepts, "claims": claims, "conflicts": conflicts}
@@ -510,8 +607,8 @@ class WorldModel(ArtifactStore):
     # ── Stance graph ─────────────────────────────────────────────────
 
     def explain(self, claim_id: str) -> list[dict]:
-        """Walk claim_stance edges breadth-first from claim_id."""
-        if not self._has_table("claim_stance"):
+        """Walk normalized claim relation edges breadth-first from claim_id."""
+        if not self._has_table("relation_edge"):
             return []
         result: list[dict] = []
         visited: set[str] = set()
@@ -521,7 +618,28 @@ class WorldModel(ArtifactStore):
         while queue:
             current = queue.popleft()
             rows = self._conn.execute(
-                "SELECT * FROM claim_stance WHERE claim_id = ?", (current,)
+                """
+                SELECT
+                    source_id AS claim_id,
+                    target_id AS target_claim_id,
+                    relation_type AS stance_type,
+                    strength,
+                    conditions_differ,
+                    note,
+                    resolution_method,
+                    resolution_model,
+                    embedding_model,
+                    embedding_distance,
+                    pass_number,
+                    confidence,
+                    opinion_belief,
+                    opinion_disbelief,
+                    opinion_uncertainty,
+                    opinion_base_rate
+                FROM relation_edge
+                WHERE source_kind = 'claim' AND target_kind = 'claim' AND source_id = ?
+                """,
+                (current,),
             ).fetchall()
             for row in rows:
                 stance = dict(row)

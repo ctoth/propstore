@@ -16,6 +16,97 @@ from propstore.validate import load_concepts
 from propstore.validate_contexts import LoadedContext
 
 
+_CLAIM_SELECT_SQL = """
+    SELECT
+        core.id,
+        core.content_hash,
+        core.seq,
+        core.type,
+        core.concept_id,
+        num.value,
+        num.lower_bound,
+        num.upper_bound,
+        num.uncertainty,
+        num.uncertainty_type,
+        num.sample_size,
+        num.unit,
+        txt.conditions_cel,
+        txt.statement,
+        txt.expression,
+        txt.sympy_generated,
+        txt.sympy_error,
+        txt.name,
+        core.target_concept,
+        txt.measure,
+        txt.listener_population,
+        txt.methodology,
+        txt.notes,
+        txt.description,
+        txt.auto_summary,
+        alg.body,
+        alg.canonical_ast,
+        alg.variables_json,
+        alg.stage,
+        core.source_paper,
+        core.provenance_page,
+        core.provenance_json,
+        num.value_si,
+        num.lower_bound_si,
+        num.upper_bound_si,
+        core.context_id
+    FROM claim_core AS core
+    LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+    LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+    LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
+"""
+
+
+def _fetch_claim(conn: sqlite3.Connection, claim_id: str) -> sqlite3.Row | None:
+    conn.row_factory = sqlite3.Row
+    return conn.execute(f"{_CLAIM_SELECT_SQL} WHERE core.id = ?", (claim_id,)).fetchone()
+
+
+def _fetch_claim_rows(
+    conn: sqlite3.Connection,
+    where_sql: str = "",
+    params: tuple[object, ...] = (),
+) -> list[sqlite3.Row]:
+    conn.row_factory = sqlite3.Row
+    return conn.execute(f"{_CLAIM_SELECT_SQL} {where_sql}", params).fetchall()
+
+
+def _fetch_relation_edge_rows(
+    conn: sqlite3.Connection,
+    where_sql: str = "",
+    params: tuple[object, ...] = (),
+) -> list[sqlite3.Row]:
+    conn.row_factory = sqlite3.Row
+    return conn.execute(
+        """
+        SELECT
+            source_id AS claim_id,
+            target_id AS target_claim_id,
+            relation_type AS stance_type,
+            strength,
+            conditions_differ,
+            note,
+            resolution_method,
+            resolution_model,
+            embedding_model,
+            embedding_distance,
+            pass_number,
+            confidence,
+            opinion_belief,
+            opinion_disbelief,
+            opinion_uncertainty,
+            opinion_base_rate
+        FROM relation_edge
+        WHERE source_kind = 'claim' AND target_kind = 'claim'
+        """ + (f" {where_sql}" if where_sql else ""),
+        params,
+    ).fetchall()
+
+
 @pytest.fixture
 def concept_dir(tmp_path):
     """Create a concepts directory with a few test concepts."""
@@ -654,16 +745,16 @@ def sidecar_with_claims(concept_dir, sidecar_path, claim_files):
 
 class TestClaimTable:
     def test_claim_table_exists(self, sidecar_with_claims):
-        """claim table created when claim_files provided."""
+        """Normalized claim tables are created when claim_files are provided."""
         conn = sqlite3.connect(sidecar_with_claims)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='claim'")
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='claim_core'")
         assert cursor.fetchone() is not None
         conn.close()
 
     def test_claim_count(self, sidecar_with_claims):
-        """Correct number of claims in table."""
+        """Correct number of claims in normalized storage."""
         conn = sqlite3.connect(sidecar_with_claims)
-        count = conn.execute("SELECT COUNT(*) FROM claim").fetchone()[0]
+        count = conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
         # 5 from alpha + 4 from beta = 9
         assert count == 9
         conn.close()
@@ -671,8 +762,7 @@ class TestClaimTable:
     def test_claim_fields(self, sidecar_with_claims):
         """Claim fields populated correctly."""
         conn = sqlite3.connect(sidecar_with_claims)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM claim WHERE id='claim1'").fetchone()
+        row = _fetch_claim(conn, "claim1")
         assert row["type"] == "parameter"
         assert row["concept_id"] == "concept1"
         assert row["unit"] == "Hz"
@@ -683,8 +773,7 @@ class TestClaimTable:
     def test_claim_has_content_hash(self, sidecar_with_claims):
         """Claims have non-empty content_hash."""
         conn = sqlite3.connect(sidecar_with_claims)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT content_hash FROM claim WHERE id='claim1'").fetchone()
+        row = _fetch_claim(conn, "claim1")
         assert row["content_hash"] is not None
         assert len(row["content_hash"]) == 16
         conn.close()
@@ -692,15 +781,14 @@ class TestClaimTable:
     def test_claim_has_seq(self, sidecar_with_claims):
         """Claims have sequential numbering."""
         conn = sqlite3.connect(sidecar_with_claims)
-        seqs = [r[0] for r in conn.execute("SELECT seq FROM claim ORDER BY seq").fetchall()]
+        seqs = [r["seq"] for r in _fetch_claim_rows(conn, "ORDER BY core.seq")]
         assert seqs == list(range(1, len(seqs) + 1))
         conn.close()
 
     def test_claim_has_auto_summary(self, sidecar_with_claims):
         """Parameter claims get auto_summary from description_generator."""
         conn = sqlite3.connect(sidecar_with_claims)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT auto_summary FROM claim WHERE id='claim1'").fetchone()
+        row = _fetch_claim(conn, "claim1")
         assert row["auto_summary"] is not None
         assert "fundamental_frequency" in row["auto_summary"]
         conn.close()
@@ -708,26 +796,22 @@ class TestClaimTable:
     def test_claim_description_from_yaml(self, sidecar_with_claims):
         """description column is None when not in YAML (LLM-written field)."""
         conn = sqlite3.connect(sidecar_with_claims)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT description FROM claim WHERE id='claim1'").fetchone()
+        row = _fetch_claim(conn, "claim1")
         assert row["description"] is None
         conn.close()
 
     def test_parameter_claim_has_concept(self, sidecar_with_claims):
         """Parameter claim has concept_id populated."""
         conn = sqlite3.connect(sidecar_with_claims)
-        rows = conn.execute(
-            "SELECT id, concept_id FROM claim WHERE type='parameter'"
-        ).fetchall()
+        rows = _fetch_claim_rows(conn, "WHERE core.type='parameter'")
         for row in rows:
-            assert row[1] is not None, f"claim {row[0]} missing concept_id"
+            assert row["concept_id"] is not None, f"claim {row['id']} missing concept_id"
         conn.close()
 
     def test_observation_claim_has_statement(self, sidecar_with_claims):
         """Observation claim has statement populated."""
         conn = sqlite3.connect(sidecar_with_claims)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM claim WHERE id='claim5'").fetchone()
+        row = _fetch_claim(conn, "claim5")
         assert row["type"] == "observation"
         assert "logarithmic" in row["statement"]
         conn.close()
@@ -735,8 +819,7 @@ class TestClaimTable:
     def test_equation_claim_has_expression(self, sidecar_with_claims):
         """Equation claim has expression populated."""
         conn = sqlite3.connect(sidecar_with_claims)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM claim WHERE id='claim8'").fetchone()
+        row = _fetch_claim(conn, "claim8")
         assert row["type"] == "equation"
         assert "log(Ps)" in row["expression"]
         conn.close()
@@ -778,10 +861,7 @@ class TestClaimTable:
         )
 
         conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT sympy_generated, sympy_error FROM claim WHERE id='claim1'"
-        ).fetchone()
+        row = _fetch_claim(conn, "claim1")
         assert row["sympy_generated"] is None
         assert row["sympy_error"] is not None
         conn.close()
@@ -843,19 +923,18 @@ class TestClaimTable:
                       claim_files=claim_files, concept_registry=concept_registry)
 
         conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT value, lower_bound, upper_bound FROM claim WHERE id='claim1'").fetchone()
+        row = _fetch_claim(conn, "claim1")
         assert row["value"] is None
         assert row["lower_bound"] == 100.0
         assert row["upper_bound"] == 300.0
         conn.close()
 
     def test_no_claim_table_without_claims(self, concept_dir, sidecar_path):
-        """claim table NOT created when claim_files is None."""
+        """Normalized claim tables are not created when claim_files is None."""
         concepts = load_concepts(concept_dir)
         build_sidecar(concepts, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='claim'")
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='claim_core'")
         assert cursor.fetchone() is None
         conn.close()
 
@@ -864,9 +943,9 @@ class TestClaimTable:
 
 class TestConflictsTable:
     def test_conflicts_table_exists(self, sidecar_with_claims):
-        """conflicts table created when claim_files provided."""
+        """conflict_witness table created when claim_files provided."""
         conn = sqlite3.connect(sidecar_with_claims)
-        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='conflicts'")
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='conflict_witness'")
         assert cursor.fetchone() is not None
         conn.close()
 
@@ -874,7 +953,7 @@ class TestConflictsTable:
         """CONFLICT record present for same-scope different-value claims."""
         conn = sqlite3.connect(sidecar_with_claims)
         rows = conn.execute(
-            "SELECT * FROM conflicts WHERE warning_class='CONFLICT'"
+            "SELECT * FROM conflict_witness WHERE warning_class='CONFLICT'"
         ).fetchall()
         assert len(rows) >= 1
         conn.close()
@@ -884,18 +963,14 @@ class TestClaimStanceTable:
     def test_claim_stance_table_exists(self, sidecar_with_claims):
         conn = sqlite3.connect(sidecar_with_claims)
         cursor = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='claim_stance'"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='relation_edge'"
         )
         assert cursor.fetchone() is not None
         conn.close()
 
     def test_claim_stance_rows_persisted(self, sidecar_with_claims):
         conn = sqlite3.connect(sidecar_with_claims)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT claim_id, target_claim_id, stance_type, strength, note "
-            "FROM claim_stance WHERE claim_id='claim2'"
-        ).fetchone()
+        row = _fetch_relation_edge_rows(conn, "AND source_id='claim2'")[0]
         assert row["claim_id"] == "claim2"
         assert row["target_claim_id"] == "claim1"
         assert row["stance_type"] == "rebuts"
@@ -1053,20 +1128,24 @@ class TestClaimStanceTable:
 
         conn = sqlite3.connect(sidecar_path)
         try:
-            claim_ids = {row[0] for row in conn.execute("SELECT id FROM claim").fetchall()}
+            claim_ids = {row[0] for row in conn.execute("SELECT id FROM claim_core").fetchall()}
             stance_rows = conn.execute(
-                "SELECT claim_id, target_claim_id FROM claim_stance"
+                """
+                SELECT source_id, target_id
+                FROM relation_edge
+                WHERE source_kind='claim' AND target_kind='claim'
+                """
             ).fetchall()
             assert all(source in claim_ids and target in claim_ids for source, target in stance_rows)
         finally:
             conn.close()
 
     def test_conflict_query_by_class(self, sidecar_with_claims):
-        """Can query: SELECT * FROM conflicts WHERE warning_class = 'CONFLICT'"""
+        """Can query normalized conflict witness rows by warning class."""
         conn = sqlite3.connect(sidecar_with_claims)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
-            "SELECT * FROM conflicts WHERE warning_class = 'CONFLICT'"
+            "SELECT * FROM conflict_witness WHERE warning_class = 'CONFLICT'"
         ).fetchall()
         for row in rows:
             assert row["warning_class"] == "CONFLICT"
@@ -1074,10 +1153,10 @@ class TestClaimStanceTable:
         conn.close()
 
     def test_conflict_query_by_concept(self, sidecar_with_claims):
-        """Can query: SELECT * FROM conflicts WHERE concept_id = 'concept1'"""
+        """Can query normalized conflict witness rows by concept."""
         conn = sqlite3.connect(sidecar_with_claims)
         rows = conn.execute(
-            "SELECT * FROM conflicts WHERE concept_id = 'concept1'"
+            "SELECT * FROM conflict_witness WHERE concept_id = 'concept1'"
         ).fetchall()
         # concept1 has claims with different values under same/different conditions
         assert len(rows) >= 1
@@ -1087,7 +1166,7 @@ class TestClaimStanceTable:
         """PHI_NODE record present for different-condition claims."""
         conn = sqlite3.connect(sidecar_with_claims)
         rows = conn.execute(
-            "SELECT * FROM conflicts WHERE warning_class='PHI_NODE'"
+            "SELECT * FROM conflict_witness WHERE warning_class='PHI_NODE'"
         ).fetchall()
         assert len(rows) >= 1
         conn.close()
@@ -1289,8 +1368,7 @@ class TestAlgorithmClaim:
     def test_algorithm_claim_stored(self, sidecar_with_algorithm):
         """Algorithm claim appears in sidecar with body, canonical_ast, stage."""
         conn = sqlite3.connect(sidecar_with_algorithm)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM claim WHERE id='algo_claim1'").fetchone()
+        row = _fetch_claim(conn, "algo_claim1")
         assert row is not None
         assert row["type"] == "algorithm"
         assert row["body"] is not None
@@ -1302,19 +1380,16 @@ class TestAlgorithmClaim:
     def test_algorithm_canonical_ast_populated(self, sidecar_with_algorithm):
         """canonical_ast is non-empty for valid algorithm claims."""
         conn = sqlite3.connect(sidecar_with_algorithm)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT canonical_ast FROM claim WHERE id='algo_claim1'"
-        ).fetchone()
+        row = _fetch_claim(conn, "algo_claim1")
         assert row["canonical_ast"] is not None
         assert len(row["canonical_ast"]) > 0
         conn.close()
 
     def test_stage_index_exists(self, sidecar_with_algorithm):
-        """The idx_claim_stage index is created."""
+        """The normalized algorithm stage index is created."""
         conn = sqlite3.connect(sidecar_with_algorithm)
         cursor = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_claim_stage'"
+            "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_claim_algorithm_stage'"
         )
         assert cursor.fetchone() is not None
         conn.close()
@@ -1363,10 +1438,7 @@ class TestAlgorithmBindings:
         )
 
         conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT canonical_ast FROM claim WHERE id='algo_bind_claim1'"
-        ).fetchone()
+        row = _fetch_claim(conn, "algo_bind_claim1")
         conn.close()
 
         assert row is not None, "algorithm claim must be stored"
@@ -1417,6 +1489,83 @@ class TestClaimInsertRow:
         assert "type" in row
         assert "source_paper" in row
         assert "context_id" in row
+
+
+class TestNormalizedSidecarStorage:
+    def test_normalized_tables_exist(self, sidecar_with_claims):
+        conn = sqlite3.connect(sidecar_with_claims)
+        names = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+        conn.close()
+
+        assert "claim_core" in names
+        assert "claim_numeric_payload" in names
+        assert "claim_text_payload" in names
+        assert "claim_algorithm_payload" in names
+        assert "relation_edge" in names
+        assert "conflict_witness" in names
+        assert "justification" in names
+
+    def test_normalized_storage_is_deterministic_across_rebuilds(
+        self,
+        concept_dir,
+        sidecar_path,
+        claim_files,
+    ):
+        concepts = load_concepts(concept_dir)
+        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+
+        build_sidecar(
+            concepts,
+            sidecar_path,
+            force=True,
+            claim_files=claim_files,
+            concept_registry=concept_registry,
+        )
+
+        def snapshot_tables() -> dict[str, list[tuple]]:
+            conn = sqlite3.connect(sidecar_path)
+            tables = {
+                "claim_core": conn.execute(
+                    "SELECT * FROM claim_core ORDER BY id"
+                ).fetchall(),
+                "claim_numeric_payload": conn.execute(
+                    "SELECT * FROM claim_numeric_payload ORDER BY claim_id"
+                ).fetchall(),
+                "claim_text_payload": conn.execute(
+                    "SELECT * FROM claim_text_payload ORDER BY claim_id"
+                ).fetchall(),
+                "claim_algorithm_payload": conn.execute(
+                    "SELECT * FROM claim_algorithm_payload ORDER BY claim_id"
+                ).fetchall(),
+                "relation_edge": conn.execute(
+                    "SELECT * FROM relation_edge ORDER BY source_kind, source_id, relation_type, target_kind, target_id"
+                ).fetchall(),
+                "conflict_witness": conn.execute(
+                    "SELECT * FROM conflict_witness ORDER BY concept_id, claim_a_id, claim_b_id, warning_class"
+                ).fetchall(),
+                "justification": conn.execute(
+                    "SELECT * FROM justification ORDER BY id"
+                ).fetchall(),
+            }
+            conn.close()
+            return tables
+
+        first = snapshot_tables()
+        build_sidecar(
+            concepts,
+            sidecar_path,
+            force=True,
+            claim_files=claim_files,
+            concept_registry=concept_registry,
+        )
+        second = snapshot_tables()
+
+        assert second == first
 
 
 # ── Unsafe float() coercion (F12.1) ──────────────────────────────────
@@ -1626,8 +1775,7 @@ class TestClaimValueSI:
             },
         ])
         conn = sqlite3.connect(db)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT value, value_si, unit FROM claim WHERE id='si_claim1'").fetchone()
+        row = _fetch_claim(conn, "si_claim1")
         conn.close()
         assert row["value"] == 0.2, "raw value preserved"
         assert row["unit"] == "kHz", "raw unit preserved"
@@ -1646,8 +1794,7 @@ class TestClaimValueSI:
             },
         ])
         conn = sqlite3.connect(db)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT value, value_si FROM claim WHERE id='si_claim2'").fetchone()
+        row = _fetch_claim(conn, "si_claim2")
         conn.close()
         assert row["value_si"] == pytest.approx(440.0), "canonical unit -> value_si == value"
 
@@ -1663,8 +1810,7 @@ class TestClaimValueSI:
             },
         ])
         conn = sqlite3.connect(db)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT value, value_si FROM claim WHERE id='si_claim3'").fetchone()
+        row = _fetch_claim(conn, "si_claim3")
         conn.close()
         assert row["value_si"] == pytest.approx(100.0), "no unit -> value_si == value"
 
@@ -1682,11 +1828,7 @@ class TestClaimValueSI:
             },
         ])
         conn = sqlite3.connect(db)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT lower_bound, upper_bound, lower_bound_si, upper_bound_si "
-            "FROM claim WHERE id='si_claim4'"
-        ).fetchone()
+        row = _fetch_claim(conn, "si_claim4")
         conn.close()
         assert row["lower_bound"] == 0.1, "raw lower_bound preserved"
         assert row["upper_bound"] == 0.3, "raw upper_bound preserved"
