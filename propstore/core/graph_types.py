@@ -43,6 +43,45 @@ def label_from_dict(data: list[list[str]] | None) -> Label | None:
 
 
 @dataclass(frozen=True, order=True)
+class ConceptNode:
+    concept_id: str
+    canonical_name: str
+    status: str | None = None
+    form: str | None = None
+    kind_type: str | None = None
+    attributes: tuple[tuple[str, Any], ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "attributes", _normalize_pairs(self.attributes))
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "concept_id": self.concept_id,
+            "canonical_name": self.canonical_name,
+        }
+        if self.status is not None:
+            data["status"] = self.status
+        if self.form is not None:
+            data["form"] = self.form
+        if self.kind_type is not None:
+            data["kind_type"] = self.kind_type
+        if self.attributes:
+            data["attributes"] = dict(self.attributes)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> ConceptNode:
+        return cls(
+            concept_id=str(data["concept_id"]),
+            canonical_name=str(data["canonical_name"]),
+            status=(None if data.get("status") is None else str(data["status"])),
+            form=(None if data.get("form") is None else str(data["form"])),
+            kind_type=(None if data.get("kind_type") is None else str(data["kind_type"])),
+            attributes=data.get("attributes") or (),
+        )
+
+
+@dataclass(frozen=True, order=True)
 class ProvenanceRecord:
     source_table: str | None = None
     source_id: str | None = None
@@ -262,12 +301,14 @@ class ConflictWitness:
 
 @dataclass(frozen=True)
 class CompiledWorldGraph:
+    concepts: tuple[ConceptNode, ...] = ()
     claims: tuple[ClaimNode, ...] = ()
     relations: tuple[RelationEdge, ...] = ()
     parameterizations: tuple[ParameterizationEdge, ...] = ()
     conflicts: tuple[ConflictWitness, ...] = ()
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "concepts", tuple(sorted(self.concepts)))
         object.__setattr__(self, "claims", tuple(sorted(self.claims)))
         object.__setattr__(self, "relations", tuple(sorted(self.relations)))
         object.__setattr__(self, "parameterizations", tuple(sorted(self.parameterizations)))
@@ -275,6 +316,7 @@ class CompiledWorldGraph:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "concepts": [concept.to_dict() for concept in self.concepts],
             "claims": [claim.to_dict() for claim in self.claims],
             "relations": [relation.to_dict() for relation in self.relations],
             "parameterizations": [edge.to_dict() for edge in self.parameterizations],
@@ -284,6 +326,7 @@ class CompiledWorldGraph:
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> CompiledWorldGraph:
         return cls(
+            concepts=tuple(ConceptNode.from_dict(item) for item in data.get("concepts") or ()),
             claims=tuple(ClaimNode.from_dict(item) for item in data.get("claims") or ()),
             relations=tuple(RelationEdge.from_dict(item) for item in data.get("relations") or ()),
             parameterizations=tuple(

@@ -452,6 +452,12 @@ class WorldModel(ArtifactStore):
     def parameterizations_for(self, concept_id: str) -> list[dict]:
         return self._parameterizations_for(concept_id)
 
+    def compiled_graph(self):
+        """Build the canonical compiled semantic graph from the current sidecar."""
+        from propstore.core.graph_build import build_compiled_world_graph
+
+        return build_compiled_world_graph(self)
+
     def _group_members(self, concept_id: str) -> list[str]:
         """Get all concept_ids in the same parameterization group."""
         if not self._has_table("parameterization_group"):

@@ -203,27 +203,27 @@ Intent: bridge the old storage world into the new in-memory semantic core.
 
 ### TDD Tasks
 
-- [ ] Write failing tests asserting the graph builder preserves all current claims, concepts, stances, conflicts, and parameterizations from fixture sidecars.
-- [ ] Write failing tests for row-order independence.
-- [ ] Write failing tests for stable graph build output over repeated loads.
+- [x] Write failing tests asserting the graph builder preserves all current claims, concepts, stances, conflicts, and parameterizations from fixture sidecars.
+- [x] Write failing tests for row-order independence.
+- [x] Write failing tests for stable graph build output over repeated loads.
 
 ### Implementation Tasks
 
-- [ ] Create `propstore/core/graph_build.py`.
-- [ ] Add sidecar-row to graph-node/edge mapping.
-- [ ] Preserve current semantics exactly, including any oddities that are part of compatibility.
-- [ ] Expose graph construction hooks from `WorldModel`.
+- [x] Create `propstore/core/graph_build.py`.
+- [x] Add sidecar-row to graph-node/edge mapping.
+- [x] Preserve current semantics exactly, including any oddities that are part of compatibility.
+- [x] Expose graph construction hooks from `WorldModel`.
 
 ### Files Likely Touched
 
-- [ ] `propstore/core/graph_build.py`
-- [ ] `propstore/world/model.py`
-- [ ] test fixtures/helpers as needed
+- [x] `propstore/core/graph_build.py`
+- [x] `propstore/world/model.py`
+- [x] test fixtures/helpers as needed
 
 ### Completion Criteria
 
-- [ ] A canonical graph can be built entirely from the existing sidecar.
-- [ ] Existing runtime paths still work unchanged.
+- [x] A canonical graph can be built entirely from the existing sidecar.
+- [x] Existing runtime paths still work unchanged.
 
 ### Commit
 
