@@ -4,10 +4,12 @@ import json
 
 from propstore.world.bound import BoundWorld
 from propstore.world.labelled import (
+    AssumptionRef,
     EnvironmentKey,
     JustificationRecord,
     Label,
     NogoodSet,
+    combine_labels,
     compile_environment_assumptions,
     merge_labels,
 )
@@ -165,6 +167,45 @@ def test_justification_combination_is_order_independent() -> None:
             )
         ),
     )
+
+
+def test_label_combination_is_associative_for_exact_support_products() -> None:
+    assumption_a = AssumptionRef("a", "binding", "a", "a == 1")
+    assumption_b = AssumptionRef("b", "binding", "b", "b == 2")
+    assumption_c = AssumptionRef("c", "binding", "c", "c == 3")
+
+    label_a = Label.singleton(assumption_a)
+    label_b = Label.singleton(assumption_b)
+    label_c = Label.singleton(assumption_c)
+
+    left = combine_labels(combine_labels(label_a, label_b), label_c)
+    right = combine_labels(label_a, combine_labels(label_b, label_c))
+
+    assert left.environments == right.environments
+
+
+def test_nogood_subsumption_prunes_non_minimal_inconsistent_environments() -> None:
+    nogoods = NogoodSet(
+        (
+            EnvironmentKey(("a",)),
+            EnvironmentKey(("a", "b")),
+        )
+    )
+
+    filtered = merge_labels(
+        [
+            Label(
+                (
+                    EnvironmentKey(("a",)),
+                    EnvironmentKey(("a", "b")),
+                    EnvironmentKey(("b", "c")),
+                )
+            )
+        ],
+        nogoods=nogoods,
+    )
+
+    assert filtered.environments == (EnvironmentKey(("b", "c")),)
 
 
 def test_unconditional_claim_gets_empty_environment_label() -> None:

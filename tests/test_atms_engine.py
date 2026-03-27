@@ -10,6 +10,7 @@ from propstore.world.labelled import (
     EnvironmentKey,
     Label,
     SupportQuality,
+    cel_to_binding,
     compile_environment_assumptions,
 )
 from propstore.world.resolution import resolve
@@ -114,6 +115,108 @@ def _make_bound(
         context_hierarchy=_LeafHierarchy() if context_id is not None else None,
         policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS),
     )
+
+
+class _GraphOnlyATMSRuntime:
+    """ATMS runtime surface with no BoundWorld implementation details."""
+
+    def __init__(self, bound: BoundWorld) -> None:
+        from propstore.core.activation import activate_compiled_world_graph
+        from propstore.core.graph_build import build_compiled_world_graph
+
+        self.environment = bound._environment
+        self.active_graph = (
+            bound._active_graph
+            if bound._active_graph is not None
+            else activate_compiled_world_graph(
+                build_compiled_world_graph(bound._store),
+                environment=bound._environment,
+                solver=bound._store.condition_solver(),
+                context_hierarchy=bound._context_hierarchy,
+            )
+        )
+        self._bound = bound
+
+    @staticmethod
+    def _claim_node_to_row(claim_node) -> dict:
+        row = {
+            "id": claim_node.claim_id,
+            "concept_id": claim_node.concept_id,
+            "type": claim_node.claim_type,
+            "value": claim_node.scalar_value,
+        }
+        row.update(dict(claim_node.attributes))
+        return row
+
+    def is_parameterization_compatible(self, conditions: tuple[str, ...]) -> bool:
+        if not conditions:
+            return True
+        return self._bound.is_param_compatible(json.dumps(list(conditions)))
+
+    def active_claims(self) -> list[dict]:
+        compiled_claims = {
+            claim.claim_id: claim
+            for claim in self.active_graph.compiled.claims
+        }
+        return [
+            self._claim_node_to_row(compiled_claims[claim_id])
+            for claim_id in self.active_graph.active_claim_ids
+            if claim_id in compiled_claims
+        ]
+
+    def conflicts(self) -> list[dict]:
+        active_ids = set(self.active_graph.active_claim_ids)
+        return [
+            {
+                "claim_a_id": conflict.left_claim_id,
+                "claim_b_id": conflict.right_claim_id,
+                "warning_class": conflict.kind,
+                **dict(conflict.details),
+            }
+            for conflict in self.active_graph.compiled.conflicts
+            if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
+        ]
+
+    def all_parameterizations(self) -> list[dict]:
+        return [
+            {
+                "output_concept_id": edge.output_concept_id,
+                "concept_ids": json.dumps(list(edge.input_concept_ids)),
+                "formula": edge.formula,
+                "sympy": edge.sympy,
+                "exactness": edge.exactness,
+                "conditions_cel": (None if not edge.conditions else json.dumps(list(edge.conditions))),
+            }
+            for edge in self.active_graph.compiled.parameterizations
+        ]
+
+    def is_param_compatible(self, conditions_cel: str | None) -> bool:
+        return self._bound.is_param_compatible(conditions_cel)
+
+    def claim_support(self, claim_row: dict) -> tuple[Label | None, SupportQuality]:
+        return self._bound.claim_support(claim_row)
+
+    def concept_status(self, concept_id: str) -> str:
+        return self._bound.value_of(concept_id).status
+
+    def replay(self, queryables: tuple[QueryableAssumption, ...]):
+        bindings = dict(self.environment.bindings)
+        for queryable in queryables:
+            parsed = cel_to_binding(queryable.cel)
+            if parsed is None:
+                continue
+            key, value = parsed
+            bindings[key] = value
+        future_bound = _make_bound(
+            self._bound._store,
+            bindings=bindings,
+            context_id=self.environment.context_id,
+            effective_assumptions=tuple(self.environment.effective_assumptions),
+        )
+        return _GraphOnlyATMSRuntime(future_bound)
+
+    def __getattr__(self, name: str):
+        raise AssertionError(f"ATMS graph runtime should not access BoundWorld internals: {name}")
 
 
 def test_atms_propagates_combined_support_to_derived_node() -> None:
@@ -609,6 +712,88 @@ def test_atms_verify_labels_reports_clean_fixpoint() -> None:
     assert report["minimality_errors"] == []
     assert report["soundness_errors"] == []
     assert report["completeness_errors"] == []
+
+
+def test_phase8_graph_runtime_matches_boundworld_for_labels_and_nogoods() -> None:
+    from propstore.world.atms import ATMSEngine
+
+    store = _ATMSStore(
+        claims=[
+            {
+                "id": "claim_x",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 2.0,
+                "conditions_cel": json.dumps(["x == 1"]),
+            },
+            {
+                "id": "claim_y",
+                "concept_id": "concept2",
+                "type": "parameter",
+                "value": 3.0,
+                "conditions_cel": json.dumps(["y == 2"]),
+            },
+        ],
+        parameterizations=[
+            {
+                "output_concept_id": "concept3",
+                "concept_ids": json.dumps(["concept1", "concept2"]),
+                "sympy": "Eq(concept3, concept1 + concept2)",
+                "formula": "z = x + y",
+                "conditions_cel": None,
+            }
+        ],
+        conflicts=[
+            {"claim_a_id": "claim_x", "claim_b_id": "claim_y", "concept_id": "concept3"},
+        ],
+    )
+    bound = _make_bound(store, bindings={"x": 1, "y": 2})
+    graph_engine = ATMSEngine(_GraphOnlyATMSRuntime(bound))
+    bound_engine = bound.atms_engine()
+    derived = bound.derived_value("concept3")
+
+    assert graph_engine.claim_label("claim_x") == bound_engine.claim_label("claim_x")
+    assert graph_engine.claim_label("claim_y") == bound_engine.claim_label("claim_y")
+    assert graph_engine.derived_label("concept3", derived.value) == bound_engine.derived_label(
+        "concept3",
+        derived.value,
+    )
+    assert graph_engine.nogoods == bound_engine.nogoods
+
+
+def test_phase8_graph_runtime_replays_future_status_and_interventions_without_boundworld_introspection() -> None:
+    from propstore.world.atms import ATMSEngine
+
+    store = _ATMSStore(
+        claims=[
+            {
+                "id": "claim_now",
+                "concept_id": "concept1",
+                "type": "parameter",
+                "value": 1.0,
+                "conditions_cel": json.dumps(["x == 1"]),
+            },
+            {
+                "id": "claim_future",
+                "concept_id": "concept2",
+                "type": "parameter",
+                "value": 2.0,
+                "conditions_cel": json.dumps(["x == 1", "y == 2"]),
+            },
+        ],
+    )
+    bound = _make_bound(store, bindings={"x": 1})
+    runtime_engine = ATMSEngine(_GraphOnlyATMSRuntime(bound))
+    queryables = [QueryableAssumption.from_cel("y == 2")]
+
+    future_statuses = runtime_engine.claim_future_statuses("claim_future", queryables, limit=8)
+    relevance = runtime_engine.claim_relevance("claim_future", queryables, limit=8)
+    plans = runtime_engine.claim_interventions("claim_future", queryables, "IN", limit=8)
+
+    assert future_statuses["could_become_in"] is True
+    assert [entry["queryable_cels"] for entry in future_statuses["futures"]] == [["y == 2"]]
+    assert relevance["relevant_queryables"] == ["y == 2"]
+    assert [plan["queryable_cels"] for plan in plans] == [["y == 2"]]
 
 
 def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> None:

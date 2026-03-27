@@ -234,34 +234,34 @@ Intent: preserve the good ATMS machinery while removing its dependence on `Bound
 
 ### TDD Tasks
 
-- [ ] Write failing tests for ATMS parity over the new graph-backed activation path.
-- [ ] Write failing tests for label minimality and antichain preservation.
-- [ ] Write failing tests for nogood subsumption pruning.
-- [ ] Write failing tests for future/relevance/intervention parity.
-- [ ] Add property tests for label merge associativity where valid under the current algebra.
+- [x] Write failing tests for ATMS parity over the new graph-backed activation path.
+- [x] Write failing tests for label minimality and antichain preservation.
+- [x] Write failing tests for nogood subsumption pruning.
+- [x] Write failing tests for future/relevance/intervention parity.
+- [x] Add property tests for label merge associativity where valid under the current algebra.
 
 ### Implementation Tasks
 
-- [ ] Keep `world/labelled.py` as the label algebra.
-- [ ] Make `world/atms.py` consume canonical graph nodes and justifications.
-- [ ] Remove implicit dependence on `BoundWorld` implementation details where possible.
-- [ ] Keep current ATMS CLI behavior compatible.
+- [x] Keep `world/labelled.py` as the label algebra.
+- [x] Make `world/atms.py` consume canonical graph nodes and justifications.
+- [x] Remove implicit dependence on `BoundWorld` implementation details where possible.
+- [x] Keep current ATMS CLI behavior compatible.
 
 ### Files Likely Touched
 
 - [ ] `propstore/world/labelled.py`
-- [ ] `propstore/world/atms.py`
+- [x] `propstore/world/atms.py`
 - [ ] `propstore/world/bound.py`
 - [ ] core graph/justification modules
 
 ### Completion Criteria
 
-- [ ] ATMS becomes another analyzer over the same semantic center.
-- [ ] Label behavior remains exact.
+- [x] ATMS becomes another analyzer over the same semantic center.
+- [x] Label behavior remains exact.
 
 ### Commit
 
-- [ ] Commit: `refactor: migrate atms engine onto canonical graph`
+- [x] Commit: `refactor: migrate atms engine onto canonical graph`
 
 ## Phase 9: Structured Projection Decision
 
@@ -342,7 +342,7 @@ Intent: normalize the sidecar only after the runtime architecture is unified.
 - [x] PR 6: Phase 5
 - [x] PR 7: Phase 6
 - [x] PR 8: Phase 7
-- [ ] PR 9: Phase 8
+- [x] PR 9: Phase 8
 - [ ] PR 10: Phase 9
 - [ ] PR 11: Phase 10
 

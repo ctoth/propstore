@@ -18,8 +18,11 @@ import json
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from itertools import combinations, product
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
+from propstore.core.activation import activate_compiled_world_graph
+from propstore.core.graph_build import build_compiled_world_graph
+from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness, ParameterizationEdge
 from propstore.propagation import evaluate_parameterization
 from propstore.world.labelled import (
     AssumptionRef,
@@ -35,6 +38,7 @@ from propstore.world.types import (
     ATMSInspection,
     ATMSNodeStatus,
     ATMSOutKind,
+    Environment,
     QueryableAssumption,
 )
 
@@ -59,11 +63,184 @@ class ATMSJustification:
     informant: str
 
 
+@dataclass(frozen=True)
+class _ATMSRuntime:
+    environment: Environment
+    active_graph: ActiveWorldGraph
+    all_parameterizations: Callable[[], list[dict[str, Any]]]
+    active_claims: Callable[[], list[dict[str, Any]]]
+    conflicts: Callable[[], list[dict[str, Any]]]
+    is_param_compatible: Callable[[str | None], bool]
+    claim_support: Callable[[dict[str, Any]], tuple[Label | None, SupportQuality]]
+    concept_status: Callable[[str], str]
+    replay: Callable[[tuple[QueryableAssumption, ...]], "_ATMSRuntime"]
+
+    @property
+    def _environment(self) -> Environment:
+        return self.environment
+
+    @property
+    def _active_graph(self) -> ActiveWorldGraph:
+        return self.active_graph
+
+
+def _is_runtime_like(candidate: Any) -> bool:
+    return all(
+        hasattr(candidate, name)
+        for name in (
+            "environment",
+            "active_graph",
+            "all_parameterizations",
+            "active_claims",
+            "conflicts",
+            "is_param_compatible",
+            "claim_support",
+            "concept_status",
+            "replay",
+        )
+    )
+
+
+def _claim_node_to_row(claim_node: ClaimNode) -> dict[str, Any]:
+    row = {
+        "id": claim_node.claim_id,
+        "concept_id": claim_node.concept_id,
+        "type": claim_node.claim_type,
+        "value": claim_node.scalar_value,
+    }
+    row.update(dict(claim_node.attributes))
+    return row
+
+
+def _parameterization_edge_to_row(edge: ParameterizationEdge) -> dict[str, Any]:
+    return {
+        "output_concept_id": edge.output_concept_id,
+        "concept_ids": json.dumps(list(edge.input_concept_ids)),
+        "formula": edge.formula,
+        "sympy": edge.sympy,
+        "exactness": edge.exactness,
+        "conditions_cel": (None if not edge.conditions else json.dumps(list(edge.conditions))),
+    }
+
+
+def _conflict_witness_to_row(conflict: ConflictWitness) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "claim_a_id": conflict.left_claim_id,
+        "claim_b_id": conflict.right_claim_id,
+        "warning_class": conflict.kind,
+    }
+    row.update(dict(conflict.details))
+    return row
+
+
+def _extend_environment(
+    environment: Environment,
+    queryable_set: tuple[QueryableAssumption, ...],
+) -> Environment:
+    future_assumptions = tuple(
+        sorted(
+            environment.assumptions
+            + tuple(
+                AssumptionRef(
+                    assumption_id=queryable.assumption_id,
+                    kind=queryable.kind,
+                    source=queryable.source,
+                    cel=queryable.cel,
+                )
+                for queryable in queryable_set
+            ),
+            key=lambda assumption: assumption.assumption_id,
+        )
+    )
+    future_effective_assumptions = tuple(
+        dict.fromkeys(
+            environment.effective_assumptions
+            + tuple(queryable.cel for queryable in queryable_set)
+        )
+    )
+    future_bindings = dict(environment.bindings)
+    for queryable in queryable_set:
+        parsed = cel_to_binding(queryable.cel)
+        if parsed is not None:
+            key, value = parsed
+            future_bindings[key] = value
+    return replace(
+        environment,
+        bindings=future_bindings,
+        effective_assumptions=future_effective_assumptions,
+        assumptions=future_assumptions,
+    )
+
+
+def _runtime_from_bound(bound: Any) -> _ATMSRuntime:
+    active_graph = getattr(bound, "_active_graph", None)
+    if active_graph is None:
+        active_graph = activate_compiled_world_graph(
+            build_compiled_world_graph(bound._store),
+            environment=bound._environment,
+            solver=bound._store.condition_solver(),
+            context_hierarchy=bound._context_hierarchy,
+        )
+
+    compiled_claims = {
+        claim.claim_id: claim
+        for claim in active_graph.compiled.claims
+    }
+
+    def _active_claims() -> list[dict[str, Any]]:
+        return [
+            _claim_node_to_row(compiled_claims[claim_id])
+            for claim_id in active_graph.active_claim_ids
+            if claim_id in compiled_claims
+        ]
+
+    def _conflicts() -> list[dict[str, Any]]:
+        active_ids = set(active_graph.active_claim_ids)
+        return [
+            _conflict_witness_to_row(conflict)
+            for conflict in active_graph.compiled.conflicts
+            if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
+        ]
+
+    def _all_parameterizations() -> list[dict[str, Any]]:
+        return [
+            _parameterization_edge_to_row(edge)
+            for edge in active_graph.compiled.parameterizations
+        ]
+
+    def _replay(queryable_set: tuple[QueryableAssumption, ...]) -> _ATMSRuntime:
+        future_environment = _extend_environment(bound._environment, queryable_set)
+        binder = getattr(bound._store, "bind", None)
+        if callable(binder):
+            future_bound = binder(environment=future_environment, policy=bound._policy)
+        else:
+            future_bound = bound.__class__(
+                bound._store,
+                environment=future_environment,
+                context_hierarchy=bound._context_hierarchy,
+                policy=bound._policy,
+            )
+        return _runtime_from_bound(future_bound)
+
+    return _ATMSRuntime(
+        environment=bound._environment,
+        active_graph=active_graph,
+        all_parameterizations=_all_parameterizations,
+        active_claims=_active_claims,
+        conflicts=_conflicts,
+        is_param_compatible=lambda conditions_cel: bound.is_param_compatible(conditions_cel),
+        claim_support=lambda claim: bound.claim_support(claim),
+        concept_status=lambda concept_id: bound.value_of(concept_id).status,
+        replay=_replay,
+    )
+
+
 class ATMSEngine:
     """Global exact-support propagation engine for one bound world."""
 
-    def __init__(self, bound: BoundWorld) -> None:
-        self._bound = bound
+    def __init__(self, bound: BoundWorld | _ATMSRuntime | Any) -> None:
+        self._runtime = bound if isinstance(bound, _ATMSRuntime) or _is_runtime_like(bound) else _runtime_from_bound(bound)
+        self._bound = self._runtime
         self._nodes: dict[str, ATMSNode] = {}
         self._justifications: dict[str, ATMSJustification] = {}
         self._claim_node_ids: dict[str, str] = {}
@@ -344,7 +521,7 @@ class ATMSEngine:
         limit: int = 8,
     ) -> dict[str, Any]:
         """Summarize bounded concept stability using the current BoundWorld value status."""
-        current_status = self._bound.value_of(concept_id).status
+        current_status = self._runtime.concept_status(concept_id)
         futures = self._concept_future_entries(concept_id, queryables, limit=limit)
         consistent_futures = [future for future in futures if future["consistent"]]
         witnesses = self._minimal_future_entries([
@@ -426,7 +603,7 @@ class ATMSEngine:
         limit: int = 8,
     ) -> dict[str, Any]:
         """Summarize which queryables can flip a concept's bounded value status."""
-        current_status = self._bound.value_of(concept_id).status
+        current_status = self._runtime.concept_status(concept_id)
         states = self._concept_relevance_states(concept_id, queryables, limit=limit)
         relevance = self._relevance_from_states(states, current_status)
         return {
@@ -495,7 +672,7 @@ class ATMSEngine:
         max_plans: int | None = None,
     ) -> list[dict[str, Any]]:
         """Return minimal additive plans that reach the requested concept value status."""
-        current_status = self._bound.value_of(concept_id).status
+        current_status = self._runtime.concept_status(concept_id)
         candidates = [
             future
             for future in self._concept_future_entries(concept_id, queryables, limit=limit)
@@ -686,7 +863,7 @@ class ATMSEngine:
     ) -> dict[str, Any]:
         claim_inspections = {
             claim["id"]: self.claim_status(claim["id"])
-            for claim in self._bound.active_claims()
+            for claim in self._runtime.active_claims()
             if claim.get("id") in self._claim_node_ids
         }
         result = {
@@ -694,7 +871,7 @@ class ATMSEngine:
             "supported": sorted(self.supported_claim_ids()),
             "defeated": sorted(
                 claim["id"]
-                for claim in self._bound.active_claims()
+                for claim in self._runtime.active_claims()
                 if claim.get("id") not in self.supported_claim_ids()
             ),
             "nogoods": [
@@ -795,7 +972,7 @@ class ATMSEngine:
 
     def _build_assumption_nodes(self) -> None:
         for assumption in sorted(
-            self._bound._environment.assumptions,
+            self._runtime.environment.assumptions,
             key=lambda item: item.assumption_id,
         ):
             node_id = f"assumption:{assumption.assumption_id}"
@@ -812,7 +989,7 @@ class ATMSEngine:
             self._assumption_node_ids[assumption.assumption_id] = node_id
 
     def _build_claim_nodes_and_justifications(self) -> None:
-        for claim in sorted(self._bound.active_claims(), key=lambda row: row["id"]):
+        for claim in sorted(self._runtime.active_claims(), key=lambda row: row["id"]):
             claim_id = claim["id"]
             node_id = f"claim:{claim_id}"
             self._nodes[node_id] = ATMSNode(
@@ -886,7 +1063,7 @@ class ATMSEngine:
         provider_ids_by_concept = self._provider_node_ids_by_concept()
 
         for index, param in enumerate(self._all_parameterizations):
-            if not self._bound.is_param_compatible(param.get("conditions_cel")):
+            if not self._runtime.is_param_compatible(param.get("conditions_cel")):
                 continue
 
             condition_antecedents = self._exact_antecedent_sets(
@@ -943,7 +1120,7 @@ class ATMSEngine:
         provenance: dict[EnvironmentKey, list[dict[str, Any]]] = defaultdict(list)
         for environment, details in self._nogood_provenance.items():
             provenance[environment].extend(details)
-        for conflict in self._bound.conflicts():
+        for conflict in self._runtime.conflicts():
             claim_a = conflict.get("claim_a_id")
             claim_b = conflict.get("claim_b_id")
             if not claim_a or not claim_b:
@@ -995,9 +1172,8 @@ class ATMSEngine:
         }
 
     def _sorted_parameterizations(self) -> list[dict]:
-        rows = getattr(self._bound._store, "all_parameterizations", lambda: [])()
         return sorted(
-            rows,
+            self._runtime.all_parameterizations(),
             key=lambda row: (
                 row.get("output_concept_id") or "",
                 row.get("formula") or "",
@@ -1119,9 +1295,8 @@ class ATMSEngine:
             return SupportQuality.EXACT
 
         claim = node.payload.get("claim")
-        claim_support = getattr(self._bound, "claim_support", None)
-        if claim is not None and callable(claim_support):
-            _label, quality = claim_support(claim)
+        if claim is not None:
+            _label, quality = self._runtime.claim_support(claim)
             return quality
         return SupportQuality.SEMANTIC_COMPATIBLE
 
@@ -1205,7 +1380,7 @@ class ATMSEngine:
         return EnvironmentKey(
             tuple(
                 assumption.assumption_id
-                for assumption in self._bound._environment.assumptions
+                for assumption in self._runtime.environment.assumptions
             )
         )
 
@@ -1215,11 +1390,11 @@ class ATMSEngine:
     ) -> tuple[QueryableAssumption, ...]:
         current_ids = {
             assumption.assumption_id
-            for assumption in self._bound._environment.assumptions
+            for assumption in self._runtime.environment.assumptions
         }
         current_cels = {
             assumption.cel
-            for assumption in self._bound._environment.assumptions
+            for assumption in self._runtime.environment.assumptions
         }
         normalized: dict[tuple[str, str], QueryableAssumption] = {}
         for queryable in queryables:
@@ -1256,46 +1431,7 @@ class ATMSEngine:
         self,
         queryable_set: tuple[QueryableAssumption, ...],
     ) -> ATMSEngine:
-        future_assumptions = tuple(
-            sorted(
-                self._bound._environment.assumptions
-                + tuple(
-                    AssumptionRef(
-                        assumption_id=queryable.assumption_id,
-                        kind=queryable.kind,
-                        source=queryable.source,
-                        cel=queryable.cel,
-                    )
-                    for queryable in queryable_set
-                ),
-                key=lambda assumption: assumption.assumption_id,
-            )
-        )
-        future_effective_assumptions = tuple(
-            dict.fromkeys(
-                self._bound._environment.effective_assumptions
-                + tuple(queryable.cel for queryable in queryable_set)
-            )
-        )
-        future_bindings = dict(self._bound._environment.bindings)
-        for queryable in queryable_set:
-            parsed = cel_to_binding(queryable.cel)
-            if parsed is not None:
-                key, value = parsed
-                future_bindings[key] = value
-        future_environment = replace(
-            self._bound._environment,
-            bindings=future_bindings,
-            effective_assumptions=future_effective_assumptions,
-            assumptions=future_assumptions,
-        )
-        future_bound = self._bound.__class__(
-            self._bound._store,
-            environment=future_environment,
-            context_hierarchy=self._bound._context_hierarchy,
-            policy=self._bound._policy,
-        )
-        return self.__class__(future_bound)
+        return self.__class__(self._runtime.replay(queryable_set))
 
     def _future_entries(
         self,
@@ -1329,7 +1465,7 @@ class ATMSEngine:
                 "queryable_cels": list(future["queryable_cels"]),
                 "environment": list(future["environment_key"].assumption_ids),
                 "consistent": future["consistent"],
-                "status": future_engine._bound.value_of(concept_id).status,
+                "status": future_engine._runtime.concept_status(concept_id),
                 "supported_claim_ids": sorted(future_engine.supported_claim_ids(concept_id)),
             })
         return futures
@@ -1392,7 +1528,7 @@ class ATMSEngine:
                 "queryable_cels": (),
                 "environment": list(self._bound_environment_key().assumption_ids),
                 "consistent": not self.nogoods.excludes(self._bound_environment_key()),
-                "status": self._bound.value_of(concept_id).status,
+                "status": self._runtime.concept_status(concept_id),
             }
         }
         for future in self._concept_future_entries(concept_id, queryables, limit=limit):
