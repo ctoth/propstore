@@ -5,8 +5,11 @@ year: 2015
 venue: "Science"
 doi_url: "https://doi.org/10.1126/science.aac4716"
 pages: 10
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T20:19:32Z"
 ---
-
 # Estimating the reproducibility of psychological science
 
 ## One-Sentence Summary
@@ -175,6 +178,21 @@ This paper provides empirical base rates for the reliability of published scient
 - [ ] Can the predictors identified (original P-value, effect size) be used to build a calibrated reliability prior for claims?
 - [ ] How should meta-analytic combination of original + replication map onto subjective logic opinion fusion?
 - [ ] What is the appropriate base rate to use for claims from journals not sampled in this study?
+
+## Collection Cross-References
+
+### Already in Collection (not yet indexed)
+- Begley_2012_DrugDevelopmentRaiseStandards — cited as preclinical biology replication study (11% replication rate)
+- Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments — cited as economics replication extension (61% replication rate)
+- Camerer_2018_EvaluatingReplicabilitySocialScience — related replication study in social sciences
+- Errington_2021_InvestigatingReplicabilityPreclinicalCancer — related replication study in preclinical cancer research
+
+### New Leads (Not Yet in Collection)
+- Ioannidis (2005) — "Why most published research findings are false" — theoretical framework for replication failure rates
+- Simmons, Nelson & Simonsohn (2011) — "False-positive psychology" — demonstrates P-hacking mechanism
+- Klein et al. (2014) — "Many Labs" replication project — multi-site replication of 13 classic effects
+- Button et al. (2013) — "Power failure" in neuroscience — systematic underpowering documentation
+- Cumming (2014) — "The new statistics: why and how" — statistical reform proposals
 
 ## Related Work Worth Reading
 - Camerer et al. (2016) "Evaluating replicability of laboratory experiments in economics" — extends to economics
