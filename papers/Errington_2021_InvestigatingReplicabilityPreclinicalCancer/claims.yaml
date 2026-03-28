@@ -1,0 +1,338 @@
+source:
+  paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T20:26:10Z"
+
+claims:
+  - id: claim1
+    type: parameter
+    concept: effect_size_shrinkage
+    value: 85
+    unit: "percent"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 1
+      section: "Abstract"
+      quote_fragment: "the median effect size in the replications was 85% smaller than the median effect size in the original experiments"
+    notes: "Preclinical cancer biology, median SMD. Median original positive ES = 0.63, median replication ES = 0.30 (SMD/Cohen's d)"
+
+  - id: claim2
+    type: parameter
+    concept: replication_significance_rate
+    value: 39
+    unit: "percent"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 4
+      section: "Results"
+      table: "Table 1"
+      quote_fragment: "Direction and statistical significance: 44 of 112 (39%)"
+    notes: "Preclinical cancer biology, direction+significance criterion, all outcomes, original positive results"
+
+  - id: claim3
+    type: parameter
+    concept: cognitive_replication_rate
+    value: 82
+    unit: "percent"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 4
+      section: "Results"
+      table: "Table 1"
+      quote_fragment: "Same direction: 95 of 116 (82%)"
+    notes: "Preclinical cancer biology, same direction criterion (most lenient), all outcomes, original positive results"
+
+  - id: claim4
+    type: parameter
+    concept: meta_analytic_significance_rate
+    value: 67
+    unit: "percent"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 4
+      section: "Results"
+      table: "Table 1"
+      quote_fragment: "Meta-analysis (p < 0.05): 75 of 112 (67%)"
+    notes: "Preclinical cancer biology, all outcomes, original positive results"
+
+  - id: claim5
+    type: parameter
+    concept: confidence_interval_overlap_rate
+    value: 23
+    unit: "percent"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 4
+      section: "Results"
+      table: "Table 1"
+      quote_fragment: "Original ES in replication CI: 26 of 112 (23%)"
+    notes: "Preclinical cancer biology, original ES in replication CI criterion, all outcomes, original positive results"
+
+  - id: claim6
+    type: parameter
+    concept: confidence_interval_overlap_rate
+    value: 45
+    unit: "percent"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 4
+      section: "Results"
+      table: "Table 1"
+      quote_fragment: "Replication ES in original CI: 50 of 112 (45%)"
+    notes: "Preclinical cancer biology, replication ES in original CI criterion, all outcomes, original positive results"
+
+  - id: claim7
+    type: parameter
+    concept: replication_success
+    value: 3
+    unit: "percent"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 4
+      section: "Results"
+      table: "Table 1"
+      quote_fragment: "Replication ES >= original ES: 3 of 112 (3%)"
+    notes: "Preclinical cancer biology, most stringent criterion (replication ES >= original ES), all outcomes, original positive results"
+
+  - id: claim8
+    type: parameter
+    concept: mean_original_effect_size
+    value: 1.38
+    unit: "cohen_d"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 9
+      section: "Results"
+      table: "Table 3"
+      quote_fragment: "Mean OES original experiment effect size: 1.38 (1.85)"
+    notes: "Preclinical cancer biology, SD = 1.85; 19 papers, numerical positive results only"
+
+  - id: claim9
+    type: parameter
+    concept: mean_replication_effect_size
+    value: 0.58
+    unit: "cohen_d"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 9
+      section: "Results"
+      table: "Table 3"
+      quote_fragment: "Mean OES replication experiment effect size: 0.58 (0.87)"
+    notes: "Preclinical cancer biology, SD = 0.87; numerical positive results only"
+
+  - id: claim10
+    type: parameter
+    concept: original_effect_size
+    value: 0.63
+    lower_bound: 0.15
+    upper_bound: 1.80
+    unit: "cohen_d"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 9
+      section: "Results"
+      table: "Table 3"
+      quote_fragment: "Median [IQR] of original: 0.63 [0.15-1.80]"
+    notes: "Preclinical cancer biology, median with IQR, original positive results"
+
+  - id: claim11
+    type: parameter
+    concept: replication_effect_size
+    value: 0.30
+    lower_bound: 0.01
+    upper_bound: 0.96
+    unit: "cohen_d"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 9
+      section: "Results"
+      table: "Table 3"
+      quote_fragment: "Median [IQR] of replication: 0.30 [0.01-0.96]"
+    notes: "Preclinical cancer biology, median with IQR, original positive results"
+
+  - id: claim12
+    type: observation
+    statement: "Replication rates in preclinical cancer biology range from 3% to 82% depending on which of seven criteria is used to assess replication success."
+    concepts:
+      - replication_success
+      - cognitive_replication_rate
+      - replication_significance_rate
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 4
+      section: "Results"
+      table: "Table 1"
+      quote_fragment: "Same direction (82%) to Replication ES >= original ES (3%)"
+    notes: "This demonstrates that 'did it replicate?' is fundamentally criterion-dependent"
+
+  - id: claim13
+    type: observation
+    statement: "Animal experiments in preclinical cancer biology replicate at lower rates than non-animal experiments across all seven replication criteria."
+    concepts:
+      - discipline_replication_asymmetry
+      - replication_success
+      - context_sensitivity
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 12
+      section: "Comparing animal vs. non-animal experiments"
+      quote_fragment: "animal experiments were much less likely to replicate"
+    notes: "Same direction: 63% animal vs 85% non-animal; direction+significance: 12% vs 54%"
+
+  - id: claim14
+    type: observation
+    statement: "None of five candidate moderators (animal experiment, CRO lab, core lab, materials shared, clarifications quality) showed a consistent, significant association with replication success in preclinical cancer biology."
+    concepts:
+      - replication_success
+      - replication_failure_causes
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 14
+      section: "Assessing candidate moderators of replication success metrics"
+      figure: "Figure 4"
+      quote_fragment: "None of the five moderators showed a consistent, significant association with replication rate"
+
+  - id: claim15
+    type: observation
+    statement: "Smaller original effect sizes are associated with lower replication success, consistent with findings in other disciplines."
+    concepts:
+      - original_effect_size
+      - replication_success
+      - evidence_strength
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 19
+      section: "What replicates and what does not?"
+      quote_fragment: "The clearest indicator of replication success was that smaller effects were less likely to replicate than larger effects"
+
+  - id: claim16
+    type: observation
+    statement: "92% of replication effect sizes in preclinical cancer biology were smaller than the corresponding original effect sizes."
+    concepts:
+      - effect_size_shrinkage
+      - replication_effect_size
+      - original_effect_size
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 9
+      section: "Results"
+      quote_fragment: "92% of replication effect sizes were smaller than the original"
+
+  - id: claim17
+    type: observation
+    statement: "Combining original and replication data via meta-analysis, 67% of original positive effect sizes were in the 95% confidence interval of the combined estimate, and the aggregated p-value was 0.0005."
+    concepts:
+      - meta_analytic_combination
+      - meta_analytic_significance_rate
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 8
+      section: "Combining the original and replication effect sizes"
+      quote_fragment: "the aggregated p-value of 0.0005"
+
+  - id: claim18
+    type: comparison
+    statement: "Unlike Begley and Ellis (2012), who reported only 11% replication in preclinical cancer research, the RPCB finds replication rates ranging from 3% to 82% depending on criterion, showing that the discrepancy arises from criterion choice rather than a single definitive rate."
+    concepts:
+      - replication_success
+      - cognitive_replication_rate
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 1
+      section: "Introduction"
+      quote_fragment: "Begley and Ellis reported only 11% replication"
+    notes: "Begley and Ellis may have conflated replicability with other quality measures"
+
+  - id: claim19
+    type: comparison
+    statement: "Preclinical cancer biology shows approximately 85% effect size shrinkage upon replication, compared to approximately 50% shrinkage in psychology (Open Science Collaboration 2015) and approximately 34% in economics (Camerer et al. 2016), suggesting domain-dependent deflation magnitude."
+    concepts:
+      - effect_size_shrinkage
+      - discipline_replication_asymmetry
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 9
+      section: "Results"
+      quote_fragment: "the median effect size in the replications was 85% smaller"
+    notes: "Cross-domain comparison synthesized from this paper and its related work citations"
+
+  - id: claim20
+    type: mechanism
+    statement: "The approximately 85% shrinkage in replication effect sizes relative to originals is consistent with publication bias inflating original estimates, because selective reporting and p-hacking practices produce inflated effect sizes that shrink toward the true value upon replication."
+    concepts:
+      - effect_size_shrinkage
+      - publication_bias
+      - false_positive_rate
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 16
+      section: "Discussion"
+      quote_fragment: "research practices such as p-hacking on the inflation of false positives in the published literature"
+
+  - id: claim21
+    type: limitation
+    statement: "Only 50 of 193 originally planned experiments were completed due to barriers in documentation, methodological difficulties, and resource constraints, meaning the completed replications may not be representative of all preclinical cancer biology."
+    concepts:
+      - sampling_scope
+      - generalizability
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 21
+      section: "Limitations"
+      quote_fragment: "only 50 of 193 originally planned experiments were completed"
+
+  - id: claim22
+    type: limitation
+    statement: "A single failed replication does not definitively confirm non-replicability; multiple independent replications would be needed to establish replication failure with confidence."
+    concepts:
+      - single_replication
+      - false_negative_risk
+      - replication_success
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 16
+      section: "What does a failure to replicate mean?"
+      quote_fragment: "A failure to replicate could also occur because the replication was a false negative"
+
+  - id: claim23
+    type: observation
+    statement: "The five replication criteria used in the study are all positively correlated with each other, with point-biserial correlations ranging from 0.15 to 0.78."
+    concepts:
+      - replication_success
+      - original_replication_effect_correlation
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 19
+      section: "Results"
+      figure: "Figure 7"
+      quote_fragment: "The five criteria were all positively correlated with one another"
+    notes: "Strongest correlation: Rep ES in orig CI with Rep ES in PI (r=0.78); weakest: Orig ES in rep CI with Rep ES in PI (r=0.15)"
+
+  - id: claim24
+    type: observation
+    statement: "Of 22 original null effects, 50% of replications were in the same direction and statistically significant, suggesting some original null findings may have been underpowered false negatives."
+    concepts:
+      - false_negative_risk
+      - replication_success
+      - evidence_strength
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 5
+      section: "Results"
+      table: "Table 1"
+      quote_fragment: "10 of 20 (50%) replications were in the same direction as the original and statistically significant"
+
+  - id: claim25
+    type: parameter
+    concept: replication_significance_rate
+    value: 60
+    unit: "percent"
+    provenance:
+      paper: Errington_2021_InvestigatingReplicabilityPreclinicalCancer
+      page: 4
+      section: "Results"
+      table: "Table 1"
+      quote_fragment: "Replication ES in PI: 67 of 112 (60%)"
+    notes: "Preclinical cancer biology, prediction interval criterion, all outcomes, original positive results; method from Patil et al. 2016"
