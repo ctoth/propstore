@@ -1,0 +1,292 @@
+source:
+  paper: Yang_2020_EstimatingDeepReplicabilityScientific
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T21:09:35Z"
+
+claims:
+  # --- Observation Claims ---
+
+  - id: claim1
+    type: observation
+    statement: "A machine learning model trained on word2vec representations of paper abstracts predicts replication outcomes with accuracy comparable to prediction markets (0.65-0.78 across out-of-sample datasets vs 0.71-0.74 for prediction markets)."
+    concepts:
+      - replication_outcome
+      - prediction_market_price
+      - prediction_method
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 1
+      section: "Abstract"
+      quote_fragment: "The model predicts replicability better than the base rate of reviewers and comparably as well as prediction markets"
+
+  - id: claim2
+    type: observation
+    statement: "Narrative text features from paper abstracts outperform reported statistics (p-values, effect sizes, sample sizes) for predicting replication outcomes, with narrative-only achieving 0.69 accuracy vs metrics-only 0.67 accuracy."
+    concepts:
+      - replication_outcome
+      - original_p_value
+      - original_effect_size
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 3
+      section: "Results"
+      quote_fragment: "the model's accuracy is higher when trained on a paper's text rather than its reported statistics"
+
+  - id: claim3
+    type: observation
+    statement: "N-grams (higher-order word combinations) correlate with replication outcomes, while individual persuasion words or novelty words like 'remarkable' or 'unexpected' do not predict replication failure."
+    concepts:
+      - replication_outcome
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 5
+      section: "Tests of inherited bias"
+      quote_fragment: "n-grams, higher order word combinations that humans have difficulty processing, correlate with replication"
+
+  - id: claim4
+    type: observation
+    statement: "Citation rates of replicating and nonreplicating studies are statistically indistinguishable, meaning failed studies circulate through the literature as quickly as successful ones."
+    concepts:
+      - citation_count
+      - replication_outcome
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 1
+      section: "Introduction"
+      figure: "Fig 1"
+      quote_fragment: "Citation rates of replicating and nonreplicating studies are indistinguishable"
+
+  - id: claim5
+    type: observation
+    statement: "Combining narrative text features with reviewer metrics (reported statistics) improves prediction accuracy by 3% and top-k precision by 5% over metrics alone (both p < 0.01)."
+    concepts:
+      - replication_outcome
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 3
+      section: "Results"
+      quote_fragment: "the combined narrative-and-reviewer metrics model achieved an average accuracy of 0.71...better in terms of accuracy and top-k precision than either model alone"
+
+  - id: claim6
+    type: observation
+    statement: "The ML replication prediction model shows no evidence of bias based on topics, journals, disciplines, base rates of failure, persuasion words, or novelty words when each factor is tested independently."
+    concepts:
+      - replication_outcome
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 5
+      section: "Tests of inherited bias"
+      table: "Table 2"
+      quote_fragment: "we found no evidence for bias based on topics, journals, disciplines, base rates of failure, persuasion words, or novelty words"
+
+  - id: claim7
+    type: observation
+    statement: "The model achieves its highest out-of-sample accuracy (0.78) on high-impact Nature/Science papers from the DARPA SCORE project, outperforming prediction markets (0.74) on the same dataset."
+    concepts:
+      - replication_outcome
+      - prediction_market_price
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 4
+      section: "Out-of-sample tests"
+      quote_fragment: "the machine learning model correctly classified 78% of the studies, and the machine learning model correctly classified 90% of the studies predicted to replicate"
+
+  # --- Measurement Claims ---
+
+  - id: claim8
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.69
+    unit: "proportion"
+    evaluation_population: "234 manually replicated studies (RPP + ML1 + ML2)"
+    methodology: "Stratified 10-fold cross-validation repeated 100 times"
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 2
+      section: "Results"
+    notes: "Narrative-only model variant"
+
+  - id: claim9
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.67
+    unit: "proportion"
+    evaluation_population: "234 manually replicated studies (RPP + ML1 + ML2)"
+    methodology: "Stratified 10-fold cross-validation repeated 100 times"
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 3
+      section: "Results"
+    notes: "Reviewer metrics-only model variant"
+
+  - id: claim10
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.71
+    unit: "proportion"
+    evaluation_population: "234 manually replicated studies (RPP + ML1 + ML2)"
+    methodology: "Stratified 10-fold cross-validation repeated 100 times"
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 3
+      section: "Results"
+    notes: "Combined narrative + reviewer metrics model variant"
+
+  - id: claim11
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.75
+    unit: "proportion"
+    evaluation_population: "16 economics experiments (Camerer 2016)"
+    methodology: "Out-of-sample test (Test I)"
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 3
+      section: "Out-of-sample tests"
+      table: "Table 1"
+    notes: "Camerer 2016 economics dataset"
+
+  - id: claim12
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.65
+    unit: "proportion"
+    evaluation_population: "57 pre-registered replications (SSRP, Camerer 2018)"
+    methodology: "Out-of-sample test (Test II)"
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 4
+      section: "Out-of-sample tests"
+    notes: "SSRP Camerer 2018 dataset"
+
+  - id: claim13
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.78
+    unit: "proportion"
+    evaluation_population: "130 Nature/Science papers (DARPA SCORE)"
+    methodology: "Out-of-sample test (Test V)"
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 4
+      section: "Out-of-sample tests"
+
+  # --- Mechanism Claims ---
+
+  - id: claim14
+    type: mechanism
+    statement: "Word2vec captures semantic relationships and interdependencies among words in scientific abstracts that carry replication-relevant signal, because the 200-dimensional embedding represents co-occurrence patterns across 2 million scientific abstracts that encode implicit markers of methodological quality not visible at the single-word level."
+    concepts:
+      - replication_outcome
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 2
+      section: "Model"
+      quote_fragment: "nominally represent the interdependencies among all words in the corpus"
+
+  - id: claim15
+    type: mechanism
+    statement: "N-gram features (higher-order word combinations) carry replication signal because they capture stylistic and rhetorical patterns in scientific writing that correlate with study quality, even though humans have difficulty processing these multi-word combinations consciously."
+    concepts:
+      - replication_outcome
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 5
+      section: "Discussion"
+      quote_fragment: "n-grams, higher order word combinations that humans have difficulty processing, correlate with replication"
+
+  # --- Comparison Claims ---
+
+  - id: claim16
+    type: comparison
+    statement: "Unlike Altmejd et al. (2019) which uses reported statistics (p-values, effect sizes, sample sizes) as features, this model achieves comparable or better accuracy using paper abstract text alone, demonstrating that narrative features outperform statistical summaries for replication prediction."
+    concepts:
+      - replication_outcome
+      - original_p_value
+      - original_effect_size
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 3
+      section: "Results"
+      quote_fragment: "the narratives-only model provides a more consistent and higher level of predictability than the reviewer metrics"
+
+  - id: claim17
+    type: comparison
+    statement: "Unlike prediction markets which require recruiting expert panels and are resource-intensive, the ML model achieves comparable accuracy (0.74 vs 0.71 on RPP, 0.78 vs 0.74 on DARPA SCORE) while being scalable to review the entire scientific literature."
+    concepts:
+      - replication_outcome
+      - prediction_market_price
+      - prediction_method
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 4
+      section: "Out-of-sample tests"
+      quote_fragment: "methods that are scalable and efficient enough to review the ever-growing numbers of publications"
+
+  # --- Limitation Claims ---
+
+  - id: claim18
+    type: limitation
+    statement: "The model cannot identify specific methodological flaws in a study; it provides only an aggregate probability estimate of replication, not a diagnosis of what might be wrong."
+    concepts:
+      - replication_outcome
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 5
+      section: "Discussion"
+
+  - id: claim19
+    type: limitation
+    statement: "The model was trained primarily on psychology studies (96/234 from RPP) with some economics; generalizability to other scientific fields (biology, medicine, physics) has not been validated."
+    concepts:
+      - replication_outcome
+      - discipline_replication_asymmetry
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 2
+      section: "Model"
+      table: "Table 1"
+
+  - id: claim20
+    type: limitation
+    statement: "The model uses only paper abstracts, not full text, so replication-relevant signals present only in methods or results sections are not captured."
+    concepts:
+      - replication_outcome
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 2
+      section: "Model"
+
+  # --- Parameter Claims ---
+
+  - id: claim21
+    type: parameter
+    concept: prediction_method
+    value: 200
+    unit: "dimensions"
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 2
+      section: "Model"
+      quote_fragment: "We used 200 dimensions for two reasons"
+    notes: "Word2vec embedding dimensions for replication predictor. Also tested 100 and 300 dimensions with similar cross-validation results."
+
+  - id: claim22
+    type: parameter
+    concept: replication_significance_rate
+    value: 0.56
+    unit: "proportion"
+    provenance:
+      paper: Yang_2020_EstimatingDeepReplicabilityScientific
+      page: 3
+      section: "Results"
+      quote_fragment: "the base rate threshold we chose, 56 of 96 studies failed manual replication"
+    notes: "RPP replication failure base rate: 56 of 96 studies failed replication, establishing the baseline accuracy any model must beat"
