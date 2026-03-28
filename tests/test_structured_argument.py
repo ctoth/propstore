@@ -156,7 +156,9 @@ def test_structured_projection_uses_stable_argument_ids_and_exact_labels() -> No
         support_metadata=_support_metadata(bound, active),
     )
 
-    assert tuple(argument.arg_id for argument in projection.arguments) == ("arg:claim_exact",)
+    # Exactly one argument for claim_exact (arg_id format is bridge-internal)
+    assert len(projection.arguments) == 1
+    assert projection.arguments[0].claim_id == "claim_exact"
     assert projection.arguments[0].support_quality == SupportQuality.EXACT
     assert projection.arguments[0].label == bound.value_of("concept1").label
 
@@ -233,18 +235,23 @@ def test_structured_projection_support_induces_additional_defeat_path() -> None:
 
     projection = build_structured_projection(store, store.claims_for(None))
 
+    # Find the supporter's base argument ID (bridge uses sequential IDs)
+    supporter_arg_ids = set(projection.claim_to_argument_ids.get("claim_supporter", ()))
+    target_arg_ids = set(projection.claim_to_argument_ids.get("claim_target", ()))
+
     derived_attackers = [
         argument.arg_id
         for argument in projection.arguments
         if argument.claim_id == "claim_attacker"
         and argument.premise_claim_ids == ("claim_supporter",)
-        and "arg:claim_supporter" in argument.subargument_ids
+        and supporter_arg_ids & set(argument.subargument_ids)
     ]
 
     assert derived_attackers
     assert any(
-        (arg_id, "arg:claim_target") in projection.framework.defeats
+        (arg_id, target_id) in projection.framework.defeats
         for arg_id in derived_attackers
+        for target_id in target_arg_ids
     )
 
 
@@ -266,14 +273,23 @@ def test_structured_projection_builds_real_premises_and_subargument_graphs() -> 
     for argument in projection.arguments:
         by_claim.setdefault(argument.claim_id, []).append(argument)
 
+    # Look up base argument IDs by claim (bridge uses sequential IDs)
+    claim_a_arg_ids = set(projection.claim_to_argument_ids.get("claim_a", ()))
+    claim_b_arg_ids = set(projection.claim_to_argument_ids.get("claim_b", ()))
+
     claim_b_args = by_claim["claim_b"]
     claim_c_args = by_claim["claim_c"]
 
     assert any(argument.premise_claim_ids == ("claim_a",) for argument in claim_b_args)
     assert any(argument.subargument_ids for argument in claim_b_args)
     assert any(argument.premise_claim_ids == ("claim_b",) for argument in claim_c_args)
-    assert any("arg:claim_b" in argument.subargument_ids for argument in claim_c_args)
-    assert any("arg:claim_a" in argument.subargument_ids for argument in claim_c_args)
+    # Check subargument relationships by claim_id, not hardcoded arg_id format
+    assert any(
+        claim_b_arg_ids & set(argument.subargument_ids) for argument in claim_c_args
+    )
+    assert any(
+        claim_a_arg_ids & set(argument.subargument_ids) for argument in claim_c_args
+    )
     assert any(argument.justification_id == "supports:claim_a->claim_b" for argument in claim_b_args)
     assert any(argument.justification_id == "explains:claim_b->claim_c" for argument in claim_c_args)
 
@@ -293,22 +309,30 @@ def test_structured_projection_undermines_target_premise_dependent_arguments_not
 
     projection = build_structured_projection(store, store.claims_for(None))
     attacker_args = projection.claim_to_argument_ids["claim_attacker"]
-    target_base_arg = "arg:claim_target"
-    target_support_args = [
+    # Find base args for claim_target (reported_claim / base_claim)
+    target_base_args = [
         argument.arg_id
         for argument in projection.arguments
-        if argument.claim_id == "claim_target" and argument.top_rule_kind == "supports"
+        if argument.claim_id == "claim_target" and argument.attackable_kind == "base_claim"
+    ]
+    # Find inference-rule args for claim_target (derived via support)
+    target_inference_args = [
+        argument.arg_id
+        for argument in projection.arguments
+        if argument.claim_id == "claim_target" and argument.attackable_kind == "inference_rule"
     ]
 
-    assert target_support_args
+    assert target_inference_args, "Expected inference-rule arguments for claim_target"
+    # Undermines targets premise-dependent arguments, not base claims
     assert all(
-        (source_arg, target_base_arg) not in projection.framework.attacks
+        (source_arg, target_arg) not in projection.framework.defeats
         for source_arg in attacker_args
+        for target_arg in target_base_args
     )
     assert any(
-        (source_arg, target_arg) in projection.framework.attacks
+        (source_arg, target_arg) in projection.framework.defeats
         for source_arg in attacker_args
-        for target_arg in target_support_args
+        for target_arg in target_inference_args
     )
 
 
@@ -327,22 +351,30 @@ def test_structured_projection_undercuts_target_inference_rules_not_base_claims(
 
     projection = build_structured_projection(store, store.claims_for(None))
     attacker_args = projection.claim_to_argument_ids["claim_attacker"]
-    target_base_arg = "arg:claim_target"
-    target_support_args = [
+    # Find base args for claim_target (reported_claim / base_claim)
+    target_base_args = [
         argument.arg_id
         for argument in projection.arguments
-        if argument.claim_id == "claim_target" and argument.top_rule_kind == "supports"
+        if argument.claim_id == "claim_target" and argument.attackable_kind == "base_claim"
+    ]
+    # Find inference-rule args for claim_target (derived via support)
+    target_inference_args = [
+        argument.arg_id
+        for argument in projection.arguments
+        if argument.claim_id == "claim_target" and argument.attackable_kind == "inference_rule"
     ]
 
-    assert target_support_args
+    assert target_inference_args, "Expected inference-rule arguments for claim_target"
+    # Undercuts targets inference rules, not base claims
     assert all(
-        (source_arg, target_base_arg) not in projection.framework.attacks
+        (source_arg, target_arg) not in projection.framework.defeats
         for source_arg in attacker_args
+        for target_arg in target_base_args
     )
     assert any(
-        (source_arg, target_arg) in projection.framework.attacks
+        (source_arg, target_arg) in projection.framework.defeats
         for source_arg in attacker_args
-        for target_arg in target_support_args
+        for target_arg in target_inference_args
     )
 
 

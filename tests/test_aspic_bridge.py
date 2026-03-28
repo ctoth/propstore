@@ -62,7 +62,11 @@ from propstore.aspic_bridge import (
     csaf_to_projection,
     build_aspic_projection,
 )
-from propstore.structured_argument import StructuredArgument, StructuredProjection
+from propstore.structured_argument import (
+    StructuredArgument,
+    StructuredProjection,
+    compute_structured_justified_arguments,
+)
 
 
 # ── Hypothesis strategies ──────────────────────────────────────────
@@ -747,7 +751,8 @@ class TestCsafToProjection:
         claims, justifications, stances = graph
         csaf = build_bridge_csaf(claims, justifications, stances)
         projection = csaf_to_projection(csaf, claims)
-        grounded = grounded_extension(projection.framework)
+        # Use compute_structured_justified_arguments which handles hybrid AFs
+        grounded = compute_structured_justified_arguments(projection, semantics="grounded")
         claim_ids = {c["id"] for c in claims}
         for arg_id in grounded:
             if arg_id in projection.argument_to_claim_id:
@@ -1001,7 +1006,7 @@ class TestBuildAspicProjection:
         ]
         store = _MiniStore(claims=claims)
         projection = build_aspic_projection(store, claims)
-        grounded = grounded_extension(projection.framework)
+        grounded = compute_structured_justified_arguments(projection, semantics="grounded")
 
         justified_claim_ids = {
             projection.argument_to_claim_id[aid]
@@ -1025,7 +1030,7 @@ class TestBuildAspicProjection:
             ],
         )
         projection = build_aspic_projection(store, claims)
-        grounded = grounded_extension(projection.framework)
+        grounded = compute_structured_justified_arguments(projection, semantics="grounded")
 
         justified_claim_ids = {
             projection.argument_to_claim_id[aid]

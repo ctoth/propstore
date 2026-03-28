@@ -175,7 +175,15 @@ def test_structured_projection_keeps_vacuous_attack_edges() -> None:
 
     projection = build_structured_projection(store, store.claims_for(None))
 
-    assert ("arg:claim_a", "arg:claim_b") in projection.framework.attacks
+    # Look up argument IDs by claim (bridge uses sequential IDs, not arg:claim_id)
+    claim_a_args = projection.claim_to_argument_ids["claim_a"]
+    claim_b_args = projection.claim_to_argument_ids["claim_b"]
+    assert projection.framework.attacks is not None, "attacks relation should be populated"
+    assert any(
+        (a_arg, b_arg) in projection.framework.attacks
+        for a_arg in claim_a_args
+        for b_arg in claim_b_args
+    )
 
 
 def test_build_praf_keeps_direct_defeats_separate_from_derived_summaries() -> None:

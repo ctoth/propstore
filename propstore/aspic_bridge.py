@@ -48,7 +48,11 @@ from propstore.core.justifications import (
 )
 from propstore.dung import ArgumentationFramework
 from propstore.preference import metadata_strength_vector, claim_strength
-from propstore.structured_argument import StructuredArgument, StructuredProjection
+from propstore.structured_argument import (
+    StructuredArgument,
+    StructuredProjection,
+    _default_support_metadata,
+)
 from propstore.world.labelled import Label, SupportQuality
 from propstore.world.types import ArtifactStore
 
@@ -456,7 +460,7 @@ def build_bridge_csaf(
         arg_to_id[arg] = aid
         id_to_arg[aid] = arg
 
-    # Build Dung AF with string IDs
+    # Build Dung AF with string IDs (defeats only — pure Dung AF for grounded semantics)
     af_arguments = frozenset(arg_to_id.values())
     af_defeats = frozenset(
         (arg_to_id[a], arg_to_id[t])
@@ -566,12 +570,11 @@ def csaf_to_projection(
         # Dependency claim IDs (all premise atoms)
         dependency_claim_ids = tuple(p.atom for p in prem(arg))
 
-        # Apply support_metadata if provided, else defaults
+        # Apply support_metadata if provided, else compute defaults from claim
         if cid in metadata:
             label, support_quality = metadata[cid]
         else:
-            label = None
-            support_quality = SupportQuality.EXACT
+            label, support_quality = _default_support_metadata(claim)
 
         sa = StructuredArgument(
             arg_id=arg_id,
@@ -597,10 +600,19 @@ def csaf_to_projection(
         (a, t) for a, t in csaf.framework.defeats
         if a in projected_arg_ids and t in projected_arg_ids
     )
+    # Build attacks from CSAF Attack objects (attacks >= defeats per M&P 2018 Def 14)
+    proj_attacks = frozenset(
+        (csaf.arg_to_id[atk.attacker], csaf.arg_to_id[atk.target])
+        for atk in csaf.attacks
+        if atk.attacker in csaf.arg_to_id and atk.target in csaf.arg_to_id
+        and csaf.arg_to_id[atk.attacker] in projected_arg_ids
+        and csaf.arg_to_id[atk.target] in projected_arg_ids
+    )
 
     proj_framework = ArgumentationFramework(
         arguments=frozenset(projected_arg_ids),
         defeats=proj_defeats,
+        attacks=proj_attacks,
     )
 
     claim_to_argument_ids = {

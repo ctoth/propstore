@@ -22,6 +22,7 @@ from propstore.core.justifications import (
 from propstore.dung import (
     ArgumentationFramework,
     grounded_extension,
+    hybrid_grounded_extension,
     preferred_extensions,
     stable_extensions,
 )
@@ -62,113 +63,18 @@ def build_structured_projection(
     comparison: str = "elitist",
     active_graph: ActiveWorldGraph | None = None,
 ) -> StructuredProjection:
-    """Build real structured arguments from canonical justifications."""
-    active_by_id = {claim["id"]: claim for claim in active_claims if claim.get("id")}
-    metadata = support_metadata or {}
-    stance_rows = _stance_rows(store, active_by_id, active_graph=active_graph)
-    justifications = _canonical_justifications(
-        active_by_id,
-        stance_rows,
-        active_graph=active_graph,
-    )
+    """Build real structured arguments from canonical justifications.
 
-    arguments_by_id: dict[str, StructuredArgument] = {}
-    claim_to_argument_ids: dict[str, set[str]] = defaultdict(set)
+    Delegates to the ASPIC+ bridge for full recursive argument construction.
+    """
+    from propstore.aspic_bridge import build_aspic_projection
 
-    for justification in justifications:
-        if justification.rule_kind != "reported_claim":
-            continue
-        claim_id = justification.conclusion_claim_id
-        claim = active_by_id[claim_id]
-        label, support_quality = metadata.get(
-            claim_id,
-            _default_support_metadata(claim),
-        )
-        argument = StructuredArgument(
-            arg_id=f"arg:{claim_id}",
-            claim_id=claim_id,
-            conclusion_concept_id=(
-                claim.get("concept_id")
-                or claim.get("concept")
-                or claim.get("target_concept")
-            ),
-            premise_claim_ids=(),
-            label=label,
-            strength=_scalar_strength(claim),
-            top_rule_kind="reported_claim",
-            attackable_kind="base_claim",
-            subargument_ids=(),
-            support_quality=support_quality,
-            justification_id=justification.justification_id,
-            dependency_claim_ids=(),
-        )
-        arguments_by_id[argument.arg_id] = argument
-        claim_to_argument_ids[claim_id].add(argument.arg_id)
-
-    changed = True
-    while changed:
-        changed = False
-        for justification in justifications:
-            if not justification.premise_claim_ids:
-                continue
-            premise_groups = [
-                tuple(sorted(claim_to_argument_ids.get(premise_claim_id, ())))
-                for premise_claim_id in justification.premise_claim_ids
-            ]
-            if any(not group for group in premise_groups):
-                continue
-            for subargument_combo in product(*premise_groups):
-                subarguments = [arguments_by_id[arg_id] for arg_id in subargument_combo]
-                dependency_claim_ids = _dependency_claim_ids(subarguments, justification)
-                if justification.conclusion_claim_id in dependency_claim_ids:
-                    continue
-                argument = StructuredArgument(
-                    arg_id=_derived_argument_id(
-                        justification.conclusion_claim_id,
-                        justification.justification_id,
-                        subargument_combo,
-                    ),
-                    claim_id=justification.conclusion_claim_id,
-                    conclusion_concept_id=(
-                        active_by_id[justification.conclusion_claim_id].get("concept_id")
-                        or active_by_id[justification.conclusion_claim_id].get("concept")
-                        or active_by_id[justification.conclusion_claim_id].get("target_concept")
-                    ),
-                    premise_claim_ids=tuple(justification.premise_claim_ids),
-                    label=_combine_argument_labels(subarguments),
-                    strength=_scalar_strength(active_by_id[justification.conclusion_claim_id]),
-                    top_rule_kind=justification.rule_kind,
-                    attackable_kind="inference_rule",
-                    subargument_ids=_closure_subargument_ids(subarguments),
-                    support_quality=_combine_support_quality(subarguments),
-                    justification_id=justification.justification_id,
-                    dependency_claim_ids=dependency_claim_ids,
-                )
-                if argument.arg_id in arguments_by_id:
-                    continue
-                arguments_by_id[argument.arg_id] = argument
-                claim_to_argument_ids[argument.claim_id].add(argument.arg_id)
-                changed = True
-
-    arguments = tuple(sorted(arguments_by_id.values(), key=lambda argument: argument.arg_id))
-    framework = _build_structured_framework(
-        active_by_id,
-        arguments,
-        {claim_id: tuple(sorted(ids)) for claim_id, ids in claim_to_argument_ids.items()},
-        stance_rows,
+    return build_aspic_projection(
+        store,
+        active_claims,
+        support_metadata=support_metadata,
         comparison=comparison,
-    )
-    return StructuredProjection(
-        arguments=arguments,
-        framework=framework,
-        claim_to_argument_ids={
-            claim_id: tuple(sorted(ids))
-            for claim_id, ids in claim_to_argument_ids.items()
-        },
-        argument_to_claim_id={
-            argument.arg_id: argument.claim_id
-            for argument in arguments
-        },
+        active_graph=active_graph,
     )
 
 
@@ -179,6 +85,9 @@ def compute_structured_justified_arguments(
 ) -> frozenset[str] | list[frozenset[str]]:
     """Compute justified structured arguments using existing Dung semantics."""
     if semantics == "grounded":
+        # Use hybrid when framework has attacks (ASPIC+ bridge produces both)
+        if projection.framework.attacks is not None:
+            return hybrid_grounded_extension(projection.framework)
         return grounded_extension(projection.framework)
     if semantics == "preferred":
         return [frozenset(ext) for ext in preferred_extensions(projection.framework)]
