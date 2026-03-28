@@ -306,3 +306,8 @@ Camerer et al. systematically replicate 21 social science experiments published 
 Reports the results of the Reproducibility Project: Cancer Biology, which systematically replicated 50 experiments from 23 high-impact preclinical cancer biology papers, finding replication effect sizes approximately 85% smaller than originals and replication rates ranging from 3% to 82% depending on criterion used.
 Provides empirical base rates for replicability across seven distinct criteria, moderator analysis of five candidate predictors (none significant), and combined meta-analytic estimates showing that most original positive findings retain directional support but with substantially deflated magnitudes.
 Relevant to calibrating uncertainty in argumentation systems: the multi-criterion replication rate spectrum and systematic effect size shrinkage provide concrete priors for adjusting claim confidence based on replication status.
+
+## Begley_2012_DrugDevelopmentRaiseStandards  (reproducibility, preclinical-research, cancer, evidence-quality)
+Landmark commentary reporting that only 6 of 53 (11%) preclinical cancer studies selected by Amgen could be reproduced, identifying inadequate cell lines, animal models, and publication incentives as root causes.
+Proposes concrete reforms including mandatory negative data reporting, blinding, better cell line characterization, and more robust preclinical tumour models.
+Directly relevant to assigning uncertainty to claims sourced from published biomedical literature, as it demonstrates that citation count is not a proxy for reproducibility.

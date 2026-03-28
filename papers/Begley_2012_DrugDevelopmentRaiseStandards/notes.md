@@ -5,8 +5,11 @@ year: 2012
 venue: "Nature"
 doi_url: "https://doi.org/10.1038/483531a"
 pages: "531-533"
+produced_by:
+  agent: "claude-opus-4-6-1m"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T20:33:28Z"
 ---
-
 # Drug development: Raise standards for preclinical cancer research
 
 ## One-Sentence Summary
@@ -127,3 +130,20 @@ This paper is foundational for understanding evidence quality in biomedical rese
 - Freedman, L. P., Cockburn, I. M. & Simcoe, T. S. "The Economics of Reproducibility in Preclinical Research" PLoS Biol. 13, e1002165 (2015) — cited context on economic costs
 - Hutchinson, L. & Kirk, R. "High drug attrition rates — where are we going wrong?" Nature Rev. Clin. Oncol. 8, 189-190 (2011) *(p.2)*
 - Hait, W. N. "Anticancer drug development: the grand challenges." Nature Rev. Drug Discov. 9, 253-254 (2010) *(p.2)*
+
+## Collection Cross-References
+
+### Already in Collection
+- (none — no cited papers are in the collection)
+
+### New Leads (Not Yet in Collection)
+- Prinz, Schlange & Asadullah (2011) — "Believe it or not: how much can we rely on published data on potential drug targets?" — Bayer HealthCare's corroborating study reporting ~25% reproducibility; key independent validation of Begley's findings
+
+### Cited By (in Collection)
+- [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]] — cites Begley 2012 as the preclinical biology replication benchmark (11% rate), contrasting with psychology's 36% replication rate
+- [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]] — cites Begley 2012 as motivating context for the replication crisis extending beyond psychology into preclinical cancer research
+
+### Conceptual Links (not citation-based)
+**Replication crisis cluster:**
+- [[Camerer_2018_EvaluatingReplicabilitySocialScience]] — Extends replication methodology to social science (62% replication rate, effect sizes averaging 50% of originals). Provides prediction market methodology for forecasting replicability that could retroactively apply to Begley's 53 studies. Together with Begley, establishes the empirical base rate spectrum: 11% (preclinical cancer) → 36% (psychology) → 62% (economics/social science).
+- [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]] — The psychology Reproducibility Project (36% replication) sits between Begley's 11% and Camerer's 62%, forming a cross-field replication rate gradient. Both papers inform how to assign uncertainty to published claims based on field-specific base rates.
