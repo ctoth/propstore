@@ -1,0 +1,302 @@
+source:
+  paper: Walley_1996_InferencesMultinomialDataLearning
+
+claims:
+  - id: claim1
+    type: model
+    name: "Imprecise Dirichlet Model (IDM)"
+    equations:
+      - "claim2"
+      - "claim3"
+      - "claim4"
+      - "claim5"
+    parameters:
+      - name: "hyperparameter s"
+        concept: "dirichlet_strength"
+        note: "Controls rate of learning and degree of caution; fixed across all categories"
+      - name: "prior mean vector t"
+        concept: "dirichlet_prior"
+        note: "Ranges freely over the open probability simplex"
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 9
+      section: "2.3 Imprecise Dirichlet Model"
+      quote_fragment: "The imprecise Dirichlet (s) model can now be defined as the set of all Dirichlet (s, t) distributions"
+
+  - id: claim2
+    type: equation
+    expression: "P_upper(A|n) = (n(A) + s) / (N + s)"
+    sympy: "Eq(P_upper_A, (n_A + s) / (N + s))"
+    variables:
+      - symbol: "P_upper_A"
+        concept: "upper_probability"
+        role: "dependent"
+      - symbol: "n_A"
+        concept: "observation_count"
+        role: "independent"
+      - symbol: "s"
+        concept: "dirichlet_strength"
+        role: "independent"
+      - symbol: "N"
+        concept: "sample_size"
+        role: "independent"
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 10
+      section: "2.3 Imprecise Dirichlet Model"
+      quote_fragment: "P_bar(A|n) = (n(A) + s) / (N + s)"
+
+  - id: claim3
+    type: equation
+    expression: "P_lower(A|n) = n(A) / (N + s)"
+    sympy: "Eq(P_lower_A, n_A / (N + s))"
+    variables:
+      - symbol: "P_lower_A"
+        concept: "lower_probability"
+        role: "dependent"
+      - symbol: "n_A"
+        concept: "observation_count"
+        role: "independent"
+      - symbol: "s"
+        concept: "dirichlet_strength"
+        role: "independent"
+      - symbol: "N"
+        concept: "sample_size"
+        role: "independent"
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 10
+      section: "2.3 Imprecise Dirichlet Model"
+      quote_fragment: "P_lower(A|n) = n(A) / (N + s)"
+
+  - id: claim4
+    type: equation
+    expression: "imprecision = s / (N + s)"
+    sympy: "Eq(imprecision, s / (N + s))"
+    variables:
+      - symbol: "imprecision"
+        concept: "probability_imprecision"
+        role: "dependent"
+      - symbol: "s"
+        concept: "dirichlet_strength"
+        role: "independent"
+      - symbol: "N"
+        concept: "sample_size"
+        role: "independent"
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 10
+      section: "2.3 Imprecise Dirichlet Model"
+      quote_fragment: "The degree of imprecision can be measured by P_bar(A|n) - P_lower(A|n) = s/(N+s)"
+
+  - id: claim5
+    type: equation
+    expression: "t_j_posterior = (n_j + s*t_j) / (N + s)"
+    sympy: "Eq(t_j_star, (n_j + s * t_j) / (N + s))"
+    variables:
+      - symbol: "t_j_star"
+        concept: "posterior_dirichlet_mean"
+        role: "dependent"
+      - symbol: "n_j"
+        concept: "observation_count"
+        role: "independent"
+      - symbol: "s"
+        concept: "dirichlet_strength"
+        role: "independent"
+      - symbol: "t_j"
+        concept: "prior_dirichlet_mean"
+        role: "independent"
+      - symbol: "N"
+        concept: "sample_size"
+        role: "independent"
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 9
+      section: "2.2 Dirichlet Distributions"
+      quote_fragment: "t_j* = (n_j + st_j)/(N+s)"
+
+  - id: claim6
+    type: observation
+    statement: "The vacuous probability model (P_lower=0, P_upper=1 for all non-trivial events) is the unique coherent model satisfying both the embedding and symmetry principles under complete ignorance."
+    concepts:
+      - vacuous_opinion
+      - upper_probability
+      - lower_probability
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 5
+      section: "1. Introduction"
+      quote_fragment: "it is the only coherent probability model that satisfies both the embedding and the symmetry principles"
+
+  - id: claim7
+    type: observation
+    statement: "No single Bayesian prior distribution can simultaneously satisfy the embedding principle and the symmetry principle for representing prior ignorance."
+    concepts:
+      - dirichlet_prior
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 5
+      section: "1. Introduction"
+      quote_fragment: "It is clear that no Bayesian model can satisfy both principles"
+
+  - id: claim8
+    type: observation
+    statement: "The imprecision measure s/(N+s) is constant across all events A and decreases monotonically with the number of observations N, where s is the number of observations needed to halve the initial imprecision."
+    concepts:
+      - dirichlet_strength
+      - probability_imprecision
+      - sample_size
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 10
+      section: "2.3 Imprecise Dirichlet Model"
+      quote_fragment: "does not depend on the event A... s is the number of observations needed to reduce the imprecision to half its initial value"
+
+  - id: claim9
+    type: observation
+    statement: "The Imprecise Dirichlet Model satisfies the Representation Invariance Principle: posterior upper and lower probabilities do not depend on the choice of sample space."
+    concepts:
+      - upper_probability
+      - lower_probability
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 16
+      section: "2.9 Representation Invariance Principle"
+      quote_fragment: "the posterior upper and lower probabilities of A generated by the imprecise Dirichlet model do not depend on the specific choice of Omega"
+
+  - id: claim10
+    type: observation
+    statement: "Objective Bayesian inferences using a symmetric Dirichlet prior violate the Representation Invariance Principle because the posterior probability P(A|n) depends on k, the number of categories in the chosen sample space."
+    concepts:
+      - dirichlet_prior
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 11
+      section: "2.4 Bayesian Methods using Symmetric Dirichlet Distributions"
+      quote_fragment: "P(A|n) = (n(A) + sk^{-1}c(A))/(N+s)... Here s may depend on k"
+
+  - id: claim11
+    type: observation
+    statement: "With s=1, the IDM's equitailed credible intervals agree exactly with Clopper-Pearson binomial confidence intervals, and the posterior upper probability of a hypothesis equals Fisher's exact test p-value."
+    concepts:
+      - dirichlet_strength
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 12
+      section: "2.5 Choice of Hyperparameter s"
+      quote_fragment: "the widely used binomial confidence intervals suggested by Clopper and Pearson (1934) agree with equitailed credible intervals under the imprecise model with s=1"
+
+  - id: claim12
+    type: observation
+    statement: "With s=2, the IDM encompasses the three standard objective Bayesian priors for Bernoulli trials: the uniform prior (s=2, t=1/2), Jeffreys's prior (s=1, t=1/2), and Haldane's improper prior (s=0)."
+    concepts:
+      - dirichlet_strength
+      - dirichlet_prior
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 12
+      section: "2.5 Choice of Hyperparameter s"
+      quote_fragment: "the imprecise model with s=2 encompasses the three beta densities that are commonly used by Bayesians"
+
+  - id: claim13
+    type: observation
+    statement: "For an event A never previously observed (n(A)=0), the IDM gives P_lower(A|n)=0 and P_upper(A|n)=s/(N+s) which approaches 0 as N grows, meaning one should never bet on an unobserved event at any odds."
+    concepts:
+      - lower_probability
+      - upper_probability
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 13
+      section: "2.6 Probability of Events that have not yet Occurred"
+      quote_fragment: "there is no reason to bet on an event A that has never occurred"
+
+  - id: claim14
+    type: comparison
+    statement: "Unlike the IDM, Bayesian inferences from different objective priors (uniform, Jeffreys, Haldane) produce mutually inconsistent posterior probabilities that differ by a factor of nearly 3 for the same data set."
+    concepts:
+      - dirichlet_prior
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 24
+      section: "4.4 Testing Hypotheses about theta_R"
+      quote_fragment: "the objective Bayesian probabilities differ here by a factor of nearly 3"
+
+  - id: claim15
+    type: comparison
+    statement: "Unlike frequentist p-values which depend on the stopping rule used to terminate the experiment, the IDM's posterior probabilities depend only on the observed likelihood function and are therefore invariant to the stopping rule."
+    concepts:
+      - upper_probability
+      - lower_probability
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 24
+      section: "4.4 Testing Hypotheses about theta_R"
+      quote_fragment: "a frequentist cannot draw any conclusion whatsoever until he knows the stopping rule"
+
+  - id: claim16
+    type: mechanism
+    statement: "The IDM works by taking the supremum and infimum of predictive probabilities over all Dirichlet(s,t) priors with fixed s and varying t, which produces coherent upper and lower probabilities because the class of Dirichlet distributions is closed under category combination (coarsening)."
+    concepts:
+      - dirichlet_prior
+      - upper_probability
+      - lower_probability
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 9
+      section: "2.3 Imprecise Dirichlet Model"
+      quote_fragment: "when categories are combined, Dirichlet distributions transform to other Dirichlet distributions"
+
+  - id: claim17
+    type: limitation
+    statement: "The IDM's upper probability P_upper(A|n) for unobserved events does not depend on the number of distinct categories already observed, which may seem unreasonable when many distinct categories have been seen but A has not."
+    concepts:
+      - upper_probability
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 13
+      section: "2.6 Probability of Events that have not yet Occurred"
+      quote_fragment: "It may seem unreasonable that P_bar(A|n) does not depend on how many different categories have been observed"
+
+  - id: claim18
+    type: limitation
+    statement: "The choice of hyperparameter s is not uniquely determined by the model's principles; s=1 and s=2 are both reasonable but produce different inferences, and the paper does not provide a definitive method for selecting s."
+    concepts:
+      - dirichlet_strength
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 12
+      section: "2.5 Choice of Hyperparameter s"
+      quote_fragment: "considerable disagreement over what value of s should be used"
+
+  - id: claim19
+    type: equation
+    expression: "E_lower(psi|n) = E_lower(theta_e|n) - E_upper(theta_c|n)"
+    sympy: "Eq(E_lower_psi, E_lower_theta_e - E_upper_theta_c)"
+    variables:
+      - symbol: "E_lower_psi"
+        concept: "lower_expected_utility"
+        role: "dependent"
+      - symbol: "E_lower_theta_e"
+        concept: "lower_probability"
+        role: "independent"
+      - symbol: "E_upper_theta_c"
+        concept: "upper_probability"
+        role: "independent"
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 29
+      section: "5.4 Inferences about theta_e - theta_c"
+      quote_fragment: "E_lower(psi|n) = E(theta_e|n) - E_bar(theta_c|n)"
+    notes: "Decision criterion: prefer treatment e if E_lower(psi|n) > 0"
+
+  - id: claim20
+    type: observation
+    statement: "When s is an integer, the IDM's posterior upper probability of a hypothesis can be written as a cumulative hypergeometric probability, connecting imprecise Bayesian and exact frequentist test calculations."
+    concepts:
+      - upper_probability
+      - dirichlet_strength
+    provenance:
+      paper: Walley_1996_InferencesMultinomialDataLearning
+      page: 28
+      section: "5.4 Inferences about theta_e - theta_c"
+      quote_fragment: "P_bar(H_0|n) can be written as either a cumulative beta-binomial probability or a cumulative hypergeometric probability"
