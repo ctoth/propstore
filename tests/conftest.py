@@ -57,6 +57,7 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
             relation_type TEXT NOT NULL,
             target_kind TEXT NOT NULL,
             target_id TEXT NOT NULL,
+            target_justification_id TEXT,
             strength TEXT,
             conditions_differ TEXT,
             note TEXT,
@@ -155,6 +156,7 @@ def insert_stance(
     target_claim_id: str,
     stance_type: str,
     *,
+    target_justification_id: str | None = None,
     strength: str | None = None,
     conditions_differ: str | None = None,
     note: str | None = None,
@@ -173,10 +175,11 @@ def insert_stance(
         """
         INSERT INTO relation_edge (
             source_kind, source_id, relation_type, target_kind, target_id,
+            target_justification_id,
             strength, conditions_differ, note, resolution_method, resolution_model,
             embedding_model, embedding_distance, pass_number, confidence,
             opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             "claim",
@@ -184,6 +187,7 @@ def insert_stance(
             stance_type,
             "claim",
             target_claim_id,
+            target_justification_id,
             strength,
             conditions_differ,
             note,

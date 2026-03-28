@@ -527,6 +527,30 @@ class TestStanceGraphIntegrity:
         assert not result.ok
         assert any("contradicts" in e and "stance" in e.lower() for e in result.errors)
 
+    def test_inline_target_justification_id_must_be_string(self, claims_dir):
+        data = make_claim_file_data([
+            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+            make_parameter_claim(
+                "claim2",
+                "concept1",
+                450.0,
+                "Hz",
+                stances=[{
+                    "type": "undercuts",
+                    "target": "claim1",
+                    "target_justification_id": 123,
+                }],
+            ),
+        ])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any(
+            "target_justification_id" in error for error in result.errors
+        )
+
 
 class TestDraftArtifactBoundary:
     def test_draft_claim_file_rejected_from_final_validation(self, tmp_path):

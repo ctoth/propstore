@@ -303,6 +303,14 @@ def _validate_stances(
                 f"nonexistent target claim '{target_claim_id}'"
             )
 
+        target_justification_id = stance.get("target_justification_id")
+        if target_justification_id is not None:
+            if not isinstance(target_justification_id, str) or not target_justification_id:
+                result.errors.append(
+                    f"{filename}: claim '{cid}' stance #{index} "
+                    "target_justification_id must be a non-empty string"
+                )
+
 
 def _validate_value_fields(
     claim: dict, cid: str, filename: str,

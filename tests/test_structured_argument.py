@@ -380,6 +380,55 @@ def test_structured_projection_undercuts_target_inference_rules_not_base_claims(
     )
 
 
+def test_undercut_does_not_bleed_across_alternative_justifications_for_same_claim() -> None:
+    store = _ProjectionStore(
+        claims=[
+            {"id": "claim_target", "concept_id": "concept1", "type": "parameter", "value": 1.0},
+            {"id": "claim_support_a", "concept_id": "concept2", "type": "parameter", "value": 2.0},
+            {"id": "claim_support_b", "concept_id": "concept3", "type": "parameter", "value": 3.0},
+            {"id": "claim_attacker", "concept_id": "concept4", "type": "parameter", "value": 4.0},
+        ],
+        stances=[
+            {"claim_id": "claim_support_a", "target_claim_id": "claim_target", "stance_type": "supports"},
+            {"claim_id": "claim_support_b", "target_claim_id": "claim_target", "stance_type": "supports"},
+            {
+                "claim_id": "claim_attacker",
+                "target_claim_id": "claim_target",
+                "stance_type": "undercuts",
+                "target_justification_id": "supports:claim_support_a->claim_target",
+            },
+        ],
+    )
+
+    projection = build_structured_projection(store, store.claims_for(None))
+    attacker_args = projection.claim_to_argument_ids["claim_attacker"]
+    target_support_a_args = [
+        argument.arg_id
+        for argument in projection.arguments
+        if argument.claim_id == "claim_target"
+        and argument.justification_id == "supports:claim_support_a->claim_target"
+    ]
+    target_support_b_args = [
+        argument.arg_id
+        for argument in projection.arguments
+        if argument.claim_id == "claim_target"
+        and argument.justification_id == "supports:claim_support_b->claim_target"
+    ]
+
+    assert target_support_a_args, "Expected an inference argument for support_a -> target"
+    assert target_support_b_args, "Expected an inference argument for support_b -> target"
+    assert any(
+        (source_arg, target_arg) in projection.framework.defeats
+        for source_arg in attacker_args
+        for target_arg in target_support_a_args
+    )
+    assert all(
+        (source_arg, target_arg) not in projection.framework.defeats
+        for source_arg in attacker_args
+        for target_arg in target_support_b_args
+    )
+
+
 def test_structured_projection_defaults_unconditional_claim_to_exact_empty_label() -> None:
     store = _ProjectionStore(
         claims=[

@@ -416,6 +416,131 @@ class TestStancesToContrariness:
                         f"({a}, {b}) contradictory but ({b}, {a}) is not"
                     )
 
+    def test_undercut_targets_only_named_defeasible_rule(self):
+        claims = [
+            _make_claim("support_a"),
+            _make_claim("support_b"),
+            _make_claim("target"),
+            _make_claim("attacker"),
+        ]
+        justifications = [
+            _make_justification("reported:support_a", "support_a"),
+            _make_justification("reported:support_b", "support_b"),
+            _make_justification("reported:target", "target"),
+            _make_justification("reported:attacker", "attacker"),
+            _make_justification(
+                "supports:support_a->target",
+                "target",
+                ("support_a",),
+                "supports",
+                "defeasible",
+            ),
+            _make_justification(
+                "supports:support_b->target",
+                "target",
+                ("support_b",),
+                "supports",
+                "defeasible",
+            ),
+        ]
+        literals = claims_to_literals(claims)
+        _strict, defeasible = justifications_to_rules(justifications, literals)
+
+        cfn = stances_to_contrariness(
+            [{
+                "claim_id": "attacker",
+                "target_claim_id": "target",
+                "stance_type": "undercuts",
+                "target_justification_id": "supports:support_a->target",
+            }],
+            literals,
+            defeasible,
+        )
+
+        attacker = literals["attacker"]
+        rule_a = Literal(atom="supports:support_a->target", negated=False)
+        rule_b = Literal(atom="supports:support_b->target", negated=False)
+
+        assert cfn.is_contrary(attacker, rule_a)
+        assert not cfn.is_contrary(attacker, rule_b)
+
+    def test_undercut_without_rule_id_errors_when_multiple_target_rules_exist(self):
+        claims = [
+            _make_claim("support_a"),
+            _make_claim("support_b"),
+            _make_claim("target"),
+            _make_claim("attacker"),
+        ]
+        justifications = [
+            _make_justification("reported:support_a", "support_a"),
+            _make_justification("reported:support_b", "support_b"),
+            _make_justification("reported:target", "target"),
+            _make_justification("reported:attacker", "attacker"),
+            _make_justification(
+                "supports:support_a->target",
+                "target",
+                ("support_a",),
+                "supports",
+                "defeasible",
+            ),
+            _make_justification(
+                "supports:support_b->target",
+                "target",
+                ("support_b",),
+                "supports",
+                "defeasible",
+            ),
+        ]
+        literals = claims_to_literals(claims)
+        _strict, defeasible = justifications_to_rules(justifications, literals)
+
+        with pytest.raises(ValueError, match="target_justification_id"):
+            stances_to_contrariness(
+                [{
+                    "claim_id": "attacker",
+                    "target_claim_id": "target",
+                    "stance_type": "undercuts",
+                }],
+                literals,
+                defeasible,
+            )
+
+    def test_undercut_without_rule_id_uses_only_rule_when_target_is_unambiguous(self):
+        claims = [
+            _make_claim("support_a"),
+            _make_claim("target"),
+            _make_claim("attacker"),
+        ]
+        justifications = [
+            _make_justification("reported:support_a", "support_a"),
+            _make_justification("reported:target", "target"),
+            _make_justification("reported:attacker", "attacker"),
+            _make_justification(
+                "supports:support_a->target",
+                "target",
+                ("support_a",),
+                "supports",
+                "defeasible",
+            ),
+        ]
+        literals = claims_to_literals(claims)
+        _strict, defeasible = justifications_to_rules(justifications, literals)
+
+        cfn = stances_to_contrariness(
+            [{
+                "claim_id": "attacker",
+                "target_claim_id": "target",
+                "stance_type": "undercuts",
+            }],
+            literals,
+            defeasible,
+        )
+
+        attacker = literals["attacker"]
+        rule_a = Literal(atom="supports:support_a->target", negated=False)
+
+        assert cfn.is_contrary(attacker, rule_a)
+
 
 # ── T4: claims_to_kb ───────────────────────────────────────────────
 

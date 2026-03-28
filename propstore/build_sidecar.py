@@ -212,6 +212,7 @@ def _populate_stances_from_files(
                     source_claim,
                     target,
                     stype,
+                    s.get("target_justification_id"),
                     s.get("strength"),
                     cond_differ,
                     s.get("note"),
@@ -448,6 +449,7 @@ def _create_tables(conn: sqlite3.Connection):
             relation_type TEXT NOT NULL,
             target_kind TEXT NOT NULL,
             target_id TEXT NOT NULL,
+            target_justification_id TEXT,
             conditions_cel TEXT,
             strength TEXT,
             conditions_differ TEXT,
@@ -821,8 +823,8 @@ def _insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
 
 def _insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> None:
     conn.execute(
-        "INSERT INTO relation_edge (source_kind, source_id, relation_type, target_kind, target_id, strength, conditions_differ, note, resolution_method, resolution_model, embedding_model, embedding_distance, pass_number, confidence, opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO relation_edge (source_kind, source_id, relation_type, target_kind, target_id, target_justification_id, strength, conditions_differ, note, resolution_method, resolution_model, embedding_model, embedding_distance, pass_number, confidence, opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             "claim",
             stance_row[0],
@@ -842,6 +844,7 @@ def _insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> Non
             stance_row[13],
             stance_row[14],
             stance_row[15],
+            stance_row[16],
         ),
     )
 
@@ -1420,6 +1423,7 @@ def _extract_deferred_stance_rows(
             cid,
             target_claim_id,
             stance_type,
+            stance.get("target_justification_id"),
             stance.get("strength"),
             stance.get("conditions_differ"),
             stance.get("note"),

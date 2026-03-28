@@ -71,6 +71,7 @@ class WorldModel(ArtifactStore):
         self._context_hierarchy: ContextHierarchy | None = None
         self._context_hierarchy_loaded = False
         self._table_cache: dict[str, bool] = {}
+        self._column_cache: dict[tuple[str, str], bool] = {}
         self._claim_has_target_concept: bool | None = None
         self._compiled_graph_cache = None
         self._active_graph_cache: dict[str, Any] = {}
@@ -310,12 +311,14 @@ class WorldModel(ArtifactStore):
         if not claim_ids or not self._has_table("relation_edge"):
             return []
         placeholders = ",".join("?" for _ in claim_ids)
+        target_justification_sql = self._claim_stance_target_justification_sql()
         rows = self._conn.execute(
             f"""
             SELECT
                 source_id AS claim_id,
                 target_id AS target_claim_id,
                 relation_type AS stance_type,
+                {target_justification_sql},
                 strength,
                 conditions_differ,
                 note,
@@ -388,12 +391,14 @@ class WorldModel(ArtifactStore):
     def all_claim_stances(self) -> list[dict]:
         if not self._has_table("relation_edge"):
             return []
+        target_justification_sql = self._claim_stance_target_justification_sql()
         rows = self._conn.execute(
             """
             SELECT
                 source_id AS claim_id,
                 target_id AS target_claim_id,
                 relation_type AS stance_type,
+                """ + target_justification_sql + """,
                 strength,
                 conditions_differ,
                 note,
@@ -610,6 +615,7 @@ class WorldModel(ArtifactStore):
         """Walk normalized claim relation edges breadth-first from claim_id."""
         if not self._has_table("relation_edge"):
             return []
+        target_justification_sql = self._claim_stance_target_justification_sql()
         result: list[dict] = []
         visited: set[str] = set()
         queue: deque[str] = deque([claim_id])
@@ -623,6 +629,7 @@ class WorldModel(ArtifactStore):
                     source_id AS claim_id,
                     target_id AS target_claim_id,
                     relation_type AS stance_type,
+                    """ + target_justification_sql + """,
                     strength,
                     conditions_differ,
                     note,
@@ -650,6 +657,20 @@ class WorldModel(ArtifactStore):
                     queue.append(target)
 
         return result
+
+    def _has_column(self, table: str, column: str) -> bool:
+        key = (table, column)
+        if key in self._column_cache:
+            return self._column_cache[key]
+        rows = self._conn.execute(f"PRAGMA table_info({table})").fetchall()  # noqa: S608
+        exists = any(row["name"] == column for row in rows)
+        self._column_cache[key] = exists
+        return exists
+
+    def _claim_stance_target_justification_sql(self) -> str:
+        if self._has_column("relation_edge", "target_justification_id"):
+            return "target_justification_id"
+        return "NULL AS target_justification_id"
 
     # ── Condition binding ────────────────────────────────────────────
 

@@ -219,13 +219,35 @@ def stances_to_contrariness(
             # Asymmetric contraries — src is contrary of tgt
             contrary_pairs.add((src, tgt))
         elif stype == "undercuts":
-            # Undercutting targets the rule name literal.
-            # Find defeasible rules whose consequent matches the target claim.
-            for rule in defeasible_rules:
-                if rule.consequent == tgt and rule.name is not None:
-                    rule_lit = Literal(atom=rule.name, negated=False)
-                    if src != rule_lit:
-                        contrary_pairs.add((src, rule_lit))
+            target_justification_id = stance.get("target_justification_id")
+            matching_rules = [
+                rule
+                for rule in defeasible_rules
+                if rule.consequent == tgt and rule.name is not None
+            ]
+            if target_justification_id is not None:
+                matching_rules = [
+                    rule
+                    for rule in matching_rules
+                    if rule.name == target_justification_id
+                ]
+                if not matching_rules:
+                    raise ValueError(
+                        "undercut target_justification_id "
+                        f"{target_justification_id!r} did not match a defeasible "
+                        f"justification for target claim {tgt_id!r}"
+                    )
+            elif len(matching_rules) > 1:
+                raise ValueError(
+                    "undercut against target claim "
+                    f"{tgt_id!r} is ambiguous across multiple defeasible "
+                    "justifications; provide target_justification_id"
+                )
+
+            for rule in matching_rules:
+                rule_lit = Literal(atom=rule.name, negated=False)
+                if src != rule_lit:
+                    contrary_pairs.add((src, rule_lit))
 
     return ContrarinessFn(
         contradictories=frozenset(contradictory_pairs),

@@ -87,6 +87,7 @@ def _fetch_relation_edge_rows(
             source_id AS claim_id,
             target_id AS target_claim_id,
             relation_type AS stance_type,
+            target_justification_id,
             strength,
             conditions_differ,
             note,
