@@ -225,7 +225,11 @@ This paper provides empirical base rates for replicability in preclinical cancer
 ### Supersedes or Recontextualizes
 - (none)
 
+### Now in Collection (previously listed as leads)
+- [[Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction]] — Pools prediction market and survey data from RPP, EERP, ML2, SSRP (103 studies). Markets classify replication outcomes at 73% accuracy; p < 0.005 threshold predicts 76% replication rate. Cited in Errington's reference list (ref 23).
+
 ### Conceptual Links (not citation-based)
 - [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]] — **Strong.** Direct methodological parallel: both are large-scale systematic replication projects applying multiple criteria. Errington finds 39% direction+significance replication (vs Aarts' 36% in psychology), ~85% effect size shrinkage (vs ~50% in psychology). The cross-domain convergence on effect size inflation is a key finding.
 - [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]] — **Strong.** Same replication methodology family. Camerer found 61% replication rate in economics (11/18 studies). Errington's multi-criterion approach reveals that the "replication rate" depends entirely on which criterion is used (3-82%), complicating direct cross-domain comparison.
 - [[Camerer_2018_EvaluatingReplicabilitySocialScience]] — **Strong.** Extension of Camerer 2016 to social science. Found 62% replication rate (13/21). Together these three projects (psychology, economics, social science, cancer biology) form a cross-domain replicability evidence base.
+- [[Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction]] — **Strong.** Gordon pools forecasting data from the same replication projects that Errington's work complements. Gordon provides the meta-analytic forecasting accuracy (73% market, 71% survey) and shows p < 0.005 strongly predicts replication. Errington's cancer biology data is from a different domain but addresses the same fundamental question of whether replication outcomes are predictable.
