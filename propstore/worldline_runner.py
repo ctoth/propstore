@@ -469,31 +469,13 @@ def _concept_name(world, concept_id: str) -> str:
 
 
 def _resolve_concept_name(world, name: str) -> str | None:
-    """Resolve a canonical name or alias to a concept ID."""
+    """Resolve a canonical name or alias to a concept ID.
+
+    Delegates to WorldModel.resolve_concept() which handles alias lookup,
+    direct ID lookup, and canonical name lookup.
+    """
     if hasattr(world, "resolve_concept"):
-        resolved = world.resolve_concept(name)
-        if resolved:
-            return resolved
-
-    # Try alias first
-    if hasattr(world, "resolve_alias"):
-        resolved = world.resolve_alias(name)
-        if resolved:
-            return resolved
-
-    # Try as concept ID directly
-    if hasattr(world, "get_concept"):
-        concept = world.get_concept(name)
-        if concept:
-            return name
-
-    if hasattr(world, "_conn"):
-        row = world._conn.execute(
-            "SELECT id FROM concept WHERE canonical_name = ?",
-            (name,),
-        ).fetchone()
-        if row:
-            return row["id"]
+        return world.resolve_concept(name)
 
     return None
 

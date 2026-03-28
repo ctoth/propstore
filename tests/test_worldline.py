@@ -591,20 +591,21 @@ class TestWorldlineRunner:
                     return {"id": concept_id, "canonical_name": "target"}
                 return None
 
-            def get_claim(self, claim_id):
+            def resolve_concept(self, name):
+                """Resolve canonical name or alias to concept ID."""
+                resolved = self.resolve_alias(name)
+                if resolved:
+                    return resolved
+                concept = self.get_concept(name)
+                if concept:
+                    return name
+                # Resolve by canonical name
+                if name == "target":
+                    return "concept1"
                 return None
 
-            @property
-            def _conn(self):
-                class FakeConn:
-                    @staticmethod
-                    def execute(*args, **kwargs):
-                        class FakeCursor:
-                            @staticmethod
-                            def fetchone():
-                                return {"id": "concept1"}
-                        return FakeCursor()
-                return FakeConn()
+            def get_claim(self, claim_id):
+                return None
 
         wl = WorldlineDefinition.from_dict({
             "id": "test_context",
@@ -1532,3 +1533,208 @@ class TestSilentExceptionLogging:
         assert any(
             "argumentation" in rec.message.lower() for rec in caplog.records
         ), f"Expected a warning about argumentation failure, got: {[r.message for r in caplog.records]}"
+
+
+class TestWorldlineCLIFlags:
+    """Worldline CLI must expose all reasoning backend options (Phase 6)."""
+
+    def test_create_reasoning_backend_flag(self, tmp_path):
+        """--reasoning-backend aspic must be accepted and stored in policy."""
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_create
+
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir})()
+
+        fake_cli.add_command(worldline_create, "create")
+
+        runner = CliRunner()
+        result = runner.invoke(fake_cli, [
+            "create", "test-wl",
+            "--target", "concept1",
+            "--strategy", "argumentation",
+            "--reasoning-backend", "aspic",
+        ])
+        assert result.exit_code == 0, result.output
+
+        written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
+        assert written["policy"]["reasoning_backend"] == "aspic"
+
+    def test_create_semantics_flag(self, tmp_path):
+        """--semantics preferred must be accepted and stored in policy."""
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_create
+
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir})()
+
+        fake_cli.add_command(worldline_create, "create")
+
+        runner = CliRunner()
+        result = runner.invoke(fake_cli, [
+            "create", "test-wl",
+            "--target", "concept1",
+            "--strategy", "argumentation",
+            "--semantics", "preferred",
+        ])
+        assert result.exit_code == 0, result.output
+
+        written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
+        assert written["policy"]["semantics"] == "preferred"
+
+    def test_create_set_comparison_flag(self, tmp_path):
+        """--set-comparison democratic must be accepted and stored in policy."""
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_create
+
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir})()
+
+        fake_cli.add_command(worldline_create, "create")
+
+        runner = CliRunner()
+        result = runner.invoke(fake_cli, [
+            "create", "test-wl",
+            "--target", "concept1",
+            "--strategy", "argumentation",
+            "--set-comparison", "democratic",
+        ])
+        assert result.exit_code == 0, result.output
+
+        written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
+        assert written["policy"]["comparison"] == "democratic"
+
+    def test_create_decision_criterion_flag(self, tmp_path):
+        """--decision-criterion hurwicz --pessimism-index 0.3 must be stored."""
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_create
+
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir})()
+
+        fake_cli.add_command(worldline_create, "create")
+
+        runner = CliRunner()
+        result = runner.invoke(fake_cli, [
+            "create", "test-wl",
+            "--target", "concept1",
+            "--strategy", "argumentation",
+            "--decision-criterion", "hurwicz",
+            "--pessimism-index", "0.3",
+        ])
+        assert result.exit_code == 0, result.output
+
+        written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
+        assert written["policy"]["decision_criterion"] == "hurwicz"
+        assert written["policy"]["pessimism_index"] == pytest.approx(0.3)
+
+    def test_create_praf_flags(self, tmp_path):
+        """--praf-strategy mc --praf-epsilon 0.05 must be stored in policy."""
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_create
+
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir})()
+
+        fake_cli.add_command(worldline_create, "create")
+
+        runner = CliRunner()
+        result = runner.invoke(fake_cli, [
+            "create", "test-wl",
+            "--target", "concept1",
+            "--strategy", "argumentation",
+            "--reasoning-backend", "praf",
+            "--praf-strategy", "mc",
+            "--praf-epsilon", "0.05",
+            "--praf-confidence", "0.99",
+            "--praf-seed", "42",
+        ])
+        assert result.exit_code == 0, result.output
+
+        written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
+        assert written["policy"]["reasoning_backend"] == "praf"
+        assert written["policy"]["praf_strategy"] == "mc"
+        assert written["policy"]["praf_mc_epsilon"] == pytest.approx(0.05)
+        assert written["policy"]["praf_mc_confidence"] == pytest.approx(0.99)
+        assert written["policy"]["praf_mc_seed"] == 42
+
+    def test_run_reasoning_backend_flag(self, tmp_path):
+        """worldline run --reasoning-backend must accept the flag (parse test only)."""
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_run
+
+        # We just test that the flag is accepted by the parser.
+        # The run command will fail because there's no sidecar, but it should
+        # NOT fail with "no such option".
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir})()
+
+        fake_cli.add_command(worldline_run, "run")
+
+        runner = CliRunner()
+        result = runner.invoke(fake_cli, [
+            "run", "test-wl",
+            "--target", "concept1",
+            "--strategy", "argumentation",
+            "--reasoning-backend", "aspic",
+            "--semantics", "preferred",
+            "--set-comparison", "democratic",
+            "--decision-criterion", "hurwicz",
+            "--pessimism-index", "0.7",
+            "--praf-strategy", "exact",
+            "--praf-epsilon", "0.02",
+            "--praf-confidence", "0.90",
+            "--praf-seed", "123",
+        ])
+        # Should fail on sidecar, NOT on "no such option"
+        assert "no such option" not in (result.output or "").lower(), (
+            f"Flag not accepted: {result.output}"
+        )
