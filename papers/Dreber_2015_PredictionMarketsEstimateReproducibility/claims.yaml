@@ -1,0 +1,215 @@
+source:
+  paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+produced_by:
+  agent: "claude-opus-4-6[1m]"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T21:04:01Z"
+
+claims:
+  - id: claim1
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.71
+    unit: "proportion correct"
+    methodology: "Prediction market final price >0.5 threshold used to predict binary replication outcome (p<0.05 same direction)"
+    evaluation_population: "41 completed RPP psychology replications"
+    conditions:
+      - "prediction_method == 'prediction_market'"
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 2
+      section: "Results"
+      quote_fragment: "prediction market prices correctly predicted outcomes for 71% of 41 replications"
+    notes: "Using >0.5 price threshold to predict binary outcome"
+
+  - id: claim2
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.58
+    unit: "proportion correct"
+    methodology: "Pre-market survey mean probability >0.5 threshold used to predict binary replication outcome"
+    evaluation_population: "41 completed RPP psychology replications"
+    conditions:
+      - "prediction_method == 'survey'"
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 2
+      section: "Results"
+      quote_fragment: "58% for a pre-market survey"
+
+  - id: claim3
+    type: parameter
+    concept: replication_significance_rate
+    value: 0.39
+    unit: "proportion"
+    conditions:
+      - "discipline == 'psychology'"
+      - "significance_threshold == '0.05'"
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 1
+      section: "Results"
+      quote_fragment: "16 (39%) replicated successfully at p < 0.05 in same direction"
+    notes: "16/41 studies from JPSP, JEP:LMC, and Psych Science 2008 issues"
+
+  - id: claim4
+    type: parameter
+    concept: prediction_market_price
+    value: 0.553
+    unit: "probability"
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 2
+      section: "Results"
+      quote_fragment: "Mean final market price (all 44) 0.553"
+    notes: "Mean final prediction market price across all 44 RPP studies prior to replication results"
+
+  - id: claim5
+    type: parameter
+    concept: prediction_market_price
+    value: 0.731
+    unit: "probability"
+    conditions:
+      - "replication_outcome == 'replicated'"
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 2
+      section: "Results"
+      quote_fragment: "Mean market price (replicated) 0.731"
+    notes: "Mean across 16 replicated studies"
+
+  - id: claim6
+    type: parameter
+    concept: prediction_market_price
+    value: 0.436
+    unit: "probability"
+    conditions:
+      - "replication_outcome == 'not_replicated'"
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 2
+      section: "Results"
+      quote_fragment: "Mean market price (not replicated) 0.436"
+    notes: "Mean across 25 non-replicated studies"
+
+  - id: claim7
+    type: observation
+    statement: "Prediction market prices are well-calibrated as probabilities of replication: a linear probability model yields slope 0.966 (not significantly different from 1, p=0.943) and intercept 0.049 (not significantly different from 0, p=0.824)."
+    concepts:
+      - replication_success
+      - prediction_market_price
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 2
+      section: "Results"
+      quote_fragment: "coefficient 0.966 (not significantly different from 1) and intercept 0.049 (not significantly different from 0)"
+
+  - id: claim8
+    type: observation
+    statement: "Prediction markets outperform pre-market surveys at predicting replication outcomes, achieving 71% vs 58% accuracy and lower prediction error for both replicated and non-replicated studies."
+    concepts:
+      - replication_success
+      - prediction_market_price
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 2
+      section: "Results"
+      quote_fragment: "The prediction error was lower for markets than surveys for both replicated and non-replicated studies"
+
+  - id: claim9
+    type: observation
+    statement: "Studies with larger original effect sizes and smaller original p-values tend to have higher prediction market prices, indicating traders incorporate statistical evidence strength."
+    concepts:
+      - original_effect_size
+      - original_p_value
+      - prediction_market_price
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 2
+      section: "Results"
+      quote_fragment: "Studies with higher original effect sizes and lower original p-values tended to have higher market prices"
+
+  - id: claim10
+    type: observation
+    statement: "Non-replication does not necessarily mean the hypothesis is false: Bayesian posterior probability for non-replicated studies ranges from 13% to 65% (median 63.5%) depending on prior base rate."
+    concepts:
+      - replication_success
+      - false_negative_risk
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 3
+      section: "Results"
+      quote_fragment: "even non-replication does not necessarily mean the hypothesis is false"
+
+  - id: claim11
+    type: mechanism
+    statement: "Prediction markets aggregate dispersed private information through incentive-compatible price mechanisms, producing better-calibrated probability estimates than surveys because traders who are more informed or confident can take larger positions, weighting the aggregate toward more knowledgeable assessments."
+    concepts:
+      - prediction_market_price
+      - replication_success
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 1
+      section: "Introduction"
+      quote_fragment: "prediction markets provide a more rigorous, incentivized mechanism"
+
+  - id: claim12
+    type: mechanism
+    statement: "Binary contract design ($1 if replicated, $0 otherwise) with real-money trading ensures incentive compatibility, so that the market price is directly interpretable as the aggregated probability of replication."
+    concepts:
+      - prediction_market_price
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 1
+      section: "Design Rationale"
+      quote_fragment: "Binary contract design chosen so price directly interpretable as probability"
+
+  - id: claim13
+    type: comparison
+    statement: "Unlike informal polls and expert surveys which yielded 58% accuracy, prediction markets with incentivized trading achieved 71% accuracy at predicting replication outcomes, because markets aggregate information more efficiently through price mechanisms."
+    concepts:
+      - replication_success
+      - prediction_market_price
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 2
+      section: "Results"
+      quote_fragment: "survey-based approaches, while informative, are less accurate than markets (58% vs 71%) because markets aggregate information more efficiently"
+
+  - id: claim14
+    type: limitation
+    statement: "The prediction market sample is limited to 44 studies from three psychology journals (JPSP, JEP:LMC, Psychological Science) published in 2008, so generalizability to other fields and time periods is unknown."
+    concepts:
+      - replication_success
+      - prediction_market_price
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 3
+      section: "Limitations"
+      quote_fragment: "Sample limited to 44 studies from three psychology journals in 2008"
+
+  - id: claim15
+    type: limitation
+    statement: "Replication success is defined narrowly as p < 0.05 in the same direction as the original, which does not capture partial replications or effect size comparisons."
+    concepts:
+      - replication_success
+      - significance_threshold
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 3
+      section: "Limitations"
+      quote_fragment: "Replication success defined narrowly as p < 0.05 in same direction"
+
+  - id: claim16
+    type: limitation
+    statement: "Prediction markets cannot replace direct replication; they provide advance probability estimates but not evidence about the truth of the hypothesis."
+    concepts:
+      - replication_success
+      - prediction_market_price
+    provenance:
+      paper: Dreber_2015_PredictionMarketsEstimateReproducibility
+      page: 3
+      section: "Limitations"
+      quote_fragment: "Prediction markets cannot replace direct replication"

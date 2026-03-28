@@ -1,0 +1,8 @@
+id: concept49
+canonical_name: prediction_market_price
+status: proposed
+definition: Final trading price in a prediction market, interpretable as aggregated
+  probability
+domain: meta_science
+created_date: '2026-03-28'
+form: structural
