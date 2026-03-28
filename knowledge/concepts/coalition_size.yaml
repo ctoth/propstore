@@ -1,0 +1,7 @@
+id: concept140
+canonical_name: coalition_size
+status: proposed
+definition: Number of players in a coalition subset S
+domain: argumentation
+created_date: '2026-03-28'
+form: structural

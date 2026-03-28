@@ -1,0 +1,7 @@
+id: concept133
+canonical_name: revised_impact_measure
+status: proposed
+definition: 'ImpS^rev: impact by removing direct attacks from X to x'
+domain: argumentation
+created_date: '2026-03-28'
+form: structural

@@ -1,0 +1,7 @@
+id: concept132
+canonical_name: sum_attacker_scores
+status: proposed
+definition: Sum of scores of all direct attackers
+domain: argumentation
+created_date: '2026-03-28'
+form: structural

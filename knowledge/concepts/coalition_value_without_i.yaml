@@ -1,0 +1,7 @@
+id: concept138
+canonical_name: coalition_value_without_i
+status: proposed
+definition: Value of coalition S without player i
+domain: argumentation
+created_date: '2026-03-28'
+form: structural

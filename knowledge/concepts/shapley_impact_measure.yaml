@@ -1,0 +1,7 @@
+id: concept143
+canonical_name: shapley_impact_measure
+status: proposed
+definition: 'ImpSh: Shapley-based impact measure for gradual argumentation'
+domain: argumentation
+created_date: '2026-03-28'
+form: structural
