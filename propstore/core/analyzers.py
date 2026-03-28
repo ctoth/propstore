@@ -36,7 +36,7 @@ from propstore.probabilistic_relations import (
     relation_from_row,
     relation_map,
 )
-from propstore.world.types import ArtifactStore, Environment
+from propstore.core.environment import ArtifactStore, Environment
 
 _ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
 _UNCONDITIONAL_TYPES = frozenset({"undercuts", "supersedes"})

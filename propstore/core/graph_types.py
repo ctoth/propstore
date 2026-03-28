@@ -6,8 +6,8 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.world.types import Environment
-from propstore.world.labelled import EnvironmentKey, Label
+from propstore.core.environment import Environment
+from propstore.core.labels import EnvironmentKey, Label
 
 
 def _freeze_value(value: Any) -> Any:

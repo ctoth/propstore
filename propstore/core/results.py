@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from propstore.core.graph_types import label_from_dict, label_to_dict
-from propstore.world.labelled import Label
+from propstore.core.labels import Label
 
 
 def _normalize_strings(values: Iterable[str]) -> tuple[str, ...]:

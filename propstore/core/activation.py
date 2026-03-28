@@ -7,8 +7,8 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
-from propstore.world.labelled import binding_condition_to_cel
-from propstore.world.types import Environment
+from propstore.core.environment import Environment
+from propstore.core.labels import binding_condition_to_cel
 
 if TYPE_CHECKING:
     from propstore.validate_contexts import ContextHierarchy
