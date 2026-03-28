@@ -96,9 +96,19 @@ pks world atms-next-query ID [K=V]     Next-query suggestions from minimal plans
 
 ## Worldlines
 
+Materialized query artifacts — traced paths through the knowledge space with full provenance.
+
 ```
-pks worldline                     Materialized query artifacts
+pks worldline create NAME [K=V]   Create a worldline definition
+pks worldline run NAME            Materialize a worldline (compute results)
+pks worldline show NAME           Show a worldline's results
+pks worldline list                List all worldlines
+pks worldline diff A B            Compare two worldlines side by side
+pks worldline refresh NAME        Re-run a worldline with current knowledge
+pks worldline delete NAME         Delete a worldline
 ```
+
+Worldlines support `--reasoning-backend` (claim_graph, structured_projection, aspic, atms, praf), `--semantics`, `--set-comparison`, `--decision-criterion` (pignistic, lower_bound, upper_bound, hurwicz), and PrAF-specific options (`--praf-strategy`, `--praf-epsilon`, `--praf-confidence`).
 
 ## Promotions
 

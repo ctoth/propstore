@@ -286,7 +286,7 @@ description: Dung's abstract argumentation framework tradition — arguments as 
   entities with attack relations, multiple acceptability semantics
 ```
 
-Claims reference their context via `context_id`. The compiler validates that all `context_id` references resolve to registered contexts. Contexts support hierarchy (`parent`), mutual exclusion (`excludes`), and visibility scoping — a BoundWorld can be filtered to show only claims from a given context and its descendants.
+Claims reference their context via `context_id`. The compiler validates that all `context_id` references resolve to registered contexts. Contexts support hierarchy (`inherits`), mutual exclusion (`excludes`), and visibility scoping — a BoundWorld can be filtered to show only claims from a given context and its ancestors.
 
 ## Schema
 

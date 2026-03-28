@@ -40,7 +40,7 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 | de Kleer 1986 | ATMS: label every datum with minimal assumption sets, never commit to one context | Implemented |
 | Dixon 1993 | ATMS context switching = AGM operations; entrenchment from justification structure | Aspirational — no AGM operations implemented |
 | Alchourron 1985 | AGM postulates: correctness criteria for any belief revision operation | Aspirational — referenced via Dixon 1993 |
-| Modgil & Prakken 2018 | ASPIC+: attack-based conflict-free, rationality postulates, preference orderings | Implemented — recursive argument construction (PremiseArg/StrictArg/DefeasibleArg), three-type attack determination (Def 8), last-link/weakest-link preference defeat (Defs 19-21), transposition closure (Def 12), rationality postulates (Thms 12-15) |
+| Modgil & Prakken 2018 | ASPIC+: attack-based conflict-free, rationality postulates, preference orderings | Implemented — recursive argument construction (PremiseArg/StrictArg/DefeasibleArg), three-type attack determination (Def 8), last-link/weakest-link preference defeat (Defs 19-21), transposition closure (Def 12). Rationality postulates (Thms 12-15) achieved by construction via transposition closure and c-consistency, not runtime-verified |
 | Pollock 1987 | Rebutting vs undercutting defeat, warrant = ultimately undefeated argument | Implemented |
 | Cayrol 2005 | Bipolar argumentation: support creates new defeat paths | Implemented — derived defeats with fixpoint |
 | Odekerken 2023 | ASPIC+ with incomplete information: stability and relevance | Partial — stability and relevance via ATMS bounded replay (not ASP-based per Odekerken); missing K_a (assumption premises) partition |
@@ -49,15 +49,14 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 | Sensoy et al. 2018 | Evidential deep learning: Dirichlet-based uncertainty from evidence counts | Implemented — evidence-to-opinion mapping |
 | Hunter & Thimm 2017 | Probabilistic argumentation: acceptance probability, COH constraint, component decomposition | Partial — COH constraint (opt-in via enforce_coh), component decomposition for MC dispatch; component decomposition implemented at praf.py |
 | Li et al. 2012 | PrAF = (A, P_A, D, P_D): MC sampling with Agresti-Coull stopping for probabilistic AFs | Implemented — MC sampling with Agresti-Coull |
-| Denoeux 2019 | Decision-making with belief functions: pignistic, Hurwicz, interval criteria | Aspirational — pignistic/Hurwicz/interval criteria not implemented |
+| Denoeux 2019 | Decision-making with belief functions: pignistic, Hurwicz, interval criteria | Partial — pignistic, Hurwicz, lower/upper bound criteria implemented (`world/types.py:apply_decision_criterion`); interval dominance not implemented |
 | Freedman et al. 2025 | DF-QuAD gradual semantics for quantitative bipolar argumentation frameworks | Implemented — but P_A conflated with base score |
 
 ## Known Limitations
 
-**Decision criteria:** Denoeux 2019 decision-making criteria (pignistic transform,
-Hurwicz, interval dominance) are not yet implemented. The opinion layer has
-belief functions via Jøsang 2001 but no formal decision-making layer.
-Only `expectation()` (equivalent to pignistic for binary opinions) is available.
+**Decision criteria:** Denoeux 2019 pignistic, Hurwicz, and lower/upper bound criteria
+are implemented in `world/types.py:apply_decision_criterion` and wired through the CLI
+(`--decision-criterion`). Interval dominance is not yet implemented.
 
 **Deduction, comultiplication, abduction:** These extended Jøsang operators (Jøsang & McAnally 2004; Jøsang 2008) are not implemented. The 2001 paper's core operators are complete. Implementing these requires retrieving the source papers.
 

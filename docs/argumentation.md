@@ -7,6 +7,7 @@ propstore uses formal argumentation to resolve disagreements between scientific 
 The core engine implements Dung's abstract argumentation framework AF = (Args, Defeats). Given a set of arguments (claims) and a defeat relation (derived from stances filtered through preference ordering), it computes:
 
 - **Grounded extension** — the unique minimal complete extension (skeptical reasoning)
+- **Complete extensions** — every admissible set that contains all arguments it defends (Dung 1995 Def 10)
 - **Preferred extensions** — maximal admissible sets (credulous reasoning)
 - **Stable extensions** — conflict-free sets that defeat all external arguments
 
@@ -22,7 +23,7 @@ The bridge layer (`argumentation.py`) converts raw stances into a Dung AF:
 4. Build the Dung AF from surviving defeats
 5. Compute extensions under chosen semantics
 
-propstore currently ships one reasoning backend: a claim-graph backend. It builds a Dung AF over active claim rows, uses heuristic claim metadata for preferences, and uses claim conditions only to determine activity. This is inspired by Dung and ASPIC+ style reasoning, but it is not a full structured-argument ASPIC+ implementation.
+propstore ships multiple reasoning backends at different abstraction levels. The **claim-graph** backend builds a Dung AF over active claim rows using heuristic metadata for preferences. The **structured-projection** backend delegates to `aspic_bridge.py` for full ASPIC+ argument construction (recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack determination per Modgil & Prakken 2018 Def 8, last-link/weakest-link preference defeat per Defs 19-21). The **praf** backend adds probabilistic argument/defeat acceptance via MC sampling (Li et al. 2012) with Agresti-Coull stopping, DF-QuAD gradual semantics (Freedman et al. 2025), and optional COH enforcement (Hunter & Thimm 2017). The **atms** backend provides label propagation and bounded replay over the active belief space (de Kleer 1986).
 
 ## Conflict detection
 
@@ -37,10 +38,6 @@ When two claims bind to the same concept, the conflict detector classifies them:
 | `PARAM_CONFLICT` | Conflict detected via parameterization chain: claim A and claim B individually consistent, but deriving through a shared formula produces contradictory outputs. |
 
 Condition disjointness is checked via Z3 satisfiability. Category concepts get EnumSorts, quantity concepts get Reals, boolean concepts get Bools. Condition pairs are first grouped into equivalence classes by structural similarity, so Z3 is only called once per unique condition pattern.
-
-## MaxSMT conflict resolution
-
-For large conflict sets, `maxsat_resolver.py` uses Z3's Optimize with weighted soft constraints to find the maximally consistent subset of claims. Each claim gets a soft constraint weighted by its strength score — the solver keeps as many strong claims as possible while eliminating all conflicts.
 
 ## Semantic axes
 
@@ -114,6 +111,16 @@ pks world extensions --semantics stable --set-comparison democratic
 
 The grounded extension is unique and represents the skeptically justified claims. Preferred extensions are maximal admissible sets — each represents a credulous position. Stable extensions (when they exist) are the strongest: conflict-free sets that defeat every non-member.
 
+## Bipolar argumentation
+
+The bipolar backend (`bipolar.py`) implements Cayrol 2005: support relations create derived defeat paths via fixpoint computation. Three admissibility variants (d-admissible, s-admissible, c-admissible), stable extensions, and three corresponding preferred extension types.
+
+## Subjective logic and calibration
+
+The opinion algebra (`opinion.py`) implements Jøsang 2001: Opinion = (b,d,u,a) with negation, conjunction, disjunction, consensus fusion, discounting, ordering, and uncertainty maximization. `calibrate.py` provides temperature scaling (Guo et al. 2017), corpus CDF calibration, evidence-to-opinion mapping (Sensoy et al. 2018), and ECE computation.
+
+Decision criteria at render time: pignistic (default), Hurwicz, lower bound, upper bound — per Denoeux 2019. Interval dominance not yet implemented.
+
 ## Future work
 
-AGM-style revision semantics and full ASPIC+ execution remain future work. The current implementation maps claims 1:1 to arguments (flat structure). Full ASPIC+ per Modgil & Prakken 2018 Defs 3-7 requires: strict/defeasible rules, recursive argument building from sub-arguments, and last-link/weakest-link comparison (Defs 20-21).
+AGM-style revision semantics (Dixon 1993, Alchourron 1985) remain future work. Extended Jøsang operators (deduction, comultiplication, abduction) require retrieving source papers. Interval dominance (Denoeux 2019) is not yet implemented.
