@@ -1,0 +1,8 @@
+id: concept123
+canonical_name: bayesian_network
+status: proposed
+definition: A directed acyclic graph with conditional probability tables encoding
+  a joint probability distribution
+domain: probability
+created_date: '2026-03-28'
+form: structural

@@ -1,0 +1,8 @@
+id: concept125
+canonical_name: new_event_probability
+status: proposed
+definition: The revised probability q_i assigned to event gamma_i under Jeffrey's
+  rule or similar update
+domain: probability
+created_date: '2026-03-28'
+form: structural

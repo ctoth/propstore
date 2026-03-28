@@ -1,0 +1,268 @@
+source:
+  paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T22:15:47Z"
+
+claims:
+  - id: claim1
+    type: equation
+    expression: "D(Pr, Pr') = ln max_w Pr'(w)/Pr(w) - ln min_w Pr'(w)/Pr(w)"
+    sympy: "Eq(cd_distance, ln(Max(probability_ratio)) - ln(Min(probability_ratio)))"
+    variables:
+      - symbol: "D"
+        concept: cd_distance
+        role: dependent
+      - symbol: "Pr"
+        concept: probability_distribution
+        role: independent
+      - symbol: "Pr'"
+        concept: probability_distribution_prime
+        role: independent
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 2
+      section: "2. A probabilistic distance measure"
+      quote_fragment: "Definition 2.1. Let Pr and Pr' be two probability distributions over the same set of worlds w."
+
+  - id: claim2
+    type: observation
+    statement: "The CD-distance D(Pr, Pr') is a true distance measure satisfying positiveness, symmetry, and the triangle inequality."
+    concepts:
+      - cd_distance
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 2
+      section: "2. A probabilistic distance measure"
+      quote_fragment: "Theorem 2.1. Let Pr, Pr' and Pr'' be three probability distributions over the same set of worlds."
+
+  - id: claim3
+    type: equation
+    expression: "e^{-D(Pr,Pr')} <= O'(alpha|beta) / O(alpha|beta) <= e^{D(Pr,Pr')}"
+    sympy: "Eq(odds_ratio_prime / odds_ratio, exp(cd_distance))"
+    variables:
+      - symbol: "D"
+        concept: cd_distance
+        role: independent
+      - symbol: "O"
+        concept: odds_ratio
+        role: independent
+      - symbol: "O'"
+        concept: odds_ratio_prime
+        role: dependent
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 2
+      section: "2. A probabilistic distance measure"
+      quote_fragment: "Theorem 2.2. The bound is tight in the sense that for every pair of distributions Pr and Pr', there are events alpha and beta such that..."
+
+  - id: claim4
+    type: observation
+    statement: "The CD-distance bounds on odds change are tight: for every pair of distributions there exist events achieving equality in the bound."
+    concepts:
+      - cd_distance
+      - odds_ratio
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 2
+      section: "2. A probabilistic distance measure"
+      quote_fragment: "The bound is tight in the sense that for every pair of distributions Pr and Pr', there are events..."
+
+  - id: claim5
+    type: equation
+    expression: "p * e^{-d} / (p(e^{-d} - 1) + 1) <= Pr'(alpha|beta) <= p * e^d / (p(e^d - 1) + 1)"
+    sympy: "Eq(belief_prime, initial_belief * exp(cd_distance) / (initial_belief*(exp(cd_distance) - 1) + 1))"
+    variables:
+      - symbol: "p"
+        concept: initial_belief
+        role: independent
+      - symbol: "d"
+        concept: cd_distance
+        role: independent
+      - symbol: "Pr'"
+        concept: belief_prime
+        role: dependent
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 3
+      section: "2. A probabilistic distance measure"
+      quote_fragment: "Inequality 2"
+    notes: "Derived from Theorem 2.2 by converting odds bounds to probability bounds."
+
+  - id: claim6
+    type: comparison
+    statement: "Unlike the CD-distance, KL-divergence cannot bound worst-case belief changes because KL-divergence can be made arbitrarily close to 0 while keeping odds ratios arbitrarily far from 1."
+    concepts:
+      - cd_distance
+      - kl_divergence
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 4
+      section: "3. Comparisons with existing measures"
+      quote_fragment: "Example 3.2. This example shows that we can make the KL-divergence arbitrarily close to 0, while keeping some odds ratio arbitrarily close to some constant k."
+
+  - id: claim7
+    type: comparison
+    statement: "Unlike the CD-distance, Euclidean distance cannot provide belief change bounds because large Euclidean differences between probability pairs may not correspond to large belief changes when base probabilities differ."
+    concepts:
+      - cd_distance
+      - euclidean_distance
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 5
+      section: "3. Comparisons with existing measures"
+      quote_fragment: "Definition 3.2. the Euclidean distance has the same problem as KL-divergence"
+
+  - id: claim8
+    type: equation
+    expression: "D(Pr, Pr') = ln max_{w_i, w_j} F_{Pr',Pr}(w_i : w_j)"
+    sympy: "Eq(cd_distance, ln(Max(bayes_factor)))"
+    variables:
+      - symbol: "D"
+        concept: cd_distance
+        role: dependent
+      - symbol: "F"
+        concept: bayes_factor
+        role: independent
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 7
+      section: "3.2. Bayes factor"
+      quote_fragment: "Our distance measure given in Definition 2.1 can be expressed using the Bayes factor."
+    notes: "CD-distance equals the log of the maximum Bayes factor over all pairs of worlds."
+
+  - id: claim9
+    type: equation
+    expression: "KL(Pr, Pr') <= -1 - ln(d/(e^d - 1)) + d/(e^d - 1)"
+    sympy: "Eq(kl_divergence, -1 - log(cd_distance/(exp(cd_distance) - 1)) + cd_distance/(exp(cd_distance) - 1))"
+    variables:
+      - symbol: "KL"
+        concept: kl_divergence
+        role: dependent
+      - symbol: "d"
+        concept: cd_distance
+        role: independent
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 8
+      section: "3. Comparisons with existing measures"
+      quote_fragment: "Theorem 3.4. Given two distributions Pr and Pr', where D(Pr, Pr') = d > 0, we have..."
+    notes: "Upper bound on KL-divergence given CD-distance. Shows that CD-distance provides a direct bound on KL-divergence but not vice versa."
+
+  - id: claim10
+    type: observation
+    statement: "The global CD-distance between two belief network distributions that differ in a single CPT equals the local CD-distance between the old and new CPT distributions."
+    concepts:
+      - cd_distance
+      - bayesian_network
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 10
+      section: "4. Applications to sensitivity analysis"
+      quote_fragment: "Theorem 4.1. Let N and N' be belief networks which induce distributions Pr and Pr' respectively... the distance between the global probability distributions induced by networks N and N' is exactly the distance between the local distributions."
+
+  - id: claim11
+    type: mechanism
+    statement: "Sensitivity analysis via CD-distance works because the global distance from a single CPT change equals the local CPT distance, which is computable in constant time without running global inference — the local parameter log-odds change immediately bounds all downstream belief changes."
+    concepts:
+      - cd_distance
+      - bayesian_network
+      - sensitivity_analysis
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 10
+      section: "4. Applications to sensitivity analysis"
+      quote_fragment: "Theorem 4.1 is of great practical importance as it allows us to invoke Theorem 2.2 to provide a generalized sensitivity analysis formula for belief networks."
+
+  - id: claim12
+    type: equation
+    expression: "D(Pr, Pr') = ln max_i (q_i/p_i) - ln min_i (q_i/p_i)"
+    sympy: "Eq(cd_distance, ln(Max(q_i/p_i)) - ln(Min(q_i/p_i)))"
+    variables:
+      - symbol: "D"
+        concept: cd_distance
+        role: dependent
+      - symbol: "q_i"
+        concept: new_event_probability
+        role: independent
+      - symbol: "p_i"
+        concept: old_event_probability
+        role: independent
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 12
+      section: "5.1. Jeffrey's rule"
+      quote_fragment: "Theorem 5.1. Let Pr and Pr' be two distributions, where Pr' is obtained by applying Jeffrey's rule to Pr as given in Definition 5.1."
+    notes: "Under Jeffrey's rule, CD-distance depends only on the ratio of new to old event probabilities."
+
+  - id: claim13
+    type: observation
+    statement: "Jeffrey's rule produces the distribution minimizing CD-distance from the initial distribution among all distributions satisfying the new probability constraints."
+    concepts:
+      - cd_distance
+      - jeffreys_rule
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 13
+      section: "5.1. Jeffrey's rule"
+      quote_fragment: "Theorem 5.2. The new distribution Pr' obtained by applying Jeffrey's rule to an initial distribution Pr is optimal in the following sense."
+
+  - id: claim14
+    type: observation
+    statement: "Pearl's method of virtual evidence produces the distribution minimizing CD-distance from the initial distribution among all distributions satisfying the likelihood ratio constraints."
+    concepts:
+      - cd_distance
+      - virtual_evidence
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 14
+      section: "5.2. Pearl's method of virtual evidence"
+      quote_fragment: "Theorem 5.3."
+
+  - id: claim15
+    type: observation
+    statement: "The proportional covariation scheme for multi-valued variables in Bayesian networks minimizes CD-distance among all valid re-parameterizations when a single parameter is changed."
+    concepts:
+      - cd_distance
+      - proportional_covariation
+      - bayesian_network
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 11
+      section: "4.2. Changing parameters of multi valued variables"
+      quote_fragment: "Theorem 4.2."
+
+  - id: claim16
+    type: limitation
+    statement: "The CD-distance becomes infinite when two distributions do not have the same support, making it inapplicable for comparing distributions over different event spaces."
+    concepts:
+      - cd_distance
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 2
+      section: "2. A probabilistic distance measure"
+      quote_fragment: "if two distributions Pr and Pr' do not have the same support, D(Pr, Pr') = infinity."
+
+  - id: claim17
+    type: limitation
+    statement: "The CD-distance sensitivity analysis result applies to single-parameter perturbation; multi-parameter changes require bounding via the triangle inequality, which may not be tight."
+    concepts:
+      - cd_distance
+      - sensitivity_analysis
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 10
+      section: "4. Applications to sensitivity analysis"
+
+  - id: claim18
+    type: observation
+    statement: "KL-divergence provides an average-case bound on belief changes that depends on the probability of the conditioning event, while CD-distance provides a worst-case bound that is independent of the conditioning event."
+    concepts:
+      - cd_distance
+      - kl_divergence
+    provenance:
+      paper: Chan_2005_DistanceMeasureBoundingProbabilistic
+      page: 6
+      section: "3.1. KL-divergence as an average-case bound"
+      quote_fragment: "Theorem 3.1. the KL-divergence can be used to provide a guarantee on the new odds value O'(alpha|beta) in terms of the original odds value O(alpha|beta). However, the provided guarantee depends on the probability of event beta."

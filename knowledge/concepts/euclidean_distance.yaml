@@ -1,0 +1,7 @@
+id: concept121
+canonical_name: euclidean_distance
+status: proposed
+definition: Euclidean distance between probability vectors
+domain: probability
+created_date: '2026-03-28'
+form: structural

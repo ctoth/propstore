@@ -1,0 +1,7 @@
+id: concept128
+canonical_name: virtual_evidence
+status: proposed
+definition: Pearl's method of incorporating uncertain evidence via likelihood ratios
+domain: probability
+created_date: '2026-03-28'
+form: structural

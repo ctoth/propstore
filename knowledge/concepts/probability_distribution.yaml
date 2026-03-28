@@ -1,0 +1,7 @@
+id: concept114
+canonical_name: probability_distribution
+status: proposed
+definition: A function assigning probabilities to worlds such that they sum to 1
+domain: probability
+created_date: '2026-03-28'
+form: structural

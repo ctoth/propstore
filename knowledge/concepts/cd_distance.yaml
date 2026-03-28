@@ -1,0 +1,8 @@
+id: concept113
+canonical_name: cd_distance
+status: proposed
+definition: Chan-Darwiche distance between two probability distributions, defined
+  as ln max Pr'/Pr - ln min Pr'/Pr, a true metric bounding worst-case odds ratio change
+domain: probability
+created_date: '2026-03-28'
+form: structural
