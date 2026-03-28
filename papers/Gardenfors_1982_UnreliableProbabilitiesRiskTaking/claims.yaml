@@ -1,0 +1,221 @@
+source:
+  paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A decision maker's beliefs about states of nature in a decision situation should be represented by a set P of epistemically possible probability distributions rather than a single unique subjective probability measure."
+    concepts:
+      - epistemic_reliability
+      - probability_value
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 365
+      section: "2. Models of Decision Situations"
+      quote_fragment: "the beliefs about the states of nature can be represented by a set P of probability measures"
+
+  - id: claim2
+    type: observation
+    statement: "The epistemic reliability of a probability distribution measures how well-backed it is by available information, and not all epistemically possible distributions are equally reliable."
+    concepts:
+      - epistemic_reliability
+      - binomial_opinion_uncertainty
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 366
+      section: "2. Models of Decision Situations"
+      quote_fragment: "we introduce a (real-valued) measure rho of the epistemic reliability of the probability measures in P"
+
+  - id: claim3
+    type: mechanism
+    statement: "The less relevant information an agent has about states of nature, the lower the epistemic reliability ascribed to all distributions; when well-informed, some distributions have considerably higher reliability than others. This creates an asymmetry that a single probability measure cannot represent."
+    concepts:
+      - epistemic_reliability
+      - binomial_opinion_uncertainty
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 367
+      section: "2. Models of Decision Situations"
+      quote_fragment: "the less relevant information the agent has about the states of nature, the less epistemic reliability will be ascribed to the distributions"
+
+  - id: claim4
+    type: model
+    name: "MMEU Decision Criterion"
+    equations:
+      - "claim5"
+      - "claim6"
+    parameters:
+      - name: "desired_reliability_level"
+        concept: "epistemic_reliability"
+        note: "Agent-selected threshold rho_0 determining which distributions are considered reliable enough"
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 371
+      section: "3. A Decision Theory"
+
+  - id: claim5
+    type: equation
+    expression: "min_{P in P/rho_0} e_ik"
+    sympy: "Min(e_ik)"
+    variables:
+      - symbol: "e_ik"
+        concept: "expected_utility"
+        role: "dependent"
+      - symbol: "P"
+        concept: "probability_value"
+        role: "independent"
+      - symbol: "rho_0"
+        concept: "epistemic_reliability"
+        role: "parameter"
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 371
+      section: "3. A Decision Theory"
+    notes: "Minimal expected utility of alternative a_i relative to the reliability-filtered set P/rho_0"
+
+  - id: claim6
+    type: equation
+    expression: "R(P/rho_0) = 1 - rho(P/rho_0) / rho(P)"
+    sympy: "Eq(R, 1 - rho_filtered / rho_total)"
+    variables:
+      - symbol: "R"
+        concept: "epistemic_risk"
+        role: "dependent"
+      - symbol: "rho(P/rho_0)"
+        concept: "epistemic_reliability"
+        role: "independent"
+      - symbol: "rho(P)"
+        concept: "epistemic_reliability"
+        role: "independent"
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 383
+      section: "6. Conclusion"
+    notes: "Measure of epistemic risk taken by an agent; R=0 when all distributions considered, R approaches 1 when only the most reliable distribution is used"
+
+  - id: claim7
+    type: observation
+    statement: "When all probability distributions have equal epistemic reliability (no information case), the MMEU criterion reduces to the classical maximin rule for decision making under ignorance."
+    concepts:
+      - epistemic_reliability
+      - expected_utility
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 373
+      section: "3. A Decision Theory"
+      quote_fragment: "the classical maximin turns out to be a special case of the MMEU criterion"
+
+  - id: claim8
+    type: observation
+    statement: "When complete information yields exactly one epistemically possible probability distribution, the MMEU criterion collapses into the standard Bayesian rule of maximizing expected utility."
+    concepts:
+      - epistemic_reliability
+      - expected_utility
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 373
+      section: "3. A Decision Theory"
+      quote_fragment: "the MMEU criterion collapses into the ordinary rule within strict Bayesianism"
+
+  - id: claim9
+    type: comparison
+    statement: "Unlike strict Bayesianism which uses a single probability measure, the MMEU criterion uses a set of distributions filtered by epistemic reliability, enabling it to distinguish between situations with the same probability but different evidential backing."
+    concepts:
+      - epistemic_reliability
+      - probability_value
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 362
+      section: "1. The Limitations of Strict Bayesianism"
+      quote_fragment: "a bet on match A is more reliable than a bet on the others"
+
+  - id: claim10
+    type: comparison
+    statement: "Unlike Levi's S-admissibility criterion, the MMEU criterion satisfies independence of irrelevant alternatives: adding a non-optimal alternative to the decision situation does not change the ordering among the original alternatives."
+    concepts:
+      - expected_utility
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 379
+      section: "5. A Comparison with Levi's Theory"
+      quote_fragment: "Levi's theory does not satisfy this condition"
+
+  - id: claim11
+    type: observation
+    statement: "The Ellsberg paradox is explained by the MMEU criterion: alternatives involving ambiguous probability distributions (unknown proportion of black and yellow balls) have lower epistemic reliability, causing agents to prefer alternatives with known distributions."
+    concepts:
+      - epistemic_reliability
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 375
+      section: "4. Relation to Earlier Theories"
+      quote_fragment: "a2 and a3 involve greater epistemic risks than a1 and a4"
+
+  - id: claim12
+    type: mechanism
+    statement: "Popper's paradox of ideal evidence is resolved because while P(a) = P(a,e) = 1/2 both before and after statistical evidence e, the epistemic reliability of the estimate after evidence is much higher. The set P and rho together distinguish these cases; the set P alone cannot."
+    concepts:
+      - epistemic_reliability
+      - probability_value
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 368
+      section: "2. Models of Decision Situations"
+      quote_fragment: "the distribution associated with this answer has a much higher degree of epistemic reliability than before"
+
+  - id: claim13
+    type: observation
+    statement: "The choice of desired reliability level rho_0 depends on the agent's risk preferences: more risk-averse agents choose higher rho_0 (fewer distributions considered), while risk-tolerant agents choose lower rho_0."
+    concepts:
+      - epistemic_reliability
+      - epistemic_risk
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 370
+      section: "3. A Decision Theory"
+      quote_fragment: "the more risk aversive the agent is, the lower the chosen level of epistemic reliability will be"
+
+  - id: claim14
+    type: limitation
+    statement: "The MMEU criterion is generally applicable only when possible outcomes are non-negative from the decision maker's perspective; the reflection effect and isolation effect from Kahneman and Tversky's prospect theory cannot be directly captured."
+    concepts:
+      - expected_utility
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 380
+      section: "6. Conclusion"
+      quote_fragment: "the MMEU criterion seems to be too cautious"
+
+  - id: claim15
+    type: limitation
+    statement: "The epistemic reliability measure rho is characterized only by its ordering properties; a full axiomatic characterization is not provided, and the authors defer this to a more comprehensive decision theory."
+    concepts:
+      - epistemic_reliability
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 367
+      section: "2. Models of Decision Situations"
+      quote_fragment: "we will not attempt a full description of the properties of the measure rho"
+
+  - id: claim16
+    type: observation
+    statement: "The epistemic reliability measure rho can be interpreted as a second-order probability measure defined over the set of epistemically possible probability distributions, provided P is finite; if P is a convex set, rho must be a non-standard probability measure."
+    concepts:
+      - epistemic_reliability
+      - probability_value
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 382
+      section: "Notes"
+      quote_fragment: "An interesting possibility is to take rho to be a second order probability measure"
+
+  - id: claim17
+    type: comparison
+    statement: "Unlike Ellsberg's confidence measure rho_e which is defined for only a single estimated distribution y^0, the epistemic reliability measure rho is defined for all distributions in P, so no single distribution plays a privileged role after the reliability filtering step."
+    concepts:
+      - epistemic_reliability
+    provenance:
+      paper: Gardenfors_1982_UnreliableProbabilitiesRiskTaking
+      page: 377
+      section: "4. Relation to Earlier Theories"
+      quote_fragment: "Ellsberg exploits the degree of confidence, which is defined for only one distribution"
