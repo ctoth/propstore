@@ -356,9 +356,9 @@ def _build_sampled_framework(
     )
     all_defeats = set(direct_defeats)
     if sampled_supports and direct_defeats:
-        from propstore.argumentation import _cayrol_derived_defeats
+        from propstore.bipolar import cayrol_derived_defeats
 
-        all_defeats |= _cayrol_derived_defeats(set(direct_defeats), set(sampled_supports))
+        all_defeats |= set(cayrol_derived_defeats(frozenset(direct_defeats), frozenset(sampled_supports)))
 
     sampled_attacks_relation: frozenset[tuple[str, str]] | None = None
     if praf.framework.attacks is not None:

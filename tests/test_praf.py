@@ -407,8 +407,8 @@ def test_build_praf_from_store():
     # We need defeat_holds to return True
     from unittest.mock import patch
 
-    with patch("propstore.argumentation.defeat_holds", return_value=True), \
-         patch("propstore.argumentation.claim_strength", return_value=[1.0]):
+    with patch("propstore.core.analyzers.defeat_holds", return_value=True), \
+         patch("propstore.core.analyzers.claim_strength", return_value=[1.0]):
         praf = build_praf(store, {"c1", "c2"})
 
     assert isinstance(praf, ProbabilisticAF)

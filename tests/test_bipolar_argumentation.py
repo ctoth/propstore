@@ -20,13 +20,13 @@ import sqlite3
 import pytest
 
 from propstore.argumentation import (
-    _cayrol_derived_defeats,
     build_argumentation_framework,
     compute_claim_graph_justified_claims,
 )
 from propstore.bipolar import (
     BipolarArgumentationFramework,
     c_preferred_extensions,
+    cayrol_derived_defeats,
     d_preferred_extensions,
     s_preferred_extensions,
 )
@@ -76,7 +76,7 @@ def conn():
     return c
 
 
-# ── Unit tests for _cayrol_derived_defeats ────────────────────────────
+# ── Unit tests for cayrol_derived_defeats ────────────────────────────
 
 
 class TestCayrolDerivedDefeats:
@@ -84,43 +84,43 @@ class TestCayrolDerivedDefeats:
 
     def test_supported_defeat(self):
         """A supports B, B defeats C -> derived (A, C)."""
-        supports = {("A", "B")}
-        defeats = {("B", "C")}
-        derived = _cayrol_derived_defeats(defeats, supports)
+        supports = frozenset({("A", "B")})
+        defeats = frozenset({("B", "C")})
+        derived = cayrol_derived_defeats(defeats, supports)
         assert ("A", "C") in derived
 
     def test_indirect_defeat(self):
         """A defeats B, B supports C -> derived (A, C)."""
-        supports = {("B", "C")}
-        defeats = {("A", "B")}
-        derived = _cayrol_derived_defeats(defeats, supports)
+        supports = frozenset({("B", "C")})
+        defeats = frozenset({("A", "B")})
+        derived = cayrol_derived_defeats(defeats, supports)
         assert ("A", "C") in derived
 
     def test_no_supports_no_derived(self):
         """No support relations -> no derived defeats."""
-        defeats = {("A", "B")}
-        derived = _cayrol_derived_defeats(defeats, set())
-        assert derived == set()
+        defeats = frozenset({("A", "B")})
+        derived = cayrol_derived_defeats(defeats, frozenset())
+        assert derived == frozenset()
 
     def test_no_defeats_no_derived(self):
         """No defeats -> no derived defeats (support alone doesn't create defeat)."""
-        supports = {("A", "B")}
-        derived = _cayrol_derived_defeats(set(), supports)
-        assert derived == set()
+        supports = frozenset({("A", "B")})
+        derived = cayrol_derived_defeats(frozenset(), supports)
+        assert derived == frozenset()
 
     def test_chain_supported_defeat(self):
         """A supports B, B supports C, C defeats D -> derived (A, D) and (B, D)."""
-        supports = {("A", "B"), ("B", "C")}
-        defeats = {("C", "D")}
-        derived = _cayrol_derived_defeats(defeats, supports)
+        supports = frozenset({("A", "B"), ("B", "C")})
+        defeats = frozenset({("C", "D")})
+        derived = cayrol_derived_defeats(defeats, supports)
         assert ("A", "D") in derived
         assert ("B", "D") in derived
 
     def test_chain_indirect_defeat(self):
         """A defeats B, B supports C, C supports D -> derived (A, C), (A, D)."""
-        supports = {("B", "C"), ("C", "D")}
-        defeats = {("A", "B")}
-        derived = _cayrol_derived_defeats(defeats, supports)
+        supports = frozenset({("B", "C"), ("C", "D")})
+        defeats = frozenset({("A", "B")})
+        derived = cayrol_derived_defeats(defeats, supports)
         assert ("A", "C") in derived
         assert ("A", "D") in derived
 
@@ -135,17 +135,17 @@ class TestCayrolDerivedDefeats:
         (a derived defeat) plus C supports D. But derived defeats
         don't chain further in a single pass.
         """
-        supports = {("A", "B"), ("C", "D")}
-        defeats = {("B", "C")}
-        derived = _cayrol_derived_defeats(defeats, supports)
+        supports = frozenset({("A", "B"), ("C", "D")})
+        defeats = frozenset({("B", "C")})
+        derived = cayrol_derived_defeats(defeats, supports)
         assert ("A", "C") in derived  # supported defeat
         assert ("B", "D") in derived  # indirect defeat
 
     def test_cayrol_derived_defeats_chain_transitively(self):
         """Cayrol 2005: derived defeats should chain through support + defeat + support."""
-        supports = {("A", "B"), ("C", "D")}
-        defeats = {("B", "C")}
-        derived = _cayrol_derived_defeats(defeats, supports)
+        supports = frozenset({("A", "B"), ("C", "D")})
+        defeats = frozenset({("B", "C")})
+        derived = cayrol_derived_defeats(defeats, supports)
         # A supports B, B defeats C => (A,C) is supported defeat
         assert ("A", "C") in derived
         # B defeats C, C supports D => (B,D) is indirect defeat
@@ -155,17 +155,17 @@ class TestCayrolDerivedDefeats:
 
     def test_direct_defeat_not_duplicated(self):
         """Direct defeats are not in the derived set (they're already in defeats)."""
-        supports = {("A", "B")}
-        defeats = {("A", "C")}  # direct defeat, unrelated to support
-        derived = _cayrol_derived_defeats(defeats, supports)
+        supports = frozenset({("A", "B")})
+        defeats = frozenset({("A", "C")})  # direct defeat, unrelated to support
+        derived = cayrol_derived_defeats(defeats, supports)
         # (A, C) is a direct defeat, not a derived one
         assert ("A", "C") not in derived
 
     def test_self_support_loop_terminates(self):
         """Support cycle doesn't cause infinite recursion."""
-        supports = {("A", "B"), ("B", "A")}
-        defeats = {("A", "C")}
-        derived = _cayrol_derived_defeats(defeats, supports)
+        supports = frozenset({("A", "B"), ("B", "A")})
+        defeats = frozenset({("A", "C")})
+        derived = cayrol_derived_defeats(defeats, supports)
         # A defeats C, A supports B -> indirect defeat (A to... wait, that's
         # A supports B, not A defeats B. Let me trace:
         # Indirect: A defeats C, C supports... C has no outgoing support. No indirect from A->C.

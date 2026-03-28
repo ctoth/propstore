@@ -8,47 +8,16 @@ The result is a claim-graph backend inspired by Dung and ASPIC+ ideas.
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from propstore.bipolar import BipolarArgumentationFramework, cayrol_derived_defeats as _cayrol_derived_defeats_impl
 from propstore.core.analyzers import (
     _ATTACK_TYPES,
     _NON_ATTACK_TYPES,
-    _PREFERENCE_TYPES,
     _SUPPORT_TYPES,
-    _UNCONDITIONAL_TYPES,
     analyze_claim_graph,
     build_praf_from_shared_input,
     shared_analyzer_input_from_store,
 )
 from propstore.dung import ArgumentationFramework
-from propstore.preference import claim_strength, defeat_holds
 from propstore.world.types import ArtifactStore
-
-
-def _transitive_support_targets(
-    source: str,
-    supports: set[tuple[str, str]],
-    visited: set[str] | None = None,
-) -> set[str]:
-    """Compute all arguments reachable from source via support edges."""
-    if visited is None:
-        visited = set()
-    visited.add(source)
-    targets: set[str] = set()
-    for left_id, right_id in supports:
-        if left_id == source and right_id not in visited:
-            targets.add(right_id)
-            targets |= _transitive_support_targets(right_id, supports, visited)
-    return targets
-
-
-def _cayrol_derived_defeats(
-    defeats: set[tuple[str, str]],
-    supports: set[tuple[str, str]],
-) -> set[tuple[str, str]]:
-    """Compatibility wrapper for Cayrol 2005 derived defeats."""
-    return set(_cayrol_derived_defeats_impl(frozenset(defeats), frozenset(supports)))
 
 
 def build_argumentation_framework(
@@ -77,21 +46,6 @@ def build_argumentation_framework(
         comparison=comparison,
     )
     return shared.argumentation_framework
-
-
-def build_bipolar_framework(
-    store: ArtifactStore,
-    active_claim_ids: set[str],
-    *,
-    comparison: str = "elitist",
-) -> BipolarArgumentationFramework:
-    """Build an explicit Cayrol-style bipolar framework over active claim rows."""
-    shared = shared_analyzer_input_from_store(
-        store,
-        active_claim_ids,
-        comparison=comparison,
-    )
-    return shared.bipolar_framework
 
 
 def build_praf(
@@ -203,61 +157,3 @@ def stance_summary(
         result["mean_uncertainty"] = sum(uncertainties) / len(uncertainties)
 
     return result
-
-
-def compute_consistent_beliefs(
-    store: ArtifactStore,
-    active_claim_ids: set[str],
-) -> frozenset[str]:
-    """Find maximally consistent claim subset using MaxSMT.
-
-    Loads claims, detects conflicts via the conflict detector, computes
-    claim strengths, then calls the MaxSMT resolver to find the largest
-    weighted conflict-free subset.
-    """
-    from propstore.conflict_detector import ConflictClass, detect_conflicts
-    from propstore.maxsat_resolver import resolve_conflicts
-    from propstore.validate_claims import LoadedClaimFile
-
-    if not active_claim_ids:
-        return frozenset()
-
-    # Load claim rows from DB
-    claims_by_id = store.claims_by_ids(active_claim_ids)
-
-    # Compute strengths — scalar aggregation for MaxSMT weight.
-    # claim_strength returns list[float]; multi-dim strength reduced to mean.
-    strengths = {
-        cid: sum(dims) / len(dims)
-        for cid in active_claim_ids
-        if cid in claims_by_id
-        for dims in [claim_strength(claims_by_id[cid])]
-    }
-
-    # Detect conflicts — build synthetic LoadedClaimFile wrappers
-    # We need the claim data in the format detect_conflicts expects
-    synthetic = LoadedClaimFile(
-        filename="<in-memory>",
-        filepath=Path("<in-memory>"),
-        data={"claims": list(claims_by_id.values())},
-    )
-
-    # Build a minimal concept registry from claims
-    concept_ids = {
-        c.get("concept") or c.get("target_concept")
-        for c in claims_by_id.values()
-        if c.get("concept") or c.get("target_concept")
-    }
-    concept_registry = {cid: {} for cid in concept_ids if cid}
-
-    records = detect_conflicts([synthetic], concept_registry)
-
-    # Extract conflict pairs (only true conflicts, not phi-nodes)
-    conflict_types = {ConflictClass.CONFLICT, ConflictClass.OVERLAP, ConflictClass.PARAM_CONFLICT}
-    conflict_pairs = [
-        (r.claim_a_id, r.claim_b_id)
-        for r in records
-        if r.warning_class in conflict_types
-    ]
-
-    return resolve_conflicts(conflict_pairs, strengths)

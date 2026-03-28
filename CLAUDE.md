@@ -30,7 +30,7 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 
 ### Known Limitations
 
-**ASPIC+ argument construction:** The claim graph routes through `aspic_bridge.py`, which translates claims, justifications, and stances into ASPIC+ types (Literal, Rule, KnowledgeBase, PreferenceConfig) and delegates to `aspic.py` for formal recursive argument construction (Modgil & Prakken 2018 Defs 1-22). `structured_argument.py` delegates to this bridge. The StructuredProjection output type is preserved for downstream consumers.
+**ASPIC+ argument construction:** The claim graph routes through `aspic_bridge.py`, which translates claims, justifications, and stances into ASPIC+ types (Literal, Rule, KnowledgeBase, PreferenceConfig) and delegates to `aspic.py` for formal recursive argument construction (Modgil & Prakken 2018 Defs 1-22). `structured_argument.py` delegates to this bridge. The StructuredProjection output type is preserved for downstream consumers. Rule ordering in the bridge is always empty — only premise ordering from metadata has discriminating power.
 
 ## Key Literature Grounding
 
@@ -43,11 +43,11 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 | Modgil & Prakken 2018 | ASPIC+: attack-based conflict-free, rationality postulates, preference orderings | Implemented — recursive argument construction (PremiseArg/StrictArg/DefeasibleArg), three-type attack determination (Def 8), last-link/weakest-link preference defeat (Defs 19-21), transposition closure (Def 12), rationality postulates (Thms 12-15) |
 | Pollock 1987 | Rebutting vs undercutting defeat, warrant = ultimately undefeated argument | Implemented |
 | Cayrol 2005 | Bipolar argumentation: support creates new defeat paths | Implemented — derived defeats with fixpoint |
-| Odekerken 2023 | ASPIC+ with incomplete information: stability and relevance | Implemented — stability and relevance |
+| Odekerken 2023 | ASPIC+ with incomplete information: stability and relevance | Partial — stability and relevance via ATMS bounded replay (not ASP-based per Odekerken); missing K_a (assumption premises) partition |
 | Jøsang 2001 | Subjective Logic: Opinion = (b,d,u,a), expectation E(ω) = b + a·u, consensus fusion | Implemented |
 | Guo et al. 2017 | Temperature scaling for neural network calibration; ECE metric | Implemented |
 | Sensoy et al. 2018 | Evidential deep learning: Dirichlet-based uncertainty from evidence counts | Implemented — evidence-to-opinion mapping |
-| Hunter & Thimm 2017 | Probabilistic argumentation: acceptance probability, COH constraint, component decomposition | Partial — COH constraint implemented (opt-in via enforce_coh), component decomposition not implemented |
+| Hunter & Thimm 2017 | Probabilistic argumentation: acceptance probability, COH constraint, component decomposition | Partial — COH constraint (opt-in via enforce_coh), component decomposition for MC dispatch; component decomposition implemented at praf.py |
 | Li et al. 2012 | PrAF = (A, P_A, D, P_D): MC sampling with Agresti-Coull stopping for probabilistic AFs | Implemented — MC sampling with Agresti-Coull |
 | Denoeux 2019 | Decision-making with belief functions: pignistic, Hurwicz, interval criteria | Aspirational — pignistic/Hurwicz/interval criteria not implemented |
 | Freedman et al. 2025 | DF-QuAD gradual semantics for quantitative bipolar argumentation frameworks | Implemented — but P_A conflated with base score |
@@ -58,6 +58,8 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 Hurwicz, interval dominance) are not yet implemented. The opinion layer has
 belief functions via Jøsang 2001 but no formal decision-making layer.
 Only `expectation()` (equivalent to pignistic for binary opinions) is available.
+
+**Deduction, comultiplication, abduction:** These extended Jøsang operators (Jøsang & McAnally 2004; Jøsang 2008) are not implemented. The 2001 paper's core operators are complete. Implementing these requires retrieving the source papers.
 
 ## Technical Conventions
 
