@@ -271,3 +271,148 @@ def discount(trust: Opinion, source: Opinion) -> Opinion:
     u = trust.d + trust.u + trust.b * source.u
     a = source.a
     return Opinion(b, d, u, a)
+
+
+def wbf(*opinions: Opinion) -> Opinion:
+    """N-source Weighted Belief Fusion (van der Heijden 2018, Definition 4).
+
+    Generalizes consensus_pair to N sources. Each source is weighted by
+    its certainty (1/u_i). For N=2, produces identical results to
+    consensus_pair().
+
+    Raises ValueError for empty input or if any opinion is dogmatic
+    (u < _TOL), since WBF's denominator diverges.
+    """
+    if len(opinions) == 0:
+        raise ValueError("Need at least one opinion")
+    if len(opinions) == 1:
+        return opinions[0]
+
+    N = len(opinions)
+    for i, op in enumerate(opinions):
+        if op.u < _TOL:
+            raise ValueError(
+                f"Opinion {i} is dogmatic (u={op.u}). "
+                "Use fuse(method='auto') or ccf() for dogmatic sources."
+            )
+
+    # Precompute products of all uncertainties excluding each index.
+    # prod_except[i] = product(u_j for j != i)
+    total_prod = math.prod(op.u for op in opinions)
+    prod_except = [total_prod / op.u for op in opinions]
+
+    # Numerators: b_fused_num = sum(b_i * prod(u_j, j!=i))
+    num_b = sum(
+        op.b * prod_except[i]
+        for i, op in enumerate(opinions)
+    )
+    num_d = sum(
+        op.d * prod_except[i]
+        for i, op in enumerate(opinions)
+    )
+    num_u = total_prod
+
+    # Normalizing denominator kappa = sum(prod(u_j, j!=i)) - (N-1)*prod(u_j)
+    kappa = sum(prod_except) - (N - 1) * total_prod
+
+    if abs(kappa) < _TOL:
+        raise ValueError("WBF denominator κ ≈ 0")
+
+    b_fused = num_b / kappa
+    d_fused = num_d / kappa
+    u_fused = num_u / kappa
+
+    # Clamp for float drift
+    b_fused = max(0.0, b_fused)
+    d_fused = max(0.0, d_fused)
+    u_fused = max(0.0, u_fused)
+
+    # Base rate fusion (Jøsang Theorem 7 generalized):
+    # weight_i = (1 - u_i) * prod(u_j for j != i)
+    weights = [(1.0 - op.u) * prod_except[i] for i, op in enumerate(opinions)]
+    total_weight = sum(weights)
+    if total_weight < _TOL:
+        # All vacuous — average base rates
+        a_fused = sum(op.a for op in opinions) / N
+    else:
+        a_fused = sum(
+            op.a * w for op, w in zip(opinions, weights)
+        ) / total_weight
+
+    # Clamp base rate to valid range
+    a_fused = max(0.01, min(0.99, a_fused))
+
+    return Opinion(b_fused, d_fused, u_fused, a_fused)
+
+
+def ccf(*opinions: Opinion) -> Opinion:
+    """Cumulative & Compromise Fusion (van der Heijden 2018, Definition 5).
+
+    Handles the case where WBF cannot — dogmatic sources (u ≈ 0).
+
+    Algorithm:
+    - If no dogmatic opinions: delegates to wbf()
+    - If all dogmatic: averages belief masses
+    - If mixed: fuses non-dogmatic via wbf(), then averages with dogmatic
+    """
+    if len(opinions) == 0:
+        raise ValueError("Need at least one opinion")
+    if len(opinions) == 1:
+        return opinions[0]
+
+    dogmatic = [op for op in opinions if op.u < _TOL]
+    non_dogmatic = [op for op in opinions if op.u >= _TOL]
+
+    if len(dogmatic) == 0:
+        # No dogmatic — same as WBF
+        return wbf(*opinions)
+
+    if len(non_dogmatic) == 0:
+        # All dogmatic — average belief masses
+        N = len(opinions)
+        b_fused = sum(op.b for op in opinions) / N
+        d_fused = sum(op.d for op in opinions) / N
+        u_fused = 0.0
+        a_fused = sum(op.a for op in opinions) / N
+        a_fused = max(0.01, min(0.99, a_fused))
+        return Opinion(b_fused, d_fused, u_fused, a_fused)
+
+    # Mixed: fuse non-dogmatic via WBF, then average with dogmatic
+    wbf_result = wbf(*non_dogmatic) if len(non_dogmatic) > 1 else non_dogmatic[0]
+    all_to_average = dogmatic + [wbf_result]
+    N = len(all_to_average)
+    b_fused = sum(op.b for op in all_to_average) / N
+    d_fused = sum(op.d for op in all_to_average) / N
+    u_fused = sum(op.u for op in all_to_average) / N
+    a_fused = sum(op.a for op in all_to_average) / N
+    a_fused = max(0.01, min(0.99, a_fused))
+
+    # Clamp for float drift
+    b_fused = max(0.0, b_fused)
+    d_fused = max(0.0, d_fused)
+    u_fused = max(0.0, u_fused)
+
+    return Opinion(b_fused, d_fused, u_fused, a_fused)
+
+
+def fuse(*opinions: Opinion, method: str = "auto") -> Opinion:
+    """Dispatch to WBF or CCF.
+
+    Parameters
+    ----------
+    method : str
+        "wbf" — always WBF (raises on dogmatic inputs)
+        "ccf" — always CCF
+        "auto" — try WBF first; fall back to CCF on dogmatic inputs
+    """
+    if method == "wbf":
+        return wbf(*opinions)
+    elif method == "ccf":
+        return ccf(*opinions)
+    elif method == "auto":
+        try:
+            return wbf(*opinions)
+        except ValueError:
+            return ccf(*opinions)
+    else:
+        raise ValueError(f"Unknown fusion method: {method!r}")

@@ -9,11 +9,15 @@ from hypothesis import strategies as st
 from propstore.opinion import (
     BetaEvidence,
     Opinion,
+    ccf,
     consensus,
     consensus_pair,
     discount,
     from_evidence,
     from_probability,
+    fuse,
+    wbf,
+    _TOL,
 )
 
 
@@ -687,3 +691,180 @@ class TestDiscountVacuousTrustProperty:
         vacuous_trust = Opinion.vacuous(0.5)
         result = discount(vacuous_trust, op)
         assert abs(result.u - 1.0) < 1e-9
+
+
+# ── WBF tests (van der Heijden 2018 Definition 4) ───────────────────
+
+
+class TestWBF:
+    """Weighted Belief Fusion — N-source generalization of consensus."""
+
+    def test_wbf_single_opinion(self):
+        """WBF of a single opinion returns it unchanged."""
+        op = Opinion(0.3, 0.2, 0.5, 0.6)
+        result = wbf(op)
+        assert result == op
+
+    def test_wbf_empty_raises(self):
+        """WBF with no opinions raises ValueError."""
+        with pytest.raises(ValueError):
+            wbf()
+
+    @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_wbf_two_equals_consensus_pair(self, a, b):
+        """For N=2 non-dogmatic opinions, WBF == consensus_pair."""
+        result_wbf = wbf(a, b)
+        result_cp = consensus_pair(a, b)
+        assert abs(result_wbf.b - result_cp.b) < 1e-6
+        assert abs(result_wbf.d - result_cp.d) < 1e-6
+        assert abs(result_wbf.u - result_cp.u) < 1e-6
+        assert abs(result_wbf.a - result_cp.a) < 1e-6
+
+    @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_wbf_commutativity(self, a, b):
+        """WBF(a, b) == WBF(b, a)."""
+        r1 = wbf(a, b)
+        r2 = wbf(b, a)
+        assert abs(r1.b - r2.b) < 1e-6
+        assert abs(r1.d - r2.d) < 1e-6
+        assert abs(r1.u - r2.u) < 1e-6
+        assert abs(r1.a - r2.a) < 1e-6
+
+    @given(valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_wbf_vacuous_identity(self, a):
+        """WBF(a, vacuous) == a — vacuous contributes nothing."""
+        vacuous = Opinion.vacuous(a.a)
+        result = wbf(a, vacuous)
+        assert abs(result.b - a.b) < 1e-6
+        assert abs(result.d - a.d) < 1e-6
+        assert abs(result.u - a.u) < 1e-6
+
+    @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_wbf_uncertainty_reduction(self, a, b):
+        """Fusing two opinions never increases uncertainty beyond the minimum."""
+        result = wbf(a, b)
+        assert result.u <= min(a.u, b.u) + _TOL
+
+    @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_wbf_sum_invariant(self, a, b):
+        """b + d + u == 1 for fused result."""
+        result = wbf(a, b)
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-6
+
+    @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_wbf_expectation_valid(self, a, b):
+        """Fused expectation is in [0, 1].
+
+        Note: E(wbf(a,b)) is NOT necessarily between E(a) and E(b) because
+        fusion concentrates belief mass, reducing uncertainty and shifting
+        the expectation. This is correct behavior per Jøsang Theorem 7.
+        """
+        result = wbf(a, b)
+        assert -_TOL <= result.expectation() <= 1.0 + _TOL
+
+    def test_wbf_dogmatic_raises(self):
+        """WBF raises when given a dogmatic opinion."""
+        dogmatic = Opinion.dogmatic_true()
+        normal = Opinion(0.3, 0.2, 0.5, 0.5)
+        with pytest.raises(ValueError, match="dogmatic"):
+            wbf(dogmatic, normal)
+
+    def test_wbf_three_sources(self):
+        """Concrete 3-source WBF: result is valid and uncertainty decreases."""
+        a = Opinion(0.5, 0.1, 0.4, 0.5)
+        b = Opinion(0.3, 0.3, 0.4, 0.5)
+        c = Opinion(0.6, 0.2, 0.2, 0.5)
+        result = wbf(a, b, c)
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-6
+        assert result.u < min(a.u, b.u, c.u) + _TOL
+        assert result.b >= 0.0
+        assert result.d >= 0.0
+        assert result.u >= 0.0
+
+
+# ── CCF tests (van der Heijden 2018 Definition 5) ───────────────────
+
+
+class TestCCF:
+    """Cumulative & Compromise Fusion — handles dogmatic sources."""
+
+    def test_ccf_single_opinion(self):
+        """CCF of a single opinion returns it unchanged."""
+        op = Opinion(0.3, 0.2, 0.5, 0.6)
+        result = ccf(op)
+        assert result == op
+
+    def test_ccf_empty_raises(self):
+        """CCF with no opinions raises ValueError."""
+        with pytest.raises(ValueError):
+            ccf()
+
+    def test_ccf_handles_dogmatic(self):
+        """CCF can fuse two dogmatic opinions without raising."""
+        dt = Opinion.dogmatic_true()
+        df = Opinion.dogmatic_false()
+        result = ccf(dt, df)
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-6
+
+    def test_ccf_all_dogmatic_same(self):
+        """CCF of identical dogmatic opinions returns the same opinion."""
+        dt = Opinion.dogmatic_true()
+        result = ccf(dt, dt)
+        assert abs(result.b - 1.0) < 1e-6
+        assert abs(result.d - 0.0) < 1e-6
+        assert abs(result.u - 0.0) < 1e-6
+
+    @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_ccf_sum_invariant(self, a, b):
+        """b + d + u == 1 for CCF result."""
+        result = ccf(a, b)
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-6
+
+
+# ── Fuse dispatcher tests ───────────────────────────────────────────
+
+
+class TestFuse:
+    """fuse() dispatcher: auto selects WBF or CCF."""
+
+    @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_fuse_auto_selects_wbf(self, a, b):
+        """For non-dogmatic inputs, fuse(auto) == wbf()."""
+        result_fuse = fuse(a, b, method="auto")
+        result_wbf = wbf(a, b)
+        assert abs(result_fuse.b - result_wbf.b) < 1e-9
+        assert abs(result_fuse.d - result_wbf.d) < 1e-9
+        assert abs(result_fuse.u - result_wbf.u) < 1e-9
+
+    def test_fuse_auto_falls_back_to_ccf(self):
+        """For dogmatic inputs, fuse(auto) doesn't raise."""
+        dt = Opinion.dogmatic_true()
+        df = Opinion.dogmatic_false()
+        result = fuse(dt, df, method="auto")
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-6
+
+    @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_fuse_explicit_wbf(self, a, b):
+        """fuse(method='wbf') == wbf()."""
+        r1 = fuse(a, b, method="wbf")
+        r2 = wbf(a, b)
+        assert abs(r1.b - r2.b) < 1e-9
+        assert abs(r1.d - r2.d) < 1e-9
+
+    @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_fuse_explicit_ccf(self, a, b):
+        """fuse(method='ccf') == ccf()."""
+        r1 = fuse(a, b, method="ccf")
+        r2 = ccf(a, b)
+        assert abs(r1.b - r2.b) < 1e-9
+        assert abs(r1.d - r2.d) < 1e-9
