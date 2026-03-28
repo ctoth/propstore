@@ -1,0 +1,224 @@
+source:
+  paper: Nosek_2020_WhatIsReplication
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Replication is a study for which any outcome would be considered diagnostic evidence about a claim from prior research, not merely a repetition of procedure."
+    concepts:
+      - replication_success
+      - replication_outcome
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 1
+      section: "Abstract"
+      quote_fragment: "replication is a study for which any outcome would be considered diagnostic evidence about a claim from prior research"
+
+  - id: claim2
+    type: observation
+    statement: "The common definition of replication as repeating a study's procedure and observing whether the prior finding recurs is incorrect because it emphasizes operational characteristics rather than evidential diagnosticity."
+    concepts:
+      - replication_outcome
+      - method
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 1
+      section: "Introduction"
+      quote_fragment: "This definition is intuitive, easy to apply, and incorrect"
+
+  - id: claim3
+    type: observation
+    statement: "Reproduction (re-analyzing original data with the same analyses) is distinct from replication (testing claims with new evidence)."
+    concepts:
+      - replication_outcome
+      - method
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 2
+      section: "Replication reconsidered"
+      quote_fragment: "Reproduction is distinct from replication — it is re-analyzing the original data"
+
+  - id: claim4
+    type: observation
+    statement: "The distinction between 'direct' and 'conceptual' replication is misleading because these are points on a continuum of procedural similarity, not discrete categories."
+    concepts:
+      - replication_outcome
+      - method
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 2
+      section: "Replication reconsidered"
+      quote_fragment: "distinctions between 'direct' and 'conceptual' are of least relevance and possibly counterproductive"
+
+  - id: claim5
+    type: mechanism
+    statement: "A valid replication requires bidirectional diagnosticity: outcomes consistent with a prior claim increase confidence in the claim, and outcomes inconsistent with the claim decrease confidence, so a study that can only confirm but not disconfirm is not a replication."
+    concepts:
+      - replication_outcome
+      - evidence_strength
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 2
+      section: "Replication reconsidered"
+      quote_fragment: "outcomes consistent with a prior claim would increase confidence... outcomes inconsistent would decrease confidence"
+
+  - id: claim6
+    type: observation
+    statement: "The generalizability space of a claim is defined by four dimensions — Units (U), Treatments (T), Outcomes (O), and Settings (S) — and each study samples a single point in this space."
+    concepts:
+      - generalizability
+      - context_sensitivity
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 3
+      section: "Replication revisited"
+      quote_fragment: "units, treatments, outcomes, and settings"
+
+  - id: claim7
+    type: mechanism
+    statement: "Because no replication is ever truly exact — every study inevitably differs in some aspect of units, treatments, outcomes, or settings — every replication test simultaneously assesses generalizability to the new study's unique conditions."
+    concepts:
+      - generalizability
+      - replication_outcome
+      - context_sensitivity
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 3
+      section: "Replication revisited"
+      quote_fragment: "replication and generalizability testing are the same thing examined from different perspectives"
+
+  - id: claim8
+    type: mechanism
+    statement: "Successful replication provides evidence that a finding generalizes across conditions that inevitably differ from the original study, while unsuccessful replication indicates reliability may be more constrained than previously recognized."
+    concepts:
+      - replication_success
+      - generalizability
+      - replication_failure_causes
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 3
+      section: "Replication revisited"
+      quote_fragment: "Successful replication provides evidence of generalizability... Unsuccessful replication indicates that the reliability of the finding may be more constrained"
+
+  - id: claim9
+    type: mechanism
+    statement: "The value of replication is inversely related to theoretical maturity: replication has highest value at the discovery stage when theory is weak and the potential generalizability space is large, because theory cannot yet specify boundary conditions."
+    concepts:
+      - replication_success
+      - generalizability
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 5
+      section: "Replication and generalizability across the research lifecycle"
+      quote_fragment: "the value of replication may be strongest when existing understanding is weakest"
+
+  - id: claim10
+    type: mechanism
+    statement: "As theory matures toward complete understanding, the generalizability space shrinks and replication and generalizability testing converge, because theoretical expectations become so precise that all tests function as both replication and generalizability tests."
+    concepts:
+      - generalizability
+      - replication_outcome
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 5
+      section: "Replication and generalizability across the research lifecycle"
+      quote_fragment: "A complete theoretical account eliminates generalizability space because theoretical expectations are so clear"
+
+  - id: claim11
+    type: observation
+    statement: "Replication failures more often reveal previously unrecognized boundary conditions than disprove the phenomenon entirely, as demonstrated by the Loewi vagus nerve experiment where failures with summer frogs identified seasonal sensitivity rather than disproving chemical neurotransmission."
+    concepts:
+      - replication_failure_causes
+      - context_sensitivity
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 6
+      section: "Replication and generalizability across the research lifecycle"
+      quote_fragment: "Replication attempts with summer frogs failed due to seasonal sensitivity of frog heart to acetylcholine"
+
+  - id: claim12
+    type: observation
+    statement: "There is an irreducible ambiguity in replication failures: any single failure could indicate the original was a false positive, the replication is a false negative, or conditions have changed in ways that matter."
+    concepts:
+      - replication_failure_causes
+      - false_positive_rate
+      - false_negative_risk
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 4
+      section: "Replication revisited"
+      quote_fragment: "was the original evidence a false positive, or is the replication outcome a false negative, or have conditions changed"
+
+  - id: claim13
+    type: comparison
+    statement: "Unlike the procedural definition of replication which requires operational matching between studies, the diagnosticity-based definition requires only that any outcome of the new study would be informative about a prior claim, resolving paradoxes such as the impossibility of exactly replicating earthquakes, supernovae, or elections."
+    concepts:
+      - replication_outcome
+      - method
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 2
+      section: "Replication reconsidered"
+      quote_fragment: "it is not possible to recreate an earthquake, a supernova, the Pleistocene, or an election"
+
+  - id: claim14
+    type: limitation
+    statement: "The diagnosticity-based definition of replication requires judgment about what constitutes diagnostic evidence, which may itself be contested, and it is not always possible to make precise diagnosticity commitments because study outcomes may already be known."
+    concepts:
+      - replication_outcome
+      - evidence_strength
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 3
+      section: "Replication revisited"
+      quote_fragment: "It is not always possible to make precise commitments to the diagnosticity of a study as a replication"
+
+  - id: claim15
+    type: limitation
+    statement: "Because replication is defined in terms of theoretical expectations, not everyone will agree on whether a given study constitutes a replication of another, making the classification inherently contestable."
+    concepts:
+      - replication_outcome
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 3
+      section: "Replication revisited"
+      quote_fragment: "not everyone will agree that one study is a replication of another"
+
+  - id: claim16
+    type: parameter
+    concept: cognitive_replication_rate
+    value: 36
+    unit: "%"
+    conditions:
+      - "discipline == 'psychology'"
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 1
+      section: "Introduction"
+      quote_fragment: "97 of 100 originally significant results, 36% replicated"
+    notes: "From Aarts et al. 2015 Reproducibility Project: Psychology. 97 out of 100 originally significant results; 36% replicated by significance criterion."
+
+  - id: claim17
+    type: observation
+    statement: "Studies labeled 'conceptual replications' are often generalizability tests rather than replications, because they use different methods to test the same question without the bidirectional diagnosticity required by the proposed definition."
+    concepts:
+      - replication_outcome
+      - generalizability
+      - method
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 7
+      section: "Replication is rare"
+      quote_fragment: "Conceptual replications are often generalizability tests"
+
+  - id: claim18
+    type: mechanism
+    statement: "With repeated replication failures, both the generalizability space and replicability space shrink until the theory makes no commitments to replicability, effectively reducing the claim's scope to nil."
+    concepts:
+      - replication_failure_causes
+      - generalizability
+    provenance:
+      paper: Nosek_2020_WhatIsReplication
+      page: 6
+      section: "Replication and generalizability across the research lifecycle"
+      quote_fragment: "With repeated failures, generalizability and replicability space both shrink until the theory makes no commitments to replicability"
