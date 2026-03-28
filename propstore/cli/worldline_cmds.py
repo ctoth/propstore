@@ -89,7 +89,7 @@ _REASONING_OPTIONS = [
     click.option("--pessimism-index", "pessimism_index", default=0.5,
                  type=float, help="Hurwicz pessimism index (default: 0.5)"),
     click.option("--praf-strategy", "praf_strategy", default="auto",
-                 type=click.Choice(["auto", "mc", "exact", "dfquad"]),
+                 type=click.Choice(["auto", "mc", "exact", "dfquad_quad", "dfquad_baf"]),
                  help="PrAF computation strategy (default: auto)"),
     click.option("--praf-epsilon", "praf_epsilon", default=0.01,
                  type=float, help="PrAF MC error tolerance (default: 0.01)"),

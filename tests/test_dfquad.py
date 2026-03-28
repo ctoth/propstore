@@ -13,7 +13,8 @@ from propstore.dung import ArgumentationFramework
 from propstore.opinion import Opinion
 from propstore.praf import ProbabilisticAF, PrAFResult, compute_praf_acceptance
 from propstore.praf_dfquad import (
-    compute_dfquad_strengths,
+    compute_dfquad_baf_strengths,
+    compute_dfquad_quad_strengths,
     dfquad_aggregate,
     dfquad_combine,
 )
@@ -58,6 +59,24 @@ def _make_praf(
     return ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
 
 
+def _tau_from_praf(praf: ProbabilisticAF) -> dict[str, float]:
+    return {
+        arg: praf.p_args[arg].expectation()
+        for arg in praf.framework.arguments
+    }
+
+
+def _compute_quad_strengths(
+    praf: ProbabilisticAF,
+    supports: dict[tuple[str, str], float],
+) -> dict[str, float]:
+    return compute_dfquad_quad_strengths(
+        praf,
+        supports,
+        tau=_tau_from_praf(praf),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Test 1: Isolated argument retains base score
 # ---------------------------------------------------------------------------
@@ -69,12 +88,12 @@ class TestNoAttackersNoSupporters:
     def test_isolated_argument_strength_equals_base_score(self) -> None:
         praf = _make_praf(["A"], [], {"A": 0.7})
         supports: dict[tuple[str, str], float] = {}
-        strengths = compute_dfquad_strengths(praf, supports)
+        strengths = _compute_quad_strengths(praf, supports)
         assert strengths["A"] == pytest.approx(0.7, abs=0.01)
 
     def test_isolated_argument_base_half(self) -> None:
         praf = _make_praf(["A"], [], {"A": 0.5})
-        strengths = compute_dfquad_strengths(praf, {})
+        strengths = _compute_quad_strengths(praf, {})
         assert strengths["A"] == pytest.approx(0.5, abs=0.01)
 
 
@@ -88,13 +107,13 @@ class TestSingleAttacker:
 
     def test_target_strength_decreases(self) -> None:
         praf = _make_praf(["A", "B"], [("A", "B")], {"A": 0.8, "B": 0.7})
-        strengths = compute_dfquad_strengths(praf, {})
+        strengths = _compute_quad_strengths(praf, {})
         assert strengths["B"] < 0.7
         assert strengths["A"] == pytest.approx(0.8, abs=0.01)
 
     def test_strong_attacker_reduces_more(self) -> None:
         praf = _make_praf(["A", "B"], [("A", "B")], {"A": 1.0, "B": 0.7})
-        strengths = compute_dfquad_strengths(praf, {})
+        strengths = _compute_quad_strengths(praf, {})
         # With max-strength attacker, target should be driven toward 0
         assert strengths["B"] < 0.1
 
@@ -110,7 +129,7 @@ class TestSingleSupporter:
     def test_target_strength_increases(self) -> None:
         praf = _make_praf(["A", "B"], [], {"A": 0.8, "B": 0.3})
         supports = {("A", "B"): 0.8}
-        strengths = compute_dfquad_strengths(praf, supports)
+        strengths = _compute_quad_strengths(praf, supports)
         assert strengths["B"] > 0.3
         assert strengths["A"] == pytest.approx(0.8, abs=0.01)
 
@@ -130,8 +149,8 @@ class TestMonotonicityAttacker:
         praf_weak = _make_praf(["A", "B"], [("A", "B")], {"A": 0.3, "B": 0.7})
         praf_strong = _make_praf(["A", "B"], [("A", "B")], {"A": 0.9, "B": 0.7})
 
-        s_weak = compute_dfquad_strengths(praf_weak, {})
-        s_strong = compute_dfquad_strengths(praf_strong, {})
+        s_weak = _compute_quad_strengths(praf_weak, {})
+        s_strong = _compute_quad_strengths(praf_strong, {})
 
         assert s_strong["B"] < s_weak["B"]
 
@@ -150,11 +169,11 @@ class TestMonotonicitySupporter:
     def test_stronger_supporter_means_stronger_target(self) -> None:
         praf = _make_praf(["A", "B"], [], {"A": 0.3, "B": 0.5})
         supports = {("A", "B"): 0.3}
-        s_weak = compute_dfquad_strengths(praf, supports)
+        s_weak = _compute_quad_strengths(praf, supports)
 
         praf2 = _make_praf(["A", "B"], [], {"A": 0.9, "B": 0.5})
         supports2 = {("A", "B"): 0.9}
-        s_strong = compute_dfquad_strengths(praf2, supports2)
+        s_strong = _compute_quad_strengths(praf2, supports2)
 
         assert s_strong["B"] > s_weak["B"]
 
@@ -174,11 +193,11 @@ class TestContestability:
         # A supports B
         praf_support = _make_praf(["A", "B"], [], {"A": 0.8, "B": 0.5})
         supports_only = {("A", "B"): 0.8}
-        s_support = compute_dfquad_strengths(praf_support, supports_only)
+        s_support = _compute_quad_strengths(praf_support, supports_only)
 
         # A attacks B
         praf_attack = _make_praf(["A", "B"], [("A", "B")], {"A": 0.8, "B": 0.5})
-        s_attack = compute_dfquad_strengths(praf_attack, {})
+        s_attack = _compute_quad_strengths(praf_attack, {})
 
         assert s_attack["B"] < s_support["B"]
 
@@ -203,7 +222,7 @@ class TestBoundedness:
     )
     def test_attack_bounded(self, base_a: float, base_b: float) -> None:
         praf = _make_praf(["A", "B"], [("A", "B")], {"A": base_a, "B": base_b})
-        strengths = compute_dfquad_strengths(praf, {})
+        strengths = _compute_quad_strengths(praf, {})
         for s in strengths.values():
             assert 0.0 <= s <= 1.0
 
@@ -214,7 +233,7 @@ class TestBoundedness:
         for i in range(5):
             scores[f"A{i}"] = 0.9
         praf = _make_praf(args, defeats, scores)
-        strengths = compute_dfquad_strengths(praf, {})
+        strengths = _compute_quad_strengths(praf, {})
         for s in strengths.values():
             assert 0.0 <= s <= 1.0
 
@@ -226,7 +245,7 @@ class TestBoundedness:
             scores[f"S{i}"] = 0.9
             supports[(f"S{i}", "T")] = 0.9
         praf = _make_praf(args, [], scores)
-        strengths = compute_dfquad_strengths(praf, supports)
+        strengths = _compute_quad_strengths(praf, supports)
         for s in strengths.values():
             assert 0.0 <= s <= 1.0
 
@@ -247,7 +266,7 @@ class TestChainPropagation:
             ["A", "B", "C"], [("B", "C")], {"A": 0.9, "B": 0.5, "C": 0.7}
         )
         supports = {("A", "B"): 0.9}
-        strengths = compute_dfquad_strengths(praf, supports)
+        strengths = _compute_quad_strengths(praf, supports)
 
         # B should be strengthened by A's support
         assert strengths["B"] > 0.5
@@ -261,13 +280,17 @@ class TestChainPropagation:
 
 
 class TestPrAFDispatch:
-    """compute_praf_acceptance(praf, strategy='dfquad') returns PrAFResult."""
+    """Public DF-QuAD dispatch uses explicit family names."""
 
     def test_dfquad_strategy_returns_result(self) -> None:
         praf = _make_praf(["A", "B"], [("A", "B")], {"A": 0.8, "B": 0.6})
-        result = compute_praf_acceptance(praf, strategy="dfquad")
+        result = compute_praf_acceptance(
+            praf,
+            strategy="dfquad_quad",
+            tau={"A": 0.8, "B": 0.6},
+        )
         assert isinstance(result, PrAFResult)
-        assert result.strategy_used == "dfquad"
+        assert result.strategy_used == "dfquad_quad"
         assert result.samples is None
         assert result.confidence_interval_half is None
         assert "A" in result.acceptance_probs
@@ -294,14 +317,19 @@ class TestPrAFDispatch:
             p_supports={("A", "B"): from_probability(0.8, 1000)},
         )
 
-        direct = compute_dfquad_strengths(
+        direct = compute_dfquad_quad_strengths(
             praf,
             {("A", "B"): praf.p_supports[("A", "B")].expectation()},
+            tau={"A": 0.9, "B": 0.3},
         )
-        dispatched = compute_praf_acceptance(praf, strategy="dfquad")
+        dispatched = compute_praf_acceptance(
+            praf,
+            strategy="dfquad_quad",
+            tau={"A": 0.9, "B": 0.3},
+        )
 
         assert dispatched.acceptance_probs["B"] == pytest.approx(direct["B"], abs=1e-9)
-        assert dispatched.acceptance_probs["B"] > praf.p_args["B"].expectation()
+        assert dispatched.acceptance_probs["B"] > 0.3
 
     def test_dfquad_dispatch_respects_support_weight_changes(self) -> None:
         """Changing support weight should change the target's gradual strength."""
@@ -326,8 +354,16 @@ class TestPrAFDispatch:
             p_supports={("A", "B"): from_probability(0.9, 1000)},
         )
 
-        weak_result = compute_praf_acceptance(weak, strategy="dfquad")
-        strong_result = compute_praf_acceptance(strong, strategy="dfquad")
+        weak_result = compute_praf_acceptance(
+            weak,
+            strategy="dfquad_quad",
+            tau={"A": 0.9, "B": 0.3},
+        )
+        strong_result = compute_praf_acceptance(
+            strong,
+            strategy="dfquad_quad",
+            tau={"A": 0.9, "B": 0.3},
+        )
 
         assert strong_result.acceptance_probs["B"] > weak_result.acceptance_probs["B"]
 
@@ -338,9 +374,80 @@ class TestPrAFDispatch:
         with pytest.raises(ValueError, match="DF-QuAD"):
             compute_praf_acceptance(
                 praf,
-                strategy="dfquad",
+                strategy="dfquad_baf",
                 semantics="stable",
             )
+
+    def test_dfquad_strategy_name_must_be_explicit(self) -> None:
+        praf = _make_praf(["A"], [], {"A": 0.8})
+
+        with pytest.raises(ValueError, match="dfquad_quad.*dfquad_baf"):
+            compute_praf_acceptance(praf, strategy="dfquad")
+
+
+def test_dfquad_quad_requires_explicit_tau() -> None:
+    praf = _make_praf(["A"], [], {"A": 0.8})
+
+    with pytest.raises(ValueError, match="tau"):
+        compute_praf_acceptance(praf, strategy="dfquad_quad")
+
+
+def test_dfquad_quad_missing_tau_errors_cleanly() -> None:
+    praf = _make_praf(["A", "B"], [("A", "B")], {"A": 0.8, "B": 0.6})
+
+    with pytest.raises(ValueError, match="missing tau.*B"):
+        compute_praf_acceptance(
+            praf,
+            strategy="dfquad_quad",
+            tau={"A": 0.8},
+        )
+
+
+def test_dfquad_baf_uses_fixed_neutral_0_5_for_isolated_arguments() -> None:
+    praf = _make_praf(["A"], [], {"A": 0.9})
+
+    result = compute_praf_acceptance(praf, strategy="dfquad_baf")
+
+    assert result.strategy_used == "dfquad_baf"
+    assert result.acceptance_probs["A"] == pytest.approx(0.5, abs=1e-9)
+
+
+def test_dfquad_quad_tau_varies_independently_of_praf_argument_probability() -> None:
+    low_pa = _make_praf(["A"], [], {"A": 0.1})
+    high_pa = _make_praf(["A"], [], {"A": 0.9})
+
+    low_result = compute_praf_acceptance(
+        low_pa,
+        strategy="dfquad_quad",
+        tau={"A": 0.7},
+    )
+    high_result = compute_praf_acceptance(
+        high_pa,
+        strategy="dfquad_quad",
+        tau={"A": 0.7},
+    )
+
+    assert low_result.acceptance_probs["A"] == pytest.approx(0.7, abs=1e-9)
+    assert high_result.acceptance_probs["A"] == pytest.approx(0.7, abs=1e-9)
+
+
+def test_dfquad_baf_does_not_read_praf_argument_probability_as_base_score() -> None:
+    low_pa = _make_praf(["A"], [], {"A": 0.1})
+    high_pa = _make_praf(["A"], [], {"A": 0.9})
+
+    low_result = compute_praf_acceptance(low_pa, strategy="dfquad_baf")
+    high_result = compute_praf_acceptance(high_pa, strategy="dfquad_baf")
+
+    assert low_result.acceptance_probs["A"] == pytest.approx(0.5, abs=1e-9)
+    assert high_result.acceptance_probs["A"] == pytest.approx(0.5, abs=1e-9)
+
+
+def test_dfquad_baf_isolated_argument_scores_0_5() -> None:
+    praf = _make_praf(["A"], [], {"A": 0.2})
+
+    result = compute_praf_acceptance(praf, strategy="dfquad_baf")
+
+    assert result.acceptance_probs["A"] == pytest.approx(0.5, abs=1e-9)
 
 
 # ---------------------------------------------------------------------------
@@ -355,7 +462,7 @@ class TestDFQuADVsDeterministic:
 
     def test_deterministic_extreme(self) -> None:
         praf = _make_praf(["A", "B"], [("A", "B")], {"A": 1.0, "B": 1.0})
-        strengths = compute_dfquad_strengths(praf, {})
+        strengths = _compute_quad_strengths(praf, {})
         # A has no attackers, base=1.0 → strength=1.0
         assert strengths["A"] == pytest.approx(1.0, abs=0.01)
         # B attacked by A (strength 1.0), combined_influence = -1.0
@@ -477,6 +584,6 @@ def test_dfquad_scores_bounded(praf):
     output in [0,1] when base scores are in [0,1] and combined influence
     is in [-1,1].
     """
-    result = compute_praf_acceptance(praf, strategy="dfquad")
+    result = compute_praf_acceptance(praf, strategy="dfquad_baf")
     for arg, score in result.acceptance_probs.items():
         assert 0.0 <= score <= 1.0, f"arg {arg}: score={score} out of [0,1]"

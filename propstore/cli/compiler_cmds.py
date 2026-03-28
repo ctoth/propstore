@@ -1321,7 +1321,7 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
               type=click.Choice(["claim_graph", "structured_projection", "aspic", "atms", "praf"]),
               help="Argumentation backend (default: claim_graph)")
 @click.option("--praf-strategy", "praf_strategy", default="auto",
-              type=click.Choice(["auto", "mc", "exact", "dfquad"]),
+              type=click.Choice(["auto", "mc", "exact", "dfquad_quad", "dfquad_baf"]),
               help="PrAF computation strategy (default: auto)")
 @click.option("--praf-epsilon", "praf_epsilon", default=0.01,
               type=float, help="PrAF MC error tolerance (default: 0.01)")
@@ -1411,7 +1411,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
               help="Set comparison for preference ordering (default: elitist)")
 @click.option("--context", default=None, help="Context to scope the argumentation")
 @click.option("--praf-strategy", "praf_strategy", default="auto",
-              type=click.Choice(["auto", "mc", "exact", "dfquad"]),
+              type=click.Choice(["auto", "mc", "exact", "dfquad_quad", "dfquad_baf"]),
               help="PrAF computation strategy (default: auto)")
 @click.option("--praf-epsilon", "praf_epsilon", default=0.01,
               type=float, help="PrAF MC error tolerance (default: 0.01)")
@@ -1466,6 +1466,8 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             praf_result = compute_praf_acceptance(
                 praf, semantics=semantics,
                 strategy=praf_strategy,
+                query_kind="argument_acceptance",
+                inference_mode="credulous",
                 mc_epsilon=praf_epsilon,
                 mc_confidence=praf_confidence,
                 rng_seed=praf_seed,

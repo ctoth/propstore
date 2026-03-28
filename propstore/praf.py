@@ -352,7 +352,7 @@ def _validate_query_contract(
     queried_set: frozenset[str] | set[str] | tuple[str, ...] | list[str] | None,
 ) -> tuple[str, str | None, tuple[str, ...] | None]:
     """Validate explicit query selectors for PrAF acceptance queries."""
-    if strategy == "dfquad":
+    if strategy in {"dfquad", "dfquad_quad", "dfquad_baf"}:
         return "gradual_strength", None, None
 
     if query_kind is _UNSET:
@@ -600,6 +600,7 @@ def compute_praf_acceptance(
     query_kind: object = _UNSET,
     inference_mode: object = _UNSET,
     queried_set: frozenset[str] | set[str] | tuple[str, ...] | list[str] | None = None,
+    tau: dict[str, float] | None = None,
     mc_epsilon: float = 0.01,
     mc_confidence: float = 0.95,
     treewidth_cutoff: int = 12,
@@ -684,7 +685,16 @@ def compute_praf_acceptance(
             inference_mode=normalized_inference_mode,
         )
     if strategy == "dfquad":
-        return _compute_dfquad(praf, semantics)
+        raise ValueError(
+            "strategy='dfquad' is ambiguous; use 'dfquad_quad' or 'dfquad_baf'"
+        )
+    if strategy in {"dfquad_quad", "dfquad_baf"}:
+        return _compute_dfquad(
+            praf,
+            semantics,
+            strategy=strategy,
+            tau=tau,
+        )
 
     # Auto dispatch
     # Fast path: if all P_D expectations are ~1.0 and all P_A expectations are ~1.0,
@@ -1298,6 +1308,9 @@ def summarize_defeat_relations(
 def _compute_dfquad(
     praf: ProbabilisticAF,
     semantics: str,
+    *,
+    strategy: str,
+    tau: dict[str, float] | None = None,
     supports: dict[tuple[str, str], float] | None = None,
 ) -> PrAFResult:
     """DF-QuAD gradual semantics for QBAFs.
@@ -1314,7 +1327,10 @@ def _compute_dfquad(
     the same as a weak argument. A principled separation would maintain P_A for
     sampling and τ as an independent parameter.
     """
-    from propstore.praf_dfquad import compute_dfquad_strengths
+    from propstore.praf_dfquad import (
+        compute_dfquad_baf_strengths,
+        compute_dfquad_quad_strengths,
+    )
 
     if semantics != "grounded":
         raise ValueError(
@@ -1328,17 +1344,35 @@ def _compute_dfquad(
             opinion = _support_opinion(praf, edge)
             supports[edge] = opinion.expectation() if opinion is not None else 1.0
 
-    strengths = compute_dfquad_strengths(praf, supports)
+    if strategy == "dfquad_quad":
+        if tau is None:
+            raise ValueError("dfquad_quad requires explicit tau")
+        strengths = compute_dfquad_quad_strengths(
+            praf,
+            supports,
+            tau=tau,
+        )
+    elif strategy == "dfquad_baf":
+        if tau is not None:
+            raise ValueError("dfquad_baf does not use tau")
+        strengths = compute_dfquad_baf_strengths(
+            praf,
+            supports,
+        )
+    else:
+        raise ValueError(
+            "strategy='dfquad' is ambiguous; use 'dfquad_quad' or 'dfquad_baf'"
+        )
 
     return PrAFResult(
         acceptance_probs=strengths,
         extension_probability=None,
-        strategy_used="dfquad",
-        strategy_requested="dfquad",
+        strategy_used=strategy,
+        strategy_requested=strategy,
         downgraded_from=None,
         samples=None,
         confidence_interval_half=None,
-        semantics="dfquad",
+        semantics=strategy,
         query_kind="gradual_strength",
         inference_mode=None,
         queried_set=None,

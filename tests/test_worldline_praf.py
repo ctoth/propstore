@@ -128,7 +128,7 @@ class TestPrafWorldlineStateCapture:
         The worldline should capture at minimum:
         - backend: "praf"
         - acceptance_probs: dict mapping claim IDs to floats
-        - strategy_used: string (e.g. "mc", "exact", "dfquad")
+        - strategy_used: string (e.g. "mc", "exact", "dfquad_quad", "dfquad_baf")
         - semantics: string (e.g. "grounded")
         """
         wl = WorldlineDefinition.from_dict({
@@ -160,7 +160,7 @@ class TestPrafWorldlineStateCapture:
         assert isinstance(result.argumentation["acceptance_probs"], dict)
         assert "strategy_used" in result.argumentation, (
             "PRAF argumentation state must report which strategy was used "
-            "(mc, exact, or dfquad)"
+            "(mc, exact, dfquad_quad, or dfquad_baf)"
         )
         assert isinstance(result.argumentation["strategy_used"], str)
         assert "semantics" in result.argumentation, (

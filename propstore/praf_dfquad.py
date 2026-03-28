@@ -65,15 +65,37 @@ def dfquad_combine(
     return support - attack
 
 
+def _validated_base_scores(
+    praf: ProbabilisticAF,
+    *,
+    base_scores: dict[str, float],
+    score_name: str,
+) -> dict[str, float]:
+    normalized: dict[str, float] = {}
+    missing = sorted(arg for arg in praf.framework.arguments if arg not in base_scores)
+    if missing:
+        missing_text = ", ".join(missing)
+        raise ValueError(f"missing {score_name} for arguments: {missing_text}")
+    for arg in praf.framework.arguments:
+        value = float(base_scores[arg])
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{score_name}[{arg!r}] must be in [0,1], got {value}")
+        normalized[arg] = value
+    return normalized
+
+
 def compute_dfquad_strengths(
     praf: ProbabilisticAF,
     supports: dict[tuple[str, str], float],
+    *,
+    base_scores: dict[str, float],
 ) -> dict[str, float]:
-    """Compute DF-QuAD strengths for all arguments.
+    """Compute DF-QuAD strengths for all arguments from explicit base scores.
 
-    Base scores from praf.p_args[arg].expectation() per Jøsang (2001, Def 6).
-    Attack structure from praf.framework.defeats.
-    Support structure from the supports dict.
+    Attack structure comes from `praf.framework.defeats`.
+    Support structure comes from the `supports` dict.
+    Base scores are supplied explicitly so QuAD-mode τ is never conflated
+    with PrAF argument-existence probabilities.
 
     Evaluation order: topological sort of the combined attack+support graph.
     If cycles exist, use iterative fixpoint (max 100 iterations,
@@ -84,10 +106,11 @@ def compute_dfquad_strengths(
     args = praf.framework.arguments
     defeats = praf.framework.defeats
 
-    # Extract base scores from Opinion.expectation()
-    base_scores: dict[str, float] = {}
-    for arg in args:
-        base_scores[arg] = praf.p_args[arg].expectation()
+    normalized_base_scores = _validated_base_scores(
+        praf,
+        base_scores=base_scores,
+        score_name="base_scores",
+    )
 
     # Build adjacency: who attacks/supports whom
     attackers_of: dict[str, list[str]] = {a: [] for a in args}
@@ -133,7 +156,7 @@ def compute_dfquad_strengths(
     remaining = [a for a in args if a not in visited]
 
     # Initialize strengths with base scores
-    strengths: dict[str, float] = dict(base_scores)
+    strengths: dict[str, float] = dict(normalized_base_scores)
 
     # Evaluate in topological order (acyclic portion)
     for arg in topo_order:
@@ -143,7 +166,7 @@ def compute_dfquad_strengths(
             for a in supporters_of[arg]
         ]
         combined = dfquad_combine(supporter_strs, attacker_strs)
-        strengths[arg] = dfquad_aggregate(base_scores[arg], combined)
+        strengths[arg] = dfquad_aggregate(normalized_base_scores[arg], combined)
 
     # Iterative fixpoint for cyclic arguments (if any)
     # Per Freedman et al. (2025): acyclic QBAFs assumed, but we handle
@@ -158,10 +181,42 @@ def compute_dfquad_strengths(
                     for a in supporters_of[arg]
                 ]
                 combined = dfquad_combine(supporter_strs, attacker_strs)
-                new_strength = dfquad_aggregate(base_scores[arg], combined)
+                new_strength = dfquad_aggregate(normalized_base_scores[arg], combined)
                 max_delta = max(max_delta, abs(new_strength - strengths[arg]))
                 strengths[arg] = new_strength
             if max_delta < 1e-9:
                 break
 
     return strengths
+
+
+def compute_dfquad_quad_strengths(
+    praf: ProbabilisticAF,
+    supports: dict[tuple[str, str], float],
+    *,
+    tau: dict[str, float],
+) -> dict[str, float]:
+    """Compute QuAD/DF-QuAD strengths from explicit intrinsic scores τ."""
+    normalized_tau = _validated_base_scores(
+        praf,
+        base_scores=tau,
+        score_name="tau",
+    )
+    return compute_dfquad_strengths(
+        praf,
+        supports,
+        base_scores=normalized_tau,
+    )
+
+
+def compute_dfquad_baf_strengths(
+    praf: ProbabilisticAF,
+    supports: dict[tuple[str, str], float],
+) -> dict[str, float]:
+    """Compute the BAF adaptation with neutral base score 0.5 everywhere."""
+    neutral_scores = {arg: 0.5 for arg in praf.framework.arguments}
+    return compute_dfquad_strengths(
+        praf,
+        supports,
+        base_scores=neutral_scores,
+    )

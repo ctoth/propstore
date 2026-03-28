@@ -353,10 +353,10 @@ def test_worldline_policy_backward_compat():
 
 
 # ---------------------------------------------------------------------------
-# 10. test_praf_strategy_dfquad_dispatch
+# 10. test_praf_strategy_dfquad_baf_dispatch
 # ---------------------------------------------------------------------------
-def test_praf_strategy_dfquad_dispatch():
-    """praf_strategy='dfquad' dispatches through resolution and returns acceptance probs."""
+def test_praf_strategy_dfquad_baf_dispatch():
+    """praf_strategy='dfquad_baf' dispatches through resolution and returns acceptance probs."""
     from propstore.world.resolution import resolve
     from propstore.world.types import (
         ReasoningBackend,
@@ -371,7 +371,7 @@ def test_praf_strategy_dfquad_dispatch():
     policy = RenderPolicy(
         reasoning_backend=ReasoningBackend.PRAF,
         strategy=ResolutionStrategy.ARGUMENTATION,
-        praf_strategy="dfquad",
+        praf_strategy="dfquad_baf",
     )
 
     result = resolve(view, "temp", policy=policy, world=store)
