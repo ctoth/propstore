@@ -72,6 +72,125 @@ def log_cmd(ctx, count):
         click.echo(f"  {sha_short}  {time_str}  {msg_first_line}")
 
 
+# ── diff command ─────────────────────────────────────────────────────
+
+@cli.command("diff")
+@click.argument("commit", required=False, default=None)
+@click.pass_context
+def diff_cmd(ctx, commit):
+    """Show files changed between HEAD and COMMIT (or HEAD vs parent)."""
+    repo = ctx.obj["repo"]
+    if repo.git is None:
+        click.echo("Not a git-tracked knowledge repository.")
+        return
+    result = repo.git.diff_commits(commit1=commit)
+    any_changes = False
+    for path in result.get("added", []):
+        click.echo(f"  Added: {path}")
+        any_changes = True
+    for path in result.get("modified", []):
+        click.echo(f"  Modified: {path}")
+        any_changes = True
+    for path in result.get("deleted", []):
+        click.echo(f"  Deleted: {path}")
+        any_changes = True
+    if not any_changes:
+        click.echo("No changes.")
+
+
+# ── show command ─────────────────────────────────────────────────────
+
+@cli.command("show")
+@click.argument("commit")
+@click.pass_context
+def show_cmd(ctx, commit):
+    """Show details of a specific commit."""
+    repo = ctx.obj["repo"]
+    if repo.git is None:
+        click.echo("Not a git-tracked knowledge repository.")
+        return
+    try:
+        info = repo.git.show_commit(commit)
+    except KeyError:
+        click.echo(f"Commit not found: {commit}")
+        return
+    click.echo(f"  Commit: {info['sha'][:8]}")
+    click.echo(f"  Author: {info['author']}")
+    click.echo(f"  Date: {info['time']}")
+    click.echo(f"  Message: {info['message']}")
+    click.echo()
+    click.echo("  Files:")
+    for path in info.get("added", []):
+        click.echo(f"    A {path}")
+    for path in info.get("modified", []):
+        click.echo(f"    M {path}")
+    for path in info.get("deleted", []):
+        click.echo(f"    D {path}")
+
+
+# ── checkout command ─────────────────────────────────────────────────
+
+@cli.command("checkout")
+@click.argument("commit")
+@click.pass_context
+def checkout_cmd(ctx, commit):
+    """Build sidecar from a historical commit (non-destructive)."""
+    from propstore.build_sidecar import build_sidecar
+    from propstore.validate import load_concepts
+    from propstore.tree_reader import GitTreeReader
+
+    repo = ctx.obj["repo"]
+    if repo.git is None:
+        click.echo("Not a git-tracked knowledge repository.")
+        return
+
+    # Verify commit exists
+    try:
+        repo.git.show_commit(commit)
+    except KeyError:
+        click.echo(f"Commit not found: {commit}")
+        return
+
+    reader = GitTreeReader(repo.git, commit=commit)
+    concepts = load_concepts(None, reader=reader)
+    if not concepts:
+        click.echo("No concepts found at that commit.")
+        return
+
+    # Load optional claim files
+    from propstore.validate_claims import load_claim_files, build_concept_registry
+    from propstore.validate_contexts import load_contexts
+
+    claim_files = None
+    concept_registry = None
+    if reader.exists("claims"):
+        files = load_claim_files(None, reader=reader)
+        if files:
+            concept_registry = build_concept_registry(repo)
+            claim_files = files
+
+    context_files = None
+    if reader.exists("contexts"):
+        ctx_list = load_contexts(None, reader=reader)
+        if ctx_list:
+            context_files = ctx_list
+
+    rebuilt = build_sidecar(
+        concepts, repo.sidecar_path, force=True,
+        claim_files=claim_files,
+        concept_registry=concept_registry,
+        repo=repo,
+        context_files=context_files,
+        commit_hash=commit,
+        reader=reader,
+    )
+
+    if rebuilt:
+        click.echo(f"Sidecar built from commit {commit[:8]} ({len(concepts)} concepts).")
+    else:
+        click.echo(f"Sidecar already at commit {commit[:8]}.")
+
+
 # ── promote command ──────────────────────────────────────────────────
 
 @cli.command()

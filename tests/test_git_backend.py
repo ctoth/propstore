@@ -832,3 +832,153 @@ def test_repo_no_git(tmp_path):
 
     repo = Repository(root)
     assert repo.git is None
+
+
+# ── Phase 7: History commands ──────────────────────────────────────
+
+
+def test_diff_shows_changes(tmp_path):
+    """diff_commits() returns correct added/modified/deleted between two commits."""
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr.commit_files({
+        "concepts/alpha.yaml": b"id: concept1\n",
+        "concepts/beta.yaml": b"id: concept2\n",
+    }, "first commit")
+    sha1 = kr.head_sha()
+
+    kr.commit_files({
+        "concepts/alpha.yaml": b"id: concept1\nstatus: active\n",  # modified
+        "concepts/gamma.yaml": b"id: concept3\n",  # added
+    }, "second commit")
+    kr.commit_deletes(["concepts/beta.yaml"], "delete beta")
+    sha3 = kr.head_sha()
+
+    # Diff HEAD (sha3) vs sha1
+    diff = kr.diff_commits(commit1=sha3, commit2=sha1)
+    assert "concepts/gamma.yaml" in diff["added"]
+    assert "concepts/alpha.yaml" in diff["modified"]
+    assert "concepts/beta.yaml" in diff["deleted"]
+
+
+def test_show_commit(tmp_path):
+    """show_commit() returns correct sha, message, and file changes."""
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr.commit_files({"concepts/a.yaml": b"v: 1\n"}, "add concept a")
+    sha = kr.head_sha()
+
+    info = kr.show_commit(sha)
+    assert info["sha"] == sha
+    assert "add concept a" in info["message"]
+    assert info["author"] == "pks <pks@propstore>"
+    assert "concepts/a.yaml" in info["added"]
+    assert len(info["modified"]) == 0
+    assert len(info["deleted"]) == 0
+
+
+def test_diff_cli(tmp_path):
+    """pks diff via CliRunner shows output."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+
+    git.commit_files({"concepts/a.yaml": b"v: 1\n"}, "add a")
+    git.commit_files({"concepts/a.yaml": b"v: 2\n"}, "modify a")
+    git.sync_worktree()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "diff"])
+    assert result.exit_code == 0, result.output
+    assert "Modified" in result.output
+    assert "concepts/a.yaml" in result.output
+
+
+def test_show_cli(tmp_path):
+    """pks show <sha> via CliRunner shows output."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+
+    git.commit_files({"concepts/a.yaml": b"v: 1\n"}, "add concept a")
+    sha = git.head_sha()
+    git.sync_worktree()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "show", sha])
+    assert result.exit_code == 0, result.output
+    assert "add concept a" in result.output
+    assert "Commit:" in result.output
+    assert "Author:" in result.output
+
+
+def test_checkout_builds_from_historical(tmp_path):
+    """pks checkout <v1_sha> builds sidecar from v1 data."""
+    import shutil
+    import sqlite3
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+
+    # Seed forms so build works
+    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    for f in package_forms.glob("*.yaml"):
+        shutil.copy2(f, repo.forms_dir / f.name)
+
+    git = repo.git
+    form_files = {}
+    for f in sorted(repo.forms_dir.glob("*.yaml")):
+        rel = f.relative_to(repo.root).as_posix()
+        form_files[rel] = f.read_bytes()
+    git.commit_files(form_files, "Seed forms")
+
+    # v1: one concept
+    v1_concept = yaml.dump({
+        "id": "concept1",
+        "canonical_name": "test_freq_v1",
+        "status": "proposed",
+        "definition": "A v1 concept",
+        "domain": "testing",
+        "form": "frequency",
+    }).encode()
+    git.commit_files({"concepts/test_freq_v1.yaml": v1_concept}, "v1 concept")
+    v1_sha = git.head_sha()
+
+    # v2: add another concept
+    v2_concept = yaml.dump({
+        "id": "concept2",
+        "canonical_name": "test_bool_v2",
+        "status": "proposed",
+        "definition": "A v2 concept",
+        "domain": "testing",
+        "form": "boolean",
+    }).encode()
+    git.commit_files({"concepts/test_bool_v2.yaml": v2_concept}, "v2 concept")
+    git.sync_worktree()
+
+    # Checkout v1
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "checkout", v1_sha])
+    assert result.exit_code == 0, result.output
+    assert "1 concepts" in result.output
+
+    # Verify sidecar contains only v1 data
+    hash_path = repo.sidecar_path.with_suffix(".hash")
+    assert hash_path.exists()
+    assert hash_path.read_text().strip() == v1_sha
+
+    conn = sqlite3.connect(repo.sidecar_path)
+    rows = conn.execute("SELECT id, canonical_name FROM concept").fetchall()
+    conn.close()
+    assert len(rows) == 1
+    assert rows[0][0] == "concept1"
+    assert rows[0][1] == "test_freq_v1"

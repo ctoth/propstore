@@ -206,6 +206,83 @@ class KnowledgeRepo:
                     max_id = max(max_id, int(m.group(1)))
         return max_id + 1
 
+    # ── Diff / Show ──────────────────────────────────────────────────
+
+    def diff_commits(
+        self, commit1: str | None = None, commit2: str | None = None
+    ) -> dict:
+        """Compare two trees and return what changed.
+
+        If commit1 is None, use HEAD.
+        If commit2 is None, use the parent of commit1.
+
+        Returns: {"added": [paths], "modified": [paths], "deleted": [paths]}
+        """
+        # Resolve commit1
+        if commit1 is None:
+            try:
+                commit1 = self._repo.head().decode("ascii")
+            except KeyError:
+                return {"added": [], "modified": [], "deleted": []}
+
+        # Resolve commit2 (parent of commit1)
+        if commit2 is None:
+            commit1_obj = self._repo[commit1.encode("ascii")]
+            if commit1_obj.parents:
+                commit2 = commit1_obj.parents[0].decode("ascii")
+            else:
+                # No parent — everything in commit1 is "added"
+                commit2 = None
+
+        # Flatten both trees
+        tree1 = self._get_tree(commit1)
+        entries1: dict[str, bytes] = {}
+        if tree1 is not None:
+            self._flatten_tree(tree1, "", entries1)
+
+        entries2: dict[str, bytes] = {}
+        if commit2 is not None:
+            tree2 = self._get_tree(commit2)
+            if tree2 is not None:
+                self._flatten_tree(tree2, "", entries2)
+
+        added = sorted(p for p in entries1 if p not in entries2)
+        deleted = sorted(p for p in entries2 if p not in entries1)
+        modified = sorted(
+            p for p in entries1
+            if p in entries2 and entries1[p] != entries2[p]
+        )
+
+        return {"added": added, "modified": modified, "deleted": deleted}
+
+    def show_commit(self, sha: str) -> dict:
+        """Return details about a single commit.
+
+        Returns: {"sha": str, "message": str, "author": str, "time": str,
+                  "added": [...], "modified": [...], "deleted": [...]}
+        """
+        commit_obj = self._repo[sha.encode("ascii")]
+        info = {
+            "sha": sha,
+            "message": commit_obj.message.decode("utf-8", errors="replace").strip(),
+            "author": commit_obj.author.decode("utf-8", errors="replace"),
+            "time": time.strftime(
+                "%Y-%m-%d %H:%M:%S", time.gmtime(commit_obj.commit_time)
+            ),
+        }
+
+        # Diff vs parent
+        if commit_obj.parents:
+            parent_sha = commit_obj.parents[0].decode("ascii")
+        else:
+            parent_sha = None
+
+        diff = self.diff_commits(sha, parent_sha)
+        info["added"] = diff["added"]
+        info["modified"] = diff["modified"]
+        info["deleted"] = diff["deleted"]
+        return info
+
     # ── Internal ─────────────────────────────────────────────────────
 
     def _commit(
