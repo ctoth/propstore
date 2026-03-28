@@ -1,0 +1,4 @@
+---
+tags: [replication, meta-science, prediction-markets, effect-sizes, social-science]
+---
+Camerer et al. systematically replicate 21 social science experiments published in Nature and Science between 2010 and 2015, finding that 13/21 (62%) replicate with effect sizes averaging 50% of originals. Prediction markets by academic peers strongly predict which studies replicate (Spearman rho = 0.842), and a Bayesian mixture model estimates the true positive rate of published findings at 67% with a replication deflation factor of 0.71. This paper provides empirical base rates essential for calibrating uncertainty in any system that reasons about published scientific claims, directly informing opinion strength priors and the non-commitment discipline of holding multiple rival assessments of the same finding.
