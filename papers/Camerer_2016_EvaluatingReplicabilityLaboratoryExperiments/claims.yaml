@@ -1,0 +1,194 @@
+source:
+  paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T20:26:10Z"
+
+claims:
+  - id: claim1
+    type: parameter
+    concept: replication_significance_rate
+    value: 0.611
+    unit: "proportion"
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 19
+      section: "Results"
+      table: "S1"
+      quote_fragment: "11 replications (61%) significant effect in the same direction"
+    notes: "11 of 18 between-subject economics lab experiment treatment effects replicated at p<0.05 in same direction as original"
+
+  - id: claim2
+    type: parameter
+    concept: effect_size_shrinkage
+    value: 0.659
+    unit: "ratio"
+    lower_bound: 0.372
+    upper_bound: 0.947
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 15
+      section: "Results"
+      quote_fragment: "The mean relative effect size of the replications is 65.9% [95% CI: 37.2%, 94.7%]"
+    notes: "Standardized correlation coefficient r in replications as proportion of original"
+
+  - id: claim3
+    type: parameter
+    concept: mean_original_effect_size
+    value: 0.474
+    unit: "correlation_r"
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 15
+      section: "Results"
+      quote_fragment: "0.474 (SD=0.239) in the original studies"
+
+  - id: claim4
+    type: parameter
+    concept: mean_replication_effect_size
+    value: 0.279
+    unit: "correlation_r"
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 15
+      section: "Results"
+      quote_fragment: "0.279 (SD=0.234) in the replications"
+
+  - id: claim5
+    type: observation
+    statement: "Replication effect sizes in economics lab experiments are significantly smaller than original effect sizes, with a mean decline to 66% of originals."
+    concepts:
+      - effect_size_shrinkage
+      - replication_success
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 15
+      section: "Results"
+      quote_fragment: "This difference is significant (Wilcoxon signed-ranks test, n=18, z=-2.98, P=0.003)"
+
+  - id: claim6
+    type: observation
+    statement: "Original p-value is negatively correlated with replication success: studies with lower original p-values are more likely to replicate."
+    concepts:
+      - evidence_strength
+      - original_p_value
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 24
+      section: "Results"
+      table: "S5"
+      quote_fragment: "Spearman correlation -0.572, p=0.013"
+
+  - id: claim7
+    type: observation
+    statement: "Original sample size is positively correlated with replication success: studies with larger original samples are more likely to replicate."
+    concepts:
+      - evidence_strength
+      - sampling_scope
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 24
+      section: "Results"
+      table: "S5"
+      quote_fragment: "Spearman correlation 0.627, p=0.005"
+
+  - id: claim8
+    type: observation
+    statement: "Expert surveys predict replication outcomes better than prediction markets for economics experiments, with survey beliefs showing significant correlation with replication success."
+    concepts:
+      - subjective_replication_rate
+      - replication_success
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 9
+      section: "Prediction market performance"
+      quote_fragment: "Survey belief Spearman rho=0.516, p=0.028; Market belief rho=0.297, p=0.232"
+
+  - id: claim9
+    type: comparison
+    statement: "Economics lab experiments replicate at a higher rate (61%) than psychology experiments (36% in RPP), though direct comparison is complicated by different methods, journals, and time periods."
+    concepts:
+      - discipline_replication_asymmetry
+      - replication_significance_rate
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 10
+      section: "Comparison of reproducibility indicators"
+      quote_fragment: "comparison of reproducibility indicators between experimental economics and psychological sciences"
+
+  - id: claim10
+    type: observation
+    statement: "Meta-analytic combination of original and replication studies yields significant effects for 15 of 18 (83%) economics experiments, substantially higher than the 61% rate using replication-only significance."
+    concepts:
+      - meta_analytic_significance_rate
+      - replication_significance_rate
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 11
+      section: "Results"
+      quote_fragment: "combining original and replication data, we find significant effects for 15 of the 18 studies"
+
+  - id: claim11
+    type: observation
+    statement: "83% of replication effect sizes fall within the 95% prediction interval of the original study effect sizes, indicating that most replication results are statistically consistent with the originals even when effect sizes shrink."
+    concepts:
+      - confidence_interval_overlap_rate
+      - effect_size_shrinkage
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 14
+      section: "Results"
+      figure: "S2"
+      quote_fragment: "Fifteen replications (83.3%) are within the 95% prediction intervals"
+
+  - id: claim12
+    type: measurement
+    target_concept: original_replication_effect_correlation
+    measure: correlation
+    value: 0.48
+    unit: "spearman_rho"
+    methodology: "Spearman rank correlation between original and replication standardized effect sizes (r)"
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 15
+      section: "Results"
+      quote_fragment: "Spearman correlation between the original effect size and the replication effect size is 0.48 (P=0.043)"
+
+  - id: claim13
+    type: limitation
+    statement: "The study replicates only 18 experiments, limiting the statistical power of between-study analyses such as correlations between study characteristics and replication outcomes."
+    concepts:
+      - sampling_scope
+      - single_replication
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 10
+      section: "Discussion"
+      quote_fragment: "the sample size of replications is small with only 18 observations"
+
+  - id: claim14
+    type: limitation
+    statement: "Results are restricted to between-subject treatment effects from AER and QJE published 2011-2014 and may not generalize to other journals, time periods, or experimental designs."
+    concepts:
+      - generalizability
+      - sampling_scope
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 1
+      section: "Materials and Methods"
+      quote_fragment: "18 studies published in the American Economic Review and the Quarterly Journal of Economics between 2011 and 2014"
+
+  - id: claim15
+    type: mechanism
+    statement: "Studies with marginal original significance (higher p-values) and smaller samples are less likely to replicate because they are more susceptible to publication bias and overestimation of effect sizes, as indicated by negative correlation between original p-value and replication success and positive correlation between sample size and replication success."
+    concepts:
+      - publication_bias
+      - effect_size_inflation
+      - evidence_strength
+    provenance:
+      paper: Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments
+      page: 24
+      section: "Results"
+      table: "S5"
+      quote_fragment: "Original p-value rho=-0.572, p=0.013; Original sample size rho=0.627, p=0.005"
