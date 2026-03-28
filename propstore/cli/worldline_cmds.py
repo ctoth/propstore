@@ -164,6 +164,13 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
 
     wl = WorldlineDefinition.from_dict(definition)
     wl.to_file(path)
+
+    git = repo.git
+    if git is not None:
+        rel_path = path.relative_to(repo.root).as_posix()
+        git.commit_files({rel_path: path.read_bytes()}, f"Create worldline: {name}")
+        git.sync_worktree()
+
     click.echo(f"Created worldline '{name}' at {path}")
 
 

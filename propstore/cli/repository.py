@@ -101,9 +101,34 @@ class Repository:
             f"Run 'pks init' to create one."
         )
 
+    def ensure_git(self):
+        """Initialize git for an existing knowledge directory."""
+        if self.git is not None:
+            return self.git
+        # Collect existing YAML files BEFORE git init (sync_worktree would remove them)
+        adds = {}
+        for subdir in ["concepts", "claims", "contexts", "stances", "worldlines", "forms"]:
+            d = self._root / subdir
+            if d.is_dir():
+                for f in sorted(d.rglob("*.yaml")):
+                    rel = f.relative_to(self._root).as_posix()
+                    adds[rel] = f.read_bytes()
+        from propstore.cli.git_backend import KnowledgeRepo
+        kr = KnowledgeRepo.init(self._root)
+        if adds:
+            kr.commit_files(adds, "Import existing knowledge files")
+            kr.sync_worktree()
+        # Clear cached property so it picks up the new git repo
+        self.__dict__.pop("git", None)
+        return self.git
+
     @classmethod
     def init(cls, root: Path) -> Repository:
         """Create the directory structure and return a Repository."""
+        # Initialize git first (sync_worktree in init only writes .gitignore)
+        from propstore.cli.git_backend import KnowledgeRepo
+        KnowledgeRepo.init(root)
+        # Create dirs after git init so sync_worktree doesn't remove them
         dirs = [
             root / "concepts" / ".counters",
             root / "claims",

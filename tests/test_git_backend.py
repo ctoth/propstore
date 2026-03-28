@@ -1,6 +1,8 @@
 """Tests for the Dulwich-backed KnowledgeRepo and TreeReader implementations."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import yaml
 import pytest
 
@@ -595,3 +597,238 @@ def test_build_rebuilds_on_new_commit(tmp_path):
     rows = conn.execute("SELECT id FROM concept ORDER BY id").fetchall()
     conn.close()
     assert [r[0] for r in rows] == ["concept1", "concept2"]
+
+
+# ── Phase 4-6: Mutations through git, pks log, Repository integration ─
+
+
+def test_concept_add_creates_commit(tmp_path):
+    """pks concept add against a git-backed workspace creates a commit."""
+    import shutil
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+
+    # Seed forms so validation passes
+    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    for f in package_forms.glob("*.yaml"):
+        shutil.copy2(f, repo.forms_dir / f.name)
+
+    # Commit forms into git so they're available
+    git = repo.git
+    form_files = {}
+    for f in sorted(repo.forms_dir.glob("*.yaml")):
+        rel = f.relative_to(repo.root).as_posix()
+        form_files[rel] = f.read_bytes()
+    git.commit_files(form_files, "Seed forms")
+    git.sync_worktree()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "concept", "add",
+        "--domain", "testing",
+        "--name", "test_freq",
+        "--definition", "A test frequency",
+        "--form", "frequency",
+    ])
+    assert result.exit_code == 0, result.output
+
+    # Verify commit exists with the concept
+    history = git.log(max_count=10)
+    assert any("test_freq" in e["message"] for e in history)
+
+    # Verify file is in git tree
+    content = git.read_file("concepts/test_freq.yaml")
+    data = yaml.safe_load(content)
+    assert data["canonical_name"] == "test_freq"
+    assert data["id"].startswith("concept")
+
+
+def test_concept_rename_atomic(tmp_path):
+    """Renaming a concept produces one commit with old file gone, new present."""
+    import shutil
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+
+    # Seed forms
+    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    for f in package_forms.glob("*.yaml"):
+        shutil.copy2(f, repo.forms_dir / f.name)
+
+    git = repo.git
+    form_files = {}
+    for f in sorted(repo.forms_dir.glob("*.yaml")):
+        rel = f.relative_to(repo.root).as_posix()
+        form_files[rel] = f.read_bytes()
+    git.commit_files(form_files, "Seed forms")
+    git.sync_worktree()
+
+    # Add a concept first
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "concept", "add",
+        "--domain", "testing",
+        "--name", "old_name",
+        "--definition", "A test concept",
+        "--form", "boolean",
+    ])
+    assert result.exit_code == 0, result.output
+
+    commits_before = len(git.log(max_count=100))
+
+    # Rename it
+    # Find the concept ID first
+    data = yaml.safe_load(git.read_file("concepts/old_name.yaml"))
+    cid = data["id"]
+
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "concept", "rename", cid,
+        "--name", "new_name",
+    ])
+    assert result.exit_code == 0, result.output
+
+    # One new commit for the rename
+    commits_after = len(git.log(max_count=100))
+    assert commits_after == commits_before + 1
+
+    # Old file gone, new file present
+    assert "new_name.yaml" in git.list_dir("concepts")
+    assert "old_name.yaml" not in git.list_dir("concepts")
+
+
+def test_promote_commits(tmp_path):
+    """Promoting stance files creates a git commit."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+
+    # Create a proposal stance file (proposals/ is outside git-tracked dirs)
+    proposals_dir = root / "proposals" / "stances"
+    proposals_dir.mkdir(parents=True)
+    stance_data = {"id": "stance1", "type": "support"}
+    (proposals_dir / "test_stance.yaml").write_text(
+        yaml.dump(stance_data, default_flow_style=False)
+    )
+    # Ensure stances dir exists
+    repo.stances_dir.mkdir(parents=True, exist_ok=True)
+
+    git = repo.git
+    commits_before = len(git.log(max_count=100))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "promote", "-y"])
+    assert result.exit_code == 0, result.output
+    assert "1 file(s) promoted" in result.output
+
+    commits_after = len(git.log(max_count=100))
+    assert commits_after == commits_before + 1
+
+    # Stance file is in git
+    assert "test_stance.yaml" in git.list_dir("stances")
+
+
+def test_init_creates_git_repo(tmp_path):
+    """pks init creates a git-backed repo with initial commits."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+
+    runner = CliRunner()
+    root = tmp_path / "knowledge"
+    result = runner.invoke(cli, ["init", str(root)])
+    assert result.exit_code == 0, result.output
+
+    assert (root / ".git").is_dir()
+
+    # Should have commits (gitignore + forms)
+    kr = KnowledgeRepo.open(root)
+    history = kr.log(max_count=10)
+    assert len(history) >= 2  # .gitignore init + forms seed
+
+
+def test_log_output(tmp_path):
+    """pks log shows history after operations."""
+    import shutil
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+
+    # Seed forms
+    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    for f in package_forms.glob("*.yaml"):
+        shutil.copy2(f, repo.forms_dir / f.name)
+
+    git = repo.git
+    form_files = {}
+    for f in sorted(repo.forms_dir.glob("*.yaml")):
+        rel = f.relative_to(repo.root).as_posix()
+        form_files[rel] = f.read_bytes()
+    git.commit_files(form_files, "Seed forms")
+    git.sync_worktree()
+
+    # Add a concept
+    runner = CliRunner()
+    runner.invoke(cli, [
+        "-C", str(root),
+        "concept", "add",
+        "--domain", "testing",
+        "--name", "log_test",
+        "--definition", "Testing log",
+        "--form", "boolean",
+    ])
+
+    result = runner.invoke(cli, ["-C", str(root), "log"])
+    assert result.exit_code == 0, result.output
+    assert "log_test" in result.output
+    assert "Seed forms" in result.output
+
+
+def test_ensure_git_migrates(tmp_path):
+    """ensure_git() on a plain dir commits existing YAML files."""
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    # Create dirs manually without git
+    for d in ["concepts", "claims", "forms"]:
+        (root / d).mkdir(parents=True)
+    (root / "concepts" / "foo.yaml").write_bytes(
+        yaml.dump({"id": "concept1", "canonical_name": "foo"}).encode()
+    )
+
+    repo = Repository(root)
+    assert repo.git is None  # No git yet
+
+    git = repo.ensure_git()
+    assert git is not None
+
+    # Existing file was committed
+    content = git.read_file("concepts/foo.yaml")
+    data = yaml.safe_load(content)
+    assert data["canonical_name"] == "foo"
+
+
+def test_repo_no_git(tmp_path):
+    """Repository over a plain dir has git == None."""
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    root.mkdir(parents=True)
+    (root / "concepts").mkdir()
+
+    repo = Repository(root)
+    assert repo.git is None

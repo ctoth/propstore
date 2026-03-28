@@ -50,6 +50,28 @@ cli.add_command(world)
 cli.add_command(worldline)
 
 
+# ── log command ─────────────────────────────────────────────────────
+
+@cli.command("log")
+@click.option("-n", "--count", default=20, help="Number of entries to show")
+@click.pass_context
+def log_cmd(ctx, count):
+    """Show knowledge repository history."""
+    repo = ctx.obj["repo"]
+    if repo.git is None:
+        click.echo("Not a git-tracked knowledge repository.")
+        return
+    entries = repo.git.log(max_count=count)
+    if not entries:
+        click.echo("No history yet.")
+        return
+    for entry in entries:
+        sha_short = entry["sha"][:8]
+        time_str = entry["time"]
+        msg_first_line = entry["message"].split("\n")[0]
+        click.echo(f"  {sha_short}  {time_str}  {msg_first_line}")
+
+
 # ── promote command ──────────────────────────────────────────────────
 
 @cli.command()
@@ -97,5 +119,19 @@ def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
         src.rename(dest)
         click.echo(f"  Promoted: {src.name}")
         moved += 1
+
+    git = repo.git
+    if git and moved > 0:
+        adds = {}
+        deletes = []
+        for src in sources:
+            dest = target_stances / src.name
+            if dest.exists():
+                rel = dest.relative_to(repo.root).as_posix()
+                adds[rel] = dest.read_bytes()
+            if not src.exists() and src.is_relative_to(repo.root):
+                deletes.append(src.relative_to(repo.root).as_posix())
+        git.commit_batch(adds=adds, deletes=deletes, message=f"Promote {moved} stance file(s)")
+        git.sync_worktree()
 
     click.echo(f"\n{moved} file(s) promoted.")

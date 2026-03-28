@@ -58,9 +58,20 @@ def init(obj: dict, directory: str) -> None:
 
     _seed_forms(repo.forms_dir)
 
+    # Commit seeded forms to git
+    git = repo.git
+    if git is not None:
+        form_files = {}
+        if repo.forms_dir.is_dir():
+            for f in sorted(repo.forms_dir.glob("*.yaml")):
+                rel = f.relative_to(repo.root).as_posix()
+                form_files[rel] = f.read_bytes()
+        if form_files:
+            git.commit_files(form_files, "Seed default forms")
+            git.sync_worktree()
+
     click.echo(f"Initialized propstore project at {root}/")
     click.echo(f"  {root / 'concepts/'}")
-    click.echo(f"  {root / 'concepts' / '.counters/'}")
     click.echo(f"  {root / 'claims/'}")
     click.echo(f"  {root / 'forms/'}")
     click.echo(f"  {root / 'sidecar/'}")

@@ -63,7 +63,14 @@ def add(
         click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
         return
 
-    write_yaml_file(filepath, data)
+    git = repo.git
+    if git is not None:
+        yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+        rel_path = filepath.relative_to(repo.root).as_posix()
+        git.commit_files({rel_path: yaml_bytes}, f"Add context: {name}")
+        git.sync_worktree()
+    else:
+        write_yaml_file(filepath, data)
 
     click.echo(f"Created {filepath}")
 

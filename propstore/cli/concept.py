@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import sqlite3
 from copy import deepcopy
-import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -153,8 +152,15 @@ def add(
         click.echo(f"ERROR: Concept file '{filepath}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
-    with CounterLock(repo.counters_dir) as cl:
-        next_counter = cl.value
+    git = repo.git
+    if git is not None:
+        next_counter = git.next_concept_id()
+    else:
+        _cl = CounterLock(repo.counters_dir)
+        _cl.__enter__()
+        next_counter = _cl.value
+
+    try:
         cid = f"concept{next_counter}"
 
         data = {
@@ -200,9 +206,18 @@ def add(
         for w in result.warnings:
             click.echo(f"WARNING: {w}", err=True)
 
-        write_concept_file(filepath, data)
-        cl.commit()
+        if git is not None:
+            yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+            rel_path = f"concepts/{name}.yaml"
+            git.commit_files({rel_path: yaml_bytes}, f"Add concept: {name} ({cid})")
+            git.sync_worktree()
+        else:
+            write_concept_file(filepath, data)
+            _cl.commit()
         click.echo(f"Created {filepath} with ID {cid}")
+    finally:
+        if git is None:
+            _cl.__exit__(None, None, None)
 
 
 # ── concept alias ────────────────────────────────────────────────────
@@ -246,7 +261,15 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
     aliases.append(new_alias)
     data["aliases"] = aliases
     data["last_modified"] = str(date.today())
-    write_concept_file(filepath, data)
+
+    git = repo.git
+    if git is not None:
+        yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+        rel_path = filepath.relative_to(repo.root).as_posix()
+        git.commit_files({rel_path: yaml_bytes}, f"Add alias '{name}' to {data.get('id')}")
+        git.sync_worktree()
+    else:
+        write_concept_file(filepath, data)
 
     click.echo(f"Added alias '{name}' to {data.get('id')} ({filepath.stem})")
 
@@ -336,29 +359,49 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             click.echo("Rename validation failed. No changes written.", err=True)
             sys.exit(EXIT_VALIDATION)
 
-    # Write the renamed concept to the new path first, then remove old
-    for concept_record in updated_concepts:
-        target_path = concept_record.filepath
-        if target_path == new_path:
-            write_concept_file(new_path, concept_record.data)
-        elif concept_record.filepath in changed_concept_paths:
-            write_concept_file(target_path, concept_record.data)
+    git = repo.git
+    if git is not None:
+        # Collect all changed files for atomic commit
+        adds: dict[str, bytes] = {}
+        for concept_record in updated_concepts:
+            target_path = concept_record.filepath
+            if target_path == new_path or concept_record.filepath in changed_concept_paths:
+                yaml_bytes = yaml.dump(
+                    concept_record.data, default_flow_style=False,
+                    sort_keys=False, allow_unicode=True,
+                ).encode("utf-8")
+                rel = target_path.relative_to(repo.root).as_posix()
+                adds[rel] = yaml_bytes
 
-    for claim_file in updated_claim_files:
-        if claim_file.filepath in changed_claim_paths:
-            write_yaml_file(claim_file.filepath, claim_file.data)
+        for claim_file in updated_claim_files:
+            if claim_file.filepath in changed_claim_paths:
+                yaml_bytes = yaml.dump(
+                    claim_file.data, default_flow_style=False,
+                    sort_keys=False, allow_unicode=True,
+                ).encode("utf-8")
+                rel = claim_file.filepath.relative_to(repo.root).as_posix()
+                adds[rel] = yaml_bytes
 
-    # Remove old file and track with git if available
-    try:
-        subprocess.run(
-            ["git", "rm", str(filepath)],
-            check=True, capture_output=True,
+        old_rel = filepath.relative_to(repo.root).as_posix()
+        git.commit_batch(
+            adds=adds,
+            deletes=[old_rel],
+            message=f"Rename concept: {old_name} -> {name}",
         )
-        subprocess.run(
-            ["git", "add", str(new_path)],
-            check=True, capture_output=True,
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError):
+        git.sync_worktree()
+    else:
+        # Write the renamed concept to the new path first, then remove old
+        for concept_record in updated_concepts:
+            target_path = concept_record.filepath
+            if target_path == new_path:
+                write_concept_file(new_path, concept_record.data)
+            elif concept_record.filepath in changed_concept_paths:
+                write_concept_file(target_path, concept_record.data)
+
+        for claim_file in updated_claim_files:
+            if claim_file.filepath in changed_claim_paths:
+                write_yaml_file(claim_file.filepath, claim_file.data)
+
         filepath.unlink(missing_ok=True)
 
     click.echo(f"{old_name} -> {name}")
@@ -402,7 +445,15 @@ def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> No
     data["status"] = "deprecated"
     data["replaced_by"] = replaced_by
     data["last_modified"] = str(date.today())
-    write_concept_file(filepath, data)
+
+    git = repo.git
+    if git is not None:
+        yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+        rel_path = filepath.relative_to(repo.root).as_posix()
+        git.commit_files({rel_path: yaml_bytes}, f"Deprecate {data.get('id')}, replaced by {replaced_by}")
+        git.sync_worktree()
+    else:
+        write_concept_file(filepath, data)
 
     click.echo(f"Deprecated {data.get('id')} ({filepath.stem}), replaced by {replaced_by}")
 
@@ -482,7 +533,14 @@ def link(
     for w in validation.warnings:
         click.echo(f"WARNING: {w}", err=True)
 
-    write_concept_file(filepath, data)
+    git = repo.git
+    if git is not None:
+        yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+        rel_path = filepath.relative_to(repo.root).as_posix()
+        git.commit_files({rel_path: yaml_bytes}, f"Link {source_id} {rel_type} {target_id}")
+        git.sync_worktree()
+    else:
+        write_concept_file(filepath, data)
 
     click.echo(f"Added {rel_type} -> {target_id} on {data.get('id')} ({filepath.stem})")
 
@@ -607,7 +665,15 @@ def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
     values.append(value)
     fp["values"] = values
     data["form_parameters"] = fp
-    write_concept_file(filepath, data)
+
+    git = repo.git
+    if git is not None:
+        yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+        rel_path = filepath.relative_to(repo.root).as_posix()
+        git.commit_files({rel_path: yaml_bytes}, f"Add value '{value}' to {concept_name}")
+        git.sync_worktree()
+    else:
+        write_concept_file(filepath, data)
     click.echo(f"Added '{value}' to {concept_name} — values: {', '.join(values)}")
 
 

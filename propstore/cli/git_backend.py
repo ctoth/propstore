@@ -170,6 +170,9 @@ class KnowledgeRepo:
 
         # Remove files that are on disk but not in git
         # (only in known knowledge subdirs, not .git or other dirs)
+        # Note: we do NOT remove empty directories — they are harmless
+        # and removing them breaks workflows that expect dirs to exist
+        # (e.g. concepts/, claims/ created by Repository.init()).
         for disk_file in self._root.rglob("*"):
             if not disk_file.is_file():
                 continue
@@ -178,15 +181,6 @@ class KnowledgeRepo:
                 continue
             if rel not in git_paths:
                 disk_file.unlink()
-        # Clean up empty directories (except .git)
-        for disk_dir in sorted(self._root.rglob("*"), reverse=True):
-            if not disk_dir.is_dir():
-                continue
-            rel = disk_dir.relative_to(self._root).as_posix()
-            if rel.startswith(".git"):
-                continue
-            if not any(disk_dir.iterdir()):
-                disk_dir.rmdir()
 
     # ── ID allocation ────────────────────────────────────────────────
 
