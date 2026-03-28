@@ -1,0 +1,11 @@
+id: concept40
+canonical_name: subdiscipline
+status: proposed
+definition: Sub-field within a scientific discipline
+domain: meta_science
+created_date: '2026-03-28'
+form: category
+form_parameters:
+  values:
+  - cognitive_psychology
+  - social_psychology

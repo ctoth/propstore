@@ -1,0 +1,7 @@
+id: concept23
+canonical_name: confidence_interval_overlap_rate
+status: proposed
+definition: Proportion of original CIs containing the replication effect
+domain: meta_science
+created_date: '2026-03-28'
+form: structural

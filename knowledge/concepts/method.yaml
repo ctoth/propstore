@@ -1,0 +1,11 @@
+id: concept41
+canonical_name: method
+status: proposed
+definition: Statistical or analytical method used
+domain: meta_science
+created_date: '2026-03-28'
+form: category
+form_parameters:
+  values:
+  - fixed_effect_meta_analysis
+  - random_effects_meta_analysis

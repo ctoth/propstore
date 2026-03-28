@@ -1,0 +1,11 @@
+id: concept43
+canonical_name: power_target
+status: proposed
+definition: Target effect size for statistical power calculation
+domain: meta_science
+created_date: '2026-03-28'
+form: category
+form_parameters:
+  values:
+  - original_effect_size
+  - small_effect

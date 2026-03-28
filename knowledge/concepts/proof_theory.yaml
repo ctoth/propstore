@@ -1,0 +1,7 @@
+id: concept4
+canonical_name: proof_theory
+status: proposed
+definition: Constructive proof procedure corresponding to an argumentation semantics.
+domain: argumentation
+created_date: '2026-03-28'
+form: structural

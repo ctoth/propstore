@@ -1,0 +1,10 @@
+id: concept42
+canonical_name: combining
+status: proposed
+definition: Method of combining results across studies
+domain: meta_science
+created_date: '2026-03-28'
+form: category
+form_parameters:
+  values:
+  - original_plus_replication

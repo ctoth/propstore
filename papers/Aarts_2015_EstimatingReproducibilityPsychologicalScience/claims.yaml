@@ -1,5 +1,9 @@
 source:
   paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T20:25:10Z"
 
 claims:
   - id: claim1
@@ -9,7 +13,7 @@ claims:
     unit: "proportion"
     conditions:
       - "discipline == 'psychology'"
-      - "significance_threshold == 0.05"
+      - "significance_threshold == '0.05'"
     provenance:
       paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
       page: 1
@@ -24,7 +28,7 @@ claims:
     unit: "proportion"
     conditions:
       - "discipline == 'psychology'"
-      - "significance_threshold == 0.05"
+      - "significance_threshold == '0.05'"
     provenance:
       paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
       page: 1
@@ -90,7 +94,7 @@ claims:
     unit: "proportion"
     conditions:
       - "subdiscipline == 'cognitive_psychology'"
-      - "significance_threshold == 0.05"
+      - "significance_threshold == '0.05'"
     provenance:
       paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
       page: 5
@@ -104,7 +108,7 @@ claims:
     unit: "proportion"
     conditions:
       - "subdiscipline == 'social_psychology'"
-      - "significance_threshold == 0.05"
+      - "significance_threshold == '0.05'"
     provenance:
       paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
       page: 5

@@ -1,0 +1,7 @@
+id: concept27
+canonical_name: false_positive_rate
+status: proposed
+definition: Proportion of significant results that are actually false
+domain: meta_science
+created_date: '2026-03-28'
+form: structural

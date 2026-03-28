@@ -1,0 +1,7 @@
+id: concept34
+canonical_name: false_negative_risk
+status: proposed
+definition: Risk of failing to detect a real effect
+domain: meta_science
+created_date: '2026-03-28'
+form: structural

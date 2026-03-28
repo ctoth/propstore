@@ -1,0 +1,7 @@
+id: concept3
+canonical_name: logic_based_argument
+status: proposed
+definition: Argument represented by a support set of premises and a derived conclusion.
+domain: argumentation
+created_date: '2026-03-28'
+form: structural
