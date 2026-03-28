@@ -52,6 +52,7 @@ def build_structured_projection(
     *,
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] | None = None,
     comparison: str = "elitist",
+    link: str = "last",
     active_graph: ActiveWorldGraph | None = None,
 ) -> StructuredProjection:
     """Build real structured arguments from canonical justifications.
@@ -65,6 +66,7 @@ def build_structured_projection(
         active_claims,
         support_metadata=support_metadata,
         comparison=comparison,
+        link=link,
         active_graph=active_graph,
     )
 
@@ -85,5 +87,4 @@ def compute_structured_justified_arguments(
     if semantics == "stable":
         return [frozenset(ext) for ext in stable_extensions(projection.framework)]
     raise ValueError(f"Unknown semantics: {semantics}")
-
 

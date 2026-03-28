@@ -1224,6 +1224,62 @@ class TestSemanticCorePhase7Worldlines:
         assert result.argumentation["acceptance_probs"] == {"claim_a": 0.75, "claim_b": 0.25}
         assert result.dependencies["stances"]
 
+    def test_worldline_aspic_capture_threads_link_to_build_aspic_projection(
+        self,
+        monkeypatch,
+    ):
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        world, active_graph = self._graph_only_world()
+        calls: list[dict] = []
+
+        def fake_build_aspic_projection(*args, **kwargs):
+            calls.append(kwargs)
+            return type(
+                "FakeProjection",
+                (),
+                {
+                    "claim_to_argument_ids": {
+                        "claim_a": ("arg:a",),
+                        "claim_b": ("arg:b",),
+                    },
+                    "argument_to_claim_id": {
+                        "arg:a": "claim_a",
+                        "arg:b": "claim_b",
+                    },
+                },
+            )()
+
+        monkeypatch.setattr(
+            "propstore.aspic_bridge.build_aspic_projection",
+            fake_build_aspic_projection,
+        )
+        monkeypatch.setattr(
+            "propstore.structured_argument.compute_structured_justified_arguments",
+            lambda *args, **kwargs: frozenset({"arg:a"}),
+        )
+
+        result = run_worldline(
+            WorldlineDefinition.from_dict({
+                "id": "phase7_aspic_link",
+                "targets": ["target"],
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "aspic",
+                    "comparison": "democratic",
+                    "link": "weakest",
+                },
+            }),
+            world,
+        )
+
+        assert result.values["target"]["value"] == 10.0
+        assert calls
+        assert calls[0]["active_graph"] == active_graph
+        assert calls[0]["comparison"] == "democratic"
+        assert calls[0]["link"] == "weakest"
+
     def test_graph_backed_worldline_materialization_is_stable_under_repeated_execution(
         self,
         monkeypatch,
@@ -1628,6 +1684,38 @@ class TestWorldlineCLIFlags:
         written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
         assert written["policy"]["comparison"] == "democratic"
 
+    def test_create_link_principle_flag(self, tmp_path):
+        """--link-principle weakest must be accepted and stored in policy."""
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_create
+
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+
+        fake_cli.add_command(worldline_create, "create")
+
+        runner = CliRunner()
+        result = runner.invoke(fake_cli, [
+            "create", "test-wl",
+            "--target", "concept1",
+            "--strategy", "argumentation",
+            "--reasoning-backend", "aspic",
+            "--link-principle", "weakest",
+        ])
+        assert result.exit_code == 0, result.output
+
+        written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
+        assert written["policy"]["reasoning_backend"] == "aspic"
+        assert written["policy"]["link"] == "weakest"
+
     def test_create_decision_criterion_flag(self, tmp_path):
         """--decision-criterion hurwicz --pessimism-index 0.3 must be stored."""
         import click
@@ -1738,3 +1826,22 @@ class TestWorldlineCLIFlags:
         assert "no such option" not in (result.output or "").lower(), (
             f"Flag not accepted: {result.output}"
         )
+
+    def test_worldline_definition_roundtrip_preserves_link(self):
+        from propstore.worldline import WorldlineDefinition
+
+        wl = WorldlineDefinition.from_dict({
+            "id": "wl_link",
+            "targets": ["concept1"],
+            "policy": {
+                "reasoning_backend": "aspic",
+                "strategy": "argumentation",
+                "comparison": "democratic",
+                "link": "weakest",
+            },
+        })
+
+        restored = WorldlineDefinition.from_dict(wl.to_dict())
+
+        assert restored.policy.link == "weakest"
+        assert restored == wl

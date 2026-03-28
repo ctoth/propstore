@@ -187,6 +187,7 @@ class RenderPolicy:
     strategy: ResolutionStrategy | None = None
     semantics: str = "grounded"
     comparison: str = "elitist"
+    link: str = "last"
     # Decision criterion for interpreting opinion uncertainty at render time
     # Per Denoeux (2019, p.17-18): pignistic is the default (E(ω) = b + a·u)
     decision_criterion: str = "pignistic"
@@ -276,6 +277,7 @@ class RenderPolicy:
             ),
             semantics=str(data.get("semantics", "grounded")),
             comparison=str(data.get("comparison", "elitist")),
+            link=str(data.get("link", "last")),
             decision_criterion=str(data.get("decision_criterion", "pignistic")),
             pessimism_index=float(data.get("pessimism_index", 0.5)),
             show_uncertainty_interval=bool(data.get("show_uncertainty_interval", False)),
@@ -309,6 +311,8 @@ class RenderPolicy:
             data["semantics"] = self.semantics
         if self.comparison != "elitist":
             data["comparison"] = self.comparison
+        if self.link != "last":
+            data["link"] = self.link
         if self.decision_criterion != "pignistic":
             data["decision_criterion"] = self.decision_criterion
         if self.pessimism_index != 0.5:

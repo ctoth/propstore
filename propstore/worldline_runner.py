@@ -233,6 +233,7 @@ def run_worldline(
                     active,
                     support_metadata=support_metadata,
                     comparison=definition.policy.comparison,
+                    link=definition.policy.link,
                     active_graph=active_graph,
                 )
                 justified_args = compute_structured_justified_arguments(
@@ -272,6 +273,7 @@ def run_worldline(
                     active,
                     support_metadata=support_metadata,
                     comparison=definition.policy.comparison,
+                    link=definition.policy.link,
                     active_graph=active_graph,
                 )
                 aspic_justified_args = compute_structured_justified_arguments(

@@ -144,6 +144,7 @@ def _resolve_structured_argumentation(
     *,
     semantics: str = "grounded",
     comparison: str = "elitist",
+    link: str = "last",
 ) -> tuple[str | None, str | None]:
     """Resolve via the first structured-argument projection backend."""
     from propstore.structured_argument import (
@@ -168,6 +169,7 @@ def _resolve_structured_argumentation(
         active_claims,
         support_metadata=support_metadata,
         comparison=comparison,
+        link=link,
         active_graph=getattr(view, "_active_graph", None),
     )
     result = compute_structured_justified_arguments(
@@ -447,6 +449,7 @@ def resolve(
     reasoning_backend: ReasoningBackend | None = None,
     semantics: str | None = None,
     comparison: str | None = None,
+    link: str | None = None,
     policy: RenderPolicy | None = None,
 ) -> ResolvedResult:
     """Apply a resolution strategy to a conflicted concept."""
@@ -478,6 +481,8 @@ def resolve(
             semantics = policy.semantics
         if comparison is None:
             comparison = policy.comparison
+        if link is None:
+            link = policy.link
         # decision_criterion and pessimism_index are read inside
         # _resolve_praf() from the policy object directly.
 
@@ -487,6 +492,8 @@ def resolve(
         semantics = "grounded"
     if comparison is None:
         comparison = "elitist"
+    if link is None:
+        link = "last"
     if strategy is None:
         return ResolvedResult(
             concept_id=concept_id, status=ValueStatus.CONFLICTED,
@@ -544,6 +551,7 @@ def resolve(
                 world,
                 semantics=semantics,
                 comparison=comparison,
+                link=link,
             )
         elif reasoning_backend == ReasoningBackend.ASPIC:
             winner_id, reason = _resolve_aspic_argumentation(
@@ -553,6 +561,7 @@ def resolve(
                 world,
                 semantics=semantics,
                 comparison=comparison,
+                link=link,
             )
         elif reasoning_backend == ReasoningBackend.PRAF:
             winner_id, reason, _acceptance_probs = _resolve_praf(

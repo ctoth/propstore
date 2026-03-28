@@ -391,6 +391,47 @@ def test_structured_projection_defaults_unconditional_claim_to_exact_empty_label
     assert projection.arguments[0].support_quality == SupportQuality.EXACT
 
 
+def test_build_structured_projection_threads_link_to_aspic_bridge(monkeypatch) -> None:
+    calls: list[dict] = []
+
+    def fake_build_aspic_projection(*args, **kwargs):
+        calls.append(kwargs)
+        return type(
+            "FakeProjection",
+            (),
+            {
+                "arguments": (),
+                "framework": ArgumentationFramework(
+                    arguments=frozenset(),
+                    defeats=frozenset(),
+                    attacks=frozenset(),
+                ),
+                "claim_to_argument_ids": {},
+                "argument_to_claim_id": {},
+            },
+        )()
+
+    monkeypatch.setattr(
+        "propstore.aspic_bridge.build_aspic_projection",
+        fake_build_aspic_projection,
+    )
+
+    store = _ProjectionStore(
+        claims=[{"id": "claim_a", "concept_id": "concept1", "type": "parameter", "value": 1.0}]
+    )
+
+    build_structured_projection(
+        store,
+        store.claims_for(None),
+        comparison="democratic",
+        link="weakest",
+    )
+
+    assert calls
+    assert calls[0]["comparison"] == "democratic"
+    assert calls[0]["link"] == "weakest"
+
+
 def test_structured_resolution_reports_no_stance_data_like_claim_graph() -> None:
     store = _ProjectionStore(
         claims=[

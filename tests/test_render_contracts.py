@@ -18,6 +18,7 @@ def test_render_policy_defaults():
     assert policy.strategy is None
     assert policy.semantics == "grounded"
     assert policy.comparison == "elitist"
+    assert policy.link == "last"
     assert not hasattr(policy, "confidence_threshold")
 
 
@@ -34,6 +35,7 @@ def test_render_policy_serialization_roundtrip():
         "strategy": "argumentation",
         "semantics": "preferred",
         "comparison": "democratic",
+        "link": "weakest",
         "decision_criterion": "hurwicz",
         "pessimism_index": 0.7,
         "show_uncertainty_interval": True,

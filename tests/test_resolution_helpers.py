@@ -6,7 +6,9 @@ from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionRes
 from propstore.world.resolution import (
     _resolve_claim_graph_argumentation,
     _resolve_structured_argumentation,
+    resolve,
 )
+from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy, ValueResult
 
 
 class _World:
@@ -16,6 +18,29 @@ class _World:
 
 class _View:
     pass
+
+
+class _AspicView:
+    def __init__(self) -> None:
+        self._claims = [
+            {"id": "claim_a", "concept_id": "concept1", "value": 1.0},
+            {"id": "claim_b", "concept_id": "concept1", "value": 2.0},
+        ]
+
+    def value_of(self, concept_id: str):
+        return ValueResult(
+            concept_id=concept_id,
+            status="conflicted",
+            claims=list(self._claims),
+        )
+
+    def active_claims(self, concept_id: str | None = None):
+        if concept_id is None:
+            return list(self._claims)
+        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+
+    def claim_support(self, claim: dict):
+        return None, None
 
 
 def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> None:
@@ -106,3 +131,47 @@ def test_structured_resolution_distinguishes_skeptical_failure(monkeypatch) -> N
 
     assert winner is None
     assert reason == "no skeptically accepted claim in preferred structured projection"
+
+
+def test_aspic_resolution_threads_link_to_build_aspic_projection(monkeypatch) -> None:
+    projection = SimpleNamespace(
+        claim_to_argument_ids={
+            "claim_a": ("arg:a",),
+            "claim_b": ("arg:b",),
+        },
+        argument_to_claim_id={
+            "arg:a": "claim_a",
+            "arg:b": "claim_b",
+        },
+    )
+    calls: list[dict] = []
+
+    def fake_build_aspic_projection(*args, **kwargs):
+        calls.append(kwargs)
+        return projection
+
+    monkeypatch.setattr(
+        "propstore.aspic_bridge.build_aspic_projection",
+        fake_build_aspic_projection,
+    )
+    monkeypatch.setattr(
+        "propstore.structured_argument.compute_structured_justified_arguments",
+        lambda *args, **kwargs: frozenset({"arg:a"}),
+    )
+
+    result = resolve(
+        _AspicView(),
+        "concept1",
+        strategy=ResolutionStrategy.ARGUMENTATION,
+        world=_World(),
+        reasoning_backend=ReasoningBackend.ASPIC,
+        policy=RenderPolicy(
+            strategy=ResolutionStrategy.ARGUMENTATION,
+            reasoning_backend=ReasoningBackend.ASPIC,
+            link="weakest",
+        ),
+    )
+
+    assert result.status == "resolved"
+    assert calls
+    assert calls[0]["link"] == "weakest"

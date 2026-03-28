@@ -31,6 +31,7 @@ def _build_policy_dict(
     reasoning_backend: str,
     semantics: str,
     set_comparison: str,
+    link_principle: str,
     decision_criterion: str,
     pessimism_index: float,
     praf_strategy: str,
@@ -51,6 +52,8 @@ def _build_policy_dict(
         policy["semantics"] = semantics
     if set_comparison != "elitist":
         policy["comparison"] = set_comparison
+    if link_principle != "last":
+        policy["link"] = link_principle
     if decision_criterion != "pignistic":
         policy["decision_criterion"] = decision_criterion
     if pessimism_index != 0.5:
@@ -77,6 +80,9 @@ _REASONING_OPTIONS = [
     click.option("--set-comparison", "set_comparison", default="elitist",
                  type=click.Choice(["elitist", "democratic"]),
                  help="Set comparison for preference ordering (default: elitist)"),
+    click.option("--link-principle", "link_principle", default="last",
+                 type=click.Choice(["last", "weakest"]),
+                 help="ASPIC+ link principle (default: last)"),
     click.option("--decision-criterion", "decision_criterion", default="pignistic",
                  type=click.Choice(["pignistic", "lower_bound", "upper_bound", "hurwicz"]),
                  help="Decision criterion for opinion interpretation (default: pignistic)"),
@@ -114,7 +120,7 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
                      overrides: tuple[str, ...], targets: tuple[str, ...],
                      strategy: str | None, context: str | None,
                      reasoning_backend: str, semantics: str,
-                     set_comparison: str, decision_criterion: str,
+                     set_comparison: str, link_principle: str, decision_criterion: str,
                      pessimism_index: float, praf_strategy: str,
                      praf_epsilon: float, praf_confidence: float,
                      praf_seed: int | None) -> None:
@@ -156,6 +162,7 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
 
     policy = _build_policy_dict(
         strategy, reasoning_backend, semantics, set_comparison,
+        link_principle,
         decision_criterion, pessimism_index, praf_strategy,
         praf_epsilon, praf_confidence, praf_seed,
     )
@@ -187,7 +194,7 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
                   overrides: tuple[str, ...], targets: tuple[str, ...],
                   strategy: str | None, context: str | None,
                   reasoning_backend: str, semantics: str,
-                  set_comparison: str, decision_criterion: str,
+                  set_comparison: str, link_principle: str, decision_criterion: str,
                   pessimism_index: float, praf_strategy: str,
                   praf_epsilon: float, praf_confidence: float,
                   praf_seed: int | None) -> None:
@@ -234,6 +241,7 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
 
         policy = _build_policy_dict(
             strategy, reasoning_backend, semantics, set_comparison,
+            link_principle,
             decision_criterion, pessimism_index, praf_strategy,
             praf_epsilon, praf_confidence, praf_seed,
         )
@@ -464,7 +472,7 @@ def worldline_refresh(obj: dict, name: str) -> None:
         worldline_run, name=name, bindings=(), overrides=(), targets=(),
         strategy=None, context=None,
         reasoning_backend="claim_graph", semantics="grounded",
-        set_comparison="elitist", decision_criterion="pignistic",
+        set_comparison="elitist", link_principle="last", decision_criterion="pignistic",
         pessimism_index=0.5, praf_strategy="auto", praf_epsilon=0.01,
         praf_confidence=0.95, praf_seed=None,
     )
