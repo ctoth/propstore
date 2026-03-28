@@ -1,0 +1,212 @@
+source:
+  paper: Raff_2021_QuantifyingReproducibleMLResearch
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T21:10:03Z"
+
+claims:
+  - id: claim1
+    type: parameter
+    concept: replication_success
+    value: 0.635
+    unit: "proportion"
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 2
+      section: "Study Data"
+      quote_fragment: "162 successfully reproduced and 93 not reproduced"
+    notes: "162/255 ML papers reproduced by a single author over 7 years"
+
+  - id: claim2
+    type: observation
+    statement: "The study dataset comprises 255 ML papers with reproduction attempts spanning 7 years, of which 162 were successfully reproduced."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 2
+      section: "Study Data"
+      quote_fragment: "we attempted to reproduce 255 papers"
+
+  - id: claim3
+    type: observation
+    statement: "Paper readability (Cix metric) is the single most impactful feature predicting ML paper reproducibility, with statistical significance p < 0.005 in Cox proportional hazard models."
+    concepts:
+      - replication_success
+      - evidence_strength
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 4
+      section: "Cox Proportional Hazard Validation"
+      quote_fragment: "Paper readability was found to be highly significant"
+
+  - id: claim4
+    type: observation
+    statement: "Pseudo code availability is the second strongest predictor of ML paper reproducibility, with p < 0.005 in both mean and median imputation Cox models."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 4
+      section: "Cox Proportional Hazard Validation"
+      quote_fragment: "Pseudo Code p < 0.005"
+
+  - id: claim5
+    type: observation
+    statement: "Code availability is NOT a statistically significant predictor of ML paper reproducibility in Cox proportional hazard models (p = 0.18 with mean imputation, p = 0.28 with median imputation)."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 4
+      section: "Cox Proportional Hazard Validation"
+      quote_fragment: "Code Available p=0.18"
+    notes: "Counterintuitive finding — code availability alone does not predict reproducibility"
+
+  - id: claim6
+    type: mechanism
+    statement: "Paper readability predicts reproducibility because clearly written papers allow reproducers to correctly implement algorithms even without source code, while poorly written papers cause implementation errors regardless of code availability."
+    concepts:
+      - replication_success
+      - evidence_strength
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 6
+      section: "Detailed Analysis of Numerical Features"
+      quote_fragment: "features determined to be significantly linked to reproducibility were also the most subjective"
+
+  - id: claim7
+    type: observation
+    statement: "Increasing the normalized number of equations per page correlates with higher reproducibility probability, but the relationship is non-linear with diminishing returns above approximately 10 equations per page."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 5
+      section: "SHAP individual features"
+      quote_fragment: "more equations correlate with reproducibility"
+
+  - id: claim8
+    type: observation
+    statement: "Longer papers (more pages) tend to have reduced reproduction time, suggesting that providing more detail helps independent reproducers."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 6
+      section: "SHAP results"
+      quote_fragment: "there is a strong positive correlation with paper length, with more formal papers having reduced reproduction time"
+
+  - id: claim9
+    type: observation
+    statement: "The number of tables per page has a narrow range in which it reduces reproduction time, after which the benefit decays."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 6
+      section: "SHAP results"
+      quote_fragment: "narrow range in which the number of tables per page leads to a reduction in reproduction time"
+
+  - id: claim10
+    type: observation
+    statement: "Later reproduction attempts (higher Year Attempted) are significantly associated with faster reproduction, likely due to improved tooling and frameworks over time."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 3
+      section: "Linear Analysis"
+      quote_fragment: "Year Attempted p = 0.02"
+
+  - id: claim11
+    type: observation
+    statement: "An XGBoost model trained to predict ML paper reproducibility achieves a cross-validated concordance index of 0.77 using mean imputation for censored observations."
+    concepts:
+      - replication_success
+      - prediction_method
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 4
+      section: "Analysis of Linear Cox Model"
+      quote_fragment: "cross-validated concordance of 0.77"
+
+  - id: claim12
+    type: comparison
+    statement: "Unlike prior qualitative approaches to studying ML reproducibility (Gundersen & Kjensmo 2018), this survival analysis approach produces quantitative feature importance rankings and predictive models with concordance index 0.77."
+    concepts:
+      - replication_success
+      - prediction_method
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 1
+      section: "Abstract"
+      quote_fragment: "all work so far has been qualitative in nature"
+
+  - id: claim13
+    type: observation
+    statement: "Rigor vs Empirical orientation is a significant predictor of ML reproducibility (p = 0.02), with more rigorous/theoretical papers being more reproducible."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 4
+      section: "Cox Proportional Hazard Validation"
+      quote_fragment: "Rigor vs Empirical p = 0.02"
+
+  - id: claim14
+    type: observation
+    statement: "Algorithm difficulty is a marginally significant predictor of ML reproducibility (p = 0.03 with mean imputation, p = 0.07 with median), with more difficult algorithms being harder to reproduce."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 4
+      section: "Cox Proportional Hazard Validation"
+      quote_fragment: "Algorithm Difficulty p = 0.03"
+
+  - id: claim15
+    type: limitation
+    statement: "The study uses a single reproducer (the author), introducing potential bias from that individual's specific expertise, background, and preferences."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 7
+      section: "Conclusion"
+      quote_fragment: "concern that we are attaining a reproducibility crisis with a single observer"
+
+  - id: claim16
+    type: limitation
+    statement: "The Cox proportional hazard assumption is violated for two features (Normalized Number of Equations and Year Attempted), requiring careful interpretation of those coefficients."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 3
+      section: "Cox Proportional Hazard Validation"
+      quote_fragment: "only two that rejected the null hypothesis... Normalized Number of Equations and Year Attempted"
+
+  - id: claim17
+    type: observation
+    statement: "Reproducibility analysis results are robust to the choice between mean and median imputation for right-censored (non-reproduced) papers' time values."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 10
+      section: "Replication of Cox Analysis using Median instead of Mean"
+      quote_fragment: "conclusions on significance are not impacted at our threshold alpha"
+
+  - id: claim18
+    type: observation
+    statement: "The most subjective features (readability, pseudo code quality, rigor assessment) are the strongest predictors of reproducibility, while objective features (code available, data available) are weaker predictors."
+    concepts:
+      - replication_success
+      - evidence_strength
+    provenance:
+      paper: Raff_2021_QuantifyingReproducibleMLResearch
+      page: 5
+      section: "SHAP results"
+      quote_fragment: "features determined to be significantly linked to reproducibility were also the most subjective"
