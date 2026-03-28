@@ -1,0 +1,12 @@
+{
+  "title": "Inferences from Multinomial Data: Learning About a Bag of Marbles",
+  "authors": [
+    "Peter Walley"
+  ],
+  "year": "1996",
+  "arxiv_id": null,
+  "doi": "10.1111/j.2517-6161.1996.tb02065.x",
+  "abstract": "A new method is proposed for making inferences from multinomial data in cases where there is no prior information. A paradigm is the problem of predicting the colour of the next marble to be drawn from a bag whose contents are (initially) completely unknown. In such problems we may be unable to formulate a sample space because we do not know what outcomes are possible. This suggests an invariance principle: inferences based on observations should not depend on the sample space in which the observations and future events of interest are represented. Objective Bayesian methods do not satisfy this principle. This paper describes a statistical model, called the imprecise Dirichlet model, for drawing coherent inferences from multinomial data. Inferences are expressed in terms of posterior upper and lower probabilities. The probabilities are initially vacuous, reflecting prior ignorance, but they become more precise as the number of observations increases. This model does satisfy the invariance principle.",
+  "url": "https://www.semanticscholar.org/paper/f9da47959716114ca90138a18b9188fa471cb644",
+  "pdf_url": null
+}
