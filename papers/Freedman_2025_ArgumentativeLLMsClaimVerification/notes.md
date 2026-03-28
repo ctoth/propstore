@@ -293,12 +293,12 @@ This paper is highly relevant to propstore's need to bridge LLM outputs with for
 - [ ] How to integrate with ATMS — can QBAF base scores map to assumption labels?
 - [ ] The paper uses binary verdicts (>0.5 = True); propstore may need the graded σ(a) values directly
 - [ ] How does argument depth D interact with computational cost? The paper only tests D=1 and D=2
-- [ ] What is QEM (Quantitative Energy Model)? Referenced in proofs but not defined in the main paper
+- [ ] What is QEM (Quantitative Energy Model)? Referenced in proofs but not defined in the main paper [Likely refers to Potyka 2018's quadratic energy model — see [[Potyka_2018_ContinuousDynamicalSystemsWeighted]]]
 
 ## Related Work Worth Reading
 - **Baroni et al. 2019**: Gradual semantics for argumentation frameworks — foundational theory behind DF-QuAD
-- **Potyka 2018**: Continuous dynamical systems approach to gradual argumentation semantics
-- **Rago et al. 2016**: DF-QuAD original paper — need for full algorithm specification
+- **Potyka 2018**: Continuous dynamical systems approach to gradual argumentation semantics → NOW IN COLLECTION: [[Potyka_2018_ContinuousDynamicalSystemsWeighted]]
+- **Rago et al. 2016**: DF-QuAD original paper — need for full algorithm specification → NOW IN COLLECTION: [[Rago_2016_DiscontinuityFreeQuAD]]
 - **Cayrol and Lagasquie-Schiex 2005**: Bipolar argumentation frameworks — theoretical foundation for QBAFs
 - **Freedman et al. 2024 (earlier)**: Prior ArgLLMs work that this paper extends — used external models for strength estimation
 - **Amgoud and Ben-Naim 2018**: Acceptability semantics for weighted argumentation frameworks — alternative to DF-QuAD
