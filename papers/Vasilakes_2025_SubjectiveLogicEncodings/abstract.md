@@ -1,0 +1,11 @@
+# Abstract
+
+## Original Text (Verbatim)
+
+Many existing approaches for learning from labelled data assume the existence of gold-standard labels. According to these approaches, inter-annotator disagreement is seen as noise to be removed, either through refinement of annotation guidelines, label adjudication, or label filtering. However, annotator disagreement can't be neatly resolved, especially on more subjective tasks such as sentiment analysis or hate speech detection where disagreement is natural. There, disagreement should be leveraged as a source of valid information. This paper seeks to leverage inter-annotator disagreement to learn models that stay true to the inherent uncertainty of the task by treating annotations as opinions of the annotators, rather than gold-standard labels. Despite this conceptual grounding, existing methods under data perspectivism are limited to using disagreement as the only source of annotation uncertainty to encode. To address this omission, we introduce Subjective Logic Encodings (SLEs), a flexible framework for constructing classification targets that explicitly encode annotation as opinions of the annotators. Based on Subjective Logic Theory, SLEs encode labels as Dirichlet distributions and provide principled methods for encoding and aggregating various types of annotation uncertainty — annotator confidence, annotator reliability, and disagreements — into the targets. We show that SLEs are a generalization of other types of label encodings as well as how to estimate models to predict SLEs using a distribution matching objective. We make our code publicly available at https://github.com/jvasilakes/SLEs.
+
+---
+
+## Our Interpretation
+
+This paper bridges Subjective Logic opinion representation with neural network training by encoding annotator labels as Dirichlet distributions that preserve three distinct sources of uncertainty (confidence, reliability, disagreement). It demonstrates that cumulative belief fusion and trust discounting — core SL operators — can be used to construct principled training targets, outperforming majority voting and soft labeling approaches on both synthetic and real-world datasets. The work is directly relevant to propstore's SL implementation and its evidence-to-opinion mapping pipeline.

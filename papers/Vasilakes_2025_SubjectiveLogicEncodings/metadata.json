@@ -1,0 +1,10 @@
+{
+  "title": "Subjective Logic Encodings for Training Neural Networks with Limited Data",
+  "authors": ["Jake Vasilakes", "Chrysoula Zerva", "Sophia Ananiadou"],
+  "year": 2025,
+  "arxiv_id": "2502.12225",
+  "doi": null,
+  "abstract": "Many existing approaches for learning from labelled data assume the existence of gold-standard labels. According to these approaches, inter-annotator disagreement is seen as noise to be removed, either through refinement of annotation guidelines, label adjudication, or label filtering. However, annotator disagreement can't be neatly resolved, especially on more subjective tasks such as sentiment analysis or hate speech detection where disagreement is natural. There, disagreement should be leveraged as a source of valid information. This paper seeks to leverage inter-annotator disagreement to learn models that stay true to the inherent uncertainty of the task by treating annotations as opinions of the annotators, rather than gold-standard labels. Despite this conceptual grounding, existing methods under data perspectivism are limited to using disagreement as the only source of annotation uncertainty to encode. To address this omission, we introduce Subjective Logic Encodings (SLEs), a flexible framework for constructing classification targets that explicitly encode annotation as opinions of the annotators. Based on Subjective Logic Theory, SLEs encode labels as Dirichlet distributions and provide principled methods for encoding and aggregating various types of annotation uncertainty -- annotator confidence, annotator reliability, and disagreements -- into the targets. We show that SLEs are a generalization of other types of label encodings as well as how to estimate models to predict SLEs using a distribution matching objective.",
+  "url": "https://arxiv.org/abs/2502.12225",
+  "pdf_url": "https://arxiv.org/pdf/2502.12225"
+}
