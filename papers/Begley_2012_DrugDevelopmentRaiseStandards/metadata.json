@@ -1,0 +1,18 @@
+{
+  "title": "Drug development: Raise standards for preclinical cancer research",
+  "authors": [
+    "C. Glenn Begley",
+    "Lee M. Ellis"
+  ],
+  "year": "2012",
+  "arxiv_id": null,
+  "doi": "10.1038/483531a",
+  "abstract": "Many landmark findings in preclinical oncology research are not reproducible, in part because of inadequate cancer cell lines and animal models. C. Glenn Begley and Lee M. Ellis propose how methods, publications and incentives must change if patients are to benefit.",
+  "url": "https://www.semanticscholar.org/paper/1a81d3d1e8a983e0551edf485f4ac1a8cdd7fea4",
+  "pdf_url": "https://www.nature.com/articles/483531a.pdf",
+  "bibtex": "@Article{Begley2012DrugDR,\n author = {C. Glenn Begley and Lee M. Ellis},\n booktitle = {Nature},\n journal = {Nature},\n pages = {531-533},\n title = {Drug development: Raise standards for preclinical cancer research},\n volume = {483},\n year = {2012}\n}\n",
+  "venue": "Nature",
+  "venue_type": "journal",
+  "volume": "483",
+  "pages": "531-533"
+}
