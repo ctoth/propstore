@@ -1,0 +1,171 @@
+source:
+  paper: Begley_2012_DrugDevelopmentRaiseStandards
+
+claims:
+  - id: claim1
+    type: parameter
+    concept: preclinical_cancer_replication_rate
+    value: 0.11
+    unit: "proportion"
+    conditions:
+      - "domain == 'preclinical_cancer'"
+      - "study_selection == 'landmark'"
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 0
+      section: "Introduction"
+      quote_fragment: "scientists at Amgen could confirm the findings of only 6 of 53 landmark preclinical cancer studies"
+    notes: "6/53 studies confirmed over ~10 years of validation by Amgen haematology and oncology researchers. Studies selected for pipeline relevance (new drug targets, biomarkers, combination technologies)."
+
+  - id: claim2
+    type: parameter
+    concept: preclinical_cancer_replication_rate
+    value: 0.25
+    unit: "proportion"
+    conditions:
+      - "domain == 'preclinical'"
+      - "source == 'bayer_healthcare'"
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 1
+      section: "Confirming Research Findings"
+      quote_fragment: "Bayer HealthCare... only about 25% of published preclinical studies could be validated"
+    notes: "Independent corroboration from Bayer HealthCare (Prinz et al. 2011). Broader than cancer-specific — covers preclinical research generally."
+
+  - id: claim3
+    type: observation
+    statement: "Non-reproduced preclinical cancer articles have comparable or higher citation counts than reproduced ones, indicating citation count is not a proxy for reproducibility."
+    concepts:
+      - preclinical_cancer_replication_rate
+      - citation_count
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 1
+      section: "Reproducibility of Research Findings"
+      table: "Reproducibility of research findings"
+      quote_fragment: "non-reproduced articles had mean citations of 248 vs 231 for reproduced ones in >20 impact factor journals"
+
+  - id: claim4
+    type: parameter
+    concept: citation_count_nonreproduced_high_if
+    value: 248
+    unit: "citations"
+    lower_bound: 3
+    upper_bound: 800
+    conditions:
+      - "journal_impact_factor > 20"
+      - "reproduced == false"
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 1
+      section: "Reproducibility of Research Findings"
+      table: "Reproducibility of research findings"
+
+  - id: claim5
+    type: parameter
+    concept: citation_count_reproduced_high_if
+    value: 231
+    unit: "citations"
+    lower_bound: 82
+    upper_bound: 519
+    conditions:
+      - "journal_impact_factor > 20"
+      - "reproduced == true"
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 1
+      section: "Reproducibility of Research Findings"
+      table: "Reproducibility of research findings"
+
+  - id: claim6
+    type: mechanism
+    statement: "Irreproducibility in preclinical cancer research is caused by a systemic incentive structure that rewards novelty over robustness: the academic system and peer-review process tolerates and perhaps even inadvertently encourages publication of erroneous, selective, or irreproducible data."
+    concepts:
+      - preclinical_cancer_replication_rate
+      - publication_bias
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 2
+      section: "Building a Stronger Standard"
+      quote_fragment: "The academic system and peer-review process tolerates and perhaps even inadvertently encourages such conduct"
+
+  - id: claim7
+    type: mechanism
+    statement: "Inadequate cancer cell line characterization propagates artifacts because many studies use cell lines that have drifted from their original phenotype, making experimental results non-generalizable to the intended cancer biology."
+    concepts:
+      - cell_line_characterization
+      - preclinical_cancer_replication_rate
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 0
+      section: "Introduction"
+      quote_fragment: "inadequate cancer cell lines and animal models"
+
+  - id: claim8
+    type: mechanism
+    statement: "Inadequate animal models poorly predict clinical outcomes because standard preclinical tumour models do not faithfully represent the human tumour environment, contributing to high clinical trial failure rates in oncology."
+    concepts:
+      - animal_model_validity
+      - clinical_trial_failure_rate
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 2
+      section: "Improving the Preclinical Environment"
+      quote_fragment: "such as inadequate cancer cell-line and animal models are a significant contributor"
+
+  - id: claim9
+    type: observation
+    statement: "Oncology clinical trials have the highest failure rate among all therapeutic areas."
+    concepts:
+      - clinical_trial_failure_rate
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 0
+      section: "Introduction"
+      quote_fragment: "trials in oncology have the highest failure rate compared to other therapeutic areas"
+
+  - id: claim10
+    type: observation
+    statement: "When confronted with irreproducible results, original authors were often unable to reproduce their own findings."
+    concepts:
+      - preclinical_cancer_replication_rate
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 1
+      section: "Confirming Research Findings"
+      quote_fragment: "original authors had often been unable to reproduce their own findings"
+
+  - id: claim11
+    type: comparison
+    statement: "Preclinical cancer research has a substantially lower replication rate (11%) than psychology (36% per OSC 2015) or economics (61% per Camerer et al. 2016), placing it at the bottom of the cross-field replication rate spectrum."
+    concepts:
+      - preclinical_cancer_replication_rate
+      - cognitive_replication_rate
+      - social_replication_rate
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 0
+      section: "Introduction"
+      quote_fragment: "only 6 of 53 landmark preclinical cancer studies"
+    notes: "Cross-field comparison is implicit — Begley reports only the preclinical rate. Psychology and economics rates come from Aarts 2015 and Camerer 2016 respectively."
+
+  - id: claim12
+    type: limitation
+    statement: "The specific 53 papers examined by Amgen are not identified, preventing independent verification of the reproducibility claims or assessment of selection bias."
+    concepts:
+      - preclinical_cancer_replication_rate
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 1
+      section: "Confirming Research Findings"
+      quote_fragment: "some non-reproducible preclinical papers had appeared as entire articles... did not actually seek to confirm or falsify its fundamental basis"
+
+  - id: claim13
+    type: limitation
+    statement: "The binary outcome measure (confirmed/not confirmed) does not capture partial reproducibility — studies where some but not all findings replicate are collapsed into a single category."
+    concepts:
+      - preclinical_cancer_replication_rate
+    provenance:
+      paper: Begley_2012_DrugDevelopmentRaiseStandards
+      page: 1
+      section: "Confirming Research Findings"
