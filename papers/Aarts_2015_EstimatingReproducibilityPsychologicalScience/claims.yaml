@@ -1,0 +1,296 @@
+source:
+  paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+
+claims:
+  - id: claim1
+    type: parameter
+    concept: replication_significance_rate
+    value: 0.36
+    unit: "proportion"
+    conditions:
+      - "discipline == 'psychology'"
+      - "significance_threshold == 0.05"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 1
+      section: "Abstract"
+      quote_fragment: "Thirty-six percent of replications had statistically significant results"
+    notes: "100 studies from JPSP, JEP:LMC, and Psychological Science (2008)"
+
+  - id: claim2
+    type: parameter
+    concept: original_significance_rate
+    value: 0.97
+    unit: "proportion"
+    conditions:
+      - "discipline == 'psychology'"
+      - "significance_threshold == 0.05"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 1
+      section: "Abstract"
+      quote_fragment: "Ninety-seven percent of original studies had statistically significant results"
+
+  - id: claim3
+    type: parameter
+    concept: mean_original_effect_size
+    value: 0.403
+    unit: "r"
+    conditions:
+      - "discipline == 'psychology'"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 4
+      section: "Comparing original and replication effect sizes"
+      quote_fragment: "Mean effect size (r) of the original findings was 0.403"
+
+  - id: claim4
+    type: parameter
+    concept: mean_replication_effect_size
+    value: 0.197
+    unit: "r"
+    conditions:
+      - "discipline == 'psychology'"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 4
+      section: "Comparing original and replication effect sizes"
+      quote_fragment: "mean effect size (r) of the replications was 0.197"
+
+  - id: claim5
+    type: observation
+    statement: "Replication effect sizes in psychology are approximately half the magnitude of original effect sizes."
+    concepts:
+      - replication_effect_size
+      - original_effect_size
+      - effect_size_shrinkage
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 1
+      section: "Abstract"
+      quote_fragment: "Replication effects were half the magnitude of original effects, representing a substantial decline"
+
+  - id: claim6
+    type: measurement
+    target_concept: original_replication_effect_correlation
+    measure: correlation
+    value: 0.51
+    unit: "Spearman r"
+    methodology: "Spearman rank correlation between original and replication effect sizes (r)"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 5
+      section: "Correlates of reproducibility"
+      quote_fragment: "correlation between original and replication effect sizes was r = 0.51"
+
+  - id: claim7
+    type: parameter
+    concept: cognitive_replication_rate
+    value: 0.50
+    unit: "proportion"
+    conditions:
+      - "subdiscipline == 'cognitive_psychology'"
+      - "significance_threshold == 0.05"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 5
+      section: "Correlates of reproducibility"
+      quote_fragment: "21 of 42 (50%) of cognitive psychology effects replicated"
+
+  - id: claim8
+    type: parameter
+    concept: social_replication_rate
+    value: 0.25
+    unit: "proportion"
+    conditions:
+      - "subdiscipline == 'social_psychology'"
+      - "significance_threshold == 0.05"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 5
+      section: "Correlates of reproducibility"
+      quote_fragment: "14 of 55 (25%) of social psychology effects replicated"
+
+  - id: claim9
+    type: observation
+    statement: "Cognitive psychology findings replicate at twice the rate of social psychology findings (50% vs 25%)."
+    concepts:
+      - cognitive_replication_rate
+      - social_replication_rate
+      - discipline_replication_asymmetry
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 5
+      section: "Correlates of reproducibility"
+
+  - id: claim10
+    type: observation
+    statement: "Original P-value is a significant predictor of replication success: studies with lower original P-values are more likely to replicate."
+    concepts:
+      - original_p_value
+      - replication_success
+      - evidence_strength
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 5
+      section: "Correlates of reproducibility"
+      quote_fragment: "replication success was better predicted by the strength of original evidence"
+
+  - id: claim11
+    type: observation
+    statement: "Original effect size magnitude is a significant predictor of replication success: studies with larger original effects are more likely to replicate."
+    concepts:
+      - original_effect_size
+      - replication_success
+      - evidence_strength
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 5
+      section: "Correlates of reproducibility"
+
+  - id: claim12
+    type: observation
+    statement: "Self-rated 'surprising' findings do not replicate at significantly different rates from 'non-surprising' findings (24% vs 28%)."
+    concepts:
+      - surprising_findings
+      - replication_success
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 6
+      section: "Correlates of reproducibility"
+      quote_fragment: "Surprisingness of the original result was not a significant predictor"
+
+  - id: claim13
+    type: observation
+    statement: "Replication team expertise and experience do not significantly predict replication success."
+    concepts:
+      - team_expertise
+      - replication_success
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 6
+      section: "Correlates of reproducibility"
+
+  - id: claim14
+    type: parameter
+    concept: meta_analytic_significance_rate
+    value: 0.68
+    unit: "proportion"
+    conditions:
+      - "method == 'fixed_effect_meta_analysis'"
+      - "combining == 'original_plus_replication'"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 1
+      section: "Abstract"
+      quote_fragment: "combining original and replication results left 68% with statistically significant effects"
+
+  - id: claim15
+    type: parameter
+    concept: confidence_interval_overlap_rate
+    value: 0.47
+    unit: "proportion"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 1
+      section: "Abstract"
+      quote_fragment: "47% of original effect sizes were in the 95% confidence interval of the replication effect size"
+
+  - id: claim16
+    type: parameter
+    concept: subjective_replication_rate
+    value: 0.39
+    unit: "proportion"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 1
+      section: "Abstract"
+      quote_fragment: "39% of effects were subjectively rated to have replicated the original result"
+
+  - id: claim17
+    type: mechanism
+    statement: "The unrealistically high significance rate (97%) in original studies is itself evidence of selection bias in publication — journals preferentially publish positive results, inflating the apparent base rate of true effects."
+    concepts:
+      - publication_bias
+      - significance_rate
+      - false_positive_rate
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 4
+      section: "Evaluating replication effect against null and original effect"
+      quote_fragment: "that 97% were significant is itself evidence of a biased literature"
+
+  - id: claim18
+    type: mechanism
+    statement: "Non-replication may result from false positives in original studies, from true effects that are context-dependent and do not generalize to the replication context, or from replication methodology that fails to capture necessary moderating conditions."
+    concepts:
+      - false_positives
+      - context_sensitivity
+      - replication_failure_causes
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 6
+      section: "Insights on reproducibility"
+      quote_fragment: "It is too easy to conclude that a failure to replicate means the original evidence was a false positive"
+
+  - id: claim19
+    type: limitation
+    statement: "The study sampled from only three psychology journals in one year (2008), limiting generalizability to psychology as a whole and to other scientific disciplines."
+    concepts:
+      - sampling_scope
+      - generalizability
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 6
+      section: "Implications and limitations"
+
+  - id: claim20
+    type: limitation
+    statement: "Each study was replicated only once; a single replication failure does not definitively establish that an effect is a false positive, because true effects can fail to replicate due to contextual differences."
+    concepts:
+      - single_replication
+      - false_negative_risk
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 6
+      section: "Implications and limitations"
+      quote_fragment: "a single replication failure does not necessarily mean the original was a false positive"
+
+  - id: claim21
+    type: observation
+    statement: "Combining original and replication results via meta-analysis increases the overall significance rate from 36% (replication alone) to 68%, suggesting that many effects may be real but smaller than originally reported."
+    concepts:
+      - meta_analytic_combination
+      - effect_size_inflation
+      - replication_significance_rate
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 5
+      section: "Evaluating replication effect against null and original effect"
+
+  - id: claim22
+    type: comparison
+    statement: "Replication success is better predicted by the strength of original evidence (P-value, effect size) than by characteristics of the replication teams (expertise, experience) or original study teams."
+    concepts:
+      - evidence_strength
+      - team_expertise
+      - replication_success
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 5
+      section: "Correlates of reproducibility"
+      quote_fragment: "Correlational tests suggest that replication success was better predicted by the strength of original evidence than by characteristics of the original and replication teams"
+
+  - id: claim23
+    type: parameter
+    concept: replication_power
+    value: 0.92
+    unit: "proportion"
+    conditions:
+      - "power_target == 'original_effect_size'"
+    provenance:
+      paper: Aarts_2015_EstimatingReproducibilityPsychologicalScience
+      page: 4
+      section: "Evaluating replication effect against null and original effect"
+      quote_fragment: "replications had, on average, 92% power to detect the original effect size"
+    notes: "Mean power assuming original effect sizes are correct; actual effect sizes were smaller"
