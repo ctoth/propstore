@@ -1079,3 +1079,122 @@ class TestBuildAspicProjection:
         store = _MiniStore(claims=claims)
         projection = build_aspic_projection(store, claims, active_graph=None)
         assert isinstance(projection, StructuredProjection)
+
+
+# ── Phase 4: Backend integration tests ───────────────────────────────
+
+
+class TestAspicBackendIntegration:
+    """Verify ASPIC backend is wired into resolution, worldline, and CLI."""
+
+    def test_reasoning_backend_has_aspic(self):
+        """ReasoningBackend.ASPIC exists and equals 'aspic'."""
+        from propstore.world.types import ReasoningBackend
+
+        assert hasattr(ReasoningBackend, "ASPIC")
+        assert ReasoningBackend.ASPIC == "aspic"
+        assert ReasoningBackend.ASPIC.value == "aspic"
+
+    def test_worldline_policy_accepts_aspic_backend(self):
+        """A worldline policy with reasoning_backend: 'aspic' is valid."""
+        from propstore.world.types import ReasoningBackend
+        from propstore.worldline import WorldlineDefinition
+
+        worldline = WorldlineDefinition.from_dict({
+            "id": "aspic_backend",
+            "targets": ["force"],
+            "policy": {"reasoning_backend": "aspic"},
+        })
+
+        assert worldline.policy.reasoning_backend == ReasoningBackend.ASPIC
+
+    def test_world_extensions_cli_accepts_aspic_backend(self, monkeypatch):
+        """The CLI 'world extensions' command accepts --backend aspic."""
+        from click.testing import CliRunner
+
+        from propstore.cli import cli
+        from propstore.dung import ArgumentationFramework
+        from propstore.structured_argument import SupportQuality
+        from propstore.world.labelled import Label
+
+        class FakeRepo:
+            pass
+
+        class FakeBound:
+            def active_claims(self, concept_id: str | None = None) -> list[dict]:
+                return [
+                    {"id": "target_a", "concept_id": "concept1", "type": "parameter", "value": 1.0},
+                    {"id": "target_b", "concept_id": "concept1", "type": "parameter", "value": 2.0},
+                ]
+
+            def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
+                return Label.empty(), SupportQuality.EXACT
+
+        class FakeWorldModel:
+            def __init__(self, repo) -> None:
+                self.repo = repo
+
+            def bind(self, environment=None, **conditions):
+                return FakeBound()
+
+            def get_concept(self, concept_id: str) -> dict | None:
+                if concept_id == "concept1":
+                    return {"id": "concept1", "canonical_name": "target"}
+                return None
+
+            def stances_between(self, claim_ids: set[str]) -> list[dict]:
+                return []
+
+            def close(self) -> None:
+                return None
+
+        class FakeProjection:
+            framework = ArgumentationFramework(
+                arguments=frozenset({"arg:target_a", "arg:target_b"}),
+                defeats=frozenset({("arg:target_a", "arg:target_b")}),
+                attacks=frozenset({("arg:target_a", "arg:target_b")}),
+            )
+            claim_to_argument_ids = {
+                "target_a": ("arg:target_a",),
+                "target_b": ("arg:target_b",),
+            }
+            argument_to_claim_id = {
+                "arg:target_a": "target_a",
+                "arg:target_b": "target_b",
+            }
+
+        def _unexpected_claim_graph(*args, **kwargs):
+            raise AssertionError("claim_graph path should not run for --backend aspic")
+
+        monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
+        monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
+        monkeypatch.setattr(
+            "propstore.argumentation.compute_claim_graph_justified_claims",
+            _unexpected_claim_graph,
+        )
+        monkeypatch.setattr(
+            "propstore.argumentation.stance_summary",
+            lambda *args, **kwargs: {
+                "total_stances": 0,
+                "included_as_attacks": 0,
+                "vacuous_count": 0,
+                "excluded_non_attack": 0,
+                "models": [],
+            },
+        )
+        monkeypatch.setattr(
+            "propstore.aspic_bridge.build_aspic_projection",
+            lambda *args, **kwargs: FakeProjection(),
+        )
+        monkeypatch.setattr(
+            "propstore.structured_argument.compute_structured_justified_arguments",
+            lambda projection, *, semantics="grounded": frozenset({"arg:target_a"}),
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["world", "extensions", "--backend", "aspic"])
+
+        assert result.exit_code == 0, f"CLI failed: {result.output}"
+        assert "Backend: aspic" in result.output
+        assert "Accepted (1 claims):" in result.output
+        assert "target_a: target = 1.0" in result.output
