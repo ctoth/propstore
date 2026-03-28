@@ -4,8 +4,11 @@ authors: "Rens Wouter van der Heijden, Henning Kopp, Frank Kargl"
 year: 2018
 venue: "arXiv preprint (1805.01388)"
 doi_url: "https://arxiv.org/abs/1805.01388"
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T21:46:07Z"
 ---
-
 # Multi-Source Fusion Operations in Subjective Logic
 
 ## One-Sentence Summary
