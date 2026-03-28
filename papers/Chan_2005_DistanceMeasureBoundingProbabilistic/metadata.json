@@ -1,0 +1,16 @@
+{
+  "title": "A distance measure for bounding probabilistic belief change",
+  "authors": [
+    "H. Chan",
+    "Adnan Darwiche"
+  ],
+  "year": "2005",
+  "doi": "10.1016/j.ijar.2004.07.001",
+  "url": "https://www.semanticscholar.org/paper/120d145f63d22ecf66e9402fd58785f2f1f97549",
+  "pdf_url": "https://doi.org/10.1016/j.ijar.2004.07.001",
+  "bibtex": "@Article{Chan2002ADM,\n author = {H. Chan and Adnan Darwiche},\n booktitle = {International Journal of Approximate Reasoning},\n journal = {Int. J. Approx. Reason.},\n pages = {149-174},\n title = {A distance measure for bounding probabilistic belief change},\n volume = {38},\n year = {2002}\n}\n",
+  "venue": "International Journal of Approximate Reasoning",
+  "venue_type": "journal",
+  "volume": "38",
+  "pages": "149-174"
+}
