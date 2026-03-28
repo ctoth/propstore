@@ -196,3 +196,27 @@ This paper provides empirical calibration data for how well human forecasters an
 - Yang Y, Youyou W, Uzzi B. Estimating the deep replicability of scientific findings using human and AI — ref [33]
 - Altmejd A, Dreber A, Forsell E, et al. Predicting the replicability of social science lab experiments — ref [34]
 - Pawel S, Held L. Probabilistic forecasting of replication studies — ref [40]
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]] — This is the EERP (Experimental Economics Replication Project), one of the four forecasting projects pooled in this paper. Gordon et al. use EERP's 18 studies with prediction market data.
+- [[Camerer_2018_EvaluatingReplicabilitySocialScience]] — This is the SSRP (Social Sciences Replication Project), another of the four forecasting projects pooled here. Gordon et al. use SSRP's 21 studies.
+- [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]] — This is the RPP (Reproducibility Project: Psychology). Gordon et al. use 36 RPP studies that had prediction market data.
+- [[Begley_2012_DrugDevelopmentRaiseStandards]] — Background on reproducibility crisis in preclinical research; not directly pooled but contextualizes the problem.
+
+### Cited By (in Collection)
+- [[Errington_2021_InvestigatingReplicabilityPreclinicalCancer]] — cites Gordon et al. 2021 in reference list (ref 23) as related forecasting study
+
+### New Leads (Not Yet in Collection)
+- Yang, Youyou & Uzzi (2020) — "Estimating the deep replicability of scientific findings using human and AI" — extends forecasting with machine learning
+- Altmejd, Dreber, Forsell et al. (2019) — "Predicting the replicability of social science lab experiments" — predecessor with Forsell as coauthor
+- Pawel & Held (2020) — "Probabilistic forecasting of replication studies" — Bayesian approach to replication forecasting
+- Benjamin et al. (2018) — "Redefine statistical significance" — proposes p < 0.005 threshold validated here
+
+### Supersedes or Recontextualizes
+- (none — this paper pools existing project data rather than superseding individual studies)
+
+### Conceptual Links (not citation-based)
+- [[Errington_2021_InvestigatingReplicabilityPreclinicalCancer]] — **Strong.** Both study replication outcomes empirically. Gordon provides forecasting accuracy rates (73% market, 71% survey) across social/behavioral science; Errington provides ground-truth replication rates in cancer biology (3-82% depending on criterion). Together they bracket the question: how well can we predict replication, and what are actual base rates? Gordon's p-value threshold finding (p < 0.005 -> 76% replication) could be tested against Errington's data.
+- [[Guo_2017_CalibrationModernNeuralNetworks]] — **Moderate.** Gordon's paper is fundamentally about calibration — how well do forecasts (market prices, survey means) track binary outcomes? Guo's temperature scaling for neural network calibration addresses the same question for model outputs. The MAE and accuracy metrics Gordon uses are analogous to ECE in Guo's framework.
