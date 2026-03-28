@@ -30,13 +30,14 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
+    from propstore.tree_reader import TreeReader
 
 
 @dataclass
 class LoadedConcept:
     """A concept loaded from a YAML file, with its source filename."""
     filename: str  # just the stem, no extension
-    filepath: Path
+    filepath: Path | None
     data: dict
 
 
@@ -65,8 +66,35 @@ def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict]]:
     return results
 
 
-def load_concepts(concept_dir: Path) -> list[LoadedConcept]:
-    """Load all .yaml files from the concept directory (excluding .counters)."""
+def load_yaml_entries(reader: TreeReader, subdir: str) -> list[tuple[str, None, dict]]:
+    """Load all YAML from a subdir via a TreeReader.
+
+    Returns (stem, None, data) tuples — filepath is None because
+    the data may come from git, not the filesystem.
+    """
+    results: list[tuple[str, None, dict]] = []
+    for stem, raw in reader.list_yaml(subdir):
+        data = yaml.safe_load(raw)
+        results.append((stem, None, data if data else {}))
+    return results
+
+
+def load_concepts(
+    concept_dir: Path | None,
+    *,
+    reader: TreeReader | None = None,
+) -> list[LoadedConcept]:
+    """Load all .yaml files from the concept directory (excluding .counters).
+
+    When *reader* is provided, loads from the TreeReader (git or filesystem
+    abstraction) using the ``concepts`` subdir. Otherwise falls back to
+    ``load_yaml_dir(concept_dir)`` for full backward compatibility.
+    """
+    if reader is not None:
+        return [
+            LoadedConcept(filename=stem, filepath=path, data=data)
+            for stem, path, data in load_yaml_entries(reader, "concepts")
+        ]
     return [
         LoadedConcept(filename=stem, filepath=path, data=data)
         for stem, path, data in load_yaml_dir(concept_dir)

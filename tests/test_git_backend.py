@@ -346,3 +346,81 @@ def test_tree_reader_equivalence(tmp_path):
     fs_entries = sorted(fs_reader.list_yaml("concepts"))
 
     assert git_entries == fs_entries
+
+
+# ── Phase 2: Loader refactor — load via TreeReader ────────────────
+
+
+def test_load_concepts_from_tree_reader(tmp_path):
+    """load_concepts() works via GitTreeReader from a committed git tree."""
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    concept_data = {
+        "id": "concept1",
+        "canonical_name": "test_concept",
+        "status": "proposed",
+        "definition": "A test concept",
+        "domain": "testing",
+        "form": "scalar",
+    }
+    kr.commit_files({
+        "concepts/test_concept.yaml": yaml.dump(concept_data).encode(),
+    }, "add concept")
+
+    from propstore.tree_reader import GitTreeReader
+    from propstore.validate import load_concepts
+    reader = GitTreeReader(kr)
+    concepts = load_concepts(None, reader=reader)
+    assert len(concepts) == 1
+    assert concepts[0].data["id"] == "concept1"
+    assert concepts[0].filepath is None
+    assert concepts[0].filename == "test_concept"
+
+
+def test_load_claim_files_from_tree_reader(tmp_path):
+    """load_claim_files() works via GitTreeReader from a committed git tree."""
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    claim_data = {
+        "claims": [
+            {
+                "id": "claim1",
+                "type": "observation",
+                "statement": "test observation",
+                "concepts": ["concept1"],
+                "provenance": {"paper": "test", "page": 1},
+            }
+        ]
+    }
+    kr.commit_files({
+        "claims/test_claims.yaml": yaml.dump(claim_data).encode(),
+    }, "add claims")
+
+    from propstore.tree_reader import GitTreeReader
+    from propstore.validate_claims import load_claim_files
+    reader = GitTreeReader(kr)
+    claim_files = load_claim_files(None, reader=reader)
+    assert len(claim_files) == 1
+    assert claim_files[0].data["claims"][0]["id"] == "claim1"
+    assert claim_files[0].filepath is None
+    assert claim_files[0].filename == "test_claims"
+
+
+def test_load_contexts_from_tree_reader(tmp_path):
+    """load_contexts() works via GitTreeReader from a committed git tree."""
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    context_data = {
+        "id": "ctx1",
+        "name": "Test Context",
+        "assumptions": ["test assumption"],
+    }
+    kr.commit_files({
+        "contexts/test_context.yaml": yaml.dump(context_data).encode(),
+    }, "add context")
+
+    from propstore.tree_reader import GitTreeReader
+    from propstore.validate_contexts import load_contexts
+    reader = GitTreeReader(kr)
+    contexts = load_contexts(None, reader=reader)
+    assert len(contexts) == 1
+    assert contexts[0].data["id"] == "ctx1"
+    assert contexts[0].filepath is None
+    assert contexts[0].filename == "test_context"

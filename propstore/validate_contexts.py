@@ -9,7 +9,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from typing import TYPE_CHECKING
+
 from propstore.validate import ValidationResult, load_yaml_dir
+
+if TYPE_CHECKING:
+    from propstore.tree_reader import TreeReader
 
 
 @dataclass
@@ -20,8 +25,22 @@ class LoadedContext:
     data: dict
 
 
-def load_contexts(contexts_dir: Path) -> list[LoadedContext]:
-    """Load all .yaml files from contexts directory."""
+def load_contexts(
+    contexts_dir: Path | None,
+    *,
+    reader: TreeReader | None = None,
+) -> list[LoadedContext]:
+    """Load all .yaml files from contexts directory.
+
+    When *reader* is provided, loads from the TreeReader using the
+    ``contexts`` subdir. Otherwise falls back to ``load_yaml_dir(contexts_dir)``.
+    """
+    if reader is not None:
+        from propstore.validate import load_yaml_entries
+        return [
+            LoadedContext(filename=stem, filepath=path, data=data)
+            for stem, path, data in load_yaml_entries(reader, "contexts")
+        ]
     if not contexts_dir.exists():
         return []
     return [

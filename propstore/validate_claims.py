@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
+    from propstore.tree_reader import TreeReader
 
 import jsonschema
 import yaml
@@ -45,13 +46,27 @@ from propstore.stances import VALID_STANCE_TYPES
 class LoadedClaimFile:
     """A claim file loaded from YAML, with its source filename."""
     filename: str  # just the stem, no extension
-    filepath: Path
+    filepath: Path | None
     data: dict
 
 
 
-def load_claim_files(claims_dir: Path) -> list[LoadedClaimFile]:
-    """Load all .yaml files from claims directory (excluding .counters)."""
+def load_claim_files(
+    claims_dir: Path | None,
+    *,
+    reader: TreeReader | None = None,
+) -> list[LoadedClaimFile]:
+    """Load all .yaml files from claims directory (excluding .counters).
+
+    When *reader* is provided, loads from the TreeReader using the
+    ``claims`` subdir. Otherwise falls back to ``load_yaml_dir(claims_dir)``.
+    """
+    if reader is not None:
+        from propstore.validate import load_yaml_entries
+        return [
+            LoadedClaimFile(filename=stem, filepath=path, data=data)
+            for stem, path, data in load_yaml_entries(reader, "claims")
+        ]
     return [
         LoadedClaimFile(filename=stem, filepath=path, data=data)
         for stem, path, data in load_yaml_dir(claims_dir)

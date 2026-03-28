@@ -301,7 +301,7 @@ def build_sidecar(
             _forms_dir: Path | None = None
             if repo is not None:
                 _forms_dir = repo.forms_dir
-            elif concepts:
+            elif concepts and concepts[0].filepath is not None:
                 _forms_dir = concepts[0].filepath.parent.parent / "forms"
             _form_registry: dict[str, FormDefinition] = {}
             if _forms_dir is not None and _forms_dir.exists():
@@ -490,7 +490,7 @@ def _populate_form_algebra(
     forms_dir: Path | None = None
     if repo is not None:
         forms_dir = repo.forms_dir
-    elif concepts:
+    elif concepts and concepts[0].filepath is not None:
         forms_dir = concepts[0].filepath.parent.parent / "forms"
     if forms_dir is None or not forms_dir.exists():
         return
@@ -603,7 +603,7 @@ def _populate_forms(
     forms_dir: Path | None = None
     if repo is not None:
         forms_dir = repo.forms_dir
-    elif concepts:
+    elif concepts and concepts[0].filepath is not None:
         forms_dir = concepts[0].filepath.parent.parent / "forms"
     if forms_dir is None or not forms_dir.exists():
         return
@@ -651,9 +651,11 @@ def _populate_concepts(
         # Load form definition for is_dimensionless and unit_symbol
         if repo is not None:
             forms_dir = repo.forms_dir
-        else:
+        elif c.filepath is not None:
             forms_dir = c.filepath.parent.parent / "forms"
-        form_def = load_form(forms_dir, d.get("form"))
+        else:
+            forms_dir = None
+        form_def = load_form(forms_dir, d.get("form")) if forms_dir is not None else None
         is_dimensionless = 1 if (form_def is not None and form_def.is_dimensionless) else 0
         unit_symbol = form_def.unit_symbol if form_def is not None else None
 
