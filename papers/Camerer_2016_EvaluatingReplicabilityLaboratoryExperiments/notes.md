@@ -5,8 +5,11 @@ year: 2016
 venue: "Science"
 doi_url: "https://doi.org/10.1126/science.aaf0918"
 pages: "351, 1433-1436"
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T20:20:53Z"
 ---
-
 # Evaluating replicability of laboratory experiments in economics
 
 ## One-Sentence Summary
