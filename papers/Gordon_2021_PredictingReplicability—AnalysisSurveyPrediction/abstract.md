@@ -1,0 +1,11 @@
+# Abstract
+
+## Original Text (Verbatim)
+
+The reproducibility of published research has become an important topic in science policy. A number of large-scale replication projects have been conducted to gauge the overall reproducibility in specific academic fields. Here, we present an analysis of data from four studies which sought to forecast the outcomes of replication projects in the social and behavioral sciences, using human experts who participated in prediction markets and answered surveys. Because the number of findings replicated and predicted in each individual study was small, pooling the data offers an opportunity to evaluate hypotheses regarding the performance of prediction markets and surveys at a higher power. In total, peer beliefs were elicited for the replication outcomes of 103 published findings. We find there is information within the scientific community about the replicability of scientific findings, and that both surveys and prediction markets can be used to elicit and aggregate this information. Our results show prediction markets can determine the outcomes of direct replications with 73% accuracy (p = 103). Both the prediction market prices, and the average survey responses are correlated with outcomes (r 0.581 and r 0.561 respectively, both p < .001). We also found a significant relationship between p-values of the original findings and replication outcomes. The dataset is made available through the R package 'pooledforecasts' and can be used to further study community beliefs towards replication outcomes as elicited in the surveys and prediction markets.
+
+---
+
+## Our Interpretation
+
+The paper addresses the question of how well scientific communities can predict which published findings will replicate, by pooling data from four major replication forecasting studies. The key finding is that both prediction markets and surveys achieve roughly 70-73% accuracy in classifying replication outcomes, and that original p-values below 0.005 are strong predictors of successful replication. This is relevant to propstore's calibration framework because it provides empirical base rates for mapping evidence strength (p-values, expert beliefs) to replication probability.
