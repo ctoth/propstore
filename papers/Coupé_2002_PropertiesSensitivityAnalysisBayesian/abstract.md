@@ -1,0 +1,11 @@
+# Abstract
+
+## Original Text (Verbatim)
+
+The assessments for the various conditional probabilities of a Bayesian belief network inevitably are inaccurate, influencing the reliability of its output. By subjecting the network to a sensitivity analysis with respect to its conditional probabilities, the reliability of its output can be investigated. Unfortunately, straightforward sensitivity analysis of a belief network is highly time-consuming. In this paper, we present an efficient method for sensitivity analysis of Bayesian belief networks that requires considerably less computational effort than straightforward variation of conditional probabilities. Our method is a large extent exploits the qualitative part of a network. As the qualitative part expresses the independences between the variables concerned, it allows for identifying conditional probabilities that upon variation cannot influence the probability of interest. Analyses with respect to these conditional probabilities are uninformative and can be excluded from the full analysis. In addition, we show that the analyses that are informative comply with simple mathematical functions. More specifically, we show that the probability of interest can be expressed as a quotient of two functions that are linear in a conditional probability under study. We show that computing the constants in this functional function requires just a small number of network evaluations. These properties allow for considerably reducing the computational burden involved and thus for improving upon the practicability of sensitivity analysis of Bayesian belief networks.
+
+---
+
+## Our Interpretation
+
+The paper addresses the computational cost of sensitivity analysis in Bayesian networks by proving two key structural results: (1) many conditional probability parameters are provably irrelevant to any given query and can be excluded, and (2) the posterior probability is always a linear fractional function (ax+b)/(cx+d) of any single remaining parameter, fully determined by 2-3 network evaluations. This reduces sensitivity analysis from exhaustive parameter sweeps to a small number of targeted inference calls, making it practical for large networks like ALARM.

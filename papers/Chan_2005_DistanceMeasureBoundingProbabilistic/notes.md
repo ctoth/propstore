@@ -5,8 +5,11 @@ year: 2005
 venue: "International Journal of Approximate Reasoning"
 doi_url: "https://doi.org/10.1016/j.ijar.2004.07.001"
 pages: "149-174"
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T22:10:53Z"
 ---
-
 # A distance measure for bounding probabilistic belief change
 
 ## One-Sentence Summary
@@ -256,3 +259,22 @@ The CD-distance is directly relevant to propstore's probabilistic argumentation 
 - Kjærulff & van der Gaag, "Making sensitivity analysis computationally efficient" UAI 2000 [12] — computational aspects of sensitivity
 - Pearl, "Probabilistic Reasoning in Intelligent Systems" 1988 [15] — virtual evidence method
 - Jeffrey, "The Logic of Decision" 1965 [9] — Jeffrey's rule for belief revision
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Coupé_2002_PropertiesSensitivityAnalysisBayesian]] — cited as [3]; both papers address sensitivity analysis in Bayesian networks. Coupe 2002 characterizes sensitivity functions (linear/fractional forms); Chan & Darwiche 2005 bounds the impact of parameter changes via CD-distance. The two approaches are complementary: Coupe gives exact sensitivity functions, Chan & Darwiche gives distance-based bounds.
+
+### New Leads (Not Yet in Collection)
+- Chan & Darwiche (2001) — "When do numbers really matter?" UAI — earlier version of CD-distance concept
+- Darwiche (2000) — "A differential approach to inference in Bayesian networks" UAI — differential sensitivity framework
+- Jeffrey (1965) — "The Logic of Decision" — foundational Jeffrey's rule, shown optimal for CD-distance
+
+### Cited By (in Collection)
+- [[Coupé_2002_PropertiesSensitivityAnalysisBayesian]] — references Chan & Darwiche 2005 in related work
+
+### Conceptual Links (not citation-based)
+- [[Josang_2001_LogicUncertainProbabilities]] — CD-distance could bound how much an SL opinion changes under fusion: if fusion maps to Jeffrey's rule (which it resembles for certain operators), Theorem 5.1 gives the exact CD-distance from old/new event probabilities
+- [[Kaplan_2015_PartialObservableUpdateSubjectiveLogic]] — Kaplan's partial observable update for SL is structurally similar to Pearl's virtual evidence method; Theorem 5.3's optimality result (Pearl minimizes CD-distance) may apply
+- [[Hunter_2017_ProbabilisticReasoningAbstractArgumentation]] — CD-distance could bound how much argument acceptance probabilities change when individual argument probabilities are perturbed in a probabilistic AF
+- [[Li_2011_ProbabilisticArgumentationFrameworks]] — PrAF assigns probabilities to arguments/defeats; CD-distance could bound extension probability changes under parameter perturbation

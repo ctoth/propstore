@@ -1,0 +1,18 @@
+{
+  "title": "Properties of Sensitivity Analysis of Bayesian Belief Networks",
+  "authors": [
+    "Veerle M.H. Coupé",
+    "Linda C. van der Gaag"
+  ],
+  "abstract": "The assessments for the various conditional probabilities of a Bayesian belief network inevitably are inaccurate, influencing the reliability of its output. By subjecting the network to a sensitivity analysis with respect to its conditional probabilities, the reliability of its output can be investigated. Unfortunately, straightforward sensitivity analysis of a belief network is highly time-consuming. In this paper, we present an efficient method for sensitivity analysis of Bayesian belief networks that requires considerably less computational effort than straightforward variation of conditional probabilities.",
+  "arxiv_id": null,
+  "year": "2002",
+  "doi": "10.1023/A:1016398407857",
+  "url": "https://www.semanticscholar.org/paper/e4d58804a8d6468a01812b4f75018edbcff6d850",
+  "pdf_url": "",
+  "bibtex": "@Article{Coupé2002PropertiesOS,\n author = {V. Coupé and L. V. D. Gaag},\n booktitle = {Annals of Mathematics and Artificial Intelligence},\n journal = {Annals of Mathematics and Artificial Intelligence},\n pages = {323-356},\n title = {Properties of Sensitivity Analysis of Bayesian Belief Networks},\n volume = {36},\n year = {2002}\n}\n",
+  "venue": "Annals of Mathematics and Artificial Intelligence",
+  "venue_type": "journal",
+  "volume": "36",
+  "pages": "323-356"
+}
