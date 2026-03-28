@@ -1,0 +1,8 @@
+id: concept73
+canonical_name: dirichlet_parameter_k
+status: proposed
+definition: Individual parameter alpha_k of a Dirichlet distribution for the k-th
+  attribute state
+domain: sl
+created_date: '2026-03-28'
+form: structural

@@ -1,0 +1,354 @@
+source:
+  paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T21:50:17Z"
+
+claims:
+  - id: claim1
+    type: equation
+    expression: "alpha_k = W * b_k / u + W * a_k"
+    sympy: "Eq(dirichlet_parameter_k, non_informative_prior_weight * multinomial_opinion_belief_k / multinomial_opinion_uncertainty + non_informative_prior_weight * base_rate_k)"
+    variables:
+      - symbol: "alpha_k"
+        concept: "dirichlet_parameter_k"
+        role: "dependent"
+      - symbol: "W"
+        concept: "non_informative_prior_weight"
+        role: "parameter"
+      - symbol: "b_k"
+        concept: "multinomial_opinion_belief_k"
+        role: "independent"
+      - symbol: "u"
+        concept: "multinomial_opinion_uncertainty"
+        role: "independent"
+      - symbol: "a_k"
+        concept: "base_rate_k"
+        role: "parameter"
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 70
+      section: "4. Subjective Logic"
+      quote_fragment: "The parameters of the Dirichlet distribution are related to the multinomial opinion values via"
+
+  - id: claim2
+    type: equation
+    expression: "u = W / S"
+    sympy: "Eq(multinomial_opinion_uncertainty, non_informative_prior_weight / dirichlet_strength)"
+    variables:
+      - symbol: "u"
+        concept: "multinomial_opinion_uncertainty"
+        role: "dependent"
+      - symbol: "W"
+        concept: "non_informative_prior_weight"
+        role: "parameter"
+      - symbol: "S"
+        concept: "dirichlet_strength"
+        role: "independent"
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 70
+      section: "4. Subjective Logic"
+      quote_fragment: "The uncertainty is inversely proportional to the Dirichlet strength S"
+
+  - id: claim3
+    type: equation
+    expression: "p_hat_k = b_k + u * a_k"
+    sympy: "Eq(expectation_probability_k, multinomial_opinion_belief_k + multinomial_opinion_uncertainty * base_rate_k)"
+    variables:
+      - symbol: "p_hat_k"
+        concept: "expectation_probability_k"
+        role: "dependent"
+      - symbol: "b_k"
+        concept: "multinomial_opinion_belief_k"
+        role: "independent"
+      - symbol: "u"
+        concept: "multinomial_opinion_uncertainty"
+        role: "independent"
+      - symbol: "a_k"
+        concept: "base_rate_k"
+        role: "parameter"
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 70
+      section: "4. Subjective Logic"
+      quote_fragment: "The expectation probabilities of a subjective opinion is defined as the mean of its corresponding Dirichlet distribution"
+
+  - id: claim4
+    type: equation
+    expression: "f(p | alpha, X_T) proportional_to prod_{t=1}^{T} (sum_{k=1}^{K} l_k^{(t)} p_k) * f_b(p | alpha)"
+    sympy: "Eq(posterior_density, Product(Sum(likelihood_k_t * probability_mass_k, (k, 1, K)), (t, 1, T)) * dirichlet_prior)"
+    variables:
+      - symbol: "f(p | alpha, X_T)"
+        concept: "posterior_density"
+        role: "dependent"
+      - symbol: "l_k^{(t)}"
+        concept: "likelihood_k_t"
+        role: "independent"
+      - symbol: "p_k"
+        concept: "probability_mass_k"
+        role: "independent"
+      - symbol: "f_b(p | alpha)"
+        concept: "dirichlet_prior"
+        role: "independent"
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 71
+      section: "5. Partial observable updates"
+      quote_fragment: "the posterior pdf for p after the incorporation of T observations is given by"
+
+  - id: claim5
+    type: equation
+    expression: "S_plus = sum_k((m_k - v_k) * m_k * (1 - m_k)) / sum_k((v_k - m_k^2) * m_k * (1 - m_k))"
+    sympy: "Eq(updated_dirichlet_strength, Sum((marginal_mean_k - noncentral_moment_k) * marginal_mean_k * (1 - marginal_mean_k), (k, 1, K)) / Sum((noncentral_moment_k - marginal_mean_k**2) * marginal_mean_k * (1 - marginal_mean_k), (k, 1, K)))"
+    variables:
+      - symbol: "S_plus"
+        concept: "updated_dirichlet_strength"
+        role: "dependent"
+      - symbol: "m_k"
+        concept: "marginal_mean_k"
+        role: "independent"
+      - symbol: "v_k"
+        concept: "noncentral_moment_k"
+        role: "independent"
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 72
+      section: "5.2 Moment matching"
+      quote_fragment: "Solving for the point where the derivative with respect to S goes to zero leads to"
+    notes: "Eq. 29 — least-squares fit of Dirichlet second moments. Core of Algorithm 1."
+
+  - id: claim6
+    type: observation
+    statement: "The posterior distribution after partial observable updates is a weighted mixture of Dirichlet distributions, not a single Dirichlet, requiring moment-matching approximation."
+    concepts:
+      - dirichlet_distribution
+      - partial_observable_update
+      - moment_matching
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 71
+      section: "5. Partial observable updates"
+      quote_fragment: "The posterior is actually a weighted sum of Dirichlets"
+
+  - id: claim7
+    type: observation
+    statement: "When all likelihood values are equal (vacuous observation), the updated opinion equals the prior opinion — the partial observable update is a no-op."
+    concepts:
+      - partial_observable_update
+      - vacuous_opinion
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 71
+      section: "5. Partial observable updates"
+      quote_fragment: "Property 2"
+    notes: "Property 2: vacuous observation invariance"
+
+  - id: claim8
+    type: observation
+    statement: "After T partial observations, the updated uncertainty satisfies W/(S+T) <= u_plus <= u, with the lower bound achieved only when all observations are fully visible."
+    concepts:
+      - multinomial_opinion_uncertainty
+      - partial_observable_update
+      - dirichlet_strength
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 72
+      section: "5.2 Moment matching"
+      quote_fragment: "the uncertainty of the updated opinion is bounded"
+    notes: "Property 3: uncertainty bounds. Upper bound = no change (vacuous). Strict inequality for non-vacuous partial observations."
+
+  - id: claim9
+    type: observation
+    statement: "For a single partial observation (T=1), at least one Dirichlet parameter must decrease unless the observation is vacuous or fully visible."
+    concepts:
+      - dirichlet_parameter_k
+      - partial_observable_update
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 75
+      section: "6. Properties"
+      quote_fragment: "Property 4"
+    notes: "The parameter with the smallest likelihood value will not increase. This is a key difference from fully visible updates where parameters only increase."
+
+  - id: claim10
+    type: observation
+    statement: "A naive approach that treats the likelihood as a fractional observation produces biased estimates and erroneously drives uncertainty to zero even for vacuous observations."
+    concepts:
+      - partial_observable_update
+      - multinomial_opinion_uncertainty
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 72
+      section: "5.1 Naive belief update"
+      quote_fragment: "the naïve update erroneously goes to zero"
+
+  - id: claim11
+    type: model
+    name: "Partial Observable Update (Algorithm 1)"
+    equations:
+      - "claim1"
+      - "claim4"
+      - "claim5"
+    parameters:
+      - name: "W"
+        concept: "non_informative_prior_weight"
+        note: "Non-informative prior weight, default 2 for binary"
+      - name: "a"
+        concept: "base_rate_k"
+        note: "Base rate probability vector (prior expectation)"
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 72
+      section: "5.2 Moment matching"
+    notes: "Three computation methods for calcint: attribute-based recursion, observation-based recursion, grid-based integration."
+
+  - id: claim12
+    type: observation
+    statement: "Attribute-based recursion for calcint has complexity O(K^{T+1}), observation-based recursion O(K^2 * T!), and grid-based integration O(T * K^2 * D^K) where D is grid density."
+    concepts:
+      - partial_observable_update
+      - computational_complexity
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 73
+      section: "5.3 Computational complexity"
+      quote_fragment: "The computational complexity for these updates methods is summarized in Table 1"
+
+  - id: claim13
+    type: observation
+    statement: "Sequential single-observation updates (T=1) achieve nearly identical estimation performance to batch multi-observation updates with dramatically lower computational cost."
+    concepts:
+      - partial_observable_update
+      - sequential_update
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 79
+      section: "8. Simulations"
+      quote_fragment: "the simulations demonstrate negligible performance gains"
+    notes: "This makes the T=1 closed-form update (Eqs. 32-33) the practical choice for implementation."
+
+  - id: claim14
+    type: equation
+    expression: "m_k = (alpha_k + l_k * alpha_k / sum_i(l_i * alpha_i)) / (S + 1)"
+    sympy: "Eq(updated_marginal_mean_k, (dirichlet_parameter_k + likelihood_k * dirichlet_parameter_k / Sum(likelihood_k * dirichlet_parameter_k, (k, 1, K))) / (dirichlet_strength + 1))"
+    variables:
+      - symbol: "m_k"
+        concept: "updated_marginal_mean_k"
+        role: "dependent"
+      - symbol: "alpha_k"
+        concept: "dirichlet_parameter_k"
+        role: "independent"
+      - symbol: "l_k"
+        concept: "likelihood_k"
+        role: "independent"
+      - symbol: "S"
+        concept: "dirichlet_strength"
+        role: "independent"
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 73
+      section: "5.3 Computational complexity"
+      quote_fragment: "the means and noncentral second order moments are given by"
+    notes: "Eq. 32 — closed-form mean for sequential (T=1) update. This is the practical implementation formula."
+
+  - id: claim15
+    type: mechanism
+    statement: "The partial observable update works by computing the exact posterior moments under the Dirichlet-likelihood product, then fitting a new Dirichlet via method of moments — this preserves the SL opinion algebra while handling the non-Dirichlet posterior."
+    concepts:
+      - partial_observable_update
+      - moment_matching
+      - dirichlet_distribution
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 72
+      section: "5.2 Moment matching"
+      quote_fragment: "SL approximates the collected evidence in an opinion so that it corresponds to a Dirichlet distribution"
+
+  - id: claim16
+    type: mechanism
+    statement: "Trust estimation via partial observable updates works by computing the likelihood ratio between a reporter's opinion being consistent with the trustor's observation (trustworthy) versus inconsistent (untrustworthy), using the multinomial beta function of combined Dirichlet parameters."
+    concepts:
+      - trust_estimation
+      - partial_observable_update
+      - likelihood_ratio
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 77
+      section: "7. Trust estimation"
+      quote_fragment: "the likelihood that source i is truthful"
+
+  - id: claim17
+    type: comparison
+    statement: "Unlike the monotonic update method (Kaplan et al. 2012), which forces Dirichlet parameters to only increase and causes uncertainty to shrink too fast, the corrected partial observable update allows parameters to decrease, producing calibrated uncertainty estimates."
+    concepts:
+      - partial_observable_update
+      - multinomial_opinion_uncertainty
+      - dirichlet_parameter_k
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 73
+      section: "5.2 Moment matching"
+      quote_fragment: "the Dirichlet strength was erroneously increased so that the Dirichlet parameters never decrease"
+
+  - id: claim18
+    type: comparison
+    statement: "The likelihood-based trust update converges to ground truth trustworthiness and outperforms both thresholding baselines and TRAVOS binning methods for trust estimation."
+    concepts:
+      - trust_estimation
+      - partial_observable_update
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 80
+      section: "8. Simulations"
+      quote_fragment: "the likelihood update provides a consistent estimate that converges to the ground truth"
+
+  - id: claim19
+    type: limitation
+    statement: "The partial observable update assumes likelihood functions are known perfectly; when likelihoods are estimated via machine learning, their uncertainty is not accounted for in the current framework."
+    concepts:
+      - partial_observable_update
+      - likelihood_uncertainty
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 71
+      section: "5. Partial observable updates"
+      quote_fragment: "Future work will investigate the implications of incorporating uncertainty about the likelihood values"
+
+  - id: claim20
+    type: limitation
+    statement: "For K > 2 attributes, the method of moments Dirichlet fit is approximate because the Dirichlet has fewer parameters than the true posterior mixture's marginal variances."
+    concepts:
+      - dirichlet_distribution
+      - moment_matching
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 72
+      section: "5.2 Moment matching"
+      quote_fragment: "For K > 2, the number of Dirichlet parameters does not offer enough degrees of freedom to fit both the means and variances"
+
+  - id: claim21
+    type: observation
+    statement: "A partially confident observation that conflicts with the current belief can increase uncertainty, which never occurs for fully visible observations."
+    concepts:
+      - partial_observable_update
+      - multinomial_opinion_uncertainty
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 82
+      section: "9. Conclusions"
+      quote_fragment: "the partial observable updates do not simply increment Dirichlet parameters"
+    notes: "Key behavioral difference from standard SL: conflicting partial evidence increases uncertainty, reflecting epistemic honesty."
+
+  - id: claim22
+    type: observation
+    statement: "The partial observable update is a special case of SL abduction where the likelihood uncertainty is zero; the full abduction framework with uncertain likelihoods is left as future work."
+    concepts:
+      - partial_observable_update
+      - subjective_logic_abduction
+    provenance:
+      paper: Kaplan_2015_PartialObservableUpdateSubjectiveLogic
+      page: 82
+      section: "9. Conclusions"
+      quote_fragment: "The work presented in this paper is actually a special case of such abduction when the likelihood (or conditional) uncertainty is zero"

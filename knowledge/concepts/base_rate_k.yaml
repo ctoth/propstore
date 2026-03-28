@@ -1,0 +1,8 @@
+id: concept78
+canonical_name: base_rate_k
+status: proposed
+definition: Base rate probability a_k for the k-th attribute state in a multinomial
+  SL opinion
+domain: sl
+created_date: '2026-03-28'
+form: structural

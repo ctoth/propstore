@@ -1,0 +1,7 @@
+id: concept85
+canonical_name: marginal_mean_k
+status: proposed
+definition: Marginal mean m_k of the k-th attribute after partial observations
+domain: sl
+created_date: '2026-03-28'
+form: structural

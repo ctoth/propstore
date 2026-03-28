@@ -1,0 +1,7 @@
+id: concept95
+canonical_name: likelihood_uncertainty
+status: proposed
+definition: Uncertainty in likelihood function values when estimated via ML
+domain: sl
+created_date: '2026-03-28'
+form: structural

@@ -1,0 +1,7 @@
+id: concept97
+canonical_name: computational_complexity
+status: proposed
+definition: Asymptotic time or space requirements of an algorithm
+domain: sl
+created_date: '2026-03-28'
+form: structural

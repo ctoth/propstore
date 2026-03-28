@@ -1,0 +1,8 @@
+id: concept88
+canonical_name: moment_matching
+status: proposed
+definition: Method of moments approximation fitting a Dirichlet to a non-Dirichlet
+  posterior
+domain: sl
+created_date: '2026-03-28'
+form: structural

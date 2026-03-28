@@ -1,0 +1,7 @@
+id: concept84
+canonical_name: updated_dirichlet_strength
+status: proposed
+definition: Fitted Dirichlet strength S_plus after partial observable update
+domain: sl
+created_date: '2026-03-28'
+form: structural
