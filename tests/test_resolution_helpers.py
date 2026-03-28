@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from propstore.dung import ArgumentationFramework
 from propstore.world.resolution import (
@@ -176,6 +180,61 @@ def test_aspic_resolution_threads_link_to_build_aspic_projection(monkeypatch) ->
     assert result.status == "resolved"
     assert calls
     assert calls[0]["link"] == "weakest"
+
+
+@given(
+    comparison=st.sampled_from(["elitist", "democratic"]),
+    link=st.sampled_from(["last", "weakest"]),
+)
+@settings(max_examples=8, deadline=None)
+def test_aspic_resolution_property_threads_selected_preference_config(
+    comparison: str,
+    link: str,
+) -> None:
+    projection = SimpleNamespace(
+        claim_to_argument_ids={
+            "claim_a": ("arg:a",),
+            "claim_b": ("arg:b",),
+        },
+        argument_to_claim_id={
+            "arg:a": "claim_a",
+            "arg:b": "claim_b",
+        },
+    )
+    calls: list[dict] = []
+
+    def fake_build_aspic_projection(*args, **kwargs):
+        calls.append(kwargs)
+        return projection
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "propstore.aspic_bridge.build_aspic_projection",
+            fake_build_aspic_projection,
+        )
+        monkeypatch.setattr(
+            "propstore.structured_argument.compute_structured_justified_arguments",
+            lambda *args, **kwargs: frozenset({"arg:a"}),
+        )
+
+        result = resolve(
+            _AspicView(),
+            "concept1",
+            strategy=ResolutionStrategy.ARGUMENTATION,
+            world=_World(),
+            reasoning_backend=ReasoningBackend.ASPIC,
+            policy=RenderPolicy(
+                strategy=ResolutionStrategy.ARGUMENTATION,
+                reasoning_backend=ReasoningBackend.ASPIC,
+                comparison=comparison,
+                link=link,
+            ),
+        )
+
+    assert result.status == "resolved"
+    assert calls
+    assert calls[0]["comparison"] == comparison
+    assert calls[0]["link"] == link
 
 
 def test_structured_resolution_grounded_uses_plain_grounded_extension(monkeypatch) -> None:

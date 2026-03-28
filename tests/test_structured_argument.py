@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 
+import pytest
 from click.testing import CliRunner
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from propstore.cli import cli
 from propstore.structured_argument import (
@@ -11,7 +14,7 @@ from propstore.structured_argument import (
     build_structured_projection,
     compute_structured_justified_arguments,
 )
-from propstore.dung import ArgumentationFramework
+from propstore.dung import ArgumentationFramework, grounded_extension
 from propstore.world.bound import BoundWorld
 from propstore.world.labelled import Label, compile_environment_assumptions
 from propstore.world.resolution import resolve
@@ -125,6 +128,52 @@ def _support_metadata(bound: BoundWorld, active_claims: list[dict]) -> dict[str,
         claim["id"]: bound.claim_support(claim)
         for claim in active_claims
     }
+
+
+@st.composite
+def _frameworks_with_optional_attacks(draw):
+    n_args = draw(st.integers(min_value=1, max_value=4))
+    arguments = tuple(f"arg:{idx}" for idx in range(n_args))
+    possible_edges = [
+        (src, tgt)
+        for src in arguments
+        for tgt in arguments
+        if src != tgt
+    ]
+    if possible_edges:
+        defeats = frozenset(
+            draw(
+                st.sets(
+                    st.sampled_from(possible_edges),
+                    max_size=len(possible_edges),
+                )
+            )
+        )
+    else:
+        defeats = frozenset()
+    attacks_choice = draw(st.sampled_from(["none", "same", "arbitrary"]))
+    if attacks_choice == "none":
+        attacks = None
+    elif attacks_choice == "same":
+        attacks = defeats
+    else:
+        attacks = (
+            frozenset(
+                draw(
+                    st.sets(
+                        st.sampled_from(possible_edges),
+                        max_size=len(possible_edges),
+                    )
+                )
+            )
+            if possible_edges
+            else frozenset()
+        )
+    return ArgumentationFramework(
+        arguments=frozenset(arguments),
+        defeats=defeats,
+        attacks=attacks,
+    )
 
 
 def test_worldline_policy_accepts_structured_projection_backend() -> None:
@@ -429,6 +478,54 @@ def test_undercut_does_not_bleed_across_alternative_justifications_for_same_clai
     )
 
 
+@given(extra_support_count=st.integers(min_value=1, max_value=3))
+@settings(max_examples=20, deadline=None)
+def test_named_undercut_property_only_defeats_the_selected_rule_arguments(
+    extra_support_count: int,
+) -> None:
+    claims = [
+        {"id": "claim_target", "concept_id": "concept1", "type": "parameter", "value": 1.0},
+        {"id": "claim_attacker", "concept_id": "conceptX", "type": "parameter", "value": 9.0},
+    ]
+    stances = []
+    targeted_justification_id = "supports:claim_support_0->claim_target"
+
+    for idx in range(extra_support_count + 1):
+        support_id = f"claim_support_{idx}"
+        claims.append({
+            "id": support_id,
+            "concept_id": f"concept_support_{idx}",
+            "type": "parameter",
+            "value": float(idx + 2),
+        })
+        stances.append({
+            "claim_id": support_id,
+            "target_claim_id": "claim_target",
+            "stance_type": "supports",
+        })
+
+    stances.append({
+        "claim_id": "claim_attacker",
+        "target_claim_id": "claim_target",
+        "stance_type": "undercuts",
+        "target_justification_id": targeted_justification_id,
+    })
+
+    projection = build_structured_projection(
+        _ProjectionStore(claims=claims, stances=stances),
+        claims,
+    )
+    attacker_args = projection.claim_to_argument_ids["claim_attacker"]
+
+    for argument in projection.arguments:
+        if argument.claim_id != "claim_target" or not argument.justification_id.startswith("supports:"):
+            continue
+        is_targeted = argument.justification_id == targeted_justification_id
+        for attacker_arg in attacker_args:
+            has_defeat = (attacker_arg, argument.arg_id) in projection.framework.defeats
+            assert has_defeat is is_targeted
+
+
 def test_structured_projection_defaults_unconditional_claim_to_exact_empty_label() -> None:
     store = _ProjectionStore(
         claims=[
@@ -483,6 +580,56 @@ def test_build_structured_projection_threads_link_to_aspic_bridge(monkeypatch) -
     assert calls[0]["link"] == "weakest"
 
 
+@given(
+    comparison=st.sampled_from(["elitist", "democratic"]),
+    link=st.sampled_from(["last", "weakest"]),
+)
+@settings(max_examples=8, deadline=None)
+def test_build_structured_projection_property_threads_selected_preference_config(
+    comparison: str,
+    link: str,
+) -> None:
+    calls: list[dict] = []
+
+    def fake_build_aspic_projection(*args, **kwargs):
+        calls.append(kwargs)
+        return type(
+            "FakeProjection",
+            (),
+            {
+                "arguments": (),
+                "framework": ArgumentationFramework(
+                    arguments=frozenset(),
+                    defeats=frozenset(),
+                    attacks=frozenset(),
+                ),
+                "claim_to_argument_ids": {},
+                "argument_to_claim_id": {},
+            },
+        )()
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "propstore.aspic_bridge.build_aspic_projection",
+            fake_build_aspic_projection,
+        )
+
+        store = _ProjectionStore(
+            claims=[{"id": "claim_a", "concept_id": "concept1", "type": "parameter", "value": 1.0}]
+        )
+
+        build_structured_projection(
+            store,
+            store.claims_for(None),
+            comparison=comparison,
+            link=link,
+        )
+
+    assert calls
+    assert calls[0]["comparison"] == comparison
+    assert calls[0]["link"] == link
+
+
 def test_grounded_semantics_uses_plain_dung_grounded_even_when_attacks_exist() -> None:
     projection = StructuredProjection(
         arguments=(),
@@ -532,6 +679,34 @@ def test_hybrid_grounded_requires_explicit_opt_in() -> None:
 
     assert grounded == frozenset({"arg:a", "arg:b"})
     assert hybrid == frozenset()
+
+
+@given(framework=_frameworks_with_optional_attacks())
+@settings(max_examples=50, deadline=None)
+def test_grounded_semantics_property_matches_dung_grounded_extension(
+    framework: ArgumentationFramework,
+) -> None:
+    projection = StructuredProjection(
+        arguments=(),
+        framework=framework,
+        claim_to_argument_ids={},
+        argument_to_claim_id={},
+    )
+
+    justified = compute_structured_justified_arguments(
+        projection,
+        semantics="grounded",
+    )
+
+    expected_framework = framework
+    if framework.attacks is not None and framework.attacks != framework.defeats:
+        expected_framework = ArgumentationFramework(
+            arguments=framework.arguments,
+            defeats=framework.defeats,
+        )
+    expected = grounded_extension(expected_framework)
+
+    assert justified == expected
 
 
 def test_structured_resolution_reports_no_stance_data_like_claim_graph() -> None:

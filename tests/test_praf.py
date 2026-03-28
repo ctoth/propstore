@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.dung import ArgumentationFramework, grounded_extension
+from propstore.dung import ArgumentationFramework, grounded_extension, preferred_extensions
 from propstore.opinion import Opinion, from_probability
 
 
@@ -931,6 +931,52 @@ def _small_praf_strategy():
     return build()
 
 
+@st.composite
+def _small_praf_and_query_set(draw):
+    praf = draw(_small_praf_strategy())
+    args = sorted(praf.framework.arguments)
+    queried = draw(
+        st.sets(
+            st.sampled_from(args),
+            max_size=len(args),
+        )
+    )
+    return praf, frozenset(queried)
+
+
+def _small_deterministic_praf_strategy():
+    @st.composite
+    def build(draw):
+        from propstore.praf import ProbabilisticAF
+
+        n_args = draw(st.integers(min_value=2, max_value=4))
+        arg_names = [f"det{i}" for i in range(n_args)]
+        possible_edges = [
+            (src, tgt)
+            for src in arg_names
+            for tgt in arg_names
+            if src != tgt
+        ]
+        defeats = frozenset(
+            draw(
+                st.sets(
+                    st.sampled_from(possible_edges),
+                    max_size=len(possible_edges),
+                )
+            )
+        )
+        return ProbabilisticAF(
+            framework=ArgumentationFramework(
+                arguments=frozenset(arg_names),
+                defeats=defeats,
+            ),
+            p_args={arg: Opinion.dogmatic_true() for arg in arg_names},
+            p_defeats={edge: Opinion.dogmatic_true() for edge in defeats},
+        )
+
+    return build()
+
+
 @given(praf=_small_praf_strategy())
 @settings(max_examples=50)
 def test_coh_holds_after_enforcement(praf):
@@ -1170,3 +1216,78 @@ def test_query_kind_extension_probability_rejects_inference_mode():
             inference_mode="credulous",
             queried_set={"a"},
         )
+
+
+@given(praf=_small_praf_strategy())
+@settings(max_examples=40, deadline=None)
+def test_skeptical_acceptance_probability_never_exceeds_credulous(praf):
+    from propstore.praf import compute_praf_acceptance
+
+    credulous = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="exact_enum",
+        query_kind="argument_acceptance",
+        inference_mode="credulous",
+    )
+    skeptical = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="exact_enum",
+        query_kind="argument_acceptance",
+        inference_mode="skeptical",
+    )
+
+    for arg in praf.framework.arguments:
+        assert skeptical.acceptance_probs[arg] <= credulous.acceptance_probs[arg] + 1e-12
+
+
+@given(sample=_small_praf_and_query_set())
+@settings(max_examples=40, deadline=None)
+def test_extension_probability_property_is_bounded_for_random_query_sets(sample):
+    from propstore.praf import compute_praf_acceptance
+
+    praf, queried_set = sample
+    result = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="exact_enum",
+        query_kind="extension_probability",
+        queried_set=queried_set,
+    )
+
+    assert result.extension_probability is not None
+    assert 0.0 <= result.extension_probability <= 1.0
+
+
+@given(praf=_small_deterministic_praf_strategy())
+@settings(max_examples=40, deadline=None)
+def test_deterministic_preferred_query_modes_match_extension_membership_property(praf):
+    from propstore.praf import compute_praf_acceptance
+
+    credulous = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="deterministic",
+        query_kind="argument_acceptance",
+        inference_mode="credulous",
+    )
+    skeptical = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="deterministic",
+        query_kind="argument_acceptance",
+        inference_mode="skeptical",
+    )
+
+    extensions = preferred_extensions(praf.framework)
+    credulous_members = set().union(*(set(ext) for ext in extensions)) if extensions else set()
+    skeptical_members = (
+        set.intersection(*(set(ext) for ext in extensions))
+        if extensions
+        else set()
+    )
+
+    for arg in praf.framework.arguments:
+        assert credulous.acceptance_probs[arg] == float(arg in credulous_members)
+        assert skeptical.acceptance_probs[arg] == float(arg in skeptical_members)

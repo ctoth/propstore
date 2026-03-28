@@ -529,7 +529,7 @@ class TestDFQuADCombineFunction:
 # Hypothesis property test: DF-QuAD output boundedness
 # Per Freedman et al. (2025, p.3): all strengths in [0, 1]
 # ---------------------------------------------------------------------------
-from hypothesis import given, settings
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.dung import ArgumentationFramework
@@ -575,6 +575,55 @@ def _small_praf_strategy_dfquad():
     return build()
 
 
+@st.composite
+def _paired_quad_inputs(draw):
+    praf = draw(_small_praf_strategy_dfquad())
+    tau = {
+        arg: draw(st.floats(min_value=0.0, max_value=1.0))
+        for arg in sorted(praf.framework.arguments)
+    }
+    alt_p_args = {
+        arg: from_probability(
+            draw(st.floats(min_value=0.05, max_value=0.95)),
+            draw(st.integers(min_value=5, max_value=20)),
+        )
+        for arg in sorted(praf.framework.arguments)
+    }
+    alt_praf = ProbabilisticAF(
+        framework=praf.framework,
+        p_args=alt_p_args,
+        p_defeats=praf.p_defeats,
+        p_attacks=praf.p_attacks,
+        supports=praf.supports,
+        p_supports=praf.p_supports,
+        base_defeats=praf.base_defeats,
+        attack_relations=praf.attack_relations,
+        support_relations=praf.support_relations,
+        direct_defeat_relations=praf.direct_defeat_relations,
+    )
+    return praf, alt_praf, tau
+
+
+@st.composite
+def _isolated_prafs(draw):
+    n_args = draw(st.integers(min_value=1, max_value=4))
+    arg_names = [f"iso{idx}" for idx in range(n_args)]
+    base_scores = {
+        arg: draw(st.floats(min_value=0.05, max_value=0.95))
+        for arg in arg_names
+    }
+    return _make_praf(arg_names, [], base_scores)
+
+
+@st.composite
+def _isolated_tau_pair(draw):
+    pa = draw(st.floats(min_value=0.05, max_value=0.95))
+    tau_left = draw(st.floats(min_value=0.0, max_value=1.0))
+    tau_right = draw(st.floats(min_value=0.0, max_value=1.0))
+    assume(abs(tau_left - tau_right) > 1e-6)
+    return pa, tau_left, tau_right
+
+
 @given(praf=_small_praf_strategy_dfquad())
 @settings(max_examples=100, deadline=None)
 def test_dfquad_scores_bounded(praf):
@@ -587,3 +636,52 @@ def test_dfquad_scores_bounded(praf):
     result = compute_praf_acceptance(praf, strategy="dfquad_baf")
     for arg, score in result.acceptance_probs.items():
         assert 0.0 <= score <= 1.0, f"arg {arg}: score={score} out of [0,1]"
+
+
+@given(sample=_paired_quad_inputs())
+@settings(max_examples=40, deadline=None)
+def test_dfquad_quad_property_ignores_praf_argument_probability_when_tau_is_fixed(sample):
+    praf, alt_praf, tau = sample
+
+    left = compute_praf_acceptance(
+        praf,
+        strategy="dfquad_quad",
+        tau=tau,
+    )
+    right = compute_praf_acceptance(
+        alt_praf,
+        strategy="dfquad_quad",
+        tau=tau,
+    )
+
+    assert left.acceptance_probs == right.acceptance_probs
+
+
+@given(sample=_isolated_tau_pair())
+@settings(max_examples=40, deadline=None)
+def test_dfquad_quad_property_changes_when_tau_changes_with_fixed_topology(sample):
+    pa, tau_left, tau_right = sample
+    praf = _make_praf(["A"], [], {"A": pa})
+
+    left = compute_praf_acceptance(
+        praf,
+        strategy="dfquad_quad",
+        tau={"A": tau_left},
+    )
+    right = compute_praf_acceptance(
+        praf,
+        strategy="dfquad_quad",
+        tau={"A": tau_right},
+    )
+
+    assert left.acceptance_probs["A"] == pytest.approx(tau_left, abs=1e-9)
+    assert right.acceptance_probs["A"] == pytest.approx(tau_right, abs=1e-9)
+    assert left.acceptance_probs["A"] != pytest.approx(right.acceptance_probs["A"], abs=1e-6)
+
+
+@given(praf=_isolated_prafs())
+@settings(max_examples=40, deadline=None)
+def test_dfquad_baf_property_keeps_isolated_arguments_at_neutral_half(praf):
+    result = compute_praf_acceptance(praf, strategy="dfquad_baf")
+    for score in result.acceptance_probs.values():
+        assert score == pytest.approx(0.5, abs=1e-9)

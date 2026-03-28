@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 import yaml
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from propstore.build_sidecar import build_sidecar
 from propstore.cli.worldline_cmds import _parse_kv_args
@@ -1291,6 +1293,69 @@ class TestSemanticCorePhase7Worldlines:
         assert calls[0]["active_graph"] == active_graph
         assert calls[0]["comparison"] == "democratic"
         assert calls[0]["link"] == "weakest"
+
+    @given(
+        comparison=st.sampled_from(["elitist", "democratic"]),
+        link=st.sampled_from(["last", "weakest"]),
+    )
+    @settings(max_examples=8, deadline=None)
+    def test_worldline_aspic_capture_property_threads_selected_preference_config(
+        self,
+        comparison: str,
+        link: str,
+    ):
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        world, active_graph = self._graph_only_world()
+        calls: list[dict] = []
+
+        def fake_build_aspic_projection(*args, **kwargs):
+            calls.append(kwargs)
+            return type(
+                "FakeProjection",
+                (),
+                {
+                    "claim_to_argument_ids": {
+                        "claim_a": ("arg:a",),
+                        "claim_b": ("arg:b",),
+                    },
+                    "argument_to_claim_id": {
+                        "arg:a": "claim_a",
+                        "arg:b": "claim_b",
+                    },
+                },
+            )()
+
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(
+                "propstore.aspic_bridge.build_aspic_projection",
+                fake_build_aspic_projection,
+            )
+            monkeypatch.setattr(
+                "propstore.structured_argument.compute_structured_justified_arguments",
+                lambda *args, **kwargs: frozenset({"arg:a"}),
+            )
+
+            result = run_worldline(
+                WorldlineDefinition.from_dict({
+                    "id": "phase7_aspic_link_property",
+                    "targets": ["target"],
+                    "policy": {
+                        "strategy": "argumentation",
+                        "reasoning_backend": "aspic",
+                        "comparison": comparison,
+                        "link": link,
+                    },
+                }),
+                world,
+            )
+
+        assert result.values["target"]["value"] == 10.0
+        assert calls
+        assert calls[0]["active_graph"] == active_graph
+        assert calls[0]["comparison"] == comparison
+        assert calls[0]["link"] == link
 
     def test_worldline_grounded_does_not_alias_hybrid_grounded(
         self,
