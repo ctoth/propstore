@@ -4,8 +4,11 @@ authors: "Francesco Margoni, Neil Walkinshaw"
 year: 2024
 venue: "Infant Behavior and Development"
 doi_url: "https://doi.org/10.1016/j.infbeh.2024.101978"
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T21:31:00Z"
 ---
-
 # Subjective logic as a complementary tool to meta-analysis to explicitly address second-order uncertainty in research findings
 
 ## One-Sentence Summary

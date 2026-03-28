@@ -1,0 +1,321 @@
+source:
+  paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+
+claims:
+  - id: claim1
+    type: equation
+    expression: "omega_x = (b_x, d_x, u_x, a_x) with b_x + d_x + u_x = 1"
+    sympy: "Eq(binomial_opinion_belief + binomial_opinion_disbelief + binomial_opinion_uncertainty, 1)"
+    variables:
+      - symbol: "b_x"
+        concept: "binomial_opinion_belief"
+        role: "component"
+      - symbol: "d_x"
+        concept: "binomial_opinion_disbelief"
+        role: "component"
+      - symbol: "u_x"
+        concept: "binomial_opinion_uncertainty"
+        role: "component"
+      - symbol: "a_x"
+        concept: "binomial_opinion_base_rate"
+        role: "parameter"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 3
+      section: "2.1 Definition 1: binomial subjective opinion"
+      quote_fragment: "A binomial subjective opinion can be modelled as the ordered quadruple omega_x = (b_x, d_x, u_x, a_x)"
+
+  - id: claim2
+    type: equation
+    expression: "P(x) = b_x + a_x * u_x"
+    sympy: "Eq(projected_probability, binomial_opinion_belief + binomial_opinion_base_rate * binomial_opinion_uncertainty)"
+    variables:
+      - symbol: "P(x)"
+        concept: "projected_probability"
+        role: "dependent"
+      - symbol: "b_x"
+        concept: "binomial_opinion_belief"
+        role: "independent"
+      - symbol: "a_x"
+        concept: "binomial_opinion_base_rate"
+        role: "independent"
+      - symbol: "u_x"
+        concept: "binomial_opinion_uncertainty"
+        role: "independent"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 4
+      section: "2.2 Definition 2: projected probability"
+      quote_fragment: "we can define the projected probability P(x) as equal to b_x + a_x * u_x"
+
+  - id: claim3
+    type: equation
+    expression: "f(x; alpha, beta) = x^(alpha-1) * (1-x)^(beta-1) / B(alpha, beta)"
+    sympy: "Eq(beta_pdf, x**(alpha - 1) * (1 - x)**(beta - 1) / beta_function(alpha, beta))"
+    variables:
+      - symbol: "alpha"
+        concept: "beta_distribution_alpha"
+        role: "parameter"
+      - symbol: "beta"
+        concept: "beta_distribution_beta"
+        role: "parameter"
+      - symbol: "x"
+        concept: "probability_value"
+        role: "independent"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 4
+      section: "2.3 Definition 3: beta distributions"
+      quote_fragment: "The probability density function of the distribution can be expressed as follows"
+
+  - id: claim4
+    type: equation
+    expression: "alpha = b_x^W / u_x + a_x * W; beta_param = d_x^W / u_x + (1 - a_x) * W"
+    sympy: "Eq(beta_distribution_alpha, binomial_opinion_belief * non_informative_prior_weight / binomial_opinion_uncertainty + binomial_opinion_base_rate * non_informative_prior_weight)"
+    variables:
+      - symbol: "alpha"
+        concept: "beta_distribution_alpha"
+        role: "dependent"
+      - symbol: "b_x"
+        concept: "binomial_opinion_belief"
+        role: "independent"
+      - symbol: "u_x"
+        concept: "binomial_opinion_uncertainty"
+        role: "independent"
+      - symbol: "a_x"
+        concept: "binomial_opinion_base_rate"
+        role: "independent"
+      - symbol: "W"
+        concept: "non_informative_prior_weight"
+        role: "parameter"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 4
+      section: "2.3 Definition 3: beta distributions"
+      quote_fragment: "we can define alpha = b_x^W / u_x + a_x * W and beta = d_x^W / u_x + (1 - a_x) * W"
+
+  - id: claim5
+    type: parameter
+    concept: "non_informative_prior_weight"
+    value: 2
+    unit: "dimensionless"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 4
+      section: "2.3 Definition 3: beta distributions"
+      quote_fragment: "Josang (2016) sets this to W = 2, which ensures that the Beta density function is uniform when the prior probability is non-informative"
+    notes: "W=2 with a_x=0.5 yields Beta(1,1) = uniform distribution for vacuous opinion"
+
+  - id: claim6
+    type: observation
+    statement: "The Weighted Belief Fusion operator gives specific weights to each opinion as a function of its relative confidence or certainty, so that more certain opinions contribute more to the fused result."
+    concepts:
+      - "weighted_belief_fusion"
+      - "binomial_opinion_uncertainty"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 4
+      section: "2.4 Definition 4: Weighted Belief Fusion (WBF)"
+      quote_fragment: "the WBF operator gives specific weights to each opinion as a function of its relative confidence or certainty"
+
+  - id: claim7
+    type: mechanism
+    statement: "Subjective logic provides a complementary tool to meta-analysis because it encodes each empirical finding as a subjective opinion where first-order uncertainty (probability distribution over outcomes) and second-order uncertainty (confidence in that distribution) are explicitly separated, unlike traditional meta-analysis which collapses both into a single pooled effect size and confidence interval."
+    concepts:
+      - "binomial_opinion_uncertainty"
+      - "meta_analytic_combination"
+      - "projected_probability"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 1
+      section: "Abstract"
+      quote_fragment: "providing researchers with the chance to reason explicitly about first-order and second-order uncertainty"
+
+  - id: claim8
+    type: equation
+    expression: "u_x = 1 - n / n_max"
+    sympy: "Eq(binomial_opinion_uncertainty, 1 - sample_size / max_sample_size)"
+    variables:
+      - symbol: "u_x"
+        concept: "binomial_opinion_uncertainty"
+        role: "dependent"
+      - symbol: "n"
+        concept: "sample_size"
+        role: "independent"
+      - symbol: "n_max"
+        concept: "max_sample_size"
+        role: "parameter"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 7
+      section: "3.3 Definition 5: calculating the confidence in a statistical result (choice/score)"
+      quote_fragment: "we parametrised the prior probability term to a given study based on the CI as calculated from that criterion over the period that the study"
+
+  - id: claim9
+    type: parameter
+    concept: "max_sample_size"
+    value: 162
+    unit: "participants"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 7
+      section: "3.3 Definition 5"
+      quote_fragment: "the maximum possible score is to be used to scale any number of participants to a 0-1 interval"
+    notes: "Largest study sample size in the Margoni & Surian (2018) meta-analysis dataset"
+
+  - id: claim10
+    type: equation
+    expression: "u_x = median(0, |CI_U - CI_L| / R, 1)"
+    sympy: "Eq(binomial_opinion_uncertainty, Max(0, Min(Abs(ci_upper - ci_lower) / ci_range_denominator, 1)))"
+    variables:
+      - symbol: "u_x"
+        concept: "binomial_opinion_uncertainty"
+        role: "dependent"
+      - symbol: "CI_U"
+        concept: "ci_upper"
+        role: "independent"
+      - symbol: "CI_L"
+        concept: "ci_lower"
+        role: "independent"
+      - symbol: "R"
+        concept: "ci_range_denominator"
+        role: "parameter"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 7
+      section: "3.3 Definition 5"
+      quote_fragment: "using the TripTop strategy, median(0, P_r, 1) where P_r is the proportion of the CI"
+
+  - id: claim11
+    type: parameter
+    concept: "ci_range_denominator"
+    value: 8
+    unit: "effect size units (Cohen's d)"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 7
+      section: "3.3 Definition 5"
+      quote_fragment: "the estimate range for the d effect size"
+    notes: "R = 8 represents the plausible range of Cohen's d in this domain"
+
+  - id: claim12
+    type: parameter
+    concept: "peer_review_uncertainty_penalty"
+    value: 0.1
+    unit: "dimensionless"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 7
+      section: "3.4 Definition 6: factoring in whether or not research has been peer reviewed"
+      quote_fragment: "a paper that has been subject to peer review... to be more trustworthy than a paper that has not"
+
+  - id: claim13
+    type: observation
+    statement: "The replicability base rate for infant social evaluation studies is estimated at approximately 0.50, meaning roughly half of findings in this field are expected to replicate independently."
+    concepts:
+      - "replication_success"
+      - "binomial_opinion_uncertainty"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 7
+      section: "3.2 Definition 4: factoring in replication"
+      quote_fragment: "P_replicability = 0.50 for this field"
+
+  - id: claim14
+    type: observation
+    statement: "When all 67 findings from the infant prosociality meta-analysis are fused via Weighted Belief Fusion, the resulting projected probability is approximately 0.703, supporting the hypothesis that infants prefer prosocial agents but with substantial residual uncertainty of approximately 0.4."
+    concepts:
+      - "weighted_belief_fusion"
+      - "projected_probability"
+      - "binomial_opinion_uncertainty"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 9
+      section: "3.8 Fusing subjective opinions"
+      quote_fragment: "the projected probability (0.703) is in the demonstrating the fact that the projected probability is partly explained by observing that a priori probabilities were calculated from the results of previous studies"
+
+  - id: claim15
+    type: observation
+    statement: "Subgroup analysis via Weighted Belief Fusion reveals that older infants (12+ months) show stronger prosocial preference with lower uncertainty than younger infants, a heterogeneity pattern visible in the barycentric triangle representation but masked by traditional meta-analytic pooling."
+    concepts:
+      - "weighted_belief_fusion"
+      - "binomial_opinion_uncertainty"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 10
+      section: "3.10 Fusing subjective opinions separated by group"
+      quote_fragment: "the two groups share a similar tendency with respect to the preference for prosociality, but only in part"
+
+  - id: claim16
+    type: comparison
+    statement: "Unlike traditional meta-analysis which produces a single pooled effect size and confidence interval, subjective logic preserves per-factor uncertainty decomposition (sample size, replication status, peer review, same-source bias) through fusion, making it transparent which sources of uncertainty dominate the aggregate result."
+    concepts:
+      - "meta_analytic_combination"
+      - "weighted_belief_fusion"
+      - "binomial_opinion_uncertainty"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 12
+      section: "4 Discussion"
+      quote_fragment: "subjective logic offers a way to express and incorporate various sources of uncertainty in a manner that is both precise and transparent"
+
+  - id: claim17
+    type: limitation
+    statement: "The mapping from empirical effect sizes and confidence intervals to subjective opinions requires domain-specific parameter choices (n_max, R, replication base rate) that are subjective and must be justified transparently by the researcher."
+    concepts:
+      - "binomial_opinion_uncertainty"
+      - "max_sample_size"
+      - "ci_range_denominator"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 12
+      section: "4 Discussion"
+      quote_fragment: "Subjective logic is flexible... this flexibility can be a double-edged sword"
+
+  - id: claim18
+    type: limitation
+    statement: "The demonstrated approach applies to binary research questions (binomial opinions); non-binary outcomes requiring multinomial subjective opinions are not addressed."
+    concepts:
+      - "binomial_opinion_belief"
+      - "binomial_opinion_disbelief"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 3
+      section: "2.1 Definition 1"
+      quote_fragment: "A binomial subjective opinion can be modelled as the ordered quadruple"
+
+  - id: claim19
+    type: mechanism
+    statement: "A vacuous opinion (b=0, d=0, u=1, a) represents total ignorance and acts as an identity element under WBF fusion, meaning it does not shift the fused opinion — this ensures that findings with no evidential value do not corrupt the aggregate."
+    concepts:
+      - "binomial_opinion_uncertainty"
+      - "weighted_belief_fusion"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 3
+      section: "2.1 Definition 1"
+      quote_fragment: "a vacuous opinion... has zero or near-zero probability of a specifically observed frequency"
+
+  - id: claim20
+    type: observation
+    statement: "Findings from a single lab (Hamlin lab) show high uncertainty when analyzed separately via subjective logic, demonstrating that the same-source penalty and sample-based uncertainty reveal lab-specific evidence concentration that pooled meta-analysis obscures."
+    concepts:
+      - "binomial_opinion_uncertainty"
+      - "publication_bias"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 10
+      section: "3.9 Graphically displaying subjective opinions"
+      quote_fragment: "findings receive a low certainty score when N is large and CI is narrow"
+
+  - id: claim21
+    type: parameter
+    concept: "binomial_opinion_base_rate"
+    value: 0.5
+    unit: "dimensionless"
+    provenance:
+      paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+      page: 3
+      section: "2.1 Definition 1"
+      quote_fragment: "an 'uninformed prior' would amount to a_x = 0.50"
+    notes: "Non-informative prior; maximizes ignorance about the base rate"
