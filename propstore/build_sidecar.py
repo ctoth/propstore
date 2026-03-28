@@ -28,6 +28,8 @@ from propstore.validate import LoadedConcept
 from propstore.validate_claims import LoadedClaimFile
 from ast_equiv import canonical_dump
 
+from propstore.tree_reader import TreeReader
+
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
     from propstore.validate_contexts import ContextHierarchy
@@ -139,9 +141,32 @@ def _claim_content_hash(claim: dict, source_paper: str) -> str:
     return h.hexdigest()[:16]
 
 
-def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) -> int:
-    """Read stance YAML files and insert into normalized relation storage."""
-    if not stances_dir or not stances_dir.exists():
+def _populate_stances_from_files(
+    conn: sqlite3.Connection,
+    stances_dir: Path,
+    *,
+    reader: TreeReader | None = None,
+) -> int:
+    """Read stance YAML files and insert into normalized relation storage.
+
+    When *reader* is provided, reads stance files from the TreeReader
+    (git or filesystem abstraction). Otherwise falls back to filesystem glob.
+    """
+    # Load stance entries from reader or filesystem
+    if reader is not None:
+        stance_entries = [
+            (stem, yaml.safe_load(raw) or {})
+            for stem, raw in reader.list_yaml("stances")
+        ]
+    elif stances_dir and stances_dir.exists():
+        stance_entries = []
+        for f in sorted(stances_dir.glob("*.yaml")):
+            with open(f, encoding="utf-8") as fh:
+                stance_entries.append((f.stem, yaml.safe_load(fh) or {}))
+    else:
+        return 0
+
+    if not stance_entries:
         return 0
 
     count = 0
@@ -149,32 +174,30 @@ def _populate_stances_from_files(conn: sqlite3.Connection, stances_dir: Path) ->
     # Build set of valid claim IDs for validation
     valid_claims = {r[0] for r in conn.execute("SELECT id FROM claim_core").fetchall()}
 
-    for f in sorted(stances_dir.glob("*.yaml")):
-        with open(f, encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+    for fname, data in stance_entries:
 
         source_claim = data.get("source_claim", "")
         if source_claim not in valid_claims:
             raise sqlite3.IntegrityError(
-                f"stance file {f.name} references nonexistent source claim '{source_claim}'"
+                f"stance file {fname} references nonexistent source claim '{source_claim}'"
             )
 
         stances = data.get("stances", [])
         if not isinstance(stances, list):
-            raise ValueError(f"stance file {f.name} has non-list 'stances'")
+            raise ValueError(f"stance file {fname} has non-list 'stances'")
 
         for index, s in enumerate(stances, start=1):
             if not isinstance(s, dict):
-                raise ValueError(f"stance file {f.name} stance #{index} must be a mapping")
+                raise ValueError(f"stance file {fname} stance #{index} must be a mapping")
             target = s.get("target", "")
             stype = s.get("type", "")
             if target not in valid_claims:
                 raise sqlite3.IntegrityError(
-                    f"stance file {f.name} references nonexistent target claim '{target}'"
+                    f"stance file {fname} references nonexistent target claim '{target}'"
                 )
             if stype not in VALID_STANCE_TYPES:
                 raise ValueError(
-                    f"stance file {f.name} uses unrecognized stance type '{stype}'"
+                    f"stance file {fname} uses unrecognized stance type '{stype}'"
                 )
 
             # Extract resolution provenance if present
@@ -219,6 +242,8 @@ def build_sidecar(
     *,
     repo: Repository | None = None,
     context_files: list | None = None,
+    commit_hash: str | None = None,
+    reader: TreeReader | None = None,
 ) -> bool:
     """Build the SQLite sidecar from concept data.
 
@@ -226,17 +251,26 @@ def build_sidecar(
     tables plus claim_fts. concept_registry is required for conflict detection
     when claim_files is provided.
 
+    When *commit_hash* is provided (git-backed repo), it is used as the
+    rebuild key instead of computing ``_content_hash()``.
+
+    When *reader* is provided, stance files are loaded via the TreeReader
+    instead of filesystem glob.
+
     Returns True if the sidecar was rebuilt, False if skipped.
     """
     sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Check if rebuild is needed
-    content_hash = _content_hash(
-        concepts,
-        claim_files,
-        repo=repo,
-        context_files=context_files,
-    )
+    if commit_hash is not None:
+        content_hash = commit_hash
+    else:
+        content_hash = _content_hash(
+            concepts,
+            claim_files,
+            repo=repo,
+            context_files=context_files,
+        )
     hash_path = sidecar_path.with_suffix(".hash")
 
     if not force and sidecar_path.exists() and hash_path.exists():
@@ -333,7 +367,7 @@ def build_sidecar(
 
         # Populate stances from stance files (in addition to inline stances from claims)
         if repo is not None and claim_files is not None:
-            _populate_stances_from_files(conn, repo.stances_dir)
+            _populate_stances_from_files(conn, repo.stances_dir, reader=reader)
 
         if claim_files is not None:
             _populate_justifications(conn)

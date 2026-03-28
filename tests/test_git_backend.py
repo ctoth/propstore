@@ -424,3 +424,174 @@ def test_load_contexts_from_tree_reader(tmp_path):
     assert contexts[0].data["id"] == "ctx1"
     assert contexts[0].filepath is None
     assert contexts[0].filename == "test_context"
+
+
+# ── Phase 3: Build sidecar from git ─────────────────────────────────
+
+
+def _setup_git_knowledge_repo(tmp_path):
+    """Helper: create a git-backed knowledge repo with one concept and form."""
+    import shutil
+    from pathlib import Path
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    kr = KnowledgeRepo.init(root)
+
+    # Seed forms directory on disk (forms are package resources, loaded from filesystem)
+    forms_dir = root / "forms"
+    forms_dir.mkdir(exist_ok=True)
+    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    for f in package_forms.glob("*.yaml"):
+        shutil.copy2(f, forms_dir / f.name)
+
+    # Create required dirs for Repository
+    for d in ["concepts", "claims", "contexts", "sidecar", "stances", "worldlines"]:
+        (root / d).mkdir(exist_ok=True)
+    (root / "concepts" / ".counters").mkdir(exist_ok=True)
+
+    concept_data = {
+        "id": "concept1",
+        "canonical_name": "test_frequency",
+        "status": "proposed",
+        "definition": "A test frequency concept",
+        "domain": "testing",
+        "form": "frequency",
+    }
+    kr.commit_files({
+        "concepts/test_frequency.yaml": yaml.dump(concept_data).encode(),
+    }, "add concept")
+    kr.sync_worktree()
+
+    repo = Repository(root)
+    return kr, repo
+
+
+def test_build_from_git(tmp_path):
+    """pks build produces sidecar from git tree, keyed to commit hash."""
+    kr, repo = _setup_git_knowledge_repo(tmp_path)
+    from propstore.build_sidecar import build_sidecar
+    from propstore.validate import load_concepts
+    from propstore.tree_reader import GitTreeReader
+
+    reader = GitTreeReader(kr)
+    hash_key = kr.head_sha()
+
+    concepts = load_concepts(None, reader=reader)
+    assert len(concepts) == 1
+
+    rebuilt = build_sidecar(
+        concepts, repo.sidecar_path, force=False,
+        repo=repo,
+        commit_hash=hash_key,
+        reader=reader,
+    )
+    assert rebuilt is True
+
+    # .hash file contains commit sha, not content hash
+    hash_path = repo.sidecar_path.with_suffix(".hash")
+    assert hash_path.exists()
+    stored_hash = hash_path.read_text().strip()
+    assert stored_hash == hash_key
+    assert len(stored_hash) == 40
+
+    # Sidecar sqlite exists and contains concept data
+    import sqlite3
+    conn = sqlite3.connect(repo.sidecar_path)
+    rows = conn.execute("SELECT id, canonical_name FROM concept").fetchall()
+    conn.close()
+    assert len(rows) == 1
+    assert rows[0][0] == "concept1"
+    assert rows[0][1] == "test_frequency"
+
+
+def test_build_skips_when_unchanged(tmp_path):
+    """Second build with same HEAD skips rebuild."""
+    kr, repo = _setup_git_knowledge_repo(tmp_path)
+    from propstore.build_sidecar import build_sidecar
+    from propstore.validate import load_concepts
+    from propstore.tree_reader import GitTreeReader
+
+    reader = GitTreeReader(kr)
+    hash_key = kr.head_sha()
+    concepts = load_concepts(None, reader=reader)
+
+    # First build
+    rebuilt1 = build_sidecar(
+        concepts, repo.sidecar_path, force=False,
+        repo=repo,
+        commit_hash=hash_key,
+        reader=reader,
+    )
+    assert rebuilt1 is True
+
+    # Second build with same HEAD — should skip
+    rebuilt2 = build_sidecar(
+        concepts, repo.sidecar_path, force=False,
+        repo=repo,
+        commit_hash=hash_key,
+        reader=reader,
+    )
+    assert rebuilt2 is False
+
+
+def test_build_rebuilds_on_new_commit(tmp_path):
+    """New commit triggers sidecar rebuild."""
+    kr, repo = _setup_git_knowledge_repo(tmp_path)
+    from propstore.build_sidecar import build_sidecar
+    from propstore.validate import load_concepts
+    from propstore.tree_reader import GitTreeReader
+
+    reader = GitTreeReader(kr)
+    hash_key1 = kr.head_sha()
+    concepts = load_concepts(None, reader=reader)
+
+    # First build
+    rebuilt1 = build_sidecar(
+        concepts, repo.sidecar_path, force=False,
+        repo=repo,
+        commit_hash=hash_key1,
+        reader=reader,
+    )
+    assert rebuilt1 is True
+
+    # New commit changes HEAD
+    concept2_data = {
+        "id": "concept2",
+        "canonical_name": "test_boolean",
+        "status": "proposed",
+        "definition": "A test boolean concept",
+        "domain": "testing",
+        "form": "boolean",
+    }
+    kr.commit_files({
+        "concepts/test_boolean.yaml": yaml.dump(concept2_data).encode(),
+    }, "add second concept")
+
+    # Re-read with new reader and new hash
+    reader2 = GitTreeReader(kr)
+    hash_key2 = kr.head_sha()
+    assert hash_key2 != hash_key1
+
+    concepts2 = load_concepts(None, reader=reader2)
+    assert len(concepts2) == 2
+
+    # Build with new commit hash — should rebuild
+    rebuilt2 = build_sidecar(
+        concepts2, repo.sidecar_path, force=False,
+        repo=repo,
+        commit_hash=hash_key2,
+        reader=reader2,
+    )
+    assert rebuilt2 is True
+
+    # Hash file now contains new commit sha
+    hash_path = repo.sidecar_path.with_suffix(".hash")
+    assert hash_path.read_text().strip() == hash_key2
+
+    # Sidecar has both concepts
+    import sqlite3
+    conn = sqlite3.connect(repo.sidecar_path)
+    rows = conn.execute("SELECT id FROM concept ORDER BY id").fetchall()
+    conn.close()
+    assert [r[0] for r in rows] == ["concept1", "concept2"]

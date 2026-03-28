@@ -114,12 +114,22 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     )
 
     repo: Repository = obj["repo"]
+
+    # Select TreeReader based on git backend availability
+    from propstore.tree_reader import FilesystemReader, GitTreeReader
+    if repo.git:
+        reader = GitTreeReader(repo.git)
+        hash_key = repo.git.head_sha()
+    else:
+        reader = FilesystemReader(repo.root)
+        hash_key = None  # will use _content_hash
+
     cpd = repo.concepts_dir
-    if not cpd.exists():
+    if not cpd.exists() and not repo.git:
         click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
         sys.exit(1)
 
-    concepts = load_concepts(cpd)
+    concepts = load_concepts(cpd, reader=reader)
     if not concepts:
         click.echo("No concept files found.")
         return
@@ -150,8 +160,8 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     from propstore.validate_contexts import load_contexts, validate_contexts
     context_files = None
     context_ids: set[str] = set()
-    if repo.contexts_dir.exists():
-        ctx_list = load_contexts(repo.contexts_dir)
+    if repo.contexts_dir.exists() or reader.exists("contexts"):
+        ctx_list = load_contexts(repo.contexts_dir, reader=reader)
         if ctx_list:
             ctx_result = validate_contexts(ctx_list)
             for w in ctx_result.warnings:
@@ -168,8 +178,8 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     claim_files = None
     concept_registry = None
     cd = repo.claims_dir
-    if cd.exists():
-        files = load_claim_files(cd)
+    if cd.exists() or reader.exists("claims"):
+        files = load_claim_files(cd, reader=reader)
         if files:
             concept_registry = build_concept_registry(repo)
             claim_result = validate_claims(
@@ -191,6 +201,8 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         concept_registry=concept_registry,
         repo=repo,
         context_files=context_files,
+        commit_hash=hash_key,
+        reader=reader,
     )
 
     # Step 4: Summary via WorldModel (proves the roundtrip)

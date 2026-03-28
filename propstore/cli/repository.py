@@ -60,6 +60,14 @@ class Repository:
         return self._root / "concepts" / ".counters"
 
     @cached_property
+    def git(self):
+        """Return the KnowledgeRepo if this directory is git-backed, else None."""
+        from propstore.cli.git_backend import KnowledgeRepo
+        if KnowledgeRepo.is_repo(self._root):
+            return KnowledgeRepo.open(self._root)
+        return None
+
+    @cached_property
     def store(self):
         from propstore.world import WorldModel
 
