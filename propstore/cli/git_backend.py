@@ -18,6 +18,11 @@ from dulwich.repo import Repo
 
 _CONCEPT_ID_RE = re.compile(r"^concept(\d+)$")
 
+
+def _normalize_path(path: str | Path) -> str:
+    """Normalize a path to forward-slash posix form."""
+    return str(path).replace("\\", "/")
+
 _GITIGNORE_CONTENT = """\
 sidecar/
 *.sqlite
@@ -71,8 +76,9 @@ class KnowledgeRepo:
 
     # ── Read ─────────────────────────────────────────────────────────
 
-    def read_file(self, path: str, commit: str | None = None) -> bytes:
+    def read_file(self, path: str | Path, commit: str | None = None) -> bytes:
         """Read a file from the git tree. Raises FileNotFoundError if missing."""
+        path = _normalize_path(path)
         tree = self._get_tree(commit)
         parts = PurePosixPath(path).parts
         obj = self._walk_tree(tree, parts)
@@ -80,8 +86,9 @@ class KnowledgeRepo:
             raise FileNotFoundError(path)
         return obj.data
 
-    def list_dir(self, subdir: str, commit: str | None = None) -> list[str]:
+    def list_dir(self, subdir: str | Path, commit: str | None = None) -> list[str]:
         """List file names in a subdirectory of the git tree."""
+        subdir = _normalize_path(subdir)
         tree = self._get_tree(commit)
         if tree is None:
             return []
@@ -97,18 +104,18 @@ class KnowledgeRepo:
 
     # ── Write ────────────────────────────────────────────────────────
 
-    def commit_files(self, changes: dict[str, bytes], message: str) -> str:
+    def commit_files(self, changes: dict[str | Path, bytes], message: str) -> str:
         """Add/update files and commit. Returns the commit sha hex."""
         return self._commit(adds=changes, deletes=[], message=message)
 
-    def commit_deletes(self, paths: list[str], message: str) -> str:
+    def commit_deletes(self, paths: list[str | Path], message: str) -> str:
         """Delete files and commit. Returns the commit sha hex."""
         return self._commit(adds={}, deletes=paths, message=message)
 
     def commit_batch(
         self,
-        adds: dict[str, bytes],
-        deletes: list[str],
+        adds: dict[str | Path, bytes],
+        deletes: list[str | Path],
         message: str,
     ) -> str:
         """Add/update and delete files in a single atomic commit."""
@@ -311,13 +318,13 @@ class KnowledgeRepo:
 
         # Apply adds
         for path, content in adds.items():
-            path = PurePosixPath(path).as_posix()  # normalize
+            path = _normalize_path(path)
             blob = Blob.from_string(content)
             store.add_object(blob)
             entries[path] = blob.id
 
         # Apply deletes
-        delete_set = {PurePosixPath(p).as_posix() for p in deletes}
+        delete_set = {_normalize_path(p) for p in deletes}
         for path in delete_set:
             entries.pop(path, None)
 

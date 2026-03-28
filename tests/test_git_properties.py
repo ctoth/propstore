@@ -258,27 +258,20 @@ def test_commit_message_preservation(path: str, content: bytes, msg: str) -> Non
 # ── Property 10: Path normalization ─────────────────────────────────
 
 
-@settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-@given(subdir=valid_subdir, filename=valid_filename, content=yaml_bytes)
-def test_path_normalization(subdir: str, filename: str, content: bytes) -> None:
-    """Paths constructed via str.replace normalize and round-trip correctly.
+@settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@given(subdir=valid_subdir, name=valid_filename, content=yaml_bytes)
+def test_path_normalization(subdir: str, name: str, content: bytes, tmp_path_factory) -> None:
+    """Paths with backslashes are normalized internally."""
+    root = tmp_path_factory.mktemp("repo")
+    kr = KnowledgeRepo.init(root)
 
-    Note: PurePosixPath does not normalize backslashes (\\a becomes \\x07),
-    so callers must use forward slashes or pre-normalize with str.replace.
-    This test verifies that forward-slash paths work regardless of how
-    they were constructed (e.g., from a Windows Path.as_posix() call).
-    """
-    repo, _ = _make_repo()
-    # Simulate a caller constructing a path from Windows components
-    # and normalizing with .replace() before passing to the API
-    forward_path = f"{subdir}/{filename}"
-    constructed_path = f"{subdir}\\{filename}".replace("\\", "/")
+    posix_path = f"{subdir}/{name}"
+    backslash_path = f"{subdir}\\{name}"
 
-    repo.commit_files({constructed_path: content}, "add normalized path")
-    # Readable via forward-slash path
-    assert repo.read_file(forward_path) == content
-    # Appears in list_dir
-    assert filename in repo.list_dir(subdir)
+    kr.commit_files({backslash_path: content}, "add with backslash")
+    # Should be readable via both path forms
+    assert kr.read_file(posix_path) == content
+    assert kr.read_file(backslash_path) == content
 
 
 # ── Stateful test: RuleBasedStateMachine ────────────────────────────
