@@ -3,6 +3,9 @@
   "authors": ["Edward Raff"],
   "year": 2021,
   "arxiv_id": "2012.09932",
+  "doi": null,
+  "abstract": "There has been increasing concern within the machine learning community that we are in a reproducibility crisis. As many have begun to work on this problem, all work so far has been qualitative in nature. Instead, we attempt to quantitatively measure reproducibility by treating it as a survival analysis problem. We use data spanning 7 years, in which we attempted to reproduce 255 papers, to produce linear and non-linear models of reproducibility that provide new insights previously unavailable.",
   "url": "https://arxiv.org/abs/2012.09932",
+  "pdf_url": "https://arxiv.org/pdf/2012.09932",
   "source": "arxiv"
 }
