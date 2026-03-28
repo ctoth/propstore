@@ -4,8 +4,11 @@ authors: "Caren Al Anaissy, Jérôme Delobelle, Srdjan Vesic, Bruno Yun"
 year: 2024
 venue: "arXiv preprint"
 doi_url: "https://doi.org/10.48550/arXiv.2407.08302"
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T22:25:33Z"
 ---
-
 # Impact Measures for Gradual Argumentation Semantics
 
 ## One-Sentence Summary
@@ -208,6 +211,30 @@ This paper is directly relevant to propstore's argumentation layer. The project 
 - [ ] Can the Shapley measure be efficiently approximated for large frameworks?
 - [ ] How do ImpS^rev and ImpSh behave under DF-QuAD semantics (not studied in this paper)?
 - [ ] Can impact measures be composed with the ATMS layer for explaining assumption-based results?
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Rago_2016_DiscontinuityFreeQuAD]] — cited as ref [23]; DF-QuAD is a gradual semantics not studied in this paper but relevant as propstore's primary gradual semantics
+- [[Amgoud_2013_Ranking-BasedSemanticsArgumentationFrameworks]] — cited implicitly via Amgoud & Ben-Naim's axiomatic approach to ranking-based semantics, which this paper adapts for impact measures
+- [[Bonzon_2016_ComparativeStudyRanking-basedSemantics]] — cited as ref [12]; comparative study of ranking-based semantics properties, directly relevant as this paper extends that axiomatic analysis to impact measures
+- [[Gabbay_2012_EquationalApproachArgumentationNetworks]] — cited as ref [37]; equational approach to argumentation
+- [[Freedman_2025_ArgumentativeLLMsClaimVerification]] — not directly cited but uses DF-QuAD, which this paper's impact measures could be applied to
+
+### New Leads (Not Yet in Collection)
+- Delobelle and Villata (2019/2020) — "Interpretability of gradual semantics in abstract argumentation" — original impact measure that this paper revises; essential predecessor
+- Kampik et al. (2024) — "Contribution functions for quantitative bipolar argumentation graphs" — parallel approach to QBAF explainability using contribution functions
+- Yun et al. (2023) — "Argument attribution explanations in quantitative bipolar argumentation frameworks" — Shapley-based attribution in bipolar setting
+- Pu et al. (2021) — Counting semantics — the only semantics satisfying both Independence and Directionality
+
+### Conceptual Links (not citation-based)
+- [[Bonzon_2016_ComparativeStudyRanking-basedSemantics]] — Both papers perform systematic axiomatic evaluation of gradual semantics properties. Bonzon evaluates the semantics themselves; Al Anaissy evaluates impact measures derived from those semantics. The axiomatic methodology is shared (Independence, Directionality principles originate from the same Amgoud & Ben-Naim lineage).
+- [[Matt_2008_Game-TheoreticMeasureArgumentStrength]] — Matt & Toni's game-theoretic argument strength uses cooperative game theory (like Shapley values); Al Anaissy's ImpSh uses Shapley values to measure impact. Different applications of game theory to argumentation: one for computing strength, the other for explaining it.
+- [[Čyras_2021_ArgumentativeXAISurvey]] — Survey of argumentative XAI approaches. Impact measures are a specific instance of the explainability methods this survey categorizes.
+- [[Rago_2016_DiscontinuityFreeQuAD]] — DF-QuAD is a gradual semantics not studied by Al Anaissy but implemented in propstore. Applying ImpS^rev and ImpSh to DF-QuAD would be a natural extension.
+
+### Cited By (in Collection)
+- (none found)
 
 ## Related Work Worth Reading
 - Delobelle and Villata (2019) - Original impact measure paper [ref 2]
