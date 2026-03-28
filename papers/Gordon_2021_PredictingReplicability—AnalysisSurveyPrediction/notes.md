@@ -4,8 +4,11 @@ authors: "Michael Gordon, Domenico Viganola, Anna Dreber, Magnus Johannesson, Th
 year: 2021
 venue: "PLOS ONE"
 doi_url: "https://doi.org/10.1371/journal.pone.0248780"
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T20:35:46Z"
 ---
-
 # Predicting replicability — Analysis of survey and prediction market data from large-scale forecasting projects
 
 ## One-Sentence Summary
