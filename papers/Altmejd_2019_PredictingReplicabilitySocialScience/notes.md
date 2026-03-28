@@ -4,8 +4,11 @@ authors: "Adam Altmejd, Anna Dreber, Eskil Forsell, Juergen Huber, Taisuke Imai,
 year: 2019
 venue: "PLOS ONE"
 doi_url: "https://doi.org/10.1371/journal.pone.0225826"
+produced_by:
+  agent: "claude-opus-4-6-1m"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T20:35:20Z"
 ---
-
 # Predicting the replicability of social science lab experiments
 
 ## One-Sentence Summary
@@ -169,3 +172,25 @@ This paper is directly relevant to propstore's probabilistic argumentation and b
 - Ioannidis (2005) "Why Most Published Research Findings Are False" [ref 15]
 - Begley & Ellis (2012) — drug development replication crisis [ref 18] — already in collection as Begley_2012
 - Yang et al. (2020) — estimating replicability using multiple data sources [ref 37]
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]] — RPP dataset (97 replications) used as primary training data for the ML models
+- [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]] — EERP dataset (18 replications) used as training data; Altmejd is co-author on both papers
+- [[Camerer_2018_EvaluatingReplicabilitySocialScience]] — SSRP dataset (21 replications) used as the pre-registered out-of-sample validation set; Altmejd is co-author
+- [[Begley_2012_DrugDevelopmentRaiseStandards]] — cited as evidence of broader replication crisis beyond social science
+
+### New Leads (Not Yet in Collection)
+- Dreber et al. (2015) — "Using Prediction Markets to Estimate the Reproducibility of Scientific Research" — prediction market methodology for RPP, direct comparison baseline
+- Forsell et al. (2018) — "Prediction markets and surveys for EERP" — extends prediction market approach to economics experiments
+- Ioannidis (2005) — "Why Most Published Research Findings Are False" — foundational theoretical model for base rate replication failure
+- Yang et al. (2020) — "Estimating the Deep Replicability of Scientific Findings Using Human and Artificial Intelligence" — direct successor combining human and AI predictions
+
+### Cited By (in Collection)
+- (none found)
+
+### Conceptual Links (not citation-based)
+- [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]] — Beyond the data relationship: RPP's finding that only 36-47% of psychology studies replicate establishes the base rate that makes Altmejd's 70% prediction accuracy meaningful (well above the ~55% base rate in the pooled training data)
+- [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]] — EERP's higher replication rate (61%) in economics vs RPP's lower rate in psychology is captured by the discipline feature in Altmejd's models, where social psychology studies show lower replication rates than economics/cognitive psychology
+- [[Camerer_2018_EvaluatingReplicabilitySocialScience]] — SSRP serves as both validation set and provides prediction market data (accuracy ~71%) that Altmejd's model matches without requiring expert panels
