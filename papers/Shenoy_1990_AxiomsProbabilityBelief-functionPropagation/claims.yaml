@@ -1,0 +1,170 @@
+source:
+  paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A valuation-based system consists of variables, valuations indexed by variable sets, and two primitive operators — combination and marginalization — operating on valuations."
+    concepts:
+      - valuation_based_system
+      - combination_operator
+      - marginalization_operator
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 3
+      section: "3.1 The Axiomatic Framework"
+      quote_fragment: "The framework has objects called valuations and two primitive operators, marginalization, and combination."
+
+  - id: claim2
+    type: observation
+    statement: "Axiom A1 (identity and consonance of marginalization): marginalization to the same set is identity (G↓g = G), and nested marginalization composes (G↓s)↓t = G↓t for t ⊆ s ⊆ g."
+    concepts:
+      - marginalization_operator
+      - valuation_based_system
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 3
+      section: "3.1 The Axiomatic Framework"
+      quote_fragment: "Suppose G is a valuation on g. Then G↓g = G."
+
+  - id: claim3
+    type: observation
+    statement: "Axiom A2 (commutativity and associativity of combination): for valuations G, H, K on variable sets g, h, k, G⊗H = H⊗G and (G⊗H)⊗K = G⊗(H⊗K)."
+    concepts:
+      - combination_operator
+      - valuation_based_system
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 3
+      section: "3.1 The Axiomatic Framework"
+      quote_fragment: "Suppose G, H, K are valuations on g, h, and k respectively. Then G⊗H = H⊗G and (G⊗H)⊗K = G⊗(H⊗K)."
+
+  - id: claim4
+    type: observation
+    statement: "Axiom A3 (distributivity of marginalization over combination): for valuations G on g and H on h, (G⊗H)↓h = G↓(g∩h) ⊗ H."
+    concepts:
+      - marginalization_operator
+      - combination_operator
+      - valuation_based_system
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 3
+      section: "3.1 The Axiomatic Framework"
+      quote_fragment: "Suppose G is a valuation on g and H is a valuation on h. Then (G⊗H)↓h = G↓(g∩h) ⊗ H."
+
+  - id: claim5
+    type: mechanism
+    statement: "Axiom A3 (distributivity) enables local computation because the marginal of a combined valuation can be computed by first marginalizing one factor to the shared variables, then combining — avoiding the need to form the full joint valuation."
+    concepts:
+      - valuation_based_system
+      - local_computation
+      - marginalization_operator
+      - combination_operator
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 3
+      section: "3 Factorization"
+      quote_fragment: "the marginal of a twig can be done locally at the sense that only the valuations on the twig and its branch are involved"
+
+  - id: claim6
+    type: observation
+    statement: "If a valuation A factorizes on a hypertree S as A = ⊗{Aₛ | s ∈ S}, then the marginal A↓Σ' (deleting a twig t with branch b) can be computed locally: A↓Σ' = ⊗{Aₛ | s ∈ S'\\{b}} ⊗ (Aᵦ ⊗ Aₜ↓b)."
+    concepts:
+      - valuation_based_system
+      - hypertree
+      - local_computation
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 3
+      section: "Proposition 3.1"
+      quote_fragment: "the marginal of a valuation by removal of a twig can be done locally"
+
+  - id: claim7
+    type: mechanism
+    statement: "The propagation scheme on Markov trees computes exact marginals for all vertices simultaneously using message passing: each vertex sends a message to a neighbor only after receiving messages from all other neighbors, and messages are computed by combining local valuations with received messages then marginalizing to the shared variables."
+    concepts:
+      - local_computation
+      - message_passing
+      - hypertree
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 4
+      section: "3.2 The Propagation Scheme"
+      quote_fragment: "a processor sends a message to a neighbor only after the processor has received a message from all its other neighbors"
+
+  - id: claim8
+    type: observation
+    statement: "Probability propagation using potentials (non-negative real-valued functions on configuration spaces) with pointwise multiplication as combination and summation as marginalization satisfies all three Shenoy-Shafer axioms A1-A3."
+    concepts:
+      - valuation_based_system
+      - probability_propagation
+      - local_computation
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 5
+      section: "4. Probability Propagation"
+      quote_fragment: "all three axioms are satisfied making local computation of marginal potentials possible"
+
+  - id: claim9
+    type: observation
+    statement: "Belief-function propagation using random non-empty subsets with Dempster's rule of combination and set projection as marginalization satisfies all three Shenoy-Shafer axioms A1-A3."
+    concepts:
+      - valuation_based_system
+      - belief_function
+      - dempster_rule
+      - local_computation
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 7
+      section: "5. Belief-Function Propagation"
+      quote_fragment: "the above definitions of marginalization and combination for belief functions satisfy axioms A1-A3. Thus all axioms are satisfied making local computation possible."
+
+  - id: claim10
+    type: comparison
+    statement: "Unlike prior treatments that justified local computation specifically through conditional probability (Lauritzen & Spiegelhalter 1988, Pearl 1986), the Shenoy-Shafer framework shows that factorization — not conditional probability — is what enables local computation, and the same axioms cover both probability and belief-function propagation."
+    concepts:
+      - valuation_based_system
+      - local_computation
+      - probability_propagation
+      - belief_function
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 5
+      section: "4. Probability Propagation"
+      quote_fragment: "many authors... have justified their schemes by emphasizing conditional probability. We believe this emphasis is misplaced. What is essential to local computation is a factorization."
+
+  - id: claim11
+    type: limitation
+    statement: "The framework assumes finite variable frames (finite sets of possible values for each variable), and does not address approximate computation for cases where exact computation is infeasible."
+    concepts:
+      - valuation_based_system
+      - local_computation
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 5
+      section: "4. Probability Propagation"
+      quote_fragment: "we will assume that the variables in Σ have finite frames"
+
+  - id: claim12
+    type: limitation
+    statement: "The propagation scheme requires the factorization to be on a hypertree (singly-connected structure); multiply-connected networks must first be transformed into hypertrees before local computation applies."
+    concepts:
+      - hypertree
+      - local_computation
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 2
+      section: "2. Some Concepts from Graph Theory"
+      quote_fragment: "finding a hypertree cover whose largest hyperedge is as small as possible may be very difficult"
+
+  - id: claim13
+    type: limitation
+    statement: "Dempster's rule of combination requires probabilistic independence of the bodies of evidence being combined."
+    concepts:
+      - dempster_rule
+      - belief_function
+    provenance:
+      paper: Shenoy_1990_AxiomsProbabilityBelief-functionPropagation
+      page: 7
+      section: "5. Belief-Function Propagation"
+      quote_fragment: "Suppose A₁ and A₂ are probabilistically independent"

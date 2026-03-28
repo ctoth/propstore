@@ -1,0 +1,12 @@
+{
+  "title": "Axioms for Probability and Belief-Function Propagation",
+  "authors": ["Prakash P. Shenoy", "Glenn Shafer"],
+  "year": "1990",
+  "doi": "10.1007/978-3-540-44792-4_20",
+  "arxiv_id": "1304.2374",
+  "url": "https://www.semanticscholar.org/paper/13976cfe3be7e0873fa9814ac5c08cf27bfa91f1",
+  "venue": "Conference on Uncertainty in Artificial Intelligence",
+  "venue_type": "conference",
+  "pages": "499-528",
+  "bibtex": "@Article{Shenoy1990AxiomsFP,\n author = {Prakash P. Shenoy and Glenn Shafer},\n booktitle = {Conference on Uncertainty in Artificial Intelligence},\n pages = {499-528},\n title = {Axioms for Probability and Belief-Function Propagation},\n year = {1990}\n}\n"
+}
