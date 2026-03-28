@@ -38,7 +38,7 @@ If you want a reproducible showcase corpus, use a dedicated demo repo or local d
 - It does not read PDFs or extract claims from raw papers by itself
 - It is not the main end-user paper workflow; that lives in `research-papers-plugin`
 - It is not a general scientific truth machine
-- It is not a full structured-argument ASPIC+ implementation
+- ASPIC+ argument construction is integrated via `aspic_bridge.py` but does not yet cover the full specification (e.g., no contrariness-closure validation, no full rationality-postulate checking at runtime)
 - It is not full AGM revision or a full de Kleer runtime manager
 - This repo includes engine code plus evolving local knowledge fixtures; it should not be presented as a turnkey corpus demo
 

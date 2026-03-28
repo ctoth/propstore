@@ -51,12 +51,35 @@ from propstore.preference import metadata_strength_vector, claim_strength
 from propstore.structured_argument import (
     StructuredArgument,
     StructuredProjection,
-    _default_support_metadata,
 )
 from propstore.world.labelled import Label, SupportQuality
 from propstore.world.types import ArtifactStore
 
 Argument = PremiseArg | StrictArg | DefeasibleArg
+
+
+def _default_support_metadata(claim: dict) -> tuple[Label | None, SupportQuality]:
+    """Compute default (label, support_quality) for a claim.
+
+    Moved from structured_argument.py during Phase 5 cleanup.
+    """
+    import json
+
+    has_context = claim.get("context_id") is not None
+    has_conditions = False
+    conds_json = claim.get("conditions_cel")
+    if conds_json:
+        try:
+            has_conditions = bool(json.loads(conds_json))
+        except Exception:
+            has_conditions = True
+    if has_context and has_conditions:
+        return None, SupportQuality.MIXED
+    if has_context:
+        return None, SupportQuality.CONTEXT_VISIBLE_ONLY
+    if has_conditions:
+        return None, SupportQuality.SEMANTIC_COMPATIBLE
+    return Label.empty(), SupportQuality.EXACT
 
 
 # ── T1: claims -> literals ────────────────────────────────────────

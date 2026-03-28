@@ -24,13 +24,13 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 1. **Source-of-truth storage** — Claims, concepts, forms, contexts, conditions, provenance. Immutable except by explicit user migration. Never mutated by heuristic or LLM output.
 2. **Theory / typing layer** — Forms, dimensions, condition languages, parameterization graphs, CEL type-checking, Z3 condition reasoning.
 3. **Heuristic analysis layer** — Embedding similarity, LLM stance classification, candidate concept merges. All output is **proposal artifacts**, never source mutations.
-4. **Argumentation layer** — Dung AF construction, ASPIC+ preference ordering, extension computation. Operates over assumption-labeled data, not hardened source facts.
+4. **Argumentation layer** — Dung AF construction, ASPIC+ bridge (`aspic_bridge.py` translates claims/stances to formal ASPIC+ types, `aspic.py` builds recursive arguments), preference ordering, extension computation. Operates over assumption-labeled data, not hardened source facts.
 5. **Render layer** — Resolution strategies (recency, sample_size, argumentation, override), world queries, hypothetical reasoning. Multiple render policies over the same underlying corpus.
 6. **Agent workflow layer** — extract-claims, reconcile-vocabulary, relate, adjudicate. These produce proposals, not truth.
 
 ### Known Limitations
 
-**ASPIC+ argument construction:** Two parallel construction paths exist: `aspic.py` (full ASPIC+ with Literals and Rules per Modgil & Prakken 2018 Defs 3-7) and `structured_argument.py` (claim-level arguments built from canonical justifications). These are not yet integrated — `aspic.py` is currently only exercised by tests.
+**ASPIC+ argument construction:** The claim graph routes through `aspic_bridge.py`, which translates claims, justifications, and stances into ASPIC+ types (Literal, Rule, KnowledgeBase, PreferenceConfig) and delegates to `aspic.py` for formal recursive argument construction (Modgil & Prakken 2018 Defs 1-22). `structured_argument.py` delegates to this bridge. The StructuredProjection output type is preserved for downstream consumers.
 
 ## Key Literature Grounding
 
