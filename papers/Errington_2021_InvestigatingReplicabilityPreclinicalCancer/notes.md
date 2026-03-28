@@ -201,3 +201,28 @@ This paper provides empirical base rates for replicability in preclinical cancer
 - Ioannidis, 2005 (Why most published research findings are false) - theoretical framework for publication bias
 - Mathur and VanderWeele, 2020b (New statistical metrics for multisite replication projects)
 - Patil, Peng, and Leek, 2016 (What should researchers expect when they replicate?) - prediction interval methodology
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]] — foundational comparison study (Open Science Collaboration); Errington 2021 directly extends this methodology to preclinical cancer biology
+- [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]] — parallel replication effort in experimental economics; Errington cites this as methodological precedent
+- [[Camerer_2018_EvaluatingReplicabilitySocialScience]] — parallel replication effort in social science; uses similar multi-criterion assessment approach
+
+### Cited By (in Collection)
+- [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]] — lists Errington as related replication effort in cancer biology
+- [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]] — lists Errington as related replication study in preclinical cancer research
+
+### New Leads (Not Yet in Collection)
+- Begley and Ellis (2012) — "Drug development: raise standards for preclinical cancer research" — prior estimate of 11% replication rate that this paper contextualizes
+- Ioannidis (2005) — "Why Most Published Research Findings Are False" — theoretical framework for publication bias and inflated effect sizes
+- Nosek et al. (2021) — "Replicability, robustness, and reproducibility in psychological science" — cross-discipline review
+- Mathur and VanderWeele (2020b) — "New statistical metrics for multisite replication projects" — methodological foundation for replication assessment
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Conceptual Links (not citation-based)
+- [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]] — **Strong.** Direct methodological parallel: both are large-scale systematic replication projects applying multiple criteria. Errington finds 39% direction+significance replication (vs Aarts' 36% in psychology), ~85% effect size shrinkage (vs ~50% in psychology). The cross-domain convergence on effect size inflation is a key finding.
+- [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]] — **Strong.** Same replication methodology family. Camerer found 61% replication rate in economics (11/18 studies). Errington's multi-criterion approach reveals that the "replication rate" depends entirely on which criterion is used (3-82%), complicating direct cross-domain comparison.
+- [[Camerer_2018_EvaluatingReplicabilitySocialScience]] — **Strong.** Extension of Camerer 2016 to social science. Found 62% replication rate (13/21). Together these three projects (psychology, economics, social science, cancer biology) form a cross-domain replicability evidence base.
