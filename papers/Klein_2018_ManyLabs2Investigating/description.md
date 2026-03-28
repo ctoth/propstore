@@ -1,0 +1,4 @@
+---
+tags: [replication, meta-science, effect-sizes, cross-cultural, heterogeneity]
+---
+Many Labs 2 is a massive preregistered multi-site replication of 28 classic and contemporary psychological findings across 125 samples in 36 countries (N=15,305), finding that 54% replicated at p<.05 with median effect sizes shrinking from d=0.60 to d=0.15. The key finding is that variation in replicability is attributable to which effect was studied rather than to sample characteristics, cultural context (WEIRD vs. non-WEIRD), administration mode (lab vs. online), or task order. Directly relevant to calibrating uncertainty in empirical claims: provides base rates for effect size inflation and replication failure that inform how much weight to assign competing empirical findings in the argumentation layer.
