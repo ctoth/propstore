@@ -1,0 +1,7 @@
+id: concept106
+canonical_name: denominator_linear_coefficient
+status: proposed
+definition: Coefficient c in the linear fractional sensitivity function (ax+b)/(cx+d)
+domain: probability
+created_date: '2026-03-28'
+form: structural

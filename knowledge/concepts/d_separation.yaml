@@ -1,0 +1,8 @@
+id: concept108
+canonical_name: d_separation
+status: proposed
+definition: 'A graphical criterion for conditional independence in directed acyclic
+  graphs: X and Y are d-separated by Z if every path between them is blocked'
+domain: probability
+created_date: '2026-03-28'
+form: structural

@@ -1,0 +1,8 @@
+id: concept109
+canonical_name: auxiliary_digraph
+status: proposed
+definition: Extended digraph G* constructed by adding a virtual predecessor X_i to
+  each ancestor of the node of interest, used for computing the sensitivity set
+domain: probability
+created_date: '2026-03-28'
+form: structural

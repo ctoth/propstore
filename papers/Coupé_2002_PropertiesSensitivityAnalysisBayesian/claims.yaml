@@ -1,0 +1,183 @@
+source:
+  paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T22:13:59Z"
+
+claims:
+  - id: claim1
+    type: equation
+    expression: "Pr(v_r | o) = (a*x + b) / (c*x + d)"
+    sympy: "Eq(posterior_probability, (a*x + b) / (c*x + d))"
+    variables:
+      - symbol: "Pr(v_r | o)"
+        concept: posterior_probability
+        role: "dependent"
+      - symbol: "x"
+        concept: conditional_probability_parameter
+        role: "independent"
+      - symbol: "a"
+        concept: numerator_linear_coefficient
+        role: "constant"
+      - symbol: "b"
+        concept: numerator_constant
+        role: "constant"
+      - symbol: "c"
+        concept: denominator_linear_coefficient
+        role: "constant"
+      - symbol: "d"
+        concept: denominator_constant
+        role: "constant"
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 14
+      section: "4. Functional relations in a sensitivity analysis"
+      quote_fragment: "for every conditional probability x = p(v_s | pi) of V_s, where a, b, c, and d are constants dependent of v_s and pi"
+
+  - id: claim2
+    type: observation
+    statement: "A Bayesian belief network's posterior probability of interest is a linear fractional function (quotient of two linear functions) of any single conditional probability parameter in the sensitivity set."
+    concepts:
+      - posterior_probability
+      - conditional_probability_parameter
+      - sensitivity_set
+      - linear_fractional_function
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 14
+      section: "4. Functional relations in a sensitivity analysis"
+      quote_fragment: "Proposition 4.1"
+
+  - id: claim3
+    type: observation
+    statement: "When a sensitivity set node has no observed descendants, the posterior probability of interest reduces to a simple linear function (not fractional) of that node's conditional probability parameter."
+    concepts:
+      - posterior_probability
+      - conditional_probability_parameter
+      - sensitivity_set
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 16
+      section: "4. Functional relations in a sensitivity analysis"
+      quote_fragment: "Proposition 4.3"
+
+  - id: claim4
+    type: observation
+    statement: "When no observations are available, the prior probability of interest is a linear function of any single conditional probability parameter for any node in the sensitivity set."
+    concepts:
+      - posterior_probability
+      - conditional_probability_parameter
+      - sensitivity_set
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 18
+      section: "4. Functional relations in a sensitivity analysis"
+      quote_fragment: "Corollary 4.5"
+
+  - id: claim5
+    type: observation
+    statement: "The probability of interest is algebraically independent of the conditional probabilities of any node not included in the sensitivity set."
+    concepts:
+      - posterior_probability
+      - conditional_probability_parameter
+      - sensitivity_set
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 13
+      section: "3. Uninfluential probabilities in a sensitivity analysis"
+      quote_fragment: "Proposition 3.11"
+
+  - id: claim6
+    type: mechanism
+    statement: "The sensitivity set is computed by constructing an auxiliary digraph G* that adds a virtual predecessor X_i to each ancestor of the node of interest, then using d-separation in G* to determine which nodes' CPTs can influence the output. This works because d-separation in G* captures whether varying a node's CPT can propagate influence to the query node given the observations."
+    concepts:
+      - sensitivity_set
+      - d_separation
+      - auxiliary_digraph
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 5
+      section: "3. Uninfluential probabilities in a sensitivity analysis"
+      quote_fragment: "Definition 3.1"
+
+  - id: claim7
+    type: observation
+    statement: "The constants a, b, c, d in the linear fractional sensitivity function can be determined from exactly three network evaluations at distinct parameter values for the fractional case, or two evaluations for the linear case."
+    concepts:
+      - linear_fractional_function
+      - sensitivity_analysis_computational_cost
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 18
+      section: "4. Functional relations in a sensitivity analysis"
+      quote_fragment: "Corollary 4.6"
+
+  - id: claim8
+    type: observation
+    statement: "The linear fractional sensitivity function (ax+b)/(cx+d) is monotonic on [0,1], so extremal sensitivity values occur at the boundary of the parameter range."
+    concepts:
+      - linear_fractional_function
+      - sensitivity_analysis_monotonicity
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 16
+      section: "4. Functional relations in a sensitivity analysis"
+
+  - id: claim9
+    type: observation
+    statement: "Nodes not in the sensitivity set partition into three mutually exclusive sets: Insen_1 (d-separated from V_r by O in the original graph), Insen_2 (non-ancestors with observed descendants whose influence cancels in the posterior ratio), and Insen_3 (ancestors whose variation is screened off by observations in the auxiliary digraph)."
+    concepts:
+      - sensitivity_set
+      - d_separation
+      - insensitive_node_partition
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 7
+      section: "3. Uninfluential probabilities in a sensitivity analysis"
+      quote_fragment: "Definition 3.3"
+
+  - id: claim10
+    type: comparison
+    statement: "Unlike Laskey's method which suggests varying every single conditional probability, the sensitivity set approach excludes uninformative probabilities a priori using the network's qualitative structure, reducing the ALARM network's 37-node analysis to only 17 relevant nodes."
+    concepts:
+      - sensitivity_set
+      - sensitivity_analysis_computational_cost
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 19
+      section: "5. Previous work"
+      quote_fragment: "Laskey's method excludes the identified uninfluential conditional probabilities from further analysis"
+
+  - id: claim11
+    type: comparison
+    statement: "Unlike Castillo et al.'s symbolic propagation approach which derives algebraic expressions that become unwieldy for large networks, the linear fractional characterization requires only numerical evaluations at 2-3 parameter values."
+    concepts:
+      - sensitivity_analysis_computational_cost
+      - linear_fractional_function
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 20
+      section: "5. Previous work"
+
+  - id: claim12
+    type: limitation
+    statement: "The linear fractional function result applies only to one-way sensitivity analysis (varying a single parameter at a time). Higher-order sensitivity analysis involving simultaneous variation of multiple parameters yields quotients of multilinear functions with more complex functional forms."
+    concepts:
+      - linear_fractional_function
+      - sensitivity_analysis_computational_cost
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 21
+      section: "6. Conclusions"
+      quote_fragment: "higher-order sensitivity analyses also use simple mathematical functions"
+
+  - id: claim13
+    type: limitation
+    statement: "The sensitivity set must be recomputed for each distinct query (node of interest and observation set combination), as different queries may have different sensitivity sets over the same network."
+    concepts:
+      - sensitivity_set
+    provenance:
+      paper: Coupé_2002_PropertiesSensitivityAnalysisBayesian
+      page: 5
+      section: "3. Uninfluential probabilities in a sensitivity analysis"

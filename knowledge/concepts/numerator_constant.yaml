@@ -1,0 +1,7 @@
+id: concept105
+canonical_name: numerator_constant
+status: proposed
+definition: Constant b in the linear fractional sensitivity function (ax+b)/(cx+d)
+domain: probability
+created_date: '2026-03-28'
+form: structural

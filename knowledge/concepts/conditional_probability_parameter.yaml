@@ -1,0 +1,8 @@
+id: concept101
+canonical_name: conditional_probability_parameter
+status: proposed
+definition: A single conditional probability p(v|pi) in a Bayesian network's CPT,
+  treated as a free variable for sensitivity analysis
+domain: probability
+created_date: '2026-03-28'
+form: structural
