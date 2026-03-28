@@ -26,6 +26,81 @@ def worldline(obj: dict) -> None:
     """Materialized query artifacts — traced paths through the knowledge space."""
 
 
+def _build_policy_dict(
+    strategy: str | None,
+    reasoning_backend: str,
+    semantics: str,
+    set_comparison: str,
+    decision_criterion: str,
+    pessimism_index: float,
+    praf_strategy: str,
+    praf_epsilon: float,
+    praf_confidence: float,
+    praf_seed: int | None,
+) -> dict[str, Any] | None:
+    """Build a policy dict from CLI flags, omitting defaults.
+
+    Returns None if no policy fields differ from RenderPolicy defaults.
+    """
+    policy: dict[str, Any] = {}
+    if strategy:
+        policy["strategy"] = strategy
+    if reasoning_backend != "claim_graph":
+        policy["reasoning_backend"] = reasoning_backend
+    if semantics != "grounded":
+        policy["semantics"] = semantics
+    if set_comparison != "elitist":
+        policy["comparison"] = set_comparison
+    if decision_criterion != "pignistic":
+        policy["decision_criterion"] = decision_criterion
+    if pessimism_index != 0.5:
+        policy["pessimism_index"] = pessimism_index
+    if praf_strategy != "auto":
+        policy["praf_strategy"] = praf_strategy
+    if praf_epsilon != 0.01:
+        policy["praf_mc_epsilon"] = praf_epsilon
+    if praf_confidence != 0.95:
+        policy["praf_mc_confidence"] = praf_confidence
+    if praf_seed is not None:
+        policy["praf_mc_seed"] = praf_seed
+    return policy or None
+
+
+# Shared click options for reasoning backend configuration.
+_REASONING_OPTIONS = [
+    click.option("--reasoning-backend", "reasoning_backend", default="claim_graph",
+                 type=click.Choice(["claim_graph", "structured_projection", "aspic", "atms", "praf"]),
+                 help="Argumentation backend (default: claim_graph)"),
+    click.option("--semantics", default="grounded",
+                 type=click.Choice(["grounded", "preferred", "stable"]),
+                 help="Argumentation semantics (default: grounded)"),
+    click.option("--set-comparison", "set_comparison", default="elitist",
+                 type=click.Choice(["elitist", "democratic"]),
+                 help="Set comparison for preference ordering (default: elitist)"),
+    click.option("--decision-criterion", "decision_criterion", default="pignistic",
+                 type=click.Choice(["pignistic", "lower_bound", "upper_bound", "hurwicz"]),
+                 help="Decision criterion for opinion interpretation (default: pignistic)"),
+    click.option("--pessimism-index", "pessimism_index", default=0.5,
+                 type=float, help="Hurwicz pessimism index (default: 0.5)"),
+    click.option("--praf-strategy", "praf_strategy", default="auto",
+                 type=click.Choice(["auto", "mc", "exact", "dfquad"]),
+                 help="PrAF computation strategy (default: auto)"),
+    click.option("--praf-epsilon", "praf_epsilon", default=0.01,
+                 type=float, help="PrAF MC error tolerance (default: 0.01)"),
+    click.option("--praf-confidence", "praf_confidence", default=0.95,
+                 type=float, help="PrAF MC confidence level (default: 0.95)"),
+    click.option("--praf-seed", "praf_seed", default=None,
+                 type=int, help="PrAF MC RNG seed (default: random)"),
+]
+
+
+def _apply_reasoning_options(func):
+    """Apply all reasoning backend click options to a command."""
+    for option in reversed(_REASONING_OPTIONS):
+        func = option(func)
+    return func
+
+
 @worldline.command("create")
 @click.argument("name")
 @click.option("--bind", "bindings", multiple=True, help="Condition binding (key=value)")
@@ -33,10 +108,16 @@ def worldline(obj: dict) -> None:
 @click.option("--target", "targets", multiple=True, required=True, help="Target concept to derive/resolve")
 @click.option("--strategy", default=None, type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
 @click.option("--context", default=None, help="Context to scope the query")
+@_apply_reasoning_options
 @click.pass_obj
 def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
                      overrides: tuple[str, ...], targets: tuple[str, ...],
-                     strategy: str | None, context: str | None) -> None:
+                     strategy: str | None, context: str | None,
+                     reasoning_backend: str, semantics: str,
+                     set_comparison: str, decision_criterion: str,
+                     pessimism_index: float, praf_strategy: str,
+                     praf_epsilon: float, praf_confidence: float,
+                     praf_seed: int | None) -> None:
     """Create a worldline definition (question only, no results yet)."""
     from propstore.worldline import WorldlineDefinition
 
@@ -73,8 +154,13 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
     if inputs:
         definition["inputs"] = inputs
 
-    if strategy:
-        definition["policy"] = {"strategy": strategy}
+    policy = _build_policy_dict(
+        strategy, reasoning_backend, semantics, set_comparison,
+        decision_criterion, pessimism_index, praf_strategy,
+        praf_epsilon, praf_confidence, praf_seed,
+    )
+    if policy:
+        definition["policy"] = policy
 
     wl = WorldlineDefinition.from_dict(definition)
     wl.to_file(path)
@@ -88,10 +174,16 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
 @click.option("--target", "targets", multiple=True, help="Target concept")
 @click.option("--strategy", default=None, type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
 @click.option("--context", default=None, help="Context scope")
+@_apply_reasoning_options
 @click.pass_obj
 def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
                   overrides: tuple[str, ...], targets: tuple[str, ...],
-                  strategy: str | None, context: str | None) -> None:
+                  strategy: str | None, context: str | None,
+                  reasoning_backend: str, semantics: str,
+                  set_comparison: str, decision_criterion: str,
+                  pessimism_index: float, praf_strategy: str,
+                  praf_epsilon: float, praf_confidence: float,
+                  praf_seed: int | None) -> None:
     """Run (materialize) a worldline. Creates it first if it doesn't exist."""
     from propstore.world import WorldModel
     from propstore.worldline import WorldlineDefinition
@@ -132,8 +224,14 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
             inputs["context_id"] = context
         if inputs:
             definition["inputs"] = inputs
-        if strategy:
-            definition["policy"] = {"strategy": strategy}
+
+        policy = _build_policy_dict(
+            strategy, reasoning_backend, semantics, set_comparison,
+            decision_criterion, pessimism_index, praf_strategy,
+            praf_epsilon, praf_confidence, praf_seed,
+        )
+        if policy:
+            definition["policy"] = policy
 
         wl = WorldlineDefinition.from_dict(definition)
 
@@ -353,9 +451,16 @@ def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
 @click.pass_obj
 def worldline_refresh(obj: dict, name: str) -> None:
     """Re-run a worldline with current knowledge."""
-    # Delegate to run
+    # Delegate to run with default reasoning options
     ctx = click.get_current_context()
-    ctx.invoke(worldline_run, name=name, bindings=(), overrides=(), targets=(), strategy=None, context=None)
+    ctx.invoke(
+        worldline_run, name=name, bindings=(), overrides=(), targets=(),
+        strategy=None, context=None,
+        reasoning_backend="claim_graph", semantics="grounded",
+        set_comparison="elitist", decision_criterion="pignistic",
+        pessimism_index=0.5, praf_strategy="auto", praf_epsilon=0.01,
+        praf_confidence=0.95, praf_seed=None,
+    )
 
 
 @worldline.command("delete")
