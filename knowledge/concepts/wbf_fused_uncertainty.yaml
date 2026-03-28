@@ -1,0 +1,8 @@
+id: concept74
+canonical_name: wbf_fused_uncertainty
+status: proposed
+definition: Uncertainty component of the fused opinion produced by weighted belief
+  fusion
+domain: subjective-logic
+created_date: '2026-03-28'
+form: structural

@@ -1,0 +1,8 @@
+id: concept69
+canonical_name: dirichlet_distribution
+status: proposed
+definition: Dirichlet probability distribution parameterized by evidence counts, bijectively
+  mapped to subjective logic opinions
+domain: subjective-logic
+created_date: '2026-03-28'
+form: structural

@@ -1,0 +1,7 @@
+id: concept72
+canonical_name: dempster_shafer_combination
+status: proposed
+definition: Dempster's rule of combination for combining independent belief functions
+domain: subjective-logic
+created_date: '2026-03-28'
+form: structural

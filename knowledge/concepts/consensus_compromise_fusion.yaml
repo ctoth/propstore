@@ -1,0 +1,8 @@
+id: concept70
+canonical_name: consensus_compromise_fusion
+status: proposed
+definition: 'CC fusion operator combining opinions via three phases: consensus extraction,
+  compromise computation, normalization'
+domain: subjective-logic
+created_date: '2026-03-28'
+form: structural

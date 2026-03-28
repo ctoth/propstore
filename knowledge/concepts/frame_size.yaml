@@ -1,0 +1,7 @@
+id: concept99
+canonical_name: frame_size
+status: proposed
+definition: The cardinality k of the outcome frame X in a multinomial opinion
+domain: subjective-logic
+created_date: '2026-03-28'
+form: structural
