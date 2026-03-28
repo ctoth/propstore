@@ -1,0 +1,151 @@
+source:
+  paper: Leite_2011_SocialAbstractArgumentation
+produced_by:
+  agent: "gpt-5-codex"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T08:15:32Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Social Abstract Argumentation extends Dung's framework by attaching to each argument a pair of positive and negative vote counts that participate in semantic evaluation."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2289
+      section: "2 Social Abstract Argumentation Framework"
+      quote_fragment: "an extension of Dung's AAF with weights associated to the attacks"
+
+  - id: claim2
+    type: limitation
+    statement: "Plain Dung-style extensions are too coarse for social-web debate because they return only all-or-nothing sets of jointly acceptable arguments rather than graded feedback on individual arguments."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2288
+      section: "Introduction and Literature Review"
+      quote_fragment: "this would prove itself inadequate for web social debate"
+
+  - id: claim3
+    type: mechanism
+    statement: "The framework computes acceptability by combining each argument's vote-based support with the weakness of the aggregated attacks against it, so argument values depend jointly on crowd opinion and graph structure."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2290
+      section: "Definition 7 (Social Model)"
+      quote_fragment: "M(a) = tau(a) wedge neg vee { M(ai) : ai in R-(a) }"
+
+  - id: claim4
+    type: observation
+    statement: "The concrete simple product semantics instantiates the framework over values in [0,1] using product to combine support with attack weakness and probabilistic sum to aggregate multiple attacks."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2289
+      section: "Definition 6 (Simple Product Semantics)"
+      quote_fragment: "uses the Product T-Norm and its dual, the Probabilistic Sum T-CoNorm"
+
+  - id: claim5
+    type: comparison
+    statement: "Unlike priority-based and weighted-attack approaches, this paper treats social votes as inputs that partially determine argument value itself instead of merely ordering arguments or weighting attack edges."
+    concepts:
+      - preference_based_argumentation
+      - dung_framework
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2288
+      section: "Introduction and Literature Review"
+      quote_fragment: "the votes partially define the argument's value"
+
+  - id: claim6
+    type: observation
+    statement: "Every Social Abstract Argumentation Framework paired with a well-behaved semantics has at least one social model."
+    concepts:
+      - acceptability
+      - dung_framework
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2291
+      section: "Theorem 12 (Existence of Social Models)"
+      quote_fragment: "Then, F has at least one S-model"
+
+  - id: claim7
+    type: observation
+    statement: "Under the simple product semantics, if tau(a) is strictly less than 1 for every argument and the update is contractive, then the framework has exactly one social model."
+    concepts:
+      - acceptability
+      - dung_framework
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2291
+      section: "Theorem 13 (Uniqueness of Social Models)"
+      quote_fragment: "Then, F has one and only one Se-model"
+
+  - id: claim8
+    type: observation
+    statement: "With epsilon equal to 0, a two-argument mutual-attack example with a no-vote argument can admit infinitely many social models, so the naive semantics does not guarantee uniqueness."
+    concepts:
+      - acceptability
+      - dung_framework
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2291
+      section: "Example 15"
+      quote_fragment: "F has an infinite number of S0-models"
+
+  - id: claim9
+    type: mechanism
+    statement: "The epsilon parameter is introduced to separate no-vote cases from ordinary tied-vote cases, because collapsing them together creates pathological multi-model behavior in cyclic graphs."
+    concepts:
+      - acceptability
+      - dung_framework
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2291
+      section: "Conjecture 14 and Example 15"
+      quote_fragment: "the reason for the introduction of e in the function tau"
+
+  - id: claim10
+    type: mechanism
+    statement: "When the uniqueness conditions hold, the paper gives a constructive computation scheme: iterate the induced operator T_F from any initial valuation vector until convergence to the unique model."
+    concepts:
+      - acceptability
+      - proof_theory
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2291
+      section: "After Theorem 13"
+      quote_fragment: "the sequence Ik+1 = TF (Ik) converges to M"
+
+  - id: claim11
+    type: observation
+    statement: "Adding one positive vote to an argument can increase that argument's value in the resulting social model, while adding one negative vote can decrease it."
+    concepts:
+      - acceptability
+      - dung_framework
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2291
+      section: "Proposition 16 (Influence of Votes)"
+      quote_fragment: "M'(a) > M(a) (resp. M'(a) <= M(a))"
+
+  - id: claim12
+    type: limitation
+    statement: "The framework only models attacks between arguments; support relations, votes on attacks, and richer interaction types are explicitly left as future extensions."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Leite_2011_SocialAbstractArgumentation
+      page: 2292
+      section: "Discussion and Conclusions"
+      quote_fragment: "we should also let users vote on the attacking relation"

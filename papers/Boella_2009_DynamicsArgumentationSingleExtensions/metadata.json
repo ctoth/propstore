@@ -1,0 +1,14 @@
+{
+  "title": "Dynamics in Argumentation with Single Extensions: Abstraction Principles and the Grounded Extension",
+  "authors": [
+    "Guido Boella",
+    "Souhila Kaci",
+    "Leendert van der Torre"
+  ],
+  "year": "2009",
+  "arxiv_id": null,
+  "doi": "10.1007/978-3-642-02906-6_11",
+  "abstract": "In this paper we consider the dynamics of abstract argumentation in Baroni and Giacomin's framework for the evaluation of extension based argumentation semantics. Following Baroni and Giacomin, we do not consider individual approaches, but we define general principles or postulates that individual approaches may satisfy. In particular, we define abstraction principles for the attack relation, and for the arguments in the framework. We illustrate the principles on the grounded extension. In this paper we consider only principles for the single extension case, and leave the multiple extension case to further research.",
+  "url": "https://orbilu.uni.lu/handle/10993/24957",
+  "pdf_url": "https://orbilu.uni.lu/bitstream/10993/24957/1/ecsqaru09.pdf"
+}

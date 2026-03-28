@@ -243,11 +243,18 @@ This paper is directly relevant to propstore's argumentation layer. The key insi
 - [ ] Is the non-transitivity of ≽_s a problem in practice for propstore's rendering?
 
 ## Related Work Worth Reading
-- [6] Amgoud and Cayrol 2002 — "A reasoning model based on the production of acceptable arguments" — the original PAF that this paper critiques
+- [6] Amgoud and Cayrol 2002 — "A reasoning model based on the production of acceptable arguments" — the original PAF that this paper critiques → NOW IN COLLECTION: [[Amgoud_2002_ReasoningModelProductionAcceptable]]
 - [17] Bench-Capon 2003 — "Persuasion in practical argument using value-based argumentation frameworks" — value-based AF also critiqued
 - [21] Brewka 1989 — "Preferred subtheories: An extended logical framework for default reasoning" — the preferred sub-theories that correspond to pref-stable extensions
 - [24] Caminada and Amgoud 2007 — "On the evaluation of argumentation formalisms" — rationality postulates that attack-removal violates
 - [29] Dung 1995 — "On the acceptability of arguments" — the foundational AF framework being extended
-- [38] Modgil 2009 — "Reasoning about preferences in argumentation frameworks" — another attack-removal approach critiqued
-- [39] Modgil and Prakken 2011 — "Revisiting preferences and argumentation" — IJCAI response
+- [38] Modgil 2009 — "Reasoning about preferences in argumentation frameworks" — another attack-removal approach critiqued → NOW IN COLLECTION: [[Modgil_2009_ReasoningAboutPreferencesArgumentation]]
+- [39] Modgil and Prakken 2011 — "Revisiting preferences and argumentation" — IJCAI response → NOW IN COLLECTION: [[Modgil_2011_RevisitingPreferencesArgumentation]]
 - [43] Prakken 2011 — "An abstract framework for argumentation with structured arguments" — ASPIC+ framework
+
+## Collection Cross-References
+
+### Now in Collection (previously listed as leads)
+- [[Amgoud_2002_ReasoningModelProductionAcceptable]] — The original preference-based argumentation framework (PAF) this paper critiques. It keeps defeat and preference separate, seeds acceptability with the self-defended core `C_{R,Pref}`, and proves an equivalent AND/OR dialogue-tree proof theory. The 2011 paper's central objection is that this attack-removal style loses conflict information under asymmetric attacks.
+- [[Modgil_2009_ReasoningAboutPreferencesArgumentation]] — Extends abstract argumentation with attacks on attacks so preferences can themselves be argued about defeasibly. This is another target of the paper's critique of attack-removal and asymmetric-rebut handling, but it is also the direct abstract precursor to the later Modgil and Prakken 2011 repair.
+- [[Modgil_2011_RevisitingPreferencesArgumentation]] — The IJCAI response from the ASPIC+ side. It argues that conflict-freeness should be defined over attacks, while preferences should only determine defeat and acceptability, thereby preserving logical incompatibility information without collapsing structured argumentation into attack removal.

@@ -1,0 +1,16 @@
+{
+  "title": "Argument Theory Change: Revision Upon Warrant",
+  "authors": [
+    "Nicolás D. Rotstein",
+    "Martín O. Moguillansky",
+    "Marcelo A. Falappa",
+    "Alejandro J. García",
+    "Guillermo R. Simari"
+  ],
+  "year": "2008",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "We propose an abstract argumentation theory whose dynamics is captured by the application of belief revision concepts. The theory is deemed abstract because both the underlying logic for arguments and argumentation semantics remain unspecified. Regarding our approach to argument theory change, we define some basic change operations along with their necessary collateral elements towards the definition of a warrant-prioritized revision operation. This kind of revision operator may be an argument and then applies a contraction ensuring that the added argument can be believed afterwards.",
+  "url": "https://cs.uns.edu.ar/~mom/publications.html",
+  "pdf_url": "https://cs.uns.edu.ar/~mom/publications/comma2008.pdf"
+}

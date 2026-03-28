@@ -1,0 +1,16 @@
+{
+  "title": "Efficient Computation of Extensions for Dynamic Abstract Argumentation Frameworks: An Incremental Approach",
+  "authors": [
+    "Gianvincenzo Alfano",
+    "S. Greco",
+    "F. Parisi"
+  ],
+  "year": "2017",
+  "doi": "10.24963/ijcai.2017/8",
+  "url": "https://www.semanticscholar.org/paper/b5b74f2a41e8587d738ba18137dfc57cba28cc7e",
+  "pdf_url": "https://www.ijcai.org/proceedings/2017/0008.pdf",
+  "bibtex": "@Article{Alfano2017EfficientCO,\n author = {Gianvincenzo Alfano and S. Greco and F. Parisi},\n booktitle = {International Joint Conference on Artificial Intelligence},\n pages = {49-55},\n title = {Efficient Computation of Extensions for Dynamic Abstract Argumentation Frameworks: An Incremental Approach},\n year = {2017}\n}\n",
+  "venue": "International Joint Conference on Artificial Intelligence",
+  "venue_type": "conference",
+  "pages": "49-55"
+}

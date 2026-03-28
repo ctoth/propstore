@@ -1,0 +1,13 @@
+{
+  "title": "Revisiting Preferences and Argumentation",
+  "authors": [
+    "Sanjay Modgil",
+    "Henry Prakken"
+  ],
+  "year": "2011",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "The ASPIC+ framework is intermediate in abstraction between Dung's argumentation framework and concrete instantiating logics. This paper generalises ASPIC+ to accommodate classical logic instantiations, and adopts a new proposal for evaluating extensions: attacks are not defeats until deciding conflict-free sets, while defeats are exclusively used to determine the acceptability of arguments. Key properties and rationality postulates are then shown to hold for the new framework.",
+  "url": "https://webspace.science.uu.nl/~prakk101/pubs/ijcai11sm.pdf",
+  "pdf_url": "https://webspace.science.uu.nl/~prakk101/pubs/ijcai11sm.pdf"
+}

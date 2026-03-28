@@ -1,0 +1,12 @@
+{
+  "title": "Reasoning about preferences in argumentation frameworks",
+  "authors": [
+    "Sanjay Modgil"
+  ],
+  "year": "2009",
+  "arxiv_id": null,
+  "doi": "10.1016/j.artint.2009.02.001",
+  "abstract": "The abstract nature of Dung's seminal theory of argumentation accounts for its widespread application as a general framework for various types of non-monotonic reasoning, and more generally, reasoning in the presence of conflict. A Dung argumentation framework is instantiated by arguments and a binary conflict based attack relation, defined by some underlying logical theory. The justified arguments under different extensional semantics are then evaluated, and the aims of these arguments define the interests of the underlying theory. To determine a unique set of justified arguments often requires a preference relation on arguments to determine the success of attacks between arguments. However, preference information is often itself defeasible, conflicting and so subject to argumentation. Hence, in this paper we extend Dung's theory to accommodate arguments that claim preferences between other arguments, thus incorporating meta-level argumentation based reasoning about preferences in the object level. We then define and study application of the full range of Dung's extensional semantics to the extended framework, and study special classes of the extended framework. The extended theory preserves the abstract nature of Dung's approach, thus aiming at a general framework for non-monotonic formalisms that accommodate defeasible reasoning about as well as with preference information. We illustrate by formalising argument based logic programming with defeasible priorities in the extended theory.",
+  "url": "https://doi.org/10.1016/j.artint.2009.02.001",
+  "pdf_url": "https://cdn.prod.website-files.com/674c48c6202b4f012a14375f/67cdb668410f613878955839_ReasoningAboutPrefsAFs.pdf"
+}

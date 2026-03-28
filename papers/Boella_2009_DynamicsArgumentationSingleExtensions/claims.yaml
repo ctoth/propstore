@@ -1,0 +1,153 @@
+source:
+  paper: Boella_2009_DynamicsArgumentationSingleExtensions
+  extraction_model: "GPT-5 Codex"
+  extraction_date: "2026-03-28"
+produced_by:
+  agent: "GPT-5 Codex"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T08:12:28Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Single-extension semantics can be represented as a partial acceptance function A that maps each argumentation framework to exactly one subset of its arguments, making grounded and skeptical preferred semantics amenable to principle-based dynamic analysis."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 4
+      section: "2.3 The single extension case"
+      quote_fragment: "A single extension acceptance function A ... maps an argumentation framework to a subset of the set of all multiple extensions acceptance functions"
+
+  - id: claim2
+    type: observation
+    statement: "For a conflict-free extension, the framework is partitioned into accepted arguments A(AF), rejected arguments R(AF) attacked by some accepted argument, and undecided arguments U(AF) that are in neither of the first two sets."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 5
+      section: "2.5 Caminada labeling"
+      quote_fragment: "then B is partitioned into A(AF), R(AF) and U(AF)"
+
+  - id: claim3
+    type: comparison
+    statement: "Grounded semantics has no attack from an undecided argument to an accepted argument, whereas skeptical preferred semantics does not satisfy this property."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 6
+      section: "3 Attack abstraction principles"
+      quote_fragment: "The grounded semantics satisfies the following principle, whereas the skeptical preferred semantics does not"
+
+  - id: claim4
+    type: observation
+    statement: "Any attack outgoing from a rejected argument can be removed without changing the grounded extension."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 6
+      section: "Proposition 1"
+      quote_fragment: "The grounded semantics satisfies the ... RA, RR, RU attack abstraction principles"
+
+  - id: claim5
+    type: mechanism
+    statement: "Conditional attack abstraction for grounded semantics succeeds when the deleted attack is not the only reason its target stays out of the grounded extension, for example because another accepted argument attacks the source or target, or because acyclicity and non-backattack conditions preserve the same rejection structure."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 7
+      section: "3 Attack abstraction principles"
+      quote_fragment: "the challenge is therefore to define suitable conditions ... there must be another reason why b does not become accepted"
+    notes: "Summarizes Principles 2-4 and Propositions 2-4."
+
+  - id: claim6
+    type: observation
+    statement: "Removing a rejected argument never changes the grounded extension."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 10
+      section: "4 Argument abstraction principles"
+      quote_fragment: "The following proposition shows that only R abstraction is satisfied"
+
+  - id: claim7
+    type: limitation
+    statement: "Full undecided-argument abstraction does not hold for grounded semantics because an undecided argument can block another argument from becoming accepted."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 10
+      section: "4 Argument abstraction principles"
+      quote_fragment: "an attack from an undecided argument may 'block' an argument, i.e., prevents the argument to be accepted"
+
+  - id: claim8
+    type: observation
+    statement: "Grounded semantics does satisfy three restricted undecided-argument abstraction principles: deleting an undecided argument is safe when it attacks only accepted arguments, only rejected arguments, or only undecided arguments that are also attacked by another undecided argument."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 10
+      section: "Principles 6-8, Proposition 6"
+      quote_fragment: "The grounded extension satisfies U argument abstraction principle 1, 2 and 3"
+
+  - id: claim9
+    type: limitation
+    statement: "Full accepted-argument abstraction does not hold for grounded semantics, although weakened A1 and A2 variants hold when the accepted argument's outgoing attacks are redundant for keeping the attacked arguments out."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 10
+      section: "Principles 9-10, Proposition 7"
+      quote_fragment: "Baroni and Giacomin's principle of directionality restricted to single arguments is not satisfied"
+
+  - id: claim10
+    type: comparison
+    statement: "Unlike prior work by Cayrol et al., Rotstein et al., and Barringer et al., this paper formulates general abstraction principles for argumentation dynamics instead of analyzing individual revision types or internal-dynamics formalisms case by case."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 11
+      section: "5 Related research"
+      quote_fragment: "they define principles and condition so that each type of refinement becomes a revision ... they do not define general principles as we do"
+
+  - id: claim11
+    type: limitation
+    statement: "The paper treats only the single-extension case and leaves both multiple-extension principles and broader dynamic analyses for future research."
+    concepts:
+      - acceptability
+      - dung_framework
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Boella_2009_DynamicsArgumentationSingleExtensions
+      page: 12
+      section: "6 Summary and further research"
+      quote_fragment: "we would like to study principles for the multiple extension case"

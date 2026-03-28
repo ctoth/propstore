@@ -1,0 +1,23 @@
+{
+  "title": "Using prediction markets to estimate the reproducibility of scientific research",
+  "authors": [
+    "Anna Dreber",
+    "Thomas Pfeiffer",
+    "Johan Almenberg",
+    "Siri Isaksson",
+    "Brad Wilson",
+    "Yiling Chen",
+    "Brian A. Nosek",
+    "Magnus Johannesson"
+  ],
+  "year": "2015",
+  "doi": "10.1073/pnas.1516179112",
+  "url": "https://www.semanticscholar.org/paper/e86df60892164e68f87b6b3019cb8a24113cb3cb",
+  "pdf_url": "https://europepmc.org/articles/pmc4687569?pdf=render",
+  "bibtex": "@Article{Dreber2015UsingPM,\n author = {Anna Dreber and T. Pfeiffer and Johan Almenberg and Siri Isaksson and Brad Wilson and Yiling Chen and Brian A. Nosek and M. Johannesson},\n booktitle = {Proceedings of the National Academy of Sciences of the United States of America},\n journal = {Proceedings of the National Academy of Sciences},\n pages = {15343 - 15347},\n title = {Using prediction markets to estimate the reproducibility of scientific research},\n volume = {112},\n year = {2015}\n}\n",
+  "venue": "Proceedings of the National Academy of Sciences of the United States of America",
+  "venue_type": "journal",
+  "volume": "112",
+  "pages": "15343 - 15347",
+  "abstract": "Replication is a central tenet of science. Recently, the replicability of scientific findings has been called into question, and it has been suggested that the rate of false findings is higher than previously assumed. The present study uses prediction markets to estimate the replicability of 44 studies published in prominent psychology journals and replicated in the Reproducibility Project: Psychology. The prediction markets predict the outcomes of the replications well and outperform a survey of the beliefs of individual researchers. Prediction market prices and surveys also provide valuable information regarding the expected relative effect sizes of the replications, where a positive replication is defined as having a p value of less than 0.05 in the same direction as the original study. This article argues that prediction markets could be used to obtain crowd-aggregated measures of the reproducibility of published research."
+}

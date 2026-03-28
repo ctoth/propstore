@@ -1,0 +1,13 @@
+{
+  "title": "Social Abstract Argumentation",
+  "authors": [
+    "Joao Leite",
+    "Joao Martins"
+  ],
+  "year": "2011",
+  "arxiv_id": null,
+  "doi": "10.5591/978-1-57735-516-8/IJCAI11-381",
+  "abstract": "In this paper we take a step towards using Argumentation in Social Networks and introduce Social Abstract Argumentation Frameworks, an extension of Dung's Abstract Argumentation Frameworks that incorporates social voting. We propose a class of semantics for these new Social Abstract Argumentation Frameworks and prove some important non-trivial properties which are crucial for their applicability in Social Networks.",
+  "url": "https://www.ijcai.org/Proceedings/11/Papers/381.pdf",
+  "pdf_url": "http://ijcai.org/Proceedings/11/Papers/381.pdf"
+}

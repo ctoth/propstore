@@ -216,7 +216,7 @@ ADFs are directly relevant to propstore's argumentation layer. Where Dung AFs on
 - [[Doutre_2018_ConstraintsChangesSurveyAbstract]] — References ADF revision work
 
 ## Related Work Worth Reading
-- Brewka, Ellmauthaler, Strass, Wallner, Woltran (2013) — "Abstract Dialectical Frameworks Revisited" — the journal-length follow-up with full technical details
+- Brewka, Ellmauthaler, Strass, Wallner, Woltran (2013) — "Abstract Dialectical Frameworks Revisited" — the journal-length follow-up with full technical details → NOW IN COLLECTION: [[Brewka_2013_AbstractDialecticalFrameworksRevisited]]
 - Strass (2013) — Approximating operators and semantics for ADFs
 - Cayrol and Lagasquie-Schiex (2005) — On the acceptability of arguments in bipolar argumentation frameworks (the bipolar AF paper ADFs generalize)
 - Pollock (2005) — Followed ADF-like approach with multiple link types before ADFs formalized it
@@ -224,3 +224,8 @@ ADFs are directly relevant to propstore's argumentation layer. Where Dung AFs on
 - Prakken (2005) — On relating Dung frameworks to rule-based argumentation
 - Fazzinga, Flesca, and Furfaro (2016) — Probabilistic extension of ADFs
 - Dunne, Dvorak, and Woltran (2011) — Complexity of ADFs (cited in paper)
+
+## Collection Cross-References
+
+### Now in Collection (previously listed as leads)
+- [[Brewka_2013_AbstractDialecticalFrameworksRevisited]] — Repairs the original paper's restricted preferred/stable semantics by defining three-valued semantics for arbitrary ADFs, adds static and dynamic preference handling, and sketches the DIAMOND ASP implementation.

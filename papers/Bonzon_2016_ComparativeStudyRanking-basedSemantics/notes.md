@@ -162,10 +162,11 @@ Directly relevant to the argumentation layer. The propstore needs to compute arg
 - [[Besnard_2001_Logic-basedTheoryDeductiveArguments]] — Origin of the Categoriser function, one of the five ranking semantics compared in this paper. Defines deductive arguments from classical logic with undercut-based defeat.
 - [[Amgoud_2013_Ranking-BasedSemanticsArgumentationFrameworks]] — Proposes the axiomatic postulate framework (8 postulates) for ranking-based semantics and constructs Discussion-based and Burden-based semantics. Many of the 16 properties in Bonzon 2016 originate here.
 - [[Matt_2008_Game-TheoreticMeasureArgumentStrength]] — Defines argument strength as the value of a two-person zero-sum game between proponent and opponent, computed via LP/simplex. One of the five ranking semantics compared; satisfies Abs, VP+, DP, SCT, TAB, TDB, +AB, Ext, Ind, Null but not CT, CP, DDP, QP.
+- [[Leite_2011_SocialAbstractArgumentation]] — Defines Social Abstract Argumentation Frameworks (SAFs), where arguments receive positive and negative social votes and semantics compute graded strengths from those vote counts plus attack structure. This is the socially grounded ranking/gradual baseline in Bonzon's comparison.
 
 ### New leads (not in collection)
 - **Pu, Luo, et al. 2014** — Argument ranking with categoriser function (KSEM'14).
-- **Leite and Martins 2011** — Social abstract argumentation. Defines SAFs used in this paper.
+- **Leite and Martins 2011** — Social abstract argumentation. Defines SAFs used in this paper. → NOW IN COLLECTION: [[Leite_2011_SocialAbstractArgumentation]]
 
 ## Related Work Worth Reading
 - Besnard and Hunter 2001 — Categoriser function origin → NOW IN COLLECTION: [[Besnard_2001_Logic-basedTheoryDeductiveArguments]]
@@ -173,5 +174,5 @@ Directly relevant to the argumentation layer. The propstore needs to compute arg
 - Cayrol and Lagasquie-Schiex 2005 — Discussion-based and Tuples semantics
 - Matt and Toni 2008 — Game-theoretic argument strength → NOW IN COLLECTION: [[Matt_2008_Game-TheoreticMeasureArgumentStrength]]
 - Pu, Luo, et al. 2014 — Argument ranking with categoriser function (KSEM'14)
-- Leite and Martins 2011 — Social abstract argumentation
+- Leite and Martins 2011 — Social abstract argumentation → NOW IN COLLECTION: [[Leite_2011_SocialAbstractArgumentation]]
 - Baroni 2007 — Principle-based evaluation (extension-based counterpart to this work)

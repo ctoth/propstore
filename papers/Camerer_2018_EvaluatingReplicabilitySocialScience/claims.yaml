@@ -1,0 +1,271 @@
+source:
+  paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+
+claims:
+  - id: claim1
+    type: parameter
+    concept: replication_significance_rate
+    value: 0.619
+    unit: "proportion"
+    conditions:
+      - "journal in ['Nature', 'Science']"
+      - "year_range == '2010-2015'"
+      - "domain == 'social_science'"
+      - "significance_threshold == 0.05"
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 53
+      section: "Supplementary Table 3"
+      table: "Supplementary Table 3"
+      quote_fragment: "13 of 21 studies replicated (significant effect in same direction, p < 0.05)"
+    notes: "Primary replication criterion: two-sided p < 0.05 in same direction as original. Two-stage design with 90% power."
+
+  - id: claim2
+    type: parameter
+    concept: effect_size_shrinkage
+    value: 0.462
+    unit: "ratio"
+    lower_bound: 0.270
+    upper_bound: 0.655
+    conditions:
+      - "journal in ['Nature', 'Science']"
+      - "domain == 'social_science'"
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 62
+      section: "Supplementary Figure 4"
+      quote_fragment: "The mean relative effect size of all the replications is 46.2% [95% CI = (27.0%, 65.5%)]"
+    notes: "Ratio of replication to original standardized effect sizes (correlation coefficient r). 95% CI."
+
+  - id: claim3
+    type: parameter
+    concept: mean_original_effect_size
+    value: 0.459
+    unit: "correlation_coefficient_r"
+    conditions:
+      - "journal in ['Nature', 'Science']"
+      - "domain == 'social_science'"
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 62
+      section: "Supplementary Figure 4"
+      quote_fragment: "mean standardized effect size (correlation coefficient, r) of the replications is 0.249 (SD = 0.283), compared to 0.459 (SD = 0.229) in the original studies"
+    notes: "SD = 0.229"
+
+  - id: claim4
+    type: parameter
+    concept: mean_replication_effect_size
+    value: 0.249
+    unit: "correlation_coefficient_r"
+    conditions:
+      - "journal in ['Nature', 'Science']"
+      - "domain == 'social_science'"
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 62
+      section: "Supplementary Figure 4"
+      quote_fragment: "mean standardized effect size (correlation coefficient, r) of the replications is 0.249 (SD = 0.283)"
+    notes: "SD = 0.283"
+
+  - id: claim5
+    type: observation
+    statement: "Replication effect sizes are significantly smaller than original effect sizes for social science experiments in Nature and Science (Wilcoxon z = 3.667, p < 0.001, n = 21)."
+    concepts:
+      - effect_size_shrinkage
+      - replication_effect_size
+      - original_effect_size
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 62
+      section: "Supplementary Figure 4"
+      quote_fragment: "This difference is significant (Wilcoxon signed-ranks test, n = 21, z = 3.667, p < 0.001)"
+
+  - id: claim6
+    type: measurement
+    target_concept: original_replication_effect_correlation
+    measure: correlation
+    value: 0.574
+    unit: "spearman_rho"
+    conditions:
+      - "journal in ['Nature', 'Science']"
+      - "domain == 'social_science'"
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 62
+      section: "Supplementary Figure 4"
+      quote_fragment: "The Spearman correlation between the original effect size and the replication effect size is 0.574 [p = 0.007; 95% CI = (18.9%, 80.6%)]"
+    notes: "p = 0.007, 95% CI = (18.9%, 80.6%)"
+
+  - id: claim7
+    type: parameter
+    concept: true_positive_rate
+    value: 0.673
+    unit: "probability"
+    lower_bound: 0.43
+    upper_bound: 0.92
+    conditions:
+      - "journal in ['Nature', 'Science']"
+      - "domain == 'social_science'"
+      - "method == 'bayesian_mixture_model'"
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 63
+      section: "Supplementary Figure 5"
+      quote_fragment: "The posterior mean is 0.673 with a 95% credible interval that ranges from 0.43 to 0.92"
+    notes: "Bayesian errors-in-variables mixture model. True positive rate = fraction of original findings that are genuine effects. 95% HDI."
+
+  - id: claim8
+    type: parameter
+    concept: effect_size_inflation
+    value: 0.708
+    unit: "ratio"
+    lower_bound: 0.58
+    upper_bound: 0.83
+    conditions:
+      - "journal in ['Nature', 'Science']"
+      - "domain == 'social_science'"
+      - "method == 'bayesian_mixture_model'"
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 63
+      section: "Supplementary Figure 5"
+      quote_fragment: "the degree to which true effects are overestimated in original studies vs. replication studies. The posterior mean is 0.708, with a 95% credible interval that ranges from 0.58 to 0.83"
+    notes: "Replication deflation factor: true effects in replications are ~71% of what originals report. 95% HDI."
+
+  - id: claim9
+    type: measurement
+    target_concept: prediction_market_accuracy
+    measure: correlation
+    value: 0.842
+    unit: "spearman_rho"
+    conditions:
+      - "treatment == 2"
+      - "stage == 'after_stage_2'"
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 30
+      section: "Comparison of prediction market beliefs, survey beliefs, and replication outcomes"
+      quote_fragment: "The Spearman correlation coefficient between prediction market beliefs and the replication outcome after Stage 2 is 0.842 (p < 0.001, n = 21)"
+    notes: "Prediction markets strongly forecast replication outcomes. Treatment 2 = three-outcome market (replicate Stage 1 / replicate Stage 2 / no replication)."
+
+  - id: claim10
+    type: measurement
+    target_concept: survey_belief_accuracy
+    measure: correlation
+    value: 0.643
+    unit: "spearman_rho"
+    conditions:
+      - "treatment == 2"
+      - "stage == 'after_stage_2'"
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 30
+      section: "Comparison of prediction market beliefs, survey beliefs, and replication outcomes"
+      quote_fragment: "The Spearman correlation coefficient between the survey beliefs and the replication outcome after Stage 2 is 0.643 (p < 0.001, n = 21)"
+    notes: "Survey beliefs predict replication but less accurately than prediction markets."
+
+  - id: claim11
+    type: observation
+    statement: "Prediction markets outperform surveys in forecasting replication outcomes, with lower mean absolute prediction error (0.308 vs 0.349) and higher Spearman correlation with replication outcome."
+    concepts:
+      - prediction_market_accuracy
+      - survey_belief_accuracy
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 32
+      section: "Comparison of prediction market beliefs, survey beliefs, and replication outcomes"
+      quote_fragment: "The mean absolute prediction error is 0.308 for the prediction market beliefs and 0.349 for the survey beliefs"
+
+  - id: claim12
+    type: observation
+    statement: "Prediction market beliefs and survey beliefs are highly correlated with each other (Spearman rho = 0.894, p < 0.001, n = 21), indicating strong agreement among different belief elicitation methods."
+    concepts:
+      - prediction_market_accuracy
+      - survey_belief_accuracy
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 65
+      section: "Supplementary Figure 7"
+      quote_fragment: "prediction market beliefs and survey beliefs are highly correlated [Spearman correlation coefficient 0.894, p < 0.001]"
+
+  - id: claim13
+    type: observation
+    statement: "The two-stage replication procedure has a total false positive rate of approximately 2.5%, substantially below the nominal 5% threshold, because replications are directional."
+    concepts:
+      - replication_power
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 16
+      section: "Determination of replication sample sizes"
+      quote_fragment: "the total false positive rate with our two-stage procedure and the false positive rate is 2.5%"
+
+  - id: claim14
+    type: comparison
+    statement: "The SSRP replication rate (62%) is substantially higher than the RPP psychology replication rate (36%) but similar to the EERP experimental economics rate (61%), suggesting that Nature/Science social science papers replicate at higher rates than the broader psychology literature."
+    concepts:
+      - replication_significance_rate
+      - discipline_replication_asymmetry
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 67
+      section: "Supplementary Figure 9"
+      figure: "Supplementary Figure 9"
+      quote_fragment: "Comparison of replicability indicators between the Social Sciences Replication Project (SSRP), the Experimental Economics Replication Project (EERP), and the Reproducibility Project: Psychology (RPP)"
+
+  - id: claim15
+    type: observation
+    statement: "For studies that replicated, mean relative effect size is 74.5% (95% CI: 60.1-88.9%), while for non-replicated studies it is 0.3% (95% CI: -12.4-13.1%), indicating a bimodal distribution where non-replicated studies show near-zero replication effects."
+    concepts:
+      - effect_size_shrinkage
+      - replication_success
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 62
+      section: "Supplementary Figure 4"
+      quote_fragment: "the mean relative effect size of the replications that replicated is 74.5% [95% CI = (60.1%, 88.9%)]; and the mean relative effect size of the replications that did not replicate is 0.3% [95% CI = (-12.4%, 13.1%)]"
+
+  - id: claim16
+    type: observation
+    statement: "Original p-value is weakly negatively correlated with replication success (Spearman rho = -0.405, p = 0.069, n = 21), suggesting smaller original p-values are somewhat more likely to replicate, but the relationship is not statistically significant."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 57
+      section: "Supplementary Table 7"
+      quote_fragment: "The correlation with the statistical significance criterion are negative but not significant (-0.292, p = 0.199)"
+    notes: "Rho = -0.405 is from the correlation matrix in Table 7."
+
+  - id: claim17
+    type: limitation
+    statement: "The study only replicates 21 experiments, providing limited statistical power for drawing general conclusions about replicability rates across social science."
+    concepts:
+      - replication_significance_rate
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 2
+      section: "Inclusion criteria"
+      quote_fragment: "We replicated 21 experimental studies in the social sciences"
+
+  - id: claim18
+    type: limitation
+    statement: "Inclusion criteria restrict generalizability: only between- or within-subjects experiments feasible in a standard lab with students or AMT subjects, excluding field experiments, fMRI studies, and studies using non-standard equipment."
+    concepts:
+      - replication_significance_rate
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 3
+      section: "Type of Experiment, Subjects, Equipment"
+      quote_fragment: "We included experimental studies using within or between subjects treatment comparisons... We did not include studies that compare behaviors across different groups of participants"
+
+  - id: claim19
+    type: mechanism
+    statement: "Effect size inflation in original studies is explained by publication bias and the winner's curse: only studies crossing significance thresholds get published, systematically inflating reported effect sizes relative to true effects, as demonstrated by the replication deflation factor of 0.708."
+    concepts:
+      - effect_size_inflation
+      - effect_size_shrinkage
+    provenance:
+      paper: Camerer_2018_EvaluatingReplicabilitySocialScience
+      page: 17
+      section: "Determination of replication sample sizes"
+      quote_fragment: "The RPP and the EERP have been criticized for being underpowered as they do not take into account that original effect sizes of true positive findings are likely to be inflated in original studies"

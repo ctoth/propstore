@@ -1,0 +1,13 @@
+{
+  "title": "A Reasoning Model Based on the Production of Acceptable Arguments",
+  "authors": [
+    "Leila Amgoud",
+    "C. Cayrol"
+  ],
+  "year": "2002",
+  "arxiv_id": null,
+  "doi": "10.1023/A:1014490210693",
+  "abstract": "Argumentation is a reasoning model based on the construction of arguments and counter-arguments (or defeats) followed by the selection of the most acceptable of them. In this paper, we refine the argumentation framework proposed by Dung by taking into account preference relations between arguments in order to integrate complementary points of view on the concept of acceptability: acceptability based on the existence of direct counter-arguments and acceptability based on the existence of defenders. An argument is thus acceptable if it is preferred to its direct defeaters or if it is defended against its defeaters. This also refines previous works by Prakken and Sartor, by associating with each argument a notion of strength, while these authors embed preferences in the definition of the defeat relation. We propose a revised proof theory in terms of AND/OR trees, verifying if a given argument is acceptable, which better reflects the dialectical form of argumentation.",
+  "url": "https://doi.org/10.1023/A:1014490210693",
+  "pdf_url": "http://jmvidal.cse.sc.edu/library/amgoud02a.pdf"
+}

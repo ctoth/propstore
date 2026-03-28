@@ -1,0 +1,17 @@
+{
+  "title": "Probabilistic Argumentation: A Survey",
+  "authors": [
+    "Anthony Hunter",
+    "Sylwia Polberg",
+    "Nico Potyka",
+    "Tjitze Rienstra",
+    "Matthias Thimm"
+  ],
+  "year": 2021,
+  "arxiv_id": null,
+  "doi": null,
+  "s2_id": "a746ceb0ebc4b525210bad07515ee753dd1980c7",
+  "url": "https://www.mthimm.de/pub/2021/Hunter_2021b.pdf",
+  "pdf_url": "https://www.mthimm.de/pub/2021/Hunter_2021b.pdf",
+  "abstract": "Argumentation is inherently pervaded by uncertainty, which can arise as a result of the context in which argumentation is used, the kinds of arguments that are involved in a given situation, the types of arguments that are used, and more. One of the prominent approaches for handling uncertainty in argumentation is probabilistic argumentation, which offers means of quantifying the level of uncertainty we are dealing with. This chapter offers an overview of the state-of-the-art research in this area."
+}

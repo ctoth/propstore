@@ -237,9 +237,13 @@ The postulate framework provides testable correctness criteria for any ranking i
 - [[Amgoud_2011_NewApproachPreference-basedArgumentation]] — same first author's prior work on preference-based argumentation (cited as [1])
 
 ### New Leads (Not Yet in Collection)
-- Dunne, Hunter, McBurney, Parsons & Wooldridge 2011 — "Weighted argument systems" (AIJ) — weighted argumentation where weights are externally provided rather than derived from structure
+- Dunne, Hunter, McBurney, Parsons & Wooldridge 2011 — "Weighted argument systems" (AIJ) — weighted argumentation where weights are externally provided rather than derived from structure → NOW IN COLLECTION: [[Dunne_2011_WeightedArgumentSystemsBasic]]
 - Garcia & Simari 2004 — "Defeasible logic programming" — argumentative approach to logic programming
-- Dung, Mancarella & Toni 2007 — "Computing ideal skeptical argumentation" — ideal semantics computation
+- Dung, Mancarella & Toni 2007 — "Computing ideal skeptical argumentation" — ideal semantics computation → NOW IN COLLECTION: [[Dung_2007_ComputingIdealScepticalArgumentation]]
+
+### Now in Collection (previously listed as leads)
+- [[Dunne_2011_WeightedArgumentSystemsBasic]] — Defines weighted argument systems where positive weights live on attacks and an inconsistency budget `β` determines which attacks may be ignored. This is the main externally weighted contrast case for Amgoud and Ben-Naim's ranking semantics, which derive orderings from graph structure rather than taking weights as input.
+- [[Dung_2007_ComputingIdealScepticalArgumentation]] — Defines proof procedures for ideal sceptical semantics in abstract argumentation and ABA. It provides the ideal-semantics comparison point for ranking-based approaches that want to be more discriminating than grounded semantics while staying on the sceptical side of preferred semantics.
 
 ### Cited By (in Collection)
 - [[Bonzon_2016_ComparativeStudyRanking-basedSemantics]] — directly compares Burden-based semantics (from this paper) against 16 axiomatic properties alongside four other ranking semantics; many of the properties originate from this paper's postulates

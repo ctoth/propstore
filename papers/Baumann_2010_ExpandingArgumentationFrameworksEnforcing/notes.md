@@ -198,8 +198,8 @@ Directly relevant to propstore's argumentation layer. The enforcement results te
 
 ### New Leads (Not Yet in Collection)
 - Oikarinen and Woltran 2008 — "Characterizing strong equivalence for argumentation frameworks" — normal expansion concept originates from this work on equivalence checking
-- Boella, Kaci, van der Torre 2009 — "Dynamics in argumentation with single extensions" — complementary perspective on what happens when arguments/attacks are added/removed
-- Rotstein et al. 2008 — "Argument theory change: Revision upon warrant" — AGM-style approach to argumentation revision
+- Boella, Kaci, van der Torre 2009 — "Dynamics in argumentation with single extensions" — complementary perspective on what happens when arguments/attacks are added/removed → NOW IN COLLECTION: [[Boella_2009_DynamicsArgumentationSingleExtensions]]
+- Rotstein et al. 2008 — "Argument theory change: Revision upon warrant" — AGM-style approach to argumentation revision → NOW IN COLLECTION: [[Rotstein_2008_ArgumentTheoryChangeRevision]]
 
 ### Supersedes or Recontextualizes
 - (none — this is an original contribution, not a revision of prior collection work)
@@ -210,3 +210,7 @@ Directly relevant to propstore's argumentation layer. The enforcement results te
 ### Conceptual Links (not citation-based)
 - [[Doutre_2018_ConstraintsChangesSurveyAbstract]] — Strong: Doutre & Mailly's survey places Baumann & Brewka's expansion/enforcement typology within a comprehensive taxonomy of AF dynamics operations. The survey extends the scope beyond enforcement to include revision, contraction, and control frameworks.
 - [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — Moderate: Odekerken's stability and relevance concepts address enforcement robustness under incomplete information, complementing Baumann & Brewka's enforcement under complete information. Different problem framing but converges on the question of whether enforcement results hold when the AF changes.
+
+### Now in Collection (previously listed as leads)
+- [[Boella_2009_DynamicsArgumentationSingleExtensions]] — Studies which deletions of attacks or arguments preserve the grounded extension in single-extension frameworks. This is the closest dynamics paper to Baumann and Brewka's enforcement results, but with an invariance-under-abstraction focus rather than an enforcement/minimal-change focus.
+- [[Rotstein_2008_ArgumentTheoryChangeRevision]] — Adapts AGM-style revision to structured arguments using incision and preservation constraints to make a target argument warranted. This is the structured-argument analogue of minimal-change dynamics that Baumann cites as a complementary approach.

@@ -1,0 +1,125 @@
+source:
+  paper: Amgoud_2002_ReasoningModelProductionAcceptable
+produced_by:
+  agent: "gpt-5-codex"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T07:56:55Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "The paper defines acceptability in preference-based argumentation by combining two complementary ideas: an argument can be acceptable because it is stronger than its direct defeaters or because other acceptable arguments defend it."
+    concepts:
+      - preference_based_argumentation
+      - acceptability
+    provenance:
+      paper: Amgoud_2002_ReasoningModelProductionAcceptable
+      page: 0
+      section: "Abstract"
+      quote_fragment: "An argument is thus acceptable if it is preferred to its direct defeaters or if it is defended against its defeaters"
+
+  - id: claim2
+    type: mechanism
+    statement: "In the framework <A, R, Pref>, B attacks A only when B defeats A and A is not strictly preferred to B, so preferences filter which defeat edges count as effective attacks without deleting the underlying conflict relation."
+    concepts:
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2002_ReasoningModelProductionAcceptable
+      page: 7
+      section: "3.2 Argumentation framework"
+      quote_fragment: "B attacks A iff B R A and not(A >>Pref B)"
+
+  - id: claim3
+    type: mechanism
+    statement: "The acceptable set of a finite preference-based framework is constructed as the least fixpoint generated from the self-defending core C_R,Pref, where arguments first defend themselves by preference and then iterated applications of the characteristic function add arguments defended by already accepted ones."
+    concepts:
+      - preference_based_argumentation
+      - acceptability
+    provenance:
+      paper: Amgoud_2002_ReasoningModelProductionAcceptable
+      page: 8
+      section: "Definition 3.6"
+      quote_fragment: "The set of acceptable arguments of the PAF is defined as Acc_R,Pref = union_i>=0 F^i(emptyset)"
+    notes: "This is the main semantic construction of the paper."
+
+  - id: claim4
+    type: observation
+    statement: "The direct acceptable set of the original Dung framework is included in the self-defending core of the preference-based framework, so introducing preferences expands the class of individually acceptable arguments rather than shrinking it."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Amgoud_2002_ReasoningModelProductionAcceptable
+      page: 7
+      section: "Proposition 3.1"
+      quote_fragment: "C_R is included in C_R,Pref"
+
+  - id: claim5
+    type: observation
+    statement: "Arguments built from an inconsistent propositional knowledge base are represented as pairs (H, h) with minimal consistent support H proving conclusion h, and the framework instantiates defeat using both rebut and undercut relations."
+    concepts:
+      - logic_based_argument
+    provenance:
+      paper: Amgoud_2002_ReasoningModelProductionAcceptable
+      page: 4
+      section: "2.2 Illustration"
+      quote_fragment: "An argument of Sigma is a pair (H, h) ... As examples of defeat relations, consider the Rebut and Undercut relations"
+
+  - id: claim6
+    type: mechanism
+    statement: "The proof theory reduces acceptability checking to a dialogue game between PRO and OPP organized as an AND/OR tree, where PRO nodes are AND nodes because every defeater must be answered and OPP nodes are OR nodes because one successful branch is enough for defence."
+    concepts:
+      - proof_theory
+      - acceptability
+    provenance:
+      paper: Amgoud_2002_ReasoningModelProductionAcceptable
+      page: 13
+      section: "4.2 The dialectical proof"
+      quote_fragment: "A dialogue tree can be considered as an AND/OR tree"
+
+  - id: claim7
+    type: observation
+    statement: "An argument is provably acceptable exactly when it belongs to the acceptable set Acc_R,Pref, so the dialogue-tree proof theory is sound and complete for the paper's semantic notion of acceptability."
+    concepts:
+      - proof_theory
+      - acceptability
+    provenance:
+      paper: Amgoud_2002_ReasoningModelProductionAcceptable
+      page: 15
+      section: "Proposition 4.6"
+      quote_fragment: "x is provably acceptable then each argument given by PRO ... belongs to Acc_R,Pref ... x in Acc_R,Pref is provably acceptable"
+
+  - id: claim8
+    type: comparison
+    statement: "Unlike Prakken and Sartor's prioritized argumentation approach, this framework keeps preferences separate from defeat and assigns each argument an explicit notion of strength instead of embedding preference directly into the defeat relation."
+    concepts:
+      - preference_based_argumentation
+      - proof_theory
+    provenance:
+      paper: Amgoud_2002_ReasoningModelProductionAcceptable
+      page: 0
+      section: "Abstract"
+      quote_fragment: "these authors embed preferences in the definition of the defeat relation"
+
+  - id: claim9
+    type: comparison
+    statement: "Dung's original acceptability notion is too weak for preference-sensitive reasoning because it ignores argument quality and can therefore treat a strong argument defeated by an acceptable weaker one as rejected."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Amgoud_2002_ReasoningModelProductionAcceptable
+      page: 4
+      section: "2.3 The limits of the basic framework"
+      quote_fragment: "Dung's definition of acceptability disregards the quality of the arguments"
+
+  - id: claim10
+    type: limitation
+    statement: "The paper's preference-based framework handles total preorders on the set of arguments or their supports, and contextual preferences depending on a particular context are deferred to later work."
+    concepts:
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2002_ReasoningModelProductionAcceptable
+      page: 16
+      section: "Conclusion"
+      quote_fragment: "One limit of our preference-based framework is that it is not able to take into account different pre-orderings on the set of arguments"

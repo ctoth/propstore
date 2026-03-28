@@ -1,0 +1,164 @@
+source:
+  paper: Rotstein_2008_ArgumentTheoryChangeRevision
+produced_by:
+  agent: "GPT-5 Codex"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T08:36:05Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A dynamic abstract argumentation framework is a tuple DAF=(U, A, R, <=) where U is the finite universal set of arguments, A is the active subset, R is the attack relation, and <= is a subargument partial order over U."
+    concepts:
+      - dung_framework
+      - logic_based_argument
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 2
+      section: "2. A Dynamic Abstract Framework with Dialectical Constraints"
+      quote_fragment: "A dynamic argumentation framework (DAF) is a tuple (U, A, R, <=)"
+
+  - id: claim2
+    type: observation
+    statement: "The framework distinguishes regular arguments from potential arguments, where a potential argument is an incomplete support structure whose claim cannot yet be derived because the required evidence is unavailable."
+    concepts:
+      - logic_based_argument
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 3
+      section: "2. A Dynamic Abstract Framework with Dialectical Constraints"
+      quote_fragment: "potential arguments have an associated claim, yet cannot derive it by themselves"
+
+  - id: claim3
+    type: observation
+    statement: "Activeness propagation requires an argument to be active only when all of its subarguments are active, so deactivating one subargument deactivates every superargument that depends on it."
+    concepts:
+      - logic_based_argument
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 5
+      section: "2. A Dynamic Abstract Framework with Dialectical Constraints"
+      quote_fragment: "if As is active, every superargument of As is active; the inactiveness of As means that at least one subargument is inactive"
+
+  - id: claim4
+    type: observation
+    statement: "A dynamic argumentation theory DAT=(Phi, DC) combines a dynamic argumentation framework satisfying activeness propagation with a finite set of dialectical constraints over argumentation lines."
+    concepts:
+      - dung_framework
+      - acceptability
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 5
+      section: "2. A Dynamic Abstract Framework with Dialectical Constraints"
+      quote_fragment: "a dynamic argumentation theory (DAT) T is a pair (Phi, DC)"
+
+  - id: claim5
+    type: observation
+    statement: "An active regular argument is warranted when there exists a dialectical tree rooted at that argument such that the chosen marking criterion marks the root as undefeated."
+    concepts:
+      - acceptability
+      - logic_based_argument
+      - proof_theory
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 6
+      section: "2. A Dynamic Abstract Framework with Dialectical Constraints"
+      quote_fragment: "An active regular argument A is a warranted argument ... iff the dialectical tree TA is such that Mark(TA) = U"
+
+  - id: claim6
+    type: mechanism
+    statement: "To warrant a target argument, the paper isolates the minimal set of attacking lines whose alteration would suffice to warrant the root, then applies an argument selection function over interference arguments on those lines and an incision function that deactivates selected attackers or their subarguments."
+    concepts:
+      - acceptability
+      - logic_based_argument
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 7
+      section: "3.1 Basic Theoretical Elements of Argument Theory Change"
+      quote_fragment: "We need to characterize the kind of argumentation lines that actually affect the status of the root argument"
+    notes: "This is the core repair mechanism underlying non-warrant contraction and revision."
+
+  - id: claim7
+    type: mechanism
+    statement: "Preservation constrains collateral incision so that deactivating an argument on one attacking line does not improperly incise upper segments on other lines, and root-preservation further requires that the root argument itself is never collaterally incised."
+    concepts:
+      - acceptability
+      - logic_based_argument
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 9
+      section: "3.1 Basic Theoretical Elements of Argument Theory Change"
+      quote_fragment: "it is paramount to preserve the root argument A as active"
+
+  - id: claim8
+    type: observation
+    statement: "Argument expansion is defined by simply adding a regular argument to the active set, but because activeness propagation also activates superarguments, expansion alone can diminish the set of warranted consequences."
+    concepts:
+      - acceptability
+      - logic_based_argument
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 10
+      section: "3.2 Argument Change Operators"
+      quote_fragment: "despite of the set A being increased, the amount of warranted consequences could be diminished"
+
+  - id: claim9
+    type: observation
+    statement: "A warrant-prioritized argument revision is defined as expanding the theory by the target argument and then performing a non-warrant argument contraction over the attacking lines of the expanded tree."
+    concepts:
+      - acceptability
+      - logic_based_argument
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 11
+      section: "3.2 Argument Change Operators"
+      quote_fragment: "T *w A = (T +A) -A"
+
+  - id: claim10
+    type: mechanism
+    statement: "If a theory is revised by an argument with the warrant-prioritized revision operator, the revised-by argument is warranted in the resulting theory because every attacking line is turned into a non-attacking line by the combined effect of selection, incision, and preservation."
+    concepts:
+      - acceptability
+      - proof_theory
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 11
+      section: "Theorem 1"
+      quote_fragment: "If T *w A is revised by A, then A is warranted in T *w"
+
+  - id: claim11
+    type: comparison
+    statement: "Unlike prior approaches that either manipulate only abstract argumentation topology or define implementation-specific revision operators, this paper keeps the logic and semantics abstract while still modeling internal argument structure through the subargument relation."
+    concepts:
+      - dung_framework
+      - logic_based_argument
+      - acceptability
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 1
+      section: "1. Introduction & Motivations"
+      quote_fragment: "there is no restriction to any particular theory or abstract arguments nor argumentative semantics"
+
+  - id: claim12
+    type: limitation
+    statement: "The paper leaves stronger operator variants, explicit postulates, richer attack relations, preference criteria, and theory-equivalence results for future work, so the formalism is a foundation rather than a fully completed change theory."
+    concepts:
+      - acceptability
+      - preference_based_argumentation
+    context: ctx_abstract_argumentation
+    provenance:
+      paper: Rotstein_2008_ArgumentTheoryChangeRevision
+      page: 12
+      section: "4. Conclusions & Future Work"
+      quote_fragment: "Further analysis of the argument change operators was left as future work"

@@ -1,0 +1,212 @@
+source:
+  paper: Hunter_2021_ProbabilisticArgumentationSurvey
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T08:18:12Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Probabilistic argumentation divides into two main families: the epistemic approach (fixed graph topology, uncertain beliefs about arguments) and the constellation approach (uncertain graph topology via probability distributions over subgraphs)."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 6
+      section: "1 Introduction"
+      quote_fragment: "In the epistemic approach, the topology of the argument graph is fixed, but there is uncertainty as to the degree to which each argument is believed. [...] In the constellations approach, the uncertainty is in the topology of the graph."
+
+  - id: claim2
+    type: observation
+    statement: "The marginal probability of an argument a is defined as P(a) = sum over all Y in 2^Ar containing a of P(Y), where P is a probability function on the power set of arguments."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 11
+      section: "3 The epistemic approach"
+      quote_fragment: "Definition 3.2"
+
+  - id: claim3
+    type: observation
+    statement: "In the epistemic approach, an argument is labelled 'in' if P(a) > 0.5, 'out' if P(a) < 0.5, and 'undec' if P(a) = 0.5, forming the epistemic labelling."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 11
+      section: "3 The epistemic approach"
+      quote_fragment: "Definition 3.3"
+
+  - id: claim4
+    type: observation
+    statement: "The COH (coherent) rationality postulate requires that for any attack (a,b), P(a) + P(b) <= 1, generalizing conflict-freeness to the probabilistic setting."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 13
+      section: "3 The epistemic approach"
+      quote_fragment: "COH: P is coherent wrt. AF if for every a,b in Ar, if (a,b) in att then P(a) <= 1 - P(b)."
+
+  - id: claim5
+    type: observation
+    statement: "The RAT (rational) postulate is a weaker version of COH: for any attack (a,b), P(a) > 0.5 implies P(b) <= 0.5."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 13
+      section: "3 The epistemic approach"
+      quote_fragment: "RAT: P is rational wrt. AF if for every a,b in Ar, if (a,b) in att then P(a) > 0.5 implies P(b) <= 0.5."
+
+  - id: claim6
+    type: observation
+    statement: "The FOU (founded) postulate requires unattacked arguments to have P(a) = 1, the TRU (trusting) postulate requires P(a) >= 0.5 when all attackers have P <= 0.5, and the OPT (optimistic) postulate requires P(a) >= 1 - sum of P(b) for all attackers b."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 14
+      section: "3 The epistemic approach"
+      quote_fragment: "FOU, TRU, OPT postulates"
+
+  - id: claim7
+    type: mechanism
+    statement: "If Lab is an admissible labelling in AF then there exists a probability function P satisfying COH and OPT with Lab ~ P (congruence), establishing a correspondence between classical labellings and epistemic probability functions."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 15
+      section: "3 The epistemic approach"
+      quote_fragment: "if Lab is an admissible labelling in AF then there is a probability function P satisfying COH and OPT with Lab ~ P"
+
+  - id: claim8
+    type: mechanism
+    statement: "If Lab is the grounded labelling and P is the unique probability function satisfying COH and OPT with maximal entropy, then Lab ~ P, connecting maximum entropy to grounded semantics."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 15
+      section: "3 The epistemic approach"
+      quote_fragment: "if Lab is the grounded labelling and P the one probability function satisfying COH and OPT and having maximal entropy then Lab ~ P"
+
+  - id: claim9
+    type: observation
+    statement: "In the constellation approach, a subgraph distribution P^c assigns a probability to each subgraph of the argumentation framework, with three derived probability types: labelling probability P_sigma(Lab), acceptance probability P_sigma(a), and extension probability P_sigma(W)."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 23
+      section: "4.2 Basic definitions"
+      quote_fragment: "Definitions 4.4, 4.5, 4.6"
+
+  - id: claim10
+    type: observation
+    statement: "The acceptance probability P_sigma(a) under the constellation approach is the sum of P^c(AF') over all subgraphs AF' where argument a is labelled 'in' in some sigma-labelling of AF'."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 23
+      section: "4.2 Basic definitions"
+      quote_fragment: "Definition 4.5"
+
+  - id: claim11
+    type: observation
+    statement: "Under the PrAF independence assumption, the probability of a subset X of arguments is P(X) = product of P(a) for a in X times product of (1-P(a)) for a not in X, where P(a) is each argument's presence probability."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 26
+      section: "4.3 Assuming independence"
+      quote_fragment: "P(X) = prod_{a in X} P(a) prod_{a not in X} (1 - P(a))"
+
+  - id: claim12
+    type: observation
+    statement: "The PrAF acceptance probability P^PAF_{o,sigma}(a) is the sum of P(X) over all subsets X where argument a is accepted under semantics sigma and inference mode o (credulous or skeptical)."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 26
+      section: "4.3 Assuming independence"
+      quote_fragment: "the probability of acceptance of a, denoted by P^PAF_{o,sigma}(a)"
+
+  - id: claim13
+    type: limitation
+    statement: "The PrAF independence assumption (that argument presence probabilities are independent) does not correctly model correlated attacks, such as when the same argument is the source of multiple attacks whose existence is causally linked."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 29
+      section: "4.3 Assuming independence"
+      quote_fragment: "the above example illustrates how assuming independence over attacks means that the example is not correctly modelled"
+
+  - id: claim14
+    type: comparison
+    statement: "Unlike the epistemic approach where the graph topology is fixed and only belief degrees vary, the constellation approach models uncertainty over which arguments and attacks actually exist, making it suitable for situations where an agent is uncertain about the structure of the argumentation framework itself."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 18
+      section: "4 The constellation approach"
+      quote_fragment: "Another natural approach [...] is to consider a probability distribution over the possible graph structures of the argumentation framework."
+
+  - id: claim15
+    type: observation
+    statement: "Full subgraph distributions restrict probability mass to induced subgraphs (removing arguments removes their edges), while spanning subgraph distributions restrict to subgraphs that keep all arguments but may remove edges."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 22
+      section: "4.2 Basic definitions"
+      quote_fragment: "Definition 4.3"
+
+  - id: claim16
+    type: mechanism
+    statement: "The Labelling Framework for Probabilistic Argumentation (Riveret et al. 2018) unifies epistemic and constellation approaches through three representations: probabilistic theory frames (PTFs), probabilistic graph frames (PGFs), and probabilistic labelling frames (PLFs), where a PLF can calculate the probability that a statement is accepted."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 31
+      section: "5.1 Combinations of the Epistemic and the Constellations approach"
+      quote_fragment: "The Labelling Framework for Probabilistic Argumentation is a framework that subsumes and combines a number of approaches considered before."
+
+  - id: claim17
+    type: limitation
+    statement: "Structured probabilistic argumentation (combining probability with ASPIC+ or other structured frameworks) is largely unaddressed by the existing literature, with only isolated works connecting probabilistic approaches to structured argumentation."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 35
+      section: "6 Summary and Conclusion"
+      quote_fragment: "in particular those relating to probabilistic reasoning with structured argumentation such as [Hunter, 2003] had to left out of this survey"
+
+  - id: claim18
+    type: observation
+    statement: "There are at least three kinds of uncertainty in attacks: explicit uncertainty (qualified assertions like 'I am 90% sure'), implicit imprecision (natural language vagueness making it unclear if two arguments conflict), and incomplete premises (enthymemes making it uncertain whether one argument attacks another)."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Hunter_2021_ProbabilisticArgumentationSurvey
+      page: 20
+      section: "4.1 Motivating Examples"
+      quote_fragment: "Explicit uncertainty of attack [...] Implicit imprecision of argument [...] Incomplete premises/claims"

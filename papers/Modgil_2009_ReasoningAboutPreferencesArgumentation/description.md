@@ -1,0 +1,4 @@
+---
+tags: [preference-based-argumentation, abstract-argumentation, argumentation-semantics, logic-programming, defeasible-reasoning]
+---
+Extends Dung's abstract argumentation framework with a new relation from arguments to attacks, allowing preferences between arguments to be represented as defeasible meta-level arguments inside the framework itself. The paper defines extended argumentation frameworks, reinstatement-aware acceptability, bounded hierarchical and preference symmetric subclasses, and encodings of value-based argumentation plus argument-based logic programming with defeasible priorities. It is directly relevant to propstore's argumentation layer because it gives the formal architecture for reasoning both with preferences and about preferences without collapsing everything into a fixed external ranking.

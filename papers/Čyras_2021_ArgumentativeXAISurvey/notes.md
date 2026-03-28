@@ -193,6 +193,7 @@ Highly relevant as a reference taxonomy for propstore's argumentation layer. The
 - [[Caminada_2006_IssueReinstatementArgumentation]] — reinstatement labellings; underpins the dispute tree / extension semantics used throughout the survey
 - [[Brewka_1989_PreferredSubtheoriesExtendedLogical]] — Brewka and Woltran 2010 (related) cited for Abstract Dialectical Frameworks
 - [[Bonzon_2016_ComparativeStudyRanking-basedSemantics]] — ranking-based semantics; connects to gradual semantics surveyed in Section 2
+- [[Rago_2016_DiscontinuityFreeQuAD]] — DF-QuAD algorithm for quantitative argumentation debates; surveyed as a QBA gradual semantics approach for decision support
 
 ### New Leads (Not Yet in Collection)
 - Dejl et al. (2021) — "Argflow: A toolkit for deep argumentative explanations for neural networks" — most advanced AF-based XAI for deep learning via GA frameworks

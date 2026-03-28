@@ -1,0 +1,139 @@
+source:
+  paper: Modgil_2011_RevisitingPreferencesArgumentation
+produced_by:
+  agent: "gpt-5-codex"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T08:09:11Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "In the revised ASPIC+ account, conflict-free sets are defined by the absence of attacks in the attack relation C, while the defeat relation D is reserved for admissibility and acceptability computations."
+    concepts:
+      - concept1
+      - concept2
+      - concept5
+    provenance:
+      paper: Modgil_2011_RevisitingPreferencesArgumentation
+      page: 3
+      section: "3 Argumentation, Logic and Preferences"
+      quote_fragment: "The extensions of a SAF are the extensions of the Dung framework <A, D> ... S is conflict free iff no X,Y in S attack each other"
+
+  - id: claim2
+    type: model
+    name: "Structured Abstract Argumentation Framework"
+    equations:
+      - "SAF = <A, C, <= >"
+      - "D subseteq A x A"
+    parameters:
+      - name: "attack relation"
+        concept: concept5
+        note: "Captures undercut, rebut, and undermine style attacks and defines conflict-freeness."
+      - name: "defeat relation"
+        concept: concept2
+        note: "Derived from attacks plus preferences and used for Dung-style semantics."
+      - name: "argument preference ordering"
+        concept: concept1
+        note: "Orders arguments so some attacks fail to become defeats."
+    provenance:
+      paper: Modgil_2011_RevisitingPreferencesArgumentation
+      page: 3
+      section: "3 Argumentation, Logic and Preferences"
+      quote_fragment: "A structured abstract argumentation framework (SAF) is a tuple <A, C, <= >"
+
+  - id: claim3
+    type: observation
+    statement: "Abstract ASPIC+ can be generalized to classical-logic instantiations by allowing inconsistent premise sets at the theory level and requiring only c-consistency, namely that no strict arguments with contradictory conclusions can be constructed."
+    concepts:
+      - concept1
+      - concept3
+    provenance:
+      paper: Modgil_2011_RevisitingPreferencesArgumentation
+      page: 3
+      section: "3 Argumentation, Logic and Preferences"
+      quote_fragment: "A SAF is c-consistent iff no strict arguments with contradictory conclusions can be built from premises S"
+
+  - id: claim4
+    type: observation
+    statement: "Every complete extension of the paper's SAF framework is closed under subarguments, so if an argument is in an extension then each of its subarguments is in the same extension."
+    concepts:
+      - concept2
+      - concept3
+    provenance:
+      paper: Modgil_2011_RevisitingPreferencesArgumentation
+      page: 5
+      section: "4.2 Rationality Postulates"
+      quote_fragment: "Theorem 11 [Sub-arguments Closure] ... if A in E and A' in Sub(A) then A' in E"
+
+  - id: claim5
+    type: observation
+    statement: "For any SAF or c-SAF satisfying the stated assumptions, the set of conclusions of a complete extension is directly consistent."
+    concepts:
+      - concept2
+      - concept3
+    provenance:
+      paper: Modgil_2011_RevisitingPreferencesArgumentation
+      page: 5
+      section: "4.2 Rationality Postulates"
+      quote_fragment: "Theorem 13 [Direct Consistency] ... {Conc(A) | A in E} is consistent"
+
+  - id: claim6
+    type: observation
+    statement: "For any c-SAF satisfying the paper's assumptions, the strict closure of the conclusions of a complete extension is consistent."
+    concepts:
+      - concept2
+      - concept3
+    provenance:
+      paper: Modgil_2011_RevisitingPreferencesArgumentation
+      page: 5
+      section: "4.2 Rationality Postulates"
+      quote_fragment: "Proposition 14 [Indirect Consistency] ... Cl_RS({Conc(A)|A in E}) is consistent"
+
+  - id: claim7
+    type: mechanism
+    statement: "The attack-versus-defeat separation works because attack should represent logical incompatibility between arguments, while defeat should represent whether that incompatibility succeeds once preferences are taken into account during acceptability evaluation."
+    concepts:
+      - concept1
+      - concept2
+      - concept5
+    provenance:
+      paper: Modgil_2011_RevisitingPreferencesArgumentation
+      page: 3
+      section: "3 Argumentation, Logic and Preferences"
+      quote_fragment: "defeats should be reserved for determining whether an attacking argument can be successfully deployed as a counter-argument"
+
+  - id: claim8
+    type: comparison
+    statement: "Unlike prior defeat-based or semantics-level preference approaches, this framework keeps conflict-freeness attack-based and applies preferences only when deciding which attacks count as defeats for justification."
+    concepts:
+      - concept1
+      - concept2
+      - concept5
+    provenance:
+      paper: Modgil_2011_RevisitingPreferencesArgumentation
+      page: 6
+      section: "5 Conclusions"
+      quote_fragment: "this paper has proposed an alternative use of defeats ... all attacks require successful irrespectively of preferences"
+
+  - id: claim9
+    type: observation
+    statement: "The weakest-link lifting of preferences over premises and defeasible rules satisfies the reasonableness constraints required for the paper's preservation results."
+    concepts:
+      - concept1
+    provenance:
+      paper: Modgil_2011_RevisitingPreferencesArgumentation
+      page: 4
+      section: "3 Argumentation, Logic and Preferences"
+      quote_fragment: "The defined ordering according to the weakest link principle is reasonable"
+
+  - id: claim10
+    type: limitation
+    statement: "The paper does not fully resolve unrestricted rebut under asymmetric attack, and indicates that preserving consistency there may require treating such cases as undercutting rather than standard rebut."
+    concepts:
+      - concept1
+      - concept3
+    provenance:
+      paper: Modgil_2011_RevisitingPreferencesArgumentation
+      page: 6
+      section: "5 Conclusions"
+      quote_fragment: "In this paper's version of ASPIC+, if [A, B] is not conflict-free ... preserving consistency under unrestricted rebut is the compatibility of the information in the arguments"

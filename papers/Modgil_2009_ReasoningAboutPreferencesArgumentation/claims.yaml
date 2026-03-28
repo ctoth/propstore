@@ -1,0 +1,139 @@
+source:
+  paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+produced_by:
+  agent: "gpt-5-codex"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T08:11:01Z"
+
+claims:
+  - id: claim1
+    type: model
+    name: "extended_argumentation_framework"
+    equations:
+      - "Delta = (Args, R, D)"
+      - "A defeats_S B iff (A,B) in R and there is no C in S such that (C,(A,B)) in D"
+    parameters:
+      - name: "Args"
+        concept: "logic_based_argument"
+        note: "Set of object-level and meta-level arguments."
+      - name: "R"
+        concept: "dung_framework"
+        note: "Binary attack relation between arguments."
+      - name: "D"
+        concept: "preference_based_argumentation"
+        note: "Relation from an argument to a specific attack."
+    provenance:
+      paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+      page: 5
+      section: "3. Extended argumentation frameworks"
+      quote_fragment: "An Extended Argumentation Framework (EAF) is a tuple (Args, R, D)"
+
+  - id: claim2
+    type: observation
+    statement: "The paper's central move is to represent preferences between arguments as ordinary arguments that attack attacks, so reasoning about preferences happens inside the same abstract framework as object-level reasoning."
+    concepts:
+      - preference_based_argumentation
+      - dung_framework
+    provenance:
+      paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+      page: 2
+      section: "1.2 Overview of paper"
+      quote_fragment: "Arguments expressing preferences are simply nodes in a graph"
+
+  - id: claim3
+    type: mechanism
+    statement: "Acceptability in an extended argumentation framework requires reinstating defending attacks, not merely finding a defender for each attacker, because attacks on those defending attacks can recursively disable the defense."
+    concepts:
+      - acceptability
+      - preference_based_argumentation
+    provenance:
+      paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+      page: 7
+      section: "4.1 Defining the acceptability of arguments"
+      quote_fragment: "we are required to check that A2 ->S B2 is reinstated"
+
+  - id: claim4
+    type: limitation
+    statement: "The characteristic function of a general extended argumentation framework is not monotonic, so grounded semantics cannot in general be obtained as the least fixed point of iterative characteristic-function application."
+    concepts:
+      - preference_based_argumentation
+      - acceptability
+    provenance:
+      paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+      page: 9
+      section: "4.2 Defining the extensions of an extended argumentation framework"
+      quote_fragment: "an EAF characteristic function F is not, in general, monotonic"
+
+  - id: claim5
+    type: observation
+    statement: "Bounded hierarchical extended argumentation frameworks recover monotonicity by stratifying arguments into levels so that meta-level attacks only target attacks from the immediately lower level."
+    concepts:
+      - preference_based_argumentation
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+      page: 10
+      section: "5. Value based argumentation in hierarchical extended argumentation frameworks"
+      quote_fragment: "The characteristic function of a bounded hierarchical EAF is monotonic"
+
+  - id: claim6
+    type: comparison
+    statement: "Audience-specific value-based argumentation frameworks can be encoded as equivalent hierarchical extended argumentation frameworks, allowing arguments about values and about value orderings to be handled within one semantics."
+    concepts:
+      - preference_based_argumentation
+      - dung_framework
+    provenance:
+      paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+      page: 11
+      section: "Definition 18"
+      quote_fragment: "Gamma is equivalent to EAF Delta"
+
+  - id: claim7
+    type: observation
+    statement: "Preference symmetric extended argumentation frameworks form a practically important subclass in which only attacks between symmetric attackers can be challenged by preference arguments, and this restriction restores a monotonic characteristic function."
+    concepts:
+      - preference_based_argumentation
+      - acceptability
+    provenance:
+      paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+      page: 13
+      section: "6. Preference symmetric extended argumentation frameworks"
+      quote_fragment: "the characteristic function of a ps-EAF is monotonic"
+
+  - id: claim8
+    type: mechanism
+    statement: "In the ALP-DP instantiation, undercuts are modeled as preference-independent defeats, so if one argument undercuts another then the undercut succeeds regardless of any competing preference argument."
+    concepts:
+      - preference_based_argumentation
+      - logic_based_argument
+    provenance:
+      paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+      page: 17
+      section: "7.3 Evaluating the status of ALP-DP arguments in extended argumentation frameworks"
+      quote_fragment: "If A undercuts B, then A defeats B irrespective of their relative preference"
+
+  - id: claim9
+    type: comparison
+    statement: "Unlike the original Prakken-Sartor ALP-DP semantics, the EAF instantiation provides well-defined admissible and preferred semantics for argument-based logic programs with defeasible priorities rather than only a grounded-status account."
+    concepts:
+      - preference_based_argumentation
+      - acceptability
+    provenance:
+      paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+      page: 20
+      section: "Conclusions"
+      quote_fragment: "unlike [34], we also provided a well defined notion of admissible and preferred extensions"
+
+  - id: claim10
+    type: observation
+    statement: "For priority-finitary ALP-DP theories, the grounded extension of the original theory coincides with the grounded extension of its instantiated extended argumentation framework modulo composite priority arguments."
+    concepts:
+      - preference_based_argumentation
+      - acceptability
+      - logic_based_argument
+    provenance:
+      paper: Modgil_2009_ReasoningAboutPreferencesArgumentation
+      page: 19
+      section: "Proposition 17"
+      quote_fragment: "the grounded extension of the theory's EAF and GE(S,D) are equivalent modulo composite priority arguments"
