@@ -27,6 +27,7 @@ class CanonicalJustification:
     conclusion_claim_id: str
     premise_claim_ids: tuple[str, ...] = ()
     rule_kind: str = "reported_claim"
+    rule_strength: str = "defeasible"
     provenance: ProvenanceRecord | None = None
     attributes: tuple[tuple[str, Any], ...] = field(default_factory=tuple)
 
@@ -40,6 +41,7 @@ class CanonicalJustification:
             "conclusion_claim_id": self.conclusion_claim_id,
             "premise_claim_ids": list(self.premise_claim_ids),
             "rule_kind": self.rule_kind,
+            "rule_strength": self.rule_strength,
         }
         if self.provenance is not None:
             data["provenance"] = self.provenance.to_dict()
@@ -55,6 +57,7 @@ class CanonicalJustification:
             conclusion_claim_id=str(data["conclusion_claim_id"]),
             premise_claim_ids=tuple(str(item) for item in data.get("premise_claim_ids") or ()),
             rule_kind=str(data.get("rule_kind") or "reported_claim"),
+            rule_strength=str(data.get("rule_strength") or "defeasible"),
             provenance=(
                 None
                 if provenance_data is None

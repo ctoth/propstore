@@ -935,6 +935,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
             provenance_page INTEGER NOT NULL,
             provenance_json TEXT,
             context_id TEXT,
+            premise_kind TEXT NOT NULL DEFAULT 'ordinary',
             FOREIGN KEY (context_id) REFERENCES context(id)
         );
 
@@ -999,7 +1000,8 @@ def _create_claim_tables(conn: sqlite3.Connection):
             premise_claim_ids TEXT NOT NULL,
             source_relation_type TEXT,
             source_claim_id TEXT,
-            provenance_json TEXT
+            provenance_json TEXT,
+            rule_strength TEXT NOT NULL DEFAULT 'defeasible'
         );
 
         CREATE TABLE IF NOT EXISTS calibration_counts (
@@ -1433,8 +1435,8 @@ def _populate_justifications(conn: sqlite3.Connection) -> None:
     ).fetchall()
     for claim_id, provenance_json in claim_rows:
         conn.execute(
-            "INSERT OR IGNORE INTO justification (id, justification_kind, conclusion_claim_id, premise_claim_ids, source_relation_type, source_claim_id, provenance_json) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO justification (id, justification_kind, conclusion_claim_id, premise_claim_ids, source_relation_type, source_claim_id, provenance_json, rule_strength) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 f"reported:{claim_id}",
                 "reported",
@@ -1443,6 +1445,7 @@ def _populate_justifications(conn: sqlite3.Connection) -> None:
                 None,
                 claim_id,
                 provenance_json,
+                "defeasible",
             ),
         )
 
@@ -1468,8 +1471,8 @@ def _populate_justifications(conn: sqlite3.Connection) -> None:
         if resolution_model is not None:
             provenance["resolution_model"] = resolution_model
         conn.execute(
-            "INSERT OR IGNORE INTO justification (id, justification_kind, conclusion_claim_id, premise_claim_ids, source_relation_type, source_claim_id, provenance_json) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO justification (id, justification_kind, conclusion_claim_id, premise_claim_ids, source_relation_type, source_claim_id, provenance_json, rule_strength) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 f"{relation_type}:{source_id}->{target_id}",
                 relation_type,
@@ -1478,6 +1481,7 @@ def _populate_justifications(conn: sqlite3.Connection) -> None:
                 relation_type,
                 source_id,
                 json.dumps(provenance),
+                "defeasible",
             ),
         )
 
