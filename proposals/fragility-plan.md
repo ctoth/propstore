@@ -127,15 +127,25 @@ parametric_score(input_i) = |elasticity_i| / max(|elasticity_j| for all j)
 
 Normalized to [0, 1]. The most elastic input gets score 1.0.
 
-**What's new:** Currently `sensitivity.py` only works on SymPy-derived quantities. Fragility extends this to opinion-valued inputs by asking: "If this concept's opinion changed from vacuous to dogmatic-true (or vice versa), how much would the fused output opinion change?" This is a finite-difference sensitivity on the opinion space:
+**What's new:** Currently `sensitivity.py` only works on SymPy-derived quantities. Fragility extends this to opinion-valued inputs by computing the *marginal* information value — "if I got one more measurement of this concept, how much would the fused opinion move?"
+
+This is the derivative of the WBF output expectation with respect to the uncertainty of one input, evaluated at the current operating point:
 
 ```
-opinion_sensitivity(concept_i) = |E(fused_with_i_dogmatic) - E(fused_with_i_vacuous)|
+opinion_sensitivity(concept_i) = |∂E(wbf(ω₁,...,ωN)) / ∂uᵢ| evaluated at current (u₁,...,uN)
 ```
 
-where E is the probability expectation. This uses the new WBF to compute the fused opinion with and without concept_i's contribution. High opinion sensitivity means this concept's evidence has high leverage on the fused belief.
+Computed numerically as a central finite difference with small Δu (e.g., 0.01):
 
-**Literature grounding:** Coupé & van der Gaag 2002 show that BN sensitivity is a rational function of single parameters — the same structural insight applies here. Ballester-Ripoll 2024's Sobol indices would be the ideal generalization (capturing interaction effects), but the OAT (one-at-a-time) approach is sufficient for Phase 1 and avoids the tensor decomposition complexity.
+```
+opinion_sensitivity(concept_i) = |E(wbf(..., ωᵢ(uᵢ-Δu), ...)) - E(wbf(..., ωᵢ(uᵢ+Δu), ...))| / (2·Δu)
+```
+
+where ωᵢ(u') is the opinion with uncertainty adjusted to u' while preserving the expectation E(ωᵢ) (i.e., redistributing between b and d to maintain b + a·u = E). This is exactly what `Opinion.maximize_uncertainty()` already does in one direction — we need the inverse operation too (minimize uncertainty while preserving expectation).
+
+**Why the derivative, not vacuous-to-dogmatic total variation:** The vacuous-to-dogmatic swing treats a concept with u=0.9 and one with u=0.1 as having the same sensitivity, when obviously the high-uncertainty one has more room to move. The derivative captures *marginal* information value at the current operating point: how much would one more piece of evidence shift things? A concept already at u=0.05 has almost no marginal room — it's well-established. A concept at u=0.8 has high marginal sensitivity. This is exactly the right quantity for "what should I measure next?"
+
+**Literature grounding:** Coupé & van der Gaag 2002 show that BN sensitivity is a rational function of single parameters — the same structural insight applies here. The derivative formulation connects to classical Fisher information: high ∂E/∂u means the expectation is steep in the uncertainty direction, so evidence has high leverage. Ballester-Ripoll 2024's Sobol indices would be the ideal generalization (capturing interaction effects), but the OAT derivative approach is sufficient for Phase 1 and avoids the tensor decomposition complexity.
 
 #### Dimension 2: Epistemic stability (existing `atms.py`)
 
@@ -209,7 +219,9 @@ The three scores are combined into a single fragility score. The combination mus
 2. The dimensions are not independent (a parametric input that's also epistemically unstable is doubly fragile)
 3. Propstore's non-commitment principle means the combination policy should be configurable at render time
 
-**Default combination: uncertainty-weighted maximum.**
+**Default combination: top-2 average.**
+
+A concept that scores 0.9 on parametric sensitivity but 0.0 on epistemic and 0.0 on conflict isn't epistemically fragile — it's a well-understood dependency that nobody disagrees about and that doesn't flip conclusions. The interesting targets score high on *multiple* dimensions: an uncertain parameter that *also* sits in a contested conflict cluster, or an unstable assumption that *also* has high parametric leverage.
 
 ```python
 def combine_fragility(
@@ -217,17 +229,24 @@ def combine_fragility(
     epistemic: float | None,
     conflict: float | None,
 ) -> float:
-    scores = [s for s in (parametric, epistemic, conflict) if s is not None]
+    scores = sorted(
+        [s for s in (parametric, epistemic, conflict) if s is not None],
+        reverse=True,
+    )
     if not scores:
         return 0.0
-    return max(scores)  # fragility is as high as its weakest dimension
+    if len(scores) == 1:
+        return scores[0]
+    # Top-2 average: rewards convergent fragility across dimensions
+    return (scores[0] + scores[1]) / 2.0
 ```
 
-**Why max, not mean?** A concept that is parametrically robust but epistemically fragile is still fragile. The max captures this. The mean would hide it.
+**Why top-2, not max or mean?** Max gives "loudest alarm" — dominated by whichever dimension has the loosest calibration. Mean dilutes a genuinely fragile target if one dimension doesn't apply. Top-2 rewards multi-dimensional fragility: a target must be fragile in at least two ways to rank high. When only two dimensions are present (e.g., non-derived concept has no parametric score), top-2 reduces to mean of both. When only one dimension is present, it returns that score directly.
 
 Alternative combination policies (configurable at render time):
-- `"max"`: default — fragility = worst dimension
-- `"mean"`: average of available scores
+- `"top2"`: default — average of two highest available scores
+- `"mean"`: average of all available scores
+- `"max"`: loudest alarm (useful for triage — "is *anything* fragile?")
 - `"product"`: multiplicative (only fragile if ALL dimensions are fragile — very conservative)
 - `"weighted"`: user-supplied weights per dimension
 
@@ -356,7 +375,7 @@ def opinions(draw, min_u=0.01):
 **CCF properties:**
 
 1. **Handles all-dogmatic:** `ccf(dogmatic_true, dogmatic_false)` returns a valid opinion (doesn't raise)
-2. **Agrees with WBF when possible:** for non-dogmatic inputs, `ccf(a, b) ≈ wbf(a, b)` (approximately, since CCF adds compromise averaging)
+2. **Auto-dispatch consistency:** `fuse(a, b, method="auto")` selects WBF when any source has u > 0, and CCF only when all sources are dogmatic. The test validates the *dispatcher*, not CCF≈WBF (they are different operators — CCF includes a compromise-averaging phase that WBF does not)
 3. **Summation invariant:** b + d + u = 1
 
 **Fragility properties:**
@@ -392,18 +411,48 @@ Ballester-Ripoll 2024 shows that OAT sensitivity can miss interaction effects. F
 
 AlAnaissy 2024 defines both ImpS^rev (O(n) per argument) and ImpSh (O(2^n) Shapley values). ImpS^rev satisfies fewer axioms but is tractable. ImpSh satisfies all nine axioms but is exponential. **Recommendation:** use ImpS^rev for Phase 1. Offer ImpSh as an opt-in for small frameworks (< 15 arguments).
 
-### 3. Queryable auto-discovery
+### 3. Queryable auto-discovery (critical — this IS the user experience)
 
-When `queryables` is not provided, the system needs to discover what could be learned. Options:
-- Inactive claims (claims excluded by current conditions)
-- Unbound condition variables (conditions that aren't yet set)
-- Concepts with no claims (completely unknown quantities)
+When `queryables` is not provided, the system needs to discover what could be learned. This is the difference between "sensitivity analysis with extra steps" and "what should I learn next?"
 
-The ATMS already has `QueryableAssumption` objects. The question is whether fragility should extend this to "concepts we've never measured" — things outside the current knowledge base entirely. **Recommendation:** Phase 1 uses the existing queryable infrastructure. Phase 2 could integrate with the paper collection to suggest "read paper X which might contain a measurement of concept Y."
+**Three tiers of queryables, in order of discoverability:**
 
-### 4. Cost modeling
+**Tier 1 — Within the ATMS:** Inactive claims, unbound condition variables, declared `QueryableAssumption` objects. These are already in the knowledge base but excluded by current conditions. The ATMS bounded replay handles these. *This is what Phase 1 uses.*
 
-The question asks for the "cheapest" thing to learn. Fragility alone measures leverage (how much would it change beliefs), not cost. Cost is domain-specific: reading a paper is cheap, running an experiment is expensive, replicating a study is very expensive. **Recommendation:** Phase 1 ranks by leverage only. Phase 2 adds optional cost annotations to concepts/claims, and the ranking becomes leverage/cost (epistemic ROI).
+**Tier 2 — Concepts with no claims:** The concept registry knows about concepts that have parameterization relationships but no measurements. These are "known unknowns" — the system knows the concept exists (it appears in a formula) but has no evidence for it. Discovering these requires walking the parameterization graph (`parameterization_walk.py:reachable_concepts`) and checking which reachable concepts have zero active claims. *Phase 2 priority.*
+
+**Tier 3 — Cross-reference with the paper collection:** The paper notes mention concepts and measurements that aren't yet in the knowledge base. A paper that discusses "Reynolds number measurements under turbulent conditions" is a lead for filling a gap. This tier connects the fragility engine to the "New Leads" infrastructure that `process-leads` already uses. For each high-fragility concept, search the paper collection's notes and citations for papers that might contain the missing measurement. *This is the killer feature — Phase 3, but design for it now.*
+
+**Design implication:** `FragilityTarget` needs a `suggested_actions` field:
+- Tier 1: "Add assumption: temperature == 350K"
+- Tier 2: "Measure concept: dynamic_viscosity (appears in 3 parameterizations, 0 claims)"
+- Tier 3: "Read paper: Coupé 2002 may contain sensitivity data for parameter X (cited in notes.md of Ballester-Ripoll 2024)"
+
+The auto-discovery scope should be a parameter on `rank_fragility`: `discovery_tier: int = 1` (1, 2, or 3).
+
+### 4. Cost modeling (half the question)
+
+"Cheapest thing that would most change beliefs" is leverage *divided by* cost. Without cost, you just have sensitivity analysis with extra steps.
+
+**Phase 1:** No cost — rank by leverage only. This is still useful as a sensitivity tool.
+
+**Phase 2 (priority):** Ordinal cost model with four tiers, assigned per queryable tier:
+
+| Cost tier | Examples | Ordinal value |
+|-----------|----------|---------------|
+| `trivial` | Read a paper already in collection, check existing data | 1 |
+| `cheap` | Retrieve and read a new paper, run a calculation | 2 |
+| `moderate` | Commission new analysis, collect new samples | 3 |
+| `expensive` | Run an experiment, replicate a study | 4 |
+
+The fragility ranking becomes `epistemic_roi = fragility / cost_tier`. This is crude but transforms the ranking: a moderately fragile concept that costs "trivial" to resolve outranks a highly fragile one that requires an experiment.
+
+Cost tiers can be:
+- Auto-assigned by queryable tier (Tier 1 queryables = trivial, Tier 2 = cheap, Tier 3 = depends on whether we have the paper)
+- Manually overridden via concept metadata
+- Inferred from claim type (measurement claims are more expensive to produce than parameter claims)
+
+**Design implication:** `FragilityTarget` needs `cost_tier: int | None` and `epistemic_roi: float | None` fields. The CLI sorts by ROI when cost data is available, by raw fragility otherwise.
 
 ### 5. Entrenchment ordering
 
