@@ -1,0 +1,12 @@
+{
+  "title": "Global Sensitivity Analysis of Uncertain Parameters in Bayesian Networks",
+  "authors": [
+    "Rafael Ballester-Ripoll",
+    "Manuele Leonelli"
+  ],
+  "year": 2024,
+  "abstract": "Traditionally, the sensitivity analysis of a Bayesian network studies the impact of individually modifying the entries of its conditional probability tables in a one-at-a-time (OAT) fashion. However, this approach fails to give a comprehensive account of each inputs' relevance, since simultaneous perturbations in two or more parameters often entail higher-order effects that cannot be captured by an OAT analysis. We propose to conduct global variance-based sensitivity analysis instead, whereby n parameters are viewed as uncertain at once and their importance is assessed jointly. Our method works by encoding the uncertainties as n additional variables of the network. To prevent the curse of dimensionality while adding these dimensions, we use low-rank tensor decomposition to break down the new potentials into smaller factors. Last, we apply the method of Sobol to the resulting network to obtain n global sensitivity indices. Using a benchmark array of both expert-elicited and learned Bayesian networks, we demonstrate that the Sobol indices can significantly differ from the OAT indices, thus revealing the true influence of uncertain parameters and their interactions.",
+  "arxiv_id": "2406.05764",
+  "doi": "10.48550/arXiv.2406.05764",
+  "source": "arxiv"
+}
