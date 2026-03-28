@@ -416,3 +416,67 @@ class TestDFQuADCombineFunction:
     def test_multiple_attackers(self) -> None:
         # attack = 1 - (1-0.5)*(1-0.5) = 0.75, combined = -0.75
         assert dfquad_combine([], [0.5, 0.5]) == pytest.approx(-0.75)
+
+
+# ---------------------------------------------------------------------------
+# Hypothesis property test: DF-QuAD output boundedness
+# Per Freedman et al. (2025, p.3): all strengths in [0, 1]
+# ---------------------------------------------------------------------------
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
+from propstore.dung import ArgumentationFramework
+from propstore.opinion import Opinion, from_probability
+
+
+def _small_praf_strategy_dfquad():
+    """Strategy: build a small PrAF with 2-4 arguments, random attacks,
+    random P_A opinions.  All P_D are dogmatic (certain defeats).
+    """
+    @st.composite
+    def build(draw):
+        from propstore.praf import ProbabilisticAF
+
+        n_args = draw(st.integers(min_value=2, max_value=4))
+        arg_names = [f"arg{i}" for i in range(n_args)]
+
+        p_args = {}
+        for name in arg_names:
+            p = draw(st.floats(min_value=0.05, max_value=0.95))
+            n = draw(st.integers(min_value=5, max_value=20))
+            p_args[name] = from_probability(p, n)
+
+        attacks = set()
+        for i, src in enumerate(arg_names):
+            for j, tgt in enumerate(arg_names):
+                if i != j and draw(st.booleans()):
+                    attacks.add((src, tgt))
+
+        af = ArgumentationFramework(
+            arguments=frozenset(arg_names),
+            defeats=frozenset(attacks),
+            attacks=frozenset(attacks),
+        )
+        p_defeats = {edge: Opinion.dogmatic_true() for edge in attacks}
+
+        return ProbabilisticAF(
+            framework=af,
+            p_args=p_args,
+            p_defeats=p_defeats,
+        )
+
+    return build()
+
+
+@given(praf=_small_praf_strategy_dfquad())
+@settings(max_examples=100, deadline=None)
+def test_dfquad_scores_bounded(praf):
+    """All DF-QuAD scores must be in [0, 1].
+
+    Per Freedman et al. (2025, p.3): the aggregation function guarantees
+    output in [0,1] when base scores are in [0,1] and combined influence
+    is in [-1,1].
+    """
+    result = compute_praf_acceptance(praf, strategy="dfquad")
+    for arg, score in result.acceptance_probs.items():
+        assert 0.0 <= score <= 1.0, f"arg {arg}: score={score} out of [0,1]"

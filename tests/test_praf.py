@@ -952,3 +952,57 @@ def test_coh_holds_after_enforcement(praf):
             f"COH violated for attack ({src}, {tgt}): "
             f"E({src})={ea:.4f} + E({tgt})={eb:.4f} = {ea + eb:.4f} > 1.0"
         )
+
+
+# ---------------------------------------------------------------------------
+# MC vs Exact Enumeration Agreement — Li et al. (2012)
+# ---------------------------------------------------------------------------
+
+
+@given(praf=_small_praf_strategy())
+@settings(max_examples=50, deadline=None)
+def test_mc_agrees_with_exact_on_small_afs(praf):
+    """MC sampling and exact enumeration should agree within epsilon on small AFs.
+
+    Per Li et al. (2012, Algorithm 1): Monte Carlo sampling with Agresti-Coull
+    stopping converges to the true acceptance probabilities.  On small AFs
+    (2-4 arguments) exact enumeration is tractable, so we can compare directly.
+    """
+    from propstore.praf import compute_praf_acceptance
+
+    mc_result = compute_praf_acceptance(
+        praf, strategy="mc", mc_epsilon=0.05, mc_confidence=0.95
+    )
+    exact_result = compute_praf_acceptance(praf, strategy="exact_enum")
+    for arg in praf.framework.arguments:
+        mc_p = mc_result.acceptance_probs.get(arg, 0.0)
+        exact_p = exact_result.acceptance_probs.get(arg, 0.0)
+        assert abs(mc_p - exact_p) < 0.15, (
+            f"arg {arg}: MC={mc_p:.3f} vs exact={exact_p:.3f}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# COH Idempotence — Hunter & Thimm (2017, p.9)
+# ---------------------------------------------------------------------------
+
+
+@given(praf=_small_praf_strategy())
+@settings(max_examples=50, deadline=None)
+def test_coh_idempotent(praf):
+    """enforce_coh(enforce_coh(praf)) should equal enforce_coh(praf).
+
+    Per Hunter & Thimm (2017, p.9): COH is a rationality postulate.
+    Applying the constraint projection twice must yield the same result
+    as applying it once — the first application should already satisfy COH.
+    """
+    from propstore.praf import enforce_coh
+
+    once = enforce_coh(praf)
+    twice = enforce_coh(once)
+    for arg in praf.framework.arguments:
+        p1 = once.p_args[arg].expectation()
+        p2 = twice.p_args[arg].expectation()
+        assert abs(p1 - p2) < 1e-6, (
+            f"arg {arg}: once={p1:.6f} vs twice={p2:.6f}"
+        )
