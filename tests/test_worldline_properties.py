@@ -12,6 +12,8 @@ import sqlite3
 
 import pytest
 import yaml
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from propstore.build_sidecar import build_sidecar
 from propstore.validate import load_concepts
@@ -485,3 +487,176 @@ class TestPartialHonesty:
         # Should have some explanation
         if ke["status"] == "underspecified":
             assert "reason" in ke, "Underspecified result should have a reason"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# HYPOTHESIS PROPERTY TESTS
+#
+# These use Hypothesis to generate random inputs against the fixed
+# property_world fixture, testing invariants that must hold for ANY
+# combination of bindings, overrides, and targets.
+# ═══════════════════════════════════════════════════════════════════
+
+# Available concepts and their canonical names in the fixture
+_ALL_TARGETS = ["mass", "acceleration", "force", "velocity",
+                "kinetic_energy", "temperature", "distance"]
+_LOCATIONS = ["earth", "moon"]
+# Concepts that can be meaningfully overridden with float values
+_OVERRIDABLE = ["mass", "velocity", "acceleration", "temperature", "distance"]
+
+
+class TestContentHashDeterminism:
+    """Same inputs always produce same content hash."""
+
+    @given(data=st.data())
+    @settings(max_examples=50, deadline=None)
+    def test_content_hash_deterministic(self, data, property_world):
+        """Identical worldline inputs produce identical content hashes.
+
+        This is a fundamental invariant: the content hash is a pure function
+        of the inputs. Any non-determinism (timestamps, dict ordering, etc.)
+        would violate this.
+        """
+        # Pick random targets (at least one)
+        targets = data.draw(
+            st.lists(
+                st.sampled_from(_ALL_TARGETS),
+                min_size=1, max_size=len(_ALL_TARGETS), unique=True,
+            ),
+            label="targets",
+        )
+        # Pick a random location binding
+        location = data.draw(st.sampled_from(_LOCATIONS), label="location")
+        # Pick random overrides (0 to 3)
+        override_keys = data.draw(
+            st.lists(
+                st.sampled_from(_OVERRIDABLE),
+                min_size=0, max_size=3, unique=True,
+            ),
+            label="override_keys",
+        )
+        overrides = {}
+        for key in override_keys:
+            overrides[key] = data.draw(
+                st.floats(min_value=0.01, max_value=1e4,
+                          allow_nan=False, allow_infinity=False),
+                label=f"override_{key}",
+            )
+
+        r1 = _run(property_world, targets=targets,
+                   bindings={"location": location}, overrides=overrides)
+        r2 = _run(property_world, targets=targets,
+                   bindings={"location": location}, overrides=overrides)
+
+        assert r1.content_hash == r2.content_hash, (
+            f"Same inputs produced different hashes: "
+            f"{r1.content_hash} vs {r2.content_hash}"
+        )
+        assert r1.values == r2.values, (
+            f"Same inputs produced different values"
+        )
+
+
+class TestOverrideAlwaysWins:
+    """For any concept with claims AND an override, the override value wins."""
+
+    @given(override_value=st.floats(
+        min_value=-1e6, max_value=1e6,
+        allow_nan=False, allow_infinity=False,
+    ))
+    @settings(max_examples=50, deadline=None)
+    def test_override_always_wins(self, override_value, property_world):
+        """Override value is returned regardless of what claims exist.
+
+        acceleration has claims (g_earth=9.807 on Earth, g_moon=1.625 on Moon).
+        An override must replace them unconditionally.
+        """
+        result = _run(
+            property_world,
+            targets=["acceleration"],
+            bindings={"location": "earth"},
+            overrides={"acceleration": override_value},
+        )
+        accel = result.values["acceleration"]
+        assert accel["value"] == override_value, (
+            f"Override {override_value} did not win, got {accel['value']}"
+        )
+        assert accel["source"] == "override"
+
+    @given(
+        mass_val=st.floats(
+            min_value=0.01, max_value=1e4,
+            allow_nan=False, allow_infinity=False,
+        ),
+        location=st.sampled_from(_LOCATIONS),
+    )
+    @settings(max_examples=50, deadline=None)
+    def test_override_propagates_through_derivation(self, mass_val, location,
+                                                    property_world):
+        """Override mass feeds into F=ma. The derived force must use it.
+
+        g_earth=9.807, g_moon=1.625. For any mass override m, force = m * g.
+        """
+        result = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": location},
+            overrides={"mass": mass_val},
+        )
+        force = result.values["force"]
+        assert force["status"] == "derived", (
+            f"Expected derived, got {force['status']}"
+        )
+        g = 9.807 if location == "earth" else 1.625
+        expected = mass_val * g
+        assert abs(force["value"] - expected) < 1e-6 * (1 + abs(expected)), (
+            f"F={force['value']} != m*g={mass_val}*{g}={expected}"
+        )
+
+
+class TestBindingIsolation:
+    """Claims conditional on binding X=v1 must not be active when X=v2."""
+
+    @given(data=st.data())
+    @settings(max_examples=30, deadline=None)
+    def test_binding_isolation(self, data, property_world):
+        """Earth claims inactive on Moon and vice versa.
+
+        g_earth is conditional on location=earth, g_moon on location=moon.
+        When we bind location=earth and override mass, the derived force
+        must use g_earth (9.807), never g_moon (1.625), and vice versa.
+        """
+        location = data.draw(st.sampled_from(_LOCATIONS), label="location")
+        mass_val = data.draw(
+            st.floats(min_value=0.1, max_value=1e4,
+                       allow_nan=False, allow_infinity=False),
+            label="mass",
+        )
+
+        result = _run(
+            property_world,
+            targets=["force"],
+            bindings={"location": location},
+            overrides={"mass": mass_val},
+        )
+
+        force = result.values["force"]
+        assert force["status"] == "derived"
+
+        if location == "earth":
+            expected_g = 9.807
+            wrong_claim = "g_moon"
+        else:
+            expected_g = 1.625
+            wrong_claim = "g_earth"
+
+        expected_force = mass_val * expected_g
+        assert abs(force["value"] - expected_force) < 1e-6 * (1 + abs(expected_force)), (
+            f"Binding location={location} but force={force['value']} "
+            f"doesn't match m*g={mass_val}*{expected_g}={expected_force}"
+        )
+
+        # The wrong-location claim must NOT appear in dependencies
+        assert wrong_claim not in result.dependencies["claims"], (
+            f"{wrong_claim} leaked into dependencies with location={location}"
+        )
