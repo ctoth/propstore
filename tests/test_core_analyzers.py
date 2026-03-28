@@ -7,7 +7,7 @@ import pytest
 from propstore.argumentation import build_praf, compute_claim_graph_justified_claims
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph, RelationEdge
 from propstore.praf import compute_praf_acceptance
-from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
+from tests.conftest import create_argumentation_schema, insert_claim, insert_conflict, insert_stance
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 
 
@@ -229,3 +229,91 @@ def test_shared_projection_is_independent_of_active_claim_id_order() -> None:
     )
 
     assert forward_result.projection == reverse_result.projection
+
+
+class TestConflictStanceSynthesis:
+    """Regression: conflicts must not be suppressed when policy says to include them."""
+
+    def test_conflict_visible_despite_existing_stances(
+        self, conn: sqlite3.Connection
+    ) -> None:
+        """When include_conflict_stances=True, a conflict between A and C
+        should produce synthetic rebuts stances even if A already has a
+        support stance to B.
+
+        Bug: analyzers.py:302-304 skips conflicts when either claim has
+        any existing stance, violating non-commitment discipline.
+        """
+        # claim A, B, C all on the same concept so conflicts are meaningful
+        _insert_claim(conn, "cA", "temp", 100.0, sample_size=50)
+        _insert_claim(conn, "cB", "temp", 200.0, sample_size=50)
+        _insert_claim(conn, "cC", "temp", 300.0, sample_size=50)
+        # A supports B — an explicit stance
+        _insert_stance(conn, "cA", "cB", "supports")
+        # Conflict between A and C (detected, no explicit stance)
+        insert_conflict(
+            conn,
+            concept_id="temp",
+            claim_a_id="cA",
+            claim_b_id="cC",
+            warning_class="CONFLICT",
+        )
+        conn.commit()
+
+        from propstore.core.analyzers import shared_analyzer_input_from_store
+
+        store = SQLiteArgumentationStore(conn)
+        shared = shared_analyzer_input_from_store(
+            store,
+            {"cA", "cB", "cC"},
+            include_conflict_stances=True,
+        )
+
+        # The synthetic rebuts stances between A and C must exist
+        synthetic_pairs = {
+            (s["claim_id"], s["target_claim_id"])
+            for s in shared.stance_rows
+            if s["stance_type"] == "rebuts"
+        }
+        assert ("cA", "cC") in synthetic_pairs, (
+            "Conflict A↔C should produce synthetic rebuts A→C"
+        )
+        assert ("cC", "cA") in synthetic_pairs, (
+            "Conflict A↔C should produce synthetic rebuts C→A"
+        )
+
+    def test_default_preserves_suppression(
+        self, conn: sqlite3.Connection
+    ) -> None:
+        """Default (include_conflict_stances=False) preserves the old
+        suppression behavior for backward compatibility."""
+        _insert_claim(conn, "cA", "temp", 100.0, sample_size=50)
+        _insert_claim(conn, "cB", "temp", 200.0, sample_size=50)
+        _insert_claim(conn, "cC", "temp", 300.0, sample_size=50)
+        _insert_stance(conn, "cA", "cB", "supports")
+        insert_conflict(
+            conn,
+            concept_id="temp",
+            claim_a_id="cA",
+            claim_b_id="cC",
+            warning_class="CONFLICT",
+        )
+        conn.commit()
+
+        from propstore.core.analyzers import shared_analyzer_input_from_store
+
+        store = SQLiteArgumentationStore(conn)
+        # Default — no include_conflict_stances kwarg
+        shared = shared_analyzer_input_from_store(
+            store,
+            {"cA", "cB", "cC"},
+        )
+
+        synthetic_pairs = {
+            (s["claim_id"], s["target_claim_id"])
+            for s in shared.stance_rows
+            if s["stance_type"] == "rebuts"
+        }
+        # Old behavior: conflict suppressed because cA has a stance
+        assert ("cA", "cC") not in synthetic_pairs
+        assert ("cC", "cA") not in synthetic_pairs

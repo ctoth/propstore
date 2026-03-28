@@ -204,6 +204,11 @@ class RenderPolicy:
     praf_mc_confidence: float = 0.95  # MC confidence level
     praf_treewidth_cutoff: int = 12  # max treewidth for exact DP (Popescu 2024, p.8)
     praf_mc_seed: int | None = None  # RNG seed (None = random)
+    # When True, conflict-detected claim pairs produce synthetic rebuts stances
+    # even if the claims already participate in other stance relationships.
+    # Default False preserves legacy suppression behavior; True is the principled
+    # non-commitment choice (render-time policy, not build-time filter).
+    include_conflict_stances: bool = False
     future_queryables: tuple[str, ...] = field(default_factory=tuple)
     future_limit: int | None = None
     overrides: Mapping[str, str] = field(default_factory=dict)
@@ -283,6 +288,7 @@ class RenderPolicy:
                 if data.get("praf_mc_seed") is None
                 else int(data["praf_mc_seed"])
             ),
+            include_conflict_stances=bool(data.get("include_conflict_stances", False)),
             future_queryables=tuple(data.get("future_queryables") or ()),
             future_limit=(
                 None
@@ -319,6 +325,8 @@ class RenderPolicy:
             data["praf_treewidth_cutoff"] = self.praf_treewidth_cutoff
         if self.praf_mc_seed is not None:
             data["praf_mc_seed"] = self.praf_mc_seed
+        if self.include_conflict_stances:
+            data["include_conflict_stances"] = self.include_conflict_stances
         if self.future_queryables:
             data["future_queryables"] = list(self.future_queryables)
         if self.future_limit is not None:

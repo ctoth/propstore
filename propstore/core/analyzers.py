@@ -248,6 +248,7 @@ def _collect_claim_graph_relations(
     active_graph: ActiveWorldGraph,
     *,
     comparison: str,
+    include_conflict_stances: bool = False,
 ) -> tuple[dict[str, dict], tuple[dict, ...], ClaimGraphRelations]:
     from propstore.praf import p_relation_from_stance
 
@@ -300,7 +301,9 @@ def _collect_claim_graph_relations(
                     }
                 )
             continue
-        if left_id in claims_with_stances or right_id in claims_with_stances:
+        if not include_conflict_stances and (
+            left_id in claims_with_stances or right_id in claims_with_stances
+        ):
             continue
         for source_id, target_id in ((left_id, right_id), (right_id, left_id)):
             stances.append(
@@ -400,10 +403,12 @@ def shared_analyzer_input_from_active_graph(
     active_graph: ActiveWorldGraph,
     *,
     comparison: str = "elitist",
+    include_conflict_stances: bool = False,
 ) -> SharedAnalyzerInput:
     claims_by_id, stance_rows, relations = _collect_claim_graph_relations(
         active_graph,
         comparison=comparison,
+        include_conflict_stances=include_conflict_stances,
     )
     defeats = set(relations.direct_defeats)
     if relations.supports and relations.direct_defeats:
@@ -434,10 +439,12 @@ def shared_analyzer_input_from_store(
     active_claim_ids: set[str],
     *,
     comparison: str = "elitist",
+    include_conflict_stances: bool = False,
 ) -> SharedAnalyzerInput:
     return shared_analyzer_input_from_active_graph(
         _active_graph_from_store(store, active_claim_ids),
         comparison=comparison,
+        include_conflict_stances=include_conflict_stances,
     )
 
 
