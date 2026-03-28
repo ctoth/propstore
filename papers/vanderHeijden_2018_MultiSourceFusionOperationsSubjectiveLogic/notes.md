@@ -192,3 +192,26 @@ This paper is **directly relevant** to propstore's subjective logic implementati
 - Josang & McAnally 2004: Multiplication and comultiplication of beliefs *(p.8, ref [11])*
 - Ivanovska et al. 2015: Subjective logic extensions *(p.8, ref [10])*
 - Kaplan et al. 2001: Sensor fusion in distributed systems *(p.8, ref [12])*
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Josang_2001_LogicUncertainProbabilities]] — foundational subjective logic paper defining opinion algebra, consensus fusion operator, projected probability; this paper extends and corrects fusion for multi-source case
+- [[Josang_2010_CumulativeAveragingFusionBeliefs]] — introduces CBF and ABF operators; this paper corrects its base rate formulas for multi-source case and provides direct N-source definitions
+- [[Shafer_1976_MathematicalTheoryEvidence]] — Dempster-Shafer foundations; BCF is a generalization of Dempster's combination rule to subjective logic
+- [[Sensoy_2018_EvidentialDeepLearningQuantifyClassification]] — uses Dirichlet-based uncertainty with evidence-to-opinion mapping; this paper's Dirichlet HPD bijection formalizes the same mapping
+- [[Denoeux_2018_Decision-MakingBeliefFunctionsReview]] — belief function decision theory; related via Dempster-Shafer combination rule that BCF generalizes
+
+### New Leads (Not Yet in Collection)
+- Jøsang 2016 (book): "Subjective Logic: A Formalism for Reasoning Under Uncertainty" — the comprehensive reference work, contains the formulas this paper corrects (Ch. 12)
+- Jøsang & McAnally 2004: "Multiplication and comultiplication of beliefs" — extended operators not yet implemented in propstore
+- Ivanovska et al. 2015: Subjective logic extensions for decision support
+
+### Supersedes or Recontextualizes
+- [[Josang_2010_CumulativeAveragingFusionBeliefs]] — this paper corrects base rate formulas in the multi-source CBF and ABF definitions from Josang 2010/2016; the original simple-averaged base rates are incorrect and should be replaced with confidence-weighted averaging
+
+### Conceptual Links (not citation-based)
+- [[Margoni_2024_SubjectiveLogicMetaAnalysis]] — uses WBF for multi-source opinion fusion in meta-analysis context; van der Heijden's corrected WBF formula and Dirichlet equivalence proof (Theorem 1) provide the theoretical foundation for Margoni's applied fusion pipeline
+
+### Cited By (in Collection)
+- (none found)

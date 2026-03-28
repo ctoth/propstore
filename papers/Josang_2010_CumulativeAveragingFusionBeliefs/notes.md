@@ -261,3 +261,7 @@ This paper defines multinomial subjective opinions — the extension from binary
 
 **Argumentation and evidence combination:**
 - [[Falkenhainer_1987_BeliefMaintenanceSystem]] — **Moderate.** The BMS propagates Dempster-Shafer belief masses through dependency networks. This paper's multinomial opinions are a constrained form of DS masses; the BMS's propagation mechanisms could be adapted for multinomial opinion networks.
+
+---
+
+**See also:** [[vanderHeijden_2018_MultiSourceFusionOperationsSubjectiveLogic]] - Corrects this paper's multi-source CBF and ABF base rate formulas (confidence-weighted averaging instead of simple averaging), and provides direct N-source definitions for all five fusion operators.
