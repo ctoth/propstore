@@ -1,0 +1,20 @@
+{
+  "title": "Predicting replicability—Analysis of survey and prediction market data from large-scale forecasting projects",
+  "authors": [
+    "Michael Gordon",
+    "Domenico Viganola",
+    "Anna Dreber",
+    "M. Johannesson",
+    "T. Pfeiffer"
+  ],
+  "year": "2021",
+  "arxiv_id": "2102.00517",
+  "doi": "10.1371/journal.pone.0248780",
+  "abstract": "The reproducibility of published research has become an important topic in science policy. A number of large-scale replication projects have been conducted to gauge the overall reproducibility in specific academic fields. Here, we present an analysis of data from four studies which sought to forecast the outcomes of replication projects in the social and behavioural sciences, using human experts who participated in prediction markets and answered surveys. Because the number of findings replicated and predicted in each individual study was small, pooling the data offers an opportunity to evaluate hypotheses regarding the performance of prediction markets and surveys at a higher power. In total, peer beliefs were elicited for the replication outcomes of 103 published findings. We find there is information within the scientific community about the replicability of scientific findings, and that both surveys and prediction markets can be used to elicit and aggregate this information. Our results show prediction markets can determine the outcomes of direct replications with 73% accuracy (n = 103). Both the prediction market prices, and the average survey responses are correlated with outcomes (0.581 and 0.564 respectively, both p < .001). We also found a significant relationship between p-values of the original findings and replication outcomes. The dataset is made available through the R package “pooledmaRket” and can be used to further study community beliefs towards replications outcomes as elicited in the surveys and prediction markets.",
+  "url": "https://www.semanticscholar.org/paper/61a4da8433b369367a3040fe2745641ce1fa76dd",
+  "pdf_url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0248780&type=printable",
+  "bibtex": "@Article{Gordon2021PredictingRO,\n author = {Michael Gordon and Domenico Viganola and Anna Dreber and M. Johannesson and T. Pfeiffer},\n booktitle = {PLoS ONE},\n journal = {PLoS ONE},\n title = {Predicting replicability—Analysis of survey and prediction market data from large-scale forecasting projects},\n volume = {16},\n year = {2021}\n}\n",
+  "venue": "PLoS ONE",
+  "venue_type": "journal",
+  "volume": "16"
+}
