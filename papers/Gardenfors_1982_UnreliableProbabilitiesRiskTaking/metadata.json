@@ -1,0 +1,18 @@
+{
+  "title": "Unreliable probabilities, risk taking, and decision making",
+  "authors": [
+    "P. Gärdenfors",
+    "N. Sahlin"
+  ],
+  "year": "1982",
+  "arxiv_id": null,
+  "doi": "10.1007/BF00486156",
+  "abstract": "Proposes a decision theory that replaces the strict Bayesian assumption of a unique subjective probability measure with a set of epistemically possible probability distributions plus a measure of epistemic reliability, yielding the MMEU criterion that generalizes both Bayesian expected utility and classical maximin.",
+  "url": "https://www.semanticscholar.org/paper/b725da870855529b2f4a81ed9329720558d30d54",
+  "pdf_url": "",
+  "bibtex": "@Article{Gärdenfors1982UnreliablePR,\n author = {P. Gärdenfors and N. Sahlin},\n booktitle = {Synthese},\n journal = {Synthese},\n pages = {361-386},\n title = {Unreliable probabilities, risk taking, and decision making},\n volume = {53},\n year = {1982}\n}\n",
+  "venue": "Synthese",
+  "venue_type": "journal",
+  "volume": "53",
+  "pages": "361-386"
+}

@@ -1,0 +1,4 @@
+---
+tags: [decision-theory, second-order-probability, epistemic-reliability, uncertainty, ambiguity]
+---
+Introduces epistemic reliability as a second-order measure over sets of epistemically possible probability distributions, yielding the MMEU (maximin expected utility) decision criterion that filters distributions by a desired reliability threshold before maximizing minimal expected utility. The paper resolves the Ellsberg paradox and Popper's paradox of ideal evidence, and shows MMEU generalizes both strict Bayesian expected utility and classical maximin as limiting cases. Directly relevant to propstore's uncertainty representation: the two-component belief model (distribution set + reliability measure) provides theoretical grounding for Subjective Logic's uncertainty parameter, the non-commitment discipline of maintaining rival probability estimates, and the relationship between second-order probability and evidential uncertainty.
