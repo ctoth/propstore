@@ -40,9 +40,14 @@ venv = ".venv"
 ast-equiv = { path = "../ast-equiv" }
 bridgman = { git = "https://github.com/ctoth/bridgman" }
 
+[tool.pytest.ini_options]
+timeout = 300
+timeout_method = "thread"
+
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "pytest-timeout>=2.3",
     "hypothesis>=6.0",
     "rope>=1.14.0",
 ]

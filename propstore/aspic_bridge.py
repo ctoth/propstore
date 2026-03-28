@@ -320,6 +320,9 @@ def build_preference_config(
     active_claims: list[dict],
     literals: dict[str, Literal],
     defeasible_rules: frozenset[Rule],
+    *,
+    comparison: str = "elitist",
+    link: str = "last",
 ) -> PreferenceConfig:
     """Build preference orderings from claim metadata.
 
@@ -361,8 +364,8 @@ def build_preference_config(
     return PreferenceConfig(
         rule_order=frozenset(),
         premise_order=premise_order_closed,
-        comparison="elitist",
-        link="last",
+        comparison=comparison,
+        link=link,
     )
 
 
@@ -417,6 +420,9 @@ def build_bridge_csaf(
     active_claims: list[dict],
     justifications: list[CanonicalJustification],
     stances: list[dict],
+    *,
+    comparison: str = "elitist",
+    link: str = "last",
 ) -> CSAF:
     """Build a complete CSAF from a claim graph.
 
@@ -456,7 +462,7 @@ def build_bridge_csaf(
     language = _build_language(lits, closed_strict, defeasible_rules, kb)
 
     # T5: preferences
-    pref = build_preference_config(active_claims, lits, defeasible_rules)
+    pref = build_preference_config(active_claims, lits, defeasible_rules, comparison=comparison, link=link)
 
     # Build ArgumentationSystem
     system = ArgumentationSystem(
@@ -758,7 +764,7 @@ def build_aspic_projection(
     )
 
     # T6: build the full CSAF via the bridge
-    csaf = build_bridge_csaf(active_claims, justifications, stance_rows)
+    csaf = build_bridge_csaf(active_claims, justifications, stance_rows, comparison=comparison, link=link)
 
     # T7: project back to StructuredProjection
     return csaf_to_projection(csaf, active_claims, support_metadata=support_metadata)

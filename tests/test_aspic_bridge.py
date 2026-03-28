@@ -1259,3 +1259,43 @@ class TestCutover:
             f"but it was called {len(calls)} times. "
             f"build_structured_projection is not delegating to the ASPIC bridge."
         )
+
+
+class TestComparisonLinkThreading:
+    """Regression: comparison/link params must reach PreferenceConfig."""
+
+    def test_democratic_weakest_reaches_preference_config(self):
+        """build_bridge_csaf with comparison='democratic', link='weakest'
+        must produce a CSAF whose PreferenceConfig reflects those values.
+
+        Bug: aspic_bridge.py hardcodes elitist/last in build_preference_config,
+        ignoring the caller's requested comparison/link.
+        """
+        claims = [_make_claim("cmp_A"), _make_claim("cmp_B")]
+        justifications = [
+            CanonicalJustification(
+                justification_id="reported:cmp_A",
+                conclusion_claim_id="cmp_A",
+                rule_kind="reported_claim",
+            ),
+            CanonicalJustification(
+                justification_id="reported:cmp_B",
+                conclusion_claim_id="cmp_B",
+                rule_kind="reported_claim",
+            ),
+        ]
+        stances: list[dict] = []
+
+        csaf = build_bridge_csaf(
+            claims, justifications, stances,
+            comparison="democratic", link="weakest",
+        )
+
+        assert csaf.pref.comparison == "democratic", (
+            f"Expected comparison='democratic', got '{csaf.pref.comparison}'. "
+            f"build_preference_config hardcodes 'elitist' instead of threading the param."
+        )
+        assert csaf.pref.link == "weakest", (
+            f"Expected link='weakest', got '{csaf.pref.link}'. "
+            f"build_preference_config hardcodes 'last' instead of threading the param."
+        )
