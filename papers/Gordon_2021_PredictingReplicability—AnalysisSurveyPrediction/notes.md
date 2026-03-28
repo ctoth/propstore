@@ -211,8 +211,10 @@ This paper provides empirical calibration data for how well human forecasters an
 ### Cited By (in Collection)
 - [[Errington_2021_InvestigatingReplicabilityPreclinicalCancer]] — cites Gordon et al. 2021 in reference list (ref 23) as related forecasting study
 
+### Now in Collection (previously listed as leads)
+- [[Yang_2020_EstimatingDeepReplicabilityScientific]] — Trains word2vec + logistic regression on paper abstracts to predict replication, achieving 0.65-0.78 accuracy across out-of-sample datasets. Key finding: narrative text features outperform reported statistics for predicting replication. Comparable accuracy to prediction markets but far more scalable.
+
 ### New Leads (Not Yet in Collection)
-- Yang, Youyou & Uzzi (2020) — "Estimating the deep replicability of scientific findings using human and AI" — extends forecasting with machine learning
 - Altmejd, Dreber, Forsell et al. (2019) — "Predicting the replicability of social science lab experiments" — predecessor with Forsell as coauthor
 - Pawel & Held (2020) — "Probabilistic forecasting of replication studies" — Bayesian approach to replication forecasting
 - Benjamin et al. (2018) — "Redefine statistical significance" — proposes p < 0.005 threshold validated here

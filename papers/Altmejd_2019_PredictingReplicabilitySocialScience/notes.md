@@ -185,7 +185,10 @@ This paper is directly relevant to propstore's probabilistic argumentation and b
 - Dreber et al. (2015) — "Using Prediction Markets to Estimate the Reproducibility of Scientific Research" — prediction market methodology for RPP, direct comparison baseline
 - Forsell et al. (2018) — "Prediction markets and surveys for EERP" — extends prediction market approach to economics experiments
 - Ioannidis (2005) — "Why Most Published Research Findings Are False" — foundational theoretical model for base rate replication failure
-- Yang et al. (2020) — "Estimating the Deep Replicability of Scientific Findings Using Human and Artificial Intelligence" — direct successor combining human and AI predictions
+- Yang et al. (2020) — "Estimating the Deep Replicability of Scientific Findings Using Human and Artificial Intelligence" — direct successor combining human and AI predictions → NOW IN COLLECTION: [[Yang_2020_EstimatingDeepReplicabilityScientific]]
+
+### Now in Collection (previously listed as leads)
+- [[Yang_2020_EstimatingDeepReplicabilityScientific]] — Trains word2vec + logistic regression on paper abstracts to predict replication (0.65-0.78 accuracy). Extends Altmejd's statistical-feature approach by showing narrative text outperforms reported statistics. Uses the same RPP/ML1/ML2 training data and SSRP/Camerer test sets.
 
 ### Cited By (in Collection)
 - (none found)
