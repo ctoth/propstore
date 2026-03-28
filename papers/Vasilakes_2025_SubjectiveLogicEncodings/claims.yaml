@@ -1,0 +1,205 @@
+source:
+  paper: Vasilakes_2025_SubjectiveLogicEncodings
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T22:07:06Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Annotation uncertainty decomposes into three independent sources: annotator reliability, annotator confidence, and inter-annotator disagreement."
+    concepts:
+      - multinomial_opinion
+      - multinomial_opinion_uncertainty
+      - trust_estimation
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 2
+      section: "Sources of Uncertainty in Annotation"
+      quote_fragment: "we view annotation uncertainty as a measurement process and break it down into three sources of uncertainty"
+
+  - id: claim2
+    type: observation
+    statement: "A subjective logic opinion is a triple (b, u, a) where b is a belief vector over K classes, u is scalar uncertainty, and a is a base rate vector, subject to the constraint that u + sum(b_k) = 1."
+    concepts:
+      - multinomial_opinion
+      - multinomial_opinion_belief_k
+      - multinomial_opinion_uncertainty
+      - binomial_opinion_base_rate
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 3
+      section: "Opinion Representation"
+      quote_fragment: "In SL, a subjective opinion regarding item i according to agent m over a domain of K possible events"
+
+  - id: claim3
+    type: equation
+    expression: "alpha_k = (b_{m,k}^(i) * K * w) / u_m^(i) + a_{m,k} * K"
+    sympy: "Eq(dirichlet_parameter_k, (multinomial_opinion_belief_k * K * W) / multinomial_opinion_uncertainty + binomial_opinion_base_rate * K)"
+    variables:
+      - symbol: "alpha_k"
+        concept: dirichlet_parameter_k
+        role: dependent
+      - symbol: "b_{m,k}"
+        concept: multinomial_opinion_belief_k
+        role: independent
+      - symbol: "u_m"
+        concept: multinomial_opinion_uncertainty
+        role: independent
+      - symbol: "a_{m,k}"
+        concept: binomial_opinion_base_rate
+        role: independent
+      - symbol: "K"
+        concept: base_rate_k
+        role: independent
+      - symbol: "w"
+        concept: dirichlet_strength
+        role: independent
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 3
+      section: "Opinion Representation"
+      quote_fragment: "SL opinions can be reparameterized as Dirichlet distributions, and the mapping to Dirichlet parameters is"
+
+  - id: claim4
+    type: mechanism
+    statement: "Cumulative belief fusion aggregates multiple annotator opinions by treating each annotation as independent evidence, monotonically reducing uncertainty as more opinions are fused, converging to a categorical distribution when annotators agree."
+    concepts:
+      - multinomial_opinion
+      - multinomial_opinion_uncertainty
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 3
+      section: "Combining Opinions"
+      quote_fragment: "Cumulative fusion reduces the uncertainty u by contributing evidence. This means that as more opinions are fused, the uncertainty tends towards zero"
+
+  - id: claim5
+    type: mechanism
+    statement: "Trust discounting increases the uncertainty of an opinion proportionally to an independent assessment of the annotator's reliability, allowing per-source reliability weighting before fusion."
+    concepts:
+      - multinomial_opinion
+      - multinomial_opinion_uncertainty
+      - trust_estimation
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 3
+      section: "Combining Opinions"
+      quote_fragment: "The trust discounting operator increases the uncertainty of an opinion according to a separate opinion of the reliability of that annotator"
+
+  - id: claim6
+    type: observation
+    statement: "SLEs are a strict generalization of both one-hot (hard) and soft (frequency-based) label encodings: when all annotators agree with perfect confidence and reliability, SLEs reduce to one-hot targets."
+    concepts:
+      - multinomial_opinion
+      - dirichlet_distribution
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 4
+      section: "Constructing SLEs"
+      quote_fragment: "In the case where there is no information regarding reliability (c_m = 1) or uncertainty (u_m = 0), this process results in a dogmatic opinion"
+
+  - id: claim7
+    type: mechanism
+    statement: "Training neural networks to predict Dirichlet distributions via KL divergence loss is equivalent to the Malinin & Gales (2019) Prior Network loss, enabling the network to output both class predictions and predictive uncertainty from the same Dirichlet parameters."
+    concepts:
+      - dirichlet_distribution
+      - dirichlet_parameter_k
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 7
+      section: "Model Estimation"
+      quote_fragment: "which is essentially the same loss function proposed by Malinin & Gales (2019), without the additional KL term for out-of-distribution detection"
+
+  - id: claim8
+    type: comparison
+    statement: "Unlike soft voting which conflates annotator reliability with confidence, and unlike CrowdTruth which can only learn from reliability, SLEs incorporate all three sources of annotation uncertainty (confidence, reliability, disagreement) without requiring changes to model architecture beyond the output layer."
+    concepts:
+      - multinomial_opinion
+      - trust_estimation
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 9
+      section: "Results"
+      quote_fragment: "SLEs, on the other hand, are able to incorporate all three sources of annotation uncertainty and do so without large changes to the model architecture"
+
+  - id: claim9
+    type: observation
+    statement: "SLEs consistently outperform majority voting and soft voting on Jensen-Shannon Divergence and Normalized Entropy Score metrics when annotator confidence and reliability information is available."
+    concepts:
+      - multinomial_opinion
+      - dirichlet_distribution
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 5
+      section: "Evaluation"
+      quote_fragment: "SLEs are better able to recover the true distribution from crowd annotations"
+
+  - id: claim10
+    type: observation
+    statement: "The difference in JSD and NES between filtered and unfiltered SLEs is much smaller than for majority voting and soft voting, indicating SLEs are more robust to noisy annotations."
+    concepts:
+      - multinomial_opinion
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 5
+      section: "Evaluation"
+      quote_fragment: "the difference in JSD and NES between unfiltered and filtered SLEs is much less than MV and Soft"
+
+  - id: claim11
+    type: mechanism
+    statement: "Reverse KL divergence is preferred over forward KL for Dirichlet target distributions because forward KL produces overly spread distributions when targets are sparse near-flat distributions, while reverse KL concentrates probability mass more accurately."
+    concepts:
+      - dirichlet_distribution
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 7
+      section: "Model Estimation"
+      quote_fragment: "reverse KL divergence produces Q_k much less than P is very small, which results in Q that covers a majority of the space"
+
+  - id: claim12
+    type: observation
+    statement: "The base rate (prior probability vector) in SL opinions can be learned as a model parameter rather than fixed at 1/K, enabling task-specific priors to emerge from training data."
+    concepts:
+      - binomial_opinion_base_rate
+      - dirichlet_prior
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 7
+      section: "Learning SLEs"
+      quote_fragment: "we propose to do here: develop a Dirichlet latent variable model, trained using variational inference"
+
+  - id: claim13
+    type: limitation
+    statement: "SLEs require annotator-level metadata (confidence scores and reliability estimates) to fully exploit all three uncertainty dimensions; when only raw labels are available, SLEs reduce to soft voting behavior."
+    concepts:
+      - multinomial_opinion
+      - trust_estimation
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 9
+      section: "Results"
+      quote_fragment: "CE and KL tend to outperform all other methods, although SLEs perform best on datasets that contain more sources of uncertainty"
+
+  - id: claim14
+    type: limitation
+    statement: "The KL divergence objective can be poorly suited to optimization when target Dirichlet distributions are near-dogmatic, requiring belief mass smoothing (redistributing epsilon to the uncertainty parameter) as a workaround."
+    concepts:
+      - dirichlet_distribution
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 7
+      section: "Model Estimation"
+      quote_fragment: "KL divergence error surface is poorly suited to optimization when target distributions are sparse"
+
+  - id: claim15
+    type: comparison
+    statement: "Unlike Sensoy et al. (2018) which models prediction uncertainty given gold-standard labels, SLEs learn from annotation uncertainty by encoding it directly into training targets as Dirichlet distributions."
+    concepts:
+      - dirichlet_distribution
+      - multinomial_opinion
+    provenance:
+      paper: Vasilakes_2025_SubjectiveLogicEncodings
+      page: 6
+      section: "Dirichlet Neural Networks"
+      quote_fragment: "Sensoy et al. (2018) propose a Dirichlet neural network for modeling prediction uncertainty that is related to but separate from our work"
