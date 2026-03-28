@@ -1198,3 +1198,59 @@ class TestAspicBackendIntegration:
         assert "Backend: aspic" in result.output
         assert "Accepted (1 claims):" in result.output
         assert "target_a: target = 1.0" in result.output
+
+
+# ── Phase 5: Cutover — build_structured_projection delegates to ASPIC bridge ─
+
+
+class TestCutover:
+    """Phase 5: verify that build_structured_projection delegates to build_aspic_projection."""
+
+    def test_structured_projection_delegates_to_aspic(self):
+        """Baseline: build_structured_projection returns a StructuredProjection.
+
+        This test should pass both before and after cutover — it establishes
+        that the function signature and return type are stable.
+        """
+        from propstore.structured_argument import build_structured_projection
+
+        claims = [_make_claim("baseline_A"), _make_claim("baseline_B")]
+        store = _MiniStore(claims=claims)
+        projection = build_structured_projection(store, claims)
+
+        assert isinstance(projection, StructuredProjection)
+        assert len(projection.arguments) >= 2  # at least one arg per claim
+        assert isinstance(projection.framework, ArgumentationFramework)
+
+    def test_structured_projection_backend_uses_aspic_engine(self, monkeypatch):
+        """Prove delegation: build_structured_projection calls build_bridge_csaf.
+
+        Before cutover, structured_argument.py has its own construction logic
+        and never calls build_bridge_csaf — this test FAILS (RED).
+
+        After cutover, build_structured_projection delegates to
+        build_aspic_projection which calls build_bridge_csaf — this test PASSES.
+        """
+        from propstore.structured_argument import build_structured_projection
+
+        calls = []
+        original_build_bridge_csaf = build_bridge_csaf
+
+        def tracking_build_bridge_csaf(*args, **kwargs):
+            calls.append(args)
+            return original_build_bridge_csaf(*args, **kwargs)
+
+        monkeypatch.setattr(
+            "propstore.aspic_bridge.build_bridge_csaf",
+            tracking_build_bridge_csaf,
+        )
+
+        claims = [_make_claim("delegation_A"), _make_claim("delegation_B")]
+        store = _MiniStore(claims=claims)
+        build_structured_projection(store, claims)
+
+        assert len(calls) == 1, (
+            f"Expected build_bridge_csaf to be called exactly once, "
+            f"but it was called {len(calls)} times. "
+            f"build_structured_projection is not delegating to the ASPIC bridge."
+        )
