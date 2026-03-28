@@ -605,3 +605,85 @@ class TestOpinionOrdering:
     @settings(max_examples=200, deadline=None)
     def test_reflexive(self, a):
         assert a <= a
+
+
+# ── Phase 8B: Additional Hypothesis property tests ───────────────
+
+
+class TestConsensusAssociativityProperty:
+    """Hypothesis property test for consensus associativity."""
+
+    @given(valid_opinions(), valid_opinions(), valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_consensus_associative(self, a, b, c):
+        """consensus(a, consensus(b, c)) ≈ consensus(consensus(a, b), c)"""
+        # Skip when any pair would be two dogmatic opinions (u=0 for both)
+        # because consensus is undefined for that case
+        # (valid_opinions strategy already ensures u >= 0.01, but guard anyway)
+        assume(a.u > 1e-6 and b.u > 1e-6 and c.u > 1e-6)
+        ab_c = consensus_pair(consensus_pair(a, b), c)
+        a_bc = consensus_pair(a, consensus_pair(b, c))
+        assert abs(ab_c.b - a_bc.b) < 1e-6, f"b: {ab_c.b} vs {a_bc.b}"
+        assert abs(ab_c.d - a_bc.d) < 1e-6, f"d: {ab_c.d} vs {a_bc.d}"
+        assert abs(ab_c.u - a_bc.u) < 1e-6, f"u: {ab_c.u} vs {a_bc.u}"
+
+
+class TestConjunctionPreservesSum:
+    """Conjunction must preserve b + d + u = 1."""
+
+    @given(valid_opinions(), valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_conjunction_preserves_sum(self, a, b):
+        result = a & b
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-9
+
+
+class TestDisjunctionPreservesSum:
+    """Disjunction must preserve b + d + u = 1."""
+
+    @given(valid_opinions(), valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_disjunction_preserves_sum(self, a, b):
+        result = a | b
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-9
+
+
+class TestNegationInvolutionProperty:
+    """Negation involution: ~~op ≈ op for all valid opinions."""
+
+    @given(valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_negation_involution(self, op):
+        """~~op ≈ op"""
+        result = ~~op
+        assert abs(result.b - op.b) < 1e-9
+        assert abs(result.d - op.d) < 1e-9
+        assert abs(result.u - op.u) < 1e-9
+        assert abs(result.a - op.a) < 1e-9
+
+
+class TestBetaEvidenceRoundTripProperty:
+    """Round-trip Opinion -> BetaEvidence -> Opinion for non-dogmatic opinions."""
+
+    @given(valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_beta_evidence_round_trip(self, op):
+        """op.to_beta_evidence().to_opinion() ≈ op (when u > 0)"""
+        assume(op.u > 1e-6)  # dogmatic opinions can't round-trip
+        evidence = op.to_beta_evidence()
+        restored = evidence.to_opinion()
+        assert abs(restored.b - op.b) < 1e-6
+        assert abs(restored.d - op.d) < 1e-6
+        assert abs(restored.u - op.u) < 1e-6
+
+
+class TestDiscountVacuousTrustProperty:
+    """Discounting with vacuous trust yields vacuous result."""
+
+    @given(valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_discount_vacuous_trust_yields_vacuous(self, op):
+        """Discounting with vacuous trust yields vacuous result."""
+        vacuous_trust = Opinion.vacuous(0.5)
+        result = discount(vacuous_trust, op)
+        assert abs(result.u - 1.0) < 1e-9
