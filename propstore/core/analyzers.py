@@ -42,6 +42,7 @@ _ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
 _UNCONDITIONAL_TYPES = frozenset({"undercuts", "supersedes"})
 _PREFERENCE_TYPES = frozenset({"rebuts", "undermines"})
 _SUPPORT_TYPES = frozenset({"supports", "explains"})
+_NON_ATTACK_TYPES = frozenset({"supports", "explains", "none"})
 _GRAPH_RELATION_TYPES = _ATTACK_TYPES | _SUPPORT_TYPES
 _REAL_CONFLICT_CLASSES = frozenset({"CONFLICT", "OVERLAP", "PARAM_CONFLICT"})
 

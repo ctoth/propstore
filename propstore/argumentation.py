@@ -12,6 +12,11 @@ from pathlib import Path
 
 from propstore.bipolar import BipolarArgumentationFramework, cayrol_derived_defeats as _cayrol_derived_defeats_impl
 from propstore.core.analyzers import (
+    _ATTACK_TYPES,
+    _NON_ATTACK_TYPES,
+    _PREFERENCE_TYPES,
+    _SUPPORT_TYPES,
+    _UNCONDITIONAL_TYPES,
     analyze_claim_graph,
     build_praf_from_shared_input,
     shared_analyzer_input_from_store,
@@ -19,12 +24,6 @@ from propstore.core.analyzers import (
 from propstore.dung import ArgumentationFramework
 from propstore.preference import claim_strength, defeat_holds
 from propstore.world.types import ArtifactStore
-
-_ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
-_UNCONDITIONAL_TYPES = frozenset({"undercuts", "supersedes"})
-_PREFERENCE_TYPES = frozenset({"rebuts", "undermines"})
-_SUPPORT_TYPES = frozenset({"supports", "explains"})
-_NON_ATTACK_TYPES = frozenset({"supports", "explains", "none"})
 
 
 def _transitive_support_targets(
