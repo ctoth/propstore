@@ -206,3 +206,19 @@ This paper provides empirical base rates for replication in economics — critic
 - Ioannidis (2005). "Why most published research findings are false." PLOS Medicine 2, e124. — Foundational paper on publication bias and false findings *(p.25)*
 - Cumming (2008). "Replication and p intervals: p values predict the future only vaguely, but confidence intervals do much better." Perspect. Psychol. Sci. 3, 286-300. *(p.25)*
 - Simonsohn (2015). "Small telescopes: Detectability and the evaluation of replication results." Psychol. Sci. 26, 559-569. *(p.25)*
+
+## Collection Cross-References
+
+### Papers in collection cited by this paper
+- **Aarts_2015_EstimatingReproducibilityPsychologicalScience** — Cited as ref 19 (Open Science Collaboration 2015). The psychology replication project (RPP) that directly motivated this economics replication study. Camerer et al. compare their 61% replication rate to RPP's 36%.
+- **Begley_2012_DrugDevelopmentRaiseStandards** — Cited as ref 4 (Begley & Ellis 2012). Motivating context for the replication crisis in preclinical cancer research.
+- **Guo_2017_CalibrationModernNeuralNetworks** — Not directly cited, but methodologically related through calibration concepts.
+
+### Collection papers that cite or follow up on this paper
+- **Camerer_2018_EvaluatingReplicabilitySocialScience** — Follow-up study by same lead author extending replication methodology to social science experiments published in Nature and Science.
+- **Errington_2021_InvestigatingReplicabilityPreclinicalCancer** — Related replication effort in preclinical cancer biology.
+
+### New Leads
+- Dreber et al. (2015). "Using prediction markets to estimate the reproducibility of scientific research." PNAS 112, 15343-15347. DOI: 10.1073/pnas.1516179112
+- Ioannidis (2005). "Why most published research findings are false." PLOS Medicine 2, e124. DOI: 10.1371/journal.pmed.0020124
+- Simonsohn (2015). "Small telescopes." Psychol. Sci. 26, 559-569. DOI: 10.1177/0956797614567341
