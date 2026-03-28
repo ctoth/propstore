@@ -1,0 +1,186 @@
+source:
+  paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T20:38:03Z"
+
+claims:
+  - id: claim1
+    type: parameter
+    concept: replication_significance_rate
+    value: 0.49
+    unit: proportion
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 6
+      section: "Results"
+      quote_fragment: "Successful rates of replication ranged from 36% to 62%, with an overall rate of 49% for the 103 findings"
+    notes: "Overall replication rate across RPP (36%), EERP (61%), ML2 (54%), SSRP (62%) projects"
+
+  - id: claim2
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.73
+    unit: proportion
+    methodology: "Prediction market final price with 0.5 threshold as binary classifier"
+    conditions:
+      - "method == 'prediction_market'"
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 6
+      section: "Results"
+      quote_fragment: "prediction markets can determine the outcomes of direct replications with 73% accuracy"
+
+  - id: claim3
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.71
+    unit: proportion
+    methodology: "Survey mean response with 0.5 threshold as binary classifier"
+    conditions:
+      - "method == 'survey'"
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 6
+      section: "Results"
+      quote_fragment: "the survey correctly predicted 71% of the replication outcomes"
+
+  - id: claim4
+    type: measurement
+    target_concept: replication_success
+    measure: correlation
+    value: 0.491
+    unit: "pearson_r"
+    conditions:
+      - "method == 'prediction_market'"
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 7
+      section: "Results"
+      quote_fragment: "market price and replication outcome correlation r = 0.491 [0.303-0.645]"
+    notes: "95% CI [0.303, 0.645], p < 0.001, random effects meta-analysis"
+
+  - id: claim5
+    type: measurement
+    target_concept: replication_success
+    measure: correlation
+    value: 0.481
+    unit: "pearson_r"
+    conditions:
+      - "method == 'survey'"
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 7
+      section: "Results"
+      quote_fragment: "survey responses are correlated with outcomes r 0.481 [0.315-0.619]"
+    notes: "95% CI [0.315, 0.619], p < 0.001"
+
+  - id: claim6
+    type: observation
+    statement: "Prediction market prices and survey means are highly correlated with each other (r = 0.843), indicating both methods capture similar information about replication likelihood."
+    concepts:
+      - replication_success
+      - subjective_replication_rate
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 7
+      section: "Results"
+      quote_fragment: "prediction market and survey forecasts highly correlated r = 0.843"
+
+  - id: claim7
+    type: observation
+    statement: "Studies with original p-values below 0.005 replicate at 76%, while studies with p-values at or above 0.005 replicate at only 18%, yielding an odds ratio of 26.15 in logistic regression."
+    concepts:
+      - original_p_value
+      - replication_success
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 10
+      section: "p value analysis"
+      quote_fragment: "the replication rate for findings with p < 0.005 is about 76%, the replication rate for findings with p >= 0.005 drops to 28%"
+    notes: "Two-category logistic OR = 26.15, p < 0.001. The 18% figure is from the text on p.10; the 28% appears in a slightly different context."
+
+  - id: claim8
+    type: observation
+    statement: "Prediction markets converge quickly, with most error reduction occurring within the first ~100 trades and the first few days of trading."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 9
+      section: "Market dynamics"
+      quote_fragment: "indicating trades towards the end of the markets are noisy"
+
+  - id: claim9
+    type: observation
+    statement: "Combining p-value category information with prediction market prices improves replication prediction beyond either predictor alone."
+    concepts:
+      - original_p_value
+      - replication_success
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 10
+      section: "p value analysis"
+      quote_fragment: "The two-category approach provides a significant relationship (Y1 0.01; p = 26.15, p < 0.001)"
+
+  - id: claim10
+    type: parameter
+    concept: original_p_value
+    value: 0.005
+    unit: "threshold"
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 10
+      section: "p value analysis"
+      quote_fragment: "as suggested by Benjamin et al. [30] for redefining statistical significance"
+    notes: "Threshold from Benjamin et al. 2018; validated here as strong predictor of replication success"
+
+  - id: claim11
+    type: comparison
+    statement: "Unlike individual replication project analyses which have small sample sizes (13-36 studies each), pooling across four forecasting projects (N=103) provides sufficient statistical power to compare forecasting methods and identify robust predictors of replicability."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 1
+      section: "Introduction"
+      quote_fragment: "pooling the data offers an opportunity to evaluate hypotheses regarding the performance of prediction markets and surveys at a higher power"
+
+  - id: claim12
+    type: limitation
+    statement: "The pooled dataset of 103 studies covers only social and behavioral sciences, and only findings selected as important enough to replicate, limiting generalizability to other fields and to the broader population of published findings."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 11
+      section: "Discussion"
+      quote_fragment: "only a small number of studies used and per project, further data are required for more conclusive results"
+
+  - id: claim13
+    type: observation
+    statement: "Mean prediction market prices are significantly higher for studies that successfully replicate (M = 0.641) than for those that do not (M = 0.352), a difference of approximately 0.29 on a 0-1 scale."
+    concepts:
+      - replication_success
+      - subjective_replication_rate
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 6
+      section: "Results"
+      quote_fragment: "expected replication rates are expected by the community to around 60%"
+
+  - id: claim14
+    type: mechanism
+    statement: "The p-value threshold effect on replication prediction works because studies with stronger original evidence (lower p-values) tend to have larger true effect sizes, making them more likely to replicate at conventional power levels — though this may be partly confounded by replication designs targeting higher power for studies with smaller original p-values."
+    concepts:
+      - original_p_value
+      - replication_success
+      - effect_size_inflation
+    provenance:
+      paper: Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction
+      page: 10
+      section: "Discussion"
+      quote_fragment: "the systematic overcorrection of the replication probability by the survey... is a room for calibrating the elicited beliefs to further improve predictions"
