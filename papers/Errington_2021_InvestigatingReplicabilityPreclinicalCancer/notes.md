@@ -4,8 +4,11 @@ authors: "Timothy M Errington, Maya Mathur, Courtney K Soderberg, Alexandria Den
 year: 2021
 venue: "eLife"
 doi_url: "https://doi.org/10.7554/eLife.71601"
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T20:23:09Z"
 ---
-
 # Investigating the replicability of preclinical cancer biology
 
 ## One-Sentence Summary
