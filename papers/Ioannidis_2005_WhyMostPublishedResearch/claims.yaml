@@ -1,0 +1,376 @@
+source:
+  paper: Ioannidis_2005_WhyMostPublishedResearch
+
+claims:
+  # --- Equation Claims ---
+
+  - id: claim1
+    type: equation
+    expression: "PPV = (1-β)R / [(1-β)R + α]"
+    sympy: "Eq(ppv, (1 - beta) * R / ((1 - beta) * R + alpha))"
+    variables:
+      - symbol: "PPV"
+        concept: positive_predictive_value
+        role: dependent
+      - symbol: "β"
+        concept: type_ii_error_rate
+        role: independent
+      - symbol: "R"
+        concept: pre_study_odds
+        role: independent
+      - symbol: "α"
+        concept: significance_threshold
+        role: independent
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 0
+      section: "Modeling the Framework for False Positive Findings"
+      quote_fragment: "PPV = (1-β)R / (R + α - βR)"
+
+  - id: claim2
+    type: equation
+    expression: "PPV_bias = [(1-β)R + uβR] / [(1-β)R + α + u - uα]"
+    sympy: "Eq(ppv, ((1 - beta) * R + u * beta * R) / ((1 - beta) * R + alpha + u - u * alpha))"
+    variables:
+      - symbol: "PPV"
+        concept: positive_predictive_value
+        role: dependent
+      - symbol: "β"
+        concept: type_ii_error_rate
+        role: independent
+      - symbol: "R"
+        concept: pre_study_odds
+        role: independent
+      - symbol: "α"
+        concept: significance_threshold
+        role: independent
+      - symbol: "u"
+        concept: research_bias
+        role: independent
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 1
+      section: "Modeling the Framework for False Positive Findings"
+      quote_fragment: "let u be the proportion of probed analyses that would not have been 'research findings' but nevertheless end up presented and reported as such"
+
+  - id: claim3
+    type: equation
+    expression: "PPV_n_teams = R(1 - β^n) / [R + 1 - (1-α)^n - Rβ^n]"
+    sympy: "Eq(ppv, R * (1 - beta**n) / (R + 1 - (1 - alpha)**n - R * beta**n))"
+    variables:
+      - symbol: "PPV"
+        concept: positive_predictive_value
+        role: dependent
+      - symbol: "R"
+        concept: pre_study_odds
+        role: independent
+      - symbol: "β"
+        concept: type_ii_error_rate
+        role: independent
+      - symbol: "α"
+        concept: significance_threshold
+        role: independent
+      - symbol: "n"
+        concept: competing_teams
+        role: independent
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 2
+      section: "Testing by Several Independent Teams"
+      quote_fragment: "several independent teams may be addressing the same sets of research questions"
+
+  # --- Model Claim ---
+
+  - id: claim4
+    type: model
+    name: "Ioannidis PPV Framework"
+    equations:
+      - "claim1"
+      - "claim2"
+      - "claim3"
+    parameters:
+      - name: pre_study_odds
+        concept: pre_study_odds
+        note: "Ratio of true to null relationships probed in a field; ranges from 1:1000 (exploratory) to 1:1 (confirmatory RCT)"
+      - name: statistical_power
+        concept: power_target
+        note: "1-β; conventionally 0.80 but often much lower in practice"
+      - name: significance_threshold
+        concept: significance_threshold
+        note: "α; conventionally 0.05"
+      - name: bias
+        concept: research_bias
+        note: "u; probability of declaring positive despite null, via data manipulation or selective reporting"
+      - name: competing_teams
+        concept: competing_teams
+        note: "n; number of independent teams pursuing same question"
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 0
+      section: "Modeling the Framework for False Positive Findings"
+
+  # --- Parameter Claims (Table 4 PPV values) ---
+
+  - id: claim5
+    type: parameter
+    concept: positive_predictive_value
+    value: 0.85
+    unit: "probability"
+    conditions:
+      - "pre_study_odds == '1:1'"
+      - "power == 0.80"
+      - "alpha == 0.05"
+      - "bias == 0.0"
+      - "study_design == 'adequately_powered_rct'"
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 4
+      table: "Table 4"
+      section: "Results"
+    notes: "Best-case scenario: well-designed confirmatory RCT"
+
+  - id: claim6
+    type: parameter
+    concept: positive_predictive_value
+    value: 0.23
+    unit: "probability"
+    conditions:
+      - "pre_study_odds == '1:3'"
+      - "power == 0.20"
+      - "alpha == 0.05"
+      - "bias == 0.0"
+      - "study_design == 'underpowered_rct'"
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 4
+      table: "Table 4"
+      section: "Results"
+    notes: "Underpowered but well-performed RCT"
+
+  - id: claim7
+    type: parameter
+    concept: positive_predictive_value
+    value: 0.0010
+    unit: "probability"
+    conditions:
+      - "pre_study_odds == '1:1000'"
+      - "power == 0.20"
+      - "alpha == 0.05"
+      - "bias == 0.0"
+      - "study_design == 'exploratory_discovery'"
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 4
+      table: "Table 4"
+      section: "Results"
+    notes: "Hypothesis-generating exploratory research (e.g., gene association, microarray)"
+
+  - id: claim8
+    type: parameter
+    concept: positive_predictive_value
+    value: 0.52
+    unit: "probability"
+    conditions:
+      - "pre_study_odds == '1:1'"
+      - "power == 0.80"
+      - "alpha == 0.05"
+      - "bias == 0.80"
+      - "study_design == 'adequately_powered_rct'"
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 4
+      table: "Table 4"
+      section: "Results"
+    notes: "Even the best study design barely exceeds 50% PPV under extreme bias"
+
+  # --- Observation Claims (Corollaries) ---
+
+  - id: claim9
+    type: observation
+    statement: "Research findings are less likely to be true when studies in a field are smaller, because smaller studies have lower statistical power."
+    concepts:
+      - positive_predictive_value
+      - power_target
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 2
+      section: "Corollary 1"
+      quote_fragment: "The smaller the studies conducted in a scientific field, the less likely the research findings are to be true"
+
+  - id: claim10
+    type: observation
+    statement: "Research findings are less likely to be true when effect sizes in a field are smaller, because detecting small effects requires larger studies that are rarely conducted."
+    concepts:
+      - positive_predictive_value
+      - effect_size_inflation
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 2
+      section: "Corollary 2"
+      quote_fragment: "The smaller the effect sizes in a scientific field, the less likely the research findings are to be true"
+
+  - id: claim11
+    type: observation
+    statement: "Research findings are less likely to be true when a greater number of relationships are tested with less pre-selection, because this lowers the pre-study odds R."
+    concepts:
+      - positive_predictive_value
+      - pre_study_odds
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 2
+      section: "Corollary 3"
+      quote_fragment: "The greater the number and the lesser the selection of tested relationships in a scientific field, the less likely the research findings are to be true"
+
+  - id: claim12
+    type: observation
+    statement: "Research findings are less likely to be true when there is greater flexibility in study designs, definitions, outcomes, and analytical modes, because this increases bias u."
+    concepts:
+      - positive_predictive_value
+      - research_bias
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 2
+      section: "Corollary 4"
+      quote_fragment: "The greater the flexibility in designs, definitions, outcomes, and analytical modes in a scientific field, the less likely the research findings are to be true"
+
+  - id: claim13
+    type: observation
+    statement: "Research findings are less likely to be true when financial interests and prejudices are stronger, because these increase bias u."
+    concepts:
+      - positive_predictive_value
+      - research_bias
+      - publication_bias
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 2
+      section: "Corollary 5"
+      quote_fragment: "The greater the financial and other interests and prejudices in a scientific field, the less likely the research findings are to be true"
+
+  - id: claim14
+    type: observation
+    statement: "Research findings are less likely to be true in hotter scientific fields with more competing teams, because the probability of at least one false positive grows as 1-(1-α)^n."
+    concepts:
+      - positive_predictive_value
+      - competing_teams
+      - false_positive_rate
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 2
+      section: "Corollary 6"
+      quote_fragment: "The hotter a scientific field (with more scientific teams involved), the less likely the research findings are to be true"
+
+  - id: claim15
+    type: observation
+    statement: "For a positive research finding to be more likely true than false (PPV > 50%), the condition (1-β)R > α must hold."
+    concepts:
+      - positive_predictive_value
+      - power_target
+      - pre_study_odds
+      - significance_threshold
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 0
+      section: "Modeling the Framework for False Positive Findings"
+      quote_fragment: "a research finding is more likely true than false if (1-β)R > α"
+
+  - id: claim16
+    type: observation
+    statement: "For most study designs and settings, it is more likely for a research claim to be false than true."
+    concepts:
+      - positive_predictive_value
+      - replication_success
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 0
+      section: "Abstract"
+      quote_fragment: "Simulations show that for most study designs and settings, it is more likely for a research claim to be false than true"
+
+  - id: claim17
+    type: observation
+    statement: "For many current scientific fields, claimed research findings may often be simply accurate measures of the prevailing bias rather than reflections of true relationships."
+    concepts:
+      - research_bias
+      - false_positives
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 0
+      section: "Abstract"
+      quote_fragment: "for many current scientific fields, claimed research findings may often be simply accurate measures of the prevailing bias"
+
+  # --- Mechanism Claims ---
+
+  - id: claim18
+    type: mechanism
+    statement: "The winner's curse operates in competitive research fields because the team that first reports a positive finding will have the most biased estimate: with n teams testing independently, the first significant result is selected from the tail of the distribution of estimates, inflating the reported effect size."
+    concepts:
+      - effect_size_inflation
+      - competing_teams
+      - false_positives
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 2
+      section: "Testing by Several Independent Teams"
+      quote_fragment: "the first positive claim...is more likely to be inflated compared with the true effect size"
+
+  - id: claim19
+    type: mechanism
+    statement: "Bias u converts nominally negative findings into positive ones through data manipulation, selective analysis, selective outcome reporting, or fabrication, effectively increasing the false positive rate beyond the nominal α level."
+    concepts:
+      - research_bias
+      - false_positive_rate
+      - publication_bias
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 1
+      section: "Modeling the Framework for False Positive Findings"
+      quote_fragment: "let u be the proportion of probed analyses that would not have been research findings but nevertheless end up presented and reported as such"
+
+  # --- Comparison Claims ---
+
+  - id: claim20
+    type: comparison
+    statement: "Unlike standard significance testing which treats each study in isolation, the PPV framework incorporates pre-study odds R, revealing that a p < 0.05 result from an exploratory study (R = 1:1000) has PPV ≈ 0.001 while the same threshold from a confirmatory RCT (R = 1:1) yields PPV ≈ 0.85."
+    concepts:
+      - positive_predictive_value
+      - significance_threshold
+      - pre_study_odds
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 4
+      section: "What Does the Framework Suggest?"
+      table: "Table 4"
+
+  # --- Limitation Claims ---
+
+  - id: claim21
+    type: limitation
+    statement: "The framework treats relationships as binary (exactly true or exactly null) with no spectrum of effect sizes, limiting its applicability to research where effect magnitudes matter."
+    concepts:
+      - positive_predictive_value
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 0
+      section: "Modeling the Framework for False Positive Findings"
+
+  - id: claim22
+    type: limitation
+    statement: "Pre-study odds R are inherently difficult to estimate for any individual study because it is usually impossible to decipher how much data dredging has occurred across the reporting authors and the broader field."
+    concepts:
+      - pre_study_odds
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 5
+      section: "Discussion"
+      quote_fragment: "usually it is impossible to decipher how much data dredging by the reporting authors or other research teams has preceded a reported research finding"
+
+  - id: claim23
+    type: limitation
+    statement: "Multiple testing corrections such as Bonferroni are usually inadequate because they cannot account for the unknown amount of testing done outside the reported study and across the relevant field."
+    concepts:
+      - significance_threshold
+      - false_positive_rate
+    provenance:
+      paper: Ioannidis_2005_WhyMostPublishedResearch
+      page: 2
+      section: "Corollaries"
+      quote_fragment: "it is not possible to know how many data dredging analyses have been done"
