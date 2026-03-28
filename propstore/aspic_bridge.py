@@ -40,11 +40,17 @@ from propstore.aspic import (
     top_rule,
     transposition_closure,
 )
-from propstore.core.justifications import CanonicalJustification
+from propstore.argumentation import _ATTACK_TYPES, _SUPPORT_TYPES
+from propstore.core.graph_types import ActiveWorldGraph
+from propstore.core.justifications import (
+    CanonicalJustification,
+    claim_justifications_from_active_graph,
+)
 from propstore.dung import ArgumentationFramework
 from propstore.preference import metadata_strength_vector, claim_strength
 from propstore.structured_argument import StructuredArgument, StructuredProjection
 from propstore.world.labelled import Label, SupportQuality
+from propstore.world.types import ArtifactStore
 
 Argument = PremiseArg | StrictArg | DefeasibleArg
 
@@ -482,6 +488,8 @@ def build_bridge_csaf(
 def csaf_to_projection(
     csaf: CSAF,
     active_claims: list[dict],
+    *,
+    support_metadata: dict[str, tuple[Label | None, SupportQuality]] | None = None,
 ) -> StructuredProjection:
     """Map a CSAF to a StructuredProjection for backward compatibility.
 
@@ -493,10 +501,14 @@ def csaf_to_projection(
     Args:
         csaf: A complete CSAF from T6.
         active_claims: List of claim dicts.
+        support_metadata: Optional mapping from claim_id to (Label, SupportQuality).
+            When provided, overrides the default label=None / SupportQuality.EXACT
+            on projected arguments.
 
     Returns:
         StructuredProjection with arguments, framework, and mappings.
     """
+    metadata = support_metadata or {}
     claim_id_set = {c["id"] for c in active_claims}
     claim_by_id = {c["id"]: c for c in active_claims}
 
@@ -554,17 +566,24 @@ def csaf_to_projection(
         # Dependency claim IDs (all premise atoms)
         dependency_claim_ids = tuple(p.atom for p in prem(arg))
 
+        # Apply support_metadata if provided, else defaults
+        if cid in metadata:
+            label, support_quality = metadata[cid]
+        else:
+            label = None
+            support_quality = SupportQuality.EXACT
+
         sa = StructuredArgument(
             arg_id=arg_id,
             claim_id=cid,
             conclusion_concept_id=claim.get("concept_id"),
             premise_claim_ids=premise_claim_ids,
-            label=None,
+            label=label,
             strength=strength,
             top_rule_kind=top_kind,
             attackable_kind=attackable,
             subargument_ids=subargument_ids,
-            support_quality=SupportQuality.EXACT,
+            support_quality=support_quality,
             justification_id=just_id,
             dependency_claim_ids=dependency_claim_ids,
         )
@@ -594,3 +613,117 @@ def csaf_to_projection(
         claim_to_argument_ids=claim_to_argument_ids,
         argument_to_claim_id=arg_to_claim,
     )
+
+
+# ── Entry point: drop-in replacement for build_structured_projection ─
+
+
+def _extract_stance_rows(
+    store: ArtifactStore,
+    active_by_id: dict[str, dict],
+    *,
+    active_graph: ActiveWorldGraph | None,
+) -> list[dict]:
+    """Extract stance rows from active_graph or store.
+
+    Mirrors structured_argument._stance_rows — same logic, same output shape.
+    """
+    if active_graph is not None:
+        active_ids = set(active_graph.active_claim_ids)
+        rows: list[dict] = []
+        for relation in active_graph.compiled.relations:
+            if relation.source_id not in active_ids or relation.target_id not in active_ids:
+                continue
+            if relation.relation_type not in _ATTACK_TYPES and relation.relation_type not in _SUPPORT_TYPES:
+                continue
+            row = {
+                "claim_id": relation.source_id,
+                "target_claim_id": relation.target_id,
+                "stance_type": relation.relation_type,
+            }
+            row.update(dict(relation.attributes))
+            rows.append(row)
+        return rows
+    return list(store.stances_between(set(active_by_id)))
+
+
+def _extract_justifications(
+    active_by_id: dict[str, dict],
+    stance_rows: list[dict],
+    *,
+    active_graph: ActiveWorldGraph | None,
+) -> list[CanonicalJustification]:
+    """Extract canonical justifications from active_graph or stance rows.
+
+    Mirrors structured_argument._canonical_justifications — same logic,
+    same output shape.
+    """
+    if active_graph is not None:
+        return list(claim_justifications_from_active_graph(active_graph))
+
+    justifications: list[CanonicalJustification] = [
+        CanonicalJustification(
+            justification_id=f"reported:{claim_id}",
+            conclusion_claim_id=claim_id,
+            rule_kind="reported_claim",
+        )
+        for claim_id in sorted(active_by_id)
+    ]
+    for row in stance_rows:
+        if row["stance_type"] not in {"supports", "explains"}:
+            continue
+        justifications.append(
+            CanonicalJustification(
+                justification_id=f"{row['stance_type']}:{row['claim_id']}->{row['target_claim_id']}",
+                conclusion_claim_id=row["target_claim_id"],
+                premise_claim_ids=(row["claim_id"],),
+                rule_kind=row["stance_type"],
+                attributes={
+                    str(key): value
+                    for key, value in row.items()
+                    if key not in {"claim_id", "target_claim_id", "stance_type"} and value is not None
+                },
+            )
+        )
+    return sorted(justifications)
+
+
+def build_aspic_projection(
+    store: ArtifactStore,
+    active_claims: list[dict],
+    *,
+    support_metadata: dict[str, tuple[Label | None, SupportQuality]] | None = None,
+    comparison: str = "elitist",
+    link: str = "last",
+    active_graph: ActiveWorldGraph | None = None,
+) -> StructuredProjection:
+    """Build a StructuredProjection via the ASPIC+ bridge (T1-T7).
+
+    Drop-in replacement for structured_argument.build_structured_projection.
+    Same signature, same return type. Routes through the formal ASPIC+
+    engine instead of the legacy structured_argument path.
+
+    Args:
+        store: ArtifactStore providing stances_between().
+        active_claims: List of active claim dicts.
+        support_metadata: Optional mapping from claim_id to (Label, SupportQuality).
+        comparison: Preference comparison strategy (default "elitist").
+        link: Preference link strategy (default "last").
+        active_graph: Optional ActiveWorldGraph for graph-based extraction.
+
+    Returns:
+        StructuredProjection with arguments, framework, and mappings.
+    """
+    active_by_id = {c["id"]: c for c in active_claims if c.get("id")}
+
+    # Extract stances and justifications (same logic as structured_argument.py)
+    stance_rows = _extract_stance_rows(store, active_by_id, active_graph=active_graph)
+    justifications = _extract_justifications(
+        active_by_id, stance_rows, active_graph=active_graph,
+    )
+
+    # T6: build the full CSAF via the bridge
+    csaf = build_bridge_csaf(active_claims, justifications, stance_rows)
+
+    # T7: project back to StructuredProjection
+    return csaf_to_projection(csaf, active_claims, support_metadata=support_metadata)
