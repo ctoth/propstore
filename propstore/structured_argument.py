@@ -77,14 +77,20 @@ def compute_structured_justified_arguments(
     semantics: str = "grounded",
 ) -> frozenset[str] | list[frozenset[str]]:
     """Compute justified structured arguments using existing Dung semantics."""
+    framework = projection.framework
     if semantics == "grounded":
-        # Use hybrid when framework has attacks (ASPIC+ bridge produces both)
-        if projection.framework.attacks is not None:
-            return hybrid_grounded_extension(projection.framework)
-        return grounded_extension(projection.framework)
+        # Dung grounded semantics is defined over defeats only. Strip
+        # attack metadata so hybrid frameworks are evaluated honestly.
+        if framework.attacks is not None and framework.attacks != framework.defeats:
+            framework = ArgumentationFramework(
+                arguments=framework.arguments,
+                defeats=framework.defeats,
+            )
+        return grounded_extension(framework)
+    if semantics == "hybrid-grounded":
+        return hybrid_grounded_extension(projection.framework)
     if semantics == "preferred":
         return [frozenset(ext) for ext in preferred_extensions(projection.framework)]
     if semantics == "stable":
         return [frozenset(ext) for ext in stable_extensions(projection.framework)]
     raise ValueError(f"Unknown semantics: {semantics}")
-

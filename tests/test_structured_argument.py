@@ -6,8 +6,10 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.structured_argument import (
+    StructuredProjection,
     SupportQuality,
     build_structured_projection,
+    compute_structured_justified_arguments,
 )
 from propstore.dung import ArgumentationFramework
 from propstore.world.bound import BoundWorld
@@ -430,6 +432,57 @@ def test_build_structured_projection_threads_link_to_aspic_bridge(monkeypatch) -
     assert calls
     assert calls[0]["comparison"] == "democratic"
     assert calls[0]["link"] == "weakest"
+
+
+def test_grounded_semantics_uses_plain_dung_grounded_even_when_attacks_exist() -> None:
+    projection = StructuredProjection(
+        arguments=(),
+        framework=ArgumentationFramework(
+            arguments=frozenset({"arg:a", "arg:b"}),
+            defeats=frozenset(),
+            attacks=frozenset({
+                ("arg:a", "arg:b"),
+                ("arg:b", "arg:a"),
+            }),
+        ),
+        claim_to_argument_ids={},
+        argument_to_claim_id={},
+    )
+
+    justified = compute_structured_justified_arguments(
+        projection,
+        semantics="grounded",
+    )
+
+    assert justified == frozenset({"arg:a", "arg:b"})
+
+
+def test_hybrid_grounded_requires_explicit_opt_in() -> None:
+    projection = StructuredProjection(
+        arguments=(),
+        framework=ArgumentationFramework(
+            arguments=frozenset({"arg:a", "arg:b"}),
+            defeats=frozenset(),
+            attacks=frozenset({
+                ("arg:a", "arg:b"),
+                ("arg:b", "arg:a"),
+            }),
+        ),
+        claim_to_argument_ids={},
+        argument_to_claim_id={},
+    )
+
+    grounded = compute_structured_justified_arguments(
+        projection,
+        semantics="grounded",
+    )
+    hybrid = compute_structured_justified_arguments(
+        projection,
+        semantics="hybrid-grounded",
+    )
+
+    assert grounded == frozenset({"arg:a", "arg:b"})
+    assert hybrid == frozenset()
 
 
 def test_structured_resolution_reports_no_stance_data_like_claim_graph() -> None:

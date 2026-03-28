@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
+from propstore.dung import ArgumentationFramework
 from propstore.world.resolution import (
     _resolve_claim_graph_argumentation,
     _resolve_structured_argumentation,
@@ -175,3 +176,39 @@ def test_aspic_resolution_threads_link_to_build_aspic_projection(monkeypatch) ->
     assert result.status == "resolved"
     assert calls
     assert calls[0]["link"] == "weakest"
+
+
+def test_structured_resolution_grounded_uses_plain_grounded_extension(monkeypatch) -> None:
+    projection = SimpleNamespace(
+        framework=ArgumentationFramework(
+            arguments=frozenset({"arg:a", "arg:b"}),
+            defeats=frozenset(),
+            attacks=frozenset({
+                ("arg:a", "arg:b"),
+                ("arg:b", "arg:a"),
+            }),
+        ),
+        claim_to_argument_ids={
+            "claim_a": ("arg:a",),
+            "claim_b": ("arg:b",),
+        },
+        argument_to_claim_id={
+            "arg:a": "claim_a",
+            "arg:b": "claim_b",
+        },
+    )
+    monkeypatch.setattr(
+        "propstore.structured_argument.build_structured_projection",
+        lambda *args, **kwargs: projection,
+    )
+
+    winner, reason = _resolve_structured_argumentation(
+        [{"id": "claim_a"}],
+        [{"id": "claim_a"}, {"id": "claim_b"}],
+        _View(),
+        _World(),
+        semantics="grounded",
+    )
+
+    assert winner == "claim_a"
+    assert reason == "sole structured projection survivor in grounded extension"

@@ -1280,6 +1280,115 @@ class TestSemanticCorePhase7Worldlines:
         assert calls[0]["comparison"] == "democratic"
         assert calls[0]["link"] == "weakest"
 
+    def test_worldline_grounded_does_not_alias_hybrid_grounded(
+        self,
+        monkeypatch,
+    ):
+        from propstore.dung import ArgumentationFramework
+        from propstore.worldline import WorldlineDefinition
+        from propstore.worldline_runner import run_worldline
+
+        class _Bound:
+            def __init__(self):
+                self._claims = {
+                    "claim_a": {"id": "claim_a", "concept_id": "concept1", "value": 10.0},
+                    "claim_b": {"id": "claim_b", "concept_id": "concept1", "value": 20.0},
+                }
+
+            def value_of(self, concept_id):
+                return ValueResult(
+                    concept_id=concept_id,
+                    status="determined",
+                    claims=[self._claims["claim_a"]],
+                )
+
+            def derived_value(self, concept_id, override_values=None):
+                return DerivedResult(concept_id=concept_id, status="no_relationship")
+
+            def active_claims(self, concept_id=None):
+                return [self._claims["claim_a"], self._claims["claim_b"]]
+
+        class _World:
+            def bind(self, environment=None, *, policy=None, **conditions):
+                return _Bound()
+
+            def resolve_concept(self, name):
+                return "concept1" if name == "target" else None
+
+            def get_concept(self, concept_id):
+                if concept_id == "concept1":
+                    return {"id": "concept1", "canonical_name": "target"}
+                return None
+
+            def get_claim(self, claim_id):
+                return None
+
+            def has_table(self, name):
+                return name == "relation_edge"
+
+            def stances_between(self, claim_ids):
+                return []
+
+        projection = type(
+            "FakeProjection",
+            (),
+            {
+                "arguments": (),
+                "framework": ArgumentationFramework(
+                    arguments=frozenset({"arg:a", "arg:b"}),
+                    defeats=frozenset(),
+                    attacks=frozenset({
+                        ("arg:a", "arg:b"),
+                        ("arg:b", "arg:a"),
+                    }),
+                ),
+                "claim_to_argument_ids": {
+                    "claim_a": ("arg:a",),
+                    "claim_b": ("arg:b",),
+                },
+                "argument_to_claim_id": {
+                    "arg:a": "claim_a",
+                    "arg:b": "claim_b",
+                },
+            },
+        )()
+        monkeypatch.setattr(
+            "propstore.structured_argument.build_structured_projection",
+            lambda *args, **kwargs: projection,
+        )
+
+        grounded = run_worldline(
+            WorldlineDefinition.from_dict({
+                "id": "phase7_structured_grounded",
+                "targets": ["target"],
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "structured_projection",
+                    "semantics": "grounded",
+                },
+            }),
+            _World(),
+        )
+        hybrid = run_worldline(
+            WorldlineDefinition.from_dict({
+                "id": "phase7_structured_hybrid_grounded",
+                "targets": ["target"],
+                "policy": {
+                    "strategy": "argumentation",
+                    "reasoning_backend": "structured_projection",
+                    "semantics": "hybrid-grounded",
+                },
+            }),
+            _World(),
+        )
+
+        assert grounded.argumentation is not None
+        assert grounded.argumentation["backend"] == "structured_projection"
+        assert grounded.argumentation["justified"] == ["claim_a", "claim_b"]
+        assert hybrid.argumentation is not None
+        assert hybrid.argumentation["backend"] == "structured_projection"
+        assert hybrid.argumentation["justified"] == []
+
     def test_graph_backed_worldline_materialization_is_stable_under_repeated_execution(
         self,
         monkeypatch,
