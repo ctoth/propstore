@@ -60,7 +60,9 @@ from propstore.aspic_bridge import (
     build_preference_config,
     build_bridge_csaf,
     csaf_to_projection,
+    build_aspic_projection,
 )
+from propstore.structured_argument import StructuredArgument, StructuredProjection
 
 
 # ── Hypothesis strategies ──────────────────────────────────────────
@@ -917,3 +919,163 @@ class TestBridgeConcrete:
         assert justified_atoms >= {"X", "Y", "Z"}, (
             f"All claims should survive, got {justified_atoms}"
         )
+
+
+# ── Phase 3: build_aspic_projection entry point ──────────────────
+
+
+class _MiniStore:
+    """Minimal ArtifactStore-compatible mock for build_aspic_projection tests.
+
+    Follows the _ProjectionStore pattern from test_structured_argument.py.
+    """
+
+    def __init__(
+        self,
+        *,
+        claims: list[dict],
+        stances: list[dict] | None = None,
+    ) -> None:
+        self._claims = list(claims)
+        self._stances = list(stances or [])
+
+    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+        return [
+            stance
+            for stance in self._stances
+            if stance["claim_id"] in claim_ids and stance["target_claim_id"] in claim_ids
+        ]
+
+    def has_table(self, name: str) -> bool:
+        return name == "relation_edge"
+
+
+class TestBuildAspicProjection:
+    """Tests for the build_aspic_projection entry point (Phase 3).
+
+    build_aspic_projection is a drop-in replacement for
+    build_structured_projection that routes through the ASPIC+ bridge
+    (T1-T7) instead of the legacy structured_argument path.
+    """
+
+    def test_returns_structured_projection(self):
+        """build_aspic_projection returns a StructuredProjection."""
+        claims = [
+            _make_claim("A"),
+            _make_claim("B"),
+        ]
+        store = _MiniStore(claims=claims)
+        projection = build_aspic_projection(store, claims)
+        assert isinstance(projection, StructuredProjection)
+
+    def test_projection_has_required_fields(self):
+        """Projection has .arguments, .framework, .claim_to_argument_ids, .argument_to_claim_id."""
+        claims = [_make_claim("X")]
+        store = _MiniStore(claims=claims)
+        projection = build_aspic_projection(store, claims)
+
+        assert hasattr(projection, "arguments")
+        assert hasattr(projection, "framework")
+        assert hasattr(projection, "claim_to_argument_ids")
+        assert hasattr(projection, "argument_to_claim_id")
+        assert isinstance(projection.arguments, tuple)
+        assert isinstance(projection.framework, ArgumentationFramework)
+        assert isinstance(projection.claim_to_argument_ids, dict)
+        assert isinstance(projection.argument_to_claim_id, dict)
+
+    def test_arguments_are_structured_arguments(self):
+        """Every element of .arguments is a StructuredArgument."""
+        claims = [_make_claim("P"), _make_claim("Q")]
+        store = _MiniStore(claims=claims)
+        projection = build_aspic_projection(store, claims)
+
+        for arg in projection.arguments:
+            assert isinstance(arg, StructuredArgument)
+
+    def test_no_stances_all_claims_survive(self):
+        """With no attack stances, grounded extension includes all claims."""
+        claims = [
+            _make_claim("X"),
+            _make_claim("Y"),
+            _make_claim("Z"),
+        ]
+        store = _MiniStore(claims=claims)
+        projection = build_aspic_projection(store, claims)
+        grounded = grounded_extension(projection.framework)
+
+        justified_claim_ids = {
+            projection.argument_to_claim_id[aid]
+            for aid in grounded
+            if aid in projection.argument_to_claim_id
+        }
+        assert justified_claim_ids >= {"X", "Y", "Z"}, (
+            f"All claims should survive, got {justified_claim_ids}"
+        )
+
+    def test_rebut_stronger_wins(self):
+        """With a rebut stance, the stronger claim wins."""
+        claims = [
+            _make_claim("strong", confidence=0.9, sample_size=100),
+            _make_claim("weak", confidence=0.3, sample_size=10),
+        ]
+        store = _MiniStore(
+            claims=claims,
+            stances=[
+                {"claim_id": "strong", "target_claim_id": "weak", "stance_type": "rebuts"},
+            ],
+        )
+        projection = build_aspic_projection(store, claims)
+        grounded = grounded_extension(projection.framework)
+
+        justified_claim_ids = {
+            projection.argument_to_claim_id[aid]
+            for aid in grounded
+            if aid in projection.argument_to_claim_id
+        }
+        assert "strong" in justified_claim_ids, "Stronger claim should be justified"
+        assert "weak" not in justified_claim_ids, "Weaker claim should be defeated"
+
+    def test_claim_to_argument_ids_covers_all_claims(self):
+        """Every active claim has at least one argument mapped."""
+        claims = [_make_claim("A"), _make_claim("B")]
+        store = _MiniStore(claims=claims)
+        projection = build_aspic_projection(store, claims)
+
+        for claim in claims:
+            cid = claim["id"]
+            assert cid in projection.claim_to_argument_ids, (
+                f"Claim {cid} missing from claim_to_argument_ids"
+            )
+            assert len(projection.claim_to_argument_ids[cid]) >= 1
+
+    def test_argument_to_claim_id_inverse(self):
+        """argument_to_claim_id is consistent with claim_to_argument_ids."""
+        claims = [_make_claim("A"), _make_claim("B")]
+        store = _MiniStore(claims=claims)
+        projection = build_aspic_projection(store, claims)
+
+        for cid, arg_ids in projection.claim_to_argument_ids.items():
+            for aid in arg_ids:
+                assert projection.argument_to_claim_id[aid] == cid
+
+    def test_accepts_support_metadata(self):
+        """build_aspic_projection accepts support_metadata kwarg."""
+        from propstore.world.labelled import Label, SupportQuality
+        claims = [_make_claim("A")]
+        store = _MiniStore(claims=claims)
+        metadata = {"A": (Label.empty(), SupportQuality.EXACT)}
+        projection = build_aspic_projection(store, claims, support_metadata=metadata)
+
+        assert isinstance(projection, StructuredProjection)
+        # The metadata should be applied to the argument
+        a_args = [arg for arg in projection.arguments if arg.claim_id == "A"]
+        assert len(a_args) >= 1
+        assert a_args[0].label == Label.empty()
+        assert a_args[0].support_quality == SupportQuality.EXACT
+
+    def test_accepts_active_graph_none(self):
+        """build_aspic_projection works with active_graph=None."""
+        claims = [_make_claim("A")]
+        store = _MiniStore(claims=claims)
+        projection = build_aspic_projection(store, claims, active_graph=None)
+        assert isinstance(projection, StructuredProjection)
