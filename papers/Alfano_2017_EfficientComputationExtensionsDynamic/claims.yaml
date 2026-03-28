@@ -1,0 +1,212 @@
+source:
+  paper: Alfano_2017_EfficientComputationExtensionsDynamic
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A 'reduced AF' containing only arguments influenced by an update is sufficient to correctly recompute grounded, preferred, stable, and complete extensions without recomputing the full framework."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 49
+      section: "Abstract"
+      quote_fragment: "an incremental technique for recomputing extensions of an updated AF based on identifying a sub-AF called reduced AF"
+
+  - id: claim2
+    type: mechanism
+    statement: "The incremental algorithm works by computing the influenced set of arguments whose acceptance status may change, constructing a reduced AF containing only those arguments plus their attack context, computing extensions of the reduced AF, then combining the result with the unchanged portion of the original extension."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 51
+      section: "3 Arguments Influenced by an Update"
+      quote_fragment: "the influenced set I can be computed in polynomial time"
+
+  - id: claim3
+    type: observation
+    statement: "For grounded semantics, incremental recomputation always succeeds via the reduced AF without fallback. For preferred, stable, and complete semantics, the algorithm must first check whether the existing extension remains valid, and falls back to from-scratch computation if the reduced AF yields no valid extension."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 51
+      section: "3 Arguments Influenced by an Update"
+      quote_fragment: "For grounded extensions, the initial extension is preserved also for the remaining arguments"
+
+  - id: claim4
+    type: observation
+    statement: "The influenced set of arguments affected by an update is computable in polynomial time by following attack edges reachable from the updated arguments or attacks."
+    concepts:
+      - dung_framework
+      - computational_complexity
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 51
+      section: "3 Arguments Influenced by an Update"
+
+  - id: claim5
+    type: observation
+    statement: "Multiple updates can be applied simultaneously by taking the union of their individual influenced sets and constructing a single reduced AF, avoiding the cost of sequential recomputation for each update."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 53
+      section: "4 Applying Multiple Updates Simultaneously"
+      quote_fragment: "a set of updates can be reduced to performing a single update"
+
+  - id: claim6
+    type: observation
+    statement: "Correctness of the incremental algorithm (Theorems 1-3) holds for any sound and complete base solver: the reduced AF extension combined with the unchanged portion of the original extension is a valid extension of the updated AF."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 53
+      section: "4 Applying Multiple Updates Simultaneously"
+      quote_fragment: "If Solver_sigma is sound and complete then Algorithm 1 computes E in E_sigma(AF_U)"
+
+  - id: claim7
+    type: measurement
+    target_concept: computational_complexity
+    measure: benchmark_score
+    value: 1
+    unit: "percent"
+    methodology: "Ratio of reduced AF size to full AF size for single updates on ICCMA'15 benchmarks"
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 54
+      section: "5 Implementation and Experiments"
+      quote_fragment: "the reduced AF being about 1% of the full AF for single updates"
+    notes: "Single updates only"
+
+  - id: claim8
+    type: measurement
+    target_concept: computational_complexity
+    measure: benchmark_score
+    value: 5
+    unit: "percent"
+    methodology: "Ratio of reduced AF size to full AF size for multiple updates (about 1% of attacks updated) on ICCMA'15 benchmarks"
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 54
+      section: "5 Implementation and Experiments"
+      quote_fragment: "5% for multiple updates with about 1% of attacks updated"
+    notes: "Multiple updates with about 1% of attacks updated"
+
+  - id: claim9
+    type: observation
+    statement: "The incremental approach achieves 1-2 orders of magnitude speedup over from-scratch computation for single updates across all four Dung semantics (grounded, preferred, stable, complete) on ICCMA'15 benchmarks."
+    concepts:
+      - dung_framework
+      - computational_complexity
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 54
+      section: "5 Implementation and Experiments"
+      quote_fragment: "the incremental approach is on average 1-2 orders of magnitude faster than from-scratch"
+
+  - id: claim10
+    type: comparison
+    statement: "Unlike from-scratch solvers (CoQuiAAS, ASPARTIX) which must process the entire AF on every change, the incremental approach processes only the reduced AF, gaining increasing advantage as the ratio of update size to AF size decreases."
+    concepts:
+      - dung_framework
+      - computational_complexity
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 54
+      section: "5 Implementation and Experiments"
+      quote_fragment: "improvements being larger as the ratio of the update size to AF size decreases"
+
+  - id: claim11
+    type: comparison
+    statement: "Unlike Boella et al. (2009) which handles only additions to AFs, the incremental approach handles both additions and deletions of arguments and attacks."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 49
+      section: "1 Introduction"
+      quote_fragment: "Boella et al., 2009 have studied the evolution of the set of extensions... only the status of affected arguments needs to be recomputed"
+
+  - id: claim12
+    type: comparison
+    statement: "Unlike division-based incremental methods (Liao et al. 2011) which are limited to specific semantics, the incremental reduced-AF technique applies uniformly to grounded, preferred, stable, and complete semantics using any sound and complete base solver."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 49
+      section: "1 Introduction"
+
+  - id: claim13
+    type: limitation
+    statement: "When the influenced set encompasses nearly the entire AF, the incremental advantage disappears and may add overhead due to the cost of computing the influenced set and reduced AF."
+    concepts:
+      - dung_framework
+      - computational_complexity
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 54
+      section: "5 Implementation and Experiments"
+
+  - id: claim14
+    type: limitation
+    statement: "For preferred, stable, and complete semantics, the algorithm must fall back to from-scratch computation when the reduced AF does not yield a valid extension, losing the incremental advantage in those cases."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 51
+      section: "3 Arguments Influenced by an Update"
+
+  - id: claim15
+    type: limitation
+    statement: "The approach only considers Dung abstract argumentation frameworks — it does not handle structured argumentation (ASPIC+), preferences, or support relations (bipolar AFs)."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 49
+      section: "1 Introduction"
+
+  - id: claim16
+    type: limitation
+    statement: "The approach computes a single extension at a time (credulous/skeptical acceptance) rather than enumerating all extensions of the updated AF."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 49
+      section: "1 Introduction"
+
+  - id: claim17
+    type: mechanism
+    statement: "The algorithm uses existing competition-winning solvers (CoQuiAAS for grounded/stable/complete, ASPARTIX for preferred) as black-box subroutines on the reduced AF, meaning it automatically benefits from any improvements in base solver performance."
+    concepts:
+      - dung_framework
+      - computational_complexity
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 53
+      section: "4 Applying Multiple Updates Simultaneously"
+      quote_fragment: "the solver only needs to run on the (typically much smaller) reduced AF"
+
+  - id: claim18
+    type: observation
+    statement: "Adding or removing arguments (not just attacks) does not affect the efficiency of the incremental approach — the influenced set computation handles both uniformly."
+    concepts:
+      - dung_framework
+    provenance:
+      paper: Alfano_2017_EfficientComputationExtensionsDynamic
+      page: 54
+      section: "5 Implementation and Experiments"
+      quote_fragment: "considering updates that add/remove arguments does not affect efficiency"
