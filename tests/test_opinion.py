@@ -484,3 +484,124 @@ class TestConsensusPropertyTests:
         assert math.isclose(fused.a, op.a, abs_tol=1e-9), (
             f"a: fused={fused.a}, original={op.a}"
         )
+
+
+# ── Uncertainty Maximization (Jøsang 2001 Def 16, p.30) ─────────
+
+
+class TestUncertaintyMaximization:
+    """Jøsang 2001 p.30: maximize u while preserving E(x)."""
+
+    def test_concrete_example(self):
+        op = Opinion(0.7, 0.1, 0.2, 0.5)
+        result = op.maximize_uncertainty()
+        assert abs(result.expectation() - op.expectation()) < 1e-9
+        assert result.uncertainty >= op.uncertainty
+
+    def test_vacuous_unchanged(self):
+        op = Opinion.vacuous(0.5)
+        result = op.maximize_uncertainty()
+        assert abs(result.uncertainty - 1.0) < 1e-9
+
+    def test_dogmatic_true(self):
+        op = Opinion(1.0, 0.0, 0.0, 0.5)
+        result = op.maximize_uncertainty()
+        # E = 1.0, u_max = min(1/0.5, 0/0.5) = min(2, 0) = 0
+        # Can't increase uncertainty when E=1
+        assert abs(result.uncertainty - 0.0) < 1e-9
+
+    def test_dogmatic_false(self):
+        op = Opinion(0.0, 1.0, 0.0, 0.5)
+        result = op.maximize_uncertainty()
+        # E = 0.0, u_max = min(0/0.5, 1/0.5) = min(0, 2) = 0
+        # Can't increase uncertainty when E=0
+        assert abs(result.uncertainty - 0.0) < 1e-9
+
+    def test_b_becomes_zero_case(self):
+        """When E/a <= (1-E)/(1-a), b should become 0."""
+        op = Opinion(0.2, 0.6, 0.2, 0.5)
+        # E = 0.2 + 0.5*0.2 = 0.3
+        # E/a = 0.6, (1-E)/(1-a) = 0.7/0.5 = 1.4
+        # u_max = 0.6, b = 0, d = 1 - 0.6 = 0.4
+        result = op.maximize_uncertainty()
+        assert abs(result.b) < 1e-9
+        assert abs(result.expectation() - op.expectation()) < 1e-9
+
+    def test_d_becomes_zero_case(self):
+        """When (1-E)/(1-a) < E/a, d should become 0."""
+        op = Opinion(0.7, 0.1, 0.2, 0.5)
+        # E = 0.7 + 0.5*0.2 = 0.8
+        # E/a = 1.6, (1-E)/(1-a) = 0.2/0.5 = 0.4
+        # u_max = 0.4, d = 0, b = 0.8 - 0.5*0.4 = 0.6
+        result = op.maximize_uncertainty()
+        assert abs(result.d) < 1e-9
+        assert abs(result.expectation() - op.expectation()) < 1e-9
+
+    @given(valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_preserves_expectation(self, op):
+        result = op.maximize_uncertainty()
+        assert abs(result.expectation() - op.expectation()) < 1e-9
+
+    @given(valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_uncertainty_never_decreases(self, op):
+        result = op.maximize_uncertainty()
+        assert result.uncertainty >= op.uncertainty - 1e-9
+
+    @given(valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_idempotent(self, op):
+        """Maximizing twice should give same result as once."""
+        once = op.maximize_uncertainty()
+        twice = once.maximize_uncertainty()
+        assert abs(twice.b - once.b) < 1e-9
+        assert abs(twice.d - once.d) < 1e-9
+        assert abs(twice.u - once.u) < 1e-9
+
+
+# ── Opinion Ordering (Jøsang 2001 Def 10, p.9) ─────────────────
+
+
+class TestOpinionOrdering:
+    """Jøsang 2001 Def 10, p.9: opinion ordering by E(x), then u, then a."""
+
+    def test_higher_expectation_is_greater(self):
+        high = Opinion(0.8, 0.1, 0.1, 0.5)  # E = 0.85
+        low = Opinion(0.3, 0.5, 0.2, 0.5)   # E = 0.4
+        assert high > low
+
+    def test_same_expectation_less_uncertainty_is_greater(self):
+        # E = 0.8 for both
+        certain = Opinion(0.8, 0.2, 0.0, 0.5)    # E = 0.8, u = 0
+        uncertain = Opinion(0.3, 0.0, 0.7, 5/7)   # E = 0.3 + 5/7*0.7 = 0.8, u = 0.7
+        assert certain > uncertain
+
+    def test_same_e_same_u_less_a_is_greater(self):
+        # Same E and u, different a
+        # b + a*u = E, b + d + u = 1
+        # Pick u=0.4, E=0.5
+        # a=0.25: b = 0.5 - 0.25*0.4 = 0.4, d = 0.2
+        # a=0.75: b = 0.5 - 0.75*0.4 = 0.2, d = 0.4
+        low_a = Opinion(0.4, 0.2, 0.4, 0.25)   # E=0.5, u=0.4, a=0.25
+        high_a = Opinion(0.2, 0.4, 0.4, 0.75)  # E=0.5, u=0.4, a=0.75
+        assert low_a > high_a
+
+    def test_equality(self):
+        a = Opinion(0.3, 0.2, 0.5, 0.5)
+        b = Opinion(0.3, 0.2, 0.5, 0.5)
+        assert a <= b
+        assert a >= b
+        assert not (a < b)
+        assert not (a > b)
+
+    @given(valid_opinions(), valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_total_ordering(self, a, b):
+        """Ordering is total: either a <= b or b <= a."""
+        assert (a <= b) or (b <= a)
+
+    @given(valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_reflexive(self, a):
+        assert a <= a

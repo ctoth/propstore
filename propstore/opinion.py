@@ -8,6 +8,7 @@ This is a leaf module with ZERO imports from propstore.
 
 from __future__ import annotations
 
+import functools
 import math
 from dataclasses import dataclass
 
@@ -123,6 +124,69 @@ class Opinion:
 
     def __hash__(self) -> int:
         return hash((round(self.b, 8), round(self.d, 8), round(self.u, 8), round(self.a, 8)))
+
+    # --- Ordering (Jøsang 2001 Def 10, p.9) ---
+
+    def _ordering_key(self) -> tuple[float, float, float]:
+        """Return (E(x), -u, -a) for total ordering.
+
+        Jøsang 2001 Def 10: compare by E(x) ascending, then by u
+        descending (less uncertainty is greater), then by a descending
+        (less base rate is greater).
+        """
+        return (self.expectation(), -self.u, -self.a)
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, Opinion):
+            return NotImplemented
+        return self._ordering_key() < other._ordering_key()
+
+    def __le__(self, other: object) -> bool:
+        if not isinstance(other, Opinion):
+            return NotImplemented
+        return self._ordering_key() <= other._ordering_key()
+
+    def __gt__(self, other: object) -> bool:
+        if not isinstance(other, Opinion):
+            return NotImplemented
+        return self._ordering_key() > other._ordering_key()
+
+    def __ge__(self, other: object) -> bool:
+        if not isinstance(other, Opinion):
+            return NotImplemented
+        return self._ordering_key() >= other._ordering_key()
+
+    # --- Uncertainty Maximization (Jøsang 2001 Def 16, p.30) ---
+
+    def maximize_uncertainty(self) -> Opinion:
+        """Maximize u while preserving E(x) = b + a*u.
+
+        Jøsang 2001 p.30: for non-repeatable events, redistribute
+        belief mass to maximize uncertainty. Constraints:
+          b + d + u = 1, b >= 0, d >= 0, u >= 0
+          b + a*u = E (constant)
+
+        u_max = min(E/a, (1-E)/(1-a))
+        """
+        e = self.expectation()
+        a = self.a
+
+        # Upper bounds on u from b >= 0 and d >= 0
+        u_from_b = e / a            # b = E - a*u >= 0
+        u_from_d = (1.0 - e) / (1.0 - a)  # d = 1 - E - u*(1-a) >= 0
+
+        u_max = min(u_from_b, u_from_d)
+        # Clamp to [0, 1] for numerical safety
+        u_max = max(0.0, min(1.0, u_max))
+
+        b_new = e - a * u_max
+        d_new = 1.0 - u_max - b_new
+
+        # Clamp negatives from float drift
+        b_new = max(0.0, b_new)
+        d_new = max(0.0, d_new)
+
+        return Opinion(b_new, d_new, u_max, a)
 
 
 @dataclass(frozen=True)
