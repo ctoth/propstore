@@ -234,3 +234,33 @@ This paper is **directly relevant** to propstore's uncertainty and opinion algeb
 - Camerer, C. F., et al. (2018). Evaluating the replicability of social science experiments. Nature Human Behaviour. — Source of replication base rates
 - Open Science Collaboration (2015). Estimating the reproducibility of psychological science. Science. — Motivating context for replication crisis
 - Josang, A., & McAnally, D. (2004). Multiplication and comultiplication of beliefs. — Extended SL operators not used here but relevant to propstore
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Josang_2001_LogicUncertainProbabilities]] — foundational paper for all SL operators used here; this paper applies Josang's opinion tuples and projected probability directly
+- [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]] — provides replication base rates (61%) used to calibrate the replication uncertainty factor
+- [[Camerer_2018_EvaluatingReplicabilitySocialScience]] — provides replication base rates (62%) and deflation factors used for the replication penalty
+- [[Errington_2021_InvestigatingReplicabilityPreclinicalCancer]] — cited as further evidence of replication challenges motivating SL approach
+- [[Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction]] — cited for prediction market data on replicability
+- [[Sensoy_2018_EvidentialDeepLearningQuantifyClassification]] — not directly cited but uses the same Dirichlet/opinion mapping; conceptually parallel approach
+- [[Guo_2017_CalibrationModernNeuralNetworks]] — not directly cited but temperature scaling calibration is complementary to SL uncertainty encoding
+
+### New Leads (Not Yet in Collection)
+- Josang, A. (2016). *Subjective Logic: A Formalism for Reasoning Under Uncertainty.* Springer. — comprehensive SL reference; extends beyond Josang 2001 with WBF, multinomial opinions, hyper opinions
+- Walkinshaw, N., & Hierons, R. (2023). Modelling second-order uncertainty in state machines. IEEE TSE. — extends SL to software engineering domain
+- Walkinshaw, N., & Shepperd, M. (2020). Reasoning about uncertainty in empirical results. EASE. — predecessor to this paper's methodology
+
+### Supersedes or Recontextualizes
+- None — this paper is a novel application, not a revision of prior work in the collection
+
+### Cited By (in Collection)
+- (none found)
+
+### Conceptual Links (not citation-based)
+- [[Josang_2001_LogicUncertainProbabilities]] — this paper is the primary real-world validation of Josang's binomial opinion framework applied to empirical research synthesis; demonstrates that opinion tuples and WBF fusion produce interpretable aggregate uncertainty from heterogeneous evidence
+- [[Sensoy_2018_EvidentialDeepLearningQuantifyClassification]] — both papers map evidence to Dirichlet/opinion representations; Sensoy does this from neural network outputs while Margoni does it from empirical effect sizes and CIs — different input domains, same formal framework
+- [[Denoeux_2018_Decision-MakingBeliefFunctionsReview]] — Margoni's WBF fusion produces belief functions that could be input to Denoeux's decision criteria (pignistic, Hurwicz, etc.) for making actual decisions under the fused uncertainty
+- [[Shafer_1976_MathematicalTheoryEvidence]] — Margoni's opinion framework is mathematically grounded in Dempster-Shafer theory; Shafer provides the foundational theory that Josang's SL specializes
+- [[Josang_2010_CumulativeAveragingFusionBeliefs]] — Margoni uses WBF for fusion; Josang 2010 defines cumulative/averaging fusion for multinomial opinions — different fusion operators for different aggregation semantics
+- [[Falkenhainer_1987_BeliefMaintenanceSystem]] — both propagate graded beliefs through dependency networks; Falkenhainer uses Dempster-Shafer BMS while Margoni uses SL opinions, but the propagation problem is structurally similar
