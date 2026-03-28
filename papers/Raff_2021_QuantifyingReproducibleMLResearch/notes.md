@@ -4,8 +4,11 @@ authors: "Edward Raff"
 year: 2021
 venue: "AAAI Conference on Artificial Intelligence"
 doi_url: "https://arxiv.org/abs/2012.09932"
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "paper-reader"
+  timestamp: "2026-03-28T21:08:23Z"
 ---
-
 # A Step Toward Quantifying Independently Reproducible Machine Learning Research
 
 ## One-Sentence Summary
@@ -163,10 +166,35 @@ This paper provides empirical evidence about what makes research reproducible �
 - [ ] How do these findings interact with domain-specific factors (e.g., NLP vs computer vision vs reinforcement learning)?
 
 ## Related Work Worth Reading
-- Aarts et al. 2015 — "Estimating the reproducibility of psychological science" (large-scale replication project) — already in collection
-- Camerer et al. 2016, 2018 — Replication studies in economics/social science — already in collection
+- Aarts et al. 2015 — "Estimating the reproducibility of psychological science" (large-scale replication project) → NOW IN COLLECTION: [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]]
+- Camerer et al. 2016 — Replication studies in economics → NOW IN COLLECTION: [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]]
+- Camerer et al. 2018 — Replication studies in social science → NOW IN COLLECTION: [[Camerer_2018_EvaluatingReplicabilitySocialScience]]
 - Gundersen & Kjensmo 2018 — State of reproducibility in AI
-- Begley & Ellis 2012 — Drug development reproducibility — already in collection
-- Altmejd et al. 2019 — Predicting replication outcomes — already in collection
+- Begley & Ellis 2012 — Drug development reproducibility → NOW IN COLLECTION: [[Begley_2012_DrugDevelopmentRaiseStandards]]
+- Altmejd et al. 2019 — Predicting replication outcomes → NOW IN COLLECTION: [[Altmejd_2019_PredictingReplicabilitySocialScience]]
 - Pineau et al. 2020 — ML reproducibility checklist
 - Henderson et al. 2018 — Deep RL reproducibility issues
+
+## Collection Cross-References
+
+### Already in Collection
+- [[Aarts_2015_EstimatingReproducibilityPsychologicalScience]] — cited as inspiration for quantitative approach to reproducibility; Raff adapts the large-scale replication paradigm from psychology to ML
+- [[Altmejd_2019_PredictingReplicabilitySocialScience]] — cited as a related prediction approach; Altmejd uses ML to predict replication, Raff uses survival analysis on ML papers specifically
+- [[Camerer_2016_EvaluatingReplicabilityLaboratoryExperiments]] — cited as economics replication benchmark
+- [[Camerer_2018_EvaluatingReplicabilitySocialScience]] — cited as social science replication benchmark
+- [[Begley_2012_DrugDevelopmentRaiseStandards]] — cited as preclinical reproducibility evidence
+
+### New Leads (Not Yet in Collection)
+- Gundersen & Kjensmo (2018) — "State of the art: Reproducibility in artificial intelligence" — qualitative survey that Raff aims to quantify
+- Pineau et al. (2020) — "Improving Reproducibility in Machine Learning Research" — ML reproducibility checklist, complementary approach
+- Henderson et al. (2018) — "Deep Reinforcement Learning that Matters" — domain-specific RL reproducibility issues
+- Bouthillier et al. (2019) — "Unreproducible Research is Reproducible" — challenges definitions of reproducibility
+
+### Conceptual Links (not citation-based)
+- [[Yang_2020_EstimatingDeepReplicabilityScientific]] — Both use ML to predict reproducibility/replicability; Yang uses text features (word2vec) while Raff uses paper-level structural features (equations, tables, readability). Different feature spaces, complementary approaches. Yang achieves 0.65-0.78 accuracy; Raff achieves 0.77 concordance. Strong convergence on the value of paper characteristics for predicting reproducibility.
+- [[Gordon_2021_PredictingReplicability—AnalysisSurveyPrediction]] — Survey of replication prediction methods; Raff's survival analysis approach is a distinct methodology not covered by prediction market approaches.
+- [[Errington_2021_InvestigatingReplicabilityPreclinicalCancer]] — Cancer biology replication project; Raff's ML-specific study complements domain-specific replication projects. Both find that original study characteristics predict replication outcomes.
+- [[Border_2019_NoSupportHistoricalCandidate]] — Large-sample evidence defeating small-sample findings; Raff's work provides a framework for understanding why some findings fail to reproduce based on paper-level features rather than domain-specific factors.
+
+### Cited By (in Collection)
+- (none found)
