@@ -1,0 +1,296 @@
+source:
+  paper: Klein_2018_ManyLabs2Investigating
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T21:51:24Z"
+
+claims:
+  - id: claim1
+    type: parameter
+    concept: replication_significance_rate
+    value: 0.54
+    unit: "proportion"
+    conditions:
+      - "discipline == 'psychology'"
+      - "significance_threshold == '0.05'"
+
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 3
+      section: "Abstract"
+      quote_fragment: "15 (54%) of the replications provided evidence of a statistically significant effect in the same direction as the original finding"
+    notes: "28 preregistered replications across 125 samples, 36 countries, N=15,305"
+
+  - id: claim2
+    type: parameter
+    concept: replication_significance_rate
+    value: 0.50
+    unit: "proportion"
+    conditions:
+      - "discipline == 'psychology'"
+      - "significance_threshold == '0.0001'"
+
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 3
+      section: "Abstract"
+      quote_fragment: "14 (50%) of the replications still provided such evidence"
+    notes: "Strict significance threshold; near-identical to p<.05 rate due to high power"
+
+  - id: claim3
+    type: parameter
+    concept: mean_original_effect_size
+    value: 0.60
+    unit: "Cohen's d"
+    conditions:
+      - "discipline == 'psychology'"
+
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 3
+      section: "Abstract"
+      quote_fragment: "The median comparable Cohen's ds were 0.60 for the original findings"
+    notes: "Median across 28 effects"
+
+  - id: claim4
+    type: parameter
+    concept: mean_replication_effect_size
+    value: 0.15
+    unit: "Cohen's d"
+    conditions:
+      - "discipline == 'psychology'"
+
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 3
+      section: "Abstract"
+      quote_fragment: "0.15 for the replications"
+    notes: "Median across 28 effects"
+
+  - id: claim5
+    type: parameter
+    concept: effect_size_shrinkage
+    value: 0.75
+    unit: "proportion"
+    conditions:
+      - "discipline == 'psychology'"
+
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 3
+      section: "Abstract"
+      quote_fragment: "21 (75%) yielded effect sizes smaller than the original ones"
+    notes: "21 of 28 effects showed shrinkage"
+
+  - id: claim6
+    type: parameter
+    concept: effect_size_inflation
+    value: 0.25
+    unit: "ratio"
+    conditions:
+      - "discipline == 'psychology'"
+
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 3
+      section: "Results Summary"
+      quote_fragment: "median d 0.60 original vs 0.15 replication"
+    notes: "Replication-to-original ratio: 0.15/0.60 = 0.25, meaning replications are ~25% of original effect size"
+
+  - id: claim7
+    type: observation
+    statement: "9 of 28 (32%) replication effect sizes were in the direction opposite to the original finding."
+    concepts:
+      - replication_outcome
+      - replication_effect_size
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 3
+      section: "Abstract"
+      quote_fragment: "9 effects (32%) were in the direction opposite the direction of the original effect"
+
+  - id: claim8
+    type: observation
+    statement: "Variability in observed effect sizes across 125 samples was attributable more to which effect was studied than to the sample or setting in which it was studied."
+    concepts:
+      - context_sensitivity
+      - generalizability
+      - replication_outcome
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 28
+      section: "Variability across samples and settings"
+      quote_fragment: "variability in the observed effect sizes was attributable more to the effect being studied than to the sample or setting in which it was studied"
+
+  - id: claim9
+    type: observation
+    statement: "WEIRD vs. non-WEIRD cultural classification did not significantly moderate effect sizes for the majority of the 28 replicated effects."
+    concepts:
+      - context_sensitivity
+      - generalizability
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 28
+      section: "WEIRD vs. Non-WEIRD"
+      quote_fragment: "Exploratory comparisons revealed little heterogeneity between Western, educated, industrialized, rich, and democratic (WEIRD) cultures and less WEIRD cultures"
+
+  - id: claim10
+    type: observation
+    statement: "Lab vs. online administration mode did not significantly moderate replication effect sizes."
+    concepts:
+      - context_sensitivity
+      - method
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 28
+      section: "Lab vs. Online"
+      quote_fragment: "very little heterogeneity was attributable to... whether the tasks were administered in lab versus online"
+
+  - id: claim11
+    type: observation
+    statement: "Task presentation order did not significantly moderate replication effect sizes."
+    concepts:
+      - context_sensitivity
+      - method
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 33
+      section: "Task Order"
+      table: "Table 4"
+      quote_fragment: "very little heterogeneity was attributable to the order in which the tasks were performed"
+
+  - id: claim12
+    type: observation
+    statement: "Heterogeneity across replication samples was concentrated among the effects with the largest overall effect sizes; near-zero effects showed minimal heterogeneity."
+    concepts:
+      - context_sensitivity
+      - original_effect_size
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 28
+      section: "Heterogeneity Analysis"
+      quote_fragment: "most of those were among the findings with the largest overall effect sizes; only 1 effect that was near zero in the aggregate showed significant heterogeneity"
+
+  - id: claim13
+    type: parameter
+    concept: sample_size
+    value: 15305
+    unit: "participants"
+    conditions:
+
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 0
+      section: "Abstract"
+      quote_fragment: "15,305 participants from 36 countries and territories"
+
+  - id: claim14
+    type: observation
+    statement: "Only 1 of 28 effects had a tau value greater than 0.20 (indicating moderate between-study heterogeneity), while 8 had tau values near 0.10 (slight heterogeneity) and 19 had tau near zero."
+    concepts:
+      - context_sensitivity
+      - generalizability
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 28
+      section: "Heterogeneity Analysis"
+      quote_fragment: "Only 1 effect had a tau value greater than .20, an indication of moderate heterogeneity. Eight others had tau values near or slightly above .10"
+
+  - id: claim15
+    type: observation
+    statement: "Effects with larger original effect sizes tended to replicate more successfully than effects with smaller original effect sizes."
+    concepts:
+      - original_effect_size
+      - replication_success
+      - evidence_strength
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 25
+      section: "Strongest Replications"
+      quote_fragment: "Effects with the largest original effect sizes tended to replicate more successfully"
+
+  - id: claim16
+    type: observation
+    statement: "The near-identical replication rates at p<.05 (54%) and p<.0001 (50%) demonstrate that the successfully replicated effects have strong evidential support, not merely marginal significance."
+    concepts:
+      - replication_significance_rate
+      - evidence_strength
+      - significance_threshold
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 34
+      section: "Discussion"
+      quote_fragment: "a reflection of the extremely high-powered design"
+
+  - id: claim17
+    type: mechanism
+    statement: "Replication failure is primarily driven by the intrinsic properties of the effect being studied (e.g., whether it is a real effect, its true magnitude, or its sensitivity to specific implementation details) rather than by differences in sample demographics, cultural context, or administration mode."
+    concepts:
+      - replication_failure_causes
+      - context_sensitivity
+      - generalizability
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 38
+      section: "Discussion"
+      quote_fragment: "variability in the observed effect sizes was attributable more to the effect being studied than to the sample or setting"
+
+  - id: claim18
+    type: comparison
+    statement: "Unlike the 'hidden moderator' explanation which predicts high between-sample heterogeneity for failed replications, Many Labs 2 found that most failed replications showed near-zero heterogeneity (tau near zero), indicating the effects are likely small or nonexistent rather than context-dependent."
+    concepts:
+      - replication_failure_causes
+      - context_sensitivity
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 38
+      section: "Discussion"
+      quote_fragment: "Challenges the 'hidden moderator' explanation for replication failures: if effects depend on specific samples or settings, heterogeneity should be high, but it was generally low"
+
+  - id: claim19
+    type: limitation
+    statement: "All 28 replications were administered online, which may not capture effects requiring in-person interaction, specific lab equipment, or physical manipulations."
+    concepts:
+      - method
+      - generalizability
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 38
+      section: "Limitations"
+      quote_fragment: "All replications were online, which may not capture effects that require in-person interaction"
+
+  - id: claim20
+    type: limitation
+    statement: "The 28 effects were not a random sample of psychology; they were selected for feasibility of online implementation and importance, which may bias the observed replication rate relative to the field as a whole."
+    concepts:
+      - replication_significance_rate
+      - sampling_scope
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 4
+      section: "Effect Selection"
+      quote_fragment: "not a random sample of psychology; they were selected for feasibility and importance"
+
+  - id: claim21
+    type: observation
+    statement: "16 of 28 (57%) replication effect sizes were small (Cohen's d < 0.20)."
+    concepts:
+      - replication_effect_size
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 3
+      section: "Abstract"
+      quote_fragment: "The effect sizes were small (< 0.20) in 16 of the replications (57%)"
+
+  - id: claim22
+    type: observation
+    statement: "11 of 28 (39%) replication effects showed significant heterogeneity by Cochran's Q test across the 125 samples."
+    concepts:
+      - context_sensitivity
+      - generalizability
+    provenance:
+      paper: Klein_2018_ManyLabs2Investigating
+      page: 28
+      section: "Heterogeneity Analysis"
+      quote_fragment: "the Q statistic indicated significant heterogeneity in 11 (39%) of the replication effects"
