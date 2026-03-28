@@ -1,0 +1,167 @@
+source:
+  paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T22:49:42Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "One-at-a-time (OAT) sensitivity analysis of Bayesian network parameters fails to capture higher-order interaction effects between simultaneously uncertain parameters, leading to both false positives and false negatives in parameter importance rankings."
+    concepts:
+      - sensitivity_analysis
+      - bayesian_network
+      - parameter_uncertainty
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 1
+      section: "Abstract"
+      quote_fragment: "this approach fails to give a comprehensive account of each inputs' relevance, since simultaneous perturbations in two or more parameters often entail higher-order effects that cannot be captured by an OAT analysis"
+
+  - id: claim2
+    type: mechanism
+    statement: "Parameter uncertainties in Bayesian networks can be encoded as additional dimensions of the network's tensor representation, with proportional covariation preserving the sum-to-one constraint, and low-rank tensor train decomposition preventing exponential blow-up in the augmented potential's size."
+    concepts:
+      - bayesian_network
+      - tensor_decomposition
+      - parameter_uncertainty
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 14
+      section: "3.2 Encoding Uncertainties"
+      quote_fragment: "Our goal is to build an 'augmented' potential Phi' that includes new dimensions x_1,...,x_P with x_p in [0,1] for all p"
+
+  - id: claim3
+    type: equation
+    expression: "S_i = Var_i[E_{\\i}[f]] / Var[f]"
+    sympy: "Eq(S_i, Var_i_E_not_i_f / Var_f)"
+    variables:
+      - symbol: "S_i"
+        concept: "sobol_variance_component"
+        role: "dependent"
+      - symbol: "f"
+        concept: "sensitivity_function"
+        role: "independent"
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 10
+      section: "2.5 Sobol Indices"
+    notes: "First-order Sobol index (variance component). Quantifies how much the average model output changes as theta_i is varied, marginalizing over all other parameters."
+
+  - id: claim4
+    type: equation
+    expression: "S_i^T = E_{\\i}[Var_i[f]] / Var[f]"
+    sympy: "Eq(S_i_T, E_not_i_Var_i_f / Var_f)"
+    variables:
+      - symbol: "S_i^T"
+        concept: "sobol_total_index"
+        role: "dependent"
+      - symbol: "f"
+        concept: "sensitivity_function"
+        role: "independent"
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 10
+      section: "2.5 Sobol Indices"
+    notes: "Total Sobol index. Captures additive effects plus all interaction terms. S_i <= S_i^T always; equality iff theta_i separable from f in additive fashion."
+
+  - id: claim5
+    type: observation
+    statement: "The augmented potential Phi' created by encoding P parameter uncertainties has tensor train rank at most sqrt(|Phi|) + P, where |Phi| is the number of elements of the original potential."
+    concepts:
+      - tensor_decomposition
+      - bayesian_network
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 15
+      section: "3.2 Encoding Uncertainties"
+      quote_fragment: "The potential Phi' defined above has TT rank at most sqrt(|Phi|) + P"
+    notes: "Lemma 1. This bound ensures the augmented representation stays tractable."
+
+  - id: claim6
+    type: measurement
+    target_concept: sensitivity_analysis
+    measure: correlation
+    value: 0.507
+    unit: "Spearman rho"
+    methodology: "Spearman rank correlation between OAT sensitivity values and Sobol variance components across 55 uncertain parameters in the COVID-MEASURES BN with target P(COUNTRYFIN=Agree)"
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 24
+      section: "4.4 Analysis"
+      quote_fragment: "The sensitivity values have Spearman correlations of only 0.507 and 0.461 with the variance components and total indices, respectively"
+
+  - id: claim7
+    type: measurement
+    target_concept: sensitivity_analysis
+    measure: correlation
+    value: 0.461
+    unit: "Spearman rho"
+    methodology: "Spearman rank correlation between OAT sensitivity values and Sobol total indices across 55 uncertain parameters in the COVID-MEASURES BN with target P(COUNTRYFIN=Agree)"
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 24
+      section: "4.4 Analysis"
+
+  - id: claim8
+    type: comparison
+    statement: "Unlike OAT sensitivity analysis which examines parameters individually, global Sobol analysis reveals that parameters with the second-highest OAT sensitivity value (0.168) can have near-zero Sobol indices (~10^-4), while the top Sobol parameter's total index can be three times larger than its OAT value."
+    concepts:
+      - sensitivity_analysis
+      - bayesian_network
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 24
+      section: "4.4 Analysis"
+      quote_fragment: "the 31st parameter has a sensitivity value of |df/d theta_31| = 0.168 (the second highest), but its Sobol indices are almost insignificant at roughly 10^-4"
+
+  - id: claim9
+    type: observation
+    statement: "Interaction terms between uncertain Bayesian network parameters (S^T - S) can reach approximately 0.15, indicating that a substantial portion of parameter influence operates through joint effects with other parameters rather than independently."
+    concepts:
+      - sensitivity_analysis
+      - bayesian_network
+      - parameter_uncertainty
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 27
+      section: "4.5 Comparison Across Networks"
+      quote_fragment: "interaction terms can get as large as S^T - S approx 0.15"
+
+  - id: claim10
+    type: limitation
+    statement: "The Sobol-based global sensitivity method cannot model uncertainties for multiple child state probabilities given the same parent configuration, because the sum-to-one constraint introduces correlations between CPT entries and the Sobol method requires independent parameters."
+    concepts:
+      - sensitivity_analysis
+      - bayesian_network
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 29
+      section: "5. Conclusions"
+      quote_fragment: "its inability to model uncertainties for multiple child state probabilities given the same configuration of parents"
+
+  - id: claim11
+    type: observation
+    statement: "Sobol indices drop much faster than OAT sensitivity values across parameter rankings, suggesting that OAT analysis systematically overestimates the importance of most Bayesian network CPT entries."
+    concepts:
+      - sensitivity_analysis
+      - bayesian_network
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 24
+      section: "4.4 Analysis"
+      quote_fragment: "the Sobol indices drop much faster than the sensitivity values, suggesting that the OAT analysis overestimates the importance of most BN entries"
+
+  - id: claim12
+    type: observation
+    statement: "Tensor train decomposition enables exact computation of all first-order Sobol indices for a Bayesian network with 55 uncertain parameters in seconds, keeping the augmented tensor network to 12,783 parameters instead of millions without compression."
+    concepts:
+      - tensor_decomposition
+      - bayesian_network
+      - sensitivity_analysis
+    provenance:
+      paper: Ballester-Ripoll_2024_GlobalSensitivityAnalysisBayesianNetworks
+      page: 23
+      section: "4.4 Analysis"
+      quote_fragment: "the output tensor network from Fig. 8 only has 12'783 parameters in total, comprising tensors up to 6 dimensions and 1'026 elements only"
