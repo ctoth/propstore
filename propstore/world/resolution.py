@@ -211,6 +211,85 @@ def _resolve_structured_argumentation(
     return None, f"{len(survivor_claims)} claims survive in {semantics} structured projection"
 
 
+def _resolve_aspic_argumentation(
+    target_claims: list[dict],
+    active_claims: list[dict],
+    view: BeliefSpace,
+    world: ArtifactStore,
+    *,
+    semantics: str = "grounded",
+    comparison: str = "elitist",
+    link: str = "last",
+) -> tuple[str | None, str | None]:
+    """Resolve via the ASPIC+ bridge backend (aspic_bridge.py).
+
+    Mirrors _resolve_structured_argumentation but routes through
+    build_aspic_projection instead of build_structured_projection.
+    """
+    from propstore.aspic_bridge import build_aspic_projection
+    from propstore.structured_argument import compute_structured_justified_arguments
+
+    if not world.has_table("relation_edge"):
+        return None, "no stance data"
+
+    support_metadata: dict[str, tuple[object | None, object]] = {}
+    claim_support = getattr(view, "claim_support", None)
+    if callable(claim_support):
+        for claim in active_claims:
+            claim_id = claim.get("id")
+            if not claim_id:
+                continue
+            support_metadata[claim_id] = claim_support(claim)
+
+    projection = build_aspic_projection(
+        world,
+        active_claims,
+        support_metadata=support_metadata,
+        comparison=comparison,
+        link=link,
+        active_graph=getattr(view, "_active_graph", None),
+    )
+    result = compute_structured_justified_arguments(
+        projection,
+        semantics=semantics,
+    )
+
+    target_arg_ids = frozenset(
+        arg_id
+        for claim in target_claims
+        for arg_id in projection.claim_to_argument_ids.get(claim["id"], ())
+    )
+    if isinstance(result, frozenset):
+        survivor_args = result & target_arg_ids
+    else:
+        if not result:
+            if semantics == "stable":
+                return None, "no stable ASPIC+ extensions"
+            return None, f"no {semantics} ASPIC+ extensions"
+        survivor_args = frozenset.intersection(*result) & target_arg_ids
+        if len(survivor_args) == 0:
+            credulous_args = frozenset().union(*result) & target_arg_ids
+            if credulous_args:
+                return None, (
+                    f"no skeptically accepted claim in {semantics} ASPIC+ projection"
+                )
+            return None, (
+                f"all target claims absent from every {semantics} ASPIC+ extension"
+            )
+
+    survivor_claims = {
+        projection.argument_to_claim_id[arg_id]
+        for arg_id in survivor_args
+    }
+    if len(survivor_claims) == 0:
+        return None, "all ASPIC+ arguments defeated"
+    if len(survivor_claims) == 1:
+        winner = next(iter(survivor_claims))
+        return winner, f"sole ASPIC+ survivor in {semantics} extension"
+
+    return None, f"{len(survivor_claims)} claims survive in {semantics} ASPIC+ projection"
+
+
 def _resolve_praf(
     target_claims: list[dict],
     active_claims: list[dict],
@@ -459,6 +538,15 @@ def resolve(
             )
         elif reasoning_backend == ReasoningBackend.STRUCTURED_PROJECTION:
             winner_id, reason = _resolve_structured_argumentation(
+                active,
+                view.active_claims(),
+                view,
+                world,
+                semantics=semantics,
+                comparison=comparison,
+            )
+        elif reasoning_backend == ReasoningBackend.ASPIC:
+            winner_id, reason = _resolve_aspic_argumentation(
                 active,
                 view.active_claims(),
                 view,

@@ -250,6 +250,45 @@ def run_worldline(
                         "justified": sorted(justified),
                         "defeated": sorted(defeated),
                     }
+            elif (
+                reasoning_backend == ReasoningBackend.ASPIC
+                and world.has_table("relation_edge")
+            ):
+                from propstore.aspic_bridge import build_aspic_projection
+                from propstore.structured_argument import (
+                    compute_structured_justified_arguments,
+                )
+
+                support_metadata: dict[str, tuple[object | None, object]] = {}
+                claim_support_aspic = getattr(bound, "claim_support", None)
+                if callable(claim_support_aspic):
+                    for claim in active:
+                        claim_id = claim.get("id")
+                        if claim_id:
+                            support_metadata[claim_id] = claim_support_aspic(claim)
+
+                aspic_projection = build_aspic_projection(
+                    world,
+                    active,
+                    support_metadata=support_metadata,
+                    comparison=definition.policy.comparison,
+                    active_graph=active_graph,
+                )
+                aspic_justified_args = compute_structured_justified_arguments(
+                    aspic_projection,
+                    semantics=definition.policy.semantics,
+                )
+                if isinstance(aspic_justified_args, frozenset):
+                    justified = {
+                        aspic_projection.argument_to_claim_id[arg_id]
+                        for arg_id in aspic_justified_args
+                    }
+                    defeated = active_ids - justified
+                    argumentation_state = {
+                        "backend": "aspic",
+                        "justified": sorted(justified),
+                        "defeated": sorted(defeated),
+                    }
             elif reasoning_backend == ReasoningBackend.ATMS:
                 atms_engine = getattr(bound, "atms_engine", None)
                 if callable(atms_engine):

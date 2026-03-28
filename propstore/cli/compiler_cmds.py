@@ -1306,7 +1306,7 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
 @click.option("--pessimism-index", "pessimism_index", default=0.5,
               type=float, help="Hurwicz pessimism index α ∈ [0,1] (default: 0.5)")
 @click.option("--reasoning-backend", "reasoning_backend", default="claim_graph",
-              type=click.Choice(["claim_graph", "structured_projection", "atms", "praf"]),
+              type=click.Choice(["claim_graph", "structured_projection", "aspic", "atms", "praf"]),
               help="Argumentation backend (default: claim_graph)")
 @click.option("--praf-strategy", "praf_strategy", default="auto",
               type=click.Choice(["auto", "mc", "exact", "dfquad"]),
@@ -1389,7 +1389,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 @world.command("extensions")
 @click.argument("args", nargs=-1)
 @click.option("--backend", "backend_name", default="claim_graph",
-              type=click.Choice(["claim_graph", "structured_projection", "atms", "praf"]),
+              type=click.Choice(["claim_graph", "structured_projection", "aspic", "atms", "praf"]),
               help="Argumentation backend (default: claim_graph)")
 @click.option("--semantics", default="grounded",
               type=click.Choice(["grounded", "preferred", "stable"]),
@@ -1531,6 +1531,33 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             )
             af = projection.framework
             arg_to_claim = dict(projection.argument_to_claim_id)
+        elif backend == ReasoningBackend.ASPIC:
+            from propstore.aspic_bridge import build_aspic_projection
+            from propstore.structured_argument import (
+                compute_structured_justified_arguments as compute_aspic_justified,
+            )
+
+            aspic_support_metadata: dict[str, tuple[object | None, object]] = {}
+            aspic_claim_support = getattr(bound, "claim_support", None)
+            if callable(aspic_claim_support):
+                for claim in active:
+                    claim_id = claim.get("id")
+                    if claim_id:
+                        aspic_support_metadata[claim_id] = aspic_claim_support(claim)
+
+            aspic_projection = build_aspic_projection(
+                wm,
+                active,
+                support_metadata=aspic_support_metadata,
+                comparison=set_comparison,
+                active_graph=getattr(bound, "_active_graph", None),
+            )
+            result = compute_aspic_justified(
+                aspic_projection,
+                semantics=semantics,
+            )
+            af = aspic_projection.framework
+            arg_to_claim = dict(aspic_projection.argument_to_claim_id)
         else:
             raise NotImplementedError(f"Unknown backend: {backend.value}")
 
@@ -1584,7 +1611,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             return groups
 
         if semantics == "grounded":
-            if backend == ReasoningBackend.STRUCTURED_PROJECTION:
+            if backend in (ReasoningBackend.STRUCTURED_PROJECTION, ReasoningBackend.ASPIC):
                 assert isinstance(result, frozenset)
                 justified_claims = {arg_to_claim[arg_id] for arg_id in result}
             else:

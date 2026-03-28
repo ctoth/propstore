@@ -123,12 +123,14 @@ class ReasoningBackend(StrEnum):
     Only consulted inside the ARGUMENTATION resolution strategy to choose
     which argumentation backend to call. The active belief space is computed
     by BoundWorld (Z3 condition solving), not by this enum. `structured_projection`
-    is a first structured-argument projection over active claims, and `atms`
-    is a global label/nogood propagation backend. Neither is full ASPIC+.
+    is a first structured-argument projection over active claims, `aspic`
+    uses the full ASPIC+ engine via aspic_bridge.py, and `atms`
+    is a global label/nogood propagation backend.
     """
 
     CLAIM_GRAPH = "claim_graph"
     STRUCTURED_PROJECTION = "structured_projection"
+    ASPIC = "aspic"
     ATMS = "atms"
     PRAF = "praf"
 
