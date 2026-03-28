@@ -475,3 +475,100 @@ class TestOpinionSchemaConstraints:
                 opinion_uncertainty=0.9,
                 opinion_base_rate=0.5,
             )
+
+    def test_rejects_negative_belief(self):
+        """opinion_belief = -0.1 must raise IntegrityError.
+
+        Per Josang 2001 (Def 1, p.5): b, d, u are in [0, 1].
+        """
+        conn = sqlite3.connect(":memory:")
+        create_argumentation_schema(conn)
+        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
+        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
+
+        with pytest.raises(sqlite3.IntegrityError):
+            insert_stance(
+                conn, "c1", "c2", "supports",
+                confidence=0.8,
+                opinion_belief=-0.1,
+                opinion_disbelief=0.6,
+                opinion_uncertainty=0.5,
+                opinion_base_rate=0.5,
+            )
+
+    def test_rejects_base_rate_zero(self):
+        """opinion_base_rate = 0.0 must raise IntegrityError.
+
+        Per Josang 2001 (Def 1, p.5): a is in the open interval (0, 1).
+        """
+        conn = sqlite3.connect(":memory:")
+        create_argumentation_schema(conn)
+        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
+        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
+
+        with pytest.raises(sqlite3.IntegrityError):
+            insert_stance(
+                conn, "c1", "c2", "supports",
+                confidence=0.8,
+                opinion_belief=0.3,
+                opinion_disbelief=0.2,
+                opinion_uncertainty=0.5,
+                opinion_base_rate=0.0,
+            )
+
+    def test_rejects_base_rate_one(self):
+        """opinion_base_rate = 1.0 must raise IntegrityError.
+
+        Per Josang 2001 (Def 1, p.5): a is in the open interval (0, 1).
+        """
+        conn = sqlite3.connect(":memory:")
+        create_argumentation_schema(conn)
+        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
+        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
+
+        with pytest.raises(sqlite3.IntegrityError):
+            insert_stance(
+                conn, "c1", "c2", "supports",
+                confidence=0.8,
+                opinion_belief=0.3,
+                opinion_disbelief=0.2,
+                opinion_uncertainty=0.5,
+                opinion_base_rate=1.0,
+            )
+
+    def test_accepts_null_opinions(self):
+        """All NULL opinion columns must be accepted (no opinion attached)."""
+        conn = sqlite3.connect(":memory:")
+        create_argumentation_schema(conn)
+        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
+        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
+
+        # Should not raise — NULLs bypass all opinion constraints
+        insert_stance(
+            conn, "c1", "c2", "supports",
+            confidence=0.8,
+            opinion_belief=None,
+            opinion_disbelief=None,
+            opinion_uncertainty=None,
+            opinion_base_rate=None,
+        )
+
+    def test_accepts_valid_opinion(self):
+        """Valid b=0.3, d=0.2, u=0.5, a=0.5 must succeed.
+
+        Per Josang 2001 (Def 1, p.5): b+d+u=1 and a in (0,1).
+        """
+        conn = sqlite3.connect(":memory:")
+        create_argumentation_schema(conn)
+        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
+        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
+
+        # Should not raise
+        insert_stance(
+            conn, "c1", "c2", "supports",
+            confidence=0.8,
+            opinion_belief=0.3,
+            opinion_disbelief=0.2,
+            opinion_uncertainty=0.5,
+            opinion_base_rate=0.5,
+        )
