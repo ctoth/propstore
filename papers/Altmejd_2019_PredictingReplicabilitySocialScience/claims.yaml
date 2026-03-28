@@ -1,0 +1,207 @@
+source:
+  paper: Altmejd_2019_PredictingReplicabilitySocialScience
+produced_by:
+  agent: "claude-opus-4-6-1m"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T20:37:30Z"
+
+claims:
+  - id: claim1
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.70
+    unit: "proportion"
+    methodology: "Random Forest classifier with nested 5-fold cross-validation on 131 replication attempts from RPP, EERP, ML1, ML2"
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 6
+      section: "Results"
+      quote_fragment: "The models predicts binary replication with a cross-validated accuracy rate of 70%"
+    notes: "Random Forest model, cross-validation evaluation"
+
+  - id: claim2
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.77
+    unit: "AUC"
+    methodology: "Random Forest classifier with nested 5-fold cross-validation on 131 replication attempts"
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 6
+      section: "Results"
+      quote_fragment: "AUC of 0.77"
+    notes: "Random Forest model, cross-validation, AUC metric"
+
+  - id: claim3
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.71
+    unit: "proportion"
+    methodology: "Pre-registered out-of-sample validation on 21 SSRP replication studies"
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 8
+      section: "Pre-registered out of sample test"
+      quote_fragment: "71% (AUC of 0.73) of replications are predicted correctly"
+    notes: "Random Forest model, out-of-sample on SSRP"
+
+  - id: claim4
+    type: measurement
+    target_concept: replication_success
+    measure: accuracy
+    value: 0.73
+    unit: "AUC"
+    methodology: "Pre-registered out-of-sample validation on 21 SSRP replication studies"
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 8
+      section: "Pre-registered out of sample test"
+    notes: "Random Forest model, out-of-sample on SSRP, AUC metric"
+
+  - id: claim5
+    type: measurement
+    target_concept: effect_size_shrinkage
+    measure: correlation
+    value: 0.38
+    unit: "Spearman rho"
+    methodology: "LASSO regression predicting relative effect size (replication r / original r) with cross-validation"
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 1
+      section: "Abstract"
+      quote_fragment: "estimates of relative effect sizes with a Spearman rho of 0.38"
+    notes: "LASSO model, cross-validation"
+
+  - id: claim6
+    type: measurement
+    target_concept: effect_size_shrinkage
+    measure: correlation
+    value: 0.25
+    unit: "Spearman rho"
+    methodology: "Pre-registered out-of-sample LASSO prediction on 21 SSRP studies"
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 8
+      section: "Pre-registered out of sample test"
+      quote_fragment: "effect size correlations amount to rho = 0.25"
+    notes: "LASSO model, out-of-sample on SSRP"
+
+  - id: claim7
+    type: observation
+    statement: "Post-hoc statistical power, original p-value, and original effect size are the three most important features for predicting binary replication success in the Random Forest model."
+    concepts:
+      - original_p_value
+      - original_effect_size
+      - replication_power
+      - replication_success
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 9
+      section: "Results"
+      quote_fragment: "Post-hoc power, p-value, effect size... are the most important features"
+
+  - id: claim8
+    type: observation
+    statement: "Interaction effects replicate at lower rates than main effects, and whether a reported effect is a main effect or interaction is among the top predictive features."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 9
+      section: "Results"
+      quote_fragment: "whether or not the effect tested is an interaction"
+
+  - id: claim9
+    type: observation
+    statement: "Social psychology studies replicate at lower rates than cognitive psychology and economics studies, and discipline is a significant predictor of replication success."
+    concepts:
+      - social_replication_rate
+      - cognitive_replication_rate
+      - discipline_replication_asymmetry
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 7
+      section: "Predictive power"
+      quote_fragment: "the prediction of the binary classifier based on objective features can be compared to subjects beliefs of replicability"
+
+  - id: claim10
+    type: comparison
+    statement: "The ML model achieves prediction accuracy comparable to prediction markets (~70% vs ~71% on SSRP) without requiring expert panels, making it a near-zero-cost alternative for replication triage."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 10
+      section: "Discussion"
+      quote_fragment: "the model presented here is a cheap, automated tool that forecasts replication with accuracy comparable to that of prediction markets"
+
+  - id: claim11
+    type: parameter
+    concept: replication_significance_rate
+    value: 0.55
+    unit: "proportion"
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 6
+      section: "Results"
+      quote_fragment: "base rate of replication in the training data is approximately 55%"
+    notes: "Base rate across RPP + EERP + ML1 + ML2 pooled training set"
+
+  - id: claim12
+    type: mechanism
+    statement: "Studies with larger original sample sizes replicate more often because larger samples provide more precise effect estimates that are less likely to be inflated by sampling variability, and the model cannot separate this mechanical effect from the power increase."
+    concepts:
+      - replication_success
+      - original_effect_size
+      - effect_size_inflation
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 14
+      section: "S4 Fig"
+      quote_fragment: "the model is not very good at capturing the mechanical increase in replication probability from increase sample size"
+
+  - id: claim13
+    type: limitation
+    statement: "The model is trained on only 131 replication attempts from lab experiments in psychology and economics, and does not generalize to field experiments, observational studies, or other scientific domains."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 10
+      section: "Discussion"
+      quote_fragment: "our data set is not representative for all experimental social science"
+
+  - id: claim14
+    type: limitation
+    statement: "The out-of-sample validation set contains only 21 studies (SSRP), limiting the precision of accuracy estimates for the pre-registered test."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 8
+      section: "Pre-registered out of sample test"
+
+  - id: claim15
+    type: observation
+    statement: "The continuous prediction model produces relative effect size estimates with a mean absolute deviation of 0.08 from actual values on the SSRP out-of-sample test, but the Pearson correlation between predicted and actual values is only 0.23."
+    concepts:
+      - effect_size_shrinkage
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 10
+      section: "Discussion"
+      quote_fragment: "mean absolute deviation of SSRP predictions"
+
+  - id: claim16
+    type: observation
+    statement: "Removing the discipline variable and retesting shows that features characterizing the difference between original and replication experiments — such as whether they were conducted in the same country or used the same type of subjects — have limited predictive power beyond basic statistical features."
+    concepts:
+      - replication_success
+    provenance:
+      paper: Altmejd_2019_PredictingReplicabilitySocialScience
+      page: 7
+      section: "Predictive power"
+      quote_fragment: "If studies of interactions do not increase sample size appropriately, replicability will be lower"
