@@ -1,0 +1,8 @@
+id: concept60
+canonical_name: beta_distribution_beta
+status: proposed
+definition: Beta parameter of the Beta distribution corresponding to a subjective
+  opinion.
+domain: subjective-logic
+created_date: '2026-03-28'
+form: structural

@@ -1,0 +1,7 @@
+id: concept65
+canonical_name: ci_lower
+status: proposed
+definition: Lower bound of a confidence interval.
+domain: statistics
+created_date: '2026-03-28'
+form: structural

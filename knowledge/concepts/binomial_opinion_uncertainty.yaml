@@ -1,0 +1,8 @@
+id: concept55
+canonical_name: binomial_opinion_uncertainty
+status: proposed
+definition: Uncertainty component u_x of a binomial subjective opinion, representing
+  ignorance about whether the proposition is true or false. Range [0,1].
+domain: subjective-logic
+created_date: '2026-03-28'
+form: structural

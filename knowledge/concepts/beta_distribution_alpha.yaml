@@ -1,0 +1,8 @@
+id: concept59
+canonical_name: beta_distribution_alpha
+status: proposed
+definition: Alpha parameter of the Beta distribution corresponding to a subjective
+  opinion.
+domain: subjective-logic
+created_date: '2026-03-28'
+form: structural

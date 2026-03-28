@@ -1,0 +1,7 @@
+id: concept66
+canonical_name: ci_range_denominator
+status: proposed
+definition: Range R used to normalize CI width into [0,1] uncertainty. Domain-specific.
+domain: statistics
+created_date: '2026-03-28'
+form: structural

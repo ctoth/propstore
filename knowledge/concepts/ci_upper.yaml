@@ -1,0 +1,7 @@
+id: concept64
+canonical_name: ci_upper
+status: proposed
+definition: Upper bound of a confidence interval.
+domain: statistics
+created_date: '2026-03-28'
+form: structural

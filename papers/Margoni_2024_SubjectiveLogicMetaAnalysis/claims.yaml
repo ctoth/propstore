@@ -1,5 +1,9 @@
 source:
   paper: Margoni_2024_SubjectiveLogicMetaAnalysis
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-03-28T21:36:02Z"
 
 claims:
   - id: claim1
@@ -51,7 +55,7 @@ claims:
   - id: claim3
     type: equation
     expression: "f(x; alpha, beta) = x^(alpha-1) * (1-x)^(beta-1) / B(alpha, beta)"
-    sympy: "Eq(beta_pdf, x**(alpha - 1) * (1 - x)**(beta - 1) / beta_function(alpha, beta))"
+    sympy: "Eq(beta_pdf, x**(alpha - 1) * (1 - x)**(beta_param - 1) / B_func)"
     variables:
       - symbol: "alpha"
         concept: "beta_distribution_alpha"
