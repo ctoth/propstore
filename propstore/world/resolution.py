@@ -345,6 +345,8 @@ def _resolve_praf(
         shared,
         semantics=semantics,
         strategy=strategy,
+        query_kind="argument_acceptance",
+        inference_mode="credulous",
         mc_epsilon=mc_epsilon,
         mc_confidence=mc_confidence,
         treewidth_cutoff=treewidth_cutoff,

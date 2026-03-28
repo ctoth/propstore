@@ -1167,6 +1167,9 @@ class TestSemanticCorePhase7Worldlines:
             *,
             semantics="grounded",
             strategy="auto",
+            query_kind="argument_acceptance",
+            inference_mode="credulous",
+            queried_set=None,
             mc_epsilon=0.01,
             mc_confidence=0.95,
             treewidth_cutoff=12,
@@ -1174,6 +1177,9 @@ class TestSemanticCorePhase7Worldlines:
             target_claim_ids=None,
         ):
             assert shared == "shared-praf"
+            assert query_kind == "argument_acceptance"
+            assert inference_mode == "credulous"
+            assert queried_set is None
             target_ids = tuple(sorted(target_claim_ids or ()))
             projection = None
             if target_claim_ids is not None:
@@ -1187,8 +1193,14 @@ class TestSemanticCorePhase7Worldlines:
                 semantics=semantics,
                 projection=projection,
                 metadata=(
+                    ("query_kind", query_kind),
+                    ("inference_mode", inference_mode),
+                    ("queried_set", queried_set),
                     ("acceptance_probs", {"claim_a": 0.75, "claim_b": 0.25}),
+                    ("extension_probability", None),
                     ("strategy_used", "exact_enum"),
+                    ("strategy_requested", strategy),
+                    ("downgraded_from", None),
                     ("samples", None),
                     ("confidence_interval_half", None),
                     ("comparison", "elitist"),

@@ -609,6 +609,9 @@ def analyze_praf(
     *,
     semantics: str = "grounded",
     strategy: str = "auto",
+    query_kind: str = "argument_acceptance",
+    inference_mode: str | None = "credulous",
+    queried_set: tuple[str, ...] | list[str] | set[str] | None = None,
     mc_epsilon: float = 0.01,
     mc_confidence: float = 0.95,
     treewidth_cutoff: int = 12,
@@ -622,6 +625,9 @@ def analyze_praf(
         praf,
         semantics=semantics,
         strategy=strategy,
+        query_kind=query_kind,
+        inference_mode=inference_mode,
+        queried_set=queried_set,
         mc_epsilon=mc_epsilon,
         mc_confidence=mc_confidence,
         treewidth_cutoff=treewidth_cutoff,
@@ -629,7 +635,7 @@ def analyze_praf(
     )
     projection = (
         None
-        if target_claim_ids is None
+        if target_claim_ids is None or praf_result.acceptance_probs is None
         else project_acceptance_result(
             praf_result.acceptance_probs,
             target_claim_ids=target_claim_ids,
@@ -640,8 +646,14 @@ def analyze_praf(
         semantics=semantics,
         projection=projection,
         metadata=(
+            ("query_kind", praf_result.query_kind),
+            ("inference_mode", praf_result.inference_mode),
+            ("queried_set", praf_result.queried_set),
             ("acceptance_probs", praf_result.acceptance_probs),
+            ("extension_probability", praf_result.extension_probability),
             ("strategy_used", praf_result.strategy_used),
+            ("strategy_requested", praf_result.strategy_requested),
+            ("downgraded_from", praf_result.downgraded_from),
             ("samples", praf_result.samples),
             ("confidence_interval_half", praf_result.confidence_interval_half),
             ("comparison", shared.comparison),

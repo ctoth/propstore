@@ -17,6 +17,7 @@ from dataclasses import dataclass
 
 _Z_SCORES = {0.90: 1.645, 0.95: 1.960, 0.99: 2.576}
 _DETERMINISTIC_EPSILON = 1e-12
+_UNSET = object()
 
 
 def _z_for_confidence(confidence: float) -> float:
@@ -72,18 +73,32 @@ class ProbabilisticAF:
 class PrAFResult:
     """Result of probabilistic extension computation.
 
-    acceptance_probs: argument -> P(accepted), computed over all sampled worlds.
-    strategy_used: "mc", "deterministic", "exact_enum".
-    samples: MC sample count (None for non-MC strategies).
-    confidence_interval_half: MC CI half-width (None for non-MC).
-    semantics: which Dung semantics was used.
+    `query_kind` and `inference_mode` make the queried object explicit:
+    argument-acceptance vs exact-set extension probability, and credulous
+    vs skeptical singleton acceptance for multi-extension semantics.
     """
 
-    acceptance_probs: dict[str, float]
-    strategy_used: str
-    samples: int | None
-    confidence_interval_half: float | None
-    semantics: str
+    acceptance_probs: dict[str, float] | None = None
+    extension_probability: float | None = None
+    strategy_used: str = ""
+    strategy_requested: str | None = None
+    downgraded_from: str | None = None
+    samples: int | None = None
+    confidence_interval_half: float | None = None
+    semantics: str = "grounded"
+    query_kind: str = "argument_acceptance"
+    inference_mode: str | None = "credulous"
+    queried_set: tuple[str, ...] | None = None
+
+    def __post_init__(self) -> None:
+        if self.strategy_requested is None:
+            object.__setattr__(self, "strategy_requested", self.strategy_used)
+        if self.queried_set is not None:
+            object.__setattr__(
+                self,
+                "queried_set",
+                tuple(sorted(dict.fromkeys(str(arg) for arg in self.queried_set))),
+            )
 
 
 def p_arg_from_claim(claim: dict) -> Opinion:
@@ -314,9 +329,151 @@ def _all_structure_deterministic(praf: ProbabilisticAF) -> bool:
 def _public_exact_dp_enabled(
     praf: ProbabilisticAF,
     semantics: str,
+    query_kind: str,
+    inference_mode: str | None,
 ) -> bool:
     """Gate public exact-DP routing until the backend is differential-safe."""
     return False
+
+
+def _normalize_queried_set(
+    queried_set: frozenset[str] | set[str] | tuple[str, ...] | list[str] | None,
+) -> tuple[str, ...] | None:
+    if queried_set is None:
+        return None
+    return tuple(sorted(dict.fromkeys(str(arg) for arg in queried_set)))
+
+
+def _validate_query_contract(
+    *,
+    strategy: str,
+    query_kind: object,
+    inference_mode: object,
+    queried_set: frozenset[str] | set[str] | tuple[str, ...] | list[str] | None,
+) -> tuple[str, str | None, tuple[str, ...] | None]:
+    """Validate explicit query selectors for PrAF acceptance queries."""
+    if strategy == "dfquad":
+        return "gradual_strength", None, None
+
+    if query_kind is _UNSET:
+        if inference_mode is not _UNSET and inference_mode is not None:
+            raise ValueError("inference_mode requires an explicit query_kind")
+        return "argument_acceptance", "credulous", None
+
+    query_kind_str = str(query_kind)
+    normalized_queried_set = _normalize_queried_set(queried_set)
+
+    if query_kind_str == "argument_acceptance":
+        if inference_mode is _UNSET or inference_mode is None:
+            raise ValueError(
+                "argument_acceptance requires inference_mode='credulous' or 'skeptical'"
+            )
+        inference_mode_str = str(inference_mode)
+        if inference_mode_str not in {"credulous", "skeptical"}:
+            raise ValueError(
+                "argument_acceptance requires inference_mode='credulous' or 'skeptical'"
+            )
+        if normalized_queried_set is not None:
+            raise ValueError("argument_acceptance does not use queried_set")
+        return query_kind_str, inference_mode_str, None
+
+    if query_kind_str == "extension_probability":
+        if inference_mode is not _UNSET and inference_mode is not None:
+            raise ValueError("extension_probability does not use inference_mode")
+        if normalized_queried_set is None:
+            raise ValueError("extension_probability requires queried_set")
+        return query_kind_str, None, normalized_queried_set
+
+    raise ValueError(f"Unknown query_kind: {query_kind_str}")
+
+
+def _exact_dp_supports_query(
+    *,
+    query_kind: str,
+    inference_mode: str | None,
+) -> bool:
+    if query_kind == "argument_acceptance":
+        return inference_mode == "credulous"
+    if query_kind == "extension_probability":
+        return True
+    return False
+
+
+def _extensions_for_semantics(
+    af: ArgumentationFramework,
+    semantics: str,
+) -> tuple[frozenset[str], ...]:
+    if semantics == "grounded":
+        return (grounded_extension(af),)
+    if semantics == "hybrid-grounded":
+        return (hybrid_grounded_extension(af),)
+    if semantics == "preferred":
+        return tuple(preferred_extensions(af, backend="brute"))
+    if semantics == "stable":
+        return tuple(stable_extensions(af, backend="brute"))
+    if semantics == "complete":
+        return tuple(complete_extensions(af, backend="brute"))
+    raise ValueError(f"Unknown semantics: {semantics}")
+
+
+def _accepted_arguments_from_extensions(
+    extensions: tuple[frozenset[str], ...],
+    *,
+    inference_mode: str,
+) -> frozenset[str]:
+    if not extensions:
+        return frozenset()
+    if inference_mode == "credulous":
+        accepted = set().union(*extensions)
+        return frozenset(accepted)
+    if inference_mode == "skeptical":
+        accepted = set(extensions[0])
+        for extension in extensions[1:]:
+            accepted &= set(extension)
+        return frozenset(accepted)
+    raise ValueError(f"Unknown inference_mode: {inference_mode}")
+
+
+def _evaluate_world_query(
+    af: ArgumentationFramework,
+    *,
+    semantics: str,
+    query_kind: str,
+    inference_mode: str | None,
+    queried_set: tuple[str, ...] | None,
+) -> frozenset[str] | bool:
+    extensions = _extensions_for_semantics(af, semantics)
+    if query_kind == "argument_acceptance":
+        assert inference_mode is not None
+        return _accepted_arguments_from_extensions(
+            extensions,
+            inference_mode=inference_mode,
+        )
+    if query_kind == "extension_probability":
+        target = frozenset(queried_set or ())
+        return target in set(extensions)
+    raise ValueError(f"Unknown query_kind: {query_kind}")
+
+
+def _with_strategy_override(
+    result: PrAFResult,
+    *,
+    strategy_requested: str,
+    downgraded_from: str | None = None,
+) -> PrAFResult:
+    return PrAFResult(
+        acceptance_probs=result.acceptance_probs,
+        extension_probability=result.extension_probability,
+        strategy_used=result.strategy_used,
+        strategy_requested=strategy_requested,
+        downgraded_from=downgraded_from,
+        samples=result.samples,
+        confidence_interval_half=result.confidence_interval_half,
+        semantics=result.semantics,
+        query_kind=result.query_kind,
+        inference_mode=result.inference_mode,
+        queried_set=result.queried_set,
+    )
 
 
 def _deterministic_world(
@@ -440,6 +597,9 @@ def compute_praf_acceptance(
     *,
     semantics: str = "grounded",
     strategy: str = "auto",
+    query_kind: object = _UNSET,
+    inference_mode: object = _UNSET,
+    queried_set: frozenset[str] | set[str] | tuple[str, ...] | list[str] | None = None,
     mc_epsilon: float = 0.01,
     mc_confidence: float = 0.95,
     treewidth_cutoff: int = 12,
@@ -450,23 +610,79 @@ def compute_praf_acceptance(
     Per Li et al. (2012, Algorithm 1): MC sampler with Agresti-Coull stopping.
     Per Hunter & Thimm (2017, Prop 18): connected component decomposition.
 
-    strategy:
-        "auto" — deterministic fallback if all P_D ≈ 1.0, else MC.
-        "mc" — force Monte Carlo sampling.
-        "deterministic" — force deterministic Dung evaluation.
-        "exact_enum" — brute-force enumeration (small AFs only).
-        "exact_dp" — tree-decomposition DP (Popescu & Wallner 2024).
+    query_kind:
+        "argument_acceptance" — per-argument acceptance probabilities.
+        "extension_probability" — probability that the exact queried_set is an extension.
+
+    inference_mode:
+        Required only for argument_acceptance: "credulous" or "skeptical".
     """
+    normalized_query_kind, normalized_inference_mode, normalized_queried_set = _validate_query_contract(
+        strategy=strategy,
+        query_kind=query_kind,
+        inference_mode=inference_mode,
+        queried_set=queried_set,
+    )
+
     if strategy == "deterministic":
-        return _deterministic_fallback(praf, semantics)
+        return _deterministic_fallback(
+            praf,
+            semantics,
+            query_kind=normalized_query_kind,
+            inference_mode=normalized_inference_mode,
+            queried_set=normalized_queried_set,
+        )
     if strategy == "mc":
-        return _compute_mc(praf, semantics, mc_epsilon, mc_confidence, rng_seed)
+        return _compute_mc(
+            praf,
+            semantics,
+            mc_epsilon,
+            mc_confidence,
+            rng_seed,
+            query_kind=normalized_query_kind,
+            inference_mode=normalized_inference_mode,
+            queried_set=normalized_queried_set,
+        )
     if strategy == "exact_enum":
-        return _compute_exact_enumeration(praf, semantics)
+        return _compute_exact_enumeration(
+            praf,
+            semantics,
+            query_kind=normalized_query_kind,
+            inference_mode=normalized_inference_mode,
+            queried_set=normalized_queried_set,
+        )
     if strategy == "exact_dp":
-        if not _public_exact_dp_enabled(praf, semantics):
-            return _compute_exact_enumeration(praf, semantics)
-        return _compute_exact_dp(praf, semantics)
+        supported = _exact_dp_supports_query(
+            query_kind=normalized_query_kind,
+            inference_mode=normalized_inference_mode,
+        )
+        if (
+            not supported
+            or not _public_exact_dp_enabled(
+                praf,
+                semantics,
+                normalized_query_kind,
+                normalized_inference_mode,
+            )
+        ):
+            downgraded = _compute_exact_enumeration(
+                praf,
+                semantics,
+                query_kind=normalized_query_kind,
+                inference_mode=normalized_inference_mode,
+                queried_set=normalized_queried_set,
+            )
+            return _with_strategy_override(
+                downgraded,
+                strategy_requested="exact_dp",
+                downgraded_from="exact_dp",
+            )
+        return _compute_exact_dp(
+            praf,
+            semantics,
+            query_kind=normalized_query_kind,
+            inference_mode=normalized_inference_mode,
+        )
     if strategy == "dfquad":
         return _compute_dfquad(praf, semantics)
 
@@ -476,77 +692,133 @@ def compute_praf_acceptance(
     # Per Li (2012, p.2): PrAF with P_A=1, P_D=1 equals standard Dung evaluation.
     all_deterministic = _all_structure_deterministic(praf)
     if all_deterministic:
-        return _deterministic_fallback(praf, semantics)
+        return _deterministic_fallback(
+            praf,
+            semantics,
+            query_kind=normalized_query_kind,
+            inference_mode=normalized_inference_mode,
+            queried_set=normalized_queried_set,
+        )
 
     # Small AF: exact enumeration (Li 2012, p.8: exact beats MC below ~13 args)
     n_args = len(praf.framework.arguments)
     if n_args <= 13:
-        return _compute_exact_enumeration(praf, semantics)
+        return _compute_exact_enumeration(
+            praf,
+            semantics,
+            query_kind=normalized_query_kind,
+            inference_mode=normalized_inference_mode,
+            queried_set=normalized_queried_set,
+        )
 
     # Relation-rich worlds currently require exact enumeration or MC.
     if _requires_relation_rich_worlds(praf):
-        return _compute_mc(praf, semantics, mc_epsilon, mc_confidence, rng_seed)
+        return _compute_mc(
+            praf,
+            semantics,
+            mc_epsilon,
+            mc_confidence,
+            rng_seed,
+            query_kind=normalized_query_kind,
+            inference_mode=normalized_inference_mode,
+            queried_set=normalized_queried_set,
+        )
 
     # Medium AF with low treewidth: exact DP (Popescu & Wallner 2024)
     # Per plan Section 2.4: estimate treewidth, use DP if below cutoff.
     from propstore.praf_treedecomp import estimate_treewidth
 
     tw = estimate_treewidth(praf.framework)
-    if tw <= treewidth_cutoff and _public_exact_dp_enabled(praf, semantics):
-        return _compute_exact_dp(praf, semantics)
+    if (
+        tw <= treewidth_cutoff
+        and _exact_dp_supports_query(
+            query_kind=normalized_query_kind,
+            inference_mode=normalized_inference_mode,
+        )
+        and _public_exact_dp_enabled(
+            praf,
+            semantics,
+            normalized_query_kind,
+            normalized_inference_mode,
+        )
+    ):
+        return _compute_exact_dp(
+            praf,
+            semantics,
+            query_kind=normalized_query_kind,
+            inference_mode=normalized_inference_mode,
+        )
 
     # Default: MC
-    return _compute_mc(praf, semantics, mc_epsilon, mc_confidence, rng_seed)
+    return _compute_mc(
+        praf,
+        semantics,
+        mc_epsilon,
+        mc_confidence,
+        rng_seed,
+        query_kind=normalized_query_kind,
+        inference_mode=normalized_inference_mode,
+        queried_set=normalized_queried_set,
+    )
 
 
-def _deterministic_fallback(praf: ProbabilisticAF, semantics: str) -> PrAFResult:
+def _deterministic_fallback(
+    praf: ProbabilisticAF,
+    semantics: str,
+    *,
+    query_kind: str,
+    inference_mode: str | None,
+    queried_set: tuple[str, ...] | None,
+) -> PrAFResult:
     """All P_D ≈ 1.0 case: run standard Dung evaluation.
 
     Per Li (2012, p.2): PrAF with P_A=1, P_D=1 yields acceptance probabilities
     of exactly 0.0 or 1.0, matching standard Dung extension computation.
     """
     deterministic_af = _deterministic_world(praf)
-    ext = _evaluate_semantics(deterministic_af, semantics)
+    evaluation = _evaluate_world_query(
+        deterministic_af,
+        semantics=semantics,
+        query_kind=query_kind,
+        inference_mode=inference_mode,
+        queried_set=queried_set,
+    )
 
-    acceptance: dict[str, float] = {}
-    for arg in deterministic_af.arguments:
-        acceptance[arg] = 1.0 if arg in ext else 0.0
-    for arg in praf.framework.arguments - deterministic_af.arguments:
-        acceptance[arg] = 0.0
+    if query_kind == "argument_acceptance":
+        assert isinstance(evaluation, frozenset)
+        acceptance: dict[str, float] = {}
+        for arg in deterministic_af.arguments:
+            acceptance[arg] = 1.0 if arg in evaluation else 0.0
+        for arg in praf.framework.arguments - deterministic_af.arguments:
+            acceptance[arg] = 0.0
+        return PrAFResult(
+            acceptance_probs=acceptance,
+            extension_probability=None,
+            strategy_used="deterministic",
+            strategy_requested="deterministic",
+            downgraded_from=None,
+            samples=None,
+            confidence_interval_half=None,
+            semantics=semantics,
+            query_kind=query_kind,
+            inference_mode=inference_mode,
+            queried_set=None,
+        )
 
+    assert isinstance(evaluation, bool)
     return PrAFResult(
-        acceptance_probs=acceptance,
+        acceptance_probs=None,
+        extension_probability=1.0 if evaluation else 0.0,
         strategy_used="deterministic",
+        strategy_requested="deterministic",
+        downgraded_from=None,
         samples=None,
         confidence_interval_half=None,
         semantics=semantics,
+        query_kind=query_kind,
+        inference_mode=None,
+        queried_set=queried_set,
     )
-
-
-def _evaluate_semantics(
-    af: ArgumentationFramework, semantics: str
-) -> frozenset[str]:
-    """Evaluate a single extension under the chosen semantics.
-
-    For grounded: returns the unique grounded extension.
-    For preferred/stable/complete: returns the union of all extensions
-    (credulous acceptance — an argument is accepted if it appears in ANY extension).
-    """
-    if semantics == "grounded":
-        return grounded_extension(af)
-    elif semantics == "hybrid-grounded":
-        return hybrid_grounded_extension(af)
-    elif semantics == "preferred":
-        exts = preferred_extensions(af, backend="brute")
-        return frozenset().union(*exts) if exts else frozenset()
-    elif semantics == "stable":
-        exts = stable_extensions(af, backend="brute")
-        return frozenset().union(*exts) if exts else frozenset()
-    elif semantics == "complete":
-        exts = complete_extensions(af, backend="brute")
-        return frozenset().union(*exts) if exts else frozenset()
-    else:
-        raise ValueError(f"Unknown semantics: {semantics}")
 
 
 def _connected_components(praf: ProbabilisticAF) -> list[set[str]]:
@@ -633,6 +905,10 @@ def _compute_mc(
     epsilon: float,
     confidence: float,
     seed: int | None,
+    *,
+    query_kind: str,
+    inference_mode: str | None,
+    queried_set: tuple[str, ...] | None,
 ) -> PrAFResult:
     """Monte Carlo sampler with per-argument acceptance and Agresti-Coull stopping.
 
@@ -647,6 +923,57 @@ def _compute_mc(
     """
     rng = _random_mod.Random(seed)
     z = _z_for_confidence(confidence)
+
+    if query_kind == "extension_probability":
+        hits = 0
+        n = 0
+        min_samples = 30
+        while True:
+            n += 1
+            sub_af = _sample_subgraph(praf, rng)
+            evaluation = _evaluate_world_query(
+                sub_af,
+                semantics=semantics,
+                query_kind=query_kind,
+                inference_mode=inference_mode,
+                queried_set=queried_set,
+            )
+            assert isinstance(evaluation, bool)
+            if evaluation:
+                hits += 1
+
+            if n >= min_samples:
+                adjusted_n = n + z * z
+                adjusted_count = hits + (z * z) / 2.0
+                adjusted_p = adjusted_count / adjusted_n
+                ci_half = z * math.sqrt(
+                    adjusted_p * (1.0 - adjusted_p) / adjusted_n
+                )
+                if ci_half <= epsilon:
+                    break
+
+            if n >= 100000:
+                break
+
+        adjusted_n = n + z * z
+        adjusted_count = hits + (z * z) / 2.0
+        adjusted_p = adjusted_count / adjusted_n
+        ci_half = z * math.sqrt(
+            adjusted_p * (1.0 - adjusted_p) / adjusted_n
+        )
+        return PrAFResult(
+            acceptance_probs=None,
+            extension_probability=hits / n if n > 0 else 0.0,
+            strategy_used="mc",
+            strategy_requested="mc",
+            downgraded_from=None,
+            samples=n,
+            confidence_interval_half=ci_half,
+            semantics=semantics,
+            query_kind=query_kind,
+            inference_mode=None,
+            queried_set=queried_set,
+        )
 
     # Decompose into connected components per Hunter & Thimm (2017, Prop 18)
     components = _connected_components(praf)
@@ -713,9 +1040,17 @@ def _compute_mc(
         # Check if this component is deterministic
         comp_all_det = _all_structure_deterministic(comp_praf)
         if comp_all_det:
-            ext = _evaluate_semantics(_deterministic_world(comp_praf), semantics)
-            for arg in comp_args:
-                all_acceptance[arg] = 1.0 if arg in ext else 0.0
+            evaluation = _evaluate_world_query(
+                _deterministic_world(comp_praf),
+                semantics=semantics,
+                query_kind=query_kind,
+                inference_mode=inference_mode,
+                queried_set=queried_set,
+            )
+            if query_kind == "argument_acceptance":
+                assert isinstance(evaluation, frozenset)
+                for arg in comp_args:
+                    all_acceptance[arg] = 1.0 if arg in evaluation else 0.0
             continue
 
         # MC sampling for this component
@@ -726,11 +1061,19 @@ def _compute_mc(
         while True:
             n += 1
             sub_af = _sample_subgraph(comp_praf, rng, comp_args)
-            ext = _evaluate_semantics(sub_af, semantics)
+            evaluation = _evaluate_world_query(
+                sub_af,
+                semantics=semantics,
+                query_kind=query_kind,
+                inference_mode=inference_mode,
+                queried_set=queried_set,
+            )
 
-            for a in comp_args:
-                if a in ext:
-                    counts[a] += 1
+            if query_kind == "argument_acceptance":
+                assert isinstance(evaluation, frozenset)
+                for a in comp_args:
+                    if a in evaluation:
+                        counts[a] += 1
 
             # Agresti-Coull stopping (Li 2012, Eq. 5, p.7)
             if n >= min_samples:
@@ -758,8 +1101,8 @@ def _compute_mc(
         total_samples = max(total_samples, n)
 
         # Compute CI half-width for this component
-        for a in comp_args:
-            if n > 0:
+        if n > 0:
+            for a in comp_args:
                 adjusted_n = n + z * z
                 adjusted_count = counts[a] + (z * z) / 2.0
                 adjusted_p = adjusted_count / adjusted_n
@@ -770,16 +1113,26 @@ def _compute_mc(
 
     return PrAFResult(
         acceptance_probs=all_acceptance,
+        extension_probability=None,
         strategy_used="mc",
+        strategy_requested="mc",
+        downgraded_from=None,
         samples=total_samples,
         confidence_interval_half=max_ci_half,
         semantics=semantics,
+        query_kind=query_kind,
+        inference_mode=inference_mode,
+        queried_set=queried_set,
     )
 
 
 def _compute_exact_enumeration(
     praf: ProbabilisticAF,
     semantics: str,
+    *,
+    query_kind: str,
+    inference_mode: str | None,
+    queried_set: tuple[str, ...] | None,
 ) -> PrAFResult:
     """Brute-force exact computation for small AFs.
 
@@ -791,8 +1144,8 @@ def _compute_exact_enumeration(
     args_list = sorted(praf.framework.arguments)
     n_args = len(args_list)
 
-    # Per-argument acceptance probability accumulator
     acceptance: dict[str, float] = {a: 0.0 for a in args_list}
+    extension_probability = 0.0
 
     # Enumerate all subsets of arguments
     for arg_mask in range(1 << n_args):
@@ -817,24 +1170,45 @@ def _compute_exact_enumeration(
             total_prob = p_args_present * p_world
             if total_prob < 1e-15:
                 continue
-            ext = _evaluate_semantics(sub_af, semantics)
+            evaluation = _evaluate_world_query(
+                sub_af,
+                semantics=semantics,
+                query_kind=query_kind,
+                inference_mode=inference_mode,
+                queried_set=queried_set,
+            )
 
-            for a in sampled_args:
-                if a in ext:
-                    acceptance[a] += total_prob
+            if query_kind == "argument_acceptance":
+                assert isinstance(evaluation, frozenset)
+                for a in sampled_args:
+                    if a in evaluation:
+                        acceptance[a] += total_prob
+            else:
+                assert isinstance(evaluation, bool)
+                if evaluation:
+                    extension_probability += total_prob
 
     return PrAFResult(
-        acceptance_probs=acceptance,
+        acceptance_probs=acceptance if query_kind == "argument_acceptance" else None,
+        extension_probability=None if query_kind == "argument_acceptance" else extension_probability,
         strategy_used="exact_enum",
+        strategy_requested="exact_enum",
+        downgraded_from=None,
         samples=None,
         confidence_interval_half=None,
         semantics=semantics,
+        query_kind=query_kind,
+        inference_mode=inference_mode,
+        queried_set=queried_set,
     )
 
 
 def _compute_exact_dp(
     praf: ProbabilisticAF,
     semantics: str,
+    *,
+    query_kind: str,
+    inference_mode: str | None,
 ) -> PrAFResult:
     """Exact computation via tree-decomposition DP.
 
@@ -844,14 +1218,23 @@ def _compute_exact_dp(
     """
     from propstore.praf_treedecomp import compute_exact_dp
 
+    if query_kind != "argument_acceptance" or inference_mode != "credulous":
+        raise ValueError("exact_dp currently only supports credulous argument acceptance")
+
     acceptance = compute_exact_dp(praf, semantics)
 
     return PrAFResult(
         acceptance_probs=acceptance,
+        extension_probability=None,
         strategy_used="exact_dp",
+        strategy_requested="exact_dp",
+        downgraded_from=None,
         samples=None,
         confidence_interval_half=None,
         semantics=semantics,
+        query_kind=query_kind,
+        inference_mode=inference_mode,
+        queried_set=None,
     )
 
 
@@ -949,8 +1332,14 @@ def _compute_dfquad(
 
     return PrAFResult(
         acceptance_probs=strengths,
+        extension_probability=None,
         strategy_used="dfquad",
+        strategy_requested="dfquad",
+        downgraded_from=None,
         samples=None,
         confidence_interval_half=None,
         semantics="dfquad",
+        query_kind="gradual_strength",
+        inference_mode=None,
+        queried_set=None,
     )

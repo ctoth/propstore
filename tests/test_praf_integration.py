@@ -519,6 +519,29 @@ def test_build_praf_no_stances():
     assert set(praf.p_args.keys()) == {"c1", "c2"}
 
 
+def test_analyze_praf_metadata_exposes_query_kind_and_inference_mode():
+    """Analyzer metadata must preserve the explicit PrAF query contract."""
+    from propstore.core.analyzers import analyze_praf, shared_analyzer_input_from_store
+
+    claims, stances = _make_claims_and_stances_uncertain()
+    store = _MockStore(claims, stances)
+    shared = shared_analyzer_input_from_store(store, {"c1", "c2"})
+
+    result = analyze_praf(
+        shared,
+        semantics="preferred",
+        strategy="exact_enum",
+        query_kind="argument_acceptance",
+        inference_mode="skeptical",
+        target_claim_ids=("c1", "c2"),
+    )
+
+    metadata = dict(result.metadata)
+    assert metadata["query_kind"] == "argument_acceptance"
+    assert metadata["inference_mode"] == "skeptical"
+    assert metadata["strategy_used"] == "exact_enum"
+
+
 # ---------------------------------------------------------------------------
 # Decision Criteria in Resolution (Phase 4 Red)
 # ---------------------------------------------------------------------------

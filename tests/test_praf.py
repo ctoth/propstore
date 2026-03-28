@@ -1006,3 +1006,167 @@ def test_coh_idempotent(praf):
         assert abs(p1 - p2) < 1e-6, (
             f"arg {arg}: once={p1:.6f} vs twice={p2:.6f}"
         )
+
+
+# ---------------------------------------------------------------------------
+# B1. Explicit query kinds and inference modes — Hunter et al. (2021)
+# ---------------------------------------------------------------------------
+def test_credulous_acceptance_matches_union_of_extensions_on_deterministic_af():
+    """Credulous singleton acceptance matches union-of-extensions membership."""
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b"}),
+        defeats=frozenset({("a", "b"), ("b", "a")}),
+    )
+    praf = ProbabilisticAF(
+        framework=af,
+        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+    )
+
+    result = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="deterministic",
+        query_kind="argument_acceptance",
+        inference_mode="credulous",
+    )
+
+    assert result.query_kind == "argument_acceptance"
+    assert result.inference_mode == "credulous"
+    assert result.acceptance_probs == {"a": 1.0, "b": 1.0}
+
+
+def test_skeptical_acceptance_matches_intersection_of_extensions_on_deterministic_af():
+    """Skeptical singleton acceptance matches intersection-of-extensions membership."""
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b"}),
+        defeats=frozenset({("a", "b"), ("b", "a")}),
+    )
+    praf = ProbabilisticAF(
+        framework=af,
+        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+    )
+
+    result = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="deterministic",
+        query_kind="argument_acceptance",
+        inference_mode="skeptical",
+    )
+
+    assert result.query_kind == "argument_acceptance"
+    assert result.inference_mode == "skeptical"
+    assert result.acceptance_probs == {"a": 0.0, "b": 0.0}
+
+
+def test_extension_probability_queries_exact_set_not_single_argument():
+    """Extension probability is about exact queried sets, not singleton acceptance."""
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b"}),
+        defeats=frozenset({("a", "b"), ("b", "a")}),
+    )
+    praf = ProbabilisticAF(
+        framework=af,
+        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+    )
+
+    positive = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="exact_enum",
+        query_kind="extension_probability",
+        queried_set={"a"},
+    )
+    negative = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="exact_enum",
+        query_kind="extension_probability",
+        queried_set={"a", "b"},
+    )
+
+    assert positive.query_kind == "extension_probability"
+    assert positive.inference_mode is None
+    assert positive.queried_set == ("a",)
+    assert positive.extension_probability == pytest.approx(1.0)
+    assert negative.extension_probability == pytest.approx(0.0)
+
+
+def test_exact_dp_rejects_or_downgrades_unsupported_skeptical_acceptance_mode():
+    """Exact-DP must not silently pretend to support skeptical singleton acceptance."""
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b"}),
+        defeats=frozenset({("a", "b"), ("b", "a")}),
+    )
+    praf = ProbabilisticAF(
+        framework=af,
+        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+    )
+
+    result = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="exact_dp",
+        query_kind="argument_acceptance",
+        inference_mode="skeptical",
+    )
+
+    assert result.strategy_requested == "exact_dp"
+    assert result.strategy_used == "exact_enum"
+    assert result.downgraded_from == "exact_dp"
+    assert result.inference_mode == "skeptical"
+    assert result.acceptance_probs == {"a": 0.0, "b": 0.0}
+
+
+def test_query_kind_argument_acceptance_requires_inference_mode():
+    """Argument acceptance queries must state whether they are credulous or skeptical."""
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    af = ArgumentationFramework(arguments=frozenset({"a"}), defeats=frozenset())
+    praf = ProbabilisticAF(
+        framework=af,
+        p_args={"a": Opinion.dogmatic_true()},
+        p_defeats={},
+    )
+
+    with pytest.raises(ValueError, match="inference_mode"):
+        compute_praf_acceptance(
+            praf,
+            semantics="grounded",
+            strategy="deterministic",
+            query_kind="argument_acceptance",
+        )
+
+
+def test_query_kind_extension_probability_rejects_inference_mode():
+    """Extension probability queries do not take credulous/skeptical inference modes."""
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    af = ArgumentationFramework(arguments=frozenset({"a"}), defeats=frozenset())
+    praf = ProbabilisticAF(
+        framework=af,
+        p_args={"a": Opinion.dogmatic_true()},
+        p_defeats={},
+    )
+
+    with pytest.raises(ValueError, match="does not use inference_mode"):
+        compute_praf_acceptance(
+            praf,
+            semantics="grounded",
+            strategy="deterministic",
+            query_kind="extension_probability",
+            inference_mode="credulous",
+            queried_set={"a"},
+        )
