@@ -102,6 +102,8 @@ def _build_primal_graph(
     adj: dict[str, set[str]] = {a: set() for a in framework.arguments}
     relation = framework.attacks if framework.attacks is not None else framework.defeats
     for src, tgt in relation:
+        if src == tgt:
+            continue
         adj[src].add(tgt)
         adj[tgt].add(src)
     return adj
@@ -172,9 +174,9 @@ def compute_tree_decomposition(
     # Elimination ordering produces bags
     bags: dict[int, frozenset[str]] = {}
     bag_id = 0
-    elim_order: list[str] = []
     # Map: vertex -> bag_id where it was eliminated
     vertex_bag: dict[str, int] = {}
+    bag_vertex: dict[int, str] = {}
     width = 0
 
     while remaining:
@@ -185,6 +187,7 @@ def compute_tree_decomposition(
         bag = frozenset({min_v}) | nbrs
         bags[bag_id] = bag
         vertex_bag[min_v] = bag_id
+        bag_vertex[bag_id] = min_v
         width = max(width, len(bag) - 1)
 
         # Fill-in
@@ -196,29 +199,22 @@ def compute_tree_decomposition(
                 neighbors[w].add(u)
 
         remaining.discard(min_v)
-        elim_order.append(min_v)
         bag_id += 1
 
-    # Build tree edges: connect bags via the running intersection property.
-    # For each bag (except the last), connect to the next bag that contains
-    # a shared vertex.
+    # Build tree edges from the elimination ordering. For each bag B_i created
+    # when eliminating v_i, connect it to the bag of the earliest later-eliminated
+    # vertex still present in B_i \ {v_i}. This is the standard elimination-based
+    # reconstruction and ensures B_i \ {v_i} is contained in the parent bag.
     tree_adj: dict[int, set[int]] = {i: set() for i in bags}
-    n_bags = len(bags)
-
-    for i in range(n_bags):
-        # Find the parent: the earliest later bag sharing a vertex with bag i
-        # (excluding the eliminated vertex itself)
-        eliminated_v = elim_order[i]
-        remaining_in_bag = bags[i] - {eliminated_v}
+    for current_bag_id, current_bag in bags.items():
+        eliminated_vertex = bag_vertex[current_bag_id]
+        remaining_in_bag = current_bag - {eliminated_vertex}
         if remaining_in_bag:
-            # Find which later bag first contains one of these vertices
-            for j in range(i + 1, n_bags):
-                if bags[j] & remaining_in_bag:
-                    tree_adj[i].add(j)
-                    tree_adj[j].add(i)
-                    break
+            parent = min(vertex_bag[vertex] for vertex in remaining_in_bag)
+            tree_adj[current_bag_id].add(parent)
+            tree_adj[parent].add(current_bag_id)
 
-    root = n_bags - 1 if n_bags > 0 else 0
+    root = max(bags) if bags else 0
     td = TreeDecomposition(bags=bags, adj=tree_adj, root=root, width=width)
     validate_tree_decomposition(td, framework)
     return td

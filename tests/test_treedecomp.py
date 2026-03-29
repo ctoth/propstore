@@ -228,6 +228,35 @@ class TestNiceTreeDecomposition:
         with pytest.raises(ValueError, match="running intersection|connected tree"):
             validate_tree_decomposition(td, af)
 
+    def test_compute_tree_decomposition_matches_review_counterexample_fix(self):
+        """The review's concrete AF should now yield a valid connected decomposition."""
+        from propstore.praf_treedecomp import (
+            compute_tree_decomposition,
+            to_nice_tree_decomposition,
+            validate_tree_decomposition,
+        )
+
+        af = ArgumentationFramework(
+            arguments=frozenset({"0", "1", "2", "3"}),
+            defeats=frozenset({
+                ("0", "0"),
+                ("0", "3"),
+                ("1", "1"),
+                ("1", "2"),
+                ("1", "3"),
+                ("2", "2"),
+            }),
+        )
+
+        td = compute_tree_decomposition(af)
+        validate_tree_decomposition(td, af)
+
+        nice = to_nice_tree_decomposition(td)
+        covered = set()
+        for node in nice.nodes.values():
+            covered.update(node.bag)
+        assert covered == set(af.arguments)
+
 
 # ===================================================================
 # 8. test_dp_agrees_with_brute_force — CRITICAL correctness test
