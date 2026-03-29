@@ -13,6 +13,7 @@ import pytest
 from hypothesis import given, settings, assume, HealthCheck
 from hypothesis import strategies as st
 
+from propstore.cel_checker import ConceptInfo, KindType
 from propstore.repo.ic_merge import (
     MergeOperator,
     assignment_satisfies_mu,
@@ -61,6 +62,17 @@ st_branch_weights = st.dictionaries(
 )
 
 st_small_assignment_value = st.integers(min_value=0, max_value=2)
+
+
+def _numeric_cel_registry(*concept_ids: str) -> dict[str, ConceptInfo]:
+    return {
+        concept_id: ConceptInfo(
+            id=concept_id,
+            canonical_name=concept_id,
+            kind=KindType.QUANTITY,
+        )
+        for concept_id in concept_ids
+    }
 
 # ── Group 1: MergeOperator Enum and Distance Function ──────────────
 
@@ -399,6 +411,161 @@ class TestIcMergeDispatcher:
 
 
 class TestAssignmentLevelICMerge:
+    def test_cel_constraint_filters_assignments_by_canonical_name(self):
+        problem = ICMergeProblem(
+            concept_ids=("x", "y"),
+            sources=(
+                MergeSource(
+                    source_id="s1",
+                    assignment=MergeAssignment(values={"x": 0.0, "y": 0.0}),
+                ),
+                MergeSource(
+                    source_id="s2",
+                    assignment=MergeAssignment(values={"x": 0.0, "y": 1.0}),
+                ),
+                MergeSource(
+                    source_id="s3",
+                    assignment=MergeAssignment(values={"x": 1.0, "y": 1.0}),
+                ),
+            ),
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CEL,
+                    concept_ids=("x", "y"),
+                    cel="x + y <= 1",
+                    metadata={"registry": _numeric_cel_registry("x", "y")},
+                ),
+            ),
+            operator=MergeOperator.SIGMA,
+        )
+
+        result = solve_ic_merge(problem)
+
+        assert result.winners == (
+            MergeAssignment(values={"x": 0.0, "y": 1.0}),
+        )
+        assert all(assignment_satisfies_mu(problem, winner) for winner in result.winners)
+
+    def test_invalid_cel_constraint_fails_explicitly(self):
+        problem = ICMergeProblem(
+            concept_ids=("x", "y"),
+            sources=(
+                MergeSource(
+                    source_id="s1",
+                    assignment=MergeAssignment(values={"x": 0.0, "y": 0.0}),
+                ),
+                MergeSource(
+                    source_id="s2",
+                    assignment=MergeAssignment(values={"x": 1.0, "y": 1.0}),
+                ),
+            ),
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CEL,
+                    concept_ids=("x", "y"),
+                    cel="missing > 0",
+                    metadata={"registry": _numeric_cel_registry("x", "y")},
+                ),
+            ),
+            operator=MergeOperator.SIGMA,
+        )
+
+        with pytest.raises(ValueError, match="Undefined concept"):
+            solve_ic_merge(problem)
+
+    @given(
+        st.lists(
+            st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
+            min_size=2,
+            max_size=5,
+        ),
+        st.sampled_from(list(MergeOperator)),
+    )
+    @settings(
+        max_examples=40,
+        deadline=None,
+        suppress_health_check=[HealthCheck.too_slow],
+    )
+    def test_always_true_cel_constraint_preserves_winners(
+        self,
+        source_pairs,
+        operator,
+    ):
+        sources = tuple(
+            MergeSource(
+                source_id=f"s{index}",
+                assignment=MergeAssignment(values={"x": x, "y": y}),
+            )
+            for index, (x, y) in enumerate(source_pairs)
+        )
+        unconstrained = solve_ic_merge(
+            ICMergeProblem(
+                concept_ids=("x", "y"),
+                sources=sources,
+                operator=operator,
+            )
+        )
+        constrained = solve_ic_merge(
+            ICMergeProblem(
+                concept_ids=("x", "y"),
+                sources=sources,
+                constraints=(
+                    IntegrityConstraint(
+                        kind=IntegrityConstraintKind.CEL,
+                        concept_ids=("x", "y"),
+                        cel="x == x && y == y",
+                        metadata={"registry": _numeric_cel_registry("x", "y")},
+                    ),
+                ),
+                operator=operator,
+            )
+        )
+
+        assert constrained.winners == unconstrained.winners
+
+    @given(
+        st.lists(
+            st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
+            min_size=2,
+            max_size=5,
+        ),
+        st.sampled_from(list(MergeOperator)),
+    )
+    @settings(
+        max_examples=40,
+        deadline=None,
+        suppress_health_check=[HealthCheck.too_slow],
+    )
+    def test_unsatisfiable_cel_constraint_yields_no_winners(
+        self,
+        source_pairs,
+        operator,
+    ):
+        result = solve_ic_merge(
+            ICMergeProblem(
+                concept_ids=("x", "y"),
+                sources=tuple(
+                    MergeSource(
+                        source_id=f"s{index}",
+                        assignment=MergeAssignment(values={"x": x, "y": y}),
+                    )
+                    for index, (x, y) in enumerate(source_pairs)
+                ),
+                constraints=(
+                    IntegrityConstraint(
+                        kind=IntegrityConstraintKind.CEL,
+                        concept_ids=("x", "y"),
+                        cel="x < x",
+                        metadata={"registry": _numeric_cel_registry("x", "y")},
+                    ),
+                ),
+                operator=operator,
+            )
+        )
+
+        assert result.winners == tuple()
+        assert result.reason == "no admissible assignments"
+
     def test_cross_concept_constraint_changes_winner_set_vs_independent_solves(self):
         global_problem = ICMergeProblem(
             concept_ids=("x", "y"),

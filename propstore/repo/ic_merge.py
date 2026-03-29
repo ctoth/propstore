@@ -29,6 +29,18 @@ from itertools import product
 from collections.abc import Mapping
 from typing import Any
 
+from propstore.cel_checker import (
+    ASTNode,
+    BinaryOpNode,
+    CelError,
+    InNode,
+    LiteralNode,
+    NameNode,
+    TernaryNode,
+    UnaryOpNode,
+    check_cel_expression,
+    parse_cel,
+)
 from propstore.world.types import (
     ICMergeProblem,
     ICMergeResult,
@@ -184,6 +196,100 @@ def _constraint_scope_values(
     }
 
 
+def _cel_errors_text(errors: list[CelError]) -> str:
+    return "; ".join(error.message for error in errors)
+
+
+def _scoped_cel_registry(constraint: IntegrityConstraint) -> dict[str, Any]:
+    registry = constraint.metadata.get("registry")
+    if not isinstance(registry, Mapping):
+        raise TypeError("CEL integrity constraint requires metadata['registry']")
+    scoped_ids = set(constraint.concept_ids)
+    return {
+        canonical_name: info
+        for canonical_name, info in registry.items()
+        if getattr(info, "id", None) in scoped_ids
+    }
+
+
+def _cel_bindings(
+    assignment: MergeAssignment,
+    constraint: IntegrityConstraint,
+    registry: Mapping[str, Any],
+) -> dict[str, Any]:
+    bindings: dict[str, Any] = {}
+    for canonical_name, info in registry.items():
+        bindings[canonical_name] = assignment.value_for(info.id)
+    return bindings
+
+
+def _eval_cel_ast(node: ASTNode, bindings: Mapping[str, Any]) -> Any:
+    if isinstance(node, LiteralNode):
+        return node.value
+    if isinstance(node, NameNode):
+        if node.name not in bindings:
+            raise ValueError(f"Undefined concept: '{node.name}'")
+        return bindings[node.name]
+    if isinstance(node, UnaryOpNode):
+        operand = _eval_cel_ast(node.operand, bindings)
+        if node.op == "!":
+            return not operand
+        if node.op == "-":
+            return -operand
+        raise ValueError(f"Unknown CEL unary operator: {node.op}")
+    if isinstance(node, BinaryOpNode):
+        left = _eval_cel_ast(node.left, bindings)
+        right = _eval_cel_ast(node.right, bindings)
+        if node.op == "&&":
+            return bool(left) and bool(right)
+        if node.op == "||":
+            return bool(left) or bool(right)
+        if node.op == "+":
+            return left + right
+        if node.op == "-":
+            return left - right
+        if node.op == "*":
+            return left * right
+        if node.op == "/":
+            return left / right
+        if node.op == "<":
+            return left < right
+        if node.op == ">":
+            return left > right
+        if node.op == "<=":
+            return left <= right
+        if node.op == ">=":
+            return left >= right
+        if node.op == "==":
+            return left == right
+        if node.op == "!=":
+            return left != right
+        raise ValueError(f"Unknown CEL binary operator: {node.op}")
+    if isinstance(node, InNode):
+        expr = _eval_cel_ast(node.expr, bindings)
+        return expr in [_eval_cel_ast(value, bindings) for value in node.values]
+    if isinstance(node, TernaryNode):
+        condition = _eval_cel_ast(node.condition, bindings)
+        branch = node.true_branch if condition else node.false_branch
+        return _eval_cel_ast(branch, bindings)
+    raise TypeError(f"Unsupported CEL AST node: {type(node)}")
+
+
+def _eval_cel_constraint(
+    assignment: MergeAssignment,
+    constraint: IntegrityConstraint,
+) -> bool:
+    if not constraint.cel:
+        raise ValueError("CEL integrity constraint requires a non-empty cel expression")
+    registry = _scoped_cel_registry(constraint)
+    errors = check_cel_expression(constraint.cel, registry)
+    if errors:
+        raise ValueError(_cel_errors_text(errors))
+    bindings = _cel_bindings(assignment, constraint, registry)
+    ast = parse_cel(constraint.cel)
+    return bool(_eval_cel_ast(ast, bindings))
+
+
 def _constraint_holds(
     assignment: MergeAssignment,
     constraint: IntegrityConstraint,
@@ -215,7 +321,7 @@ def _constraint_holds(
         return True
 
     if constraint.kind == IntegrityConstraintKind.CEL:
-        raise NotImplementedError("CEL IC-merge constraints are not implemented yet")
+        return _eval_cel_constraint(assignment, constraint)
 
     if constraint.kind == IntegrityConstraintKind.CUSTOM:
         predicate = constraint.metadata.get("predicate")
