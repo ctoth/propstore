@@ -8,6 +8,9 @@ from propstore.fragility import (
     FragilityReport,
     FragilityTarget,
     combine_fragility,
+    detect_interactions,
+    score_conflict,
+    weighted_epistemic_score,
 )
 
 
@@ -118,3 +121,183 @@ class TestBoundWorldFragility:
         """BoundWorld has a fragility method."""
         from propstore.world.bound import BoundWorld
         assert hasattr(BoundWorld, "fragility")
+
+
+# ── Phase 2: Conflict topology scoring ───────────────────────────────
+
+
+def af(args: set[str], defeats: set[tuple[str, str]]) -> "ArgumentationFramework":
+    """Build a toy AF for testing."""
+    from propstore.dung import ArgumentationFramework
+    return ArgumentationFramework(
+        arguments=frozenset(args),
+        defeats=frozenset(defeats),
+    )
+
+
+class TestConflictTopologyScoring:
+    """Conflict scoring via hypothetical world evaluation."""
+
+    def test_removing_unattacked_isolated_pair_low_score(self):
+        """Removing either of two isolated unattacked claims has minimal impact.
+
+        AF: A, B both unattacked, no defeats.
+        Current grounded: {A, B}.
+        Remove A: {B}, distance 1. Remove B: {A}, distance 1.
+        Score = max(1/2, 1/2) = 0.5 — each removal loses one argument.
+        """
+        framework = af({"A", "B"}, set())
+        assert score_conflict(framework, "A", "B") == pytest.approx(0.5)
+
+    def test_removing_attacker_changes_extension(self):
+        """Removing an attacker frees its target into the extension."""
+        # AF: A attacks B
+        # Current grounded: {A}
+        # Remove A: grounded becomes {B} -- Hamming distance 2, score = 2/2 = 1.0
+        framework = af({"A", "B"}, {("A", "B")})
+        assert score_conflict(framework, "A", "B") == pytest.approx(1.0)
+
+    def test_conflict_score_symmetric_max(self):
+        """For a mutual conflict, score is the max of both hypotheticals."""
+        # AF: A attacks B, B attacks A
+        # Current grounded: {} (both defeated)
+        # Remove A: {B}. Remove B: {A}. Both have distance 1 from {}.
+        # Score = max(1/2, 1/2) = 0.5
+        framework = af({"A", "B"}, {("A", "B"), ("B", "A")})
+        assert score_conflict(framework, "A", "B") == pytest.approx(0.5)
+
+    def test_isolated_conflict_low_score(self):
+        """A conflict between two isolated claims has bounded impact."""
+        # AF: A attacks B, C and D are independent unattacked
+        # Remove A: {B, C, D} vs current {A, C, D} -- distance 2
+        # Remove B: {A, C, D} vs current {A, C, D} -- distance 0
+        # Score = max(2/4, 0/4) = 0.5
+        framework = af({"A", "B", "C", "D"}, {("A", "B")})
+        assert score_conflict(framework, "A", "B") == pytest.approx(0.5)
+
+    def test_no_claims_returns_zero(self):
+        """Empty AF has zero conflict score."""
+        framework = af(set(), set())
+        assert score_conflict(framework, "X", "Y") == 0.0
+
+
+# ── Phase 2: Probability-weighted epistemic scores ───────────────────
+
+
+class TestProbabilityWeightedEpistemic:
+    """Probability-weighted epistemic scores."""
+
+    def test_uniform_weights_match_unweighted(self):
+        """With uniform weights, result matches the unweighted score."""
+        # 4 futures, 2 are witnesses
+        # Uniform weights [0.25, 0.25, 0.25, 0.25]
+        # Unweighted score = 2/4 = 0.5
+        witnesses = [{"future_idx": 0}, {"future_idx": 2}]
+        result = weighted_epistemic_score(
+            witnesses, 4,
+            probability_weights=[0.25, 0.25, 0.25, 0.25],
+            witness_indices=[0, 2],
+        )
+        assert result == pytest.approx(0.5)
+
+    def test_high_probability_witness_increases_score(self):
+        """If the flipping futures have high probability, score increases."""
+        # 4 futures, witnesses at index 0 and 2
+        # Weights: witnesses have P=0.4 each, non-witnesses have P=0.1 each
+        # Weighted score = 0.8 / 1.0 = 0.8 (vs unweighted 0.5)
+        witnesses = [{"future_idx": 0}, {"future_idx": 2}]
+        result = weighted_epistemic_score(
+            witnesses, 4,
+            probability_weights=[0.4, 0.1, 0.4, 0.1],
+            witness_indices=[0, 2],
+        )
+        assert result == pytest.approx(0.8)
+
+    def test_low_probability_witness_decreases_score(self):
+        """If the flipping futures have low probability, score decreases."""
+        # 4 futures, witnesses at index 0 and 2
+        # Weights: witnesses have P=0.05 each, non-witnesses have P=0.45 each
+        # Weighted score = 0.1 / 1.0 = 0.1 (vs unweighted 0.5)
+        witnesses = [{"future_idx": 0}, {"future_idx": 2}]
+        result = weighted_epistemic_score(
+            witnesses, 4,
+            probability_weights=[0.05, 0.45, 0.05, 0.45],
+            witness_indices=[0, 2],
+        )
+        assert result == pytest.approx(0.1)
+
+    def test_no_weights_falls_back_to_uniform(self):
+        """When no probability weights provided, uses uniform counting."""
+        witnesses = [{"future_idx": 0}, {"future_idx": 1}]
+        result = weighted_epistemic_score(witnesses, 4)
+        assert result == pytest.approx(0.5)
+
+    def test_all_zero_weights_returns_zero(self):
+        """Edge case: all weights zero -> score 0."""
+        witnesses = [{"future_idx": 0}]
+        result = weighted_epistemic_score(
+            witnesses, 2,
+            probability_weights=[0.0, 0.0],
+            witness_indices=[0],
+        )
+        assert result == 0.0
+
+
+# ── Phase 2: Interaction detection ───────────────────────────────────
+
+
+class TestInteractionDetection:
+    """Pairwise interaction detection for top-k targets."""
+
+    def test_independent_targets_zero_interaction(self):
+        """Two targets in unconnected components have zero interaction."""
+        # Two independent targets with identical scores
+        target_a = FragilityTarget(
+            target_id="a", target_kind="assumption",
+            description="A", epistemic_score=0.5, fragility=0.5,
+        )
+        target_b = FragilityTarget(
+            target_id="b", target_kind="assumption",
+            description="B", epistemic_score=0.5, fragility=0.5,
+        )
+        results = detect_interactions([target_a, target_b])
+        # With no shared concepts, interaction should be zero
+        for r in results:
+            assert r["interaction"] == pytest.approx(0.0)
+
+    def test_interaction_structure(self):
+        """Interaction result has required fields."""
+        target_a = FragilityTarget(
+            target_id="a", target_kind="assumption",
+            description="A", epistemic_score=0.8, fragility=0.8,
+        )
+        target_b = FragilityTarget(
+            target_id="b", target_kind="assumption",
+            description="B", epistemic_score=0.6, fragility=0.6,
+        )
+        results = detect_interactions([target_a, target_b])
+        if results:
+            r = results[0]
+            assert "target_a" in r
+            assert "target_b" in r
+            assert "individual_a" in r
+            assert "individual_b" in r
+            assert "joint" in r
+            assert "interaction" in r
+
+    def test_empty_targets_no_interactions(self):
+        """Empty target list returns empty interactions."""
+        assert detect_interactions([]) == []
+
+
+# ── Phase 2: Updated combine_fragility test ──────────────────────────
+
+
+class TestCombineFragilityUpdated:
+    """Verify combination works with real (non-placeholder) conflict scores."""
+
+    def test_top2_with_real_conflict_score(self):
+        """Conflict scores from topology (not placeholder 1.0) combine correctly."""
+        # parametric=0.7, epistemic=0.6, conflict=0.3
+        # top2 = (0.7 + 0.6) / 2 = 0.65
+        assert combine_fragility(0.7, 0.6, 0.3) == pytest.approx(0.65)

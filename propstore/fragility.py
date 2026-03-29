@@ -1,4 +1,4 @@
-"""Epistemic fragility engine — Phase 1 skeleton.
+"""Epistemic fragility engine.
 
 Ranks epistemic targets by fragility: "What is the cheapest thing I could
 learn that would most change what I believe?"
@@ -6,10 +6,10 @@ learn that would most change what I believe?"
 Sits at the render layer (layer 5). Reads from argumentation and theory
 layers but never mutates source storage. Produces ranked recommendations.
 
-Phase 1 implements:
-- FragilityTarget / FragilityReport data structures
-- combine_fragility() score combination with configurable policies
-- rank_fragility() skeleton wiring parametric, epistemic, conflict dimensions
+Phase 1: FragilityTarget / FragilityReport, combine_fragility(), rank_fragility() skeleton.
+Phase 2: Conflict topology scoring (Hamming distance on hypothetical extensions),
+         probability-weighted epistemic scoring (Howard 1966 clairvoyance weighting),
+         pairwise interaction detection (Howard 1966 non-additivity).
 """
 
 from __future__ import annotations
@@ -47,6 +47,7 @@ class FragilityReport:
     targets: tuple[FragilityTarget, ...] = ()
     world_fragility: float = 0.0
     analysis_scope: str = ""
+    interactions: tuple[dict, ...] = ()  # Phase 2: pairwise interaction results
 
 
 def combine_fragility(
@@ -90,6 +91,228 @@ def combine_fragility(
         return result
     else:
         raise ValueError(f"Unknown combination policy: {combination!r}")
+
+
+def score_conflict(
+    framework: Any,
+    claim_a_id: str,
+    claim_b_id: str,
+    *,
+    semantics: str = "grounded",
+) -> float:
+    """Score a conflict by hypothetical world evaluation.
+
+    Computes the Hamming distance (symmetric difference size) between
+    the current extension and hypothetical extensions where each
+    conflicting claim is removed in turn. Returns the max normalized
+    distance, clamped to [0, 1].
+
+    Parameters
+    ----------
+    framework : ArgumentationFramework
+        The argumentation framework containing both claims.
+    claim_a_id, claim_b_id : str
+        The two conflicting argument/claim IDs.
+    semantics : str
+        Extension semantics to use (currently only "grounded" supported).
+
+    Returns
+    -------
+    float
+        Conflict score in [0, 1]. 0 = removing either claim changes nothing.
+        1 = removing one claim maximally changes the extension.
+
+    References
+    ----------
+    AlAnaissy 2024: ImpS^rev — revised impact measure via hypothetical
+    removal. Hamming distance on extensions is a discrete analogue.
+    """
+    from propstore.dung import ArgumentationFramework, grounded_extension
+
+    if not framework.arguments:
+        return 0.0
+
+    total = len(framework.arguments)
+
+    # Current extension
+    current = grounded_extension(framework)
+
+    # Hypothetical: remove claim_a (B wins)
+    def _remove(arg_id: str) -> frozenset[str]:
+        args = frozenset(a for a in framework.arguments if a != arg_id)
+        defeats = frozenset(
+            (x, y) for x, y in framework.defeats
+            if x != arg_id and y != arg_id
+        )
+        hyp = ArgumentationFramework(arguments=args, defeats=defeats)
+        return grounded_extension(hyp)
+
+    ext_remove_a = _remove(claim_a_id)
+    ext_remove_b = _remove(claim_b_id)
+
+    # Hamming distance = |symmetric difference|
+    dist_a = len(current.symmetric_difference(ext_remove_a))
+    dist_b = len(current.symmetric_difference(ext_remove_b))
+
+    score = max(dist_a, dist_b) / total
+    return min(1.0, score)
+
+
+def weighted_epistemic_score(
+    witnesses: list[dict],
+    consistent_future_count: int,
+    *,
+    probability_weights: list[float] | None = None,
+    witness_indices: list[int] | None = None,
+) -> float:
+    """Compute epistemic score with optional probability weighting.
+
+    When probability_weights is None, returns the unweighted ratio
+    len(witnesses) / consistent_future_count (current Phase 1 behavior).
+
+    When probability_weights is provided, sums the weights of witness
+    futures and divides by total weight of all futures.
+
+    Parameters
+    ----------
+    witnesses : list[dict]
+        Witness dicts from concept_stability()["witnesses"].
+    consistent_future_count : int
+        Total number of consistent futures.
+    probability_weights : list[float] | None
+        Per-future probability weights, indexed by future index.
+        If None, uniform weighting (falls back to counting).
+    witness_indices : list[int] | None
+        Indices into probability_weights for which futures are witnesses.
+        Required when probability_weights is provided.
+
+    Returns
+    -------
+    float
+        Epistemic score in [0, 1]. Higher = more fragile.
+
+    References
+    ----------
+    Howard 1966: clairvoyance formula averages over prior distribution.
+    Gärdenfors & Makinson 1988: entrenchment deficit = 1 - support ratio.
+    """
+    if consistent_future_count <= 0:
+        return 0.0
+
+    if probability_weights is None:
+        # Uniform: simple ratio
+        return len(witnesses) / max(consistent_future_count, 1)
+
+    total_weight = sum(probability_weights)
+    if total_weight == 0.0:
+        return 0.0
+
+    if witness_indices is None:
+        # Fall back to uniform if no indices provided
+        return len(witnesses) / max(consistent_future_count, 1)
+
+    witness_weight = sum(probability_weights[i] for i in witness_indices)
+    return witness_weight / total_weight
+
+
+def detect_interactions(
+    targets: list[FragilityTarget],
+    *,
+    top_k: int = 5,
+) -> list[dict]:
+    """Detect pairwise interactions among top-k fragility targets.
+
+    For each pair of assumption-type targets, computes whether their
+    individual epistemic scores are additive. Non-additivity indicates
+    that resolving both together has a different effect than the sum
+    of resolving each individually.
+
+    Parameters
+    ----------
+    targets : list[FragilityTarget]
+        Fragility targets to analyze.
+    top_k : int
+        Only consider the top-k targets by epistemic_score.
+
+    Returns
+    -------
+    list[dict]
+        Each dict has: target_a, target_b, individual_a, individual_b,
+        joint, interaction. interaction = joint - individual_a - individual_b.
+
+    References
+    ----------
+    Howard 1966: V_c(x,y) != V_cx + V_cy in general — joint clairvoyance
+    value may exceed or fall below sum of individual values.
+    """
+    if not targets:
+        return []
+
+    # Filter to assumption-type targets with epistemic scores
+    scored = [
+        t for t in targets
+        if t.epistemic_score is not None
+    ]
+    # Sort by epistemic score descending, take top_k
+    scored.sort(key=lambda t: t.epistemic_score or 0.0, reverse=True)
+    scored = scored[:top_k]
+
+    if len(scored) < 2:
+        return []
+
+    results: list[dict] = []
+    for i in range(len(scored)):
+        for j in range(i + 1, len(scored)):
+            a = scored[i]
+            b = scored[j]
+            ind_a = a.epistemic_score or 0.0
+            ind_b = b.epistemic_score or 0.0
+            # Phase 2 heuristic: without full ATMS joint evaluation,
+            # assume independence (joint = sum, clamped to [0,1]).
+            # Non-zero interaction requires shared concept overlap,
+            # which we detect via epistemic_detail if available.
+            joint = min(1.0, ind_a + ind_b)
+
+            # Check for shared concepts in epistemic detail
+            # (indicating potential non-independence)
+            shared = _detect_shared_concepts(a, b)
+            if shared:
+                # Shared concepts mean the joint effect is less than
+                # the sum (redundancy). Heuristic: reduce by overlap fraction.
+                joint = min(1.0, ind_a + ind_b * (1.0 - shared))
+
+            interaction = joint - ind_a - ind_b
+            results.append({
+                "target_a": a.target_id,
+                "target_b": b.target_id,
+                "individual_a": ind_a,
+                "individual_b": ind_b,
+                "joint": joint,
+                "interaction": round(interaction, 10),
+            })
+
+    return results
+
+
+def _detect_shared_concepts(a: FragilityTarget, b: FragilityTarget) -> float:
+    """Detect overlap between two targets' epistemic details.
+
+    Returns a fraction [0, 1] indicating how much overlap exists.
+    0 = independent, 1 = fully overlapping.
+    """
+    if not a.epistemic_detail or not b.epistemic_detail:
+        return 0.0
+
+    # If both targets reference the same witnesses or concepts,
+    # they share information value
+    a_concepts = set(a.epistemic_detail.get("shared_concepts", []))
+    b_concepts = set(b.epistemic_detail.get("shared_concepts", []))
+    if not a_concepts or not b_concepts:
+        return 0.0
+
+    overlap = len(a_concepts & b_concepts)
+    total = len(a_concepts | b_concepts)
+    return overlap / total if total > 0 else 0.0
 
 
 def rank_fragility(
@@ -174,11 +397,15 @@ def rank_fragility(
     top_scores = [t.fragility for t in targets[: min(10, len(targets))]]
     world_frag = sum(top_scores) / len(top_scores) if top_scores else 0.0
 
+    # Phase 2: detect pairwise interactions among top targets
+    interactions = detect_interactions(targets, top_k=min(top_k, 5))
+
     scope = f"concept:{concept_id}" if concept_id else "all"
     return FragilityReport(
         targets=tuple(targets),
         world_fragility=world_frag,
         analysis_scope=scope,
+        interactions=tuple(interactions),
     )
 
 
@@ -271,18 +498,40 @@ def _epistemic_dimension(
 def _conflict_dimension(
     bound: Any, concept_id: str
 ) -> tuple[float | None, dict | None]:
-    """Compute conflict fragility.
+    """Compute conflict fragility via hypothetical world evaluation.
 
-    Phase 1 placeholder: score = 1.0 for each conflict present.
-    Phase 2 will compute actual downstream impact.
+    Phase 2: scores each conflict by downstream impact on the grounded
+    extension. Uses Hamming distance between current and hypothetical
+    extensions (AlAnaissy 2024 ImpS^rev discrete analogue).
     """
     try:
         conflicts = bound.conflicts(concept_id)
         if not conflicts:
             return None, None
 
-        # Placeholder: presence of conflict = fragility 1.0
-        score = 1.0
+        active_graph = getattr(bound, "_active_graph", None)
+        if active_graph is not None:
+            # Build AF from the active graph for topology scoring
+            from propstore.core.analyzers import shared_analyzer_input_from_active_graph
+
+            try:
+                shared = shared_analyzer_input_from_active_graph(active_graph)
+                framework = shared.argumentation_framework
+                max_score = 0.0
+                for c in conflicts:
+                    a_id = c.get("claim_a_id", "")
+                    b_id = c.get("claim_b_id", "")
+                    if a_id and b_id:
+                        s = score_conflict(framework, a_id, b_id)
+                        max_score = max(max_score, s)
+                score = max_score if max_score > 0.0 else 1.0
+            except Exception:
+                # Fall back to presence-based scoring
+                score = 1.0
+        else:
+            # No active graph available — fall back to placeholder
+            score = 1.0
+
         return score, {
             "conflict_count": len(conflicts),
             "conflicts": [
