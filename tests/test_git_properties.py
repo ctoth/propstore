@@ -14,7 +14,7 @@ from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, initialize
 
-from propstore.cli.git_backend import KnowledgeRepo
+from propstore.repo import KnowledgeRepo
 from propstore.tree_reader import FilesystemReader, GitTreeReader
 
 # ── Strategies ──────────────────────────────────────────────────────

@@ -328,13 +328,12 @@ def test_existing_api_unchanged(tmp_path):
 
 
 def test_old_import_path_works():
-    """propstore.cli.git_backend re-exports KnowledgeRepo for backward compat.
+    """propstore.repo is the canonical import path for KnowledgeRepo.
 
-    During the transition period, the old import path must continue to
-    work. propstore.cli.git_backend becomes a thin shim that re-exports
-    from propstore.repo.
+    All callers have been updated to import from propstore.repo directly.
+    Verify the new canonical path works.
     """
-    from propstore.cli.git_backend import KnowledgeRepo as OldKR
+    from propstore.repo import KnowledgeRepo as NewKR
 
-    # Must not raise ImportError — the old path still works
-    assert OldKR is not None
+    # Must not raise ImportError — the canonical path works
+    assert NewKR is not None

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from propstore.cli.git_backend import KnowledgeRepo
+    from propstore.repo.git_backend import KnowledgeRepo
 
 
 class TreeReader(Protocol):

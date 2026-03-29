@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 import pytest
 
-from propstore.cli.git_backend import KnowledgeRepo
+from propstore.repo import KnowledgeRepo
 from propstore.tree_reader import FilesystemReader, GitTreeReader
 
 

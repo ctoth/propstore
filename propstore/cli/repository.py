@@ -62,7 +62,7 @@ class Repository:
     @cached_property
     def git(self):
         """Return the KnowledgeRepo if this directory is git-backed, else None."""
-        from propstore.cli.git_backend import KnowledgeRepo
+        from propstore.repo import KnowledgeRepo
         if KnowledgeRepo.is_repo(self._root):
             return KnowledgeRepo.open(self._root)
         return None
@@ -113,7 +113,7 @@ class Repository:
                 for f in sorted(d.rglob("*.yaml")):
                     rel = f.relative_to(self._root).as_posix()
                     adds[rel] = f.read_bytes()
-        from propstore.cli.git_backend import KnowledgeRepo
+        from propstore.repo import KnowledgeRepo
         kr = KnowledgeRepo.init(self._root)
         if adds:
             kr.commit_files(adds, "Import existing knowledge files")
@@ -126,7 +126,7 @@ class Repository:
     def init(cls, root: Path) -> Repository:
         """Create the directory structure and return a Repository."""
         # Initialize git first (sync_worktree in init only writes .gitignore)
-        from propstore.cli.git_backend import KnowledgeRepo
+        from propstore.repo import KnowledgeRepo
         KnowledgeRepo.init(root)
         # Create dirs after git init so sync_worktree doesn't remove them
         dirs = [
