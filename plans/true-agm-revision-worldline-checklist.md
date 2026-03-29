@@ -3,6 +3,7 @@
 **Date:** 2026-03-29
 **Depends on:** `proposals/true-agm-revision-proposal.md`
 **Scope:** concrete implementation checklist for revision-aware worldline capture and replay
+**Status:** Implemented
 
 ---
 

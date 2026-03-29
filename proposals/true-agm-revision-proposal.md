@@ -1,7 +1,7 @@
 # Proposal: True AGM Revision Layer for Propstore
 
 **Date:** 2026-03-29
-**Status:** Draft
+**Status:** Implemented through Phase 5
 **Grounded in:** local codebase, [reports/research-true-agm-revision-feasibility.md](C:/Users/Q/code/propstore/reports/research-true-agm-revision-feasibility.md), the local paper corpus including Alchourron 1985, Gärdenfors 1988, Dixon 1993, Darwiche 1997, Spohn 1988, Booth 2006, Bonanno 2007/2010, Konieczny 2002, Coste-Marquis 2007, Baumann 2015, Rotstein 2008, Martins 1988, and Shapiro 1998
 
 ---

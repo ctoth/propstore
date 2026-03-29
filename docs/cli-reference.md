@@ -911,7 +911,7 @@ Materialized query artifacts -- traced paths through the knowledge space with fu
 
 ### `pks worldline create NAME`
 
-Create a worldline definition (question only, no results yet). Supports [Argumentation options](#argumentation-options), [PrAF options](#praf-options), [Decision criterion options](#decision-criterion-options), and [ASPIC+ options](#aspic-options).
+Create a worldline definition (question only, no results yet). Supports [Argumentation options](#argumentation-options), [PrAF options](#praf-options), [Decision criterion options](#decision-criterion-options), [ASPIC+ options](#aspic-options), and [Revision Worldline Options](#revision-worldline-options).
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -920,6 +920,11 @@ Create a worldline definition (question only, no results yet). Supports [Argumen
 | `--target` | TEXT | -- | Target concept to derive/resolve (required) |
 | `--strategy` | `recency\|sample_size\|argumentation\|override` | -- | Resolution strategy |
 | `--context` | TEXT | -- | Context to scope the query |
+| `--revision-operation` | `expand\|contract\|revise\|iterated_revise` | -- | Optional revision operation to attach |
+| `--revision-atom` | TEXT | -- | JSON revision atom for `expand` / `revise` / `iterated_revise` |
+| `--revision-target` | TEXT | -- | Revision target for `contract` |
+| `--revision-conflict` | TEXT | -- | Conflict mapping `atom_id=target[,target...]`; repeatable |
+| `--revision-operator` | `restrained\|lexicographic` | -- | Iterated revision operator family |
 
 ```bash
 uv run pks worldline create my-worldline --target speech.pitch --bind domain=speech --strategy argumentation
@@ -927,7 +932,7 @@ uv run pks worldline create my-worldline --target speech.pitch --bind domain=spe
 
 ### `pks worldline run NAME`
 
-Run (materialize) a worldline. Creates it first if it doesn't exist. Supports [Argumentation options](#argumentation-options), [PrAF options](#praf-options), [Decision criterion options](#decision-criterion-options), and [ASPIC+ options](#aspic-options).
+Run (materialize) a worldline. Creates it first if it doesn't exist. Supports [Argumentation options](#argumentation-options), [PrAF options](#praf-options), [Decision criterion options](#decision-criterion-options), [ASPIC+ options](#aspic-options), and [Revision Worldline Options](#revision-worldline-options).
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -936,6 +941,11 @@ Run (materialize) a worldline. Creates it first if it doesn't exist. Supports [A
 | `--target` | TEXT | -- | Target concept |
 | `--strategy` | `recency\|sample_size\|argumentation\|override` | -- | Resolution strategy |
 | `--context` | TEXT | -- | Context scope |
+| `--revision-operation` | `expand\|contract\|revise\|iterated_revise` | -- | Optional revision operation to attach |
+| `--revision-atom` | TEXT | -- | JSON revision atom for `expand` / `revise` / `iterated_revise` |
+| `--revision-target` | TEXT | -- | Revision target for `contract` |
+| `--revision-conflict` | TEXT | -- | Conflict mapping `atom_id=target[,target...]`; repeatable |
+| `--revision-operator` | `restrained\|lexicographic` | -- | Iterated revision operator family |
 
 ```bash
 uv run pks worldline run my-worldline
@@ -943,7 +953,7 @@ uv run pks worldline run my-worldline
 
 ### `pks worldline show NAME`
 
-Show a worldline's results.
+Show a worldline's results, including any stored revision query and revision result payload.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -1031,6 +1041,18 @@ Used by: `worldline create`, `worldline run`.
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--link-principle` | `last\|weakest` | last | ASPIC+ link principle (Modgil & Prakken 2018, Defs 19-21) |
+
+### Revision Worldline Options
+
+Used by: `worldline create`, `worldline run`.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--revision-operation` | `expand\|contract\|revise\|iterated_revise` | -- | Optional revision operation attached to the worldline |
+| `--revision-atom` | TEXT | -- | JSON revision atom for `expand` / `revise` / `iterated_revise` |
+| `--revision-target` | TEXT | -- | Revision target for `contract` |
+| `--revision-conflict` | TEXT | -- | Conflict mapping `atom_id=target[,target...]`; repeatable |
+| `--revision-operator` | `restrained\|lexicographic` | -- | Iterated revision operator family |
 
 ### ATMS Options
 

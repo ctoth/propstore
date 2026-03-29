@@ -1,6 +1,6 @@
 # Worldlines
 
-A worldline is a materialized query -- a traced, reproducible path through the knowledge space. It captures both the question (what to resolve, under what conditions, with what policy) and the answer (resolved values, derivation trace, dependencies). You can define a question without running it, run it later, and detect when the answer has gone stale.
+A worldline is a materialized query -- a traced, reproducible path through the knowledge space. It captures both the question (what to resolve, under what conditions, with what policy, and optionally what revision operation to run) and the answer (resolved values, derivation trace, dependencies, and optional revision outcome). You can define a question without running it, run it later, and detect when the answer has gone stale.
 
 The name comes from physics: a worldline is a path through a space parameterized by context. Here, the "space" is the compiled knowledge base and the "context" is the set of bindings, assumptions, overrides, and resolution policy that scope the query.
 
@@ -12,7 +12,7 @@ Source: `propstore/worldline.py` (data model), `propstore/worldline_runner.py` (
 
 ### Question and answer
 
-A worldline separates the *question* from the *answer*. The question is a `WorldlineDefinition`: target concepts to resolve, an environment (bindings, context, assumptions), overrides, and a render policy. The answer is a `WorldlineResult`: resolved values, derivation trace, dependency sets, sensitivity analysis, and argumentation state.
+A worldline separates the *question* from the *answer*. The question is a `WorldlineDefinition`: target concepts to resolve, an environment (bindings, context, assumptions), overrides, a render policy, and an optional revision query block. The answer is a `WorldlineResult`: resolved values, derivation trace, dependency sets, sensitivity analysis, argumentation state, and an optional revision result payload.
 
 You can create a worldline (the question) without running it. The `results` field starts as `None`. Running the worldline materializes the answer.
 
@@ -43,7 +43,7 @@ For derived targets, the engine also traces input provenance recursively (`props
 
 ### Staleness detection
 
-Each materialized worldline stores a content hash: a SHA-256 digest (truncated to 16 hex chars) computed over the full result payload -- values, steps, dependencies, sensitivity, and argumentation state.
+Each materialized worldline stores a content hash: a SHA-256 digest (truncated to 16 hex chars) computed over the full result payload -- values, steps, dependencies, sensitivity, argumentation state, and revision payload.
 
 To check staleness: re-materialize the worldline with current knowledge, compute a new hash, compare. Different hash = stale. The hash covers everything, so any change to upstream claims, stances, derivation formulas, or argumentation outcomes will produce a different hash.
 
@@ -51,10 +51,16 @@ To check staleness: re-materialize the worldline with current knowledge, compute
 
 ### Create
 
-Define the question: targets, bindings, overrides, reasoning backend, strategy.
+Define the question: targets, bindings, overrides, reasoning backend, strategy, and optionally a revision query.
 
 ```bash
 pks worldline create my_query --target fundamental_frequency --bind speaker_sex=male
+
+# Revision-aware worldline
+pks worldline create revised_query --target fundamental_frequency \
+  --revision-operation revise \
+  --revision-atom '{"kind":"claim","id":"synthetic_freq","value":123.0}' \
+  --revision-conflict claim:synthetic_freq=freq_claim1
 ```
 
 This writes a YAML file at `worldlines/my_query.yaml` containing only the question (no results). If a git backend is available, the file is committed automatically.
@@ -71,7 +77,7 @@ If the worldline file exists, it loads the stored definition. Otherwise, you can
 
 ### Show
 
-Inspect results, derivation trace, sensitivity, argumentation state, and dependencies.
+Inspect results, derivation trace, sensitivity, argumentation state, revision query/result state, and dependencies.
 
 ```bash
 pks worldline show my_query
@@ -79,6 +85,55 @@ pks worldline show my_query --check  # staleness detection
 ```
 
 The `--check` flag re-materializes and compares content hashes, reporting whether the stored answer is still current.
+
+## Revision-aware worldlines
+
+Worldlines can now carry an explicit revision query block. This keeps the question and answer separated:
+
+- `WorldlineDefinition.revision` records the requested operation
+- `WorldlineResult.revision` records the materialized result
+
+Supported operations:
+
+- `expand`
+- `contract`
+- `revise`
+- `iterated_revise`
+
+The query block mirrors the current revision APIs:
+
+```yaml
+revision:
+  operation: revise
+  atom:
+    kind: claim
+    id: synthetic_freq
+    value: 123.0
+  conflicts:
+    claim:synthetic_freq:
+      - freq_claim1
+```
+
+Iterated revision can additionally record the operator family:
+
+```yaml
+revision:
+  operation: iterated_revise
+  atom:
+    kind: claim
+    id: synthetic_freq
+    value: 123.0
+  conflicts:
+    claim:synthetic_freq:
+      - freq_claim1
+  operator: lexicographic
+```
+
+The result payload keeps one-shot and iterated outputs distinct:
+
+- one-shot operations store `accepted_atom_ids`, `rejected_atom_ids`, `incision_set`, and `explanation`
+- iterated revision stores that result plus an explicit serialized epistemic-state summary
+- merge-point refusal is captured as an explicit revision error payload rather than being silently omitted
 
 ### List
 
@@ -137,7 +192,7 @@ The argumentation state captured in the worldline result varies by backend:
 
 ## The materialization engine
 
-The engine (`propstore/worldline_runner.py:run_worldline`) executes in 6 phases:
+The engine (`propstore/worldline_runner.py:run_worldline`) executes in 7 phases:
 
 ### Phase 1: Build query environment
 
@@ -159,7 +214,18 @@ For derived targets, compute elasticity and partial derivatives via `analyze_sen
 
 Only runs when `strategy == ARGUMENTATION`. Dispatches to the selected reasoning backend (see table above). Collects stance dependencies from the argumentation graph.
 
-### Phase 6: Content hash
+### Phase 6: Revision state
+
+Only runs when the worldline definition has an explicit `revision` block. The runner delegates to the existing `BoundWorld` revision surface:
+
+- `expand(...)`
+- `contract(...)`
+- `revise(...)`
+- `iterated_revise(...)`
+
+One-shot revision stores an operation result payload. Iterated revision stores that result plus explicit epistemic-state summary. Merge-point refusal is surfaced as an explicit revision error payload.
+
+### Phase 7: Content hash
 
 Build the dependency dict (`claims`, `stances`, `contexts`), then compute a deterministic SHA-256 over the JSON-serialized result payload. Truncate to 16 hex chars. This hash is the basis for staleness detection.
 
@@ -167,7 +233,7 @@ Build the dependency dict (`claims`, `stances`, `contexts`), then compute a dete
 
 Worldlines are stored as YAML files at `{repo_root}/worldlines/{name}.yaml`. One file per worldline, committed to git on creation.
 
-The file contains the full `WorldlineDefinition`: question fields (id, name, created, inputs, policy, targets) plus an optional `results` block that appears after materialization. Read via `WorldlineDefinition.from_file()`, written via `WorldlineDefinition.to_file()`.
+The file contains the full `WorldlineDefinition`: question fields (id, name, created, inputs, policy, targets, optional `revision`) plus an optional `results` block that appears after materialization. Read via `WorldlineDefinition.from_file()`, written via `WorldlineDefinition.to_file()`.
 
 ## Use cases
 

@@ -47,6 +47,7 @@ Condition disjointness is checked via Z3 satisfiability. Category concepts get E
 - `claim_graph` remains the default backend and preserves the current claim-row projection and behavior.
 - `structured_projection` is a first structured-argument projection over active claims plus exact support metadata. It is a bridge toward ASPIC+, not full ASPIC+ execution.
 - `atms` is a global label/nogood propagation backend over the active belief space. It is an ATMS-style engine pass, not a full de Kleer runtime manager, not AGM entrenchment, and not full ASPIC+.
+- the separate `propstore.revision` layer performs claim/context revision over derived belief state; argumentation consumers observe that revised state through adapters or worldline capture, rather than performing revision themselves
 - `resolution_strategy` selects how to pick a winner when a conflicted concept still has multiple active claims after belief-space reasoning.
 - `comparison` selects the preference-comparison rule used inside the claim-graph argumentation backend.
 
@@ -96,7 +97,7 @@ The labelled core and `atms` backend track exact support only. Semantically comp
 - **Stability and relevance** — whether a claim keeps the same status across all bounded consistent future replays, and which declared queryables can flip it
 - **Intervention planning** — minimal bounded additive queryable sets that reach a requested target status; next-query suggestions derived from actual minimal plans
 
-These remain bounded replay over admitted future queryables. This is not AGM revision, entrenchment maintenance, or full structured-argument dynamics.
+These remain bounded replay over admitted future queryables. This is not AGM revision, entrenchment maintenance, or full structured-argument dynamics. Those live in the separate revision layer.
 
 ## Extensions CLI
 
@@ -127,4 +128,4 @@ Decision criteria at render time: pignistic (default), Hurwicz, lower bound, upp
 
 ## Future work
 
-AGM-style revision semantics (Dixon 1993, Alchourron 1985) remain future work. Extended Jøsang operators (deduction, comultiplication, abduction) require retrieving source papers. Interval dominance (Denoeux 2019) is not yet implemented.
+Claim/context AGM-style revision semantics are implemented in the separate revision layer. Remaining future work is AF-level and warrant-level revision, plus extended Jøsang operators (deduction, comultiplication, abduction) and interval dominance (Denoeux 2019).

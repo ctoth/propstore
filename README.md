@@ -89,7 +89,7 @@ Additional argumentation infrastructure:
 - It is not the main end-user paper workflow; that lives in `research-papers-plugin`
 - It is not a general scientific truth machine
 - ASPIC+ rationality postulates (Thms 12-15) are achieved by construction via transposition closure and c-consistency, not runtime-verified
-- It is not full AGM revision or a full de Kleer runtime manager
+- The ATMS backend is not itself full AGM revision or a full de Kleer runtime manager
 - This repo includes engine code plus evolving local knowledge fixtures; it should not be presented as a turnkey corpus demo
 
 ## What This Can Actually Do
@@ -162,6 +162,14 @@ uv run pks -C knowledge world atms-status domain=argumentation
 uv run pks -C knowledge world atms-interventions claim_id domain=argumentation
 ```
 
+Inspect one-shot and iterated revision over derived belief state:
+
+```bash
+uv run pks -C knowledge world revision-base
+uv run pks -C knowledge world revise --atom '{"kind":"claim","id":"synthetic_freq","value":123.0}' --conflict freq_claim1
+uv run pks -C knowledge world iterated-revise --atom '{"kind":"claim","id":"synthetic_freq","value":123.0}' --conflict freq_claim1 --operator lexicographic
+```
+
 Create and run worldlines:
 
 ```bash
@@ -170,6 +178,10 @@ uv run pks -C knowledge worldline create my_query domain=speech --reasoning-back
 
 # Materialize results
 uv run pks -C knowledge worldline run my_query
+
+# Create and run a revision-aware worldline
+uv run pks -C knowledge worldline create revised_query --target speech.pitch --revision-operation revise --revision-atom '{"kind":"claim","id":"synthetic_pitch","value":110.0}' --revision-conflict claim:synthetic_pitch=pitch_claim
+uv run pks -C knowledge worldline run revised_query
 
 # Inspect results, compare worldlines, refresh with new data
 uv run pks -C knowledge worldline show my_query
@@ -209,9 +221,10 @@ Most claim stores stop at ingestion or retrieval. `propstore` tries to push furt
 - Stances and conflict records can be projected into multiple reasoning backends — from flat Dung AFs through structured ASPIC+ arguments to probabilistic acceptance
 - Uncertainty is represented honestly via subjective logic opinions with calibrated evidence mapping, not collapsed to point estimates
 - Hypothetical overlays let you ask "what changes if I remove or add this claim?"
+- Revision operators let you ask "what should give way if I admit this new information?" without mutating source storage
 - Parameterization chains and symbolic derivatives let you inspect how derived quantities move
 - ATMS-style queries expose support quality, relevance, stability, and bounded intervention plans instead of only returning a winner
-- Worldlines capture reproducible, traced paths through the knowledge space with full provenance and staleness detection
+- Worldlines capture reproducible, traced paths through the knowledge space with full provenance, staleness detection, and optional revision episodes
 
 That is the real value proposition: not "we solved science", but "we can compile a structured claims corpus into something you can interrogate like a reasoning system".
 
@@ -279,6 +292,7 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 - [Probabilistic Argumentation (PrAF)](docs/probabilistic-argumentation.md) — MC sampling, Agresti-Coull stopping, DF-QuAD gradual semantics
 - [Subjective Logic and Calibration](docs/subjective-logic.md) — Opinion algebra, temperature scaling, evidence-to-opinion mapping, decision criteria
 - [ATMS](docs/atms.md) — assumption-based truth maintenance, label propagation, bounded replay, interventions
+- [Revision](proposals/true-agm-revision-proposal.md) — operator-based one-shot and iterated AGM-style revision over derived belief state
 - [Bipolar Argumentation](docs/bipolar-argumentation.md) — Cayrol 2005, derived defeats, three admissibility variants
 - [Conflict Detection](docs/conflict-detection.md) — Z3 condition reasoning, regime splits, six conflict classes
 - [Parameterization and Sensitivity](docs/parameterization.md) — derivation chains, chain queries, elasticity analysis
@@ -295,7 +309,7 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 ## Future Work
 
 - **Structured merge deepening** — The formal merge backbone is implemented; the remaining work is richer branch-local structured projection, stronger structured correspondence results, and more source-preference integration. See `docs/semantic-merge.md`.
-- **AGM revision** — Full belief revision operations (Dixon 1993, Alchouron et al. 1985). Currently aspirational — the ATMS provides bounded replay, not full revision.
+- **AF-level revision** — Claim/context revision is implemented; remaining work is argument-level and warrant-level revision over AF / ASPIC+ consumers.
 - **Extended Josang operators** — Deduction, comultiplication, abduction (Josang & McAnally 2004; Josang 2008). Requires retrieving source papers.
 - **Interval dominance** — Denoeux 2019 interval dominance criterion for decision-making under uncertainty.
 

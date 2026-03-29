@@ -97,7 +97,7 @@ The ATMS builds its graph and propagates labels to fixpoint. The algorithm:
 
 Bounded replay is hypothetical future exploration: "if I learned these additional facts, what would change?"
 
-The mechanism is additive only — it adds queryable assumptions to the current environment and rebuilds the ATMS from scratch. It never removes existing assumptions. This is explicitly not AGM revision (which can retract beliefs); it is monotonic extension of the assumption base.
+The mechanism is additive only — it adds queryable assumptions to the current environment and rebuilds the ATMS from scratch. It never removes existing assumptions. This is explicitly not AGM revision (which can retract beliefs); it is monotonic extension of the assumption base. The separate `propstore.revision` layer now provides contraction, entrenchment, and revision over derived belief state.
 
 Each future is a full rebuild. The engine enumerates subsets of declared queryable assumptions in increasing width (size 1, then size 2, etc.) up to a configurable limit. For each subset, it constructs a new `ATMSEngine` over an extended environment and records the resulting statuses.
 
@@ -215,7 +215,7 @@ The ATMS backend is a label-propagation engine with bounded replay. It is explic
 
 - **Not a full de Kleer runtime manager.** de Kleer's (1986) ATMS is a runtime system managing contexts, focus, and incremental update. propstore's ATMS is a batch analysis pass over the active belief space — it builds, propagates, and reports.
 
-- **Not AGM revision.** The ATMS is additive only. Bounded replay adds assumptions; it never retracts them. AGM revision (Alchourron et al. 1985) and the ATMS-AGM correspondence (Dixon 1993) remain aspirational. There are no contraction or entrenchment operations.
+- **Not AGM revision.** The ATMS is additive only. Bounded replay adds assumptions; it never retracts them. AGM revision (Alchourron et al. 1985) and the ATMS-AGM correspondence (Dixon 1993) are implemented in the separate revision layer, not inside the ATMS itself.
 
 - **Not full ASPIC+ dynamics.** The ATMS and ASPIC+ backends are separate reasoning backends. The ATMS tracks assumption-level support; ASPIC+ tracks argument-level inference structure. They are not currently integrated.
 
