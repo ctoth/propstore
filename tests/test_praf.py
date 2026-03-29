@@ -1291,3 +1291,78 @@ def test_deterministic_preferred_query_modes_match_extension_membership_property
     for arg in praf.framework.arguments:
         assert credulous.acceptance_probs[arg] == float(arg in credulous_members)
         assert skeptical.acceptance_probs[arg] == float(arg in skeptical_members)
+
+
+# ── enforce_coh additional property tests (audit-2026-03-28) ─────────
+
+
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
+
+@given(praf=_small_praf_strategy())
+@settings(max_examples=50, deadline=None)
+def test_coh_minimality_no_unnecessary_adjustment(praf):
+    """Arguments not involved in any COH violation should not be adjusted.
+
+    If P(A) + P(B) <= 1.0 for all attacks involving argument X, then
+    enforce_coh should leave X's opinion unchanged. This tests that the
+    iterative scaling doesn't over-propagate.
+    """
+    from propstore.praf import enforce_coh
+
+    attacks = praf.framework.attacks if praf.framework.attacks is not None else praf.framework.defeats
+
+    result = enforce_coh(praf)
+
+    for arg in praf.framework.arguments:
+        original_e = praf.p_args[arg].expectation()
+        result_e = result.p_args[arg].expectation()
+
+        # Check if this arg participates in any violation
+        involved_in_violation = False
+        for src, tgt in attacks:
+            if src == tgt and arg == src:
+                if original_e > 0.5 + 1e-12:
+                    involved_in_violation = True
+            elif arg in (src, tgt):
+                other = tgt if arg == src else src
+                other_e = praf.p_args[other].expectation()
+                if original_e + other_e > 1.0 + 1e-12:
+                    involved_in_violation = True
+
+        if not involved_in_violation:
+            assert abs(original_e - result_e) < 1e-9, (
+                f"arg {arg} was adjusted ({original_e:.6f} -> {result_e:.6f}) "
+                f"despite not being involved in any COH violation"
+            )
+
+
+@given(praf=_small_praf_strategy())
+@settings(max_examples=50, deadline=None)
+def test_coh_preserves_opinion_validity(praf):
+    """After COH enforcement, all opinions must still be valid (b+d+u=1, all>=0)."""
+    from propstore.praf import enforce_coh
+
+    result = enforce_coh(praf)
+    for arg, op in result.p_args.items():
+        assert op.b >= -1e-9, f"{arg}: b={op.b} < 0"
+        assert op.d >= -1e-9, f"{arg}: d={op.d} < 0"
+        assert op.u >= -1e-9, f"{arg}: u={op.u} < 0"
+        assert abs(op.b + op.d + op.u - 1.0) < 1e-6, (
+            f"{arg}: b+d+u={op.b + op.d + op.u}"
+        )
+
+
+@given(praf=_small_praf_strategy())
+@settings(max_examples=50, deadline=None)
+def test_coh_expectation_bounds(praf):
+    """After COH enforcement, all expectations must be in [0, 1]."""
+    from propstore.praf import enforce_coh
+
+    result = enforce_coh(praf)
+    for arg, op in result.p_args.items():
+        e = op.expectation()
+        assert -1e-9 <= e <= 1.0 + 1e-9, (
+            f"{arg}: E(ω) = {e} out of [0, 1]"
+        )

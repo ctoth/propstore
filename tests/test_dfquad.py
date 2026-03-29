@@ -685,3 +685,126 @@ def test_dfquad_baf_property_keeps_isolated_arguments_at_neutral_half(praf):
     result = compute_praf_acceptance(praf, strategy="dfquad_baf")
     for score in result.acceptance_probs.values():
         assert score == pytest.approx(0.5, abs=1e-9)
+
+
+# ── DF-QuAD monotonicity properties (Freedman et al. 2025 p.3-4) ──
+
+
+from hypothesis import given, settings, assume
+from hypothesis import strategies as st
+from propstore.opinion import from_probability
+
+
+@st.composite
+def _monotonicity_scenario(draw):
+    """Generate a target argument with some attackers/supporters, plus one extra arg.
+
+    Returns (base_args, base_defeats, base_scores, extra_arg, target_arg).
+    """
+    n_existing = draw(st.integers(min_value=2, max_value=4))
+    args = [f"a{i}" for i in range(n_existing)]
+    target = args[0]
+
+    base_scores = {
+        a: draw(st.floats(min_value=0.1, max_value=0.9))
+        for a in args
+    }
+
+    # Random attacks among existing args (not self-attacks)
+    defeats = []
+    for src in args[1:]:
+        if draw(st.booleans()):
+            defeats.append((src, target))
+
+    extra = f"extra"
+    extra_score = draw(st.floats(min_value=0.1, max_value=0.9))
+
+    return args, defeats, base_scores, extra, extra_score, target
+
+
+@given(scenario=_monotonicity_scenario())
+@settings(max_examples=100, deadline=None)
+def test_dfquad_adding_attacker_never_increases_strength(scenario):
+    """Adding an attacker to an argument should never increase its strength.
+
+    Per Freedman et al. (2025, p.3): the aggregation function uses
+    negative influence from attackers, so adding one can only decrease
+    or maintain the target's strength.
+    """
+    args, defeats, base_scores, extra, extra_score, target = scenario
+
+    # Baseline: without extra attacker
+    praf_base = _make_praf(args, defeats, base_scores)
+    tau_base = {a: base_scores[a] for a in args}
+    result_base = compute_dfquad_quad_strengths(
+        praf_base, {}, tau=tau_base,
+    )
+    strength_before = result_base[target]
+
+    # With extra attacker
+    all_args = args + [extra]
+    all_defeats = defeats + [(extra, target)]
+    all_scores = {**base_scores, extra: extra_score}
+    praf_with = _make_praf(all_args, all_defeats, all_scores)
+    tau_with = {a: all_scores[a] for a in all_args}
+    result_with = compute_dfquad_quad_strengths(
+        praf_with, {}, tau=tau_with,
+    )
+    strength_after = result_with[target]
+
+    assert strength_after <= strength_before + 1e-9, (
+        f"Adding attacker increased strength of {target}: "
+        f"{strength_before} -> {strength_after}"
+    )
+
+
+@given(scenario=_monotonicity_scenario())
+@settings(max_examples=100, deadline=None)
+def test_dfquad_adding_supporter_never_decreases_strength(scenario):
+    """Adding a supporter to an argument should never decrease its strength.
+
+    Per Freedman et al. (2025, p.3): the aggregation function uses
+    positive influence from supporters, so adding one can only increase
+    or maintain the target's strength.
+    """
+    args, defeats, base_scores, extra, extra_score, target = scenario
+
+    # Baseline: without extra supporter
+    praf_base = _make_praf(args, defeats, base_scores)
+    tau_base = {a: base_scores[a] for a in args}
+    result_base = compute_dfquad_quad_strengths(
+        praf_base, {}, tau=tau_base,
+    )
+    strength_before = result_base[target]
+
+    # With extra supporter (support weight = 1.0)
+    all_args = args + [extra]
+    all_scores = {**base_scores, extra: extra_score}
+    praf_with = _make_praf(all_args, defeats, all_scores)
+    tau_with = {a: all_scores[a] for a in all_args}
+    supports = {(extra, target): 1.0}
+    result_with = compute_dfquad_quad_strengths(
+        praf_with, supports, tau=tau_with,
+    )
+    strength_after = result_with[target]
+
+    assert strength_after >= strength_before - 1e-9, (
+        f"Adding supporter decreased strength of {target}: "
+        f"{strength_before} -> {strength_after}"
+    )
+
+
+@given(praf=_small_praf_strategy_dfquad())
+@settings(max_examples=100, deadline=None)
+def test_dfquad_convergence_bounded(praf):
+    """DF-QuAD computation should always terminate and produce valid scores.
+
+    Per Freedman et al. (2025): acyclic QBAFs converge in one pass;
+    cyclic graphs use iterative fixpoint with max 100 iterations.
+    All scores must be in [0, 1].
+    """
+    result = compute_praf_acceptance(praf, strategy="dfquad_baf")
+    for arg, score in result.acceptance_probs.items():
+        assert 0.0 - 1e-9 <= score <= 1.0 + 1e-9, (
+            f"arg {arg}: score={score} out of [0,1]"
+        )
