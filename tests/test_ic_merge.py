@@ -283,6 +283,12 @@ class TestMaxMerge:
         single_result = max_merge(single_profile)
         assert result == single_result  # Max ignores multiplicity (Arb property)
 
+    def test_max_handles_unhashable_values(self):
+        """Max must deduplicate equal unhashable values without crashing."""
+        profile = {"b1": [1], "b2": [1], "b3": [2]}
+        result = max_merge(profile)
+        assert result == [1]
+
 
 # ── Group 4: GMax Operator (Full IC — IC0-IC8 + Arb) ──────────────
 
@@ -363,6 +369,16 @@ class TestGMaxMerge:
         augmented = {**profile, f"{first_key}_dup": profile[first_key]}
         result2 = gmax_merge(augmented)
         assert result1 == result2
+
+    def test_gmax_handles_unhashable_values(self):
+        """GMax must deduplicate equal unhashable values without crashing."""
+        profile = {
+            "b1": {"value": 1},
+            "b2": {"value": 1},
+            "b3": {"value": 2},
+        }
+        result = gmax_merge(profile)
+        assert result == {"value": 1}
 
 
 # ── Group 5: ic_merge Dispatcher ────────────────────────────────────

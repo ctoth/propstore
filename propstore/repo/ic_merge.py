@@ -82,11 +82,9 @@ def _unique_values(profile: dict[str, Any]) -> list[Any]:
     duplicating a source must not change the result. This requires computing
     distances against unique values only, so multiplicity is ignored.
     """
-    seen: set[Any] = set()
     result: list[Any] = []
     for v in profile.values():
-        if v not in seen:
-            seen.add(v)
+        if not any(existing == v for existing in result):
             result.append(v)
     return result
 
