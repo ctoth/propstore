@@ -1892,6 +1892,7 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
                     }
                     for t in report.targets
                 ],
+                "interactions": [dict(i) for i in report.interactions],
             }
             click.echo(json.dumps(result_dict, indent=2))
         else:
@@ -1912,6 +1913,28 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
                 )
             click.echo("")
             click.echo(f"World fragility: {report.world_fragility:.2f}")
+
+            # Display interactions if present
+            if report.interactions:
+                click.echo("")
+                click.echo("Interactions:")
+                for inter in report.interactions:
+                    itype = inter.get("interaction_type", "unknown")
+                    a_id = inter.get("target_a_id", "?")
+                    b_id = inter.get("target_b_id", "?")
+                    concepts = inter.get("concepts_affected", [])
+                    if itype == "synergistic":
+                        desc = "synergistic (neither alone flips, both together flip)"
+                    elif itype == "redundant":
+                        desc = "redundant (both alone flip — learning one suffices)"
+                    elif itype == "mixed":
+                        desc = "mixed (synergistic and redundant for different concepts)"
+                    elif itype == "independent":
+                        desc = "independent"
+                    else:
+                        desc = "unknown (no ATMS data)"
+                    concept_str = f" for {', '.join(concepts)}" if concepts else ""
+                    click.echo(f"  {a_id} + {b_id}: {desc}{concept_str}")
 
 
 @world.command("check-consistency")

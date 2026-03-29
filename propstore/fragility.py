@@ -14,8 +14,16 @@ Phase 2: Conflict topology scoring (Hamming distance on hypothetical extensions)
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
+from itertools import combinations
 from typing import Any
+
+
+class FragilityWarning(UserWarning):
+    """Warning emitted when fragility analysis encounters a recoverable error."""
+
+    pass
 
 
 @dataclass(frozen=True)
@@ -230,28 +238,37 @@ def weighted_epistemic_score(
 
 def detect_interactions(
     targets: list[FragilityTarget],
+    bound: Any,
+    queryables: list | None = None,
     *,
     top_k: int = 5,
+    atms_limit: int = 8,
 ) -> list[dict]:
     """Detect pairwise interactions among top-k fragility targets.
 
-    For each pair of assumption-type targets, computes whether their
-    individual epistemic scores are additive. Non-additivity indicates
-    that resolving both together has a different effect than the sum
-    of resolving each individually.
+    Uses ATMS concept_stability witnesses to detect real joint effects.
+    A flip that requires 2+ queryables is synergistic (neither alone
+    suffices). A concept flipped by two separate singleton witnesses
+    indicates redundancy (both can flip it alone).
 
     Parameters
     ----------
     targets : list[FragilityTarget]
         Fragility targets to analyze.
+    bound : Any
+        BoundWorld for ATMS access. May be None for degraded operation.
+    queryables : list | None
+        Queryable CELs. Auto-discovered from ATMS if None.
     top_k : int
         Only consider the top-k targets by epistemic_score.
+    atms_limit : int
+        Bound on ATMS replay (2^atms_limit futures explored).
 
     Returns
     -------
     list[dict]
-        Each dict has: target_a, target_b, individual_a, individual_b,
-        joint, interaction. interaction = joint - individual_a - individual_b.
+        Each dict has: target_a_id, target_b_id, interaction_type,
+        concepts_affected.
 
     References
     ----------
@@ -264,68 +281,180 @@ def detect_interactions(
     # Filter to assumption-type targets with epistemic scores
     scored = [
         t for t in targets
-        if t.epistemic_score is not None
+        if t.target_kind == "assumption" and t.epistemic_score is not None
     ]
-    # Sort by epistemic score descending, take top_k
     scored.sort(key=lambda t: t.epistemic_score or 0.0, reverse=True)
     scored = scored[:top_k]
 
     if len(scored) < 2:
         return []
 
-    results: list[dict] = []
-    for i in range(len(scored)):
-        for j in range(i + 1, len(scored)):
-            a = scored[i]
-            b = scored[j]
-            ind_a = a.epistemic_score or 0.0
-            ind_b = b.epistemic_score or 0.0
-            # Phase 2 heuristic: without full ATMS joint evaluation,
-            # assume independence (joint = sum, clamped to [0,1]).
-            # Non-zero interaction requires shared concept overlap,
-            # which we detect via epistemic_detail if available.
-            joint = min(1.0, ind_a + ind_b)
+    # Try ATMS-native interaction detection
+    return _atms_interaction_detection(scored, bound, queryables, atms_limit)
 
-            # Check for shared concepts in epistemic detail
-            # (indicating potential non-independence)
-            shared = _detect_shared_concepts(a, b)
-            if shared:
-                # Shared concepts mean the joint effect is less than
-                # the sum (redundancy). Heuristic: reduce by overlap fraction.
-                joint = min(1.0, ind_a + ind_b * (1.0 - shared))
 
-            interaction = joint - ind_a - ind_b
+def _atms_interaction_detection(
+    scored: list[FragilityTarget],
+    bound: Any,
+    queryables: list | None,
+    atms_limit: int,
+) -> list[dict]:
+    """Detect interactions via ATMS witness structure.
+
+    For each concept affected by multiple targets, examines witnesses
+    from concept_stability. Multi-queryable witnesses indicate synergy;
+    multiple singleton witnesses for the same concept indicate redundancy.
+    """
+    # Collect target IDs as a set for fast lookup
+    target_ids = {t.target_id for t in scored}
+
+    # Try to get ATMS engine
+    engine = None
+    if bound is not None:
+        try:
+            engine = bound.atms_engine()
+            if queryables is None:
+                queryables = list(engine._all_parameterizations)
+        except Exception:
+            pass
+
+    if engine is None or not queryables:
+        # No ATMS available — return unknown interactions for each pair
+        results: list[dict] = []
+        for a, b in combinations(scored, 2):
             results.append({
-                "target_a": a.target_id,
-                "target_b": b.target_id,
-                "individual_a": ind_a,
-                "individual_b": ind_b,
-                "joint": joint,
-                "interaction": round(interaction, 10),
+                "target_a_id": a.target_id,
+                "target_b_id": b.target_id,
+                "interaction_type": "unknown",
+                "concepts_affected": [],
+            })
+        return results
+
+    # Build mapping: target_id -> queryable CELs that match
+    target_queryables: dict[str, list] = {}
+    for t in scored:
+        matching = [q for q in queryables if t.target_id in str(q)]
+        target_queryables[t.target_id] = matching
+
+    # For each concept in the epistemic details, get stability witnesses
+    # and examine which queryables they require
+    synergistic_pairs: dict[tuple[str, str], list[str]] = {}
+    redundant_pairs: dict[tuple[str, str], list[str]] = {}
+
+    # Collect concepts from epistemic details of scored targets
+    concept_ids: set[str] = set()
+    for t in scored:
+        if t.epistemic_detail and t.epistemic_detail.get("witnesses", 0) > 0:
+            concept_ids.add(t.target_id)
+
+    all_queryables_for_targets = []
+    for t in scored:
+        all_queryables_for_targets.extend(target_queryables.get(t.target_id, []))
+
+    if not all_queryables_for_targets:
+        all_queryables_for_targets = queryables
+
+    for cid in concept_ids:
+        try:
+            stability = engine.concept_stability(
+                cid, all_queryables_for_targets, limit=atms_limit
+            )
+        except Exception:
+            continue
+
+        witnesses = stability.get("witnesses", [])
+
+        # Classify witnesses by their queryable sets
+        singleton_qcels: dict[str, list[str]] = {}  # qcel -> [concept_ids]
+        multi_qcels: list[tuple[list[str], str]] = []  # (qcels, concept_id)
+
+        for witness in witnesses:
+            qcels = witness.get("queryable_cels", [])
+            if len(qcels) == 1:
+                q = str(qcels[0])
+                singleton_qcels.setdefault(q, []).append(cid)
+            elif len(qcels) >= 2:
+                multi_qcels.append(([str(q) for q in qcels], cid))
+
+        # Synergistic: multi-queryable witnesses
+        for qcels, concept in multi_qcels:
+            # Find which target pairs these queryables belong to
+            for qi, qj in combinations(qcels, 2):
+                ti = _find_target_for_queryable(qi, scored, target_queryables)
+                tj = _find_target_for_queryable(qj, scored, target_queryables)
+                if ti and tj and ti != tj:
+                    pair = (min(ti, tj), max(ti, tj))
+                    synergistic_pairs.setdefault(pair, []).append(concept)
+
+        # Redundant: same concept flipped by singleton witnesses of different targets
+        for qi, qi_concepts in singleton_qcels.items():
+            for qj, qj_concepts in singleton_qcels.items():
+                if qi >= qj:
+                    continue
+                shared_concepts = set(qi_concepts) & set(qj_concepts)
+                if shared_concepts:
+                    ti = _find_target_for_queryable(qi, scored, target_queryables)
+                    tj = _find_target_for_queryable(qj, scored, target_queryables)
+                    if ti and tj and ti != tj:
+                        pair = (min(ti, tj), max(ti, tj))
+                        redundant_pairs.setdefault(pair, []).extend(shared_concepts)
+
+    # Build results
+    results: list[dict] = []
+    seen_pairs: set[tuple[str, str]] = set()
+
+    for pair, concepts in synergistic_pairs.items():
+        seen_pairs.add(pair)
+        results.append({
+            "target_a_id": pair[0],
+            "target_b_id": pair[1],
+            "interaction_type": "synergistic",
+            "concepts_affected": sorted(set(concepts)),
+        })
+
+    for pair, concepts in redundant_pairs.items():
+        if pair in seen_pairs:
+            # Already reported as synergistic — add redundancy note
+            for r in results:
+                if r["target_a_id"] == pair[0] and r["target_b_id"] == pair[1]:
+                    r["interaction_type"] = "mixed"
+                    r["concepts_affected"] = sorted(
+                        set(r["concepts_affected"]) | set(concepts)
+                    )
+            continue
+        seen_pairs.add(pair)
+        results.append({
+            "target_a_id": pair[0],
+            "target_b_id": pair[1],
+            "interaction_type": "redundant",
+            "concepts_affected": sorted(set(concepts)),
+        })
+
+    # Add independent pairs not seen
+    for a, b in combinations(scored, 2):
+        pair = (min(a.target_id, b.target_id), max(a.target_id, b.target_id))
+        if pair not in seen_pairs:
+            results.append({
+                "target_a_id": pair[0],
+                "target_b_id": pair[1],
+                "interaction_type": "independent",
+                "concepts_affected": [],
             })
 
     return results
 
 
-def _detect_shared_concepts(a: FragilityTarget, b: FragilityTarget) -> float:
-    """Detect overlap between two targets' epistemic details.
-
-    Returns a fraction [0, 1] indicating how much overlap exists.
-    0 = independent, 1 = fully overlapping.
-    """
-    if not a.epistemic_detail or not b.epistemic_detail:
-        return 0.0
-
-    # If both targets reference the same witnesses or concepts,
-    # they share information value
-    a_concepts = set(a.epistemic_detail.get("shared_concepts", []))
-    b_concepts = set(b.epistemic_detail.get("shared_concepts", []))
-    if not a_concepts or not b_concepts:
-        return 0.0
-
-    overlap = len(a_concepts & b_concepts)
-    total = len(a_concepts | b_concepts)
-    return overlap / total if total > 0 else 0.0
+def _find_target_for_queryable(
+    qcel: str,
+    targets: list[FragilityTarget],
+    target_queryables: dict[str, list],
+) -> str | None:
+    """Find which target a queryable CEL belongs to."""
+    for t in targets:
+        for tq in target_queryables.get(t.target_id, []):
+            if str(tq) == qcel:
+                return t.target_id
+    return None
 
 
 _TOL = 1e-9
@@ -604,7 +733,9 @@ def rank_fragility(
     world_frag = sum(top_scores) / len(top_scores) if top_scores else 0.0
 
     # Phase 2: detect pairwise interactions among top targets
-    interactions = detect_interactions(targets, top_k=min(top_k, 5))
+    interactions = detect_interactions(
+        targets, bound, queryables, top_k=min(top_k, 5), atms_limit=atms_limit
+    )
 
     scope = f"concept:{concept_id}" if concept_id else "all"
     return FragilityReport(
@@ -648,7 +779,12 @@ def _derived_concepts(bound: Any) -> list[str]:
         store = bound._store
         concepts = store.concept_ids() if hasattr(store, "concept_ids") else []
         return list(concepts)
-    except Exception:
+    except Exception as exc:
+        warnings.warn(
+            f"Concept discovery failed: {exc}",
+            FragilityWarning,
+            stacklevel=2,
+        )
         return []
 
 
@@ -686,7 +822,12 @@ def _parametric_dimension(
             "max_abs": max_abs,
             "formula": result.formula,
         }
-    except Exception:
+    except Exception as exc:
+        warnings.warn(
+            f"Parametric dimension failed for concept: {exc}",
+            FragilityWarning,
+            stacklevel=2,
+        )
         return None, None
 
 
@@ -730,7 +871,12 @@ def _epistemic_dimension(
             "stable": stability.get("stable", True),
             "current_status": current_status,
         }
-    except Exception:
+    except Exception as exc:
+        warnings.warn(
+            f"Epistemic dimension failed for concept: {exc}",
+            FragilityWarning,
+            stacklevel=2,
+        )
         return None, None
 
 
@@ -764,8 +910,12 @@ def _conflict_dimension(
                         s = score_conflict(framework, a_id, b_id)
                         max_score = max(max_score, s)
                 score = max_score if max_score > 0.0 else 1.0
-            except Exception:
-                # Fall back to presence-based scoring
+            except Exception as exc:
+                warnings.warn(
+                    f"Conflict scoring fell back to 1.0: {exc}",
+                    FragilityWarning,
+                    stacklevel=2,
+                )
                 score = 1.0
         else:
             # No active graph available — fall back to placeholder
@@ -781,5 +931,10 @@ def _conflict_dimension(
                 for c in conflicts[:5]  # Limit detail size
             ],
         }
-    except Exception:
+    except Exception as exc:
+        warnings.warn(
+            f"Conflict dimension failed for concept: {exc}",
+            FragilityWarning,
+            stacklevel=2,
+        )
         return None, None

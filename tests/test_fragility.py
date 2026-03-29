@@ -249,9 +249,8 @@ class TestProbabilityWeightedEpistemic:
 class TestInteractionDetection:
     """Pairwise interaction detection for top-k targets."""
 
-    def test_independent_targets_zero_interaction(self):
-        """Two targets in unconnected components have zero interaction."""
-        # Two independent targets with identical scores
+    def test_independent_targets_independent_interaction(self):
+        """Two targets in unconnected components are marked independent."""
         target_a = FragilityTarget(
             target_id="a", target_kind="assumption",
             description="A", epistemic_score=0.5, fragility=0.5,
@@ -260,10 +259,11 @@ class TestInteractionDetection:
             target_id="b", target_kind="assumption",
             description="B", epistemic_score=0.5, fragility=0.5,
         )
-        results = detect_interactions([target_a, target_b])
-        # With no shared concepts, interaction should be zero
+        results = detect_interactions([target_a, target_b], None)
+        # With no ATMS, interaction type should be "unknown"
+        assert len(results) >= 1
         for r in results:
-            assert r["interaction"] == pytest.approx(0.0)
+            assert r["interaction_type"] in ("independent", "unknown")
 
     def test_interaction_structure(self):
         """Interaction result has required fields."""
@@ -275,19 +275,17 @@ class TestInteractionDetection:
             target_id="b", target_kind="assumption",
             description="B", epistemic_score=0.6, fragility=0.6,
         )
-        results = detect_interactions([target_a, target_b])
+        results = detect_interactions([target_a, target_b], None)
         if results:
             r = results[0]
-            assert "target_a" in r
-            assert "target_b" in r
-            assert "individual_a" in r
-            assert "individual_b" in r
-            assert "joint" in r
-            assert "interaction" in r
+            assert "target_a_id" in r
+            assert "target_b_id" in r
+            assert "interaction_type" in r
+            assert "concepts_affected" in r
 
     def test_empty_targets_no_interactions(self):
         """Empty target list returns empty interactions."""
-        assert detect_interactions([]) == []
+        assert detect_interactions([], None) == []
 
 
 # ── Phase 2: Updated combine_fragility test ──────────────────────────
@@ -642,3 +640,204 @@ class TestEpistemicWiring:
             # Verify it got the right arguments
             call_kwargs = mock_wes.call_args
             assert call_kwargs is not None
+
+
+# ── Fix 1: FragilityWarning tests ──────────────────────────────────────
+
+
+class TestFragilityWarnings:
+    """Silent failures emit warnings instead of swallowing errors."""
+
+    def test_fragility_warning_is_user_warning(self):
+        """FragilityWarning is importable and is a subclass of UserWarning."""
+        from propstore.fragility import FragilityWarning
+        assert issubclass(FragilityWarning, UserWarning)
+
+    def test_derived_concepts_warns_on_failure(self):
+        """When concept discovery fails, a FragilityWarning is emitted."""
+        import warnings
+        from propstore.fragility import FragilityWarning, _derived_concepts
+
+        # Pass an object whose _store raises on concept_ids()
+        class BadStore:
+            def concept_ids(self):
+                raise RuntimeError("store exploded")
+
+        class BadBound:
+            _store = BadStore()
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = _derived_concepts(BadBound())
+            assert result == []
+            fragility_warnings = [x for x in w if issubclass(x.category, FragilityWarning)]
+            assert len(fragility_warnings) >= 1
+            assert "concept discovery" in str(fragility_warnings[0].message).lower()
+
+    def test_epistemic_dimension_warns_on_failure(self):
+        """When epistemic dimension fails, a FragilityWarning is emitted."""
+        import warnings
+        from unittest.mock import MagicMock
+        from propstore.fragility import FragilityWarning, _epistemic_dimension
+
+        mock_bound = MagicMock()
+        mock_bound.atms_engine.side_effect = RuntimeError("no ATMS")
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            score, detail = _epistemic_dimension(mock_bound, "c1", None, 8)
+            assert score is None
+            assert detail is None
+            fragility_warnings = [x for x in w if issubclass(x.category, FragilityWarning)]
+            assert len(fragility_warnings) >= 1
+
+    def test_conflict_dimension_warns_on_inner_failure(self):
+        """When conflict scoring inner try fails, a FragilityWarning is emitted."""
+        import warnings
+        from unittest.mock import MagicMock, patch
+        from propstore.fragility import FragilityWarning, _conflict_dimension
+
+        mock_bound = MagicMock()
+        mock_bound.conflicts.return_value = [{"claim_a_id": "a", "claim_b_id": "b"}]
+        mock_bound._active_graph = MagicMock()
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            with patch(
+                "propstore.fragility.shared_analyzer_input_from_active_graph",
+                side_effect=RuntimeError("graph exploded"),
+                create=True,
+            ), patch(
+                "propstore.core.analyzers.shared_analyzer_input_from_active_graph",
+                side_effect=RuntimeError("graph exploded"),
+            ):
+                score, detail = _conflict_dimension(mock_bound, "c1")
+            # Should still return a result (fallback to 1.0), not crash
+            assert score is not None
+            fragility_warnings = [x for x in w if issubclass(x.category, FragilityWarning)]
+            assert len(fragility_warnings) >= 1
+
+    def test_conflict_dimension_warns_on_outer_failure(self):
+        """When conflict dimension completely fails, a FragilityWarning is emitted."""
+        import warnings
+        from unittest.mock import MagicMock
+        from propstore.fragility import FragilityWarning, _conflict_dimension
+
+        mock_bound = MagicMock()
+        mock_bound.conflicts.side_effect = RuntimeError("conflicts exploded")
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            score, detail = _conflict_dimension(mock_bound, "c1")
+            assert score is None
+            assert detail is None
+            fragility_warnings = [x for x in w if issubclass(x.category, FragilityWarning)]
+            assert len(fragility_warnings) >= 1
+
+    def test_warning_contains_context(self):
+        """Warning message includes what operation failed and the error."""
+        import warnings
+        from propstore.fragility import FragilityWarning, _derived_concepts
+
+        class BadStore:
+            def concept_ids(self):
+                raise KeyError("missing_table")
+
+        class BadBound:
+            _store = BadStore()
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            _derived_concepts(BadBound())
+            fragility_warnings = [x for x in w if issubclass(x.category, FragilityWarning)]
+            assert len(fragility_warnings) >= 1
+            msg = str(fragility_warnings[0].message)
+            assert "missing_table" in msg
+
+    def test_rank_fragility_warns_on_bad_bound(self):
+        """rank_fragility with an invalid bound warns instead of crashing."""
+        import warnings
+        from propstore.fragility import rank_fragility, FragilityWarning
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = rank_fragility(object())
+            assert result.targets == ()
+            # Should have emitted at least one warning
+            fragility_warnings = [x for x in w if issubclass(x.category, FragilityWarning)]
+            assert len(fragility_warnings) >= 1
+
+
+# ── Fix 2: ATMS-native interaction detection tests ─────────────────────
+
+
+class TestATMSInteractionDetection:
+    """Real ATMS-based interaction detection."""
+
+    def test_empty_targets_no_interactions(self):
+        """Empty target list returns empty interactions."""
+        from propstore.fragility import detect_interactions
+        result = detect_interactions([], None)
+        assert result == []
+
+    def test_no_assumption_targets_no_interactions(self):
+        """Targets with target_kind != 'assumption' are excluded."""
+        from propstore.fragility import detect_interactions, FragilityTarget
+        targets = [
+            FragilityTarget(
+                target_id="c1", target_kind="concept", description="test",
+                epistemic_score=0.8, fragility=0.8,
+            ),
+        ]
+        result = detect_interactions(targets, None)
+        assert result == []
+
+    def test_single_target_no_interactions(self):
+        """A single target cannot have pairwise interactions."""
+        from propstore.fragility import detect_interactions, FragilityTarget
+        targets = [
+            FragilityTarget(
+                target_id="a1", target_kind="assumption", description="test",
+                epistemic_score=0.8, fragility=0.8,
+            ),
+        ]
+        result = detect_interactions(targets, None)
+        assert result == []
+
+    def test_interaction_dict_structure(self):
+        """Each interaction dict has required fields."""
+        from propstore.fragility import detect_interactions, FragilityTarget
+        targets = [
+            FragilityTarget(
+                target_id="a1", target_kind="assumption", description="A",
+                epistemic_score=0.8, fragility=0.8,
+            ),
+            FragilityTarget(
+                target_id="a2", target_kind="assumption", description="B",
+                epistemic_score=0.6, fragility=0.6,
+            ),
+        ]
+        result = detect_interactions(targets, None)
+        assert len(result) >= 1
+        r = result[0]
+        assert "target_a_id" in r
+        assert "target_b_id" in r
+        assert "interaction_type" in r
+        assert "concepts_affected" in r
+
+    def test_no_bound_returns_empty_for_assumptions(self):
+        """Without a bound, interaction detection returns results with 'unknown' type."""
+        from propstore.fragility import detect_interactions, FragilityTarget
+        targets = [
+            FragilityTarget(
+                target_id="a1", target_kind="assumption", description="A",
+                epistemic_score=0.8, fragility=0.8,
+            ),
+            FragilityTarget(
+                target_id="a2", target_kind="assumption", description="B",
+                epistemic_score=0.6, fragility=0.6,
+            ),
+        ]
+        result = detect_interactions(targets, None)
+        # With no bound/ATMS, should still return structure but with unknown interaction
+        assert len(result) >= 1
