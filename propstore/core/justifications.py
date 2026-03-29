@@ -101,7 +101,7 @@ def claim_justifications_from_active_graph(
                 premise_claim_ids=(relation.source_id,),
                 rule_kind=relation.relation_type,
                 provenance=relation.provenance,
-                attributes=dict(relation.attributes),
+                attributes=relation.attributes,
             )
         )
 

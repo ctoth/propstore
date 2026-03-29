@@ -280,7 +280,7 @@ class ConflictWitness:
         object.__setattr__(self, "details", _normalize_pairs(self.details))
 
     def to_dict(self) -> dict[str, Any]:
-        data = {
+        data: dict[str, Any] = {
             "left_claim_id": self.left_claim_id,
             "right_claim_id": self.right_claim_id,
             "kind": self.kind,

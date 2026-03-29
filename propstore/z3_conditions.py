@@ -12,6 +12,7 @@ determines which type each concept gets.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from propstore.cel_checker import (
@@ -262,7 +263,7 @@ class Z3ConditionSolver:
         return z3.If(cond, true_br, false_br)
 
     @staticmethod
-    def _normalize_conditions(conditions: list[str]) -> tuple[str, ...]:
+    def _normalize_conditions(conditions: Sequence[str]) -> tuple[str, ...]:
         return tuple(sorted(conditions))
 
     def _condition_ast(self, condition: str) -> ASTNode:
@@ -285,7 +286,7 @@ class Z3ConditionSolver:
             self._condition_expr_cache[condition] = expr
         return expr
 
-    def _conditions_to_z3(self, conditions: list[str]) -> Any:
+    def _conditions_to_z3(self, conditions: Sequence[str]) -> Any:
         """Parse and translate a list of CEL condition strings, conjuncting them."""
         normalized = self._normalize_conditions(conditions)
         expr = self._condition_set_cache.get(normalized)
@@ -299,7 +300,7 @@ class Z3ConditionSolver:
         self._condition_set_cache[normalized] = expr
         return expr
 
-    def are_disjoint(self, conditions_a: list[str], conditions_b: list[str]) -> bool:
+    def are_disjoint(self, conditions_a: Sequence[str], conditions_b: Sequence[str]) -> bool:
         """Check if two condition sets are disjoint (their conjunction is UNSAT)."""
         try:
             expr_a = self._conditions_to_z3(conditions_a)
@@ -312,7 +313,7 @@ class Z3ConditionSolver:
         solver.add(expr_b)
         return solver.check() == z3.unsat
 
-    def are_equivalent(self, conditions_a: list[str], conditions_b: list[str]) -> bool:
+    def are_equivalent(self, conditions_a: Sequence[str], conditions_b: Sequence[str]) -> bool:
         """Check if two condition sets are logically equivalent.
 
         Both A∧¬B and B∧¬A must be UNSAT.
@@ -337,7 +338,7 @@ class Z3ConditionSolver:
         return s2.check() == z3.unsat
 
     def partition_equivalence_classes(
-        self, condition_sets: list[list[str]]
+        self, condition_sets: Sequence[Sequence[str]]
     ) -> list[list[int]]:
         """Partition condition sets into equivalence classes.
 
@@ -352,7 +353,7 @@ class Z3ConditionSolver:
             return []
 
         # Each class is represented by (representative_conditions, [indices])
-        representatives: list[list[str]] = [condition_sets[0]]
+        representatives: list[Sequence[str]] = [condition_sets[0]]
         classes: list[list[int]] = [[0]]
 
         for i in range(1, len(condition_sets)):
