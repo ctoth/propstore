@@ -95,6 +95,8 @@ def load_concepts(
             LoadedConcept(filename=stem, filepath=path, data=data)
             for stem, path, data in load_yaml_entries(reader, "concepts")
         ]
+    if concept_dir is None:
+        return []
     return [
         LoadedConcept(filename=stem, filepath=path, data=data)
         for stem, path, data in load_yaml_dir(concept_dir)
@@ -149,7 +151,16 @@ def validate_concepts(
     def _forms_dir(c: LoadedConcept) -> Path:
         if repo is not None:
             return repo.forms_dir
+        if c.filepath is None:
+            raise TypeError(
+                "validate_concepts requires concrete concept file paths when repo is not provided"
+            )
         return c.filepath.parent.parent / "forms"
+
+    def _effective_dims(form_def) -> dict[str, int] | None:
+        if form_def.dimensions is not None:
+            return dict(form_def.dimensions)
+        return {} if form_def.is_dimensionless else None
 
     # Load claim IDs for canonical_claim validation
     all_claim_ids: set[str] = set()
@@ -332,15 +343,10 @@ def validate_concepts(
                         if inp_fd is not None:
                             input_form_defs.append(inp_fd)
                 if len(input_form_defs) == len(inputs) and input_form_defs:
-                    def _effective_dims(fd):
-                        """Dimensions for a form: treat dimensionless with no dims as {}."""
-                        if fd.dimensions is not None:
-                            return fd.dimensions
-                        return {} if fd.is_dimensionless else None
-
                     input_dims = [_effective_dims(fd) for fd in input_form_defs]
                     output_dims = _effective_dims(output_form_def)
-                    if output_dims is not None and all(d is not None for d in input_dims):
+                    concrete_input_dims = [dims for dims in input_dims if dims is not None]
+                    if output_dims is not None and len(concrete_input_dims) == len(input_dims):
                         # ── Sympy-based dimensional verification ───────
                         # If the parameterization has a sympy expression,
                         # use bridgman's tree-walking verifier (handles
@@ -356,8 +362,8 @@ def validate_concepts(
                                 # Output concept
                                 dim_map[cid] = dict(output_dims)
                                 # Input concepts
-                                for inp_id, inp_fd in zip(inputs, input_form_defs):
-                                    dim_map[inp_id] = dict(inp_fd.dimensions)  # type: ignore[arg-type]
+                                for inp_id, input_dims_map in zip(inputs, concrete_input_dims):
+                                    dim_map[inp_id] = dict(input_dims_map)
                                 if verify_expr(parsed, dim_map):
                                     sympy_verified = True
                                 else:
@@ -380,9 +386,9 @@ def validate_concepts(
                             # for the N-1 operations between inputs
                             ops = [mul_dims, div_dims]
                             found_valid = False
-                            for op_combo in product(ops, repeat=len(input_dims) - 1):
-                                result_dims = input_dims[0]
-                                for op, next_dims in zip(op_combo, input_dims[1:]):
+                            for op_combo in product(ops, repeat=len(concrete_input_dims) - 1):
+                                result_dims = concrete_input_dims[0]
+                                for op, next_dims in zip(op_combo, concrete_input_dims[1:]):
                                     result_dims = op(result_dims, next_dims)
                                 if dims_equal(result_dims, output_dims):
                                     found_valid = True
@@ -472,5 +478,4 @@ def validate_concepts(
             current_id = current_concept.data.get("replaced_by")
 
     return result
-
 

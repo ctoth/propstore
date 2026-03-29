@@ -228,10 +228,15 @@ class BoundWorld(BeliefSpace):
             if claim_id in self._inactive_claim_id_set:
                 return False
 
+        try:
+            solver = self._store.condition_solver()
+        except AttributeError:
+            solver = None
+
         return is_claim_mapping_active(
             claim,
             environment=self._environment,
-            solver=self._store.condition_solver(),
+            solver=solver,
             context_hierarchy=self._context_hierarchy,
         )
 

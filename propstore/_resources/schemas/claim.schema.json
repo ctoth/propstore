@@ -38,6 +38,13 @@
                         "null"
                     ]
                 },
+                "context": {
+                    "description": "Optional context ID limiting the claim's visibility to a validated context hierarchy.\n",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
                 "equations": {
                     "description": "List of equation strings that make up this model. Required for model claims.\n",
                     "items": {

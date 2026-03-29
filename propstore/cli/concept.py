@@ -115,6 +115,12 @@ def _rewrite_claim_conditions(claim_file_data: dict, old_name: str, new_name: st
     return changed
 
 
+def _require_local_path(path: Path | None, *, label: str) -> Path:
+    if path is None:
+        raise click.ClickException(f"{label} is not available on the local filesystem")
+    return path
+
+
 # ── concept add ──────────────────────────────────────────────────────
 
 @concept.command()
@@ -153,12 +159,13 @@ def add(
         sys.exit(EXIT_ERROR)
 
     git = repo.git
+    counter_lock: CounterLock | None = None
     if git is not None:
         next_counter = git.next_concept_id()
     else:
-        _cl = CounterLock(repo.counters_dir)
-        _cl.__enter__()
-        next_counter = _cl.value
+        counter_lock = CounterLock(repo.counters_dir)
+        counter_lock.__enter__()
+        next_counter = counter_lock.value
 
     try:
         cid = f"concept{next_counter}"
@@ -213,11 +220,13 @@ def add(
             git.sync_worktree()
         else:
             write_concept_file(filepath, data)
-            _cl.commit()
+            if counter_lock is None:
+                raise click.ClickException("counter lock was not initialized")
+            counter_lock.commit()
         click.echo(f"Created {filepath} with ID {cid}")
     finally:
-        if git is None:
-            _cl.__exit__(None, None, None)
+        if counter_lock is not None:
+            counter_lock.__exit__(None, None, None)
 
 
 # ── concept alias ────────────────────────────────────────────────────
@@ -308,17 +317,21 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     updated_concepts = []
     changed_concept_paths: set[Path] = set()
     for concept_record in loaded_concepts:
+        concept_path = _require_local_path(
+            concept_record.filepath,
+            label=f"concept '{concept_record.filename}'",
+        )
         concept_data = deepcopy(concept_record.data)
-        if concept_record.filepath == filepath:
+        if concept_path == filepath:
             concept_data["canonical_name"] = name
             concept_data["last_modified"] = str(date.today())
-            changed_concept_paths.add(concept_record.filepath)
+            changed_concept_paths.add(concept_path)
         if _rewrite_concept_conditions(concept_data, old_name, name):
-            changed_concept_paths.add(concept_record.filepath)
+            changed_concept_paths.add(concept_path)
         updated_concepts.append(
             type(concept_record)(
-                filename=name if concept_record.filepath == filepath else concept_record.filename,
-                filepath=new_path if concept_record.filepath == filepath else concept_record.filepath,
+                filename=name if concept_path == filepath else concept_record.filename,
+                filepath=new_path if concept_path == filepath else concept_path,
                 data=concept_data,
             )
         )
@@ -339,12 +352,16 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     changed_claim_paths: set[Path] = set()
     if claim_files:
         for claim_file in claim_files:
+            claim_path = _require_local_path(
+                claim_file.filepath,
+                label=f"claim file '{claim_file.filename}'",
+            )
             claim_data = deepcopy(claim_file.data)
             if _rewrite_claim_conditions(claim_data, old_name, name):
-                changed_claim_paths.add(claim_file.filepath)
+                changed_claim_paths.add(claim_path)
             updated_claim_files.append(type(claim_file)(
                 filename=claim_file.filename,
-                filepath=claim_file.filepath,
+                filepath=claim_path,
                 data=claim_data,
             ))
         concept_registry = {
@@ -362,10 +379,13 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     git = repo.git
     if git is not None:
         # Collect all changed files for atomic commit
-        adds: dict[str, bytes] = {}
+        adds: dict[str | Path, bytes] = {}
         for concept_record in updated_concepts:
-            target_path = concept_record.filepath
-            if target_path == new_path or concept_record.filepath in changed_concept_paths:
+            target_path = _require_local_path(
+                concept_record.filepath,
+                label=f"concept '{concept_record.filename}'",
+            )
+            if target_path == new_path or target_path in changed_concept_paths:
                 yaml_bytes = yaml.dump(
                     concept_record.data, default_flow_style=False,
                     sort_keys=False, allow_unicode=True,
@@ -374,12 +394,16 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 adds[rel] = yaml_bytes
 
         for claim_file in updated_claim_files:
-            if claim_file.filepath in changed_claim_paths:
+            claim_path = _require_local_path(
+                claim_file.filepath,
+                label=f"claim file '{claim_file.filename}'",
+            )
+            if claim_path in changed_claim_paths:
                 yaml_bytes = yaml.dump(
                     claim_file.data, default_flow_style=False,
                     sort_keys=False, allow_unicode=True,
                 ).encode("utf-8")
-                rel = claim_file.filepath.relative_to(repo.root).as_posix()
+                rel = claim_path.relative_to(repo.root).as_posix()
                 adds[rel] = yaml_bytes
 
         old_rel = filepath.relative_to(repo.root).as_posix()
@@ -392,15 +416,22 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     else:
         # Write the renamed concept to the new path first, then remove old
         for concept_record in updated_concepts:
-            target_path = concept_record.filepath
+            target_path = _require_local_path(
+                concept_record.filepath,
+                label=f"concept '{concept_record.filename}'",
+            )
             if target_path == new_path:
                 write_concept_file(new_path, concept_record.data)
-            elif concept_record.filepath in changed_concept_paths:
+            elif target_path in changed_concept_paths:
                 write_concept_file(target_path, concept_record.data)
 
         for claim_file in updated_claim_files:
-            if claim_file.filepath in changed_claim_paths:
-                write_yaml_file(claim_file.filepath, claim_file.data)
+            claim_path = _require_local_path(
+                claim_file.filepath,
+                label=f"claim file '{claim_file.filename}'",
+            )
+            if claim_path in changed_claim_paths:
+                write_yaml_file(claim_path, claim_file.data)
 
         filepath.unlink(missing_ok=True)
 

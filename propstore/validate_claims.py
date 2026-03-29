@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 import jsonschema
 import yaml
+import bridgman
 
 from propstore.resources import load_resource_json
 from propstore.validate import ValidationResult, load_yaml_dir
@@ -46,6 +47,14 @@ from propstore.stances import VALID_STANCE_TYPES
 _claim_schema_cache: dict | None = None
 
 
+_SCHEMA_FLOAT_FIELDS = frozenset({
+    "value",
+    "lower_bound",
+    "upper_bound",
+    "uncertainty",
+})
+
+
 def _load_claim_schema() -> dict:
     """Load the packaged claim JSON Schema, caching the result."""
     global _claim_schema_cache
@@ -55,6 +64,28 @@ def _load_claim_schema() -> dict:
             raise TypeError("schemas/claim.schema.json must decode to a JSON object")
         _claim_schema_cache = schema
     return _claim_schema_cache
+
+
+def _coerce_schema_numeric_strings(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            key: _coerce_schema_numeric_strings(
+                _maybe_schema_float(item) if key in _SCHEMA_FLOAT_FIELDS else item
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_coerce_schema_numeric_strings(item) for item in value]
+    return value
+
+
+def _maybe_schema_float(value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    try:
+        return float(value)
+    except ValueError:
+        return value
 
 
 @dataclass
@@ -82,6 +113,8 @@ def load_claim_files(
             LoadedClaimFile(filename=stem, filepath=path, data=data)
             for stem, path, data in load_yaml_entries(reader, "claims")
         ]
+    if claims_dir is None:
+        return []
     return [
         LoadedClaimFile(filename=stem, filepath=path, data=data)
         for stem, path, data in load_yaml_dir(claims_dir)
@@ -172,7 +205,7 @@ def validate_claims(
 
         # JSON Schema validation
         try:
-            jsonschema.validate(json_safe(data), json_schema)
+            jsonschema.validate(_coerce_schema_numeric_strings(json_safe(data)), json_schema)
         except jsonschema.ValidationError as e:
             result.errors.append(f"{cf.filename}: JSON Schema error: {e.message}")
 
@@ -522,7 +555,6 @@ def _validate_equation(
     sympy_str = claim.get("sympy")
     if sympy_str and isinstance(variables, list):
         try:
-            from bridgman import verify_expr, DimensionalError
             import sympy as sp
 
             # Build dim_map: map both symbol names and concept IDs to dimensions
@@ -565,7 +597,7 @@ def _validate_equation(
             if dim_map:
                 parsed = sp.sympify(sympy_str)
                 if isinstance(parsed, sp.Eq):
-                    if not verify_expr(parsed, dim_map):
+                    if not bridgman.verify_expr(parsed, dim_map):
                         result.warnings.append(
                             f"{filename}: equation claim '{cid}' dimensional verification "
                             f"failed for sympy '{sympy_str}'")
@@ -576,7 +608,7 @@ def _validate_equation(
                         f"{filename}: equation claim '{cid}' sympy '{sympy_str}' "
                         f"is not an Eq() — cannot verify dimensional consistency. "
                         f"Wrap as Eq(lhs, rhs).")
-        except (KeyError, SyntaxError, DimensionalError, TypeError):
+        except (KeyError, SyntaxError, bridgman.DimensionalError, TypeError):
             pass  # missing concept, unparseable sympy, dim errors, or type issues — skip
 
 

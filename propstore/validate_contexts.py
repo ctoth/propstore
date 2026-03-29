@@ -41,7 +41,7 @@ def load_contexts(
             LoadedContext(filename=stem, filepath=path, data=data)
             for stem, path, data in load_yaml_entries(reader, "contexts")
         ]
-    if not contexts_dir.exists():
+    if contexts_dir is None or not contexts_dir.exists():
         return []
     return [
         LoadedContext(filename=stem, filepath=path, data=data)
