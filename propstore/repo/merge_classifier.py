@@ -1,118 +1,113 @@
-"""Semantic merge classification at claim granularity.
+"""Direct repo emission of a formal merge object.
 
-Three-way diff between two branches using their merge-base as the common
-ancestor. Each claim is classified into one of six categories.
-
-Literature grounding:
-- Coste-Marquis et al. 2007, Def 9: PAF three-valued attack relation
-  (attack/non-attack/ignorance over argument pairs) is analogous to
-  CONFLICT/COMPATIBLE/PHI_NODE over claim values. The analogy is
-  structural, not a formal isomorphism — PAF operates on argument
-  attack pairs, this classifier operates on claim three-way diffs.
-- Konieczny & Pino Perez 2002, IC3: classification is syntax-independent
-  (keyed by claim ID, not filename or YAML order).
+The repository layer no longer emits claim-bucket classifications as its
+public merge result. Instead it produces a provenance-bearing partial
+argumentation framework over the claim alternatives that survive the merge.
 """
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TYPE_CHECKING
+from itertools import product
+from typing import TYPE_CHECKING, Any
 
 from propstore.repo.branch import branch_head, merge_base
+from propstore.repo.merge_framework import PartialArgumentationFramework
 
 if TYPE_CHECKING:
     from propstore.repo.git_backend import KnowledgeRepo
 
 
-class MergeClassification(Enum):
-    """Six-valued merge classification per semantic-merge-spec Phase 2."""
-    IDENTICAL = "identical"
+class _DiffKind(Enum):
     COMPATIBLE = "compatible"
-    PHI_NODE = "phi_node"
     CONFLICT = "conflict"
-    NOVEL_LEFT = "novel_left"
-    NOVEL_RIGHT = "novel_right"
+    PHI_NODE = "phi_node"
 
 
 @dataclass(frozen=True)
-class MergeItem:
-    """A single claim's merge classification with three-way values.
+class MergeArgument:
+    """A claim alternative emitted by the repository merge boundary."""
 
-    Carries the claim identity, concept identity, values from all three
-    versions (base, left, right), and branch provenance.
-    """
-    classification: MergeClassification
     claim_id: str
+    canonical_claim_id: str
     concept_id: str
-    left_value: Any | None
-    right_value: Any | None
-    base_value: Any | None
-    left_branch: str
-    right_branch: str
+    claim: dict[str, Any]
+    branch_origins: tuple[str, ...]
 
 
-def _extract_concept(claim: dict) -> str:
-    """Extract the primary concept ID from a claim dict.
+@dataclass(frozen=True)
+class RepoMergeFramework:
+    """Repository-facing merge object with provenance and formal semantics."""
 
-    Parameter/measurement types use ``concept``; observation types use
-    the first entry in ``concepts``.
-    """
-    c = claim.get("concept")
-    if c:
-        return c
+    branch_a: str
+    branch_b: str
+    arguments: tuple[MergeArgument, ...]
+    framework: PartialArgumentationFramework
+
+    def argument_index(self) -> dict[str, MergeArgument]:
+        return {argument.claim_id: argument for argument in self.arguments}
+
+
+def _annotate_provenance(claim: dict[str, Any], branch_name: str) -> dict[str, Any]:
+    merged = copy.deepcopy(claim)
+    provenance = dict(merged.get("provenance", {}))
+    provenance["branch_origin"] = branch_name
+    merged["provenance"] = provenance
+    return merged
+
+
+def _disambiguate_id(claim_id: str, suffix: str) -> str:
+    safe_suffix = suffix.replace("/", "_").replace("-", "_")
+    return f"{claim_id}__{safe_suffix}"
+
+
+def _extract_concept(claim: dict[str, Any]) -> str:
+    concept = claim.get("concept")
+    if concept:
+        return str(concept)
     concepts = claim.get("concepts", [])
     if concepts:
-        return concepts[0]
+        return str(concepts[0])
     return ""
 
 
-def _claim_semantic_key(claim: dict) -> dict:
-    """Extract the semantically meaningful fields from a claim for comparison.
-
-    Excludes provenance metadata and ordering artifacts so that IC3
-    (syntax independence) is satisfied.
-    """
-    # Include all fields except provenance — provenance doesn't affect semantics
+def _claim_semantic_key(claim: dict[str, Any]) -> dict[str, Any]:
     skip = {"provenance"}
-    return {k: v for k, v in claim.items() if k not in skip}
+    return {key: value for key, value in claim.items() if key not in skip}
 
 
-def _claims_equal(a: dict, b: dict) -> bool:
-    """Compare two claims by their semantic content (IC3 compliance)."""
+def _claims_equal(a: dict[str, Any], b: dict[str, Any]) -> bool:
     return _claim_semantic_key(a) == _claim_semantic_key(b)
 
 
-def _index_claims(claim_files) -> dict[str, dict]:
-    """Build a dict mapping claim ID -> claim dict from LoadedClaimFile list."""
-    index: dict[str, dict] = {}
-    for cf in claim_files:
-        for claim in cf.data.get("claims", []):
-            cid = claim.get("id")
-            if cid:
-                index[cid] = claim
+def _index_claims(claim_files) -> dict[str, dict[str, Any]]:
+    index: dict[str, dict[str, Any]] = {}
+    for claim_file in claim_files:
+        for claim in claim_file.data.get("claims", []):
+            claim_id = claim.get("id")
+            if claim_id:
+                index[str(claim_id)] = claim
     return index
 
 
-def _classify_modified_both(
-    left_claim: dict,
-    right_claim: dict,
-    left_branch: str,
-    right_branch: str,
-) -> MergeClassification:
-    """Classify a claim modified on both branches.
-
-    Uses the conflict detector to distinguish PHI_NODE (mutually exclusive
-    conditions) from CONFLICT (genuine overlap).
-    """
+def _classify_pair(
+    left_claim: dict[str, Any],
+    right_claim: dict[str, Any],
+) -> _DiffKind:
+    """Classify disagreement between two concrete claim alternatives."""
+    from propstore.conflict_detector import ConflictClass, detect_conflicts
     from propstore.validate_claims import LoadedClaimFile
-    from propstore.conflict_detector import detect_conflicts, ConflictClass
 
-    # Build synthetic LoadedClaimFiles for the two versions
     left_file = LoadedClaimFile(
         filename="_left",
         filepath=None,
         data={
-            "source": {"paper": "merge_left", "extraction_model": "merge", "extraction_date": "2026-01-01"},
+            "source": {
+                "paper": "merge_left",
+                "extraction_model": "merge",
+                "extraction_date": "2026-01-01",
+            },
             "claims": [left_claim],
         },
     )
@@ -120,183 +115,201 @@ def _classify_modified_both(
         filename="_right",
         filepath=None,
         data={
-            "source": {"paper": "merge_right", "extraction_model": "merge", "extraction_date": "2026-01-01"},
+            "source": {
+                "paper": "merge_right",
+                "extraction_model": "merge",
+                "extraction_date": "2026-01-01",
+            },
             "claims": [right_claim],
         },
     )
 
     records = detect_conflicts([left_file, right_file], concept_registry={})
 
-    # If any record is a genuine CONFLICT or OVERLAP, classify as CONFLICT
-    for r in records:
-        if r.warning_class in (ConflictClass.CONFLICT, ConflictClass.OVERLAP, ConflictClass.PARAM_CONFLICT):
-            return MergeClassification.CONFLICT
+    for record in records:
+        if record.warning_class in (
+            ConflictClass.CONFLICT,
+            ConflictClass.OVERLAP,
+            ConflictClass.PARAM_CONFLICT,
+        ):
+            return _DiffKind.CONFLICT
 
-    # If we got PHI_NODE or CONTEXT_PHI_NODE, that's a phi node
-    for r in records:
-        if r.warning_class in (ConflictClass.PHI_NODE, ConflictClass.CONTEXT_PHI_NODE):
-            return MergeClassification.PHI_NODE
+    for record in records:
+        if record.warning_class in (
+            ConflictClass.PHI_NODE,
+            ConflictClass.CONTEXT_PHI_NODE,
+        ):
+            return _DiffKind.PHI_NODE
 
-    # If no conflict records at all but claims differ, the conflict detector
-    # may not cover this claim type (e.g. observations). Claims that differ
-    # but don't trigger the conflict detector are conflicts by default —
-    # the claims are semantically different with no condition-based excuse.
-    # However, if concepts differ, they're compatible (different topics).
-    left_concept = _extract_concept(left_claim)
-    right_concept = _extract_concept(right_claim)
-    if left_concept != right_concept:
-        return MergeClassification.COMPATIBLE
-
-    return MergeClassification.CONFLICT
+    if _extract_concept(left_claim) != _extract_concept(right_claim):
+        return _DiffKind.COMPATIBLE
+    return _DiffKind.CONFLICT
 
 
-def classify_merge(
+def _emit_argument(
+    emitted: list[MergeArgument],
+    *,
+    claim: dict[str, Any],
+    canonical_claim_id: str,
+    concept_id: str,
+    branch_origins: tuple[str, ...],
+    emitted_claim_id: str | None = None,
+    annotate_branch_origin: str | None = None,
+) -> str:
+    merged_claim = copy.deepcopy(claim)
+    claim_id = emitted_claim_id or str(merged_claim.get("id", canonical_claim_id))
+    merged_claim["id"] = claim_id
+    if annotate_branch_origin is not None:
+        merged_claim = _annotate_provenance(merged_claim, annotate_branch_origin)
+    emitted.append(
+        MergeArgument(
+            claim_id=claim_id,
+            canonical_claim_id=canonical_claim_id,
+            concept_id=concept_id,
+            claim=merged_claim,
+            branch_origins=branch_origins,
+        )
+    )
+    return claim_id
+
+
+def build_merge_framework(
     kr: KnowledgeRepo,
     branch_a: str,
     branch_b: str,
-) -> list[MergeItem]:
-    """Three-way diff at claim granularity.
-
-    Classification is analogous to Coste-Marquis 2007 Definition 9's
-    PAF three-valued relation (attack/non-attack/ignorance), applied
-    to claim values rather than argument attack pairs.
-
-    Algorithm:
-    1. Find merge-base
-    2. Load claims from all three commits via GitTreeReader
-    3. Index claims by ID
-    4. Classify each claim in the union
-    """
+) -> RepoMergeFramework:
+    """Build the direct repository merge object for two branches."""
     from propstore.tree_reader import GitTreeReader
     from propstore.validate_claims import load_claim_files
 
-    # Step 1: find merge base
     base_sha = merge_base(kr, branch_a, branch_b)
     left_sha = branch_head(kr, branch_a)
     right_sha = branch_head(kr, branch_b)
 
-    # Step 2: load claims from all three commits
     base_reader = GitTreeReader(kr, commit=base_sha)
     left_reader = GitTreeReader(kr, commit=left_sha)
     right_reader = GitTreeReader(kr, commit=right_sha)
 
-    base_claims_files = load_claim_files(None, reader=base_reader)
-    left_claims_files = load_claim_files(None, reader=left_reader)
-    right_claims_files = load_claim_files(None, reader=right_reader)
+    base_idx = _index_claims(load_claim_files(None, reader=base_reader))
+    left_idx = _index_claims(load_claim_files(None, reader=left_reader))
+    right_idx = _index_claims(load_claim_files(None, reader=right_reader))
 
-    # Step 3: index by claim ID
-    base_idx = _index_claims(base_claims_files)
-    left_idx = _index_claims(left_claims_files)
-    right_idx = _index_claims(right_claims_files)
+    all_ids = sorted(set(base_idx) | set(left_idx) | set(right_idx))
+    emitted: list[MergeArgument] = []
+    attacks: set[tuple[str, str]] = set()
+    ignorance: set[tuple[str, str]] = set()
 
-    # Step 4: classify each claim ID in the union
-    all_ids = set(base_idx) | set(left_idx) | set(right_idx)
-    items: list[MergeItem] = []
+    for canonical_claim_id in all_ids:
+        base_claim = base_idx.get(canonical_claim_id)
+        left_claim = left_idx.get(canonical_claim_id)
+        right_claim = right_idx.get(canonical_claim_id)
 
-    # Determine whether each branch diverged from base (has any changes).
-    # When both branches diverged, new claims on one side are COMPATIBLE
-    # (both branches contributed). When only one branch diverged, new
-    # claims are NOVEL_LEFT or NOVEL_RIGHT.
-    left_diverged = left_idx != base_idx
-    right_diverged = right_idx != base_idx
-    both_diverged = left_diverged and right_diverged
-
-    for cid in sorted(all_ids):
-        in_base = cid in base_idx
-        in_left = cid in left_idx
-        in_right = cid in right_idx
-
-        base_claim = base_idx.get(cid)
-        left_claim = left_idx.get(cid)
-        right_claim = right_idx.get(cid)
-
-        # Determine concept from whichever version exists
-        concept = ""
-        for c in (left_claim, right_claim, base_claim):
-            if c is not None:
-                concept = _extract_concept(c)
+        concept_id = ""
+        for candidate in (left_claim, right_claim, base_claim):
+            if candidate is not None:
+                concept_id = _extract_concept(candidate)
                 break
 
-        # Classification logic
-        if in_left and in_right and in_base:
-            # All three present
-            left_eq_base = _claims_equal(left_claim, base_claim)
-            right_eq_base = _claims_equal(right_claim, base_claim)
-            left_eq_right = _claims_equal(left_claim, right_claim)
+        in_left = left_claim is not None
+        in_right = right_claim is not None
+        in_base = base_claim is not None
 
-            if left_eq_base and right_eq_base:
-                classification = MergeClassification.IDENTICAL
-            elif left_eq_base and not right_eq_base:
-                # Only right modified — compatible one-sided change
-                classification = MergeClassification.COMPATIBLE
-            elif right_eq_base and not left_eq_base:
-                # Only left modified — compatible one-sided change
-                classification = MergeClassification.COMPATIBLE
-            elif left_eq_right:
-                # Both modified identically — identical result
-                classification = MergeClassification.IDENTICAL
-            else:
-                # Both modified differently — check conflict detector
-                classification = _classify_modified_both(
-                    left_claim, right_claim, branch_a, branch_b
-                )
-        elif in_left and in_right and not in_base:
-            # Added on both sides (not in base)
+        if in_left and in_right:
             if _claims_equal(left_claim, right_claim):
-                classification = MergeClassification.IDENTICAL
-            else:
-                classification = _classify_modified_both(
-                    left_claim, right_claim, branch_a, branch_b
+                _emit_argument(
+                    emitted,
+                    claim=left_claim,
+                    canonical_claim_id=canonical_claim_id,
+                    concept_id=concept_id,
+                    branch_origins=(branch_a, branch_b),
                 )
-        elif in_left and not in_right and not in_base:
-            # Added only on left
-            classification = (
-                MergeClassification.COMPATIBLE if both_diverged
-                else MergeClassification.NOVEL_LEFT
+                continue
+
+            if in_base and _claims_equal(left_claim, base_claim):
+                _emit_argument(
+                    emitted,
+                    claim=right_claim,
+                    canonical_claim_id=canonical_claim_id,
+                    concept_id=concept_id,
+                    branch_origins=(branch_b,),
+                )
+                continue
+
+            if in_base and _claims_equal(right_claim, base_claim):
+                _emit_argument(
+                    emitted,
+                    claim=left_claim,
+                    canonical_claim_id=canonical_claim_id,
+                    concept_id=concept_id,
+                    branch_origins=(branch_a,),
+                )
+                continue
+
+            diff_kind = _classify_pair(left_claim, right_claim)
+            left_claim_id = _emit_argument(
+                emitted,
+                claim=left_claim,
+                canonical_claim_id=canonical_claim_id,
+                concept_id=concept_id,
+                branch_origins=(branch_a,),
+                emitted_claim_id=_disambiguate_id(canonical_claim_id, branch_a),
+                annotate_branch_origin=branch_a,
             )
-        elif not in_left and in_right and not in_base:
-            # Added only on right
-            classification = (
-                MergeClassification.COMPATIBLE if both_diverged
-                else MergeClassification.NOVEL_RIGHT
+            right_claim_id = _emit_argument(
+                emitted,
+                claim=right_claim,
+                canonical_claim_id=canonical_claim_id,
+                concept_id=concept_id,
+                branch_origins=(branch_b,),
+                emitted_claim_id=_disambiguate_id(canonical_claim_id, branch_b),
+                annotate_branch_origin=branch_b,
             )
-        elif in_left and not in_right and in_base:
-            # Deleted on right, present on left
-            left_eq_base = _claims_equal(left_claim, base_claim)
-            if left_eq_base:
-                # Right deleted, left unchanged — novel deletion
-                classification = MergeClassification.NOVEL_RIGHT
-            else:
-                # Left modified, right deleted — conflict
-                classification = MergeClassification.CONFLICT
-        elif not in_left and in_right and in_base:
-            # Deleted on left, present on right
-            right_eq_base = _claims_equal(right_claim, base_claim)
-            if right_eq_base:
-                # Left deleted, right unchanged — novel deletion
-                classification = MergeClassification.NOVEL_LEFT
-            else:
-                # Right modified, left deleted — conflict
-                classification = MergeClassification.CONFLICT
-        elif not in_left and not in_right and in_base:
-            # Deleted on both sides
-            classification = MergeClassification.IDENTICAL
-        elif in_left and in_right:
-            # Both present, base ambiguous — treat as compatible
-            classification = MergeClassification.COMPATIBLE
-        else:
-            # Shouldn't happen (claim in union but not in any set)
+            if diff_kind == _DiffKind.CONFLICT:
+                attacks.add((left_claim_id, right_claim_id))
+                attacks.add((right_claim_id, left_claim_id))
+            elif diff_kind == _DiffKind.PHI_NODE:
+                ignorance.add((left_claim_id, right_claim_id))
+                ignorance.add((right_claim_id, left_claim_id))
             continue
 
-        items.append(MergeItem(
-            classification=classification,
-            claim_id=cid,
-            concept_id=concept,
-            left_value=left_claim,
-            right_value=right_claim,
-            base_value=base_claim,
-            left_branch=branch_a,
-            right_branch=branch_b,
-        ))
+        if in_left:
+            _emit_argument(
+                emitted,
+                claim=left_claim,
+                canonical_claim_id=canonical_claim_id,
+                concept_id=concept_id,
+                branch_origins=(branch_a,),
+            )
+            continue
 
-    return items
+        if in_right:
+            _emit_argument(
+                emitted,
+                claim=right_claim,
+                canonical_claim_id=canonical_claim_id,
+                concept_id=concept_id,
+                branch_origins=(branch_b,),
+            )
+
+    emitted.sort(key=lambda argument: (argument.canonical_claim_id, argument.claim_id))
+    argument_ids = frozenset(argument.claim_id for argument in emitted)
+    ordered_pairs = frozenset(product(argument_ids, argument_ids))
+    framework = PartialArgumentationFramework(
+        arguments=argument_ids,
+        attacks=frozenset(attacks),
+        ignorance=frozenset(ignorance),
+        non_attacks=ordered_pairs - frozenset(attacks) - frozenset(ignorance),
+    )
+    return RepoMergeFramework(
+        branch_a=branch_a,
+        branch_b=branch_b,
+        arguments=tuple(emitted),
+        framework=framework,
+    )
+
+
+__all__ = [
+    "MergeArgument",
+    "RepoMergeFramework",
+    "build_merge_framework",
+]
