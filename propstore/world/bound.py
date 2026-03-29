@@ -190,7 +190,7 @@ class BoundWorld(BeliefSpace):
         self._conflicts_cache: dict[str | None, list[dict]] = {}
         self._resolver = ActiveClaimResolver(
             parameterizations_for=lambda concept_id: [
-                coerce_parameterization_row(row).to_dict()
+                coerce_parameterization_row(row)
                 for row in self._store.parameterizations_for(concept_id)
             ],
             is_param_compatible=self.is_param_compatible,
