@@ -801,6 +801,82 @@ def _parse_bindings(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
     return parsed, concept_id
 
 
+def _format_revision_payload(payload: dict) -> str:
+    claim_type = payload.get("type")
+    concept_id = payload.get("concept_id")
+    value = payload.get("value")
+    unit = payload.get("unit")
+    parts: list[str] = []
+    if claim_type:
+        parts.append(f"type={claim_type}")
+    if concept_id:
+        parts.append(f"concept={concept_id}")
+    if value is not None:
+        if unit:
+            parts.append(f"value={value} {unit}")
+        else:
+            parts.append(f"value={value}")
+    return " ".join(parts)
+
+
+def _format_revision_assumption(assumption) -> str:
+    return (
+        f"{assumption.assumption_id}: kind={assumption.kind} "
+        f"source={assumption.source} cel={assumption.cel}"
+    )
+
+
+@world.command("revision-base")
+@click.argument("args", nargs=-1)
+@click.pass_obj
+def world_revision_base(obj: dict, args: tuple[str, ...]) -> None:
+    """Show the current revision-facing belief base for a scoped world."""
+    repo: Repository = obj["repo"]
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        bound = wm.bind(**bindings)
+        base = bound.revision_base()
+
+        click.echo(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
+        for atom in base.atoms:
+            payload = dict(atom.payload)
+            details = _format_revision_payload(payload)
+            if details:
+                click.echo(f"  {atom.atom_id}: {details}")
+            else:
+                click.echo(f"  {atom.atom_id}")
+
+        if base.assumptions:
+            click.echo("Assumptions:")
+            for assumption in base.assumptions:
+                click.echo(f"  {_format_revision_assumption(assumption)}")
+
+
+@world.command("revision-entrenchment")
+@click.argument("args", nargs=-1)
+@click.pass_obj
+def world_revision_entrenchment(obj: dict, args: tuple[str, ...]) -> None:
+    """Show the current deterministic entrenchment ordering for a scoped world."""
+    repo: Repository = obj["repo"]
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        bound = wm.bind(**bindings)
+        report = bound.revision_entrenchment()
+
+        click.echo(f"Entrenchment ({len(report.ranked_atom_ids)} atoms)")
+        for rank, atom_id in enumerate(report.ranked_atom_ids, start=1):
+            reason = report.reasons.get(atom_id, {})
+            support_count = reason.get("support_count", 0)
+            essential_support = reason.get("essential_support") or []
+            override = reason.get("override")
+            click.echo(
+                f"  {rank}. {atom_id} "
+                f"support_count={support_count} "
+                f"essential_support={_format_assumption_ids(essential_support)} "
+                f"override={override}"
+            )
+
+
 def _bind_atms_world(
     repo: Repository,
     args: tuple[str, ...],
