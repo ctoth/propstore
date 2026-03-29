@@ -1,6 +1,6 @@
 # Fragility Analysis
 
-Fragility answers the question: "what is the cheapest thing I could learn that would most change what I believe?" It ranks concepts by how sensitive the system's conclusions are to new information, then weighs that sensitivity against investigation cost. A concept with high fragility and low cost is the highest-leverage target for further research.
+Fragility analysis approximates the Value of Information (Howard 1966) -- it estimates how much your conclusions would change if you learned something new, then ranks targets by return on investigation. The core question is: "what is the cheapest thing I could learn that would most change what I believe?" Concepts are ranked by how sensitive the system's conclusions are to new information, then weighted by investigation cost. A concept with high fragility and low cost is the highest-leverage target for further research.
 
 The fragility subsystem lives in the render layer (layer 5). It reads from the argumentation layer (Dung AF, ATMS), the theory layer (sensitivity analysis, parameterizations), and the opinion layer (subjective logic fusion). It never mutates source storage -- it produces a ranked `FragilityReport` of recommendations.
 
