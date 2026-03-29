@@ -314,8 +314,10 @@ class TestOpinionSensitivity:
 
     def test_high_uncertainty_high_sensitivity(self):
         """An opinion with u=0.8 has more marginal room than one with u=0.1."""
-        omega_1 = Opinion(0.1, 0.1, 0.8, 0.5)
-        omega_2 = Opinion(0.45, 0.45, 0.1, 0.5)
+        # Different E and a values so perturbation actually shifts fused E.
+        # When a=0.5 and both E are equal, preserving E makes WBF insensitive.
+        omega_1 = Opinion(0.1, 0.1, 0.8, 0.3)   # E=0.34, high u
+        omega_2 = Opinion(0.6, 0.1, 0.3, 0.7)   # E=0.81, low u
         opinions = [omega_1, omega_2]
         sens_1 = opinion_sensitivity(opinions, 0)
         sens_2 = opinion_sensitivity(opinions, 1)

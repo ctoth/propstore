@@ -326,9 +326,65 @@ def opinion_sensitivity(
     Computes central finite difference of the fused expectation
     with respect to the uncertainty of opinions[index].
 
-    Returns None if the opinion is dogmatic or WBF cannot be computed.
+    Returns None if fewer than 2 opinions (no fusion partner),
+    or if any opinion is too close to dogmatic for WBF perturbation.
+
+    References
+    ----------
+    Jøsang 2001: E(omega) = b + a*u. WBF fuses N opinions.
     """
-    raise NotImplementedError("Phase 3: opinion_sensitivity not yet implemented")
+    from propstore.opinion import Opinion, wbf
+
+    if len(opinions) < 2:
+        return None
+
+    # Check if any opinion is too close to dogmatic for perturbation
+    for op in opinions:
+        if op.u < delta * 2:
+            return None
+
+    oi = opinions[index]
+    e_i = oi.expectation()
+    a_i = oi.a
+
+    # Perturb down: u_minus = u_i - delta
+    u_minus = oi.u - delta
+    b_minus = e_i - a_i * u_minus
+    d_minus = 1.0 - u_minus - b_minus
+    # Clamp for numerical safety
+    b_minus = max(0.0, min(1.0, b_minus))
+    d_minus = max(0.0, min(1.0, d_minus))
+
+    # Perturb up: u_plus = u_i + delta (clamped to < 1.0)
+    u_plus = min(oi.u + delta, 1.0 - 1e-12)
+    b_plus = e_i - a_i * u_plus
+    d_plus = 1.0 - u_plus - b_plus
+    b_plus = max(0.0, min(1.0, b_plus))
+    d_plus = max(0.0, min(1.0, d_plus))
+
+    try:
+        op_minus = Opinion(b_minus, d_minus, u_minus, a_i)
+        op_plus = Opinion(b_plus, d_plus, u_plus, a_i)
+    except ValueError:
+        return None
+
+    # Build two opinion lists with perturbed opinion substituted
+    opinions_minus = list(opinions)
+    opinions_minus[index] = op_minus
+    opinions_plus = list(opinions)
+    opinions_plus[index] = op_plus
+
+    try:
+        e_fused_minus = wbf(*opinions_minus).expectation()
+        e_fused_plus = wbf(*opinions_plus).expectation()
+    except ValueError:
+        return None
+
+    actual_delta = u_plus - u_minus
+    if actual_delta < 1e-15:
+        return None
+
+    return abs(e_fused_plus - e_fused_minus) / actual_delta
 
 
 def imps_rev(
@@ -341,8 +397,55 @@ def imps_rev(
 
     Measures how much removing attack (A,B) changes B's DF-QuAD strength.
     Positive = B gets stronger without the attack (A was harming B).
+
+    Parameters
+    ----------
+    framework : ArgumentationFramework
+        The argumentation framework containing attacks.
+    supports : dict
+        Support edges as (src, tgt) -> weight.
+    base_scores : dict
+        Base scores per argument for DF-QuAD.
+    attack : tuple[str, str]
+        The (attacker, target) defeat to evaluate.
+
+    Returns
+    -------
+    float
+        Strength difference. Positive means target is stronger without the attack.
+
+    References
+    ----------
+    AlAnaissy 2024: ImpS^rev revised impact measure.
+    Freedman et al. 2025: DF-QuAD gradual semantics.
     """
-    raise NotImplementedError("Phase 3: imps_rev not yet implemented")
+    from propstore.dung import ArgumentationFramework as AF
+    from propstore.opinion import Opinion
+    from propstore.praf import ProbabilisticAF
+    from propstore.praf_dfquad import compute_dfquad_strengths
+
+    if attack not in framework.defeats:
+        return 0.0
+
+    # Build PrAF with deterministic argument/defeat existence
+    p_args = {arg: Opinion.dogmatic_true() for arg in framework.arguments}
+    p_defeats = {d: Opinion.dogmatic_true() for d in framework.defeats}
+    praf = ProbabilisticAF(framework=framework, p_args=p_args, p_defeats=p_defeats)
+
+    # Full strengths
+    strengths_full = compute_dfquad_strengths(praf, supports, base_scores=base_scores)
+
+    # Build modified framework with attack removed
+    new_defeats = frozenset(d for d in framework.defeats if d != attack)
+    new_af = AF(arguments=framework.arguments, defeats=new_defeats)
+    new_p_defeats = {k: v for k, v in p_defeats.items() if k != attack}
+    new_praf = ProbabilisticAF(framework=new_af, p_args=p_args, p_defeats=new_p_defeats)
+
+    # Strengths without the attack
+    strengths_removed = compute_dfquad_strengths(new_praf, supports, base_scores=base_scores)
+
+    target = attack[1]
+    return strengths_removed[target] - strengths_full[target]
 
 
 def rank_fragility(
