@@ -1,0 +1,229 @@
+# Git Backend
+
+propstore uses Dulwich (pure-Python git) to version knowledge repos. The git object store is the single source of truth; the working tree is a materialized view. This enables historical builds, branch-based isolation, and atomic commits.
+
+Dulwich is confined to a single file (`propstore/repo/git_backend.py`). Everything else interacts through `KnowledgeRepo` or `TreeReader`.
+
+## Design Principles
+
+- **Object store is truth, working tree is a view.** `sync_worktree()` materializes HEAD to disk. The object store is never derived from the filesystem.
+- **Dulwich confined to one file.** Only `propstore/repo/git_backend.py` imports Dulwich. All other modules use `KnowledgeRepo` or `TreeReader`.
+- **HEAD is secondary; branch refs are primary.** Branch refs (`refs/heads/{name}`) are the authoritative pointers. HEAD symref is only set when the active branch is master.
+- **No merge commits.** Strictly linear history per branch. Each commit has exactly one parent. This enforces Backward Uniqueness (Bonanno 2007, claim 9): the history leading to any belief state is unique.
+- **Branch metadata is ephemeral.** `_branch_meta` is stored as an attribute on the `KnowledgeRepo` instance, not persisted to git. It is lost when the process exits.
+
+## KnowledgeRepo
+
+The core wrapper around a Dulwich `Repo`. All git operations go through this class.
+
+`propstore/repo/git_backend.py:KnowledgeRepo`
+
+### Lifecycle
+
+| Method | What it does |
+|--------|-------------|
+| `init(root)` | Creates a new repo, commits `.gitignore`, syncs worktree |
+| `open(root)` | Opens an existing repo at `root` |
+| `is_repo(root)` | Checks for `.git/` directory |
+
+### Read Operations
+
+| Method | What it does |
+|--------|-------------|
+| `read_file(path, commit=None)` | Reads blob from git tree. Optional `commit` reads from a historical state. |
+| `list_dir(subdir, commit=None)` | Lists regular files in a subtree. Optional `commit` for historical listing. |
+
+Both accept an optional commit SHA to read from any point in history without touching the working tree.
+
+### Write Operations
+
+| Method | What it does |
+|--------|-------------|
+| `commit_files(changes, message, branch="master")` | Add/update files and commit atomically |
+| `commit_deletes(paths, message, branch="master")` | Delete files and commit atomically |
+| `commit_batch(adds, deletes, message, branch="master")` | Add and delete in a single atomic commit |
+
+All three delegate to `_commit()`, which:
+
+1. Reads the branch tip from `refs/heads/{branch}` (not HEAD)
+2. Flattens the current tree into a `{path: blob_sha}` dict
+3. Applies adds (creates Blob objects) and deletes
+4. Rebuilds the nested Tree hierarchy via `_build_tree_from_flat()`
+5. Creates a Commit object with `parents = [tip_sha]`
+6. Updates the branch ref; only sets HEAD symref when `branch == "master"`
+
+`propstore/repo/git_backend.py:KnowledgeRepo._commit`
+
+### History
+
+| Method | What it does |
+|--------|-------------|
+| `log(max_count=50, branch="master")` | Walks from branch tip. Returns dicts with `sha`, `message`, `time`, `author`, `parents`. The `parents` list supports Backward Uniqueness verification. |
+| `head_sha()` | HEAD commit SHA |
+| `branch_sha(name)` | Tip SHA for a named branch |
+
+### Diff and Show
+
+| Method | What it does |
+|--------|-------------|
+| `diff_commits(commit1=None, commit2=None)` | Flattens both trees, compares blob SHAs, returns `{added, modified, deleted}` |
+| `show_commit(sha)` | Commit metadata plus diff vs parent |
+
+### Working Tree
+
+`sync_worktree()` materializes the HEAD tree to the filesystem. It writes all tracked files and removes non-git files (excluding `.git/`). The working tree is a convenience for human inspection — the object store remains the source of truth.
+
+`propstore/repo/git_backend.py:KnowledgeRepo.sync_worktree`
+
+## TreeReader
+
+A protocol with two implementations, enabling reads from either the filesystem or the git object store at any commit.
+
+`propstore/tree_reader.py:TreeReader`
+
+### Protocol Methods
+
+| Method | What it does |
+|--------|-------------|
+| `list_yaml(subdir)` | Returns `(stem, raw_bytes)` for all `.yaml` files in a subdirectory |
+| `read_yaml(path)` | Reads a single file by repo-relative path |
+| `exists(subdir)` | Checks if a subdirectory has entries |
+
+### FilesystemReader
+
+Backed by a `Path` root. Reads from disk via `pathlib`. This is the normal operation mode.
+
+`propstore/tree_reader.py:FilesystemReader`
+
+### GitTreeReader
+
+Backed by a `KnowledgeRepo` and an optional commit SHA. Delegates to `KnowledgeRepo.list_dir()` and `read_file()` with the commit parameter. This is how `pks checkout` reads from a historical commit without touching the working tree.
+
+`propstore/tree_reader.py:GitTreeReader`
+
+## Branch Operations
+
+Branches provide isolated epistemic states (Darwiche & Pearl 1997, C1-C4). Each branch maintains independent linear history. Commits to one branch are invisible on other branches.
+
+`propstore/repo/branch.py`
+
+### BranchInfo
+
+A dataclass with automatic kind detection from name prefixes:
+
+| Prefix | Kind |
+|--------|------|
+| `paper/` | `"paper"` |
+| `agent/` | `"agent"` |
+| `hypothesis/` | `"hypothesis"` |
+| *(other)* | `"workspace"` |
+
+Fields: `name`, `tip_sha`, `kind`, `parent_branch`, `created_at`.
+
+`propstore/repo/branch.py:BranchInfo`
+
+### Operations
+
+| Function | What it does |
+|----------|-------------|
+| `create_branch(kr, name, source_commit=None)` | Creates a branch ref at `source_commit` (default: master tip). Raises `ValueError` if the branch already exists. |
+| `delete_branch(kr, name)` | Deletes a branch ref. Refuses to delete master — the knowledge base must always exist (Alchouron et al. 1985). |
+| `list_branches(kr)` | Iterates `refs/heads/*`, infers kind from name prefix. |
+| `branch_head(kr, name)` | Tip SHA lookup for a named branch. |
+| `merge_base(kr, branch_a, branch_b)` | BFS from both tips, returns the first overlap. Identifies the common knowledge base for IC merging (Konieczny & Pino Perez 2002). |
+
+## Historical Builds
+
+`pks checkout COMMIT` builds a sidecar from a historical commit without changing the working tree.
+
+### Flow
+
+1. Verify the commit exists via `repo.git.show_commit(commit)`
+2. Create `GitTreeReader(repo.git, commit=commit)` — reads from the object store, not the filesystem
+3. Load concepts, claims, and contexts via the reader
+4. Call `build_sidecar(..., commit_hash=commit, reader=reader)`
+
+### Commit-SHA-keyed Rebuild Skipping
+
+When `commit_hash` is provided to `build_sidecar`:
+
+- `content_hash` is set to the commit SHA (skips the expensive `_content_hash()` computation)
+- Checks `sidecar_path.with_suffix(".hash")` for an existing hash
+- If the `.hash` file matches and the sidecar exists, returns immediately (skipped)
+- Otherwise rebuilds and writes the commit SHA to the `.hash` file
+
+Each commit SHA produces at most one sidecar build. Re-running `pks checkout` with the same SHA is a no-op.
+
+`propstore/build_sidecar.py`
+
+## CLI Commands
+
+### pks log
+
+Displays recent commit history.
+
+```bash
+# Show last 20 commits (default)
+pks log
+
+# Show last 5 commits
+pks log -n 5
+```
+
+Output format: `{sha[:8]}  {time}  {first_line_of_message}`
+
+### pks diff
+
+Shows file-level changes between commits.
+
+```bash
+# Diff HEAD vs its parent
+pks diff
+
+# Diff a specific commit vs its parent
+pks diff abc1234
+```
+
+Output lists files as Added, Modified, or Deleted.
+
+### pks show
+
+Shows commit metadata and file changes.
+
+```bash
+# Show a specific commit
+pks show abc1234
+```
+
+Output includes SHA, author, date, message, and A/M/D file list.
+
+### pks checkout
+
+Builds a sidecar from a historical commit without touching the working tree.
+
+```bash
+# Build sidecar at a specific commit
+pks checkout abc1234
+```
+
+This creates a `GitTreeReader` at the target commit and builds the sidecar using only the object store. The working tree is unaffected.
+
+### pks promote
+
+Moves proposal stances into the main stance collection.
+
+```bash
+pks promote
+```
+
+Moves files from `proposals/stances/` to `stances/`, commits the batch atomically, and syncs the working tree.
+
+## References
+
+- **Bonanno, G. (2007).** "Axiomatic Characterization of the AGM Theory of Belief Revision in a Temporal Logic." — Backward Uniqueness (claim 9): the history leading to any belief state is unique. Grounds the strictly-linear-history invariant.
+
+- **Darwiche, A. & Pearl, J. (1997).** "On the Logic of Iterated Belief Revision." — C1-C4 postulates for iterated revision. Each branch is an independent epistemic state.
+
+- **Konieczny, S. & Pino Perez, R. (2002).** "Merging Information under Constraints: A Logical Framework." — IC merging. `merge_base` identifies the common knowledge base between two branches.
+
+- **Alchouron, C., Gardenfors, P. & Makinson, D. (1985).** "On the Logic of Theory Change." — AGM postulates. Master branch cannot be deleted: the knowledge base must always exist.
