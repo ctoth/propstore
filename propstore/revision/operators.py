@@ -46,13 +46,17 @@ def expand(base: BeliefBase, atom: BeliefAtom | str | Mapping[str, Any]) -> Revi
     atom = normalize_revision_input(base, atom)
     atom_by_id = {existing.atom_id: existing for existing in base.atoms}
     atom_by_id.setdefault(atom.atom_id, atom)
-    revised_base = _rebuild_base(base, atom_by_id.values())
-    accepted = tuple(item.atom_id for item in revised_base.atoms)
-    explanation = {atom.atom_id: {"reason": "expanded"}} if atom.atom_id in accepted else {}
+    stabilized = stabilize_belief_base(
+        _rebuild_base(base, atom_by_id.values()),
+        incision_set=(),
+    )
+    explanation = dict(stabilized.explanation)
+    if atom.atom_id in stabilized.accepted_atom_ids:
+        explanation[atom.atom_id] = {"reason": "expanded"}
     return RevisionResult(
-        revised_base=revised_base,
-        accepted_atom_ids=accepted,
-        rejected_atom_ids=(),
+        revised_base=stabilized.revised_base,
+        accepted_atom_ids=stabilized.accepted_atom_ids,
+        rejected_atom_ids=stabilized.rejected_atom_ids,
         incision_set=(),
         explanation=explanation,
     )
@@ -67,52 +71,10 @@ def contract(
     """Contract a belief base by cutting a minimal low-entrenchment support incision set."""
     target_ids = _normalize_targets(base, targets)
     incision_set = _choose_incision_set(base, target_ids, entrenchment)
-
-    accepted_ids: list[str] = []
-    rejected_ids: list[str] = []
-    explanation: dict[str, dict[str, object]] = {}
-
-    for atom in base.atoms:
-        atom_id = atom.atom_id
-        if atom_id in incision_set:
-            rejected_ids.append(atom_id)
-            explanation[atom_id] = {
-                "reason": "incised",
-                "incision_set": incision_set,
-            }
-            continue
-
-        if atom.kind == "claim":
-            support_sets = base.support_sets.get(atom_id, ())
-            if support_sets and not _has_surviving_support(support_sets, incision_set):
-                rejected_ids.append(atom_id)
-                explanation[atom_id] = {
-                    "reason": "support_lost",
-                    "incision_set": incision_set,
-                    "support_sets": support_sets,
-                }
-                continue
-            if atom_id in target_ids and not support_sets:
-                rejected_ids.append(atom_id)
-                explanation[atom_id] = {
-                    "reason": "contracted",
-                    "incision_set": incision_set,
-                }
-                continue
-
-        accepted_ids.append(atom_id)
-
-    accepted_set = set(accepted_ids)
-    revised_base = _rebuild_base(
+    return stabilize_belief_base(
         base,
-        [atom for atom in base.atoms if atom.atom_id in accepted_set],
-    )
-    return RevisionResult(
-        revised_base=revised_base,
-        accepted_atom_ids=tuple(accepted_ids),
-        rejected_atom_ids=tuple(rejected_ids),
         incision_set=incision_set,
-        explanation=explanation,
+        forced_rejections=target_ids,
     )
 
 
@@ -147,6 +109,74 @@ def revise(
         incision_set=contracted.incision_set,
         explanation=explanation,
     )
+
+
+def stabilize_belief_base(
+    base: BeliefBase,
+    *,
+    incision_set: Sequence[str] = (),
+    forced_rejections: Sequence[str] = (),
+) -> RevisionResult:
+    """Recompute acceptance until the belief base is stable under the given incision set."""
+    active_base = base
+    forced = set(forced_rejections)
+    incised = tuple(incision_set)
+    explanation: dict[str, dict[str, object]] = {}
+    all_rejected: set[str] = set()
+
+    while True:
+        accepted_ids: list[str] = []
+        round_rejected: set[str] = set()
+
+        for atom in active_base.atoms:
+            atom_id = atom.atom_id
+            if atom_id in incised:
+                round_rejected.add(atom_id)
+                explanation.setdefault(
+                    atom_id,
+                    {"reason": "incised", "incision_set": incised},
+                )
+                continue
+
+            if atom_id in forced:
+                round_rejected.add(atom_id)
+                explanation.setdefault(
+                    atom_id,
+                    {"reason": "contracted", "incision_set": incised},
+                )
+                continue
+
+            if atom.kind == "claim":
+                support_sets = active_base.support_sets.get(atom_id, ())
+                if support_sets and not _has_surviving_support(support_sets, incised):
+                    round_rejected.add(atom_id)
+                    explanation.setdefault(
+                        atom_id,
+                        {
+                            "reason": "support_lost",
+                            "incision_set": incised,
+                            "support_sets": support_sets,
+                        },
+                    )
+                    continue
+
+            accepted_ids.append(atom_id)
+
+        accepted_set = set(accepted_ids)
+        all_rejected.update(round_rejected)
+        rebuilt = _rebuild_base(
+            active_base,
+            [atom for atom in active_base.atoms if atom.atom_id in accepted_set],
+        )
+        if tuple(atom.atom_id for atom in rebuilt.atoms) == tuple(atom.atom_id for atom in active_base.atoms):
+            return RevisionResult(
+                revised_base=rebuilt,
+                accepted_atom_ids=tuple(accepted_ids),
+                rejected_atom_ids=tuple(sorted(all_rejected)),
+                incision_set=incised,
+                explanation=explanation,
+            )
+        active_base = rebuilt
 
 
 def _normalize_targets(
