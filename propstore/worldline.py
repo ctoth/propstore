@@ -44,6 +44,48 @@ class WorldlineInputs:
             d["overrides"] = dict(self.overrides)
         return d
 
+
+@dataclass
+class WorldlineRevisionQuery:
+    operation: str = ""
+    atom: dict[str, Any] | None = None
+    target: str | None = None
+    conflicts: dict[str, list[str]] = field(default_factory=dict)
+    operator: str | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict | None) -> WorldlineRevisionQuery | None:
+        if not data:
+            return None
+        raw_conflicts = data.get("conflicts") or {}
+        return cls(
+            operation=str(data.get("operation", "")),
+            atom=dict(data.get("atom") or {}) or None,
+            target=data.get("target"),
+            conflicts={
+                str(atom_id): [str(target_id) for target_id in targets]
+                for atom_id, targets in raw_conflicts.items()
+            },
+            operator=data.get("operator"),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "operation": self.operation,
+        }
+        if self.atom is not None:
+            data["atom"] = dict(self.atom)
+        if self.target is not None:
+            data["target"] = self.target
+        if self.conflicts:
+            data["conflicts"] = {
+                atom_id: list(targets)
+                for atom_id, targets in self.conflicts.items()
+            }
+        if self.operator is not None:
+            data["operator"] = self.operator
+        return data
+
 @dataclass
 class WorldlineResult:
     """The materialized results of a worldline query."""
@@ -57,6 +99,7 @@ class WorldlineResult:
     })
     sensitivity: dict[str, Any] | None = None
     argumentation: dict[str, Any] | None = None
+    revision: dict[str, Any] | None = None
 
     @classmethod
     def from_dict(cls, data: dict | None) -> WorldlineResult | None:
@@ -70,6 +113,7 @@ class WorldlineResult:
             dependencies=data.get("dependencies") or {"claims": [], "stances": [], "contexts": []},
             sensitivity=data.get("sensitivity"),
             argumentation=data.get("argumentation"),
+            revision=data.get("revision"),
         )
 
     def to_dict(self) -> dict:
@@ -84,6 +128,8 @@ class WorldlineResult:
             d["sensitivity"] = self.sensitivity
         if self.argumentation is not None:
             d["argumentation"] = self.argumentation
+        if self.revision is not None:
+            d["revision"] = self.revision
         return d
 
 
@@ -101,6 +147,7 @@ class WorldlineDefinition:
     inputs: WorldlineInputs = field(default_factory=WorldlineInputs)
     policy: RenderPolicy = field(default_factory=RenderPolicy)
     targets: list[str] = field(default_factory=list)
+    revision: WorldlineRevisionQuery | None = None
     results: WorldlineResult | None = None
 
     @classmethod
@@ -120,6 +167,7 @@ class WorldlineDefinition:
             inputs=WorldlineInputs.from_dict(data.get("inputs")),
             policy=RenderPolicy.from_dict(data.get("policy")),
             targets=list(targets),
+            revision=WorldlineRevisionQuery.from_dict(data.get("revision")),
             results=results,
         )
 
@@ -149,6 +197,9 @@ class WorldlineDefinition:
             d["policy"] = policy
 
         d["targets"] = list(self.targets)
+
+        if self.revision is not None:
+            d["revision"] = self.revision.to_dict()
 
         if self.results is not None:
             d["results"] = self.results.to_dict()
@@ -187,6 +238,7 @@ def compute_worldline_content_hash(
     dependencies: dict[str, list[str]],
     sensitivity: dict[str, Any] | None,
     argumentation: dict[str, Any] | None,
+    revision: dict[str, Any] | None,
 ) -> str:
     """Compute a deterministic fingerprint for materialized worldline content."""
     payload = {
@@ -195,6 +247,7 @@ def compute_worldline_content_hash(
         "dependencies": dependencies,
         "sensitivity": sensitivity,
         "argumentation": argumentation,
+        "revision": revision,
     }
     encoded = json.dumps(
         payload,
