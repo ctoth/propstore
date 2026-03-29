@@ -59,6 +59,22 @@ common_alternatives:
 
 The compiler uses form definitions for unit validation via dimensional analysis, checking that claim units are compatible with concept dimensions.
 
+### Unit conversions (common_alternatives)
+
+The `common_alternatives` array defines how non-SI units convert to the form's SI base unit. Three conversion types:
+
+- **Multiplicative:** `si_value = raw * multiplier`. Example: kHz has multiplier 1000, so 5 kHz becomes 5000 Hz.
+- **Affine:** `si_value = raw * multiplier + offset`. Used for temperature scales — degC uses offset 273.15 to convert to Kelvin.
+- **Logarithmic:** `si_value = reference * base^(raw / divisor)`. Used for decibel scales — dB SPL uses base 10, divisor 20, reference 0.00002 Pa.
+
+During sidecar build, all claim values are normalized to SI via these conversions (with pint as fallback for standard unit prefixes). The sidecar stores both raw and SI-normalized values (`value_si`, `lower_bound_si`, `upper_bound_si`).
+
+### Domain-specific units (extra_units)
+
+The `extra_units` field registers domain-specific units not recognized by pint. Each entry has a `symbol` and optionally `dimensions`. These units are added to the form's allowed unit set and registered into the dimensional analysis symbol table.
+
+See [units-and-forms.md](units-and-forms.md) for full details on SI normalization, form algebra, and dimensional analysis.
+
 ## Claims
 
 Claims are extracted from papers and stored in `claims/<paper_name>.yaml`. There are nine claim types.
@@ -245,6 +261,51 @@ conditions:
 ```
 
 The compiler type-checks conditions against the concept registry: quantity concepts get numeric comparisons, category concepts get equality/`in` checks with value-set validation, boolean concepts get boolean logic.
+
+## Justifications
+
+Justifications are inference rules that connect premise claims to conclusion claims. They represent the reasoning structure within and across papers — how one claim's truth supports or explains another.
+
+### Data model
+
+Each justification is a `CanonicalJustification` with these fields:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `justification_id` | `str` | — | Unique identifier (e.g., `reported:claim1` or `supports:claim2->claim3`) |
+| `conclusion_claim_id` | `str` | — | The claim this justification concludes |
+| `premise_claim_ids` | `tuple[str, ...]` | `()` | Claims that serve as premises |
+| `rule_kind` | `str` | `"reported_claim"` | Type of inference rule |
+| `rule_strength` | `str` | `"defeasible"` | Whether the rule is strict or defeasible |
+| `provenance` | `ProvenanceRecord \| None` | `None` | Source attribution |
+| `attributes` | `tuple[tuple[str, Any], ...]` | `()` | Additional metadata as sorted key-value pairs |
+
+### rule_kind
+
+Three values:
+
+- **`reported_claim`** — Every claim automatically gets a `reported_claim` justification. This represents the claim's direct assertion from its source paper, with no premises.
+- **`supports`** — A premise claim provides corroborating evidence for the conclusion claim.
+- **`explains`** — A premise claim provides a mechanistic explanation for the conclusion claim.
+
+### rule_strength
+
+Two values, corresponding to ASPIC+ rule types (Modgil & Prakken 2018, Def 2):
+
+- **`strict`** — The inference is logically unattackable. Strict rules have no name and cannot be undercut.
+- **`defeasible`** — The inference is tentative and can be undercut. Defeasible rules are named by their `justification_id`, which enables targeted undercutting (Def 8c).
+
+### ASPIC+ mapping
+
+Justifications translate directly to ASPIC+ rules via the bridge in `aspic_bridge.py`. `reported_claim` justifications become knowledge base premises (not rules). Justifications with premises become strict or defeasible rules depending on `rule_strength`. See [structured-argumentation.md](structured-argumentation.md) for the full translation pipeline (T1–T7).
+
+### Targeted undercutting
+
+An `undercuts` stance can include a `target_justification_id` field to attack a specific defeasible rule rather than all rules concluding a given claim. When multiple defeasible rules support the same conclusion, omitting `target_justification_id` raises an ambiguity error. This implements Pollock's (1987) undercutting defeat: the attacker targets the inference rule itself, not the conclusion.
+
+### Current status
+
+Justifications are derived at runtime from claims and their `supports`/`explains` relations — they are not authored as standalone YAML files. The `CanonicalJustification` type and sidecar `justification` table exist to make this derived structure queryable.
 
 ## Stances
 
