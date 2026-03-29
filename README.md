@@ -45,6 +45,9 @@ If you want a reproducible showcase corpus, use a dedicated demo repo or local d
 - Compares algorithm claims for equivalence across differently written implementations
 - Exposes ATMS-style support, stability, relevance, and intervention queries over the active belief space
 - Materializes worldlines: traced, reproducible paths through the knowledge space with full provenance
+- Versions knowledge repos with git-backed storage (Dulwich), enabling historical builds and branch-based isolation
+- Validates dimensional consistency of claims via Pint and bridgman, with SI normalization at build time
+- Provides a Python API for programmatic access (WorldModel, BoundWorld, HypotheticalWorld)
 - Represents uncertainty honestly via subjective logic opinions with calibrated evidence mapping
 
 ## Reasoning Backends
@@ -102,6 +105,13 @@ Run counterfactual overlays:
 ```bash
 uv run pks -C knowledge world hypothetical --remove claim42
 uv run pks -C knowledge world hypothetical --add '{"id":"synth1","concept_id":"concept1","value":150,"conditions":[]}'
+```
+
+Promote heuristic proposals to source-of-truth:
+
+```bash
+# Promote heuristic proposals to source-of-truth
+uv run pks -C knowledge promote
 ```
 
 Compare algorithms across papers:
@@ -254,7 +264,17 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 - [Fragility Analysis](docs/fragility.md) — parametric, epistemic, and conflict fragility with ROI ranking
 - [Worldlines](docs/worldlines.md) — materialized query artifacts, provenance tracking, staleness detection
 - [CLI Reference](docs/cli-reference.md) — command reference (69 commands across 7 groups)
+- [Git Backend](docs/git-backend.md) — Dulwich-backed versioning, KnowledgeRepo, TreeReader, branch primitives
+- [Units and Forms](docs/units-and-forms.md) — dimensional type system, SI normalization, form algebra
+- [Python API](docs/python-api.md) — WorldModel, BoundWorld, HypotheticalWorld, result types
 - [Integration](docs/integration.md) — how this fits with `research-papers-plugin`
+
+## Future Work
+
+- **Semantic merge** — Multi-branch knowledge repos with formal merge semantics. Phase 1 (branch primitives with Darwiche-Pearl isolation) is implemented. The design proposal at `proposals/semantic-merge-spec.md` covers IC merging (Konieczny & Pino Perez 2002), AGM-compatible contraction (Alchouron et al. 1985), and arbitration operators.
+- **AGM revision** — Full belief revision operations (Dixon 1993, Alchouron et al. 1985). Currently aspirational — the ATMS provides bounded replay, not full revision.
+- **Extended Josang operators** — Deduction, comultiplication, abduction (Josang & McAnally 2004; Josang 2008). Requires retrieving source papers.
+- **Interval dominance** — Denoeux 2019 interval dominance criterion for decision-making under uncertainty.
 
 ## Dependencies
 
