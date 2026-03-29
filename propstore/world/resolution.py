@@ -20,6 +20,11 @@ from propstore.world.types import (
     ClaimSupportView,
     HasActiveGraph,
     HasATMSEngine,
+    ICMergeProblem,
+    IntegrityConstraint,
+    IntegrityConstraintKind,
+    MergeAssignment,
+    MergeSource,
     ReasoningBackend,
     RenderPolicy,
     ResolvedResult,
@@ -169,6 +174,142 @@ def _resolve_sample_size(
     if len(best_claims) == 1:
         return best_claims[0], f"largest sample_size: {best_n}"
     return None, f"tied sample_size ({best_n}): {', '.join(best_claims)}"
+
+
+def _normalized_form_parameters(concept: Mapping[str, object] | None) -> Mapping[str, object]:
+    if concept is None:
+        return {}
+    raw = concept.get("form_parameters")
+    if isinstance(raw, Mapping):
+        return raw
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        if isinstance(parsed, Mapping):
+            return parsed
+    return {}
+
+
+def _concept_integrity_constraints(
+    world: ArtifactStore,
+    concept_id: str,
+) -> tuple[IntegrityConstraint, ...]:
+    concept = world.get_concept(concept_id)
+    if concept is None:
+        return tuple()
+
+    constraints: list[IntegrityConstraint] = []
+    lower = concept.get("range_min")
+    upper = concept.get("range_max")
+    if lower is not None or upper is not None:
+        constraints.append(
+            IntegrityConstraint(
+                kind=IntegrityConstraintKind.RANGE,
+                concept_ids=(concept_id,),
+                metadata={"lower": lower, "upper": upper},
+                description="concept range",
+            )
+        )
+
+    form_parameters = _normalized_form_parameters(concept)
+    if concept.get("form") == "category":
+        values = form_parameters.get("values")
+        extensible = form_parameters.get("extensible", True)
+        if isinstance(values, list | tuple) and not extensible:
+            constraints.append(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CATEGORY,
+                    concept_ids=(concept_id,),
+                    metadata={
+                        "allowed_values": tuple(str(value) for value in values),
+                        "extensible": False,
+                    },
+                    description="non-extensible category value set",
+                )
+            )
+
+    return tuple(constraints)
+
+
+def _resolve_ic_merge(
+    target_claim_rows: Sequence[Mapping[str, object]],
+    concept_id: str,
+    *,
+    world: ArtifactStore,
+    policy: RenderPolicy | None = None,
+) -> tuple[str | None, str | None]:
+    from propstore.repo.ic_merge import solve_ic_merge
+
+    if world is None:
+        return None, "ic_merge strategy requires an explicit artifact store"
+
+    branch_filter = None if policy is None else policy.branch_filter
+    branch_weights = None if policy is None else policy.branch_weights
+    merge_operator = (
+        policy.merge_operator
+        if policy is not None
+        else "sigma"
+    )
+
+    source_rows: list[Mapping[str, object]] = []
+    for claim in target_claim_rows:
+        branch = claim.get("branch")
+        if (
+            branch_filter is not None
+            and isinstance(branch, str)
+            and branch not in branch_filter
+        ):
+            continue
+        source_rows.append(claim)
+
+    if not source_rows:
+        return None, "no IC-merge sources after branch filter"
+
+    sources: list[MergeSource] = []
+    for claim in source_rows:
+        claim_id = _claim_id(claim)
+        branch = claim.get("branch")
+        source_id = branch if isinstance(branch, str) and branch else claim_id
+        weight = 1.0
+        if branch_weights is not None and isinstance(branch, str) and branch:
+            weight = float(branch_weights.get(branch, 1.0))
+        sources.append(
+            MergeSource(
+                source_id=source_id,
+                assignment=MergeAssignment(values={concept_id: _claim_value(claim)}),
+                weight=weight,
+            )
+        )
+
+    problem = ICMergeProblem(
+        concept_ids=(concept_id,),
+        sources=tuple(sources),
+        constraints=_concept_integrity_constraints(world, concept_id),
+        operator=merge_operator,
+    )
+    result = solve_ic_merge(problem)
+    if not result.winners:
+        return None, result.reason
+
+    if len(result.winners) != 1:
+        return None, f"{len(result.winners)} IC-merge assignments tied"
+
+    winning_value = result.winners[0].value_for(concept_id)
+    matching_claims = [
+        claim
+        for claim in source_rows
+        if _claim_value(claim) == winning_value
+    ]
+    if len(matching_claims) != 1:
+        return None, (
+            f"merged value represented by {len(matching_claims)} active claims"
+        )
+
+    return _claim_id(matching_claims[0]), (
+        f"IC merge ({merge_operator}) winner satisfies {len(problem.constraints)} constraints"
+    )
 
 
 def _resolve_claim_graph_argumentation(
@@ -647,6 +788,22 @@ def resolve(
 
     elif strategy == ResolutionStrategy.SAMPLE_SIZE:
         winner_id, reason = _resolve_sample_size(active_views)
+
+    elif strategy == ResolutionStrategy.IC_MERGE:
+        if world is None:
+            return ResolvedResult(
+                concept_id=concept_id,
+                status=ValueStatus.CONFLICTED,
+                claims=active,
+                strategy=strategy.value,
+                reason="ic_merge strategy requires an explicit artifact store",
+            )
+        winner_id, reason = _resolve_ic_merge(
+            active,
+            concept_id,
+            world=world,
+            policy=policy,
+        )
 
     elif strategy == ResolutionStrategy.ARGUMENTATION:
         if world is None:

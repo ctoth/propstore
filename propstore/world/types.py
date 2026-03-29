@@ -352,6 +352,12 @@ class ResolutionStrategy(StrEnum):
     IC_MERGE = "ic_merge"
 
 
+class MergeOperator(StrEnum):
+    SIGMA = "sigma"
+    MAX = "max"
+    GMAX = "gmax"
+
+
 class ReasoningBackend(StrEnum):
     """Argumentation implementation selector.
 
@@ -474,6 +480,15 @@ def normalize_argumentation_semantics(
     return normalized
 
 
+def normalize_merge_operator(value: MergeOperator | str) -> MergeOperator:
+    if isinstance(value, MergeOperator):
+        return value
+    try:
+        return MergeOperator(str(value))
+    except ValueError as exc:
+        raise ValueError(f"Unknown merge_operator '{value}'") from exc
+
+
 def cli_argumentation_semantics_values() -> tuple[str, ...]:
     return tuple(semantics.value for semantics in _CLI_ARGUMENTATION_SEMANTICS)
 
@@ -524,6 +539,66 @@ class ResolvedResult:
     reason: str | None = None
     label: Label | None = None
     acceptance_probs: dict[str, float] | None = None
+
+
+class IntegrityConstraintKind(StrEnum):
+    RANGE = "range"
+    CATEGORY = "category"
+    CEL = "cel"
+    CUSTOM = "custom"
+
+
+@dataclass(frozen=True)
+class IntegrityConstraint:
+    kind: IntegrityConstraintKind
+    concept_ids: tuple[str, ...]
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+    cel: str | None = None
+    description: str | None = None
+
+
+@dataclass(frozen=True)
+class MergeAssignment:
+    values: Mapping[str, Any]
+
+    def value_for(self, concept_id: str) -> Any:
+        return self.values.get(concept_id)
+
+
+@dataclass(frozen=True)
+class MergeSource:
+    source_id: str
+    assignment: MergeAssignment
+    weight: float = 1.0
+
+
+@dataclass(frozen=True)
+class MergeAssignmentScore:
+    assignment: MergeAssignment
+    score: float | tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class ICMergeProblem:
+    concept_ids: tuple[str, ...]
+    sources: tuple[MergeSource, ...]
+    constraints: tuple[IntegrityConstraint, ...] = field(default_factory=tuple)
+    operator: MergeOperator = MergeOperator.SIGMA
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "concept_ids", tuple(self.concept_ids))
+        object.__setattr__(self, "sources", tuple(self.sources))
+        object.__setattr__(self, "constraints", tuple(self.constraints))
+        object.__setattr__(self, "operator", normalize_merge_operator(self.operator))
+
+
+@dataclass(frozen=True)
+class ICMergeResult:
+    winners: tuple[MergeAssignment, ...]
+    scored_candidates: tuple[MergeAssignmentScore, ...]
+    admissible_count: int
+    total_candidate_count: int
+    reason: str | None = None
 
 
 @dataclass
@@ -588,9 +663,9 @@ class RenderPolicy:
     # non-commitment choice (render-time policy, not build-time filter).
     include_conflict_stances: bool = False
     # IC merge fields (Konieczny & Pino Pérez 2002)
-    # merge_operator selects distance aggregation: "sigma" (majority), "max"
-    # (quasi-merge), or "gmax" (arbitration).
-    merge_operator: str = "sigma"
+    # merge_operator selects distance aggregation: sigma (majority), max
+    # (worst-case), or gmax (leximax refinement).
+    merge_operator: MergeOperator = MergeOperator.SIGMA
     # branch_filter restricts which branches are included as sources.
     branch_filter: tuple[str, ...] | None = None
     # branch_weights assigns per-branch importance weights.
@@ -610,11 +685,11 @@ class RenderPolicy:
             "semantics",
             normalize_argumentation_semantics(self.semantics),
         )
-        if self.merge_operator not in ("sigma", "max", "gmax"):
-            raise ValueError(
-                f"RenderPolicy.merge_operator must be 'sigma', 'max', or 'gmax', "
-                f"got '{self.merge_operator}'"
-            )
+        object.__setattr__(
+            self,
+            "merge_operator",
+            normalize_merge_operator(self.merge_operator),
+        )
         if self.branch_filter is not None:
             object.__setattr__(
                 self,
@@ -691,7 +766,9 @@ class RenderPolicy:
                 else int(data["praf_mc_seed"])
             ),
             include_conflict_stances=bool(data.get("include_conflict_stances", False)),
-            merge_operator=str(data.get("merge_operator", "sigma")),
+            merge_operator=normalize_merge_operator(
+                data.get("merge_operator", MergeOperator.SIGMA)
+            ),
             branch_filter=(
                 None
                 if data.get("branch_filter") is None
@@ -742,7 +819,7 @@ class RenderPolicy:
             data["praf_mc_seed"] = self.praf_mc_seed
         if self.include_conflict_stances:
             data["include_conflict_stances"] = self.include_conflict_stances
-        if self.merge_operator != "sigma":
+        if self.merge_operator != MergeOperator.SIGMA:
             data["merge_operator"] = self.merge_operator
         if self.branch_filter is not None:
             data["branch_filter"] = list(self.branch_filter)

@@ -48,6 +48,44 @@ class _AspicView:
         return None, None
 
 
+class _ICMergeWorld:
+    def __init__(self, *, lower: float, upper: float) -> None:
+        self._concept = {
+            "id": "concept1",
+            "canonical_name": "concept1",
+            "form": "quantity",
+            "form_parameters": None,
+            "range_min": lower,
+            "range_max": upper,
+        }
+
+    def get_concept(self, concept_id: str) -> dict | None:
+        if concept_id != "concept1":
+            return None
+        return dict(self._concept)
+
+
+class _ICMergeView:
+    def __init__(self) -> None:
+        self._claims = [
+            {"id": "claim_a", "concept_id": "concept1", "value": 50.0},
+            {"id": "claim_b", "concept_id": "concept1", "value": 10.0},
+            {"id": "claim_c", "concept_id": "concept1", "value": 5.0},
+        ]
+
+    def value_of(self, concept_id: str):
+        return ValueResult(
+            concept_id=concept_id,
+            status="conflicted",
+            claims=list(self._claims),
+        )
+
+    def active_claims(self, concept_id: str | None = None):
+        if concept_id is None:
+            return list(self._claims)
+        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+
+
 def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> None:
     monkeypatch.setattr(
         "propstore.core.analyzers.shared_analyzer_input_from_store",
@@ -271,3 +309,30 @@ def test_structured_resolution_grounded_uses_plain_grounded_extension(monkeypatc
 
     assert winner == "claim_a"
     assert reason == "sole structured projection survivor in grounded extension"
+
+
+def test_ic_merge_resolution_filters_with_range_mu() -> None:
+    result = resolve(
+        _ICMergeView(),
+        "concept1",
+        strategy=ResolutionStrategy.IC_MERGE,
+        world=_ICMergeWorld(lower=0.0, upper=20.0),
+        policy=RenderPolicy(strategy=ResolutionStrategy.IC_MERGE),
+    )
+
+    assert result.status == "resolved"
+    assert result.winning_claim_id == "claim_b"
+    assert result.value == 10.0
+
+
+def test_ic_merge_resolution_reports_no_admissible_assignments() -> None:
+    result = resolve(
+        _ICMergeView(),
+        "concept1",
+        strategy=ResolutionStrategy.IC_MERGE,
+        world=_ICMergeWorld(lower=0.0, upper=4.0),
+        policy=RenderPolicy(strategy=ResolutionStrategy.IC_MERGE),
+    )
+
+    assert result.status == "conflicted"
+    assert result.reason == "no admissible assignments"

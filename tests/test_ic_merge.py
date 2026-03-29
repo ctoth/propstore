@@ -13,13 +13,21 @@ from hypothesis import strategies as st
 
 from propstore.repo.ic_merge import (
     MergeOperator,
+    assignment_satisfies_mu,
     sigma_merge,
     max_merge,
     gmax_merge,
     ic_merge,
     claim_distance,
+    scalar_profile_problem,
+    solve_ic_merge,
 )
-from propstore.world.types import ResolutionStrategy, RenderPolicy
+from propstore.world.types import (
+    IntegrityConstraint,
+    IntegrityConstraintKind,
+    RenderPolicy,
+    ResolutionStrategy,
+)
 
 # ── Strategies ──────────────────────────────────────────────────────
 
@@ -383,6 +391,120 @@ class TestIcMergeDispatcher:
         assert ic_merge(profile) == sigma_merge(profile)
 
 
+class TestAssignmentLevelICMerge:
+    def test_range_constraint_filters_admissible_winners(self):
+        profile = {"b1": 5.0, "b2": 10.0, "b3": 50.0}
+        problem = scalar_profile_problem(
+            profile,
+            operator=MergeOperator.SIGMA,
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.RANGE,
+                    concept_ids=("__value__",),
+                    metadata={"lower": 0.0, "upper": 20.0},
+                ),
+            ),
+        )
+
+        result = solve_ic_merge(problem)
+
+        assert [winner.value_for("__value__") for winner in result.winners] == [10.0]
+        assert result.admissible_count == 2
+
+    def test_category_constraint_rejects_non_member_values(self):
+        profile = {"b1": "speech", "b2": "whisper", "b3": "song"}
+        problem = scalar_profile_problem(
+            profile,
+            operator=MergeOperator.MAX,
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CATEGORY,
+                    concept_ids=("__value__",),
+                    metadata={
+                        "allowed_values": ("speech", "whisper"),
+                        "extensible": False,
+                    },
+                ),
+            ),
+        )
+
+        result = solve_ic_merge(problem)
+
+        assert all(
+            winner.value_for("__value__") in {"speech", "whisper"}
+            for winner in result.winners
+        )
+        assert result.admissible_count == 2
+
+    @given(st_branch_profile, st.sampled_from(list(MergeOperator)))
+    @settings(
+        max_examples=40,
+        deadline=None,
+        suppress_health_check=[HealthCheck.too_slow],
+    )
+    def test_unconstrained_single_concept_matches_scalar_dispatch(self, profile, operator):
+        problem = scalar_profile_problem(profile, operator=operator)
+
+        result = solve_ic_merge(problem)
+
+        assert result.scored_candidates
+        assert result.scored_candidates[0].assignment.value_for("__value__") == ic_merge(
+            profile,
+            operator=operator,
+        )
+
+    @given(st_branch_profile)
+    @settings(
+        max_examples=40,
+        deadline=None,
+        suppress_health_check=[HealthCheck.too_slow],
+    )
+    def test_winners_always_satisfy_range_mu(self, profile):
+        ordered_values = sorted(profile.values())
+        upper = ordered_values[len(ordered_values) // 2]
+        problem = scalar_profile_problem(
+            profile,
+            operator=MergeOperator.SIGMA,
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.RANGE,
+                    concept_ids=("__value__",),
+                    metadata={"lower": ordered_values[0], "upper": upper},
+                ),
+            ),
+        )
+
+        result = solve_ic_merge(problem)
+
+        assert result.winners
+        assert all(
+            assignment_satisfies_mu(problem, winner)
+            for winner in result.winners
+        )
+
+    @given(st_branch_profile, st.sampled_from(list(MergeOperator)))
+    @settings(
+        max_examples=40,
+        deadline=None,
+        suppress_health_check=[HealthCheck.too_slow],
+    )
+    def test_source_renaming_does_not_change_best_assignment(self, profile, operator):
+        renamed = {
+            f"renamed_{index}": value
+            for index, value in enumerate(profile.values())
+        }
+
+        original_result = solve_ic_merge(scalar_profile_problem(profile, operator=operator))
+        renamed_result = solve_ic_merge(scalar_profile_problem(renamed, operator=operator))
+
+        assert original_result.scored_candidates
+        assert renamed_result.scored_candidates
+        assert (
+            original_result.scored_candidates[0].assignment.value_for("__value__")
+            == renamed_result.scored_candidates[0].assignment.value_for("__value__")
+        )
+
+
 # ── Group 6: RenderPolicy Integration ──────────────────────────────
 
 
@@ -414,3 +536,10 @@ class TestRenderPolicyIntegration:
         argumentation-based winner selection.
         """
         assert ResolutionStrategy.IC_MERGE == "ic_merge"
+
+    def test_render_policy_round_trips_merge_operator_enum(self):
+        policy = RenderPolicy(merge_operator=MergeOperator.GMAX)
+
+        restored = RenderPolicy.from_dict(policy.to_dict())
+
+        assert restored.merge_operator == MergeOperator.GMAX

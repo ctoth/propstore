@@ -14,20 +14,35 @@ module preserves the aggregation families (sum/max/leximax) but adapts them to
 a scalar-value domain: numeric claims use absolute difference and categorical
 claims use Hamming distance (0/1).
 
-This module does not yet implement assignment-level integrity constraints and
-therefore must not be read as satisfying IC0-IC8 as stated in the paper. It
-currently provides scalar distance kernels plus an unconstrained dispatcher.
+This module now provides:
+
+- scalar aggregation kernels for legacy one-concept callers
+- an assignment-level constrained solver for the adapted `mu` path
+
+The implementation still does not provide full propositional IC merging in the
+paper's sense. The current `mu` enforcement is an assignment-level adaptation
+over observed concept values, not a model-theoretic operator over belief bases.
 """
 from __future__ import annotations
 
-from enum import StrEnum
+from itertools import product
+from collections.abc import Mapping
 from typing import Any
 
+from propstore.world.types import (
+    ICMergeProblem,
+    ICMergeResult,
+    IntegrityConstraint,
+    IntegrityConstraintKind,
+    MergeAssignment,
+    MergeAssignmentScore,
+    MergeOperator,
+    MergeSource,
+    normalize_merge_operator,
+)
 
-class MergeOperator(StrEnum):
-    SIGMA = "sigma"
-    MAX = "max"
-    GMAX = "gmax"
+
+_SCALAR_CONCEPT_ID = "__value__"
 
 
 def claim_distance(a: Any, b: Any) -> float:
@@ -86,6 +101,212 @@ def _unique_values(profile: dict[str, Any]) -> list[Any]:
         if not any(existing == v for existing in result):
             result.append(v)
     return result
+
+
+def _unique_sources(sources: tuple[MergeSource, ...]) -> tuple[MergeSource, ...]:
+    """Deduplicate equal assignments for arbitration-style operators."""
+    result: list[MergeSource] = []
+    for source in sources:
+        if not any(
+            existing.assignment.values == source.assignment.values
+            and existing.weight == source.weight
+            for existing in result
+        ):
+            result.append(source)
+    return tuple(result)
+
+
+def _assignment_tiebreak_key(
+    assignment: MergeAssignment,
+    concept_ids: tuple[str, ...],
+) -> tuple[tuple[int, float | str], ...]:
+    key: list[tuple[int, float | str]] = []
+    for concept_id in concept_ids:
+        value = assignment.value_for(concept_id)
+        try:
+            key.append((0, float(value)))
+        except (TypeError, ValueError):
+            key.append((1, repr(value)))
+    return tuple(key)
+
+
+def _score_sort_key(score: float | tuple[float, ...]) -> tuple[float, ...]:
+    if isinstance(score, tuple):
+        return score
+    return (score,)
+
+
+def enumerate_candidate_assignments(problem: ICMergeProblem) -> tuple[MergeAssignment, ...]:
+    """Enumerate discrete candidate assignments from observed source values."""
+    domains: list[list[Any]] = []
+    for concept_id in problem.concept_ids:
+        values: list[Any] = []
+        for source in problem.sources:
+            if concept_id in source.assignment.values and not any(
+                existing == source.assignment.value_for(concept_id)
+                for existing in values
+            ):
+                values.append(source.assignment.value_for(concept_id))
+        if not values:
+            return tuple()
+        domains.append(values)
+
+    result: list[MergeAssignment] = []
+    for choice in product(*domains):
+        assignment = MergeAssignment(
+            values={
+                concept_id: value
+                for concept_id, value in zip(problem.concept_ids, choice, strict=True)
+            }
+        )
+        if not any(existing.values == assignment.values for existing in result):
+            result.append(assignment)
+    return tuple(result)
+
+
+def assignment_distance(assignment: MergeAssignment, source: MergeSource) -> float:
+    """Distance between a candidate assignment and one source assignment."""
+    distance = 0.0
+    for concept_id, value in assignment.values.items():
+        if concept_id not in source.assignment.values:
+            continue
+        distance += claim_distance(value, source.assignment.value_for(concept_id))
+    return distance
+
+
+def _constraint_holds(
+    assignment: MergeAssignment,
+    constraint: IntegrityConstraint,
+) -> bool:
+    if constraint.kind == IntegrityConstraintKind.RANGE:
+        lower = constraint.metadata.get("lower")
+        upper = constraint.metadata.get("upper")
+        for concept_id in constraint.concept_ids:
+            value = assignment.value_for(concept_id)
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return False
+            if lower is not None and numeric < float(lower):
+                return False
+            if upper is not None and numeric > float(upper):
+                return False
+        return True
+
+    if constraint.kind == IntegrityConstraintKind.CATEGORY:
+        allowed_values = tuple(constraint.metadata.get("allowed_values", ()))
+        extensible = bool(constraint.metadata.get("extensible", False))
+        if extensible:
+            return True
+        for concept_id in constraint.concept_ids:
+            if assignment.value_for(concept_id) not in allowed_values:
+                return False
+        return True
+
+    if constraint.kind == IntegrityConstraintKind.CEL:
+        raise NotImplementedError("CEL IC-merge constraints are not implemented yet")
+
+    if constraint.kind == IntegrityConstraintKind.CUSTOM:
+        predicate = constraint.metadata.get("predicate")
+        if not callable(predicate):
+            raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
+        return bool(predicate(dict(assignment.values)))
+
+    raise ValueError(f"Unsupported integrity constraint kind: {constraint.kind}")
+
+
+def assignment_satisfies_mu(problem: ICMergeProblem, assignment: MergeAssignment) -> bool:
+    """Whether an assignment satisfies every integrity constraint in the problem."""
+    return all(_constraint_holds(assignment, constraint) for constraint in problem.constraints)
+
+
+def _score_assignment(
+    problem: ICMergeProblem,
+    assignment: MergeAssignment,
+) -> float | tuple[float, ...]:
+    operator = normalize_merge_operator(problem.operator)
+    if operator == MergeOperator.SIGMA:
+        return sum(
+            source.weight * assignment_distance(assignment, source)
+            for source in problem.sources
+        )
+
+    scored_sources = (
+        _unique_sources(problem.sources)
+        if operator in (MergeOperator.MAX, MergeOperator.GMAX)
+        else problem.sources
+    )
+    distances = tuple(
+        source.weight * assignment_distance(assignment, source)
+        for source in scored_sources
+    )
+    if operator == MergeOperator.MAX:
+        return max(distances, default=0.0)
+    if operator == MergeOperator.GMAX:
+        return tuple(sorted(distances, reverse=True))
+    raise ValueError(f"Unknown merge operator: {problem.operator}")
+
+
+def solve_ic_merge(problem: ICMergeProblem) -> ICMergeResult:
+    """Solve the constrained assignment-selection problem for one IC-merge instance."""
+    candidates = enumerate_candidate_assignments(problem)
+    admissible = tuple(
+        candidate
+        for candidate in candidates
+        if assignment_satisfies_mu(problem, candidate)
+    )
+    if not admissible:
+        return ICMergeResult(
+            winners=tuple(),
+            scored_candidates=tuple(),
+            admissible_count=0,
+            total_candidate_count=len(candidates),
+            reason="no admissible assignments",
+        )
+
+    scored = sorted(
+        (
+            MergeAssignmentScore(
+                assignment=assignment,
+                score=_score_assignment(problem, assignment),
+            )
+            for assignment in admissible
+        ),
+        key=lambda item: (
+            _score_sort_key(item.score),
+            _assignment_tiebreak_key(item.assignment, problem.concept_ids),
+        ),
+    )
+    best_score = scored[0].score
+    winners = tuple(item.assignment for item in scored if item.score == best_score)
+    return ICMergeResult(
+        winners=winners,
+        scored_candidates=tuple(scored),
+        admissible_count=len(admissible),
+        total_candidate_count=len(candidates),
+    )
+
+
+def scalar_profile_problem(
+    profile: Mapping[str, Any],
+    *,
+    operator: MergeOperator | str = MergeOperator.SIGMA,
+    constraints: tuple[IntegrityConstraint, ...] = tuple(),
+    concept_id: str = _SCALAR_CONCEPT_ID,
+) -> ICMergeProblem:
+    """Lift a scalar profile into the assignment-level IC-merge abstraction."""
+    return ICMergeProblem(
+        concept_ids=(concept_id,),
+        sources=tuple(
+            MergeSource(
+                source_id=str(source_id),
+                assignment=MergeAssignment(values={concept_id: value}),
+            )
+            for source_id, value in profile.items()
+        ),
+        constraints=constraints,
+        operator=normalize_merge_operator(operator),
+    )
 
 
 def max_merge(profile: dict[str, Any]) -> Any:
