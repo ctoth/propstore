@@ -176,6 +176,49 @@ def test_expand_accepts_synthetic_claim_mapping_via_adapter() -> None:
     assert any(atom.atom_id == "claim:new_from_adapter" for atom in result.revised_base.atoms)
 
 
+def test_stabilize_belief_base_applies_support_loss_cascade_from_incision_set() -> None:
+    from propstore.revision.operators import stabilize_belief_base
+
+    base, _ = _base_with_shared_support()
+
+    result = stabilize_belief_base(base, incision_set=("assumption:shared_weak",))
+
+    assert "assumption:shared_weak" in result.rejected_atom_ids
+    assert "claim:legacy" in result.rejected_atom_ids
+    assert "claim:dependent" in result.rejected_atom_ids
+    assert "claim:independent" in result.accepted_atom_ids
+    assert result.explanation["claim:legacy"]["reason"] == "support_lost"
+
+
+def test_stabilize_belief_base_is_idempotent_on_stable_result() -> None:
+    from propstore.revision.operators import stabilize_belief_base
+
+    base, _ = _base_with_shared_support()
+
+    stabilized = stabilize_belief_base(base, incision_set=("assumption:shared_weak",))
+    rerun = stabilize_belief_base(stabilized.revised_base, incision_set=stabilized.incision_set)
+
+    assert tuple(atom.atom_id for atom in stabilized.revised_base.atoms) == tuple(
+        atom.atom_id for atom in rerun.revised_base.atoms
+    )
+    assert rerun.accepted_atom_ids == stabilized.accepted_atom_ids
+
+
+def test_contract_matches_explicit_stabilization_of_chosen_incision_set() -> None:
+    from propstore.revision.operators import contract, stabilize_belief_base
+
+    base, entrenchment = _base_with_shared_support()
+
+    contracted = contract(base, ("claim:legacy",), entrenchment=entrenchment)
+    stabilized = stabilize_belief_base(base, incision_set=contracted.incision_set)
+
+    assert contracted.accepted_atom_ids == stabilized.accepted_atom_ids
+    assert contracted.rejected_atom_ids == stabilized.rejected_atom_ids
+    assert tuple(atom.atom_id for atom in contracted.revised_base.atoms) == tuple(
+        atom.atom_id for atom in stabilized.revised_base.atoms
+    )
+
+
 def test_revision_operators_do_not_import_ic_merge() -> None:
     path = Path("propstore/revision/operators.py")
     assert path.exists()
