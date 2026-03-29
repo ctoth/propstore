@@ -375,7 +375,17 @@ Worldlines are the natural place to record reproducible revision traces later:
 - accepted/rejected sets
 - explanation
 
-This should be Phase 2 or 3, not Phase 1.
+But the defer needs to be explicit:
+
+- Phase 2 only gives us one-shot `RevisionResult`
+- that is not yet the same thing as a durable replay schema or persistent epistemic-state snapshot
+- if we redesign `worldline.py` too early, we risk freezing a one-shot result shape as if it were the long-term revision-state model
+
+So the rule is:
+
+- Phase 2 may print or serialize ad hoc revision results for inspection
+- Phase 2 must not commit to declarative worldline revision inputs or a durable revision-state schema
+- Phase 3 should define the persistent replay shape after `EpistemicState` is explicit
 
 ### CLI
 
@@ -797,6 +807,8 @@ Why:
 
 - this keeps Phase 1 and 2 smaller
 - it gives immediate provenance capture without redesigning `WorldlineDefinition` too early
+- it avoids freezing `RevisionResult` as if it were the durable replay schema
+- the persistence shape should follow the Phase 3 `EpistemicState`, not lead it
 
 ### 10. What happens at merge points?
 

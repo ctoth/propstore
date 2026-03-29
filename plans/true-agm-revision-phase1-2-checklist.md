@@ -476,6 +476,16 @@ Default:
 - **do not add declarative revision inputs to worldlines in Phase 2**
 - **do allow later code to serialize revision results into worldline results**
 
+Reason:
+
+- Phase 2 only defines one-shot revision over a scoped `BoundWorld`
+- `RevisionResult` is an operation result, not yet a durable iterated epistemic-state schema
+- adding worldline-declared revision inputs now would risk freezing the wrong persistence shape before Phase 3 defines explicit iterated state
+- Phase 3 should decide what is replayed:
+  - one revision episode
+  - a persistent epistemic state snapshot
+  - or both, with distinct datatypes
+
 Tasks:
 
 - if minimal capture is cheap, add a field under `WorldlineResult.argumentation` sibling or a new revision payload later
