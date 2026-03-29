@@ -826,6 +826,48 @@ def _format_revision_assumption(assumption) -> str:
     )
 
 
+def _parse_revision_atom_json(atom_json: str) -> dict:
+    try:
+        data = json.loads(atom_json)
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(f"Invalid --atom JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise click.ClickException("--atom must decode to a JSON object")
+    return data
+
+
+def _emit_revision_result(result) -> None:
+    click.echo(f"Accepted ({len(result.accepted_atom_ids)} atoms):")
+    for atom_id in result.accepted_atom_ids:
+        click.echo(f"  {atom_id}")
+
+    click.echo(f"Rejected ({len(result.rejected_atom_ids)} atoms):")
+    for atom_id in result.rejected_atom_ids:
+        click.echo(f"  {atom_id}")
+
+    click.echo(f"Incision set: {', '.join(result.incision_set) if result.incision_set else '(none)'}")
+
+
+def _emit_revision_explanation(explanation: dict) -> None:
+    click.echo(f"Accepted ({len(explanation['accepted_atom_ids'])} atoms):")
+    for atom_id in explanation["accepted_atom_ids"]:
+        click.echo(f"  {atom_id}")
+
+    click.echo(f"Rejected ({len(explanation['rejected_atom_ids'])} atoms):")
+    for atom_id in explanation["rejected_atom_ids"]:
+        click.echo(f"  {atom_id}")
+
+    incision = explanation["incision_set"]
+    click.echo(f"Incision set: {', '.join(incision) if incision else '(none)'}")
+    click.echo("Atoms:")
+    for atom_id, detail in explanation["atoms"].items():
+        line = f"  {atom_id}: status={detail['status']} reason={detail['reason']}"
+        ranking = detail.get("ranking")
+        if isinstance(ranking, dict):
+            line += f" support_count={ranking.get('support_count', 0)}"
+        click.echo(line)
+
+
 @world.command("revision-base")
 @click.argument("args", nargs=-1)
 @click.pass_obj
@@ -875,6 +917,99 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...]) -> None:
                 f"essential_support={_format_assumption_ids(essential_support)} "
                 f"override={override}"
             )
+
+
+@world.command("expand")
+@click.argument("args", nargs=-1)
+@click.option("--atom", "atom_json", required=True, help="JSON revision atom to add")
+@click.pass_obj
+def world_expand(obj: dict, args: tuple[str, ...], atom_json: str) -> None:
+    """Expand the scoped revision belief base without mutating source YAML."""
+    repo: Repository = obj["repo"]
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        bound = wm.bind(**bindings)
+        result = bound.expand(_parse_revision_atom_json(atom_json))
+        _emit_revision_result(result)
+
+
+@world.command("contract")
+@click.argument("args", nargs=-1)
+@click.option("--target", "targets", multiple=True, required=True, help="Existing atom or claim id to contract")
+@click.pass_obj
+def world_contract(obj: dict, args: tuple[str, ...], targets: tuple[str, ...]) -> None:
+    """Contract the scoped revision belief base without mutating source YAML."""
+    repo: Repository = obj["repo"]
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        bound = wm.bind(**bindings)
+        result = bound.contract(targets if len(targets) > 1 else targets[0])
+        _emit_revision_result(result)
+
+
+@world.command("revise")
+@click.argument("args", nargs=-1)
+@click.option("--atom", "atom_json", required=True, help="JSON revision atom to admit")
+@click.option("--conflict", "conflicts", multiple=True, help="Existing atom or claim id that conflicts with the new atom")
+@click.pass_obj
+def world_revise(obj: dict, args: tuple[str, ...], atom_json: str, conflicts: tuple[str, ...]) -> None:
+    """Revise the scoped belief base without mutating source YAML."""
+    from propstore.revision.operators import normalize_revision_input
+
+    repo: Repository = obj["repo"]
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        bound = wm.bind(**bindings)
+        atom = _parse_revision_atom_json(atom_json)
+        base = bound.revision_base()
+        normalized = normalize_revision_input(base, atom)
+        conflict_map = {normalized.atom_id: tuple(conflicts)} if conflicts else None
+        result = bound.revise(atom, conflicts=conflict_map)
+        _emit_revision_result(result)
+
+
+@world.command("revision-explain")
+@click.argument("args", nargs=-1)
+@click.option("--operation", type=click.Choice(["expand", "contract", "revise"]), required=True)
+@click.option("--atom", "atom_json", default=None, help="JSON revision atom for expand/revise")
+@click.option("--target", "targets", multiple=True, help="Existing atom or claim id for contract")
+@click.option("--conflict", "conflicts", multiple=True, help="Existing atom or claim id that conflicts with the new atom")
+@click.pass_obj
+def world_revision_explain(
+    obj: dict,
+    args: tuple[str, ...],
+    operation: str,
+    atom_json: str | None,
+    targets: tuple[str, ...],
+    conflicts: tuple[str, ...],
+) -> None:
+    """Explain one revision operation over the current scoped world."""
+    from propstore.revision.operators import normalize_revision_input
+
+    repo: Repository = obj["repo"]
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        bound = wm.bind(**bindings)
+
+        if operation == "expand":
+            if atom_json is None:
+                raise click.ClickException("--atom is required for --operation expand")
+            result = bound.expand(_parse_revision_atom_json(atom_json))
+        elif operation == "contract":
+            if not targets:
+                raise click.ClickException("--target is required for --operation contract")
+            result = bound.contract(targets if len(targets) > 1 else targets[0])
+        else:
+            if atom_json is None:
+                raise click.ClickException("--atom is required for --operation revise")
+            atom = _parse_revision_atom_json(atom_json)
+            base = bound.revision_base()
+            normalized = normalize_revision_input(base, atom)
+            conflict_map = {normalized.atom_id: tuple(conflicts)} if conflicts else None
+            result = bound.revise(atom, conflicts=conflict_map)
+
+        explanation = bound.revision_explain(result)
+        _emit_revision_explanation(explanation)
 
 
 def _bind_atms_world(
