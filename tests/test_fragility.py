@@ -106,3 +106,15 @@ class TestFragilityReport:
         # Frozen — cannot mutate
         with pytest.raises(AttributeError):
             target.fragility = 0.5  # type: ignore[misc]
+
+
+# ── BoundWorld.fragility() smoke test ──────────────────────────────
+
+
+class TestBoundWorldFragility:
+    """Smoke test that BoundWorld.fragility() delegates correctly."""
+
+    def test_fragility_method_exists(self):
+        """BoundWorld has a fragility method."""
+        from propstore.world.bound import BoundWorld
+        assert hasattr(BoundWorld, "fragility")

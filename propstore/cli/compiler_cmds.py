@@ -1842,6 +1842,78 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
                 click.echo(f"{e.input_concept_id:<25} {pval:>12} {elast:>12}")
 
 
+@world.command("fragility")
+@click.argument("args", nargs=-1)
+@click.option("--concept", "concept_id", default=None, help="Focus on a single concept")
+@click.option("--top-k", "top_k", type=int, default=20, help="Number of results")
+@click.option("--combination", type=click.Choice(["top2", "mean", "max", "product"]), default="top2")
+@click.option("--skip-parametric", is_flag=True, default=False)
+@click.option("--skip-epistemic", is_flag=True, default=False)
+@click.option("--skip-conflict", is_flag=True, default=False)
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
+@click.pass_obj
+def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
+                    top_k: int, combination: str, skip_parametric: bool,
+                    skip_epistemic: bool, skip_conflict: bool, fmt: str) -> None:
+    """Rank epistemic targets by fragility — what to learn next."""
+    from propstore.fragility import rank_fragility
+
+    repo: Repository = obj["repo"]
+    with open_world_model(repo) as wm:
+        bindings, context_id = _parse_bindings(args)
+        if context_id:
+            bound = wm.bind(context_id=context_id, **bindings)
+        else:
+            bound = wm.bind(**bindings)
+
+        report = rank_fragility(
+            bound,
+            concept_id=concept_id,
+            top_k=top_k,
+            include_parametric=not skip_parametric,
+            include_epistemic=not skip_epistemic,
+            include_conflict=not skip_conflict,
+            combination=combination,
+        )
+
+        if fmt == "json":
+            result_dict = {
+                "world_fragility": report.world_fragility,
+                "analysis_scope": report.analysis_scope,
+                "targets": [
+                    {
+                        "target_id": t.target_id,
+                        "target_kind": t.target_kind,
+                        "description": t.description,
+                        "fragility": t.fragility,
+                        "parametric_score": t.parametric_score,
+                        "epistemic_score": t.epistemic_score,
+                        "conflict_score": t.conflict_score,
+                    }
+                    for t in report.targets
+                ],
+            }
+            click.echo(json.dumps(result_dict, indent=2))
+        else:
+            click.echo(f"Fragility Analysis (top {top_k}, combination={combination})")
+            click.echo("=" * 46)
+            click.echo("")
+            click.echo(
+                f"{'Rank':>4}  {'Score':>5}  {'Kind':<12} {'Target':<30} "
+                f"{'Parametric':>10}  {'Epistemic':>10}  {'Conflict':>10}"
+            )
+            for i, t in enumerate(report.targets, 1):
+                p = f"{t.parametric_score:.2f}" if t.parametric_score is not None else "None"
+                e = f"{t.epistemic_score:.2f}" if t.epistemic_score is not None else "None"
+                c = f"{t.conflict_score:.2f}" if t.conflict_score is not None else "None"
+                click.echo(
+                    f"{i:>4}  {t.fragility:>5.2f}  {t.target_kind:<12} "
+                    f"{t.target_id:<30} {p:>10}  {e:>10}  {c:>10}"
+                )
+            click.echo("")
+            click.echo(f"World fragility: {report.world_fragility:.2f}")
+
+
 @world.command("check-consistency")
 @click.argument("args", nargs=-1)
 @click.option("--transitive", is_flag=True, help="Check multi-hop transitive conflicts")
