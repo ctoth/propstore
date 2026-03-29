@@ -1065,6 +1065,58 @@ class TestClaimStanceTable:
                 concept_registry=concept_registry,
             )
 
+    def test_invalid_inline_stance_resolution_shape_raises_cleanly(
+        self,
+        concept_dir,
+        sidecar_path,
+        repo,
+    ):
+        claims_dir = concept_dir / "claims_invalid_stance_resolution"
+        claims_dir.mkdir(exist_ok=True)
+        claim_data = {
+            "source": {"paper": "invalid_stance_resolution"},
+            "claims": [
+                {
+                    "id": "claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 200.0,
+                    "unit": "Hz",
+                    "provenance": {"paper": "invalid_stance_resolution", "page": 1},
+                },
+                {
+                    "id": "claim2",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 220.0,
+                    "unit": "Hz",
+                    "stances": [{
+                        "type": "supports",
+                        "target": "claim1",
+                        "resolution": ["nli_first_pass"],
+                    }],
+                    "provenance": {"paper": "invalid_stance_resolution", "page": 2},
+                },
+            ],
+        }
+        (claims_dir / "invalid_stance_resolution.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
+
+        from propstore.validate_claims import build_concept_registry, load_claim_files
+
+        claim_files = load_claim_files(claims_dir)
+        concepts = load_concepts(concept_dir)
+        concept_registry = build_concept_registry(repo)
+        with pytest.raises(ValueError, match="resolution"):
+            build_sidecar(
+                concepts,
+                sidecar_path,
+                force=True,
+                claim_files=claim_files,
+                concept_registry=concept_registry,
+            )
+
     @given(
         stance_pairs=st.lists(
             st.tuples(

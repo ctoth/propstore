@@ -201,10 +201,11 @@ def _populate_stances_from_files(
                 )
 
             # Extract resolution provenance if present
-            res = s.get("resolution") or {}
-            cond_differ = s.get("conditions_differ")
-            if isinstance(cond_differ, list):
-                cond_differ = json.dumps(cond_differ)
+            res = _coerce_stance_resolution(
+                s.get("resolution"),
+                f"stance file {fname} stance #{index}",
+            )
+            cond_differ = _normalize_conditions_differ(s.get("conditions_differ"))
 
             _insert_claim_stance_row(
                 conn,
@@ -822,31 +823,55 @@ def _insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
     )
 
 
+def _normalize_conditions_differ(value: object) -> object:
+    """Normalize stance ``conditions_differ`` for SQLite storage."""
+    if isinstance(value, list):
+        return json.dumps(value)
+    return value
+
+
+def _coerce_stance_resolution(
+    resolution: object,
+    owner: str,
+) -> dict[str, object]:
+    """Return a stance resolution mapping or raise a clean error."""
+    if resolution is None:
+        return {}
+    if not isinstance(resolution, dict):
+        raise ValueError(f"{owner} resolution must be a mapping")
+    return resolution
+
+
 def _insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> None:
+    supported_columns = {
+        row[1] for row in conn.execute("PRAGMA table_info(relation_edge)").fetchall()
+    }
+    row_values = {
+        "source_kind": "claim",
+        "source_id": stance_row[0],
+        "relation_type": stance_row[2],
+        "target_kind": "claim",
+        "target_id": stance_row[1],
+        "target_justification_id": stance_row[3],
+        "strength": stance_row[4],
+        "conditions_differ": _normalize_conditions_differ(stance_row[5]),
+        "note": stance_row[6],
+        "resolution_method": stance_row[7],
+        "resolution_model": stance_row[8],
+        "embedding_model": stance_row[9],
+        "embedding_distance": stance_row[10],
+        "pass_number": stance_row[11],
+        "confidence": stance_row[12],
+        "opinion_belief": stance_row[13],
+        "opinion_disbelief": stance_row[14],
+        "opinion_uncertainty": stance_row[15],
+        "opinion_base_rate": stance_row[16],
+    }
+    columns = [name for name in row_values if name in supported_columns]
+    placeholders = ", ".join("?" for _ in columns)
     conn.execute(
-        "INSERT INTO relation_edge (source_kind, source_id, relation_type, target_kind, target_id, target_justification_id, strength, conditions_differ, note, resolution_method, resolution_model, embedding_model, embedding_distance, pass_number, confidence, opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (
-            "claim",
-            stance_row[0],
-            stance_row[2],
-            "claim",
-            stance_row[1],
-            stance_row[3],
-            stance_row[4],
-            stance_row[5],
-            stance_row[6],
-            stance_row[7],
-            stance_row[8],
-            stance_row[9],
-            stance_row[10],
-            stance_row[11],
-            stance_row[12],
-            stance_row[13],
-            stance_row[14],
-            stance_row[15],
-            stance_row[16],
-        ),
+        f"INSERT INTO relation_edge ({', '.join(columns)}) VALUES ({placeholders})",
+        tuple(row_values[name] for name in columns),
     )
 
 
@@ -1421,14 +1446,17 @@ def _extract_deferred_stance_rows(
             raise sqlite3.IntegrityError(
                 f"claim '{cid}' references nonexistent target claim '{target_claim_id}'"
             )
-        resolution = stance.get("resolution") or {}
+        resolution = _coerce_stance_resolution(
+            stance.get("resolution"),
+            f"claim '{cid}' stance targeting '{target_claim_id}'",
+        )
         rows.append((
             cid,
             target_claim_id,
             stance_type,
             stance.get("target_justification_id"),
             stance.get("strength"),
-            stance.get("conditions_differ"),
+            _normalize_conditions_differ(stance.get("conditions_differ")),
             stance.get("note"),
             resolution.get("method"),
             resolution.get("model"),
