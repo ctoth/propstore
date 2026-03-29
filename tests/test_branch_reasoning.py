@@ -130,8 +130,13 @@ def test_environment_key_union_associative(
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow],
 )
-@given(env_a=st_env_key, nogoods=st_nogood_set)
-def test_nogood_monotonicity(env_a: EnvironmentKey, nogoods: NogoodSet) -> None:
+@given(
+    nogood_env=st_env_key,
+    extra_ids=st.lists(st_assumption_id, min_size=0, max_size=3),
+)
+def test_nogood_monotonicity(
+    nogood_env: EnvironmentKey, extra_ids: list[str]
+) -> None:
     """If env_a is excluded by nogoods, any superset of env_a is also excluded.
 
     Per Mason & Johnson 1989, claim 8: if assumption set A is INCONSISTENT
@@ -139,9 +144,12 @@ def test_nogood_monotonicity(env_a: EnvironmentKey, nogoods: NogoodSet) -> None:
     foundational monotonicity property of ATMS nogoods — inconsistency
     propagates upward through the subset lattice.
     """
-    assume(nogoods.excludes(env_a))
+    # Construct a NogoodSet that definitely excludes nogood_env
+    nogoods = NogoodSet((nogood_env,))
+    assert nogoods.excludes(nogood_env)
     # Any superset must also be excluded
-    superset = EnvironmentKey(env_a.assumption_ids + ("extra_assumption_xyz",))
+    superset_ids = tuple(sorted(set(nogood_env.assumption_ids + tuple(extra_ids))))
+    superset = EnvironmentKey(superset_ids)
     assert nogoods.excludes(superset)
 
 

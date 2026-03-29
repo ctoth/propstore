@@ -980,6 +980,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
             provenance_json TEXT,
             context_id TEXT,
             premise_kind TEXT NOT NULL DEFAULT 'ordinary',
+            branch TEXT,
             FOREIGN KEY (context_id) REFERENCES context(id)
         );
 
