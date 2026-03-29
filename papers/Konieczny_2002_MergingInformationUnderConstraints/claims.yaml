@@ -1,0 +1,323 @@
+source:
+  paper: Konieczny_2002_MergingInformationUnderConstraints
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-29T03:17:35Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "An IC merging operator must satisfy postulate IC0: the merged result entails the integrity constraint mu."
+    concepts:
+      - belief_constraint_fusion
+      - belief_state
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 4
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "IC0: Delta_mu(Psi) entails mu"
+
+  - id: claim2
+    type: observation
+    statement: "An IC merging operator must satisfy postulate IC1: if the integrity constraint mu is consistent, the merged result is consistent."
+    concepts:
+      - belief_constraint_fusion
+      - belief_state
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 4
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "IC1: If mu is consistent, then Delta_mu(Psi) is consistent"
+
+  - id: claim3
+    type: observation
+    statement: "An IC merging operator must satisfy postulate IC2: if the conjunction of all belief bases is consistent with the integrity constraint, the merged result is equivalent to the conjunction of all bases conjoined with the constraint."
+    concepts:
+      - belief_constraint_fusion
+      - belief_state
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 4
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "IC2: If conjunction of Psi is consistent with mu, then Delta_mu(Psi) equiv conjunction of Psi and mu"
+
+  - id: claim4
+    type: observation
+    statement: "An IC merging operator must satisfy postulate IC3 (syntax independence): if two belief sets are logically equivalent, the merged results are logically equivalent."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 4
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "IC3: If Psi_1 equiv Psi_2, then Delta_mu(Psi_1) equiv Delta_mu(Psi_2)"
+
+  - id: claim5
+    type: observation
+    statement: "An IC merging operator must satisfy postulate IC4 (fairness): if two individual belief bases each entail the integrity constraint, merging them cannot completely reject either one."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 4
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "IC4: If phi_1 entails mu and phi_2 entails mu, then Delta_mu(phi_1 union phi_2) does not entail not-phi_1"
+
+  - id: claim6
+    type: observation
+    statement: "An IC merging operator must satisfy postulate IC5: if a result is compatible with two separate sub-merges, it belongs to the full merge."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 4
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "IC5: Delta_mu(Psi_1) and Delta_mu(Psi_2) entails Delta_mu(Psi_1 union Psi_2)"
+
+  - id: claim7
+    type: observation
+    statement: "An IC merging operator must satisfy postulate IC6: if two sub-merges are mutually consistent, the full merge is exactly their conjunction."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 4
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "IC6: If Delta_mu(Psi_1) and Delta_mu(Psi_2) is consistent, then Delta_mu(Psi_1 union Psi_2) entails Delta_mu(Psi_1) and Delta_mu(Psi_2)"
+
+  - id: claim8
+    type: observation
+    statement: "An IC merging operator must satisfy postulate IC7 (constraint monotonicity): tightening the constraint preserves compatibility with results under the weaker constraint."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 4
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "IC7: Delta_mu1(Psi) and mu2 entails Delta_(mu1 and mu2)(Psi)"
+
+  - id: claim9
+    type: observation
+    statement: "An IC merging operator must satisfy postulate IC8: if the merged result under one constraint is consistent with a second constraint, the merged result under the conjunction of both constraints entails the result under the first."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 4
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "IC8: If Delta_mu1(Psi) and mu2 is consistent, then Delta_(mu1 and mu2)(Psi) entails Delta_mu1(Psi)"
+
+  - id: claim10
+    type: observation
+    statement: "An IC majority merging operator additionally satisfies postulate (Maj): for any two belief sets, a sufficiently large replication of the second can override the first."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 5
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "Maj: exists n, Delta_mu(Psi_1 union Psi_2^n) entails Delta_mu(Psi_2)"
+
+  - id: claim11
+    type: observation
+    statement: "An IC arbitration operator additionally satisfies postulate (Arb): when two equally weighted sources produce contradictory results, neither can dominate."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 5
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "Arb: implies Delta(phi_1 union phi_2) equiv Delta(phi_1)"
+
+  - id: claim12
+    type: mechanism
+    statement: "IC merging operators are fully characterized by syncretic assignments: an operator satisfies IC0-IC8 if and only if there exists a syncretic assignment mapping each belief set to a total pre-order on interpretations such that the merged models are the minimal models of the constraint under that pre-order."
+    concepts:
+      - belief_constraint_fusion
+      - total_pre_order
+      - belief_state
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 7
+      section: "3 Merging with integrity constraints"
+      quote_fragment: "Theorem 3.7: Delta is an IC merging operator iff there exists a syncretic assignment such that mod(Delta_mu(Psi)) = min(mod(mu), leq_Psi)"
+
+  - id: claim13
+    type: equation
+    expression: "d_Sigma(I, Psi) = sum_{phi in Psi} d(I, phi)"
+    sympy: "Eq(d_sigma, d_1 + d_2 + d_n)"
+    variables:
+      - symbol: "d_Sigma"
+        concept: "cd_distance"
+        role: "dependent"
+      - symbol: "I"
+        concept: "belief_state"
+        role: "independent"
+      - symbol: "Psi"
+        concept: "belief_constraint_fusion"
+        role: "independent"
+      - symbol: "d"
+        concept: "cd_distance"
+        role: "independent"
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 12
+      section: "4.1 Sigma operators"
+      quote_fragment: "We define the Sigma-distance between an interpretation and a belief set"
+
+  - id: claim14
+    type: equation
+    expression: "mod(Delta^Sigma_mu(Psi)) = min(mod(mu), leq^Sigma_Psi)"
+    sympy: "Eq(mod_delta_sigma, Min(mod_mu, leq_sigma))"
+    variables:
+      - symbol: "Delta^Sigma"
+        concept: "belief_constraint_fusion"
+        role: "dependent"
+      - symbol: "mu"
+        concept: "belief_state"
+        role: "independent"
+      - symbol: "Psi"
+        concept: "belief_constraint_fusion"
+        role: "independent"
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 12
+      section: "4.1 Sigma operators"
+      quote_fragment: "mod(Delta^Sigma_mu(Psi)) = min(mod(mu), leq^Sigma_Psi)"
+
+  - id: claim15
+    type: observation
+    statement: "The Sigma operator (sum of distances) is an IC majority merging operator, satisfying IC0-IC8 and (Maj)."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 13
+      section: "4.1 Sigma operators"
+      quote_fragment: "Theorem 4.2: Delta^Sigma is a majority merging operator"
+
+  - id: claim16
+    type: observation
+    statement: "If the base distance d satisfies the triangle inequality, then the Sigma distance d_Sigma also satisfies the triangle inequality."
+    concepts:
+      - cd_distance
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 13
+      section: "4.1 Sigma operators"
+      quote_fragment: "Theorem 4.3: If d satisfies the triangular inequality, then d_Sigma satisfies the triangular inequality"
+
+  - id: claim17
+    type: equation
+    expression: "d_Max(I, Psi) = max_{phi in Psi} d(I, phi)"
+    sympy: "Eq(d_max, Max(d_1, d_2, d_n))"
+    variables:
+      - symbol: "d_Max"
+        concept: "cd_distance"
+        role: "dependent"
+      - symbol: "I"
+        concept: "belief_state"
+        role: "independent"
+      - symbol: "Psi"
+        concept: "belief_constraint_fusion"
+        role: "independent"
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 15
+      section: "4.2 Max operators"
+      quote_fragment: "We define the Max distance between an interpretation and a belief set"
+
+  - id: claim18
+    type: observation
+    statement: "The Max operator (maximum distance) is a quasi-merging operator satisfying IC0-IC3 and IC7-IC8 but not IC4-IC6, and it satisfies (Arb) and (Maj)."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 15
+      section: "4.2 Max operators"
+      quote_fragment: "Theorem 4.6: Delta^Max is a quasi-merging operator. It satisfies (Arb), (Obj) and (Maj)"
+
+  - id: claim19
+    type: observation
+    statement: "The GMax operator (lexicographic comparison of sorted distance vectors) is an IC arbitration operator satisfying IC0-IC8 and (Arb), and it is a refinement of the Max operator."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 18
+      section: "4.3 GMax operators"
+      quote_fragment: "Theorem 4.14: Delta^GMax is an arbitration operator"
+
+  - id: claim20
+    type: observation
+    statement: "The GMax operator refines the Max operator: the models selected by GMax are always a subset of those selected by Max."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 17
+      section: "4.3 GMax operators"
+      quote_fragment: "Remark 4.10: Delta^GMax(Psi) entails Delta^Max(Psi)"
+
+  - id: claim21
+    type: comparison
+    statement: "Unlike belief revision which handles only a single source being revised by new information, IC merging handles arbitrarily many sources simultaneously, with revision being the special case of a singleton belief set."
+    concepts:
+      - belief_constraint_fusion
+      - belief_revision_function
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 20
+      section: "5.1 From IC to revision"
+      quote_fragment: "Theorem 5.3: If Delta is an IC merging operator satisfying IC0-IC3, then the operator defined as phi o mu = Delta_mu({phi}) is a KM revision operator"
+
+  - id: claim22
+    type: mechanism
+    statement: "A merging operator can be constructed from a revision operator by using the revision's faithful assignment to define a sum-based distance, provided a symmetry condition (Sym) is satisfied ensuring equal treatment of belief bases."
+    concepts:
+      - belief_constraint_fusion
+      - belief_revision_function
+      - total_pre_order
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 21
+      section: "5.2 From revision to IC merging"
+      quote_fragment: "Theorem 5.5: If Delta is an IC merging operator, the operator o_Delta satisfies (LS1-LS5)"
+
+  - id: claim23
+    type: comparison
+    statement: "Unlike Liberatore and Schaerf's commutative revision operators which handle only two belief bases, IC merging operators handle any number of belief bases, with commutative revision being the special case of merging a two-element belief set without integrity constraints."
+    concepts:
+      - belief_constraint_fusion
+      - belief_revision_function
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 25
+      section: "6.2 Liberatore and Schaerf commutative revision operators"
+      quote_fragment: "Liberatore and Schaerf commutative revision operators can be seen as a special case of merging"
+
+  - id: claim24
+    type: limitation
+    statement: "The IC merging framework is limited to finite propositional languages and does not address computational complexity of the merging operators."
+    concepts:
+      - belief_constraint_fusion
+      - computational_complexity
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 32
+      section: "7 Conclusion"
+      quote_fragment: "Another point of interest is to study practical merging operators"
+
+  - id: claim25
+    type: limitation
+    statement: "It is an open question whether all IC merging operators can be built from a distance function, and whether the majority postulate (Maj) and arbitration postulate (Arb) are jointly satisfiable."
+    concepts:
+      - belief_constraint_fusion
+    provenance:
+      paper: Konieczny_2002_MergingInformationUnderConstraints
+      page: 33
+      section: "7 Conclusion"
+      quote_fragment: "Are all IC merging operators built from a distance? The second question concerns the relationship between postulates (Maj) and (Arb)"

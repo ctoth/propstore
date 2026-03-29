@@ -1,0 +1,7 @@
+id: concept162
+canonical_name: rationalizability
+status: proposed
+definition: The property that a belief revision frame's belief assignments can be rationalized by a single total pre-order such that beliefs at each instant are the best (most plausible) states compatible with information.
+domain: belief-revision
+created_date: '2026-03-28'
+form: structural

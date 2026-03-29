@@ -1,0 +1,7 @@
+id: concept159
+canonical_name: modal_axiomatization
+status: proposed
+definition: A set of modal axiom schemas that characterizes a class of frames, meaning the axioms are valid in exactly the frames satisfying a given semantic property.
+domain: belief-revision
+created_date: '2026-03-28'
+form: structural

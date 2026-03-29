@@ -206,6 +206,7 @@ This paper is directly relevant to propstore's argumentation layer. The typology
 - [[Amgoud_2008_BipolarityArgumentationFrameworks]] — bipolar frameworks; Doutre & Mailly note that dynamics in bipolar settings need further study
 - [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — incomplete information in ASPIC+; closely related to the survey's discussion of enforcement under uncertainty
 - [[Verheij_2002_ExistenceMultiplicityExtensionsDialectical]] — extension existence/multiplicity; relevant to understanding when enforcement is possible
+- [[Coste-Marquis_2007_MergingDung'sArgumentationSystems]] — distance-based merging of Dung AFs using PAFs; this survey covers the merging approach as part of its broader dynamics typology
 
 ### New Leads (Not Yet in Collection)
 - Baumann 2012 — "What does it take to enforce an argument?" — foundational enforcement result

@@ -214,3 +214,7 @@ Directly relevant to propstore's argumentation layer. The enforcement results te
 ### Now in Collection (previously listed as leads)
 - [[Boella_2009_DynamicsArgumentationSingleExtensions]] — Studies which deletions of attacks or arguments preserve the grounded extension in single-extension frameworks. This is the closest dynamics paper to Baumann and Brewka's enforcement results, but with an invariance-under-abstraction focus rather than an enforcement/minimal-change focus.
 - [[Rotstein_2008_ArgumentTheoryChangeRevision]] — Adapts AGM-style revision to structured arguments using incision and preservation constraints to make a target argument warranted. This is the structured-argument analogue of minimal-change dynamics that Baumann cites as a complementary approach.
+
+---
+
+**See also:** [[Baumann_2015_AGMMeetsAbstractArgumentation]] - The same authors' 2015 IJCAI paper provides the full AGM-theoretic foundation for AF expansion via "Dung logics" and kernel union, superseding this paper's operational enforcement-based framing with a postulate-based characterization.

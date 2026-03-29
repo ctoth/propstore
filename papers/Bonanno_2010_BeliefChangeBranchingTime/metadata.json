@@ -1,0 +1,16 @@
+{
+  "title": "Belief Change in Branching Time: AGM-consistency and Iterated Revision",
+  "authors": [
+    "G. Bonanno"
+  ],
+  "year": "2010",
+  "doi": "10.1007/s10992-011-9202-6",
+  "url": "https://www.semanticscholar.org/paper/a61df6002c1dc04bb78e0cacdd4825d26acbdd11",
+  "pdf_url": "https://faculty.econ.ucdavis.edu/faculty/bonanno/PDF/plausibility.pdf",
+  "abstract": "We study belief change in the branching-time structures introduced in [8]. First, we identify a property of branching-time frames that is equivalent (when the set of states is finite) to AGM-consistency, which is defined as follows. A frame is AGM-consistent if the partial belief revision function associated with an arbitrary state-instant pair and an arbitrary model based on that frame can be extended to a full belief revision function that satisfies the AGM postulates. Second, we provide a set of modal axioms that characterize the class of AGM-consistent frames within the modal logic introduced in [8]. Third, we introduce a generalization of AGM belief revision functions that allows a clear statement of principles of iterated belief revision and discuss iterated revision both semantically and syntactically.",
+  "bibtex": "@Article{Bonanno2010BeliefCI,\n author = {G. Bonanno},\n booktitle = {Journal of Philosophical Logic},\n journal = {Journal of Philosophical Logic},\n pages = {201 - 236},\n title = {Belief Change in Branching Time: AGM-consistency and Iterated Revision},\n volume = {41},\n year = {2010}\n}\n",
+  "venue": "Journal of Philosophical Logic",
+  "venue_type": "journal",
+  "volume": "41",
+  "pages": "201 - 236"
+}

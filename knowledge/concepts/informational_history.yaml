@@ -1,0 +1,7 @@
+id: concept157
+canonical_name: informational_history
+status: proposed
+definition: A sequence h of past informational inputs received by an agent, tracking the path of evidence that led to the current belief state and affecting disposition to revise beliefs.
+domain: belief-revision
+created_date: '2026-03-28'
+form: structural

@@ -1,0 +1,7 @@
+id: concept163
+canonical_name: refinement_property
+status: proposed
+definition: Properties (REFweak, REF, REFstrong) governing how beliefs change when later information refines earlier information, ranging from weak AGM-implied constraints to strong cumulative information principles.
+domain: belief-revision
+created_date: '2026-03-28'
+form: structural

@@ -385,6 +385,9 @@ This paper provides the formal foundation for replacing bare floats with princip
 
 ## Collection Cross-References
 
+### Already in Collection
+- [[Coste-Marquis_2007_MergingDung'sArgumentationSystems]] — Cited for distance-based merging of Dung AFs; the merging framework's PAF formalism complements Hunter's probabilistic approach by handling structural uncertainty (which attacks exist) via three-valued relations rather than probabilities.
+
 ### Conceptual Links (not citation-based)
 - [[Fang_2025_LLM-ASPICNeuro-SymbolicFrameworkDefeasible]] — **Strong.** Fang's LLM-ASPIC+ framework uses binary beliefs (in the belief set or not) with grounded extensions for conflict resolution. Hunter provides the formal machinery for graded/probabilistic acceptability over AFs. For propstore, the combination is needed: LLM-ASPIC+ style extraction feeding into Hunter-style probabilistic reasoning rather than binary extension membership, bridging the gap between LLM-based extraction uncertainty and formal argumentation semantics.
 - [[Popescu_2024_ProbabilisticArgumentationConstellation]] — **Strong.** Popescu & Wallner provide exact DP algorithms for computing constellation-approach probabilities, complementing Hunter & Thimm's epistemic approach. Hunter assigns belief probabilities to arguments within a fixed AF; Popescu computes probabilities over the AF structure itself (which arguments/attacks exist). For propstore, both probability types are needed: epistemic (how much do we believe this argument?) and structural (what is the probability this argument exists in the framework?).

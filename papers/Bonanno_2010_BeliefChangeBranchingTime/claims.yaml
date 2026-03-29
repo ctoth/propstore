@@ -1,0 +1,221 @@
+source:
+  paper: Bonanno_2010_BeliefChangeBranchingTime
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-29T03:09:13Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A branching-time belief revision frame is AGM-consistent at a state-instant pair if and only if there exists a total pre-order that rationalizes belief revision at that pair, and this holds if and only if the frame satisfies the directly-verifiable property PLS on cyclic sequences of successor instants (when Omega is finite)."
+    concepts:
+      - agm_consistency
+      - branching_time_frame
+      - total_pre_order
+      - rationalizability
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 13
+      section: "Section 3"
+      quote_fragment: "Proposition 6: the following conditions are equivalent"
+
+  - id: claim2
+    type: observation
+    statement: "The equivalence between rationalizability by a total pre-order (condition b) and the PLS frame property (condition c) holds even when the set of states Omega is infinite, but the equivalence with AGM-consistency (condition a) requires Omega to be finite."
+    concepts:
+      - agm_consistency
+      - rationalizability
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 13
+      section: "Remark 18"
+      quote_fragment: "the equivalence of (b) and (c) of Proposition 6 holds also in the case where Omega is infinite"
+
+  - id: claim3
+    type: mechanism
+    statement: "The Qualitative Bayes Rule (QBR) — if prior beliefs intersect new information, posterior beliefs equal that intersection — is the qualitative analog of Bayesian conditioning and is necessary for the AGM-consistency equivalence to hold, because it connects choice-theoretic rationalizability at successor instants to rationalizability including the current instant via QBR-extension of choice structures."
+    concepts:
+      - qualitative_bayes_rule
+      - agm_consistency
+      - bayesian_updating
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 7
+      section: "Section 3, Definition 3, Property 4"
+      quote_fragment: "the Qualitative Bayes Rule plays a crucial role"
+
+  - id: claim4
+    type: observation
+    statement: "Five modal axiom schemas (information-implies-belief, belief-consistency, same-information-same-beliefs, two QBR consequences, and a cyclic PLS axiom) characterize exactly the class of AGM-consistent branching-time belief revision frames within the temporal modal logic."
+    concepts:
+      - agm_consistency
+      - modal_axiomatization
+      - branching_time_frame
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 17
+      section: "Section 4, Proposition 9"
+      quote_fragment: "the class of AGM-consistent branching-time belief revision frames is characterized by the following axioms"
+
+  - id: claim5
+    type: observation
+    statement: "AGM-consistency imposes only REFweak as a constraint on iterated belief revision: if later information refines earlier information and is compatible with intermediate revised beliefs, then the two-step and one-step revision produce the same result."
+    concepts:
+      - agm_consistency
+      - iterated_belief_revision
+      - refinement_property
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 19
+      section: "Section 5, Lemma 10"
+      quote_fragment: "REFweak"
+
+  - id: claim6
+    type: mechanism
+    statement: "The same belief set K at two different state-instant pairs with different informational histories can lead to different revised beliefs upon receiving the same information, because the disposition to revise is encoded in the plausibility ordering which depends on the path taken to reach K, not just K itself."
+    concepts:
+      - iterated_belief_revision
+      - informational_history
+      - plausibility_ordering
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 22
+      section: "Section 6"
+      quote_fragment: "the difference...is attributable to the fact that the two different times represent different ways in which the agent arrived at the same set of beliefs"
+
+  - id: claim7
+    type: observation
+    statement: "Iterated belief revision requires a ternary function B(h, K, phi) taking informational history h, current belief set K, and new information phi as arguments, because binary functions B(K, phi) cannot distinguish different revision dispositions arising from different paths to the same belief set."
+    concepts:
+      - iterated_belief_revision
+      - informational_history
+      - belief_revision_function
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 23
+      section: "Section 6, Definition 11"
+      quote_fragment: "AGM iterated belief revision function is a function B: H x K x Phi -> 2^Phi"
+
+  - id: claim8
+    type: mechanism
+    statement: "A belief state is a triple (h, K, b) where h is informational history, K is current beliefs, and b is the one-step revision function derived from B by fixing h and K. Upon receiving information phi, the state transforms to (h.phi, B(h,K,phi), b') where b' derives from the updated history and beliefs."
+    concepts:
+      - belief_state
+      - iterated_belief_revision
+      - informational_history
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 25
+      section: "Section 6"
+      quote_fragment: "a revision function is a belief state"
+
+  - id: claim9
+    type: comparison
+    statement: "Unlike Dynamic Doxastic Logic which requires infinitely many modal operators (one per formula phi) and lacks explicit temporal structure, branching-time belief revision logic uses only three operators (temporal, belief, information) while fully characterizing AGM-consistent revision."
+    concepts:
+      - branching_time_frame
+      - dynamic_doxastic_logic
+      - modal_axiomatization
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 27
+      section: "Section 7"
+      quote_fragment: "these logics lack an explicit temporal operator and involve an infinite number of modal operators"
+
+  - id: claim10
+    type: comparison
+    statement: "Unlike Dynamic Epistemic Logic (DEL) where time does not play an explicit role, branching-time frames make temporal structure first-class, enabling flexible description of beliefs through time and explicit modeling of informational causes of belief change."
+    concepts:
+      - branching_time_frame
+      - dynamic_epistemic_logic
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 27
+      section: "Section 7"
+      quote_fragment: "the DEL framework offers very limited flexibility in terms of describing beliefs through time"
+
+  - id: claim11
+    type: observation
+    statement: "REFstrong (conjunction property) states that if two sequentially received pieces of information are consistent with each other, they induce the same beliefs as information consisting of their conjunction, and this implies that the order of consistent information is irrelevant."
+    concepts:
+      - iterated_belief_revision
+      - refinement_property
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 20
+      section: "Section 5"
+      quote_fragment: "if two sequentially received pieces of information are consistent with each other"
+
+  - id: claim12
+    type: observation
+    statement: "In an AGM-consistent frame, the plausibility ordering that rationalizes belief revision at a state-instant pair (omega, t) may necessarily differ from the ordering at a successor pair (omega, t'), meaning the agent's epistemic state can change even along a single path."
+    concepts:
+      - agm_consistency
+      - plausibility_ordering
+      - belief_state
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 14
+      section: "Remark 8"
+      quote_fragment: "the ranking of alpha and beta is reversed upon moving from (alpha, t0) to (alpha, t2)"
+
+  - id: claim13
+    type: limitation
+    statement: "The equivalence of AGM-consistency with rationalizability (condition a iff condition b of Proposition 6) requires the set of states Omega to be finite; the result relies on Proposition 20 from Bonanno 2009 which requires finiteness."
+    concepts:
+      - agm_consistency
+      - rationalizability
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 13
+      section: "Section 3, Remark 18"
+      quote_fragment: "when the set of states is finite"
+
+  - id: claim14
+    type: limitation
+    statement: "The framework models only single-agent belief revision; extension to multi-agent settings where multiple agents have different beliefs about the same propositions is left to future work."
+    concepts:
+      - branching_time_frame
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 27
+      section: "Section 7"
+      quote_fragment: "the extension of the branching-time belief revision frames to multi-agent settings"
+
+  - id: claim15
+    type: limitation
+    statement: "The framework restricts attention to belief revision (truth is state-dependent, time-independent) and excludes belief update where objective facts change over time."
+    concepts:
+      - branching_time_frame
+      - belief_revision_function
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 9
+      section: "Section 3"
+      quote_fragment: "In this paper we restrict attention to belief revision"
+
+  - id: claim16
+    type: mechanism
+    statement: "The AGM-consistency equivalence is grounded in Hansson's 1968 choice-theoretic rationalizability theorem: a choice function on subsets of Omega is rationalizable by a total pre-order if and only if every cyclic Hansson sequence satisfies a consistency condition, which directly corresponds to the PLS frame property."
+    concepts:
+      - agm_consistency
+      - rationalizability
+      - total_pre_order
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 29
+      section: "Appendix, Proposition 15"
+      quote_fragment: "Proposition 15...is due to Hansson"
+
+  - id: claim17
+    type: observation
+    statement: "The information operator in the branching-time logic requires equality (I_t(omega) = ||phi||) rather than mere subset inclusion, capturing 'informed precisely that phi' — the agent learns that phi and nothing more, corresponding to Levesque's 'all I know' semantics."
+    concepts:
+      - branching_time_frame
+      - information_operator
+    provenance:
+      paper: Bonanno_2010_BeliefChangeBranchingTime
+      page: 16
+      section: "Section 4"
+      quote_fragment: "instead of simply requiring that I_t(omega) subset ||phi|| we require equality"

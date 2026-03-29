@@ -1,0 +1,7 @@
+id: concept149
+canonical_name: agm_consistency
+status: proposed
+definition: Property of a branching-time belief revision frame whereby the partial belief revision function at any state-instant pair can be extended to a full AGM belief revision function satisfying all eight AGM postulates.
+domain: belief-revision
+created_date: '2026-03-28'
+form: structural

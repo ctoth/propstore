@@ -1,0 +1,7 @@
+id: concept151
+canonical_name: belief_revision_function
+status: proposed
+definition: A function B_K that maps an informational input phi to a revised belief set B_K(phi), representing the agent's new beliefs after receiving information phi given initial beliefs K.
+domain: belief-revision
+created_date: '2026-03-28'
+form: structural
