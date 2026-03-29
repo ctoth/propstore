@@ -26,6 +26,13 @@ class _DiffKind(Enum):
 
 
 @dataclass(frozen=True)
+class _IndexedClaim:
+    raw: dict[str, Any]
+    claim_id: str
+    concept_id: str
+
+
+@dataclass(frozen=True)
 class MergeArgument:
     """A claim alternative emitted by the repository merge boundary."""
 
@@ -57,6 +64,13 @@ def _annotate_provenance(claim: dict[str, Any], branch_name: str) -> dict[str, A
     return merged
 
 
+def _claim_id(claim: dict[str, Any]) -> str | None:
+    claim_id = claim.get("id")
+    if isinstance(claim_id, str) and claim_id:
+        return claim_id
+    return None
+
+
 def _disambiguate_id(claim_id: str, suffix: str) -> str:
     safe_suffix = suffix.replace("/", "_").replace("-", "_")
     return f"{claim_id}__{safe_suffix}"
@@ -64,12 +78,25 @@ def _disambiguate_id(claim_id: str, suffix: str) -> str:
 
 def _extract_concept(claim: dict[str, Any]) -> str:
     concept = claim.get("concept")
-    if concept:
+    if isinstance(concept, str) and concept:
         return str(concept)
     concepts = claim.get("concepts", [])
-    if concepts:
-        return str(concepts[0])
+    if isinstance(concepts, list):
+        for candidate in concepts:
+            if isinstance(candidate, str) and candidate:
+                return candidate
     return ""
+
+
+def _indexed_claim(claim: dict[str, Any]) -> _IndexedClaim | None:
+    claim_id = _claim_id(claim)
+    if claim_id is None:
+        return None
+    return _IndexedClaim(
+        raw=claim,
+        claim_id=claim_id,
+        concept_id=_extract_concept(claim),
+    )
 
 
 def _claim_semantic_key(claim: dict[str, Any]) -> dict[str, Any]:
@@ -81,13 +108,15 @@ def _claims_equal(a: dict[str, Any], b: dict[str, Any]) -> bool:
     return _claim_semantic_key(a) == _claim_semantic_key(b)
 
 
-def _index_claims(claim_files) -> dict[str, dict[str, Any]]:
-    index: dict[str, dict[str, Any]] = {}
+def _index_claims(claim_files) -> dict[str, _IndexedClaim]:
+    index: dict[str, _IndexedClaim] = {}
     for claim_file in claim_files:
         for claim in claim_file.data.get("claims", []):
-            claim_id = claim.get("id")
-            if claim_id:
-                index[str(claim_id)] = claim
+            if not isinstance(claim, dict):
+                continue
+            indexed = _indexed_claim(claim)
+            if indexed is not None:
+                index[indexed.claim_id] = indexed
     return index
 
 
@@ -149,15 +178,15 @@ def _classify_pair(
 def _emit_argument(
     emitted: list[MergeArgument],
     *,
-    claim: dict[str, Any],
+    claim: _IndexedClaim,
     canonical_claim_id: str,
     concept_id: str,
     branch_origins: tuple[str, ...],
     emitted_claim_id: str | None = None,
     annotate_branch_origin: str | None = None,
 ) -> str:
-    merged_claim = copy.deepcopy(claim)
-    claim_id = emitted_claim_id or str(merged_claim.get("id", canonical_claim_id))
+    merged_claim = copy.deepcopy(claim.raw)
+    claim_id = emitted_claim_id or claim.claim_id or canonical_claim_id
     merged_claim["id"] = claim_id
     if annotate_branch_origin is not None:
         merged_claim = _annotate_provenance(merged_claim, annotate_branch_origin)
@@ -207,7 +236,7 @@ def build_merge_framework(
         concept_id = ""
         for candidate in (left_claim, right_claim, base_claim):
             if candidate is not None:
-                concept_id = _extract_concept(candidate)
+                concept_id = candidate.concept_id
                 break
 
         in_left = left_claim is not None
@@ -215,7 +244,7 @@ def build_merge_framework(
         in_base = base_claim is not None
 
         if in_left and in_right:
-            if _claims_equal(left_claim, right_claim):
+            if _claims_equal(left_claim.raw, right_claim.raw):
                 _emit_argument(
                     emitted,
                     claim=left_claim,
@@ -225,7 +254,7 @@ def build_merge_framework(
                 )
                 continue
 
-            if in_base and _claims_equal(left_claim, base_claim):
+            if in_base and _claims_equal(left_claim.raw, base_claim.raw):
                 _emit_argument(
                     emitted,
                     claim=right_claim,
@@ -235,7 +264,7 @@ def build_merge_framework(
                 )
                 continue
 
-            if in_base and _claims_equal(right_claim, base_claim):
+            if in_base and _claims_equal(right_claim.raw, base_claim.raw):
                 _emit_argument(
                     emitted,
                     claim=left_claim,
@@ -245,7 +274,7 @@ def build_merge_framework(
                 )
                 continue
 
-            diff_kind = _classify_pair(left_claim, right_claim)
+            diff_kind = _classify_pair(left_claim.raw, right_claim.raw)
             left_claim_id = _emit_argument(
                 emitted,
                 claim=left_claim,
