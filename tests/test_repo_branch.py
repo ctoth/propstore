@@ -49,10 +49,10 @@ def test_create_branch_from_master(tmp_path):
 def test_create_branch_from_commit(tmp_path):
     """Creating a branch from a specific commit anchors it there.
 
-    Darwiche & Pearl 1997, C1: if alpha entails mu, revising by mu then
-    alpha equals revising by alpha alone. A branch rooted at commit A
+    Analogous to Darwiche & Pearl 1997 C1: a branch rooted at commit A
     represents the epistemic state at A — later master commits (B) are
-    irrelevant to this branch's starting state.
+    irrelevant to this branch's starting state. This is an analogy, not
+    a formal C1 verification (which requires a revision operator).
     """
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     sha_a = kr.commit_files({"a.yaml": b"x: 1\n"}, "commit A")
@@ -134,10 +134,10 @@ def test_list_branches_includes_master(tmp_path):
 def test_commit_to_branch_isolation(tmp_path):
     """Commits to branch X do not appear on master.
 
-    Darwiche & Pearl 1997, C1-C4: each branch is an independent
-    epistemic state. Revisions on one branch must not affect another.
-    This is the fundamental isolation property — without it, branches
-    would not represent independent belief revision sequences.
+    Provides the isolation prerequisite for Darwiche & Pearl 1997 C1-C4:
+    each branch maintains an independent commit sequence. C1-C4
+    satisfaction requires a revision operator (Phase 2+); this test
+    verifies the structural independence that makes C1-C4 applicable.
     """
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "commit A to master")
@@ -190,10 +190,11 @@ def test_branch_linear_history(tmp_path):
 def test_parallel_branch_divergence(tmp_path):
     """Parallel branches diverge independently after the fork point.
 
-    Darwiche & Pearl 1997, C2: if alpha entails not-mu, revising by mu
-    then alpha equals revising by alpha alone. Contradicting evidence
-    on one branch does not propagate to the other. Master and branch
-    must each contain only their own commits after the fork.
+    Analogous to Darwiche & Pearl 1997 C2: contradicting evidence on
+    one branch does not propagate to the other. This is an analogy, not
+    a formal C2 verification (which requires a revision operator).
+    Master and branch must each contain only their own commits after
+    the fork.
     """
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     sha_a = kr.commit_files({"a.yaml": b"shared\n"}, "commit A (shared)")
@@ -224,10 +225,10 @@ def test_parallel_branch_divergence(tmp_path):
 def test_merge_base_simple(tmp_path):
     """merge_base finds the common ancestor after divergence.
 
-    Konieczny & Pino Pérez 2002: IC merging requires identifying the
-    common knowledge base from which branches diverged. merge_base()
-    provides this — it is the 'integrity constraints' baseline (IC0)
-    against which both branches' changes are measured.
+    Provides the common baseline for future IC merging (Konieczny &
+    Pino Pérez 2002). merge_base() identifies the divergence point —
+    the common knowledge base from which both branches evolved. IC0
+    satisfaction requires the merge operator itself (Phase 2+).
     """
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     sha_a = kr.commit_files({"a.yaml": b"x: 1\n"}, "commit A")

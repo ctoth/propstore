@@ -11,6 +11,8 @@ Literature grounding:
 """
 from __future__ import annotations
 
+import time
+from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -33,6 +35,8 @@ class BranchInfo:
     name: str
     tip_sha: str
     kind: str  # "paper", "agent", "hypothesis", "workspace"
+    parent_branch: str = ""
+    created_at: int = 0
 
 
 def _detect_kind(name: str) -> str:
@@ -67,6 +71,12 @@ def create_branch(kr: KnowledgeRepo, name: str, source_commit: str | None = None
         sha_bytes = source_commit.encode("ascii")
 
     kr._repo.refs[ref] = sha_bytes
+    # Store branch metadata for later retrieval
+    kr._branch_meta = getattr(kr, "_branch_meta", {})
+    kr._branch_meta[name] = {
+        "parent_branch": "master" if source_commit is None else "",
+        "created_at": int(time.time()),
+    }
     return sha_bytes.decode("ascii")
 
 
@@ -98,7 +108,14 @@ def list_branches(kr: KnowledgeRepo) -> list[BranchInfo]:
             continue
         name = ref_bytes[len(prefix):].decode("utf-8")
         tip_sha = sha_bytes.decode("ascii")
-        result.append(BranchInfo(name=name, tip_sha=tip_sha, kind=_detect_kind(name)))
+        meta = getattr(kr, "_branch_meta", {}).get(name, {})
+        result.append(BranchInfo(
+            name=name,
+            tip_sha=tip_sha,
+            kind=_detect_kind(name),
+            parent_branch=meta.get("parent_branch", ""),
+            created_at=meta.get("created_at", 0),
+        ))
     return result
 
 
@@ -134,12 +151,12 @@ def merge_base(kr: KnowledgeRepo, branch_a: str, branch_b: str) -> str:
     # BFS from both sides: collect ancestors of each, find first overlap
     ancestors_a: set[str] = set()
     ancestors_b: set[str] = set()
-    queue_a: list[str] = [sha_a]
-    queue_b: list[str] = [sha_b]
+    queue_a: deque[str] = deque([sha_a])
+    queue_b: deque[str] = deque([sha_b])
 
     while queue_a or queue_b:
         if queue_a:
-            current = queue_a.pop(0)
+            current = queue_a.popleft()
             if current in ancestors_b:
                 return current
             if current not in ancestors_a:
@@ -151,7 +168,7 @@ def merge_base(kr: KnowledgeRepo, branch_a: str, branch_b: str) -> str:
                         queue_a.append(parent_sha)
 
         if queue_b:
-            current = queue_b.pop(0)
+            current = queue_b.popleft()
             if current in ancestors_a:
                 return current
             if current not in ancestors_b:
