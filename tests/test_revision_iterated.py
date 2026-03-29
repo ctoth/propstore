@@ -208,3 +208,55 @@ def test_iterated_revise_supports_operator_specific_ranking_updates() -> None:
 
     assert restrained_state.ranked_atom_ids[0] != lexicographic_state.ranked_atom_ids[0]
     assert lexicographic_state.ranked_atom_ids[0] == "claim:new"
+
+
+def test_iterated_revise_linear_sequence_appends_history_and_uses_next_state() -> None:
+    from propstore.revision.iterated import iterated_revise, make_epistemic_state
+
+    base, entrenchment, _ = _history_sensitive_base()
+    state = make_epistemic_state(base, entrenchment)
+
+    _, next_state = iterated_revise(
+        state,
+        {"kind": "claim", "id": "new_a"},
+        conflicts={"claim:new_a": ("claim:legacy",)},
+        operator="restrained",
+    )
+    _, final_state = iterated_revise(
+        next_state,
+        {"kind": "claim", "id": "new_b"},
+        conflicts={"claim:new_b": ("claim:new_a",)},
+        operator="restrained",
+    )
+
+    assert len(next_state.history) == 1
+    assert len(final_state.history) == 2
+    assert final_state.history[0].input_atom_id == "claim:new_a"
+    assert final_state.history[1].input_atom_id == "claim:new_b"
+    assert "claim:new_a" not in final_state.accepted_atom_ids
+    assert "claim:new_b" in final_state.accepted_atom_ids
+
+
+def test_iterated_revise_refuses_merge_point_states() -> None:
+    import pytest
+
+    from propstore.revision.iterated import iterated_revise, make_epistemic_state
+
+    base, entrenchment, _ = _history_sensitive_base()
+    merge_base = replace(
+        base,
+        scope=RevisionScope(
+            bindings=base.scope.bindings,
+            branch="topic",
+            merge_parent_commits=("abc123", "def456"),
+        ),
+    )
+    state = make_epistemic_state(merge_base, entrenchment)
+
+    with pytest.raises(ValueError, match="merge point"):
+        iterated_revise(
+            state,
+            {"kind": "claim", "id": "new"},
+            conflicts={"claim:new": ("claim:legacy",)},
+            operator="restrained",
+        )
