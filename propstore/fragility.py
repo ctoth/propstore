@@ -164,6 +164,7 @@ def weighted_epistemic_score(
     *,
     probability_weights: list[float] | None = None,
     witness_indices: list[int] | None = None,
+    current_in_extension: bool = True,
 ) -> float:
     """Compute epistemic score with optional probability weighting.
 
@@ -172,6 +173,12 @@ def weighted_epistemic_score(
 
     When probability_weights is provided, sums the weights of witness
     futures and divides by total weight of all futures.
+
+    The ``current_in_extension`` flag controls sign correction (I5 fix):
+    - For IN nodes: flip witnesses = futures where concept drops OUT.
+      Score = witnesses / consistent (high flips = fragile).
+    - For OUT nodes: flip witnesses = futures where concept enters IN.
+      Score = 1 - witnesses / consistent (many entries = well-supported = low fragility).
 
     Parameters
     ----------
@@ -185,6 +192,9 @@ def weighted_epistemic_score(
     witness_indices : list[int] | None
         Indices into probability_weights for which futures are witnesses.
         Required when probability_weights is provided.
+    current_in_extension : bool
+        Whether the concept is currently in the extension / determined.
+        Defaults to True (preserving backward compat for IN nodes).
 
     Returns
     -------
@@ -201,18 +211,21 @@ def weighted_epistemic_score(
 
     if probability_weights is None:
         # Uniform: simple ratio
-        return len(witnesses) / max(consistent_future_count, 1)
-
-    total_weight = sum(probability_weights)
-    if total_weight == 0.0:
+        raw = len(witnesses) / max(consistent_future_count, 1)
+    elif total_weight := sum(probability_weights):
+        if witness_indices is None:
+            raw = len(witnesses) / max(consistent_future_count, 1)
+        else:
+            witness_weight = sum(probability_weights[i] for i in witness_indices)
+            raw = witness_weight / total_weight
+    else:
         return 0.0
 
-    if witness_indices is None:
-        # Fall back to uniform if no indices provided
-        return len(witnesses) / max(consistent_future_count, 1)
-
-    witness_weight = sum(probability_weights[i] for i in witness_indices)
-    return witness_weight / total_weight
+    # I5: sign correction for OUT nodes
+    if current_in_extension:
+        return raw
+    else:
+        return 1.0 - raw
 
 
 def detect_interactions(
@@ -315,6 +328,33 @@ def _detect_shared_concepts(a: FragilityTarget, b: FragilityTarget) -> float:
     return overlap / total if total > 0 else 0.0
 
 
+_TOL = 1e-9
+
+
+def _try_perturb(opinion: Any, delta_u: float, a: float) -> Any | None:
+    """Try to construct a perturbed opinion. Returns Opinion or None.
+
+    Preserves the expectation E = b + a*u while shifting u by delta_u.
+    Returns None if the resulting opinion would be invalid.
+    """
+    from propstore.opinion import Opinion
+
+    E = opinion.expectation()
+    u_new = opinion.u + delta_u
+    if u_new < _TOL or u_new > 1.0 - _TOL:
+        return None
+    b_new = E - a * u_new
+    d_new = 1.0 - u_new - b_new
+    if b_new < -_TOL or d_new < -_TOL:
+        return None
+    b_new = max(0.0, b_new)
+    d_new = max(0.0, d_new)
+    try:
+        return Opinion(b_new, d_new, u_new, a)
+    except ValueError:
+        return None
+
+
 def opinion_sensitivity(
     opinions: list,
     index: int,
@@ -326,65 +366,76 @@ def opinion_sensitivity(
     Computes central finite difference of the fused expectation
     with respect to the uncertainty of opinions[index].
 
+    Uses adaptive delta: tries central difference first, falls back to
+    one-sided difference, and shrinks delta on failure (up to 3 retries).
+
     Returns None if fewer than 2 opinions (no fusion partner),
-    or if any opinion is too close to dogmatic for WBF perturbation.
+    or if all perturbation attempts fail.
 
     References
     ----------
     Jøsang 2001: E(omega) = b + a*u. WBF fuses N opinions.
     """
-    from propstore.opinion import Opinion, wbf
+    from propstore.opinion import wbf
 
     if len(opinions) < 2:
         return None
 
-    # Check if any opinion is too close to dogmatic for perturbation
+    # Check if any opinion is dogmatic (u essentially zero) — WBF can't handle it
     for op in opinions:
-        if op.u < delta * 2:
+        if op.u < _TOL:
             return None
 
     oi = opinions[index]
-    e_i = oi.expectation()
     a_i = oi.a
 
-    # Perturb down: u_minus = u_i - delta
-    u_minus = oi.u - delta
-    b_minus = e_i - a_i * u_minus
-    d_minus = 1.0 - u_minus - b_minus
-    # Clamp for numerical safety
-    b_minus = max(0.0, min(1.0, b_minus))
-    d_minus = max(0.0, min(1.0, d_minus))
+    def _try_fuse(perturbed_op: Any) -> float | None:
+        """Substitute perturbed opinion and compute fused expectation."""
+        ops = list(opinions)
+        ops[index] = perturbed_op
+        try:
+            return wbf(*ops).expectation()
+        except ValueError:
+            return None
 
-    # Perturb up: u_plus = u_i + delta (clamped to < 1.0)
-    u_plus = min(oi.u + delta, 1.0 - 1e-12)
-    b_plus = e_i - a_i * u_plus
-    d_plus = 1.0 - u_plus - b_plus
-    b_plus = max(0.0, min(1.0, b_plus))
-    d_plus = max(0.0, min(1.0, d_plus))
+    # Try with shrinking delta, up to 3 attempts
+    current_delta = delta
+    for _attempt in range(3):
+        op_minus = _try_perturb(oi, -current_delta, a_i)
+        op_plus = _try_perturb(oi, +current_delta, a_i)
 
-    try:
-        op_minus = Opinion(b_minus, d_minus, u_minus, a_i)
-        op_plus = Opinion(b_plus, d_plus, u_plus, a_i)
-    except ValueError:
-        return None
+        # Central difference: both sides valid
+        if op_minus is not None and op_plus is not None:
+            e_minus = _try_fuse(op_minus)
+            e_plus = _try_fuse(op_plus)
+            if e_minus is not None and e_plus is not None:
+                actual_delta = 2.0 * current_delta
+                if actual_delta < 1e-15:
+                    return None
+                return abs(e_plus - e_minus) / actual_delta
 
-    # Build two opinion lists with perturbed opinion substituted
-    opinions_minus = list(opinions)
-    opinions_minus[index] = op_minus
-    opinions_plus = list(opinions)
-    opinions_plus[index] = op_plus
+        # One-sided forward: only plus valid
+        if op_plus is not None:
+            e_base = _try_fuse(oi)
+            e_plus = _try_fuse(op_plus)
+            if e_base is not None and e_plus is not None:
+                if current_delta < 1e-15:
+                    return None
+                return abs(e_plus - e_base) / current_delta
 
-    try:
-        e_fused_minus = wbf(*opinions_minus).expectation()
-        e_fused_plus = wbf(*opinions_plus).expectation()
-    except ValueError:
-        return None
+        # One-sided backward: only minus valid
+        if op_minus is not None:
+            e_base = _try_fuse(oi)
+            e_minus = _try_fuse(op_minus)
+            if e_base is not None and e_minus is not None:
+                if current_delta < 1e-15:
+                    return None
+                return abs(e_base - e_minus) / current_delta
 
-    actual_delta = u_plus - u_minus
-    if actual_delta < 1e-15:
-        return None
+        # Both sides failed — shrink delta and retry
+        current_delta /= 2.0
 
-    return abs(e_fused_plus - e_fused_minus) / actual_delta
+    return None
 
 
 def imps_rev(
@@ -489,6 +540,10 @@ def rank_fragility(
     # Determine which concepts to analyze
     concept_ids = [concept_id] if concept_id else _derived_concepts(bound)
 
+    # Collect per-concept raw scores and details first
+    raw_data: list[dict] = []
+    raw_parametric: dict[str, float] = {}
+
     for cid in concept_ids:
         p_score, p_detail = (None, None)
         e_score, e_detail = (None, None)
@@ -496,6 +551,8 @@ def rank_fragility(
 
         if include_parametric:
             p_score, p_detail = _parametric_dimension(bound, cid)
+            if p_score is not None:
+                raw_parametric[cid] = p_score
 
         if include_epistemic:
             e_score, e_detail = _epistemic_dimension(
@@ -504,6 +561,22 @@ def rank_fragility(
 
         if include_conflict:
             c_score, c_detail = _conflict_dimension(bound, cid)
+
+        raw_data.append({
+            "cid": cid,
+            "p_score": p_score, "p_detail": p_detail,
+            "e_score": e_score, "e_detail": e_detail,
+            "c_score": c_score, "c_detail": c_detail,
+        })
+
+    # C1 fix: normalize parametric scores across all concepts
+    normalized_parametric = _normalize_parametric_scores(raw_parametric)
+
+    for entry in raw_data:
+        cid = entry["cid"]
+        p_score = normalized_parametric.get(cid, entry["p_score"])
+        e_score = entry["e_score"]
+        c_score = entry["c_score"]
 
         frag = combine_fragility(p_score, e_score, c_score, combination)
 
@@ -516,9 +589,9 @@ def rank_fragility(
                 epistemic_score=e_score,
                 conflict_score=c_score,
                 fragility=frag,
-                parametric_detail=p_detail,
-                epistemic_detail=e_detail,
-                conflict_detail=c_detail,
+                parametric_detail=entry["p_detail"],
+                epistemic_detail=entry["e_detail"],
+                conflict_detail=entry["c_detail"],
             )
         )
 
@@ -540,6 +613,30 @@ def rank_fragility(
         analysis_scope=scope,
         interactions=tuple(interactions),
     )
+
+
+def _normalize_parametric_scores(raw_scores: dict[str, float]) -> dict[str, float]:
+    """Normalize raw parametric scores across all concepts to [0, 1].
+
+    Divides each raw max-elasticity score by the global maximum.
+    If all scores are zero, returns all zeros.
+
+    Parameters
+    ----------
+    raw_scores : dict[str, float]
+        Mapping of concept_id -> raw max absolute elasticity.
+
+    Returns
+    -------
+    dict[str, float]
+        Mapping of concept_id -> normalized score in [0, 1].
+    """
+    if not raw_scores:
+        return {}
+    global_max = max(raw_scores.values())
+    if global_max < 1e-12:
+        return {k: 0.0 for k in raw_scores}
+    return {k: v / global_max for k, v in raw_scores.items()}
 
 
 # ── Internal dimension helpers ──────────────────────────────────────
@@ -581,9 +678,9 @@ def _parametric_dimension(
         if max_abs < 1e-12:
             return 0.0, {"elasticities": elasticities, "max_abs": 0.0}
 
-        # Normalized score = max elasticity / max elasticity = 1.0 for this concept
-        # (the concept with the highest elasticity input gets score 1.0)
-        score = max(abs(e) for e in elasticities) / max_abs
+        # C1 fix: return raw max absolute elasticity, not self-normalized.
+        # rank_fragility normalizes across all concepts afterward.
+        score = max_abs
         return score, {
             "elasticities": elasticities,
             "max_abs": max_abs,
@@ -616,13 +713,22 @@ def _epistemic_dimension(
         if consistent == 0:
             consistent = 1
 
-        score = len(witnesses) / consistent
+        # I5/I1: determine current status and delegate to weighted_epistemic_score
+        current_status = stability.get("current_status", "determined")
+        in_extension = current_status in ("determined", "in")
+
+        score = weighted_epistemic_score(
+            witnesses,
+            consistent,
+            current_in_extension=in_extension,
+        )
         score = min(1.0, score)  # Clamp to [0, 1]
 
         return score, {
             "witnesses": len(witnesses),
             "consistent_futures": consistent,
             "stable": stability.get("stable", True),
+            "current_status": current_status,
         }
     except Exception:
         return None, None

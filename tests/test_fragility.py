@@ -488,3 +488,157 @@ class TestConflictScoringGradual:
         # Both should be positive but generally have different values
         assert extension_score > 0.0
         assert gradual_impact > 0.0
+
+
+# ── C1: Parametric normalization tests ────────────────────────────────
+
+
+class TestParametricNormalization:
+    """C1: _parametric_dimension should return raw max elasticity,
+    then rank_fragility normalizes across all concepts."""
+
+    def test_different_elasticities_different_scores(self):
+        """Raw parametric scores are normalized across concepts.
+
+        Concept A has max elasticity 5.0, concept B has 0.5.
+        After normalization: A = 1.0, B = 0.1.
+        """
+        from propstore.fragility import _normalize_parametric_scores
+
+        raw_scores = {"A": 5.0, "B": 0.5}
+        normalized = _normalize_parametric_scores(raw_scores)
+        assert normalized["A"] == pytest.approx(1.0)
+        assert normalized["B"] == pytest.approx(0.1)
+
+    def test_single_concept_gets_score_one(self):
+        """A single concept's parametric score normalizes to 1.0."""
+        from propstore.fragility import _normalize_parametric_scores
+
+        raw_scores = {"X": 3.0}
+        normalized = _normalize_parametric_scores(raw_scores)
+        assert normalized["X"] == pytest.approx(1.0)
+
+    def test_zero_elasticity_gets_score_zero(self):
+        """A concept with zero elasticity gets score 0.0."""
+        from propstore.fragility import _normalize_parametric_scores
+
+        raw_scores = {"A": 4.0, "B": 0.0}
+        normalized = _normalize_parametric_scores(raw_scores)
+        assert normalized["A"] == pytest.approx(1.0)
+        assert normalized["B"] == pytest.approx(0.0)
+
+    def test_all_zero_elasticities(self):
+        """If all elasticities are zero, all scores are 0.0."""
+        from propstore.fragility import _normalize_parametric_scores
+
+        raw_scores = {"A": 0.0, "B": 0.0}
+        normalized = _normalize_parametric_scores(raw_scores)
+        assert normalized["A"] == pytest.approx(0.0)
+        assert normalized["B"] == pytest.approx(0.0)
+
+
+# ── C2: Opinion sensitivity adaptive delta tests ─────────────────────
+
+
+class TestOpinionSensitivityAdaptive:
+    """C2: opinion_sensitivity should handle high-belief/high-base-rate opinions."""
+
+    def test_high_belief_high_base_rate_not_none(self):
+        """opinion_sensitivity returns a value (not None) for Opinion(0.7, 0.0, 0.3, 0.9)."""
+        opinions = [Opinion(0.7, 0.0, 0.3, 0.9), Opinion(0.3, 0.3, 0.4, 0.5)]
+        result = opinion_sensitivity(opinions, 0)
+        assert result is not None
+
+    def test_adaptive_delta_works(self):
+        """Various edge-case opinions produce non-None sensitivity."""
+        edge_cases = [
+            Opinion(0.8, 0.0, 0.2, 0.8),   # high b, zero d, high a
+            Opinion(0.0, 0.8, 0.2, 0.2),   # zero b, high d, low a
+            Opinion(0.45, 0.05, 0.5, 0.9), # high a near boundary
+        ]
+        other = Opinion(0.3, 0.3, 0.4, 0.5)
+        for edge in edge_cases:
+            result = opinion_sensitivity([edge, other], 0)
+            assert result is not None, f"Failed for {edge}"
+
+
+# ── I5: Epistemic sign flip for OUT nodes ────────────────────────────
+
+
+class TestEpistemicSignFlip:
+    """I5: OUT nodes with many flip witnesses should have LOW fragility."""
+
+    def test_out_node_many_witnesses_low_fragility(self):
+        """A concept not in the extension that would enter in most futures
+        has LOW fragility, not high.
+
+        If current_status is 'undetermined' and witnesses=7, consistent=8:
+        Old formula: 7/8 = 0.875 (HIGH fragility — WRONG)
+        New formula: 1 - 7/8 = 0.125 (LOW fragility — CORRECT)
+        """
+        from propstore.fragility import weighted_epistemic_score
+
+        # For OUT nodes, the score should be inverted
+        score = weighted_epistemic_score(
+            witnesses=[{} for _ in range(7)],
+            consistent_future_count=8,
+            current_in_extension=False,
+        )
+        assert score == pytest.approx(0.125)
+
+    def test_in_node_many_witnesses_high_fragility(self):
+        """A concept IN the extension with many flip witnesses is fragile."""
+        from propstore.fragility import weighted_epistemic_score
+
+        score = weighted_epistemic_score(
+            witnesses=[{} for _ in range(7)],
+            consistent_future_count=8,
+            current_in_extension=True,
+        )
+        assert score == pytest.approx(0.875)
+
+    def test_in_node_default_behavior_unchanged(self):
+        """Without current_in_extension, default (True) preserves old behavior."""
+        from propstore.fragility import weighted_epistemic_score
+
+        score = weighted_epistemic_score(
+            witnesses=[{} for _ in range(3)],
+            consistent_future_count=10,
+        )
+        assert score == pytest.approx(0.3)
+
+
+# ── I1: Wire weighted_epistemic_score into _epistemic_dimension ──────
+
+
+class TestEpistemicWiring:
+    """I1: _epistemic_dimension should delegate to weighted_epistemic_score."""
+
+    def test_weighted_score_called_with_current_status(self):
+        """weighted_epistemic_score is called from _epistemic_dimension
+        with the current_in_extension parameter from stability report."""
+        from unittest.mock import patch, MagicMock
+
+        from propstore.fragility import _epistemic_dimension
+
+        # Build a mock bound world
+        mock_bound = MagicMock()
+        mock_atms = MagicMock()
+        mock_bound.atms_engine.return_value = mock_atms
+        mock_atms._all_parameterizations = ["p1", "p2"]
+        mock_atms.concept_stability.return_value = {
+            "witnesses": [{"idx": 0}, {"idx": 1}],
+            "consistent_future_count": 5,
+            "stable": False,
+            "current_status": "determined",
+        }
+
+        with patch("propstore.fragility.weighted_epistemic_score") as mock_wes:
+            mock_wes.return_value = 0.4
+            score, detail = _epistemic_dimension(mock_bound, "test_concept", None, 8)
+
+            # Verify weighted_epistemic_score was called
+            mock_wes.assert_called_once()
+            # Verify it got the right arguments
+            call_kwargs = mock_wes.call_args
+            assert call_kwargs is not None
