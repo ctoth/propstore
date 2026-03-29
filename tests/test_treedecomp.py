@@ -190,6 +190,44 @@ class TestNiceTreeDecomposition:
                 f"Edge ({src}, {tgt}) not covered by any bag"
             )
 
+    def test_compute_tree_decomposition_rejects_disconnected_framework(self):
+        """Public TD construction must not silently return a disconnected forest."""
+        from propstore.praf_treedecomp import compute_tree_decomposition
+
+        af = ArgumentationFramework(
+            arguments=frozenset({"a", "b", "c", "d"}),
+            defeats=frozenset({("a", "b"), ("c", "d")}),
+        )
+
+        with pytest.raises(ValueError, match="connected tree"):
+            compute_tree_decomposition(af)
+
+    def test_validate_tree_decomposition_rejects_running_intersection_violation(self):
+        """Validator must catch bags containing the same vertex in disconnected regions."""
+        from propstore.praf_treedecomp import TreeDecomposition, validate_tree_decomposition
+
+        af = ArgumentationFramework(
+            arguments=frozenset({"a", "b", "c"}),
+            defeats=frozenset({("a", "b"), ("b", "c")}),
+        )
+        td = TreeDecomposition(
+            bags={
+                0: frozenset({"a", "b"}),
+                1: frozenset({"b"}),
+                2: frozenset({"b", "c"}),
+            },
+            adj={
+                0: {1},
+                1: {0},
+                2: set(),
+            },
+            root=0,
+            width=1,
+        )
+
+        with pytest.raises(ValueError, match="running intersection|connected tree"):
+            validate_tree_decomposition(td, af)
+
 
 # ===================================================================
 # 8. test_dp_agrees_with_brute_force — CRITICAL correctness test

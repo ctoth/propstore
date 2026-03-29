@@ -219,7 +219,93 @@ def compute_tree_decomposition(
                     break
 
     root = n_bags - 1 if n_bags > 0 else 0
-    return TreeDecomposition(bags=bags, adj=tree_adj, root=root, width=width)
+    td = TreeDecomposition(bags=bags, adj=tree_adj, root=root, width=width)
+    validate_tree_decomposition(td, framework)
+    return td
+
+
+def validate_tree_decomposition(
+    td: TreeDecomposition,
+    framework: ArgumentationFramework | None = None,
+) -> None:
+    """Validate that a TD is internally well-formed and optionally AF-complete."""
+    bag_ids = set(td.bags)
+    if not bag_ids:
+        raise ValueError("tree decomposition must contain at least one bag")
+    if td.root not in bag_ids:
+        raise ValueError("tree decomposition root must reference an existing bag")
+
+    for bag_id in bag_ids:
+        neighbors = td.adj.get(bag_id, set())
+        for neighbor in neighbors:
+            if neighbor not in bag_ids:
+                raise ValueError("tree decomposition adjacency references an unknown bag")
+            if bag_id not in td.adj.get(neighbor, set()):
+                raise ValueError("tree decomposition adjacency must be symmetric")
+
+    visited: set[int] = set()
+    stack = [td.root]
+    while stack:
+        node = stack.pop()
+        if node in visited:
+            continue
+        visited.add(node)
+        stack.extend(td.adj.get(node, set()) - visited)
+
+    if visited != bag_ids:
+        raise ValueError("tree decomposition adjacency must form a connected tree")
+
+    edge_count = sum(len(td.adj.get(bag_id, set())) for bag_id in bag_ids) // 2
+    if edge_count != len(bag_ids) - 1:
+        raise ValueError("tree decomposition adjacency must form a connected tree")
+
+    actual_width = max(len(bag) - 1 for bag in td.bags.values())
+    if td.width != actual_width:
+        raise ValueError(
+            f"tree decomposition width mismatch: expected {actual_width}, got {td.width}"
+        )
+
+    covered_arguments = set().union(*td.bags.values())
+    for argument in sorted(covered_arguments):
+        containing = {
+            bag_id
+            for bag_id, bag in td.bags.items()
+            if argument in bag
+        }
+        component: set[int] = set()
+        stack = [next(iter(containing))]
+        while stack:
+            node = stack.pop()
+            if node in component or node not in containing:
+                continue
+            component.add(node)
+            stack.extend(td.adj.get(node, set()) - component)
+        if component != containing:
+            raise ValueError(
+                f"tree decomposition running intersection violated for argument '{argument}'"
+            )
+
+    if framework is None:
+        return
+
+    framework_arguments = set(framework.arguments)
+    extra_arguments = covered_arguments - framework_arguments
+    if extra_arguments:
+        raise ValueError(
+            f"tree decomposition contains arguments outside the framework: {sorted(extra_arguments)}"
+        )
+    missing_arguments = framework_arguments - covered_arguments
+    if missing_arguments:
+        raise ValueError(
+            f"tree decomposition does not cover all arguments: {sorted(missing_arguments)}"
+        )
+
+    relation = framework.attacks if framework.attacks is not None else framework.defeats
+    for src, tgt in relation:
+        if not any(src in bag and tgt in bag for bag in td.bags.values()):
+            raise ValueError(
+                f"tree decomposition does not cover edge ({src}, {tgt})"
+            )
 
 
 # ===================================================================
@@ -237,6 +323,7 @@ def to_nice_tree_decomposition(
     - Forget(v): removes argument v, one child
     - Join: two children with identical bags
     """
+    validate_tree_decomposition(td)
     nodes: dict[int, NiceTDNode] = {}
     next_id = max(td.bags.keys()) + 1 if td.bags else 0
 
