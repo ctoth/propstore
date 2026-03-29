@@ -757,8 +757,8 @@ def _populate_parameterizations(conn: sqlite3.Connection, concepts: list[LoadedC
 
 def _insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
     conn.execute(
-        "INSERT INTO claim_core (id, content_hash, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO claim_core (id, content_hash, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id, branch) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             row["id"],
             row["content_hash"],
@@ -770,6 +770,7 @@ def _insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
             row["provenance_page"],
             row["provenance_json"],
             row["context_id"],
+            row.get("branch"),
         ),
     )
     conn.execute(
@@ -1210,6 +1211,7 @@ def _prepare_claim_insert_row(
         "provenance_page": prov.get("page", 0),
         "provenance_json": json.dumps(prov),
         "context_id": normalized_claim.get("context"),
+        "branch": claim.get("branch"),
     }
 
 

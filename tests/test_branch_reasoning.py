@@ -432,12 +432,13 @@ def test_only_conflicts_produce_stances(
 )
 @given(ref=st_assumption_ref)
 def test_duplicate_branch_assumption_idempotent(ref: AssumptionRef) -> None:
-    """Adding the same branch assumption twice does not change the assumption set.
+    """make_branch_assumption is a pure function — same branch name always
+    produces the same AssumptionRef.
 
-    Per Booth 2006, claim 13 (stability postulate D): re-adding an
-    already-believed claim does not change the extension. Concretely,
-    make_branch_assumption must be deterministic — calling it twice with
-    the same branch name produces identical AssumptionRef objects.
+    This is a prerequisite for Booth 2006 stability (postulate D), not a
+    verification of it. The real stability postulate (CR1, Booth p.4) states
+    that revising a belief set by an already-present belief produces no
+    change. This test only verifies determinism of the assumption constructor.
     """
     assume(ref.kind == "branch")
     ref1 = make_branch_assumption(ref.source)
@@ -487,98 +488,131 @@ def test_merge_nogoods_idempotent() -> None:
 
 
 def test_sidecar_branch_column_exists() -> None:
-    """The claim_core table has a branch column after sidecar build.
+    """The claim_core table schema includes a branch column.
 
-    Infrastructure requirement for branch-aware queries. The sidecar
-    SQLite schema must include a 'branch' column in claim_core so that
-    claims can be filtered by their originating branch.
+    Verifies _create_claim_tables produces a real SQLite schema with the
+    branch column present, checked via PRAGMA table_info — not source
+    code inspection.
     """
     import sqlite3
-    import tempfile
+
+    from propstore.build_sidecar import _create_claim_tables
+
+    conn = sqlite3.connect(":memory:")
+    _create_claim_tables(conn)
+
+    columns = conn.execute("PRAGMA table_info(claim_core)").fetchall()
+    conn.close()
+    column_names = [col[1] for col in columns]
+    assert "branch" in column_names, (
+        f"claim_core must have a 'branch' column; found: {column_names}"
+    )
+
+
+def test_sidecar_branch_filter(tmp_path) -> None:
+    """Claims with branch tags are queryable by branch after a real sidecar build.
+
+    Builds a real sidecar via build_sidecar with claim_files containing
+    branch metadata, then verifies branch-filtered queries return only
+    the correct claims. This tests the full _prepare_claim_insert_row ->
+    _insert_claim_row pipeline, not a hand-crafted schema.
+    """
+    import sqlite3
+    import shutil
     from pathlib import Path
 
     from propstore.build_sidecar import build_sidecar
+    from propstore.validate import load_concepts
+    from propstore.validate_claims import LoadedClaimFile
 
-    # Build a minimal sidecar and check schema
-    # This will fail until the schema migration adds the branch column
-    tmpdir = tempfile.mkdtemp()
-    sidecar_path = Path(tmpdir) / "test.sqlite"
+    # Minimal concept so claims can reference it
+    root = tmp_path / "knowledge"
+    root.mkdir()
+    for d in ["concepts", "claims", "contexts", "sidecar", "forms"]:
+        (root / d).mkdir(exist_ok=True)
 
-    # We need to inspect the schema after build
-    # For now, check that the column exists by querying PRAGMA
-    # This test will fail because the column doesn't exist yet
-    try:
-        build_sidecar(Path(tmpdir) / "knowledge", sidecar_path)
-    except Exception:
-        pass  # Build may fail without proper knowledge dir
+    # Copy forms so SI normalization works
+    package_forms = Path(__file__).resolve().parent.parent / "propstore" / "_resources" / "forms"
+    for f in package_forms.glob("*.yaml"):
+        shutil.copy2(f, root / "forms" / f.name)
 
-    # Even if build fails, check if the schema definition includes 'branch'
-    # by importing and checking the SQL
-    from propstore import build_sidecar as bs_module
-    import inspect
+    import yaml
 
-    source = inspect.getsource(bs_module)
-    assert "branch TEXT" in source, (
-        "claim_core table schema must include a 'branch TEXT' column"
-    )
+    concept_path = root / "concepts" / "test_frequency.yaml"
+    concept_data = {
+        "id": "concept1",
+        "canonical_name": "test_frequency",
+        "status": "proposed",
+        "definition": "A test frequency concept",
+        "domain": "testing",
+        "form": "frequency",
+    }
+    concept_path.write_text(yaml.dump(concept_data))
 
+    concepts = load_concepts(root)
 
-def test_sidecar_branch_filter() -> None:
-    """Claims can be filtered by branch in sidecar queries.
-
-    After building a sidecar with branch-tagged claims, querying with
-    a branch filter must return only claims from that branch. This is
-    the read-side complement of the branch column infrastructure.
-    """
-    import sqlite3
-    import tempfile
-
-    # Create an in-memory database with the expected schema
-    conn = sqlite3.connect(":memory:")
-    conn.execute("""
-        CREATE TABLE claim_core (
-            id TEXT PRIMARY KEY,
-            content_hash TEXT NOT NULL,
-            seq INTEGER NOT NULL,
-            type TEXT NOT NULL,
-            concept_id TEXT,
-            target_concept TEXT,
-            source_paper TEXT NOT NULL,
-            provenance_page INTEGER NOT NULL,
-            branch TEXT
+    # Build claim files with branch metadata
+    claim_files = [
+        LoadedClaimFile(
+            filename="test_claims",
+            filepath=None,
+            data={
+                "source": {"paper": "test_paper"},
+                "claims": [
+                    {
+                        "id": "c_master",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 440.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "test_paper", "page": 1},
+                        "branch": "master",
+                    },
+                    {
+                        "id": "c_feature",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 432.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "test_paper", "page": 2},
+                        "branch": "paper/test",
+                    },
+                    {
+                        "id": "c_nobranch",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 450.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "test_paper", "page": 3},
+                    },
+                ],
+            },
         )
-    """)
+    ]
 
-    # Insert claims from two branches
-    conn.execute(
-        "INSERT INTO claim_core VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        ("c1", "hash1", 1, "parameter", "concept1", None, "paper1", 1, "master"),
-    )
-    conn.execute(
-        "INSERT INTO claim_core VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        ("c2", "hash2", 2, "parameter", "concept1", None, "paper1", 1, "paper/test"),
-    )
+    sidecar_path = root / "sidecar" / "test.sqlite"
+    build_sidecar(concepts, sidecar_path, force=True, claim_files=claim_files)
 
-    # Filter by branch
-    master_claims = conn.execute(
+    # Query by branch in the real sidecar
+    conn = sqlite3.connect(sidecar_path)
+
+    master_rows = conn.execute(
         "SELECT id FROM claim_core WHERE branch = ?", ("master",)
     ).fetchall()
-    assert len(master_claims) == 1
-    assert master_claims[0][0] == "c1"
+    assert len(master_rows) == 1
+    assert master_rows[0][0] == "c_master"
 
-    test_claims = conn.execute(
+    feature_rows = conn.execute(
         "SELECT id FROM claim_core WHERE branch = ?", ("paper/test",)
     ).fetchall()
-    assert len(test_claims) == 1
-    assert test_claims[0][0] == "c2"
+    assert len(feature_rows) == 1
+    assert feature_rows[0][0] == "c_feature"
+
+    # Claim without branch has NULL
+    null_rows = conn.execute(
+        "SELECT id FROM claim_core WHERE branch IS NULL"
+    ).fetchall()
+    assert len(null_rows) == 1
+    assert null_rows[0][0] == "c_nobranch"
 
     conn.close()
-
-    # Also verify the actual sidecar schema includes the column
-    from propstore import build_sidecar as bs_module
-    import inspect
-
-    source = inspect.getsource(bs_module)
-    assert "branch TEXT" in source, (
-        "claim_core CREATE TABLE must include 'branch TEXT' column"
-    )
