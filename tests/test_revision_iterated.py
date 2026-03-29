@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import asdict
 from pathlib import Path
 
 from propstore.revision.entrenchment import EntrenchmentReport
@@ -54,7 +53,7 @@ def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
 
 
 def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
-    from propstore.revision.iterated import advance_epistemic_state, make_epistemic_state
+    from propstore.revision.iterated import advance_epistemic_state, epistemic_state_payload, make_epistemic_state
 
     base, entrenchment = _base_with_shared_support()
     state = make_epistemic_state(base, entrenchment)
@@ -73,7 +72,7 @@ def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
         operator="contract",
         target_atom_ids=("claim:legacy",),
     )
-    payload = asdict(next_state)
+    payload = epistemic_state_payload(next_state)
 
     assert payload["accepted_atom_ids"] == list(result.accepted_atom_ids)
     assert payload["history"][0]["operator"] == "contract"

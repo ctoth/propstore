@@ -39,3 +39,24 @@ class RevisionResult:
     rejected_atom_ids: tuple[str, ...]
     incision_set: tuple[str, ...] = field(default_factory=tuple)
     explanation: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class RevisionEpisode:
+    operator: str
+    input_atom_id: str | None = None
+    target_atom_ids: tuple[str, ...] = field(default_factory=tuple)
+    accepted_atom_ids: tuple[str, ...] = field(default_factory=tuple)
+    rejected_atom_ids: tuple[str, ...] = field(default_factory=tuple)
+    incision_set: tuple[str, ...] = field(default_factory=tuple)
+    explanation: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class EpistemicState:
+    scope: RevisionScope
+    base: BeliefBase
+    accepted_atom_ids: tuple[str, ...]
+    ranked_atom_ids: tuple[str, ...]
+    entrenchment_reasons: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    history: tuple[RevisionEpisode, ...] = field(default_factory=tuple)
