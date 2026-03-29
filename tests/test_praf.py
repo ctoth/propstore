@@ -386,8 +386,8 @@ def test_build_praf_from_store():
 
     store = MagicMock()
     store.claims_by_ids.return_value = {
-        "c1": {"claim_id": "c1", "concept": "x"},
-        "c2": {"claim_id": "c2", "concept": "x"},
+        "c1": {"id": "c1", "concept_id": "x", "type": "parameter"},
+        "c2": {"id": "c2", "concept_id": "x", "type": "parameter"},
     }
     store.stances_between.return_value = [
         {
