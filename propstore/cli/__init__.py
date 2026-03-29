@@ -15,6 +15,7 @@ from propstore.cli.compiler_cmds import validate, build, query, export_aliases, 
 from propstore.cli.worldline_cmds import worldline
 from propstore.cli.form import form
 from propstore.cli.init import init
+from propstore.cli.merge_cmds import merge
 from propstore.cli.repository import Repository, RepositoryNotFound
 
 
@@ -48,6 +49,7 @@ cli.add_command(import_papers)
 cli.add_command(init)
 cli.add_command(world)
 cli.add_command(worldline)
+cli.add_command(merge)
 
 
 # ── log command ─────────────────────────────────────────────────────
