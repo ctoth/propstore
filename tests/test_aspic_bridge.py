@@ -1318,7 +1318,7 @@ class TestAspicBackendIntegration:
         )
         monkeypatch.setattr(
             "propstore.structured_argument.compute_structured_justified_arguments",
-            lambda projection, *, semantics="grounded": frozenset({"arg:target_a"}),
+            lambda projection, *, semantics="grounded", backend=None: frozenset({"arg:target_a"}),
         )
 
         runner = CliRunner()

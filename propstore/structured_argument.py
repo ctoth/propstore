@@ -81,7 +81,7 @@ def compute_structured_justified_arguments(
     projection: StructuredProjection,
     *,
     semantics: str = "grounded",
-    backend: ReasoningBackend = ReasoningBackend.STRUCTURED_PROJECTION,
+    backend: ReasoningBackend = ReasoningBackend.ASPIC,
 ) -> frozenset[str] | list[frozenset[str]]:
     """Compute justified structured arguments using existing Dung semantics."""
     _, normalized_semantics = validate_backend_semantics(

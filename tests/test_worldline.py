@@ -1460,10 +1460,10 @@ class TestSemanticCorePhase7Worldlines:
         )
 
         assert grounded.argumentation is not None
-        assert grounded.argumentation["backend"] == "structured_projection"
+        assert grounded.argumentation["backend"] == "aspic"
         assert grounded.argumentation["justified"] == ["claim_a", "claim_b"]
         assert hybrid.argumentation is not None
-        assert hybrid.argumentation["backend"] == "structured_projection"
+        assert hybrid.argumentation["backend"] == "aspic"
         assert hybrid.argumentation["justified"] == []
 
     def test_graph_backed_worldline_materialization_is_stable_under_repeated_execution(
@@ -1894,7 +1894,7 @@ class TestWorldlineCLIFlags:
             "create", "test-wl",
             "--target", "concept1",
             "--strategy", "argumentation",
-            "--reasoning-backend", "structured_projection",
+            "--reasoning-backend", "aspic",
             "--semantics", "d-preferred",
         ])
         assert result.exit_code != 0

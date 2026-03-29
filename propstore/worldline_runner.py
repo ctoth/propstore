@@ -265,7 +265,7 @@ def run_worldline(
                         "defeated": sorted(defeated),
                     }
             elif (
-                reasoning_backend == ReasoningBackend.STRUCTURED_PROJECTION
+                reasoning_backend == ReasoningBackend.ASPIC
                 and world.has_table("relation_edge")
             ):
                 from propstore.structured_argument import (
@@ -280,47 +280,7 @@ def run_worldline(
                         if claim_id:
                             support_metadata[claim_id] = bound.claim_support(claim)
 
-                projection = build_structured_projection(
-                    world,
-                    active,
-                    support_metadata=support_metadata,
-                    comparison=definition.policy.comparison,
-                    link=definition.policy.link,
-                    active_graph=active_graph,
-                )
-                justified_args = compute_structured_justified_arguments(
-                    projection,
-                    semantics=normalized_semantics,
-                    backend=ReasoningBackend.STRUCTURED_PROJECTION,
-                )
-                if isinstance(justified_args, frozenset):
-                    justified_claim_ids = {
-                        projection.argument_to_claim_id[arg_id]
-                        for arg_id in justified_args
-                    }
-                    defeated = active_ids - justified_claim_ids
-                    argumentation_state = {
-                        "backend": "structured_projection",
-                        "justified": sorted(justified_claim_ids),
-                        "defeated": sorted(defeated),
-                    }
-            elif (
-                reasoning_backend == ReasoningBackend.ASPIC
-                and world.has_table("relation_edge")
-            ):
-                from propstore.aspic_bridge import build_aspic_projection
-                from propstore.structured_argument import (
-                    compute_structured_justified_arguments,
-                )
-
-                support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
-                if isinstance(bound, ClaimSupportView):
-                    for claim in active:
-                        claim_id = claim.get("id")
-                        if claim_id:
-                            support_metadata[claim_id] = bound.claim_support(claim)
-
-                aspic_projection = build_aspic_projection(
+                aspic_projection = build_structured_projection(
                     world,
                     active,
                     support_metadata=support_metadata,

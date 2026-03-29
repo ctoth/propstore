@@ -183,7 +183,7 @@ def test_worldline_policy_accepts_structured_projection_backend() -> None:
         "policy": {"reasoning_backend": "structured_projection"},
     })
 
-    assert worldline.policy.reasoning_backend == ReasoningBackend.STRUCTURED_PROJECTION
+    assert worldline.policy.reasoning_backend == ReasoningBackend.ASPIC
 
 
 def test_structured_projection_uses_stable_argument_ids_and_exact_labels() -> None:
@@ -870,7 +870,7 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
 
     assert result.values["target"]["value"] == 1.0
     assert result.argumentation is not None
-    assert result.argumentation["backend"] == "structured_projection"
+    assert result.argumentation["backend"] == "aspic"
     assert result.argumentation["justified"] == ["external_c", "target_a"]
 
 
@@ -946,13 +946,13 @@ def test_world_extensions_cli_accepts_structured_projection_backend(monkeypatch)
     )
     monkeypatch.setattr(
         "propstore.structured_argument.compute_structured_justified_arguments",
-        lambda projection, *, semantics="grounded": frozenset({"arg:target_a"}),
+        lambda projection, *, semantics="grounded", backend=None: frozenset({"arg:target_a"}),
     )
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["world", "extensions", "--backend", "structured_projection"])
+    result = runner.invoke(cli, ["world", "extensions", "--backend", "aspic"])
 
     assert result.exit_code == 0
-    assert "Backend: structured_projection" in result.output
+    assert "Backend: aspic" in result.output
     assert "Accepted (1 claims):" in result.output
     assert "target_a: target = 1.0" in result.output

@@ -173,7 +173,7 @@ def test_structured_resolution_distinguishes_skeptical_failure(monkeypatch) -> N
     )
 
     assert winner is None
-    assert reason == "no skeptically accepted claim in preferred structured projection"
+    assert reason == "no skeptically accepted claim in preferred ASPIC+ projection"
 
 
 def test_aspic_resolution_threads_link_to_build_aspic_projection(monkeypatch) -> None:
@@ -308,7 +308,7 @@ def test_structured_resolution_grounded_uses_plain_grounded_extension(monkeypatc
     )
 
     assert winner == "claim_a"
-    assert reason == "sole structured projection survivor in grounded extension"
+    assert reason == "sole ASPIC+ survivor in grounded extension"
 
 
 def test_ic_merge_resolution_filters_with_range_mu() -> None:

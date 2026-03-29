@@ -363,15 +363,14 @@ class ReasoningBackend(StrEnum):
 
     Only consulted inside the ARGUMENTATION resolution strategy to choose
     which argumentation backend to call. The active belief space is computed
-    by BoundWorld (Z3 condition solving), not by this enum. `structured_projection`
-    is a first structured-argument projection over active claims, `aspic`
-    uses the full ASPIC+ engine via aspic_bridge.py, and `atms`
-    is a global label/nogood propagation backend.
+    by BoundWorld (Z3 condition solving), not by this enum. `aspic` is the
+    canonical structured backend and routes through the ASPIC+ bridge.
+    `structured_projection` remains accepted as a legacy alias on input only.
     """
 
     CLAIM_GRAPH = "claim_graph"
-    STRUCTURED_PROJECTION = "structured_projection"
     ASPIC = "aspic"
+    STRUCTURED_PROJECTION = "aspic"
     ATMS = "atms"
     PRAF = "praf"
 
@@ -435,12 +434,6 @@ _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = 
         ArgumentationSemantics.C_PREFERRED,
         ArgumentationSemantics.BIPOLAR_STABLE,
     }),
-    ReasoningBackend.STRUCTURED_PROJECTION: frozenset({
-        ArgumentationSemantics.GROUNDED,
-        ArgumentationSemantics.HYBRID_GROUNDED,
-        ArgumentationSemantics.PREFERRED,
-        ArgumentationSemantics.STABLE,
-    }),
     ReasoningBackend.ASPIC: frozenset({
         ArgumentationSemantics.GROUNDED,
         ArgumentationSemantics.HYBRID_GROUNDED,
@@ -462,7 +455,9 @@ _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = 
 
 def normalize_reasoning_backend(value: ReasoningBackend | str) -> ReasoningBackend:
     if isinstance(value, ReasoningBackend):
-        return value
+        return ReasoningBackend.ASPIC if value == ReasoningBackend.STRUCTURED_PROJECTION else value
+    if str(value) == "structured_projection":
+        return ReasoningBackend.ASPIC
     try:
         return ReasoningBackend(str(value))
     except ValueError as exc:

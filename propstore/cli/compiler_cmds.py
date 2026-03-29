@@ -1695,7 +1695,7 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
 @click.option("--pessimism-index", "pessimism_index", default=0.5,
               type=float, help="Hurwicz pessimism index α ∈ [0,1] (default: 0.5)")
 @click.option("--reasoning-backend", "reasoning_backend", default="claim_graph",
-              type=click.Choice(["claim_graph", "structured_projection", "aspic", "atms", "praf"]),
+              type=click.Choice(["claim_graph", "aspic", "atms", "praf"]),
               help="Argumentation backend (default: claim_graph)")
 @click.option("--praf-strategy", "praf_strategy", default="auto",
               type=click.Choice(["auto", "mc", "exact", "dfquad_quad", "dfquad_baf"]),
@@ -1737,7 +1737,9 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
         bound = _bind_world(wm, bindings)
         strat = ResolutionStrategy(strategy)
         overrides_dict = {resolved: override_id} if override_id else None
-        backend = ReasoningBackend(reasoning_backend)
+        from propstore.world.types import normalize_reasoning_backend
+
+        backend = normalize_reasoning_backend(reasoning_backend)
 
         policy = RenderPolicy(
             reasoning_backend=backend,
@@ -1779,7 +1781,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
 @world.command("extensions")
 @click.argument("args", nargs=-1)
 @click.option("--backend", "backend_name", default="claim_graph",
-              type=click.Choice(["claim_graph", "structured_projection", "aspic", "atms", "praf"]),
+              type=click.Choice(["claim_graph", "aspic", "atms", "praf"]),
               help="Argumentation backend (default: claim_graph)")
 @click.option("--semantics", default="grounded",
               type=click.Choice(["grounded", "preferred", "stable"]),
@@ -1811,6 +1813,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
     """
     from propstore.argumentation import stance_summary
     from propstore.world import ReasoningBackend, WorldModel
+    from propstore.world.types import normalize_reasoning_backend
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
@@ -1822,7 +1825,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             return
 
         claim_ids = {c["id"] for c in active}
-        backend = ReasoningBackend(backend_name)
+        backend = normalize_reasoning_backend(backend_name)
 
         if backend == ReasoningBackend.ATMS:
             click.echo(
@@ -1893,13 +1896,13 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                 comparison=set_comparison,
             )
             arg_to_claim = {cid: cid for cid in claim_ids}
-        elif backend == ReasoningBackend.STRUCTURED_PROJECTION:
+        elif backend == ReasoningBackend.ASPIC:
             from propstore.structured_argument import (
                 build_structured_projection,
                 compute_structured_justified_arguments,
             )
 
-            projection = build_structured_projection(
+            aspic_projection = build_structured_projection(
                 wm,
                 active,
                 support_metadata=_support_metadata_for(bound, active),
@@ -1907,27 +1910,9 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                 active_graph=_active_graph_for(bound),
             )
             result = compute_structured_justified_arguments(
-                projection,
-                semantics=semantics,
-            )
-            af = projection.framework
-            arg_to_claim = dict(projection.argument_to_claim_id)
-        elif backend == ReasoningBackend.ASPIC:
-            from propstore.aspic_bridge import build_aspic_projection
-            from propstore.structured_argument import (
-                compute_structured_justified_arguments as compute_aspic_justified,
-            )
-
-            aspic_projection = build_aspic_projection(
-                wm,
-                active,
-                support_metadata=_support_metadata_for(bound, active),
-                comparison=set_comparison,
-                active_graph=_active_graph_for(bound),
-            )
-            result = compute_aspic_justified(
                 aspic_projection,
                 semantics=semantics,
+                backend=ReasoningBackend.ASPIC,
             )
             af = aspic_projection.framework
             arg_to_claim = dict(aspic_projection.argument_to_claim_id)
@@ -1984,7 +1969,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             return groups
 
         if semantics == "grounded":
-            if backend in (ReasoningBackend.STRUCTURED_PROJECTION, ReasoningBackend.ASPIC):
+            if backend == ReasoningBackend.ASPIC:
                 assert isinstance(result, frozenset)
                 justified_claims = {arg_to_claim[arg_id] for arg_id in result}
             else:
@@ -2022,7 +2007,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             for i, ext in enumerate(result):
                 ext_claims = (
                     {arg_to_claim[arg_id] for arg_id in ext}
-                    if backend == ReasoningBackend.STRUCTURED_PROJECTION
+                    if backend == ReasoningBackend.ASPIC
                     else set(ext)
                 )
                 click.echo(f"  Extension {i + 1} ({len(ext_claims)} claims):")
