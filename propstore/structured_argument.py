@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from propstore.core.graph_types import ActiveWorldGraph
+from propstore.core.environment import StanceStore
 from propstore.dung import (
     ArgumentationFramework,
     grounded_extension,
@@ -19,7 +20,7 @@ from propstore.dung import (
     stable_extensions,
 )
 from propstore.world.labelled import Label, SupportQuality
-from propstore.world.types import ArtifactStore
+from propstore.world.types import SupportMetadata
 
 
 @dataclass(frozen=True)
@@ -47,10 +48,10 @@ class StructuredProjection:
 
 
 def build_structured_projection(
-    store: ArtifactStore,
+    store: StanceStore,
     active_claims: list[dict],
     *,
-    support_metadata: dict[str, tuple[Label | None, SupportQuality]] | None = None,
+    support_metadata: SupportMetadata | None = None,
     comparison: str = "elitist",
     link: str = "last",
     active_graph: ActiveWorldGraph | None = None,

@@ -7,6 +7,7 @@ from typing import Any
 import yaml
 
 from propstore.aspic_bridge import build_aspic_projection
+from propstore.core.row_types import StanceRow
 from propstore.dung import ArgumentationFramework
 from propstore.structured_argument import StructuredProjection
 
@@ -15,19 +16,19 @@ from propstore.structured_argument import StructuredProjection
 class BranchStructuredSummary:
     branch: str
     active_claims: tuple[dict[str, Any], ...]
-    stance_rows: tuple[dict[str, Any], ...]
+    stance_rows: tuple[StanceRow, ...]
     projection: StructuredProjection
 
 
 class _BranchSnapshotStore:
-    def __init__(self, stance_rows: list[dict[str, Any]]) -> None:
+    def __init__(self, stance_rows: list[StanceRow]) -> None:
         self._stance_rows = list(stance_rows)
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict[str, Any]]:
+    def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
         return [
             row
             for row in self._stance_rows
-            if row["claim_id"] in claim_ids and row["target_claim_id"] in claim_ids
+            if row.claim_id in claim_ids and row.target_claim_id in claim_ids
         ]
 
     def has_table(self, name: str) -> bool:
@@ -56,8 +57,8 @@ def _load_branch_claims(reader) -> list[dict[str, Any]]:
     return active_claims
 
 
-def _inline_stance_rows(active_claims: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
+def _inline_stance_rows(active_claims: list[dict[str, Any]]) -> list[StanceRow]:
+    rows: list[StanceRow] = []
     for claim in active_claims:
         claim_id = claim.get("id")
         if not claim_id:
@@ -69,20 +70,29 @@ def _inline_stance_rows(active_claims: list[dict[str, Any]]) -> list[dict[str, A
             stance_type = stance.get("type")
             if not target or not stance_type:
                 continue
-            row = {
-                "claim_id": claim_id,
-                "target_claim_id": target,
-                "stance_type": stance_type,
-            }
+            attributes: dict[str, Any] = {}
+            target_justification_id: str | None = None
             for key, value in stance.items():
-                if key not in {"target", "type"} and value is not None:
-                    row[key] = value
-            rows.append(row)
+                if key in {"target", "type"} or value is None:
+                    continue
+                if key == "target_justification_id":
+                    target_justification_id = str(value)
+                    continue
+                attributes[key] = value
+            rows.append(
+                StanceRow(
+                    claim_id=str(claim_id),
+                    target_claim_id=str(target),
+                    stance_type=str(stance_type),
+                    target_justification_id=target_justification_id,
+                    attributes=attributes,
+                )
+            )
     return rows
 
 
-def _file_stance_rows(reader) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
+def _file_stance_rows(reader) -> list[StanceRow]:
+    rows: list[StanceRow] = []
     for _stem, raw in reader.list_yaml("stances"):
         data = yaml.safe_load(raw) or {}
         source_claim = data.get("source_claim")
@@ -95,15 +105,24 @@ def _file_stance_rows(reader) -> list[dict[str, Any]]:
             stance_type = stance.get("type")
             if not target or not stance_type:
                 continue
-            row = {
-                "claim_id": source_claim,
-                "target_claim_id": target,
-                "stance_type": stance_type,
-            }
+            attributes: dict[str, Any] = {}
+            target_justification_id: str | None = None
             for key, value in stance.items():
-                if key not in {"target", "type"} and value is not None:
-                    row[key] = value
-            rows.append(row)
+                if key in {"target", "type"} or value is None:
+                    continue
+                if key == "target_justification_id":
+                    target_justification_id = str(value)
+                    continue
+                attributes[key] = value
+            rows.append(
+                StanceRow(
+                    claim_id=str(source_claim),
+                    target_claim_id=str(target),
+                    stance_type=str(stance_type),
+                    target_justification_id=target_justification_id,
+                    attributes=attributes,
+                )
+            )
     return rows
 
 

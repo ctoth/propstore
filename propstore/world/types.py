@@ -439,6 +439,30 @@ def apply_decision_criterion(
     return confidence
 
 
+SupportMetadata = Mapping[str, tuple[Label | None, SupportQuality]]
+
+
+@runtime_checkable
+class ClaimSupportView(Protocol):
+    def claim_support(self, claim: dict[str, Any]) -> tuple[Label | None, SupportQuality]: ...
+
+
+@runtime_checkable
+class ATMSEngineView(Protocol):
+    def supported_claim_ids(self, concept_id: str | None = None) -> set[str]: ...
+    def argumentation_state(
+        self,
+        *,
+        queryables: tuple[str, ...] | list[str],
+        future_limit: int,
+    ) -> dict[str, Any]: ...
+
+
+@runtime_checkable
+class HasATMSEngine(Protocol):
+    def atms_engine(self) -> ATMSEngineView: ...
+
+
 @runtime_checkable
 class BeliefSpace(Protocol):
     def active_claims(self, concept_id: str | None = None) -> list[dict]: ...

@@ -17,6 +17,7 @@ References:
 from __future__ import annotations
 
 import statistics
+from collections.abc import Sequence
 from typing import Any
 
 from propstore.aspic import (
@@ -46,6 +47,7 @@ from propstore.core.justifications import (
     CanonicalJustification,
     claim_justifications_from_active_graph,
 )
+from propstore.core.row_types import StanceRow, StanceRowInput, coerce_stance_row
 from propstore.dung import ArgumentationFramework
 from propstore.preference import metadata_strength_vector, claim_strength
 from propstore.structured_argument import (
@@ -53,7 +55,8 @@ from propstore.structured_argument import (
     StructuredProjection,
 )
 from propstore.world.labelled import Label, SupportQuality
-from propstore.world.types import ArtifactStore
+from propstore.core.environment import StanceStore
+from propstore.world.types import SupportMetadata
 
 Argument = PremiseArg | StrictArg | DefeasibleArg
 
@@ -171,7 +174,7 @@ def justifications_to_rules(
 
 
 def stances_to_contrariness(
-    stances: list[dict],
+    stances: Sequence[StanceRowInput],
     literals: dict[str, Literal],
     defeasible_rules: frozenset[Rule],
 ) -> ContrarinessFn:
@@ -196,10 +199,11 @@ def stances_to_contrariness(
     contradictory_pairs: set[tuple[Literal, Literal]] = set()
     contrary_pairs: set[tuple[Literal, Literal]] = set()
 
-    for stance in stances:
-        src_id = stance["claim_id"]
-        tgt_id = stance["target_claim_id"]
-        stype = stance["stance_type"]
+    for stance_input in stances:
+        stance = coerce_stance_row(stance_input)
+        src_id = stance.claim_id
+        tgt_id = stance.target_claim_id
+        stype = stance.stance_type
 
         if src_id not in literals or tgt_id not in literals:
             continue
@@ -219,7 +223,7 @@ def stances_to_contrariness(
             # Asymmetric contraries — src is contrary of tgt
             contrary_pairs.add((src, tgt))
         elif stype == "undercuts":
-            target_justification_id = stance.get("target_justification_id")
+            target_justification_id = stance.target_justification_id
             matching_rules = [
                 rule
                 for rule in defeasible_rules
@@ -245,6 +249,7 @@ def stances_to_contrariness(
                 )
 
             for rule in matching_rules:
+                assert rule.name is not None
                 rule_lit = Literal(atom=rule.name, negated=False)
                 if src != rule_lit:
                     contrary_pairs.add((src, rule_lit))
@@ -441,7 +446,7 @@ def _build_language(
 def build_bridge_csaf(
     active_claims: list[dict],
     justifications: list[CanonicalJustification],
-    stances: list[dict],
+    stances: Sequence[StanceRowInput],
     *,
     comparison: str = "elitist",
     link: str = "last",
@@ -544,7 +549,7 @@ def csaf_to_projection(
     csaf: CSAF,
     active_claims: list[dict],
     *,
-    support_metadata: dict[str, tuple[Label | None, SupportQuality]] | None = None,
+    support_metadata: SupportMetadata | None = None,
 ) -> StructuredProjection:
     """Map a CSAF to a StructuredProjection for backward compatibility.
 
@@ -682,37 +687,43 @@ def csaf_to_projection(
 
 
 def _extract_stance_rows(
-    store: ArtifactStore,
+    store: StanceStore,
     active_by_id: dict[str, dict],
     *,
     active_graph: ActiveWorldGraph | None,
-) -> list[dict]:
+) -> list[StanceRow]:
     """Extract stance rows from active_graph or store.
 
     Mirrors structured_argument._stance_rows — same logic, same output shape.
     """
     if active_graph is not None:
         active_ids = set(active_graph.active_claim_ids)
-        rows: list[dict] = []
+        rows: list[StanceRow] = []
         for relation in active_graph.compiled.relations:
             if relation.source_id not in active_ids or relation.target_id not in active_ids:
                 continue
             if relation.relation_type not in _ATTACK_TYPES and relation.relation_type not in _SUPPORT_TYPES:
                 continue
-            row = {
-                "claim_id": relation.source_id,
-                "target_claim_id": relation.target_id,
-                "stance_type": relation.relation_type,
-            }
-            row.update(dict(relation.attributes))
-            rows.append(row)
+            rows.append(
+                StanceRow.from_mapping(
+                    {
+                        "claim_id": relation.source_id,
+                        "target_claim_id": relation.target_id,
+                        "stance_type": relation.relation_type,
+                        **dict(relation.attributes),
+                    }
+                )
+            )
         return rows
-    return list(store.stances_between(set(active_by_id)))
+    return [
+        coerce_stance_row(row)
+        for row in store.stances_between(set(active_by_id))
+    ]
 
 
 def _extract_justifications(
     active_by_id: dict[str, dict],
-    stance_rows: list[dict],
+    stance_rows: list[StanceRow],
     *,
     active_graph: ActiveWorldGraph | None,
 ) -> list[CanonicalJustification]:
@@ -733,29 +744,27 @@ def _extract_justifications(
         for claim_id in sorted(active_by_id)
     ]
     for row in stance_rows:
-        if row["stance_type"] not in {"supports", "explains"}:
+        if row.stance_type not in {"supports", "explains"}:
             continue
         justifications.append(
             CanonicalJustification(
-                justification_id=f"{row['stance_type']}:{row['claim_id']}->{row['target_claim_id']}",
-                conclusion_claim_id=row["target_claim_id"],
-                premise_claim_ids=(row["claim_id"],),
-                rule_kind=row["stance_type"],
-                attributes={
-                    str(key): value
-                    for key, value in row.items()
-                    if key not in {"claim_id", "target_claim_id", "stance_type"} and value is not None
-                },
+                justification_id=(
+                    f"{row.stance_type}:{row.claim_id}->{row.target_claim_id}"
+                ),
+                conclusion_claim_id=row.target_claim_id,
+                premise_claim_ids=(row.claim_id,),
+                rule_kind=row.stance_type,
+                attributes=tuple(row.attributes.items()),
             )
         )
     return sorted(justifications)
 
 
 def build_aspic_projection(
-    store: ArtifactStore,
+    store: StanceStore,
     active_claims: list[dict],
     *,
-    support_metadata: dict[str, tuple[Label | None, SupportQuality]] | None = None,
+    support_metadata: SupportMetadata | None = None,
     comparison: str = "elitist",
     link: str = "last",
     active_graph: ActiveWorldGraph | None = None,

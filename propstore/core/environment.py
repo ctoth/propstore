@@ -6,13 +6,15 @@ Moved from world/types.py to fix the inverted layer dependency
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.labels import AssumptionRef
+from propstore.core.row_types import StanceRowInput
 
 if TYPE_CHECKING:
+    from propstore.world.types import ChainResult, ResolutionStrategy
     from propstore.z3_conditions import Z3ConditionSolver
 
 
@@ -82,6 +84,11 @@ class Environment:
 
 
 @runtime_checkable
+class StanceStore(Protocol):
+    def stances_between(self, claim_ids: set[str]) -> Sequence[StanceRowInput]: ...
+
+
+@runtime_checkable
 class ArtifactStore(Protocol):
     def get_concept(self, concept_id: str) -> dict | None: ...
     def get_claim(self, claim_id: str) -> dict | None: ...
@@ -118,6 +125,6 @@ class ArtifactStore(Protocol):
     def chain_query(
         self,
         target_concept_id: str,
-        strategy: propstore.world.types.ResolutionStrategy | None = None,
+        strategy: ResolutionStrategy | None = None,
         **bindings: Any,
-    ) -> propstore.world.types.ChainResult: ...
+    ) -> ChainResult: ...

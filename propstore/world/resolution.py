@@ -10,9 +10,12 @@ from __future__ import annotations
 import json
 import math
 
+from propstore.world.labelled import Label, SupportQuality
 from propstore.world.types import (
     ArtifactStore,
     BeliefSpace,
+    ClaimSupportView,
+    HasATMSEngine,
     ReasoningBackend,
     RenderPolicy,
     ResolvedResult,
@@ -155,14 +158,13 @@ def _resolve_structured_argumentation(
     if not world.has_table("relation_edge"):
         return None, "no stance data"
 
-    support_metadata: dict[str, tuple[object | None, object]] = {}
-    claim_support = getattr(view, "claim_support", None)
-    if callable(claim_support):
+    support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
+    if isinstance(view, ClaimSupportView):
         for claim in active_claims:
             claim_id = claim.get("id")
             if not claim_id:
                 continue
-            support_metadata[claim_id] = claim_support(claim)
+            support_metadata[claim_id] = view.claim_support(claim)
 
     projection = build_structured_projection(
         world,
@@ -234,14 +236,13 @@ def _resolve_aspic_argumentation(
     if not world.has_table("relation_edge"):
         return None, "no stance data"
 
-    support_metadata: dict[str, tuple[object | None, object]] = {}
-    claim_support = getattr(view, "claim_support", None)
-    if callable(claim_support):
+    support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
+    if isinstance(view, ClaimSupportView):
         for claim in active_claims:
             claim_id = claim.get("id")
             if not claim_id:
                 continue
-            support_metadata[claim_id] = claim_support(claim)
+            support_metadata[claim_id] = view.claim_support(claim)
 
     projection = build_aspic_projection(
         world,
@@ -427,11 +428,10 @@ def _resolve_atms_support(
     view: BeliefSpace,
 ) -> tuple[str | None, str | None]:
     """Resolve by ATMS-supported status over the active belief space."""
-    atms_engine = getattr(view, "atms_engine", None)
-    if not callable(atms_engine):
+    if not isinstance(view, HasATMSEngine):
         raise NotImplementedError("ATMS backend requires a bound world with an ATMS engine")
 
-    engine = atms_engine()
+    engine = view.atms_engine()
     target_ids = {claim["id"] for claim in target_claims}
     supported = engine.supported_claim_ids() & target_ids
     if len(supported) == 0:
