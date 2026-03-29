@@ -38,6 +38,17 @@ sidecar/
 _DEFAULT_AUTHOR = b"pks <pks@propstore>"
 
 
+def _ref_get(refs, ref_name: bytes) -> bytes | None:
+    """Safely get a ref value, returning None if it doesn't exist.
+
+    Dulwich's DiskRefsContainer lacks a .get() method.
+    """
+    try:
+        return refs[ref_name]
+    except KeyError:
+        return None
+
+
 class KnowledgeRepo:
     """Git-backed knowledge repository wrapping a Dulwich Repo.
 
@@ -140,7 +151,7 @@ class KnowledgeRepo:
         to support Backward Uniqueness verification (Bonanno 2007).
         """
         ref = f"refs/heads/{branch}".encode()
-        tip = self._repo.refs.get(ref)
+        tip = _ref_get(self._repo.refs, ref)
         if tip is None:
             # Fallback for HEAD-based access (backward compat)
             try:
@@ -171,7 +182,7 @@ class KnowledgeRepo:
     def branch_sha(self, name: str) -> str | None:
         """Return the tip SHA for a named branch, or None if it doesn't exist."""
         ref = f"refs/heads/{name}".encode()
-        sha = self._repo.refs.get(ref)
+        sha = _ref_get(self._repo.refs, ref)
         if sha is None:
             return None
         return sha.decode("ascii")
@@ -333,7 +344,7 @@ class KnowledgeRepo:
         branch_ref = f"refs/heads/{branch}".encode()
 
         # Get current tree from branch tip, or start empty
-        tip_sha = self._repo.refs.get(branch_ref)
+        tip_sha = _ref_get(self._repo.refs, branch_ref)
         if tip_sha is not None:
             parent_commit = self._repo[tip_sha]
             base_tree = self._repo[parent_commit.tree]

@@ -14,6 +14,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from propstore.repo.git_backend import _ref_get
+
 if TYPE_CHECKING:
     from propstore.repo.git_backend import KnowledgeRepo
 
@@ -52,12 +54,12 @@ def create_branch(kr: KnowledgeRepo, name: str, source_commit: str | None = None
     Raises ValueError if the branch already exists.
     """
     ref = f"refs/heads/{name}".encode()
-    if kr._repo.refs.get(ref):
+    if _ref_get(kr._repo.refs, ref):
         raise ValueError(f"Branch {name!r} already exists")
 
     if source_commit is None:
         # Default to master tip
-        master_ref = kr._repo.refs.get(b"refs/heads/master")
+        master_ref = _ref_get(kr._repo.refs, b"refs/heads/master")
         if master_ref is None:
             raise ValueError("No master branch — repository has no commits")
         sha_bytes = master_ref
@@ -78,7 +80,7 @@ def delete_branch(kr: KnowledgeRepo, name: str) -> None:
     if name == "master":
         raise ValueError("Cannot delete master branch")
     ref = f"refs/heads/{name}".encode()
-    if kr._repo.refs.get(ref) is None:
+    if _ref_get(kr._repo.refs, ref) is None:
         raise ValueError(f"Branch {name!r} does not exist")
     del kr._repo.refs[ref]
 
@@ -103,7 +105,7 @@ def list_branches(kr: KnowledgeRepo) -> list[BranchInfo]:
 def branch_head(kr: KnowledgeRepo, name: str) -> str | None:
     """Return tip SHA for a branch, or None if branch doesn't exist."""
     ref = f"refs/heads/{name}".encode()
-    sha_bytes = kr._repo.refs.get(ref)
+    sha_bytes = _ref_get(kr._repo.refs, ref)
     if sha_bytes is None:
         return None
     return sha_bytes.decode("ascii")
