@@ -3,13 +3,47 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from itertools import combinations
+from typing import Any
 
 from propstore.revision.entrenchment import EntrenchmentReport
 from propstore.revision.state import BeliefAtom, BeliefBase, RevisionResult
 
 
-def expand(base: BeliefBase, atom: BeliefAtom) -> RevisionResult:
+def normalize_revision_input(
+    base: BeliefBase,
+    revision_input: BeliefAtom | str | Mapping[str, Any],
+) -> BeliefAtom:
+    """Normalize a user-facing revision input into a BeliefAtom."""
+    if isinstance(revision_input, BeliefAtom):
+        return revision_input
+
+    if isinstance(revision_input, str):
+        existing = _find_existing_atom(base, revision_input)
+        if existing is not None:
+            return existing
+        raise ValueError(f"Unknown revision input: {revision_input}")
+
+    kind = str(revision_input.get("kind") or "claim")
+    if kind == "claim":
+        claim_id = revision_input.get("id") or revision_input.get("claim_id")
+        if not claim_id:
+            raise ValueError("Claim revision input requires 'id' or 'claim_id'")
+        atom_id = str(revision_input.get("atom_id") or f"claim:{claim_id}")
+        return BeliefAtom(atom_id=atom_id, kind="claim", payload=dict(revision_input))
+
+    if kind == "assumption":
+        assumption_id = revision_input.get("assumption_id") or revision_input.get("id")
+        if not assumption_id:
+            raise ValueError("Assumption revision input requires 'assumption_id' or 'id'")
+        atom_id = str(revision_input.get("atom_id") or f"assumption:{assumption_id}")
+        return BeliefAtom(atom_id=atom_id, kind="assumption", payload=dict(revision_input))
+
+    raise ValueError(f"Unsupported revision input kind: {kind}")
+
+
+def expand(base: BeliefBase, atom: BeliefAtom | str | Mapping[str, Any]) -> RevisionResult:
     """Expand a finite belief base by one atom without mutating the input base."""
+    atom = normalize_revision_input(base, atom)
     atom_by_id = {existing.atom_id: existing for existing in base.atoms}
     atom_by_id.setdefault(atom.atom_id, atom)
     revised_base = _rebuild_base(base, atom_by_id.values())
@@ -26,12 +60,12 @@ def expand(base: BeliefBase, atom: BeliefAtom) -> RevisionResult:
 
 def contract(
     base: BeliefBase,
-    targets: str | Sequence[str],
+    targets: str | BeliefAtom | Mapping[str, Any] | Sequence[str | BeliefAtom | Mapping[str, Any]],
     *,
     entrenchment: EntrenchmentReport,
 ) -> RevisionResult:
     """Contract a belief base by cutting a minimal low-entrenchment support incision set."""
-    target_ids = _normalize_targets(targets)
+    target_ids = _normalize_targets(base, targets)
     incision_set = _choose_incision_set(base, target_ids, entrenchment)
 
     accepted_ids: list[str] = []
@@ -84,12 +118,13 @@ def contract(
 
 def revise(
     base: BeliefBase,
-    atom: BeliefAtom,
+    atom: BeliefAtom | str | Mapping[str, Any],
     *,
     entrenchment: EntrenchmentReport,
     conflicts: Mapping[str, Sequence[str]] | None = None,
 ) -> RevisionResult:
     """Revise by contracting conflicting support and then expanding the new atom."""
+    atom = normalize_revision_input(base, atom)
     conflict_ids = tuple(conflicts.get(atom.atom_id, ())) if conflicts is not None else ()
     if conflict_ids:
         contracted = contract(base, conflict_ids, entrenchment=entrenchment)
@@ -114,10 +149,24 @@ def revise(
     )
 
 
-def _normalize_targets(targets: str | Sequence[str]) -> tuple[str, ...]:
-    if isinstance(targets, str):
-        return (targets,)
-    return tuple(targets)
+def _normalize_targets(
+    base: BeliefBase,
+    targets: str | BeliefAtom | Mapping[str, Any] | Sequence[str | BeliefAtom | Mapping[str, Any]],
+) -> tuple[str, ...]:
+    if isinstance(targets, (str, BeliefAtom, Mapping)):
+        return (normalize_revision_input(base, targets).atom_id,)
+    return tuple(normalize_revision_input(base, target).atom_id for target in targets)
+
+
+def _find_existing_atom(base: BeliefBase, revision_input: str) -> BeliefAtom | None:
+    for atom in base.atoms:
+        if atom.atom_id == revision_input:
+            return atom
+        if atom.kind == "claim" and atom.payload.get("id") == revision_input:
+            return atom
+        if atom.kind == "assumption" and atom.payload.get("assumption_id") == revision_input:
+            return atom
+    return None
 
 
 def _choose_incision_set(
