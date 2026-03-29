@@ -51,7 +51,7 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 | Li et al. 2012 | PrAF = (A, P_A, D, P_D): MC sampling with Agresti-Coull stopping for probabilistic AFs | Implemented — MC sampling with Agresti-Coull |
 | Denoeux 2019 | Decision-making with belief functions: pignistic, Hurwicz, interval criteria | Partial — pignistic, Hurwicz, lower/upper bound criteria implemented (`world/types.py:apply_decision_criterion`); interval dominance not implemented |
 | Freedman et al. 2025 | DF-QuAD gradual semantics for quantitative bipolar argumentation frameworks | Implemented — but P_A conflated with base score |
-| Konieczny & Pino Perez 2002 | IC merging: IC0-IC8 postulates, Sigma/Max/GMax operators | Implemented — `propstore/repo/ic_merge.py`; integrity constraint mu not yet wired |
+| Konieczny & Pino Perez 2002 | IC merging: IC0-IC8 postulates, Sigma/Max/GMax operators | Partial — scalar distance kernels in `propstore/repo/ic_merge.py`; no `mu`, no assignment-level merge, full postulate claims deferred |
 | Coste-Marquis et al. 2007 | PAF three-valued attack relation, AF edit distance, merge classification | Implemented — `propstore/repo/merge_classifier.py` |
 | Darwiche & Pearl 1997 | Iterated revision C1-C4, epistemic states | Implemented — branch isolation in `propstore/repo/branch.py` |
 | Bonanno 2007 | Backward Uniqueness (BU); git merges need IC merging, not temporal revision | Validated — BU confirmed for linear branches, IC merging for merge points |

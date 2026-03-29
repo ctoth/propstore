@@ -1,10 +1,9 @@
-"""Phase 4 RED: Failing tests for IC merge operators with Hypothesis properties.
+"""Tests for scalar IC-merge adaptation kernels and future integration points.
 
-Tests the three IC merge operators (Sigma, Max, GMax) from Konieczny & Pino Perez
-2002, their distance function, the ic_merge dispatcher, and RenderPolicy integration.
-
-Heavy Hypothesis property tests verify formal invariants (IC0-IC8) from the paper.
-Each test docstring cites the paper and specific claim/postulate.
+These tests cover the scalar-distance kernels inspired by Konieczny & Pino Perez
+2002, their dispatcher, and RenderPolicy integration. They verify properties the
+current scalar adaptation really has, not the full model-theoretic IC0-IC8
+postulates from the paper.
 """
 from __future__ import annotations
 
@@ -24,7 +23,7 @@ from propstore.world.types import ResolutionStrategy, RenderPolicy
 
 # ── Strategies ──────────────────────────────────────────────────────
 
-# Strategy: numeric claim values (the "interpretations" in IC merging)
+# Strategy: numeric claim values in the current scalar adaptation
 st_claim_value = st.floats(
     min_value=-1000, max_value=1000, allow_nan=False, allow_infinity=False
 )
@@ -114,15 +113,14 @@ class TestClaimDistance:
         assert claim_distance(a, a) == 0.0
 
 
-# ── Group 2: Sigma Operator (Majority — IC0-IC8 + Maj) ─────────────
+# ── Group 2: Sigma Operator (scalar sum-distance adaptation) ───────
 
 
 class TestSigmaMerge:
     def test_sigma_unanimous(self):
         """When all branches agree, sigma returns the common value.
 
-        Per Konieczny 2002 IC2 (claim3): if all profiles are consistent
-        (identical), the merged result equals their conjunction.
+        In the scalar adaptation, unanimous profiles are fixed points.
         """
         profile = {"b1": 5.0, "b2": 5.0, "b3": 5.0}
         result = sigma_merge(profile)
@@ -147,8 +145,7 @@ class TestSigmaMerge:
     def test_sigma_ic3_syntax_independence(self, profile):
         """Reordering branches produces same result.
 
-        Per Konieczny 2002 IC3 (claim4): the merging result depends only
-        on the multi-set of source belief bases, not on their labeling.
+        The scalar result depends on the multiset of values, not source labels.
         """
         result1 = sigma_merge(profile)
         reversed_profile = dict(reversed(list(profile.items())))
@@ -181,21 +178,20 @@ class TestSigmaMerge:
 
         This verifies discrete selection: the merge operator picks from the
         profile values, it does not interpolate.
-        # Full IC4 fairness (profile subset independence) requires multi-concept testing, deferred.
         """
         assume(len(set(profile.values())) >= 2)  # at least two distinct values
         result = sigma_merge(profile)
         assert result in profile.values()
 
 
-# ── Group 3: Max Operator (Quasi-Merge — IC0-IC3, IC7-IC8, NOT IC4-IC6) ──
+# ── Group 3: Max Operator (scalar max-distance adaptation) ─────────
 
 
 class TestMaxMerge:
     def test_max_unanimous(self):
         """When all agree, max returns common value.
 
-        Per Konieczny 2002 IC2 (claim3).
+        In the scalar adaptation, unanimous profiles are fixed points.
         """
         profile = {"b1": 5.0, "b2": 5.0}
         result = max_merge(profile)
@@ -223,7 +219,7 @@ class TestMaxMerge:
     def test_max_ic3_syntax_independence(self, profile):
         """Reordering branches produces same result.
 
-        Per Konieczny 2002 IC3 (claim4): syntax independence.
+        The scalar result depends on values, not source labels.
         """
         result1 = max_merge(profile)
         reversed_profile = dict(reversed(list(profile.items())))
@@ -248,40 +244,18 @@ class TestMaxMerge:
         result2 = max_merge(augmented)
         assert result1 == result2
 
-    def test_max_does_not_satisfy_ic4(self):
-        """Max does NOT satisfy IC4 (fairness).
+    def test_max_duplicate_invariance_exposes_scalar_limit(self):
+        """Max ignores source multiplicity in the scalar adaptation.
 
-        Per Konieczny 2002 claim18: Max is a quasi-merging operator that
-        satisfies IC0-IC3 and IC7-IC8 but NOT IC4-IC6.
-
-        This test encodes the ASYMMETRY: we construct a profile where Max
-        ignores one source entirely, violating fairness.
-
-        Profile: two opposed sources of equal weight. Max can pick either
-        but the arbitration property means duplicating doesn't help — so
-        the minority source can be completely overridden even at equal
-        multiplicity when a third source tips the balance.
+        This is the arbitration-style property the current implementation really
+        enforces. It should not be confused with the paper's full fairness
+        postulates, which require a model-theoretic result space.
         """
-        # With 3 sources: {0, 0, 100}, max picks 0 (max_dist=100 vs 0's max_dist=100).
-        # Actually 0 -> max_dist=100, 100 -> max_dist=100; equal.
-        # Better example: {0, 10, 10} -> max picks 10 (max_dist=10 vs 0's max_dist=10).
-        # The IC4 violation shows when merging subsets:
-        # Merge({0}, {10}) should respect both, but Max can just pick 10.
-        # We verify Max gives the same result regardless of how many times
-        # a source appears — this IS arbitration, but means majority cannot
-        # overwhelm like in Sigma. The IC4 violation is that Max ignores
-        # multiplicity, so it cannot satisfy fairness.
         profile_majority = {"b1": 0.0, "b2": 0.0, "b3": 0.0, "b4": 10.0}
         result = max_merge(profile_majority)
-        # Under Sigma (which satisfies IC4/Maj), majority 0.0 would win.
-        # Under Max (which does NOT satisfy IC4), 0 and 10 are treated
-        # by worst-case distance only, ignoring multiplicity.
-        # max_merge should NOT necessarily pick 0.0 here (it may, since
-        # max_dist from 0 is 10 and from 10 is 10 — tied).
-        # The key IC4 violation: duplicating sources doesn't change Max's result.
         single_profile = {"b1": 0.0, "b2": 10.0}
         single_result = max_merge(single_profile)
-        assert result == single_result  # Max ignores multiplicity (Arb property)
+        assert result == single_result
 
     def test_max_handles_unhashable_values(self):
         """Max must deduplicate equal unhashable values without crashing."""
@@ -290,14 +264,14 @@ class TestMaxMerge:
         assert result == [1]
 
 
-# ── Group 4: GMax Operator (Full IC — IC0-IC8 + Arb) ──────────────
+# ── Group 4: GMax Operator (scalar leximax adaptation) ─────────────
 
 
 class TestGMaxMerge:
     def test_gmax_unanimous(self):
         """When all agree, gmax returns common value.
 
-        Per Konieczny 2002 IC2 (claim3).
+        In the scalar adaptation, unanimous profiles are fixed points.
         """
         profile = {"b1": 5.0, "b2": 5.0}
         result = gmax_merge(profile)
@@ -345,7 +319,7 @@ class TestGMaxMerge:
     def test_gmax_ic3_syntax_independence(self, profile):
         """Reordering branches produces same result.
 
-        Per Konieczny 2002 IC3 (claim4): syntax independence.
+        The scalar result depends on values, not source labels.
         """
         result1 = gmax_merge(profile)
         reversed_profile = dict(reversed(list(profile.items())))
@@ -403,8 +377,7 @@ class TestIcMergeDispatcher:
     def test_ic_merge_default_is_sigma(self):
         """Default operator is sigma (majority).
 
-        Per Konieczny 2002: Sigma is the canonical IC merging operator
-        satisfying all IC postulates plus majority.
+        Sigma is the default aggregation kernel in the current scalar adapter.
         """
         profile = {"b1": 5.0, "b2": 10.0, "b3": 5.0}
         assert ic_merge(profile) == sigma_merge(profile)

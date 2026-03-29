@@ -1,22 +1,22 @@
-"""IC merge operators: Sigma, Max, GMax.
+"""Scalar adaptations of Konieczny 2002 aggregation operators.
 
-Implements render-time belief merging from Konieczny & Pino Pérez 2002.
-Each operator takes a branch profile (dict mapping branch names to claim
-values) and returns the winning value that minimizes aggregated distance.
+Implements render-time aggregation kernels inspired by Konieczny & Pino Pérez
+2002. Each operator takes a profile mapping source IDs to scalar claim values
+and returns the winning value that minimizes aggregated distance.
 
-- Sigma (majority): minimizes sum of distances — IC0-IC8 + Maj
-- Max (quasi-merge): minimizes max distance — IC0-IC3, IC7-IC8 + Arb (NOT IC4-IC6)
-- GMax (arbitration): lexicographic sorted distances — IC0-IC8 + Arb
+- Sigma: minimizes sum of distances
+- Max: minimizes maximum distance
+- GMax: lexicographically compares sorted distance vectors
 
-NOTE: Konieczny 2002 defines merging over propositional belief bases with
-min-over-models Hamming distance. This implementation adapts the operators
-to a scalar-value domain: numeric claims use absolute difference, categorical
-claims use Hamming distance (0/1). The aggregation functions (sum/max/leximax)
-are preserved exactly; only the base distance function is simplified.
+Konieczny 2002 defines merging over propositional belief bases with
+min-over-models distance and an integrity constraint ``mu`` over models. This
+module preserves the aggregation families (sum/max/leximax) but adapts them to
+a scalar-value domain: numeric claims use absolute difference and categorical
+claims use Hamming distance (0/1).
 
-The paper's integrity constraint parameter mu (IC0: result must entail mu)
-is not yet implemented. Currently, merging is unconstrained. When form-level
-validation is wired in, mu will map to the concept's form constraints.
+This module does not yet implement assignment-level integrity constraints and
+therefore must not be read as satisfying IC0-IC8 as stated in the paper. It
+currently provides scalar distance kernels plus an unconstrained dispatcher.
 """
 from __future__ import annotations
 
@@ -46,10 +46,9 @@ def claim_distance(a: Any, b: Any) -> float:
 
 
 def sigma_merge(profile: dict[str, Any]) -> Any:
-    """Majority merge: select value minimizing sum of distances to all branches.
+    """Select the value minimizing sum distance to all profile values.
 
     Per Konieczny 2002 claim13-15: d_Sigma(I, Psi) = sum d(I, phi).
-    Satisfies IC0-IC8 + Maj.
 
     Candidates are drawn from the profile values themselves (discrete selection,
     no interpolation). The majority value wins because it has the lowest total
@@ -90,10 +89,9 @@ def _unique_values(profile: dict[str, Any]) -> list[Any]:
 
 
 def max_merge(profile: dict[str, Any]) -> Any:
-    """Quasi-merge: select value minimizing maximum distance to any branch.
+    """Select the value minimizing maximum distance to the profile values.
 
     Per Konieczny 2002 claim17-18: d_Max(I, Psi) = max d(I, phi).
-    Satisfies IC0-IC3, IC7-IC8, Arb. Does NOT satisfy IC4-IC6.
 
     Uses deduplicated values for both candidates and distance targets,
     ensuring the Arb property (insensitivity to source multiplicity).
@@ -117,10 +115,9 @@ def max_merge(profile: dict[str, Any]) -> Any:
 
 
 def gmax_merge(profile: dict[str, Any]) -> Any:
-    """Arbitration merge: lexicographic comparison of sorted distance vectors.
+    """Lexicographically compare sorted distance vectors over profile values.
 
     Per Konieczny 2002 claim19-20: GMax refines Max.
-    Satisfies IC0-IC8 + Arb.
 
     Uses deduplicated values for both candidates and distance targets,
     ensuring the Arb property (insensitivity to source multiplicity).
@@ -152,8 +149,7 @@ def gmax_merge(profile: dict[str, Any]) -> Any:
 def ic_merge(profile: dict[str, Any], *, operator: str = "sigma") -> Any:
     """Dispatch to the appropriate merge operator.
 
-    Default is Sigma (majority), the canonical IC merging operator
-    (Konieczny & Pino Pérez 2002, claim15).
+    Default is the Sigma aggregation kernel (Konieczny 2002 claim15).
     """
     # TODO: branch_weights from RenderPolicy not yet consumed.
     # When implemented, weighted_sigma would use w_i * d(I, phi_i)
