@@ -61,6 +61,9 @@ def iterated_revise(
     operator: str = "restrained",
 ) -> tuple[RevisionResult, EpistemicState]:
     """Revise an explicit epistemic state using a selected iterated operator family."""
+    if len(state.scope.merge_parent_commits) > 1:
+        raise ValueError("iterated revision is undefined at a merge point; use an explicit merge path")
+
     normalized = normalize_revision_input(state.base, atom)
     current_entrenchment = _entrenchment_from_state(state)
     conflict_map = {

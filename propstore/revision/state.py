@@ -13,6 +13,7 @@ class RevisionScope:
     context_id: str | None = None
     branch: str | None = None
     commit: str | None = None
+    merge_parent_commits: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
