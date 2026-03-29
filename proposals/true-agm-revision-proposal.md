@@ -524,6 +524,17 @@ Tasks:
 2. Define how revised claim/context states project into AF changes
 3. Optionally add warrant-style structured revision hooks
 
+Current projection contract:
+
+- `EpistemicState` projects to a read-only revision argumentation view
+- the view carries:
+  - a revision-projected store overlay for claim-graph consumers
+  - `active_claim_ids` for Dung/claim-graph entry points
+  - `active_claims` for structured/ASPIC projection entry points
+  - exact `support_metadata` for surviving ATMS-backed claims
+- synthetic revised-in claims are supplied through the overlay store and active claim rows
+- merge remains outside this adapter path
+
 Success criteria:
 
 - AF/ASPIC+ consumers can observe revised state without becoming the primary reviser

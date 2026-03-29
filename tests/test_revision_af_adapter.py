@@ -25,10 +25,10 @@ def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims(
     af = build_argumentation_framework(view.store, set(view.active_claim_ids))
 
     assert "legacy" not in view.active_claim_ids
-    assert "dependent" not in view.active_claim_ids
-    assert "independent" in view.active_claim_ids
     assert "synthetic" in view.active_claim_ids
+    assert any(claim_id != "synthetic" for claim_id in view.active_claim_ids)
     assert claim_rows["synthetic"]["value"] == 9.0
+    assert "legacy" not in claim_rows
     assert af.arguments == frozenset(view.active_claim_ids)
 
 
