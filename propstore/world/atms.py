@@ -41,18 +41,27 @@ from propstore.world.types import (
     ATMSConceptRelevanceReport,
     ATMSConceptRelevanceState,
     ATMSConceptStabilityReport,
+    ATMSAssumptionAntecedent,
+    ATMSCycleAntecedent,
+    ATMSExplanationAntecedent,
     ATMSFutureEnvironmentReport,
     ATMSFutureStatusReport,
     ATMSInspection,
+    ATMSJustificationExplanation,
     ATMSNextQuerySuggestion,
+    ATMSNestedNodeExplanation,
+    ATMSNodeExplanation,
     ATMSNodeStatus,
     ATMSNodeFutureStatusEntry,
     ATMSNodeInterventionPlan,
     ATMSNodeRelevanceReport,
     ATMSNodeRelevanceState,
     ATMSNodeStabilityReport,
+    ATMSNogoodDetail,
+    ATMSNogoodProvenanceDetail,
     ATMSOutKind,
     ATMSConceptWitnessPair,
+    ATMSLabelVerificationReport,
     ATMSNodeWitnessPair,
     ATMSWhyOutReport,
     Environment,
@@ -318,7 +327,7 @@ class ATMSEngine:
         self._assumption_node_ids: dict[str, str] = {}
         self._all_parameterizations = tuple(self._sorted_parameterizations())
         self.nogoods = NogoodSet()
-        self._nogood_provenance: dict[EnvironmentKey, tuple[dict[str, Any], ...]] = {}
+        self._nogood_provenance: dict[EnvironmentKey, tuple[ATMSNogoodProvenanceDetail, ...]] = {}
         self._build()
 
     def claim_label(self, claim_id: str) -> Label | None:
@@ -867,19 +876,19 @@ class ATMSEngine:
             if any(label_env.subsumes(environment_key) for label_env in node.label.environments)
         )
 
-    def explain_node(self, node_id: str) -> dict[str, Any]:
+    def explain_node(self, node_id: str) -> ATMSNodeExplanation:
         return self._explain_node(node_id, seen_nodes={node_id})
 
     def explain_nogood(
         self,
         environment_key: EnvironmentKey | tuple[str, ...] | list[str],
-    ) -> dict[str, Any] | None:
+    ) -> ATMSNogoodDetail | None:
         query = self._coerce_environment_key(environment_key)
         if query not in self.nogoods.environments:
             return None
         return self._serialize_nogood_detail(query)
 
-    def verify_labels(self) -> dict[str, Any]:
+    def verify_labels(self) -> ATMSLabelVerificationReport:
         consistency_errors: list[str] = []
         minimality_errors: list[str] = []
         soundness_errors: list[str] = []
@@ -1199,7 +1208,7 @@ class ATMSEngine:
 
     def _update_nogoods(self) -> bool:
         environments: list[EnvironmentKey] = list(self.nogoods.environments)
-        provenance: dict[EnvironmentKey, list[dict[str, Any]]] = defaultdict(list)
+        provenance: dict[EnvironmentKey, list[ATMSNogoodProvenanceDetail]] = defaultdict(list)
         for environment, details in self._nogood_provenance.items():
             provenance[environment].extend(details)
         for conflict in self._runtime.conflicts():
@@ -1933,7 +1942,7 @@ class ATMSEngine:
         justification_id: str,
         *,
         seen_nodes: set[str],
-    ) -> dict[str, Any] | None:
+    ) -> ATMSJustificationExplanation | None:
         justification = self._justifications[justification_id]
         candidate = self._justification_candidate_label(justification, nogoods=self.nogoods)
         consequent = self._nodes[justification.consequent_ids[0]]
@@ -1945,29 +1954,33 @@ class ATMSEngine:
         ):
             return None
 
-        antecedents: list[dict[str, Any]] = []
+        antecedents: list[ATMSExplanationAntecedent] = []
         for antecedent_id in justification.antecedent_ids:
             antecedent_node = self._nodes[antecedent_id]
             if antecedent_id in seen_nodes:
-                antecedents.append({
+                cycle_antecedent: ATMSCycleAntecedent = {
                     "node_id": antecedent_id,
                     "kind": antecedent_node.kind,
                     "cycle": True,
-                })
+                }
+                antecedents.append(cycle_antecedent)
                 continue
             if antecedent_node.kind == "assumption":
-                antecedents.append({
+                assumption_antecedent: ATMSAssumptionAntecedent = {
                     "node_id": antecedent_id,
                     "kind": antecedent_node.kind,
                     "label": self._serialize_label(self._label_or_none(antecedent_node.label)),
-                })
+                }
+                antecedents.append(assumption_antecedent)
                 continue
 
             nested_seen = set(seen_nodes)
             nested_seen.add(antecedent_id)
-            antecedents.append(self._explain_node(antecedent_id, seen_nodes=nested_seen) | {
+            nested_explanation: ATMSNestedNodeExplanation = {
+                **self._explain_node(antecedent_id, seen_nodes=nested_seen),
                 "antecedent_of": justification.consequent_ids[0],
-            })
+            }
+            antecedents.append(nested_explanation)
 
         return {
             "node_id": consequent.node_id,
@@ -1984,7 +1997,7 @@ class ATMSEngine:
         node_id: str,
         *,
         seen_nodes: set[str],
-    ) -> dict[str, Any]:
+    ) -> ATMSNodeExplanation:
         node = self._nodes.get(node_id)
         if node is None:
             raise KeyError(f"Unknown ATMS node: {node_id}")
@@ -2022,13 +2035,10 @@ class ATMSEngine:
             for environment in label.environments
         ]
 
-    def _serialize_nogood_detail(self, environment: EnvironmentKey) -> dict[str, Any]:
+    def _serialize_nogood_detail(self, environment: EnvironmentKey) -> ATMSNogoodDetail:
         return {
             "environment": list(environment.assumption_ids),
-            "provenance": [
-                dict(detail)
-                for detail in self._nogood_provenance.get(environment, ())
-            ],
+            "provenance": list(self._nogood_provenance.get(environment, ())),
         }
 
     @classmethod

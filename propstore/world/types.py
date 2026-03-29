@@ -6,7 +6,7 @@ import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any, Protocol, TypedDict, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, runtime_checkable
 
 from propstore.core.environment import ArtifactStore, Environment  # noqa: F401
 from propstore.core.labels import (
@@ -274,6 +274,73 @@ class ATMSNextQuerySuggestion(TypedDict):
     smallest_plan_size: int
     plan_queryable_cels: list[list[str]]
     example_plans: list[ATMSNodeInterventionPlan | ATMSConceptInterventionPlan]
+
+
+class ATMSCycleAntecedent(TypedDict):
+    node_id: str
+    kind: str
+    cycle: Literal[True]
+
+
+class ATMSAssumptionAntecedent(TypedDict):
+    node_id: str
+    kind: str
+    label: list[list[str]] | None
+
+
+class ATMSJustificationExplanation(TypedDict):
+    node_id: str
+    justification_id: str
+    antecedent_ids: list[str]
+    consequent_id: str
+    informant: str
+    support: list[list[str]] | None
+    antecedents: list["ATMSExplanationAntecedent"]
+
+
+class ATMSNodeExplanation(TypedDict):
+    node_id: str
+    claim_id: str | None
+    kind: str
+    status: str
+    support_quality: str
+    label: list[list[str]] | None
+    essential_support: list[str] | None
+    reason: str
+    traces: list[ATMSJustificationExplanation]
+
+
+class ATMSNestedNodeExplanation(ATMSNodeExplanation):
+    antecedent_of: str
+
+
+ATMSExplanationAntecedent: TypeAlias = (
+    ATMSCycleAntecedent
+    | ATMSAssumptionAntecedent
+    | ATMSNestedNodeExplanation
+)
+
+
+class ATMSNogoodProvenanceDetail(TypedDict):
+    claim_a_id: str
+    claim_b_id: str
+    concept_id: str | None
+    warning_class: str | None
+    environment_a: list[str]
+    environment_b: list[str]
+
+
+class ATMSNogoodDetail(TypedDict):
+    environment: list[str]
+    provenance: list[ATMSNogoodProvenanceDetail]
+
+
+class ATMSLabelVerificationReport(TypedDict):
+    ok: bool
+    consistency_errors: list[str]
+    minimality_errors: list[str]
+    soundness_errors: list[str]
+    completeness_errors: list[str]
 
 
 class ResolutionStrategy(StrEnum):

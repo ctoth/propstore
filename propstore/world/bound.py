@@ -25,6 +25,9 @@ from propstore.world.types import (
     ATMSConceptInterventionPlan,
     ATMSConceptRelevanceReport,
     ATMSConceptStabilityReport,
+    ATMSLabelVerificationReport,
+    ATMSNodeExplanation,
+    ATMSNogoodDetail,
     ATMSFutureStatusReport,
     ATMSInspection,
     ATMSNextQuerySuggestion,
@@ -699,6 +702,16 @@ class BoundWorld(BeliefSpace):
             "claim_reasons": claim_reasons,
         }
 
+    def explain_nogood(
+        self,
+        environment: EnvironmentKey | tuple[str, ...] | list[str],
+    ) -> ATMSNogoodDetail | None:
+        return self.atms_engine().explain_nogood(environment)
+
+    def verify_atms_labels(self) -> ATMSLabelVerificationReport:
+        self._require_atms_backend()
+        return self.atms_engine().verify_labels()
+
     def claims_in_environment(
         self,
         environment: EnvironmentKey | tuple[str, ...] | list[str],
@@ -710,7 +723,7 @@ class BoundWorld(BeliefSpace):
             if node_id.startswith("claim:")
         ]
 
-    def explain_claim_support(self, claim_id: str) -> dict[str, Any]:
+    def explain_claim_support(self, claim_id: str) -> ATMSNodeExplanation:
         """Return the ATMS justification trace and support metadata for a claim."""
         return self.atms_engine().explain_node(self.claim_status(claim_id).node_id)
 
