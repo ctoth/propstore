@@ -301,3 +301,188 @@ class TestCombineFragilityUpdated:
         # parametric=0.7, epistemic=0.6, conflict=0.3
         # top2 = (0.7 + 0.6) / 2 = 0.65
         assert combine_fragility(0.7, 0.6, 0.3) == pytest.approx(0.65)
+
+
+# ── Phase 3: Opinion sensitivity tests ─────────────────────────────────
+
+from propstore.opinion import Opinion, wbf
+from propstore.fragility import opinion_sensitivity, imps_rev
+
+
+class TestOpinionSensitivity:
+    """Marginal derivative of WBF fused expectation w.r.t. input uncertainty."""
+
+    def test_high_uncertainty_high_sensitivity(self):
+        """An opinion with u=0.8 has more marginal room than one with u=0.1."""
+        omega_1 = Opinion(0.1, 0.1, 0.8, 0.5)
+        omega_2 = Opinion(0.45, 0.45, 0.1, 0.5)
+        opinions = [omega_1, omega_2]
+        sens_1 = opinion_sensitivity(opinions, 0)
+        sens_2 = opinion_sensitivity(opinions, 1)
+        assert sens_1 is not None
+        assert sens_2 is not None
+        assert sens_1 > sens_2
+
+    def test_single_opinion_sensitivity(self):
+        """With one opinion, sensitivity is None (no fusion partner)."""
+        omega = Opinion(0.4, 0.2, 0.4, 0.5)
+        result = opinion_sensitivity([omega], 0)
+        assert result is None
+
+    def test_vacuous_opinion_max_sensitivity(self):
+        """A vacuous opinion (u=1) has maximum marginal leverage."""
+        omega_1 = Opinion.vacuous(0.5)
+        omega_2 = Opinion(0.4, 0.1, 0.5, 0.5)
+        opinions = [omega_1, omega_2]
+        sens = opinion_sensitivity(opinions, 0)
+        assert sens is not None
+        assert sens > 0.0
+
+    def test_sensitivity_returns_nonnegative(self):
+        """Sensitivity magnitude is always >= 0."""
+        pairs = [
+            [Opinion(0.3, 0.3, 0.4, 0.5), Opinion(0.5, 0.2, 0.3, 0.5)],
+            [Opinion(0.1, 0.1, 0.8, 0.5), Opinion(0.6, 0.1, 0.3, 0.5)],
+            [Opinion(0.2, 0.5, 0.3, 0.5), Opinion(0.7, 0.1, 0.2, 0.5)],
+        ]
+        for opinions in pairs:
+            for i in range(len(opinions)):
+                s = opinion_sensitivity(opinions, i)
+                if s is not None:
+                    assert s >= 0.0
+
+    def test_dogmatic_neighbor_returns_none(self):
+        """If any opinion is dogmatic (u~0), sensitivity is None (can't WBF)."""
+        omega_1 = Opinion(0.5, 0.3, 0.2, 0.5)
+        omega_2 = Opinion(1.0, 0.0, 0.0, 0.5)  # dogmatic
+        result = opinion_sensitivity([omega_1, omega_2], 0)
+        assert result is None
+
+    def test_two_identical_opinions_low_sensitivity(self):
+        """Two identical opinions: perturbing one barely moves fused E."""
+        omega = Opinion(0.4, 0.2, 0.4, 0.5)
+        opinions = [omega, omega]
+        sens = opinion_sensitivity(opinions, 0)
+        assert sens is not None
+        # Two agreeing opinions — sensitivity should be small
+        assert sens < 0.5
+
+
+# ── Phase 3: ImpS^rev tests ────────────────────────────────────────────
+
+from propstore.dung import ArgumentationFramework
+
+
+class TestImpSRev:
+    """AlAnaissy 2024 revised impact measure via DF-QuAD."""
+
+    def test_removing_only_attacker_increases_strength(self):
+        """If A is B's only attacker, removing A->B increases B's strength."""
+        framework = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset({("A", "B")}),
+        )
+        result = imps_rev(
+            framework,
+            supports={},
+            base_scores={"A": 0.8, "B": 0.5},
+            attack=("A", "B"),
+        )
+        assert result > 0.0
+
+    def test_removing_one_of_many_attackers_small_impact(self):
+        """Removing one of several attackers has diminishing marginal effect."""
+        # Single attacker case
+        fw_single = ArgumentationFramework(
+            arguments=frozenset({"A", "C"}),
+            defeats=frozenset({("A", "C")}),
+        )
+        impact_single = imps_rev(
+            fw_single,
+            supports={},
+            base_scores={"A": 0.5, "C": 0.5},
+            attack=("A", "C"),
+        )
+        # Two attackers case
+        fw_two = ArgumentationFramework(
+            arguments=frozenset({"A", "B", "C"}),
+            defeats=frozenset({("A", "C"), ("B", "C")}),
+        )
+        impact_two = imps_rev(
+            fw_two,
+            supports={},
+            base_scores={"A": 0.5, "B": 0.5, "C": 0.5},
+            attack=("A", "C"),
+        )
+        assert impact_single > 0.0
+        assert impact_two > 0.0
+        assert impact_single > impact_two
+
+    def test_no_attack_returns_zero(self):
+        """Impact of a non-existent attack is 0."""
+        framework = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset({("A", "B")}),
+        )
+        result = imps_rev(
+            framework,
+            supports={},
+            base_scores={"A": 0.5, "B": 0.5},
+            attack=("B", "A"),  # doesn't exist
+        )
+        assert result == 0.0
+
+    def test_isolated_argument_zero_impact(self):
+        """An argument with no attacks has zero impact on others."""
+        framework = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset(),
+        )
+        result = imps_rev(
+            framework,
+            supports={},
+            base_scores={"A": 0.5, "B": 0.5},
+            attack=("A", "B"),
+        )
+        assert result == 0.0
+
+    def test_chain_attack_indirect_impact(self):
+        """In A->B->C, removing A->B changes B's strength, which propagates to C."""
+        framework = ArgumentationFramework(
+            arguments=frozenset({"A", "B", "C"}),
+            defeats=frozenset({("A", "B"), ("B", "C")}),
+        )
+        result = imps_rev(
+            framework,
+            supports={},
+            base_scores={"A": 0.5, "B": 0.5, "C": 0.5},
+            attack=("A", "B"),
+        )
+        # Removing A->B makes B stronger, so B attacks C more, C gets weaker.
+        # ImpS_rev measures change in B's strength: B gets stronger, so positive.
+        assert result > 0.0
+
+
+# ── Phase 3: Conflict scoring with gradual semantics ────────────────────
+
+
+class TestConflictScoringGradual:
+    """Conflict scoring via DF-QuAD gradual semantics."""
+
+    def test_gradual_score_different_from_extension(self):
+        """Gradual (ImpS^rev) and extension-based scores can differ."""
+        # Build AF where A attacks B
+        framework = ArgumentationFramework(
+            arguments=frozenset({"A", "B"}),
+            defeats=frozenset({("A", "B")}),
+        )
+        extension_score = score_conflict(framework, "A", "B")
+        gradual_impact = imps_rev(
+            framework,
+            supports={},
+            base_scores={"A": 0.8, "B": 0.5},
+            attack=("A", "B"),
+        )
+        # Both should be positive but generally have different values
+        assert extension_score > 0.0
+        assert gradual_impact > 0.0

@@ -315,6 +315,36 @@ def _detect_shared_concepts(a: FragilityTarget, b: FragilityTarget) -> float:
     return overlap / total if total > 0 else 0.0
 
 
+def opinion_sensitivity(
+    opinions: list,
+    index: int,
+    *,
+    delta: float = 0.01,
+) -> float | None:
+    """Marginal derivative dE(wbf)/du_i at current operating point.
+
+    Computes central finite difference of the fused expectation
+    with respect to the uncertainty of opinions[index].
+
+    Returns None if the opinion is dogmatic or WBF cannot be computed.
+    """
+    raise NotImplementedError("Phase 3: opinion_sensitivity not yet implemented")
+
+
+def imps_rev(
+    framework: Any,
+    supports: dict[tuple[str, str], float],
+    base_scores: dict[str, float],
+    attack: tuple[str, str],
+) -> float:
+    """AlAnaissy 2024 revised impact: sigma(B | remove A->B) - sigma(B).
+
+    Measures how much removing attack (A,B) changes B's DF-QuAD strength.
+    Positive = B gets stronger without the attack (A was harming B).
+    """
+    raise NotImplementedError("Phase 3: imps_rev not yet implemented")
+
+
 def rank_fragility(
     bound: Any,  # BoundWorld — string annotation to avoid circular import
     *,
