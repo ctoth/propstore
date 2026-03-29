@@ -325,6 +325,8 @@ def _constraint_holds(
 
     if constraint.kind == IntegrityConstraintKind.CUSTOM:
         predicate = constraint.metadata.get("predicate")
+        if not callable(predicate):
+            raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
         return bool(predicate(scoped_values))
 
     raise ValueError(f"Unsupported integrity constraint kind: {constraint.kind}")
