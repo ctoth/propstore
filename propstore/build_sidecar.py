@@ -16,6 +16,7 @@ import hashlib
 import json
 import logging
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Sequence
 
@@ -35,6 +36,54 @@ if TYPE_CHECKING:
     from propstore.validate_contexts import ContextHierarchy, LoadedContext
 
 _SEMANTIC_INPUT_VERSION = "semantic-input-v1"
+
+_ConvertibleToFloat = float | int | str
+
+
+@dataclass(frozen=True)
+class _TypedClaimFields:
+    concept_id: str | None = None
+    statement: str | None = None
+    expression: str | None = None
+    name: str | None = None
+    target_concept: str | None = None
+    measure: str | None = None
+    listener_population: str | None = None
+    methodology: str | None = None
+    value: float | None = None
+    lower_bound: _ConvertibleToFloat | None = None
+    upper_bound: _ConvertibleToFloat | None = None
+    uncertainty: _ConvertibleToFloat | None = None
+    uncertainty_type: str | None = None
+    sample_size: int | None = None
+    unit: str | None = None
+
+    def __getitem__(self, key: str) -> object | None:
+        if hasattr(self, key):
+            return getattr(self, key)
+        raise KeyError(key)
+
+
+def _optional_string(value: object) -> str | None:
+    if isinstance(value, str):
+        return value
+    return None
+
+
+def _optional_float_input(value: object) -> _ConvertibleToFloat | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float | str):
+        return value
+    return None
+
+
+def _optional_int(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    return None
 
 
 def _content_hash(
@@ -609,7 +658,7 @@ def _populate_form_algebra(
 
             # Dedup key: (output_form, sorted input forms, canonical operation)
             try:
-                canon_op = canonical_dump(operation)
+                canon_op = canonical_dump(operation, {})
             except Exception:
                 canon_op = operation
             dedup_key = (output_form, tuple(sorted(input_forms)), canon_op)
@@ -1158,7 +1207,7 @@ def _prepare_claim_insert_row(
     prov = normalized_claim.get("provenance", {})
     conditions = normalized_claim.get("conditions")
     typed_fields = _extract_typed_claim_fields(normalized_claim)
-    expression = typed_fields["expression"]
+    expression = typed_fields.expression
     sympy_generated, sympy_error = _resolve_equation_sympy(
         ctype,
         str(expression) if expression is not None else None,
@@ -1169,14 +1218,14 @@ def _prepare_claim_insert_row(
     )
 
     # ── SI normalization ──────────────────────────────────────────────
-    value_si = typed_fields["value"]
-    lower_bound_si = typed_fields["lower_bound"]
-    upper_bound_si = typed_fields["upper_bound"]
-    unit = typed_fields["unit"]
+    value_si = typed_fields.value
+    lower_bound_si = typed_fields.lower_bound
+    upper_bound_si = typed_fields.upper_bound
+    unit = typed_fields.unit
 
     form_def: FormDefinition | None = None
     if form_registry and concept_registry:
-        concept_id = typed_fields["concept_id"]
+        concept_id = typed_fields.concept_id
         concept_data = concept_registry.get(concept_id) if concept_id else None
         if isinstance(concept_data, dict):
             form_name = concept_data.get("form")
@@ -1193,36 +1242,36 @@ def _prepare_claim_insert_row(
                 upper_bound_si = normalize_to_si(float(upper_bound_si), unit, form_def)
         except (ValueError, TypeError):
             # Unknown unit or non-numeric value — keep raw values
-            value_si = typed_fields["value"]
-            lower_bound_si = typed_fields["lower_bound"]
-            upper_bound_si = typed_fields["upper_bound"]
+            value_si = typed_fields.value
+            lower_bound_si = typed_fields.lower_bound
+            upper_bound_si = typed_fields.upper_bound
 
     return {
         "id": normalized_claim.get("id"),
         "content_hash": _claim_content_hash(normalized_claim, source_paper),
         "seq": claim_seq,
         "type": ctype,
-        "concept_id": typed_fields["concept_id"],
-        "value": typed_fields["value"],
-        "lower_bound": typed_fields["lower_bound"],
-        "upper_bound": typed_fields["upper_bound"],
-        "uncertainty": typed_fields["uncertainty"],
-        "uncertainty_type": typed_fields["uncertainty_type"],
-        "sample_size": typed_fields["sample_size"],
-        "unit": typed_fields["unit"],
+        "concept_id": typed_fields.concept_id,
+        "value": typed_fields.value,
+        "lower_bound": typed_fields.lower_bound,
+        "upper_bound": typed_fields.upper_bound,
+        "uncertainty": typed_fields.uncertainty,
+        "uncertainty_type": typed_fields.uncertainty_type,
+        "sample_size": typed_fields.sample_size,
+        "unit": typed_fields.unit,
         "value_si": value_si,
         "lower_bound_si": lower_bound_si,
         "upper_bound_si": upper_bound_si,
         "conditions_cel": json.dumps(conditions) if conditions else None,
-        "statement": typed_fields["statement"],
-        "expression": typed_fields["expression"],
+        "statement": typed_fields.statement,
+        "expression": typed_fields.expression,
         "sympy_generated": sympy_generated,
         "sympy_error": sympy_error,
-        "name": typed_fields["name"],
-        "target_concept": typed_fields["target_concept"],
-        "measure": typed_fields["measure"],
-        "listener_population": typed_fields["listener_population"],
-        "methodology": typed_fields["methodology"],
+        "name": typed_fields.name,
+        "target_concept": typed_fields.target_concept,
+        "measure": typed_fields.measure,
+        "listener_population": typed_fields.listener_population,
+        "methodology": typed_fields.methodology,
         "notes": normalized_claim.get("notes"),
         "description": normalized_claim.get("description"),
         "auto_summary": generate_description(normalized_claim, concept_registry or {}),
@@ -1320,46 +1369,48 @@ def _canonicalize_claim_for_storage(claim: dict, concept_registry: dict) -> dict
     return normalized
 
 
-def _extract_typed_claim_fields(claim: dict) -> dict[str, object | None]:
-    fields: dict[str, object | None] = {
-        "concept_id": None,
-        "value": None,
-        "unit": None,
-        "statement": None,
-        "expression": None,
-        "name": None,
-        "target_concept": None,
-        "measure": None,
-        "listener_population": None,
-        "methodology": None,
-        "lower_bound": None,
-        "upper_bound": None,
-        "uncertainty": None,
-        "uncertainty_type": None,
-        "sample_size": None,
-    }
+def _extract_typed_claim_fields(claim: dict) -> _TypedClaimFields:
+    fields = _TypedClaimFields()
     ctype = claim.get("type")
     if ctype == "parameter":
-        fields["concept_id"] = claim.get("concept")
-        fields.update(_extract_numeric_claim_fields(claim))
+        numeric = _extract_numeric_claim_fields(claim)
+        fields = _TypedClaimFields(
+            concept_id=_optional_string(claim.get("concept")),
+            value=numeric.value,
+            lower_bound=numeric.lower_bound,
+            upper_bound=numeric.upper_bound,
+            uncertainty=numeric.uncertainty,
+            uncertainty_type=numeric.uncertainty_type,
+            sample_size=numeric.sample_size,
+            unit=numeric.unit,
+        )
     elif ctype == "measurement":
-        fields["target_concept"] = claim.get("target_concept")
-        fields["measure"] = claim.get("measure")
-        fields["listener_population"] = claim.get("listener_population")
-        fields["methodology"] = claim.get("methodology")
-        fields.update(_extract_numeric_claim_fields(claim))
+        numeric = _extract_numeric_claim_fields(claim)
+        fields = _TypedClaimFields(
+            target_concept=_optional_string(claim.get("target_concept")),
+            measure=_optional_string(claim.get("measure")),
+            listener_population=_optional_string(claim.get("listener_population")),
+            methodology=_optional_string(claim.get("methodology")),
+            value=numeric.value,
+            lower_bound=numeric.lower_bound,
+            upper_bound=numeric.upper_bound,
+            uncertainty=numeric.uncertainty,
+            uncertainty_type=numeric.uncertainty_type,
+            sample_size=numeric.sample_size,
+            unit=numeric.unit,
+        )
     elif ctype == "observation":
-        fields["statement"] = claim.get("statement")
+        fields = _TypedClaimFields(statement=_optional_string(claim.get("statement")))
     elif ctype == "equation":
-        fields["expression"] = claim.get("expression")
+        fields = _TypedClaimFields(expression=_optional_string(claim.get("expression")))
     elif ctype == "model":
-        fields["name"] = claim.get("name")
+        fields = _TypedClaimFields(name=_optional_string(claim.get("name")))
     elif ctype == "algorithm":
-        fields["concept_id"] = claim.get("concept")
+        fields = _TypedClaimFields(concept_id=_optional_string(claim.get("concept")))
     return fields
 
 
-def _extract_numeric_claim_fields(claim: dict) -> dict[str, object | None]:
+def _extract_numeric_claim_fields(claim: dict) -> _TypedClaimFields:
     raw_value = claim.get("value")
     if raw_value is None:
         value = None
@@ -1372,15 +1423,15 @@ def _extract_numeric_claim_fields(claim: dict) -> dict[str, object | None]:
                 "Cannot parse value %r as float, treating as None", raw_value
             )
             value = None
-    return {
-        "value": value,
-        "lower_bound": claim.get("lower_bound"),
-        "upper_bound": claim.get("upper_bound"),
-        "uncertainty": claim.get("uncertainty"),
-        "uncertainty_type": claim.get("uncertainty_type"),
-        "sample_size": claim.get("sample_size"),
-        "unit": claim.get("unit"),
-    }
+    return _TypedClaimFields(
+        value=value,
+        lower_bound=_optional_float_input(claim.get("lower_bound")),
+        upper_bound=_optional_float_input(claim.get("upper_bound")),
+        uncertainty=_optional_float_input(claim.get("uncertainty")),
+        uncertainty_type=_optional_string(claim.get("uncertainty_type")),
+        sample_size=_optional_int(claim.get("sample_size")),
+        unit=_optional_string(claim.get("unit")),
+    )
 
 
 def _resolve_equation_sympy(
