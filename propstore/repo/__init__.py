@@ -20,6 +20,12 @@ from propstore.repo.merge_framework import (
     enumerate_paf_completions,
     merge_framework_edit_distance,
 )
+from propstore.repo.paf_merge import (
+    consensual_expand,
+    sum_merge_frameworks,
+    max_merge_frameworks,
+    leximax_merge_frameworks,
+)
 from propstore.repo.ic_merge import (
     MergeOperator,
     sigma_merge,
@@ -42,6 +48,10 @@ __all__ = [
     "PartialArgumentationFramework",
     "enumerate_paf_completions",
     "merge_framework_edit_distance",
+    "consensual_expand",
+    "sum_merge_frameworks",
+    "max_merge_frameworks",
+    "leximax_merge_frameworks",
     "MergeOperator",
     "sigma_merge",
     "max_merge",
