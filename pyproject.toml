@@ -39,6 +39,7 @@ venvPath = "."
 venv = ".venv"
 strict = [
     "propstore/core/labels.py",
+    "propstore/core/graph_types.py",
     "propstore/core/results.py",
     "propstore/conflict_detector/models.py",
     "propstore/dung.py",

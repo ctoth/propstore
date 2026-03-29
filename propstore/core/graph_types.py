@@ -10,6 +10,14 @@ from propstore.core.environment import Environment
 from propstore.core.labels import EnvironmentKey, Label
 
 
+def _mapping_items(value: Any) -> list[tuple[Any, Any]]:
+    return list(value.items())
+
+
+def _sequence_items(value: Any) -> list[Any]:
+    return list(value)
+
+
 def _pairs_from_mapping(value: Mapping[str, object]) -> list[tuple[str, object]]:
     pairs: list[tuple[str, object]] = []
     for key, item in value.items():
@@ -27,13 +35,11 @@ def _pairs_from_iterable(value: tuple[tuple[str, object], ...]) -> list[tuple[st
 def _freeze_value(value: object) -> object:
     if isinstance(value, Mapping):
         frozen_items: list[tuple[str, object]] = []
-        for entry in value.items():
-            key: object = entry[0]
-            item: object = entry[1]
+        for key, item in _mapping_items(value):
             frozen_items.append((str(key), _freeze_value(item)))
         return tuple(sorted(frozen_items))
     if isinstance(value, (list, tuple)):
-        sequence: list[object] = list(value)
+        sequence = _sequence_items(value)
         return tuple(_freeze_value(item) for item in sequence)
     return value
 
