@@ -308,6 +308,7 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 
 ## Future Work
 
+- **Epistemic operating system roadmap** — The next program is no longer just “more backends.” It is formal merge completion, policy/governance objects, snapshots/journals/diffs, and investigation/process-manager surfaces. See `proposals/epistemic-operating-system-roadmap.md`.
 - **Structured merge deepening** — The formal merge backbone is implemented; the remaining work is richer branch-local structured projection, stronger structured correspondence results, and more source-preference integration. See `docs/semantic-merge.md`.
 - **AF-level revision** — Claim/context revision is implemented; remaining work is argument-level and warrant-level revision over AF / ASPIC+ consumers.
 - **Extended Josang operators** — Deduction, comultiplication, abduction (Josang & McAnally 2004; Josang 2008). Requires retrieving source papers.
