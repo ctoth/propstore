@@ -1366,3 +1366,123 @@ def test_coh_expectation_bounds(praf):
         assert -1e-9 <= e <= 1.0 + 1e-9, (
             f"{arg}: E(ω) = {e} out of [0, 1]"
         )
+
+
+# ── PrAF edge case property tests (audit-2026-03-28) ─────────────
+
+
+def _make_praf_with_self_attacks():
+    """Strategy: PrAF with 2-3 args where self-attacks are possible."""
+    @st.composite
+    def build(draw):
+        from propstore.praf import ProbabilisticAF
+
+        n_args = draw(st.integers(min_value=2, max_value=3))
+        arg_names = [f"sa{i}" for i in range(n_args)]
+
+        p_args = {}
+        for name in arg_names:
+            p = draw(st.floats(min_value=0.05, max_value=0.95))
+            n = draw(st.integers(min_value=5, max_value=20))
+            p_args[name] = from_probability(p, n)
+
+        # Allow self-attacks
+        attacks = set()
+        for src in arg_names:
+            for tgt in arg_names:
+                if draw(st.booleans()):
+                    attacks.add((src, tgt))
+
+        af = ArgumentationFramework(
+            arguments=frozenset(arg_names),
+            defeats=frozenset(attacks),
+            attacks=frozenset(attacks),
+        )
+        p_defeats = {edge: Opinion.dogmatic_true() for edge in attacks}
+
+        return ProbabilisticAF(
+            framework=af,
+            p_args=p_args,
+            p_defeats=p_defeats,
+        )
+
+    return build()
+
+
+@given(praf=_make_praf_with_self_attacks())
+@settings(max_examples=50, deadline=None)
+def test_coh_self_attack_constrains_to_half(praf):
+    """Self-attacking argument must have P(A) <= 0.5 after COH.
+
+    Per Hunter & Thimm (2017, p.9): for self-attack (A, A),
+    P(A) + P(A) <= 1 implies P(A) <= 0.5.
+    """
+    from propstore.praf import enforce_coh
+
+    result = enforce_coh(praf)
+    attacks = result.framework.attacks if result.framework.attacks is not None else result.framework.defeats
+    for src, tgt in attacks:
+        if src == tgt:
+            e = result.p_args[src].expectation()
+            assert e <= 0.5 + 1e-9, (
+                f"Self-attacking arg {src}: E={e} > 0.5 after COH"
+            )
+
+
+@given(praf=_make_praf_with_self_attacks())
+@settings(max_examples=50, deadline=None)
+def test_coh_with_self_attacks_idempotent(praf):
+    """enforce_coh is idempotent even with self-attacks."""
+    from propstore.praf import enforce_coh
+
+    once = enforce_coh(praf)
+    twice = enforce_coh(once)
+    for arg in praf.framework.arguments:
+        p1 = once.p_args[arg].expectation()
+        p2 = twice.p_args[arg].expectation()
+        assert abs(p1 - p2) < 1e-6, (
+            f"arg {arg}: once={p1:.6f} vs twice={p2:.6f}"
+        )
+
+
+def test_praf_vacuous_argument_existence():
+    """Argument with vacuous existence opinion (total ignorance about existence).
+
+    Per Jøsang 2001: vacuous opinion = (0, 0, 1, 0.5), E = 0.5.
+    A vacuous attacker should have ~50% chance of existing, so the target
+    should be accepted roughly half the time.
+    """
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b"}),
+        defeats=frozenset({("a", "b")}),
+    )
+    p_args = {
+        "a": Opinion.vacuous(),
+        "b": Opinion.dogmatic_true(),
+    }
+    p_defeats = {("a", "b"): Opinion.dogmatic_true()}
+    praf = ProbabilisticAF(framework=af, p_args=p_args, p_defeats=p_defeats)
+    result = compute_praf_acceptance(
+        praf, strategy="mc", mc_epsilon=0.05, rng_seed=42,
+    )
+    # With vacuous A (E=0.5), A exists ~50% of the time.
+    # When A exists, it defeats B. When A absent, B is undefeated.
+    # So acceptance(B) should be roughly 0.5
+    assert 0.3 <= result.acceptance_probs["b"] <= 0.7, (
+        f"b acceptance = {result.acceptance_probs['b']}, expected ~0.5"
+    )
+
+
+def test_praf_empty_framework():
+    """Empty PrAF (no arguments) should produce empty acceptance probs."""
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    af = ArgumentationFramework(
+        arguments=frozenset(),
+        defeats=frozenset(),
+    )
+    praf = ProbabilisticAF(framework=af, p_args={}, p_defeats={})
+    result = compute_praf_acceptance(praf, semantics="grounded")
+    assert result.acceptance_probs == {}
