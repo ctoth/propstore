@@ -12,22 +12,27 @@ References:
 
 from __future__ import annotations
 
-from z3 import Bool, BoolVal, And, Or, Not, Solver, sat
+from typing import Any
+
+from z3 import And, Bool, BoolVal, ModelRef, Not, Or, Solver, is_true, sat
 
 from propstore.dung import ArgumentationFramework, _attackers_index
 
 
+Z3BoolExpr = Any
+
+
 def _make_vars(
     framework: ArgumentationFramework,
-) -> dict[str, Bool]:
+) -> dict[str, Z3BoolExpr]:
     """Create one z3 Bool variable per argument."""
     return {a: Bool(f"in_{a}") for a in sorted(framework.arguments)}
 
 
 def _conflict_free_constraints(
     framework: ArgumentationFramework,
-    v: dict[str, Bool],
-) -> list:
+    v: dict[str, Z3BoolExpr],
+) -> list[Z3BoolExpr]:
     """Conflict-free: no two args in the set attack each other.
 
     Per Modgil & Prakken 2018 Def 14, uses attacks (pre-preference)
@@ -38,17 +43,19 @@ def _conflict_free_constraints(
 
 
 def _extract_extension(
-    v: dict[str, Bool],
-    model,
+    v: dict[str, Z3BoolExpr],
+    model: ModelRef,
 ) -> frozenset[str]:
     """Extract the extension (set of accepted args) from a z3 model."""
-    return frozenset(a for a, var in v.items() if model[var])
+    return frozenset(
+        a for a, var in v.items() if is_true(model.evaluate(var, model_completion=True))
+    )
 
 
 def _block_solution(
-    v: dict[str, Bool],
+    v: dict[str, Z3BoolExpr],
     extension: frozenset[str],
-) -> list:
+) -> list[Z3BoolExpr]:
     """Add a blocking clause to exclude an already-found extension."""
     # The clause says: at least one variable must differ from this solution
     clause_parts = []
@@ -60,7 +67,7 @@ def _block_solution(
     return [Or(*clause_parts)] if clause_parts else []
 
 
-def _or_vars(v: dict[str, Bool], arguments: tuple[str, ...]):
+def _or_vars(v: dict[str, Z3BoolExpr], arguments: tuple[str, ...]) -> Z3BoolExpr:
     """Build a disjunction over argument-membership variables."""
     if not arguments:
         return BoolVal(False)
@@ -71,19 +78,19 @@ def _or_vars(v: dict[str, Bool], arguments: tuple[str, ...]):
 
 def _defended_expressions(
     args: list[str],
-    v: dict[str, Bool],
+    v: dict[str, Z3BoolExpr],
     attackers_index: dict[str, frozenset[str]],
-) -> dict[str, object]:
+) -> dict[str, Z3BoolExpr]:
     """Build one defended-expression per argument.
 
     defended(a) means: every attacker of ``a`` is itself attacked by some
     accepted argument. Unattacked arguments are always defended.
     """
-    defender_exprs: dict[str, object] = {
+    defender_exprs: dict[str, Z3BoolExpr] = {
         target: _or_vars(v, tuple(sorted(attackers)))
         for target, attackers in attackers_index.items()
     }
-    defended: dict[str, object] = {}
+    defended: dict[str, Z3BoolExpr] = {}
     for arg in args:
         attackers = tuple(sorted(attackers_index.get(arg, frozenset())))
         if not attackers:
