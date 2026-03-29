@@ -1840,6 +1840,66 @@ class TestWorldlineCLIFlags:
         written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
         assert written["policy"]["semantics"] == "preferred"
 
+    def test_create_claim_graph_specific_semantics_flag(self, tmp_path):
+        """Claim-graph-specific semantics like legacy_grounded must be CLI-selectable."""
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_create
+
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+
+        fake_cli.add_command(worldline_create, "create")
+
+        runner = CliRunner()
+        result = runner.invoke(fake_cli, [
+            "create", "test-wl",
+            "--target", "concept1",
+            "--strategy", "argumentation",
+            "--reasoning-backend", "claim_graph",
+            "--semantics", "legacy_grounded",
+        ])
+        assert result.exit_code == 0, result.output
+
+        written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
+        assert written["policy"]["semantics"] == "legacy_grounded"
+
+    def test_create_rejects_unsupported_backend_semantics_pair(self, tmp_path):
+        """Structured projection must reject claim-graph-only semantics at CLI time."""
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_create
+
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+
+        fake_cli.add_command(worldline_create, "create")
+
+        runner = CliRunner()
+        result = runner.invoke(fake_cli, [
+            "create", "test-wl",
+            "--target", "concept1",
+            "--strategy", "argumentation",
+            "--reasoning-backend", "structured_projection",
+            "--semantics", "d-preferred",
+        ])
+        assert result.exit_code != 0
+        assert "does not support semantics" in result.output
+
     def test_create_set_comparison_flag(self, tmp_path):
         """--set-comparison democratic must be accepted and stored in policy."""
         import click

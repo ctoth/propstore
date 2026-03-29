@@ -20,7 +20,12 @@ from propstore.dung import (
     stable_extensions,
 )
 from propstore.world.labelled import Label, SupportQuality
-from propstore.world.types import SupportMetadata
+from propstore.world.types import (
+    ArgumentationSemantics,
+    ReasoningBackend,
+    SupportMetadata,
+    validate_backend_semantics,
+)
 
 
 @dataclass(frozen=True)
@@ -76,10 +81,15 @@ def compute_structured_justified_arguments(
     projection: StructuredProjection,
     *,
     semantics: str = "grounded",
+    backend: ReasoningBackend = ReasoningBackend.STRUCTURED_PROJECTION,
 ) -> frozenset[str] | list[frozenset[str]]:
     """Compute justified structured arguments using existing Dung semantics."""
+    _, normalized_semantics = validate_backend_semantics(
+        backend,
+        semantics,
+    )
     framework = projection.framework
-    if semantics == "grounded":
+    if normalized_semantics == ArgumentationSemantics.GROUNDED:
         # Dung grounded semantics is defined over defeats only. Strip
         # attack metadata so hybrid frameworks are evaluated honestly.
         if framework.attacks is not None and framework.attacks != framework.defeats:
@@ -88,10 +98,13 @@ def compute_structured_justified_arguments(
                 defeats=framework.defeats,
             )
         return grounded_extension(framework)
-    if semantics == "hybrid-grounded":
+    if normalized_semantics == ArgumentationSemantics.HYBRID_GROUNDED:
         return hybrid_grounded_extension(projection.framework)
-    if semantics == "preferred":
+    if normalized_semantics == ArgumentationSemantics.PREFERRED:
         return [frozenset(ext) for ext in preferred_extensions(projection.framework)]
-    if semantics == "stable":
+    if normalized_semantics == ArgumentationSemantics.STABLE:
         return [frozenset(ext) for ext in stable_extensions(projection.framework)]
-    raise ValueError(f"Unknown semantics: {semantics}")
+    raise ValueError(
+        f"{backend.value} does not support semantics "
+        f"'{normalized_semantics.value}'"
+    )

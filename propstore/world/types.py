@@ -210,6 +210,149 @@ class ReasoningBackend(StrEnum):
     PRAF = "praf"
 
 
+class ArgumentationSemantics(StrEnum):
+    """Canonical semantics names exposed by argumentation-capable backends."""
+
+    GROUNDED = "grounded"
+    LEGACY_GROUNDED = "legacy_grounded"
+    HYBRID_GROUNDED = "hybrid-grounded"
+    BIPOLAR_GROUNDED = "bipolar-grounded"
+    PREFERRED = "preferred"
+    STABLE = "stable"
+    D_PREFERRED = "d-preferred"
+    S_PREFERRED = "s-preferred"
+    C_PREFERRED = "c-preferred"
+    BIPOLAR_STABLE = "bipolar-stable"
+    COMPLETE = "complete"
+
+
+_ARGUMENTATION_SEMANTICS_ALIASES: dict[str, ArgumentationSemantics] = {
+    ArgumentationSemantics.GROUNDED.value: ArgumentationSemantics.GROUNDED,
+    ArgumentationSemantics.LEGACY_GROUNDED.value: ArgumentationSemantics.LEGACY_GROUNDED,
+    "hybrid_grounded": ArgumentationSemantics.HYBRID_GROUNDED,
+    ArgumentationSemantics.HYBRID_GROUNDED.value: ArgumentationSemantics.HYBRID_GROUNDED,
+    ArgumentationSemantics.BIPOLAR_GROUNDED.value: ArgumentationSemantics.BIPOLAR_GROUNDED,
+    ArgumentationSemantics.PREFERRED.value: ArgumentationSemantics.PREFERRED,
+    ArgumentationSemantics.STABLE.value: ArgumentationSemantics.STABLE,
+    ArgumentationSemantics.D_PREFERRED.value: ArgumentationSemantics.D_PREFERRED,
+    ArgumentationSemantics.S_PREFERRED.value: ArgumentationSemantics.S_PREFERRED,
+    ArgumentationSemantics.C_PREFERRED.value: ArgumentationSemantics.C_PREFERRED,
+    "bipolar_stable": ArgumentationSemantics.BIPOLAR_STABLE,
+    ArgumentationSemantics.BIPOLAR_STABLE.value: ArgumentationSemantics.BIPOLAR_STABLE,
+    ArgumentationSemantics.COMPLETE.value: ArgumentationSemantics.COMPLETE,
+}
+
+_CLI_ARGUMENTATION_SEMANTICS = (
+    ArgumentationSemantics.GROUNDED,
+    ArgumentationSemantics.LEGACY_GROUNDED,
+    ArgumentationSemantics.HYBRID_GROUNDED,
+    ArgumentationSemantics.BIPOLAR_GROUNDED,
+    ArgumentationSemantics.PREFERRED,
+    ArgumentationSemantics.STABLE,
+    ArgumentationSemantics.D_PREFERRED,
+    ArgumentationSemantics.S_PREFERRED,
+    ArgumentationSemantics.C_PREFERRED,
+    ArgumentationSemantics.BIPOLAR_STABLE,
+    ArgumentationSemantics.COMPLETE,
+)
+
+_BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = {
+    ReasoningBackend.CLAIM_GRAPH: frozenset({
+        ArgumentationSemantics.GROUNDED,
+        ArgumentationSemantics.LEGACY_GROUNDED,
+        ArgumentationSemantics.HYBRID_GROUNDED,
+        ArgumentationSemantics.BIPOLAR_GROUNDED,
+        ArgumentationSemantics.PREFERRED,
+        ArgumentationSemantics.STABLE,
+        ArgumentationSemantics.D_PREFERRED,
+        ArgumentationSemantics.S_PREFERRED,
+        ArgumentationSemantics.C_PREFERRED,
+        ArgumentationSemantics.BIPOLAR_STABLE,
+    }),
+    ReasoningBackend.STRUCTURED_PROJECTION: frozenset({
+        ArgumentationSemantics.GROUNDED,
+        ArgumentationSemantics.HYBRID_GROUNDED,
+        ArgumentationSemantics.PREFERRED,
+        ArgumentationSemantics.STABLE,
+    }),
+    ReasoningBackend.ASPIC: frozenset({
+        ArgumentationSemantics.GROUNDED,
+        ArgumentationSemantics.HYBRID_GROUNDED,
+        ArgumentationSemantics.PREFERRED,
+        ArgumentationSemantics.STABLE,
+    }),
+    ReasoningBackend.ATMS: frozenset({
+        ArgumentationSemantics.GROUNDED,
+    }),
+    ReasoningBackend.PRAF: frozenset({
+        ArgumentationSemantics.GROUNDED,
+        ArgumentationSemantics.HYBRID_GROUNDED,
+        ArgumentationSemantics.PREFERRED,
+        ArgumentationSemantics.STABLE,
+        ArgumentationSemantics.COMPLETE,
+    }),
+}
+
+
+def normalize_reasoning_backend(value: ReasoningBackend | str) -> ReasoningBackend:
+    if isinstance(value, ReasoningBackend):
+        return value
+    try:
+        return ReasoningBackend(str(value))
+    except ValueError as exc:
+        raise ValueError(f"Unknown reasoning_backend '{value}'") from exc
+
+
+def normalize_argumentation_semantics(
+    value: ArgumentationSemantics | str,
+) -> ArgumentationSemantics:
+    if isinstance(value, ArgumentationSemantics):
+        return value
+    normalized = _ARGUMENTATION_SEMANTICS_ALIASES.get(str(value))
+    if normalized is None:
+        raise ValueError(f"Unknown semantics: {value}")
+    return normalized
+
+
+def cli_argumentation_semantics_values() -> tuple[str, ...]:
+    return tuple(semantics.value for semantics in _CLI_ARGUMENTATION_SEMANTICS)
+
+
+def supported_argumentation_semantics(
+    backend: ReasoningBackend | str,
+) -> frozenset[ArgumentationSemantics]:
+    normalized_backend = normalize_reasoning_backend(backend)
+    return _BACKEND_SEMANTICS[normalized_backend]
+
+
+def validate_backend_semantics(
+    backend: ReasoningBackend | str,
+    semantics: ArgumentationSemantics | str,
+    *,
+    hybrid_graph: bool = False,
+) -> tuple[ReasoningBackend, ArgumentationSemantics]:
+    normalized_backend = normalize_reasoning_backend(backend)
+    normalized_semantics = normalize_argumentation_semantics(semantics)
+    supported = supported_argumentation_semantics(normalized_backend)
+    if normalized_semantics not in supported:
+        supported_names = ", ".join(item.value for item in sorted(supported, key=str))
+        raise ValueError(
+            f"{normalized_backend.value} does not support semantics "
+            f"'{normalized_semantics.value}'; supported semantics: {supported_names}"
+        )
+    if (
+        normalized_backend == ReasoningBackend.CLAIM_GRAPH
+        and normalized_semantics == ArgumentationSemantics.GROUNDED
+        and hybrid_graph
+    ):
+        raise ValueError(
+            "grounded is ambiguous for hybrid claim graphs; "
+            "use legacy_grounded or explicit bipolar semantics such as "
+            "d-preferred, s-preferred, or c-preferred."
+        )
+    return normalized_backend, normalized_semantics
+
+
 @dataclass
 class ResolvedResult:
     concept_id: str
@@ -259,7 +402,7 @@ class RenderPolicy:
 
     reasoning_backend: ReasoningBackend = ReasoningBackend.CLAIM_GRAPH
     strategy: ResolutionStrategy | None = None
-    semantics: str = "grounded"
+    semantics: ArgumentationSemantics = ArgumentationSemantics.GROUNDED
     comparison: str = "elitist"
     link: str = "last"
     # Decision criterion for interpreting opinion uncertainty at render time
@@ -302,6 +445,11 @@ class RenderPolicy:
             raise TypeError("RenderPolicy.reasoning_backend must be a ReasoningBackend")
         if self.strategy is not None and not isinstance(self.strategy, ResolutionStrategy):
             raise TypeError("RenderPolicy.strategy must be a ResolutionStrategy or None")
+        object.__setattr__(
+            self,
+            "semantics",
+            normalize_argumentation_semantics(self.semantics),
+        )
         if self.merge_operator not in ("sigma", "max", "gmax"):
             raise ValueError(
                 f"RenderPolicy.merge_operator must be 'sigma', 'max', or 'gmax', "
@@ -345,16 +493,7 @@ class RenderPolicy:
 
         strategy_value = data.get("strategy")
         reasoning_backend_value = data.get("reasoning_backend", ReasoningBackend.CLAIM_GRAPH)
-        try:
-            reasoning_backend = (
-                reasoning_backend_value
-                if isinstance(reasoning_backend_value, ReasoningBackend)
-                else ReasoningBackend(str(reasoning_backend_value))
-            )
-        except ValueError as exc:
-            raise ValueError(
-                f"Unknown reasoning_backend '{reasoning_backend_value}'"
-            ) from exc
+        reasoning_backend = normalize_reasoning_backend(reasoning_backend_value)
         concept_strategies = {
             str(concept_id): (
                 strategy
@@ -374,7 +513,9 @@ class RenderPolicy:
                     else ResolutionStrategy(str(strategy_value))
                 )
             ),
-            semantics=str(data.get("semantics", "grounded")),
+            semantics=normalize_argumentation_semantics(
+                data.get("semantics", ArgumentationSemantics.GROUNDED)
+            ),
             comparison=str(data.get("comparison", "elitist")),
             link=str(data.get("link", "last")),
             decision_criterion=str(data.get("decision_criterion", "pignistic")),
@@ -417,8 +558,8 @@ class RenderPolicy:
             data["reasoning_backend"] = self.reasoning_backend.value
         if self.strategy is not None:
             data["strategy"] = self.strategy.value
-        if self.semantics != "grounded":
-            data["semantics"] = self.semantics
+        if self.semantics != ArgumentationSemantics.GROUNDED:
+            data["semantics"] = self.semantics.value
         if self.comparison != "elitist":
             data["comparison"] = self.comparison
         if self.link != "last":

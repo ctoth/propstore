@@ -681,6 +681,25 @@ def test_hybrid_grounded_requires_explicit_opt_in() -> None:
     assert hybrid == frozenset()
 
 
+def test_structured_projection_rejects_claim_graph_only_semantics() -> None:
+    projection = StructuredProjection(
+        arguments=(),
+        framework=ArgumentationFramework(
+            arguments=frozenset({"arg:a", "arg:b"}),
+            defeats=frozenset(),
+            attacks=frozenset(),
+        ),
+        claim_to_argument_ids={},
+        argument_to_claim_id={},
+    )
+
+    with pytest.raises(ValueError, match="does not support semantics"):
+        compute_structured_justified_arguments(
+            projection,
+            semantics="d-preferred",
+        )
+
+
 @given(framework=_frameworks_with_optional_attacks())
 @settings(max_examples=50, deadline=None)
 def test_grounded_semantics_property_matches_dung_grounded_extension(

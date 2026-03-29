@@ -41,6 +41,7 @@ from propstore.world.types import (
     HasATMSEngine,
     RenderPolicy,
     ValueResult,
+    validate_backend_semantics,
 )
 
 logger = logging.getLogger(__name__)
@@ -220,6 +221,10 @@ def run_worldline(
             active_ids = {c["id"] for c in active}
             active_graph = bound._active_graph if isinstance(bound, _HasActiveGraph) else None
             reasoning_backend = definition.policy.reasoning_backend
+            _, normalized_semantics = validate_backend_semantics(
+                reasoning_backend,
+                definition.policy.semantics,
+            )
             if (
                 reasoning_backend == ReasoningBackend.CLAIM_GRAPH
                 and world.has_table("relation_edge")
@@ -236,7 +241,7 @@ def run_worldline(
                             active_graph,
                             comparison=definition.policy.comparison,
                         ),
-                        semantics=definition.policy.semantics,
+                        semantics=normalized_semantics,
                     )
                     if len(analyzer_result.extensions) == 1:
                         justified_claims = frozenset(
@@ -247,7 +252,7 @@ def run_worldline(
 
                     current = compute_claim_graph_justified_claims(
                         world, active_ids,
-                        semantics=definition.policy.semantics,
+                        semantics=normalized_semantics,
                         comparison=definition.policy.comparison,
                     )
                     if isinstance(current, frozenset):
@@ -285,7 +290,8 @@ def run_worldline(
                 )
                 justified_args = compute_structured_justified_arguments(
                     projection,
-                    semantics=definition.policy.semantics,
+                    semantics=normalized_semantics,
+                    backend=ReasoningBackend.STRUCTURED_PROJECTION,
                 )
                 if isinstance(justified_args, frozenset):
                     justified_claim_ids = {
@@ -324,7 +330,8 @@ def run_worldline(
                 )
                 aspic_justified_args = compute_structured_justified_arguments(
                     aspic_projection,
-                    semantics=definition.policy.semantics,
+                    semantics=normalized_semantics,
+                    backend=ReasoningBackend.ASPIC,
                 )
                 if isinstance(aspic_justified_args, frozenset):
                     justified_claim_ids = {
@@ -365,7 +372,7 @@ def run_worldline(
                             active_graph,
                             comparison=definition.policy.comparison or "elitist",
                         ),
-                        semantics=definition.policy.semantics or "grounded",
+                        semantics=normalized_semantics,
                         strategy=praf_strategy,
                         query_kind="argument_acceptance",
                         inference_mode="credulous",
@@ -391,7 +398,7 @@ def run_worldline(
                     )
                     praf_result = compute_praf_acceptance(
                         praf,
-                        semantics=definition.policy.semantics or "grounded",
+                        semantics=normalized_semantics,
                         strategy=praf_strategy,
                         query_kind="argument_acceptance",
                         inference_mode="credulous",
@@ -411,7 +418,7 @@ def run_worldline(
                     "strategy_used": strategy_used,
                     "samples": samples,
                     "confidence_interval_half": confidence_interval_half,
-                    "semantics": definition.policy.semantics or "grounded",
+                    "semantics": normalized_semantics.value,
                 }
 
             if argumentation_state is not None:

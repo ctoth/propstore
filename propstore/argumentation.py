@@ -17,7 +17,12 @@ from propstore.core.analyzers import (
     shared_analyzer_input_from_store,
 )
 from propstore.dung import ArgumentationFramework
-from propstore.world.types import ArtifactStore
+from propstore.world.types import (
+    ArgumentationSemantics,
+    ArtifactStore,
+    ReasoningBackend,
+    validate_backend_semantics,
+)
 
 
 def build_argumentation_framework(
@@ -89,16 +94,25 @@ def compute_claim_graph_justified_claims(
     For grounded: returns a single frozenset (the unique grounded extension).
     For preferred/stable: returns a list of frozensets.
     """
+    _, normalized_semantics = validate_backend_semantics(
+        ReasoningBackend.CLAIM_GRAPH,
+        semantics,
+    )
     result = analyze_claim_graph(
         shared_analyzer_input_from_store(
             store,
             active_claim_ids,
             comparison=comparison,
         ),
-        semantics=semantics,
+        semantics=normalized_semantics,
     )
     accepted = [frozenset(extension.accepted_claim_ids) for extension in result.extensions]
-    if semantics in {"grounded", "legacy_grounded", "hybrid_grounded", "hybrid-grounded", "bipolar-grounded"}:
+    if normalized_semantics in {
+        ArgumentationSemantics.GROUNDED,
+        ArgumentationSemantics.LEGACY_GROUNDED,
+        ArgumentationSemantics.HYBRID_GROUNDED,
+        ArgumentationSemantics.BIPOLAR_GROUNDED,
+    }:
         return accepted[0] if accepted else frozenset()
     return accepted
 

@@ -97,6 +97,36 @@ def test_shared_claim_graph_analyzer_matches_current_grounded(conn: sqlite3.Conn
     assert result.projection.survivor_claim_ids == ()
 
 
+def test_shared_claim_graph_analyzer_rejects_grounded_on_hybrid_graph() -> None:
+    from propstore.bipolar import BipolarArgumentationFramework
+    from propstore.core.analyzers import SharedAnalyzerInput, analyze_claim_graph
+    from propstore.dung import ArgumentationFramework
+
+    shared = SharedAnalyzerInput(
+        active_graph=None,  # type: ignore[arg-type]
+        comparison="elitist",
+        claims_by_id={
+            "c1": {"id": "c1"},
+            "c2": {"id": "c2"},
+        },
+        stance_rows=(),
+        relations=None,  # type: ignore[arg-type]
+        argumentation_framework=ArgumentationFramework(
+            arguments=frozenset({"c1", "c2"}),
+            defeats=frozenset(),
+            attacks=frozenset({("c1", "c2")}),
+        ),
+        bipolar_framework=BipolarArgumentationFramework(
+            arguments=frozenset({"c1", "c2"}),
+            defeats=frozenset(),
+            supports=frozenset(),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="grounded is ambiguous"):
+        analyze_claim_graph(shared, semantics="grounded")
+
+
 def test_shared_claim_graph_analyzer_matches_current_preferred_and_stable(
     conn: sqlite3.Connection,
 ) -> None:

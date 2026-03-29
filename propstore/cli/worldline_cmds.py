@@ -9,6 +9,12 @@ import click
 import yaml
 
 from propstore.cli.repository import Repository
+from propstore.world.types import (
+    ReasoningBackend,
+    cli_argumentation_semantics_values,
+    normalize_argumentation_semantics,
+    validate_backend_semantics,
+)
 
 
 def _parse_kv_args(args: tuple[str, ...]) -> dict[str, Any]:
@@ -44,13 +50,20 @@ def _build_policy_dict(
 
     Returns None if no policy fields differ from RenderPolicy defaults.
     """
+    try:
+        normalized_backend, normalized_semantics = validate_backend_semantics(
+            reasoning_backend,
+            semantics,
+        )
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
     policy: dict[str, Any] = {}
     if strategy:
         policy["strategy"] = strategy
-    if reasoning_backend != "claim_graph":
-        policy["reasoning_backend"] = reasoning_backend
-    if semantics != "grounded":
-        policy["semantics"] = semantics
+    if normalized_backend != ReasoningBackend.CLAIM_GRAPH:
+        policy["reasoning_backend"] = normalized_backend.value
+    if normalized_semantics != normalize_argumentation_semantics("grounded"):
+        policy["semantics"] = normalized_semantics.value
     if set_comparison != "elitist":
         policy["comparison"] = set_comparison
     if link_principle != "last":
@@ -73,10 +86,10 @@ def _build_policy_dict(
 # Shared click options for reasoning backend configuration.
 _REASONING_OPTIONS = [
     click.option("--reasoning-backend", "reasoning_backend", default="claim_graph",
-                 type=click.Choice(["claim_graph", "structured_projection", "aspic", "atms", "praf"]),
+                 type=click.Choice(tuple(backend.value for backend in ReasoningBackend)),
                  help="Argumentation backend (default: claim_graph)"),
     click.option("--semantics", default="grounded",
-                 type=click.Choice(["grounded", "preferred", "stable"]),
+                 type=click.Choice(cli_argumentation_semantics_values()),
                  help="Argumentation semantics (default: grounded)"),
     click.option("--set-comparison", "set_comparison", default="elitist",
                  type=click.Choice(["elitist", "democratic"]),

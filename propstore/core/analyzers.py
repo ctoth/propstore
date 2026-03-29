@@ -42,6 +42,11 @@ from propstore.core.environment import (
     ConflictStore,
     Environment,
 )
+from propstore.world.types import (
+    ArgumentationSemantics,
+    ReasoningBackend,
+    validate_backend_semantics,
+)
 
 _ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
 _UNCONDITIONAL_TYPES = frozenset({"undercuts", "supersedes"})
@@ -518,65 +523,71 @@ def analyze_claim_graph(
     semantics: str = "grounded",
     target_claim_ids: tuple[str, ...] | list[str] | set[str] | None = None,
 ) -> AnalyzerResult:
-    if semantics == "grounded":
-        if (
+    _, normalized_semantics = validate_backend_semantics(
+        ReasoningBackend.CLAIM_GRAPH,
+        semantics,
+        hybrid_graph=(
             shared.argumentation_framework.attacks is not None
             and shared.argumentation_framework.attacks != shared.argumentation_framework.defeats
-        ):
-            raise ValueError(
-                "grounded is ambiguous for hybrid claim graphs; "
-                "use legacy_grounded or explicit bipolar semantics such as "
-                "d-preferred, s-preferred, or c-preferred."
-            )
+        ),
+    )
+    if normalized_semantics == ArgumentationSemantics.GROUNDED:
         extensions = (
             ExtensionResult(
-                name="grounded",
+                name=normalized_semantics.value,
                 accepted_claim_ids=tuple(
                     grounded_extension(shared.argumentation_framework)
                 ),
             ),
         )
-    elif semantics in {"legacy_grounded", "hybrid_grounded", "hybrid-grounded", "bipolar-grounded"}:
+    elif normalized_semantics in {
+        ArgumentationSemantics.LEGACY_GROUNDED,
+        ArgumentationSemantics.HYBRID_GROUNDED,
+        ArgumentationSemantics.BIPOLAR_GROUNDED,
+    }:
         extensions = (
             ExtensionResult(
-                name=semantics,
+                name=normalized_semantics.value,
                 accepted_claim_ids=tuple(
                     hybrid_grounded_extension(shared.argumentation_framework)
                 ),
             ),
         )
-    elif semantics == "d-preferred":
+    elif normalized_semantics == ArgumentationSemantics.D_PREFERRED:
         extensions = _extension_results(
-            semantics,
+            normalized_semantics.value,
             [frozenset(ext) for ext in d_preferred_extensions(shared.bipolar_framework)],
         )
-    elif semantics == "s-preferred":
+    elif normalized_semantics == ArgumentationSemantics.S_PREFERRED:
         extensions = _extension_results(
-            semantics,
+            normalized_semantics.value,
             [frozenset(ext) for ext in s_preferred_extensions(shared.bipolar_framework)],
         )
-    elif semantics == "c-preferred":
+    elif normalized_semantics == ArgumentationSemantics.C_PREFERRED:
         extensions = _extension_results(
-            semantics,
+            normalized_semantics.value,
             [frozenset(ext) for ext in c_preferred_extensions(shared.bipolar_framework)],
         )
-    elif semantics in {"bipolar-stable", "bipolar_stable"}:
+    elif normalized_semantics == ArgumentationSemantics.BIPOLAR_STABLE:
         extensions = _extension_results(
-            semantics,
+            normalized_semantics.value,
             [frozenset(ext) for ext in bipolar_stable_extensions(shared.bipolar_framework)],
         )
-    elif semantics == "preferred":
+    elif normalized_semantics == ArgumentationSemantics.PREFERRED:
         extensions = _extension_results(
-            semantics,
+            normalized_semantics.value,
             [frozenset(ext) for ext in preferred_extensions(shared.argumentation_framework)],
         )
-    elif semantics == "stable":
+    elif normalized_semantics == ArgumentationSemantics.STABLE:
         extensions = _extension_results(
-            semantics,
+            normalized_semantics.value,
             [frozenset(ext) for ext in stable_extensions(shared.argumentation_framework)],
         )
     else:
-        raise ValueError(f"Unknown semantics: {semantics}")
+        raise ValueError(
+            "claim_graph does not support semantics "
+            f"'{normalized_semantics.value}'"
+        )
 
     projection = (
         None
@@ -585,7 +596,7 @@ def analyze_claim_graph(
     )
     return AnalyzerResult(
         backend="claim_graph",
-        semantics=semantics,
+        semantics=normalized_semantics.value,
         extensions=extensions,
         projection=projection,
         metadata=(("comparison", shared.comparison),),

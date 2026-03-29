@@ -12,6 +12,7 @@ import math
 
 from propstore.world.labelled import Label, SupportQuality
 from propstore.world.types import (
+    ArgumentationSemantics,
     ArtifactStore,
     BeliefSpace,
     ClaimSupportView,
@@ -22,6 +23,7 @@ from propstore.world.types import (
     ResolutionStrategy,
     ValueStatus,
     apply_decision_criterion,
+    validate_backend_semantics,
 )
 
 
@@ -95,6 +97,10 @@ def _resolve_claim_graph_argumentation(
     The AF is built over the whole active belief space, then projected back
     to the target concept's active claims.
     """
+    _, normalized_semantics = validate_backend_semantics(
+        ReasoningBackend.CLAIM_GRAPH,
+        semantics,
+    )
     from propstore.core.analyzers import (
         analyze_claim_graph,
         shared_analyzer_input_from_active_graph,
@@ -113,15 +119,15 @@ def _resolve_claim_graph_argumentation(
     )
     result = analyze_claim_graph(
         shared,
-        semantics=semantics,
+        semantics=normalized_semantics,
         target_claim_ids=target_ids,
     )
     projection = result.projection
 
     if len(result.extensions) == 0:
-        if semantics == "stable":
+        if normalized_semantics == ArgumentationSemantics.STABLE:
             return None, "no stable extensions"
-        return None, f"no {semantics} extensions"
+        return None, f"no {normalized_semantics.value} extensions"
 
     survivors = frozenset(projection.survivor_claim_ids if projection is not None else ())
     witness_claims = frozenset(projection.witness_claim_ids if projection is not None else ())
@@ -129,14 +135,14 @@ def _resolve_claim_graph_argumentation(
     if len(survivors) == 0:
         if len(result.extensions) > 1:
             if witness_claims:
-                return None, f"no skeptically accepted claim in {semantics} extensions"
-            return None, f"all target claims absent from every {semantics} extension"
+                return None, f"no skeptically accepted claim in {normalized_semantics.value} extensions"
+            return None, f"all target claims absent from every {normalized_semantics.value} extension"
         return None, "all claims defeated"
     if len(survivors) == 1:
         winner = next(iter(survivors))
-        return winner, f"sole survivor in {semantics} extension"
+        return winner, f"sole survivor in {normalized_semantics.value} extension"
 
-    return None, f"{len(survivors)} claims survive in {semantics} extension"
+    return None, f"{len(survivors)} claims survive in {normalized_semantics.value} extension"
 
 
 def _resolve_structured_argumentation(
@@ -150,6 +156,10 @@ def _resolve_structured_argumentation(
     link: str = "last",
 ) -> tuple[str | None, str | None]:
     """Resolve via the first structured-argument projection backend."""
+    _, normalized_semantics = validate_backend_semantics(
+        ReasoningBackend.STRUCTURED_PROJECTION,
+        semantics,
+    )
     from propstore.structured_argument import (
         build_structured_projection,
         compute_structured_justified_arguments,
@@ -176,7 +186,8 @@ def _resolve_structured_argumentation(
     )
     result = compute_structured_justified_arguments(
         projection,
-        semantics=semantics,
+        semantics=normalized_semantics,
+        backend=ReasoningBackend.STRUCTURED_PROJECTION,
     )
 
     target_arg_ids = frozenset(
@@ -188,18 +199,18 @@ def _resolve_structured_argumentation(
         survivor_args = result & target_arg_ids
     else:
         if not result:
-            if semantics == "stable":
+            if normalized_semantics == ArgumentationSemantics.STABLE:
                 return None, "no stable structured projection extensions"
-            return None, f"no {semantics} structured projection extensions"
+            return None, f"no {normalized_semantics.value} structured projection extensions"
         survivor_args = frozenset.intersection(*result) & target_arg_ids
         if len(survivor_args) == 0:
             credulous_args = frozenset().union(*result) & target_arg_ids
             if credulous_args:
                 return None, (
-                    f"no skeptically accepted claim in {semantics} structured projection"
+                    f"no skeptically accepted claim in {normalized_semantics.value} structured projection"
                 )
             return None, (
-                f"all target claims absent from every {semantics} structured projection"
+                f"all target claims absent from every {normalized_semantics.value} structured projection"
             )
 
     survivor_claims = {
@@ -210,9 +221,9 @@ def _resolve_structured_argumentation(
         return None, "all projected arguments defeated"
     if len(survivor_claims) == 1:
         winner = next(iter(survivor_claims))
-        return winner, f"sole structured projection survivor in {semantics} extension"
+        return winner, f"sole structured projection survivor in {normalized_semantics.value} extension"
 
-    return None, f"{len(survivor_claims)} claims survive in {semantics} structured projection"
+    return None, f"{len(survivor_claims)} claims survive in {normalized_semantics.value} structured projection"
 
 
 def _resolve_aspic_argumentation(
@@ -230,6 +241,10 @@ def _resolve_aspic_argumentation(
     Mirrors _resolve_structured_argumentation but routes through
     build_aspic_projection instead of build_structured_projection.
     """
+    _, normalized_semantics = validate_backend_semantics(
+        ReasoningBackend.ASPIC,
+        semantics,
+    )
     from propstore.aspic_bridge import build_aspic_projection
     from propstore.structured_argument import compute_structured_justified_arguments
 
@@ -254,7 +269,8 @@ def _resolve_aspic_argumentation(
     )
     result = compute_structured_justified_arguments(
         projection,
-        semantics=semantics,
+        semantics=normalized_semantics,
+        backend=ReasoningBackend.ASPIC,
     )
 
     target_arg_ids = frozenset(
@@ -266,18 +282,18 @@ def _resolve_aspic_argumentation(
         survivor_args = result & target_arg_ids
     else:
         if not result:
-            if semantics == "stable":
+            if normalized_semantics == ArgumentationSemantics.STABLE:
                 return None, "no stable ASPIC+ extensions"
-            return None, f"no {semantics} ASPIC+ extensions"
+            return None, f"no {normalized_semantics.value} ASPIC+ extensions"
         survivor_args = frozenset.intersection(*result) & target_arg_ids
         if len(survivor_args) == 0:
             credulous_args = frozenset().union(*result) & target_arg_ids
             if credulous_args:
                 return None, (
-                    f"no skeptically accepted claim in {semantics} ASPIC+ projection"
+                    f"no skeptically accepted claim in {normalized_semantics.value} ASPIC+ projection"
                 )
             return None, (
-                f"all target claims absent from every {semantics} ASPIC+ extension"
+                f"all target claims absent from every {normalized_semantics.value} ASPIC+ extension"
             )
 
     survivor_claims = {
@@ -288,9 +304,9 @@ def _resolve_aspic_argumentation(
         return None, "all ASPIC+ arguments defeated"
     if len(survivor_claims) == 1:
         winner = next(iter(survivor_claims))
-        return winner, f"sole ASPIC+ survivor in {semantics} extension"
+        return winner, f"sole ASPIC+ survivor in {normalized_semantics.value} extension"
 
-    return None, f"{len(survivor_claims)} claims survive in {semantics} ASPIC+ projection"
+    return None, f"{len(survivor_claims)} claims survive in {normalized_semantics.value} ASPIC+ projection"
 
 
 def _resolve_praf(
@@ -315,6 +331,10 @@ def _resolve_praf(
         analyze_praf,
         shared_analyzer_input_from_active_graph,
         shared_analyzer_input_from_store,
+    )
+    _, normalized_semantics = validate_backend_semantics(
+        ReasoningBackend.PRAF,
+        semantics,
     )
 
     if not world.has_table("relation_edge"):
@@ -344,7 +364,7 @@ def _resolve_praf(
     )
     result = analyze_praf(
         shared,
-        semantics=semantics,
+        semantics=normalized_semantics,
         strategy=strategy,
         query_kind="argument_acceptance",
         inference_mode="credulous",
@@ -536,6 +556,7 @@ def resolve(
                 concept_id=concept_id, status=ValueStatus.CONFLICTED,
                 claims=active, reason="argumentation strategy requires an explicit artifact store",
             )
+        _, semantics = validate_backend_semantics(reasoning_backend, semantics)
         if reasoning_backend == ReasoningBackend.CLAIM_GRAPH:
             winner_id, reason = _resolve_claim_graph_argumentation(
                 active,
