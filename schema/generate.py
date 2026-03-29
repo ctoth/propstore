@@ -12,6 +12,7 @@ from pathlib import Path
 
 SCHEMA_DIR = Path(__file__).parent
 GENERATED_DIR = SCHEMA_DIR / "generated"
+RESOURCE_SCHEMA_DIR = SCHEMA_DIR.parent / "propstore" / "_resources" / "schemas"
 
 SCHEMAS = [
     ("claim.linkml.yaml", "claim.schema.json"),
@@ -21,6 +22,7 @@ SCHEMAS = [
 
 def main() -> int:
     GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+    RESOURCE_SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
     ok = True
 
     for linkml_file, json_file in SCHEMAS:
@@ -46,6 +48,16 @@ def main() -> int:
             continue
 
         dst.write_text(result.stdout)
+        (RESOURCE_SCHEMA_DIR / json_file).write_text(result.stdout)
+
+    for filename in ("form.schema.json",):
+        src = GENERATED_DIR / filename
+        dst = RESOURCE_SCHEMA_DIR / filename
+        if not src.exists():
+            print(f"ERROR: {src} not found", file=sys.stderr)
+            ok = False
+            continue
+        dst.write_text(src.read_text())
 
     return 0 if ok else 1
 

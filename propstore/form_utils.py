@@ -13,6 +13,7 @@ import pint
 import yaml
 
 from propstore.cel_checker import KindType
+from propstore.resources import load_resource_json
 
 # Module-level unit registry for pint conversions
 ureg = pint.UnitRegistry()
@@ -309,8 +310,6 @@ def allowed_units_from_form_definition(form_definition: dict[str, Any]) -> set[s
 
 # ── Form file schema validation ──────────────────────────────────────
 
-_FORM_SCHEMA_PATH = Path(__file__).parent.parent / "schema" / "generated" / "form.schema.json"
-
 _form_schema_cache: dict | None = None
 
 
@@ -318,8 +317,10 @@ def _load_form_schema() -> dict:
     """Load the form JSON Schema, caching the result."""
     global _form_schema_cache
     if _form_schema_cache is None:
-        with open(_FORM_SCHEMA_PATH) as f:
-            _form_schema_cache = json.load(f)
+        schema = load_resource_json("schemas/form.schema.json")
+        if not isinstance(schema, dict):
+            raise TypeError("schemas/form.schema.json must decode to a JSON object")
+        _form_schema_cache = schema
     assert _form_schema_cache is not None
     return _form_schema_cache
 

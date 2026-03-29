@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 import jsonschema
 import yaml
 
+from propstore.resources import load_resource_json
 from propstore.validate import ValidationResult, load_yaml_dir
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
@@ -40,6 +41,20 @@ from propstore.form_utils import (
     load_form_definition,
 )
 from propstore.stances import VALID_STANCE_TYPES
+
+
+_claim_schema_cache: dict | None = None
+
+
+def _load_claim_schema() -> dict:
+    """Load the packaged claim JSON Schema, caching the result."""
+    global _claim_schema_cache
+    if _claim_schema_cache is None:
+        schema = load_resource_json("schemas/claim.schema.json")
+        if not isinstance(schema, dict):
+            raise TypeError("schemas/claim.schema.json must decode to a JSON object")
+        _claim_schema_cache = schema
+    return _claim_schema_cache
 
 
 @dataclass
@@ -129,11 +144,7 @@ def validate_claims(
     cel_registry = build_cel_registry(concept_registry)
 
     # JSON Schema validation
-    schema_path = Path(__file__).parent.parent / "schema" / "generated" / "claim.schema.json"
-    json_schema = None
-    if schema_path.exists():
-        with open(schema_path) as f:
-            json_schema = json.load(f)
+    json_schema = _load_claim_schema()
 
     seen_ids: dict[str, str] = {}  # claim_id -> filename
     all_claim_ids: set[str] = set()
@@ -160,11 +171,10 @@ def validate_claims(
             continue
 
         # JSON Schema validation
-        if json_schema is not None:
-            try:
-                jsonschema.validate(json_safe(data), json_schema)
-            except jsonschema.ValidationError as e:
-                result.errors.append(f"{cf.filename}: JSON Schema error: {e.message}")
+        try:
+            jsonschema.validate(json_safe(data), json_schema)
+        except jsonschema.ValidationError as e:
+            result.errors.append(f"{cf.filename}: JSON Schema error: {e.message}")
 
         if "claims" not in data:
             result.errors.append(f"{cf.filename}: missing required 'claims' key")

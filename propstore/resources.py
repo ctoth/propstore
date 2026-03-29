@@ -7,6 +7,7 @@ Resources live in propstore/_resources/.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 
@@ -50,6 +51,11 @@ def load_resource_text(relative_path: str) -> str:
     root = _get_resource_root()
     resource = root.joinpath(relative_path)
     return resource.read_text(encoding="utf-8")
+
+
+def load_resource_json(relative_path: str) -> dict | list:
+    """Load a JSON resource from ``propstore/_resources``."""
+    return json.loads(load_resource_text(relative_path))
 
 
 def resource_exists(relative_path: str) -> bool:
