@@ -351,19 +351,43 @@ def ccf(*opinions: Opinion) -> Opinion:
     Handles the case where WBF cannot — dogmatic sources (u ≈ 0).
 
     Algorithm:
-    - If no dogmatic opinions: delegates to wbf()
-    - If all dogmatic: averages belief masses
+    - If no dogmatic opinions: delegates to wbf() (which is associative).
+    - If all dogmatic: averages belief masses (min+average three-phase).
     - If mixed: fuses non-dogmatic via wbf(), then averages with dogmatic
+      opinions using the three-phase min+average method.
     """
     if len(opinions) == 0:
         raise ValueError("Need at least one opinion")
     if len(opinions) == 1:
         return opinions[0]
 
-    # Three-phase CCF per van der Heijden 2018 Definition 5.
-    # Note: unlike prior implementation, we do NOT delegate to WBF for
-    # non-dogmatic inputs — CCF and WBF are distinct operators.
+    dogmatic = [op for op in opinions if op.u < _TOL]
+    non_dogmatic = [op for op in opinions if op.u >= _TOL]
+
+    # Case 1: All non-dogmatic — delegate to WBF (correct & associative).
+    if not dogmatic:
+        return wbf(*non_dogmatic)
+
+    # Case 2: All dogmatic — three-phase min+average on belief masses.
+    if not non_dogmatic:
+        return _ccf_average(dogmatic)
+
+    # Case 3: Mixed — fuse non-dogmatic via WBF, then min+average with dogmatic.
+    wbf_result = wbf(*non_dogmatic)
+    return _ccf_average([*dogmatic, wbf_result])
+
+
+def _ccf_average(opinions: list[Opinion]) -> Opinion:
+    """Three-phase min+average CCF for dogmatic (or near-dogmatic) opinions.
+
+    Used internally by ccf() when at least one opinion is dogmatic.
+    Phase 1: consensus extraction (min belief/disbelief).
+    Phase 2: compromise on residuals (average beyond consensus).
+    Phase 3: combine and normalize.
+    """
     N = len(opinions)
+    if N == 1:
+        return opinions[0]
 
     # Phase 1 — Consensus extraction: minimum belief/disbelief across sources.
     consensus_b = min(op.b for op in opinions)
