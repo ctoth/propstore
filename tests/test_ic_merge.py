@@ -23,8 +23,11 @@ from propstore.repo.ic_merge import (
     solve_ic_merge,
 )
 from propstore.world.types import (
+    ICMergeProblem,
     IntegrityConstraint,
     IntegrityConstraintKind,
+    MergeAssignment,
+    MergeSource,
     RenderPolicy,
     ResolutionStrategy,
 )
@@ -54,6 +57,8 @@ st_branch_weights = st.dictionaries(
     min_size=2,
     max_size=5,
 )
+
+st_small_assignment_value = st.integers(min_value=0, max_value=2)
 
 # ── Group 1: MergeOperator Enum and Distance Function ──────────────
 
@@ -392,6 +397,114 @@ class TestIcMergeDispatcher:
 
 
 class TestAssignmentLevelICMerge:
+    def test_two_concept_problem_returns_assignment_winner(self):
+        problem = ICMergeProblem(
+            concept_ids=("x", "y"),
+            sources=(
+                MergeSource(
+                    source_id="s1",
+                    assignment=MergeAssignment(values={"x": 0.0, "y": 0.0}),
+                ),
+                MergeSource(
+                    source_id="s2",
+                    assignment=MergeAssignment(values={"x": 0.0, "y": 1.0}),
+                ),
+                MergeSource(
+                    source_id="s3",
+                    assignment=MergeAssignment(values={"x": 1.0, "y": 1.0}),
+                ),
+            ),
+            operator=MergeOperator.SIGMA,
+        )
+
+        result = solve_ic_merge(problem)
+
+        assert result.winners == (
+            MergeAssignment(values={"x": 0.0, "y": 1.0}),
+        )
+        assert result.scored_candidates[0].assignment == MergeAssignment(
+            values={"x": 0.0, "y": 1.0}
+        )
+
+    def test_problem_rejects_source_assignment_outside_declared_concepts(self):
+        with pytest.raises(ValueError, match="unknown concept ids"):
+            ICMergeProblem(
+                concept_ids=("x", "y"),
+                sources=(
+                    MergeSource(
+                        source_id="s1",
+                        assignment=MergeAssignment(values={"x": 0.0, "z": 1.0}),
+                    ),
+                ),
+                operator=MergeOperator.SIGMA,
+            )
+
+    def test_problem_rejects_duplicate_concept_ids(self):
+        with pytest.raises(ValueError, match="duplicate concept ids"):
+            ICMergeProblem(
+                concept_ids=("x", "x"),
+                sources=(
+                    MergeSource(
+                        source_id="s1",
+                        assignment=MergeAssignment(values={"x": 0.0}),
+                    ),
+                ),
+                operator=MergeOperator.SIGMA,
+            )
+
+    @given(
+        st.lists(
+            st.tuples(st_small_assignment_value, st_small_assignment_value),
+            min_size=2,
+            max_size=5,
+        ),
+        st.sampled_from(list(MergeOperator)),
+    )
+    @settings(
+        max_examples=40,
+        deadline=None,
+        suppress_health_check=[HealthCheck.too_slow],
+    )
+    def test_multiconcept_source_order_does_not_change_winners(
+        self,
+        source_pairs,
+        operator,
+    ):
+        forward_problem = ICMergeProblem(
+            concept_ids=("x", "y"),
+            sources=tuple(
+                MergeSource(
+                    source_id=f"s{index}",
+                    assignment=MergeAssignment(values={"x": x, "y": y}),
+                )
+                for index, (x, y) in enumerate(source_pairs)
+            ),
+            operator=operator,
+        )
+        reversed_problem = ICMergeProblem(
+            concept_ids=("x", "y"),
+            sources=tuple(
+                MergeSource(
+                    source_id=f"r{index}",
+                    assignment=MergeAssignment(values={"x": x, "y": y}),
+                )
+                for index, (x, y) in enumerate(reversed(source_pairs))
+            ),
+            operator=operator,
+        )
+
+        forward_result = solve_ic_merge(forward_problem)
+        reversed_result = solve_ic_merge(reversed_problem)
+
+        assert forward_result.winners == reversed_result.winners
+        assert [
+            (dict(item.assignment.values), item.score)
+            for item in forward_result.scored_candidates
+        ] == [
+            (dict(item.assignment.values), item.score)
+            for item in reversed_result.scored_candidates
+        ]
+
     def test_range_constraint_filters_admissible_winners(self):
         profile = {"b1": 5.0, "b2": 10.0, "b3": 50.0}
         problem = scalar_profile_problem(

@@ -556,6 +556,9 @@ class IntegrityConstraint:
 class MergeAssignment:
     values: Mapping[str, Any]
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "values", dict(self.values))
+
     def value_for(self, concept_id: str) -> Any:
         return self.values.get(concept_id)
 
@@ -585,6 +588,35 @@ class ICMergeProblem:
         object.__setattr__(self, "sources", tuple(self.sources))
         object.__setattr__(self, "constraints", tuple(self.constraints))
         object.__setattr__(self, "operator", normalize_merge_operator(self.operator))
+        if not self.concept_ids:
+            raise ValueError("ICMergeProblem requires at least one concept id")
+        if len(set(self.concept_ids)) != len(self.concept_ids):
+            raise ValueError("ICMergeProblem has duplicate concept ids")
+
+        declared_concepts = set(self.concept_ids)
+        for source in self.sources:
+            unknown_concepts = tuple(
+                concept_id
+                for concept_id in source.assignment.values
+                if concept_id not in declared_concepts
+            )
+            if unknown_concepts:
+                joined = ", ".join(sorted(unknown_concepts))
+                raise ValueError(
+                    f"ICMergeProblem source {source.source_id!r} references unknown concept ids: {joined}"
+                )
+
+        for constraint in self.constraints:
+            unknown_concepts = tuple(
+                concept_id
+                for concept_id in constraint.concept_ids
+                if concept_id not in declared_concepts
+            )
+            if unknown_concepts:
+                joined = ", ".join(sorted(unknown_concepts))
+                raise ValueError(
+                    f"ICMergeProblem constraint references unknown concept ids: {joined}"
+                )
 
 
 @dataclass(frozen=True)
