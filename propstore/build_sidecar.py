@@ -32,7 +32,7 @@ from propstore.tree_reader import TreeReader
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
-    from propstore.validate_contexts import ContextHierarchy
+    from propstore.validate_contexts import ContextHierarchy, LoadedContext
 
 _SEMANTIC_INPUT_VERSION = "semantic-input-v1"
 
@@ -42,7 +42,7 @@ def _content_hash(
     claim_files: Sequence[LoadedClaimFile] | None = None,
     *,
     repo: Repository | None = None,
-    context_files: Sequence[object] | None = None,
+    context_files: Sequence[LoadedContext] | None = None,
 ) -> str:
     """Hash all semantic inputs that define the compiled sidecar."""
     h = hashlib.sha256()
@@ -55,15 +55,13 @@ def _content_hash(
             h.update(cf.filename.encode())
             h.update(json.dumps(cf.data, sort_keys=True, default=str).encode())
     if context_files:
-        for ctx in sorted(context_files, key=lambda x: getattr(x, "filename", "")):
-            filename = getattr(ctx, "filename", "")
-            filepath = getattr(ctx, "filepath", None)
-            data = getattr(ctx, "data", {})
-            h.update(str(filename).encode())
+        for ctx in sorted(context_files, key=lambda x: x.filename):
+            h.update(ctx.filename.encode())
+            filepath = ctx.filepath
             if filepath is not None and Path(filepath).exists():
                 h.update(Path(filepath).read_bytes())
             else:
-                h.update(json.dumps(data, sort_keys=True, default=str).encode())
+                h.update(json.dumps(ctx.data, sort_keys=True, default=str).encode())
 
     forms_dirs: set[Path] = set()
     if repo is not None:
@@ -243,7 +241,7 @@ def build_sidecar(
     concept_registry: dict | None = None,
     *,
     repo: Repository | None = None,
-    context_files: list | None = None,
+    context_files: Sequence[LoadedContext] | None = None,
     commit_hash: str | None = None,
     reader: TreeReader | None = None,
 ) -> bool:
@@ -345,7 +343,7 @@ def build_sidecar(
             _populate_claims(conn, claim_files, concept_registry, form_registry=_form_registry)
             from propstore.validate_contexts import ContextHierarchy
 
-            context_hierarchy = ContextHierarchy(context_files) if context_files else None
+            context_hierarchy = ContextHierarchy(list(context_files)) if context_files else None
             _populate_conflicts(
                 conn,
                 claim_files,
@@ -917,15 +915,15 @@ def _create_context_tables(conn: sqlite3.Connection):
     """)
 
 
-def _populate_contexts(conn: sqlite3.Connection, contexts: list) -> None:
+def _populate_contexts(
+    conn: sqlite3.Connection,
+    contexts: Sequence[LoadedContext],
+) -> None:
     """Populate context, context_assumption, and context_exclusion tables."""
-    from propstore.validate_contexts import LoadedContext
 
     # First pass: insert all contexts and their assumptions
     exclusion_pairs: list[tuple[str, str]] = []
     for ctx in contexts:
-        if not isinstance(ctx, LoadedContext):
-            continue
         d = ctx.data
         cid = d.get("id")
         if not cid:
