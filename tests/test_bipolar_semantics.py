@@ -195,3 +195,127 @@ class TestCayrolProperties:
     def test_stable_extensions_are_d_admissible(self, framework):
         for extension in stable_extensions(framework):
             assert d_admissible(extension, framework)
+
+
+# ── Support cycle and self-support property tests (audit-2026-03-28) ──
+
+from propstore.bipolar import cayrol_derived_defeats
+
+
+@st.composite
+def bipolar_frameworks_with_cycles(draw, max_args: int = 5):
+    """Generate bipolar frameworks that may include self-supports and support cycles.
+
+    The standard bipolar_frameworks() strategy excludes self-edges.
+    This strategy allows self-supports (A supports A) and support cycles
+    (A supports B, B supports A) to test termination guarantees.
+    """
+    args = draw(
+        st.frozensets(
+            st.text(alphabet="abcde", min_size=1, max_size=2),
+            min_size=2,
+            max_size=max_args,
+        )
+    )
+    arg_list = sorted(args)
+    # All pairs INCLUDING self-edges for supports
+    all_pairs = [(s, t) for s in arg_list for t in arg_list]
+    non_self_pairs = [(s, t) for s, t in all_pairs if s != t]
+
+    # Defeats: no self-defeats (standard)
+    defeats = draw(
+        st.frozensets(
+            st.sampled_from(non_self_pairs),
+            max_size=len(non_self_pairs),
+        )
+    ) if non_self_pairs else frozenset()
+
+    # Supports: allow self-supports, exclude edges that are defeats
+    support_candidates = [p for p in all_pairs if p not in defeats]
+    supports = draw(
+        st.frozensets(
+            st.sampled_from(support_candidates),
+            max_size=len(support_candidates),
+        )
+    ) if support_candidates else frozenset()
+
+    return BipolarArgumentationFramework(
+        arguments=args,
+        defeats=defeats,
+        supports=supports,
+    )
+
+
+class TestBipolarCycleProperties:
+    """Property tests for bipolar frameworks with support cycles.
+
+    Cayrol & Lagasquie-Schiex (2005): derived defeats must reach a fixpoint
+    even when support cycles exist. The working_defeats set grows monotonically
+    and is bounded by |args|^2, guaranteeing termination.
+    """
+
+    @given(bipolar_frameworks_with_cycles())
+    @_PROP_SETTINGS
+    def test_derived_defeats_terminates_with_self_supports(self, framework):
+        """cayrol_derived_defeats terminates even with self-supports (A→A)."""
+        derived = cayrol_derived_defeats(framework.defeats, framework.supports)
+        assert isinstance(derived, frozenset)
+
+    @given(bipolar_frameworks_with_cycles())
+    @_PROP_SETTINGS
+    def test_derived_defeats_no_self_defeats(self, framework):
+        """Derived defeats never include self-defeats (A, A).
+
+        Self-defeats are filtered by cayrol_derived_defeats (source != target).
+        """
+        derived = cayrol_derived_defeats(framework.defeats, framework.supports)
+        for src, tgt in derived:
+            assert src != tgt, f"Self-defeat ({src}, {src}) in derived defeats"
+
+    @given(bipolar_frameworks_with_cycles())
+    @_PROP_SETTINGS
+    def test_derived_defeats_idempotent_with_cycles(self, framework):
+        """Applying derived_set_defeats twice gives the same result — even with cycles."""
+        first = derived_set_defeats(framework)
+        second = derived_set_defeats(
+            BipolarArgumentationFramework(
+                arguments=framework.arguments,
+                defeats=first,
+                supports=framework.supports,
+            )
+        )
+        assert second == first, (
+            f"Not idempotent: first pass added {first - framework.defeats}, "
+            f"second pass added {second - first}"
+        )
+
+    @given(bipolar_frameworks_with_cycles())
+    @_PROP_SETTINGS
+    def test_derived_defeats_bounded_by_argument_pairs(self, framework):
+        """Total defeats (original + derived) bounded by |args|^2.
+
+        The defeat closure cannot exceed the total number of possible
+        directed pairs (excluding self-edges).
+        """
+        derived = cayrol_derived_defeats(framework.defeats, framework.supports)
+        total = framework.defeats | derived
+        n = len(framework.arguments)
+        max_possible = n * (n - 1)  # directed pairs, no self-edges
+        assert len(total) <= max_possible
+
+    @given(bipolar_frameworks_with_cycles())
+    @_PROP_SETTINGS
+    def test_support_closed_terminates_with_cycles(self, framework):
+        """support_closed check terminates even with support cycles."""
+        candidate = frozenset(sorted(framework.arguments)[:len(framework.arguments) // 2])
+        # Just verify it returns a boolean without hanging
+        result = support_closed(candidate, framework)
+        assert isinstance(result, bool)
+
+    @given(bipolar_frameworks_with_cycles())
+    @_PROP_SETTINGS
+    def test_safe_implies_conflict_free_with_cycles(self, framework):
+        """safe(S) => conflict_free(S) holds even with support cycles."""
+        candidate = frozenset(sorted(framework.arguments)[:len(framework.arguments) // 2])
+        if safe(candidate, framework):
+            assert conflict_free(candidate, framework)
