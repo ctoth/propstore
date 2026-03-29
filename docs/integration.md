@@ -6,7 +6,15 @@ propstore consumes claims extracted by the [research-papers-plugin](https://gith
 
 1. **Read papers** — `paper-reader` skill extracts structured notes from PDFs
 2. **Extract claims** — `extract-claims` skill reads the concept registry, creates missing concepts via `pks concept add`, then produces `claims.yaml` referencing only registered concepts
-3. **Import** — `pks import-papers --papers-root ../papers/` copies claim files into the knowledge repository
+3. **Import** — `pks import-papers --papers-root ../papers/` copies claim files into the knowledge repository. The `--strict` flag enforces dimensional consistency on equation claims via bridgman. If any equation's SymPy expression fails dimensional verification against its variable forms, the entire import is aborted. Without `--strict`, dimensional mismatches are warnings only.
+
+```bash
+# Import with dimensional pre-check
+pks import-papers --papers-root ../papers --strict
+
+# Dry run to preview
+pks import-papers --papers-root ../papers --dry-run
+```
 4. **Build** — `pks build` validates, detects conflicts, compiles the sidecar
 5. **Embed** — `pks claim embed --all --model <model>` generates embeddings for cross-paper search
 6. **Query** — `pks claim similar`, `pks world query`, `pks world bind`, etc.
@@ -25,6 +33,25 @@ As the concept registry grows through paper processing, duplicate concepts may e
 4. **Re-embed** — normalized concepts produce cleaner claim similarity
 
 This is automated — no human review required. The `proposed -> accepted -> deprecated` lifecycle tracks concept maturity. Reconciliation runs after each batch of papers.
+
+## Promote workflow
+
+The heuristic analysis layer (Layer 3) produces proposals — stance classifications, concept merges, relationship annotations. These live in `knowledge/proposals/` and are not source-of-truth until promoted.
+
+`pks promote` moves proposal artifacts from `knowledge/proposals/stances/` into `knowledge/stances/`. This is the gate between heuristic output and source-of-truth storage. The move is atomic: a single git commit records both the addition and deletion.
+
+```bash
+# Preview what would be promoted
+pks promote
+
+# Promote all pending stances
+pks promote -y
+
+# Promote a single file
+pks promote knowledge/proposals/stances/specific-stance.yaml
+```
+
+Currently, only stance proposals are supported. Concept and claim proposals must be manually reviewed and moved.
 
 ## Embeddings and similarity search
 
