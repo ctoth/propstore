@@ -21,8 +21,27 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
+
+from propstore.core.environment import (
+    ArtifactStore,
+    Environment,
+    ParameterizationLookupStore,
+    StanceStore,
+)
+from propstore.core.graph_types import ActiveWorldGraph
+from propstore.core.row_types import StanceRow, coerce_stance_row
+from propstore.world.labelled import Label, SupportQuality
+from propstore.world.types import (
+    BeliefSpace,
+    ClaimSupportView,
+    DerivedResult,
+    HasATMSEngine,
+    RenderPolicy,
+    ValueResult,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +52,38 @@ from propstore.worldline import (
 )
 
 
+class _WorldlineBoundView(BeliefSpace, Protocol):
+    pass
+
+
+@runtime_checkable
+class _HasBindings(Protocol):
+    _bindings: Mapping[str, Any]
+
+
+@runtime_checkable
+class _HasEnvironment(Protocol):
+    _environment: Environment
+
+
+@runtime_checkable
+class _HasActiveGraph(Protocol):
+    _active_graph: ActiveWorldGraph | None
+
+
+class _WorldlineStore(ArtifactStore, Protocol):
+    def bind(
+        self,
+        environment: Environment | None = None,
+        *,
+        policy: RenderPolicy | None = None,
+        **conditions: Any,
+    ) -> _WorldlineBoundView: ...
+
+
 def run_worldline(
     definition: WorldlineDefinition,
-    world,
+    world: _WorldlineStore,
 ) -> WorldlineResult:
     """Materialize a worldline: compute results for all targets.
 
@@ -170,13 +218,13 @@ def run_worldline(
         try:
             active = bound.active_claims()
             active_ids = {c["id"] for c in active}
-            active_graph = getattr(bound, "_active_graph", None)
+            active_graph = bound._active_graph if isinstance(bound, _HasActiveGraph) else None
             reasoning_backend = definition.policy.reasoning_backend
             if (
                 reasoning_backend == ReasoningBackend.CLAIM_GRAPH
                 and world.has_table("relation_edge")
             ):
-                justified: frozenset[str] | None = None
+                justified_claims: frozenset[str] | None = None
                 if active_graph is not None:
                     from propstore.core.analyzers import (
                         analyze_claim_graph,
@@ -191,7 +239,7 @@ def run_worldline(
                         semantics=definition.policy.semantics,
                     )
                     if len(analyzer_result.extensions) == 1:
-                        justified = frozenset(
+                        justified_claims = frozenset(
                             analyzer_result.extensions[0].accepted_claim_ids
                         )
                 else:
@@ -203,12 +251,12 @@ def run_worldline(
                         comparison=definition.policy.comparison,
                     )
                     if isinstance(current, frozenset):
-                        justified = current
+                        justified_claims = current
 
-                if justified is not None:
-                    defeated = active_ids - justified
+                if justified_claims is not None:
+                    defeated = active_ids - justified_claims
                     argumentation_state = {
-                        "justified": sorted(justified),
+                        "justified": sorted(justified_claims),
                         "defeated": sorted(defeated),
                     }
             elif (
@@ -220,13 +268,12 @@ def run_worldline(
                     compute_structured_justified_arguments,
                 )
 
-                support_metadata: dict[str, tuple[object | None, object]] = {}
-                claim_support = getattr(bound, "claim_support", None)
-                if callable(claim_support):
+                support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
+                if isinstance(bound, ClaimSupportView):
                     for claim in active:
                         claim_id = claim.get("id")
                         if claim_id:
-                            support_metadata[claim_id] = claim_support(claim)
+                            support_metadata[claim_id] = bound.claim_support(claim)
 
                 projection = build_structured_projection(
                     world,
@@ -241,14 +288,14 @@ def run_worldline(
                     semantics=definition.policy.semantics,
                 )
                 if isinstance(justified_args, frozenset):
-                    justified = {
+                    justified_claim_ids = {
                         projection.argument_to_claim_id[arg_id]
                         for arg_id in justified_args
                     }
-                    defeated = active_ids - justified
+                    defeated = active_ids - justified_claim_ids
                     argumentation_state = {
                         "backend": "structured_projection",
-                        "justified": sorted(justified),
+                        "justified": sorted(justified_claim_ids),
                         "defeated": sorted(defeated),
                     }
             elif (
@@ -260,13 +307,12 @@ def run_worldline(
                     compute_structured_justified_arguments,
                 )
 
-                support_metadata: dict[str, tuple[object | None, object]] = {}
-                claim_support_aspic = getattr(bound, "claim_support", None)
-                if callable(claim_support_aspic):
+                support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
+                if isinstance(bound, ClaimSupportView):
                     for claim in active:
                         claim_id = claim.get("id")
                         if claim_id:
-                            support_metadata[claim_id] = claim_support_aspic(claim)
+                            support_metadata[claim_id] = bound.claim_support(claim)
 
                 aspic_projection = build_aspic_projection(
                     world,
@@ -281,20 +327,19 @@ def run_worldline(
                     semantics=definition.policy.semantics,
                 )
                 if isinstance(aspic_justified_args, frozenset):
-                    justified = {
+                    justified_claim_ids = {
                         aspic_projection.argument_to_claim_id[arg_id]
                         for arg_id in aspic_justified_args
                     }
-                    defeated = active_ids - justified
+                    defeated = active_ids - justified_claim_ids
                     argumentation_state = {
                         "backend": "aspic",
-                        "justified": sorted(justified),
+                        "justified": sorted(justified_claim_ids),
                         "defeated": sorted(defeated),
                     }
             elif reasoning_backend == ReasoningBackend.ATMS:
-                atms_engine = getattr(bound, "atms_engine", None)
-                if callable(atms_engine):
-                    argumentation_state = atms_engine().argumentation_state(
+                if isinstance(bound, HasATMSEngine):
+                    argumentation_state = bound.atms_engine().argumentation_state(
                         queryables=definition.policy.future_queryables,
                         future_limit=definition.policy.future_limit or 8,
                     )
@@ -355,7 +400,7 @@ def run_worldline(
                         treewidth_cutoff=praf_treewidth_cutoff,
                         rng_seed=praf_mc_seed,
                     )
-                    acceptance_probs = dict(praf_result.acceptance_probs)
+                    acceptance_probs = dict(praf_result.acceptance_probs or {})
                     strategy_used = praf_result.strategy_used
                     samples = praf_result.samples
                     confidence_interval_half = praf_result.confidence_interval_half
@@ -519,11 +564,11 @@ def _query_conflict_target_atom_ids(revision_query) -> list[str]:
 
 
 def _pre_resolve_conflicts(
-    query_world,
-    world,
+    query_world: _WorldlineBoundView,
+    world: ArtifactStore,
     target_map: dict[str, str],
     override_concept_ids: dict[str, float | str],
-    policy,
+    policy: RenderPolicy,
     dependency_claims: set[str],
     all_steps: list[dict[str, Any]],
 ) -> None:
@@ -543,8 +588,12 @@ def _pre_resolve_conflicts(
     from propstore.world import resolve
 
     # Collect all concepts reachable via parameterization from targets
-    param_fn = getattr(world, 'parameterizations_for', lambda _: [])
-    needs_check = reachable_concepts(set(target_map.values()), param_fn)
+    parameterizations_for = (
+        world.parameterizations_for
+        if isinstance(world, ParameterizationLookupStore)
+        else (lambda _concept_id: [])
+    )
+    needs_check = reachable_concepts(set(target_map.values()), parameterizations_for)
 
     # Resolve any conflicted concepts
     for cid in needs_check:
@@ -573,31 +622,28 @@ def _pre_resolve_conflicts(
                 })
 
 
-def _concept_name(world, concept_id: str) -> str:
+def _concept_name(world: ArtifactStore, concept_id: str) -> str:
     """Get canonical name for a concept ID, falling back to the ID itself."""
     concept = world.get_concept(concept_id)
     return concept["canonical_name"] if concept else concept_id
 
 
-def _resolve_concept_name(world, name: str) -> str | None:
+def _resolve_concept_name(world: ArtifactStore, name: str) -> str | None:
     """Resolve a canonical name or alias to a concept ID.
 
     Delegates to WorldModel.resolve_concept() which handles alias lookup,
     direct ID lookup, and canonical name lookup.
     """
-    if hasattr(world, "resolve_concept"):
-        return world.resolve_concept(name)
-
-    return None
+    return world.resolve_concept(name)
 
 
 def _resolve_target(
-    query_world,
-    world,
+    query_world: _WorldlineBoundView,
+    world: ArtifactStore,
     concept_id: str,
     target_name: str,
     override_values: dict[str, float | str],
-    policy,
+    policy: RenderPolicy,
     dependency_claims: set[str],
     all_steps: list[dict[str, Any]],
 ) -> dict[str, Any]:
@@ -660,11 +706,14 @@ def _resolve_target(
 
     # Try derived_value with override values
     # Convert override_values to float dict for derivation
-    float_overrides = {k: float(v) for k, v in override_values.items()
-                       if isinstance(v, (int, float))}
-    dr = query_world.derived_value(concept_id, override_values=float_overrides) if hasattr(query_world, 'derived_value') else None
+    float_overrides: dict[str, float | str | None] = {
+        key: float(value)
+        for key, value in override_values.items()
+        if isinstance(value, (int, float))
+    }
+    dr = query_world.derived_value(concept_id, override_values=float_overrides)
 
-    if dr is not None and dr.status == "derived" and dr.value is not None:
+    if dr.status == "derived" and dr.value is not None:
         # Track input dependencies
         inputs_used: dict[str, dict[str, Any]] = {}
         if dr.input_values:
@@ -683,7 +732,7 @@ def _resolve_target(
         # skipping inputs already recorded (from pre-resolve or overrides)
         seen_concepts = {s["concept"] for s in all_steps}
         for input_cid, input_info in inputs_used.items():
-            concept = world.get_concept(input_cid) if hasattr(world, 'get_concept') else None
+            concept = world.get_concept(input_cid)
             input_name = concept["canonical_name"] if concept else input_cid
             if input_name in seen_concepts:
                 continue
@@ -717,9 +766,11 @@ def _resolve_target(
     # across parameterization groups — resolves chains like
     # g_earth → gravitational_acceleration → acceleration → force)
     strategy_enum = policy.strategy if policy.strategy is not None else None
-    chain_bindings = {}
-    if hasattr(query_world, '_bindings'):
-        chain_bindings = dict(query_world._bindings)
+    chain_bindings = (
+        dict(query_world._bindings)
+        if isinstance(query_world, _HasBindings)
+        else {}
+    )
     chain_error: str | None = None
     try:
         chain_result = world.chain_query(
@@ -728,42 +779,48 @@ def _resolve_target(
             **chain_bindings,
         )
         cr = chain_result.result
-        if hasattr(cr, 'value') and cr.value is not None and cr.status in ("derived", "determined"):
+        chain_value: float | str | None
+        formula: str | None = None
+        input_values: dict[str, float] = {}
+        if isinstance(cr, DerivedResult):
+            chain_value = cr.value
+            formula = cr.formula
+            input_values = dict(cr.input_values)
+        else:
+            chain_value = cr.claims[0].get("value") if cr.claims else None
+
+        if chain_value is not None and cr.status in ("derived", "determined"):
             # Extract dependencies from chain steps
-            for step in chain_result.steps:
-                if step.source == "claim":
+            for chain_step in chain_result.steps:
+                if chain_step.source == "claim":
                     # Find the claim ID for this concept
-                    step_vr = query_world.value_of(step.concept_id)
+                    step_vr = query_world.value_of(chain_step.concept_id)
                     if step_vr.claims:
                         dep_id = step_vr.claims[0].get("id")
                         if dep_id and not dep_id.startswith("__override_"):
                             dependency_claims.add(dep_id)
 
             # Record chain steps
-            for step in chain_result.steps:
-                if step.concept_id != concept_id and step.source != "binding":
-                    cpt = world.get_concept(step.concept_id)
-                    step_name = cpt["canonical_name"] if cpt else step.concept_id
+            for chain_step in chain_result.steps:
+                if chain_step.concept_id != concept_id and chain_step.source != "binding":
+                    cpt = world.get_concept(chain_step.concept_id)
+                    step_name = cpt["canonical_name"] if cpt else chain_step.concept_id
                     all_steps.append({
                         "concept": step_name,
-                        "value": step.value,
-                        "source": step.source,
+                        "value": chain_step.value,
+                        "source": chain_step.source,
                     })
-
-            formula = None
-            if hasattr(cr, 'formula'):
-                formula = cr.formula
 
             all_steps.append({
                 "concept": target_name,
-                "value": cr.value,
+                "value": chain_value,
                 "source": "derived",
                 "formula": formula,
             })
 
             inputs_used = {}
-            if hasattr(cr, 'input_values') and cr.input_values:
-                for k, v in cr.input_values.items():
+            if input_values:
+                for k, v in input_values.items():
                     inputs_used[k] = _trace_input_source(
                         query_world,
                         world,
@@ -776,7 +833,7 @@ def _resolve_target(
 
             return {
                 "status": "derived",
-                "value": cr.value,
+                "value": chain_value,
                 "source": "derived",
                 "formula": formula,
                 "inputs_used": inputs_used,
@@ -847,11 +904,11 @@ def _claim_payload(claim: dict[str, Any]) -> dict[str, Any]:
 
 
 def _trace_input_source(
-    query_world,
-    world,
+    query_world: _WorldlineBoundView,
+    world: ArtifactStore,
     concept_id: str,
     override_values: dict[str, float | str],
-    policy,
+    policy: RenderPolicy,
     dependency_claims: set[str],
     seen: set[str] | None = None,
 ) -> dict[str, Any]:
@@ -903,7 +960,7 @@ def _trace_input_source(
                     result["reason"] = rr.reason
                 return result
 
-        float_overrides = {
+        float_overrides: dict[str, float | str | None] = {
             key: float(val)
             for key, val in override_values.items()
             if isinstance(val, (int, float))
@@ -937,10 +994,10 @@ def _trace_input_source(
         seen.discard(concept_id)
 
 
-def _stance_dependency_key(row: dict[str, Any]) -> str:
+def _stance_dependency_key(row: StanceRow) -> str:
     """Serialize a stance row into a stable dependency key."""
     return json.dumps(
-        {key: row.get(key) for key in sorted(row)},
+        row.to_dict(),
         sort_keys=True,
         separators=(",", ":"),
         default=str,
@@ -948,46 +1005,51 @@ def _stance_dependency_key(row: dict[str, Any]) -> str:
 
 
 def _active_stance_dependencies(
-    bound,
-    world,
+    bound: _WorldlineBoundView,
+    world: ArtifactStore,
     active_ids: set[str],
 ) -> list[str]:
     """Collect active stance dependencies from the graph core when available."""
-    active_graph = getattr(bound, "_active_graph", None)
+    active_graph = bound._active_graph if isinstance(bound, _HasActiveGraph) else None
     graph_relation_types = {"rebuts", "undercuts", "undermines", "supersedes", "supports", "explains"}
 
     if active_graph is not None:
-        stance_rows: list[dict[str, Any]] = []
+        stance_rows: list[StanceRow] = []
         for edge in active_graph.compiled.relations:
             if edge.relation_type not in graph_relation_types:
                 continue
             if edge.source_id not in active_ids or edge.target_id not in active_ids:
                 continue
-            row = {
-                "claim_id": edge.source_id,
-                "target_claim_id": edge.target_id,
-                "stance_type": edge.relation_type,
-            }
-            row.update(dict(edge.attributes))
-            stance_rows.append(row)
+            stance_rows.append(
+                StanceRow.from_mapping(
+                    {
+                        "claim_id": edge.source_id,
+                        "target_claim_id": edge.target_id,
+                        "stance_type": edge.relation_type,
+                        **dict(edge.attributes),
+                    }
+                )
+            )
         return sorted(_stance_dependency_key(row) for row in stance_rows)
 
-    if hasattr(world, "stances_between") and world.has_table("relation_edge"):
+    if isinstance(world, StanceStore) and world.has_table("relation_edge"):
         return sorted(
-            _stance_dependency_key(row)
+            _stance_dependency_key(coerce_stance_row(row))
             for row in world.stances_between(active_ids)
         )
     return []
 
 
-def _context_dependencies(bound, context_id: str | None) -> list[str]:
+def _context_dependencies(
+    bound: _WorldlineBoundView,
+    context_id: str | None,
+) -> list[str]:
     """Collect context-scoped inputs that affect a worldline materialization."""
     if not context_id:
         return []
 
     dependencies = [context_id]
-    environment = getattr(bound, "_environment", None)
-    assumptions = getattr(environment, "effective_assumptions", ())
-    for assumption in assumptions:
-        dependencies.append(f"assumption:{assumption}")
+    if isinstance(bound, _HasEnvironment):
+        for assumption in bound._environment.effective_assumptions:
+            dependencies.append(f"assumption:{assumption}")
     return dependencies
