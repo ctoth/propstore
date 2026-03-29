@@ -1,6 +1,6 @@
 # Data Model
 
-propstore's data model has six main entities: **concepts**, **forms**, **claims**, **conditions**, **stances**, and **contexts**. Everything lives in YAML files under `knowledge/`.
+propstore's data model has seven main entities: **concepts**, **forms**, **claims**, **conditions**, **stances**, **justifications**, and **contexts**. Everything lives in YAML files under `knowledge/`.
 
 ## Concepts
 

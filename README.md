@@ -233,6 +233,7 @@ The core entities are:
 - claims
 - conditions
 - stances
+- justifications
 - contexts
 
 Claim types currently include:
