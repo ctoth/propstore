@@ -252,6 +252,12 @@ The building committee example (p.14-19) shows concretely how the three operator
 - The postulate-based approach (rather than directly defining operators) allows characterizing whole classes of operators and proving they are the only ones satisfying natural properties *(p.4)*
 - Syncretic assignments provide semantic transparency: each operator has a clear interpretation in terms of preference orderings on possible worlds *(p.6-7)*
 
+## Implementation Notes For Propstore
+- `mu` is a hard admissibility filter over whole interpretations/models, not a local score tweak or tie-breaker. The operator first restricts to `mod(mu)` and only then takes the minimal elements under the assignment-induced preorder *(p.4, p.7, p.12, p.15, p.17)*.
+- A concept-local scalar merge like `profile: branch -> value` can be a useful adaptation, but by itself it does **not** match the paper's semantic object. The paper merges belief multisets into sets of admissible interpretations, not isolated scalar winners.
+- Therefore a per-concept predicate such as "value is in range" is only a **restricted adaptation** of `mu`. The literature-faithful target is an assignment-level constraint over one jointly merged result, potentially spanning multiple concepts.
+- For code claims, the safe rule is: do not cite IC0-IC8 for an unconstrained scalar wrapper. Those postulates are proved for operators of the form `mod(Delta_mu(Psi)) = min(mod(mu), <=_Psi)`, where `mu` is real and the compared objects are interpretations.
+
 ## Testable Properties
 - IC0: merged result must entail the integrity constraint *(p.4)*
 - IC1: if the constraint is consistent, the merged result is consistent *(p.4)*
