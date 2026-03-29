@@ -26,7 +26,21 @@ The fragility module sits at the **render layer** (layer 5). It reads from argum
 
 ### Why render layer, not argumentation layer
 
-The fragility ranking depends on a render policy (which resolution strategy? which semantics? which decision criterion?). Different policies yield different fragility rankings. The same corpus might prioritize "get more samples for claim X" under one policy and "resolve the conflict between Y and Z" under another. This is a render-time concern.
+The fragility ranking depends on a render policy (which resolution strategy? which semantics? which decision criterion?). Different policies yield different fragility rankings. The same corpus might prioritize "get more samples for claim X" under one policy and "resolve the conflict between Y and Z" under another. This is a render-time concern. Howard 1966 confirms this: the "payoff" in VOI depends on what you're optimizing for, which is a render-time decision.
+
+### Theoretical grounding
+
+The three fragility dimensions approximate Value of Information (Howard 1966):
+
+| Fragility dimension | VOI component | What it captures |
+|---|---|---|
+| Parametric sensitivity | Sensitivity to variable | How much the output changes per unit input change |
+| Epistemic entrenchment deficit | Decision-change ability | Whether conclusions flip across possible futures |
+| Conflict topology | Decision-change (argument level) | How much resolving a disagreement changes the world |
+
+Fragility is not VOI — it's one component. VOI = sensitivity × prior uncertainty × decision-change ability. The missing piece is a payoff function over world states; without one, the three-dimension architecture is a principled approximation. When a payoff function is defined (Phase 2+), a direct VOI combination option becomes available.
+
+The epistemic dimension satisfies Gärdenfors & Makinson 1988's EE1-EE5 postulates (proven via ATMS label propagation properties), making the fragility ordering a formally valid inverse-entrenchment ordering with AGM-rational contraction guaranteed by the representation theorem (Theorem 5).
 
 ## Module 1: N-Source Weighted Belief Fusion
 
@@ -147,7 +161,7 @@ where ωᵢ(u') is the opinion with uncertainty adjusted to u' while preserving 
 
 **Literature grounding:** Coupé & van der Gaag 2002 show that BN sensitivity is a rational function of single parameters — the same structural insight applies here. The derivative formulation connects to classical Fisher information: high ∂E/∂u means the expectation is steep in the uncertainty direction, so evidence has high leverage. Ballester-Ripoll 2024's Sobol indices would be the ideal generalization (capturing interaction effects), but the OAT derivative approach is sufficient for Phase 1 and avoids the tensor decomposition complexity.
 
-#### Dimension 2: Epistemic stability (existing `atms.py`)
+#### Dimension 2: Epistemic entrenchment deficit (existing `atms.py`)
 
 The ATMS engine already computes exactly what we need:
 
@@ -155,19 +169,23 @@ The ATMS engine already computes exactly what we need:
 - **`relevant_queryables(node_id, queryables)`** — which assumptions could flip it?
 - **`status_flip_witnesses(node_id, queryables)`** — minimal sets that cause a flip
 
-The fragility score for a concept/claim is:
+The epistemic fragility score is the **entrenchment deficit** — the inverse of Gärdenfors & Makinson 1988's epistemic entrenchment ordering:
 
 ```
-epistemic_score(node) = 1.0 if not stable, 0.0 if stable
+entrenchment(node) = |supporting_environments| / |consistent_environments|
+epistemic_score(node) = 1 - entrenchment(node)
 ```
 
-But this is binary. We refine it using the *fraction of futures that flip*:
+A node supported by 7/8 consistent environments has entrenchment 0.875 and fragility 0.125 (well-established). A node supported by 1/8 has entrenchment 0.125 and fragility 0.875 (easily retracted).
 
-```
-epistemic_score(node) = |flipping_futures| / |consistent_futures|
-```
+**This ordering satisfies Gärdenfors & Makinson's EE1-EE5 postulates:**
+- **EE1 (transitivity):** Numerical ordering is trivially transitive.
+- **EE2 (dominance):** If A entails B, every environment supporting A also supports B (ATMS label propagation), so |envs(A)| ≤ |envs(B)|, hence entrenchment(A) ≤ entrenchment(B).
+- **EE3 (conjunctiveness):** envs(A∧B) = envs(A) ∩ envs(B), so |envs(A∧B)| ≤ min(|envs(A)|, |envs(B)|), hence either A ≤ A∧B or B ≤ A∧B.
+- **EE4 (minimality):** Beliefs outside K have zero environments. Zero is minimal.
+- **EE5 (maximality):** Logical truths hold in all environments.
 
-A node that flips in 7/8 futures is more fragile than one that flips in 1/8.
+**Consequence (Gärdenfors & Makinson 1988, Theorem 5):** Since the ordering satisfies EE1-EE5, it automatically defines an AGM-rational contraction function via the bridging condition (C-). This is the formal path from fragility analysis to belief revision — currently aspirational in CLAUDE.md but now formally grounded.
 
 For queryables (things you could learn), the score comes from *how many nodes they flip*:
 
@@ -177,7 +195,15 @@ queryable_leverage(q) = |{nodes whose status flips when q is added}| / |all_node
 
 This is already computable from `node_relevance` — a queryable that appears in many nodes' relevant sets has high leverage.
 
-**Literature grounding:** Odekerken 2022/2023 defines stability and relevance formally for ASPIC+. The ATMS implementation uses bounded replay rather than ASP enumeration, which is computationally cheaper but only covers the declared queryable space (not all possible completions). This is appropriate — the queryable space represents things we *could actually measure*, not all possible worlds.
+**Probability weighting (Phase 2):** The entrenchment deficit above counts environments uniformly. When probability weights are available from PrAF, the score should use probability-weighted fractions:
+
+```
+epistemic_score_weighted(node) = 1 - sum(P(env) for env supporting node) / sum(P(env) for env consistent)
+```
+
+This connects to Howard 1966's clairvoyance formula, which averages over the prior distribution. Uniform weighting is a special case (uniform prior over environments). Phase 1 uses uniform; Phase 2 upgrades to probability-weighted when PrAF data is available.
+
+**Literature grounding:** Gärdenfors & Makinson 1988 (EE postulates and representation theorem), Dixon 1993 (ATMS-to-AGM bridge), Odekerken 2022/2023 (stability and relevance for ASPIC+), Howard 1966 (probability weighting via clairvoyance formula). The ATMS implementation uses bounded replay rather than ASP enumeration, which is computationally cheaper but only covers the declared queryable space.
 
 #### Dimension 3: Conflict topology
 
@@ -454,9 +480,25 @@ Cost tiers can be:
 
 **Design implication:** `FragilityTarget` needs `cost_tier: int | None` and `epistemic_roi: float | None` fields. The CLI sorts by ROI when cost data is available, by raw fragility otherwise.
 
-### 5. Entrenchment ordering
+### 5. Entrenchment ordering — RESOLVED
 
-Gärdenfors 1988 defines epistemic entrenchment as the ordering that determines what to give up during belief revision. Fragility is inverse entrenchment — the least entrenched beliefs are most fragile. The ATMS essential support already provides a partial entrenchment ordering (beliefs supported by fewer assumptions are less entrenched). Should the fragility module formalize this as a full Gärdenfors-compatible ordering? **Recommendation:** not in Phase 1. The essential_support from ATMS is a sufficient proxy. A full AGM-compatible entrenchment ordering requires implementing Dixon 1993's ATMS-to-AGM bridge, which is currently aspirational per CLAUDE.md.
+The environment-count ordering over ATMS labels satisfies Gärdenfors & Makinson 1988's EE1-EE5 postulates (proven in the VOI/entrenchment synthesis report). The epistemic dimension already computes an entrenchment-compatible ordering (inverted as fragility). No additional implementation needed for the ordering itself.
+
+**What remains for Phase 2:** Making the ordering explicit as a queryable data structure (not just a score), and connecting it to AGM contraction via Gärdenfors & Makinson's bridging condition (C-). This opens the path from "which beliefs are fragile" to "how to update beliefs when new evidence arrives" — the aspirational AGM operations in CLAUDE.md.
+
+### 5b. VOI interaction detection (NEW — from Howard 1966)
+
+Howard 1966 proves that V_c(x,y) ≠ V_cx + V_cy in general — the joint value of knowing two things can exceed or fall below the sum of knowing each separately. This means independent fragility scoring can produce misleading rankings when targets have correlated information value.
+
+**Phase 2 addition:** After computing individual fragility scores, compute pairwise interaction for the top-k targets:
+
+```
+interaction(x, y) = fragility_joint(x, y) - fragility(x) - fragility(y)
+```
+
+Positive interaction = synergistic (learn both together). Negative interaction = redundant (learning one makes the other less valuable). This connects to Ballester-Ripoll 2024's Sobol interaction indices (S_i^T - S_i).
+
+**Implementation:** For each pair in the top-k, compute a hypothetical world where both targets are resolved, and compare to the individual hypothetical worlds. Flag pairs with |interaction| > threshold in the FragilityReport.
 
 ### 6. Multi-frame opinions
 
@@ -475,28 +517,29 @@ Van der Heijden 2018 defines WBF for multinomial opinions (multiple outcomes), n
 
 **Dependencies:** None — all underlying modules exist.
 
-### Phase 2: Conflict topology dimension
+### Phase 2: Conflict topology + VOI enhancements
 
-1. Implement conflict scoring via hypothetical world evaluation
-2. Integrate AlAnaissy ImpS^rev for gradual semantics
-3. Wire into `rank_fragility`
-4. Property tests for conflict scoring
+1. **Conflict scoring via hypothetical world evaluation.** For each conflict (A vs B), compute extension/acceptance under "A wins" and "B wins" hypotheticals. Score = max change from current state. Use Hamming distance for extensions, L1 for PrAF acceptance probabilities.
+2. **AlAnaissy ImpS^rev for gradual semantics.** For DF-QuAD, compute revised impact: |σ(B | remove A→B attacks) - σ(B)|.
+3. **Probability-weighted epistemic scores.** When PrAF data is available, weight environments by probability instead of counting uniformly: `epistemic_score = 1 - Σ P(env supporting) / Σ P(env consistent)`. Fall back to uniform when no probabilities available.
+4. **Interaction detection.** For top-k targets, compute pairwise interaction: `interaction(x,y) = fragility_joint(x,y) - fragility(x) - fragility(y)`. Flag redundant or synergistic pairs in FragilityReport. (Howard 1966: joint clairvoyance value ≠ sum of individual values.)
+5. Wire all the above into `rank_fragility`. Property tests for conflict scoring and interaction.
 
 **Dependencies:** Phase 1 complete.
 
 ### Phase 3: Opinion sensitivity extension
 
-1. Extend `sensitivity.py` (or add to `fragility.py`) to compute opinion-space sensitivity — "what if this concept went from vacuous to dogmatic?"
-2. Use WBF to compute fused opinions under hypothetical evidence
-3. This connects the parametric and epistemic dimensions: a concept with high opinion sensitivity AND high ATMS instability is doubly fragile
+1. Extend `fragility.py` to compute opinion-space sensitivity — the marginal derivative ∂E(wbf)/∂uᵢ at the current operating point.
+2. Use WBF to compute fused opinions under hypothetical evidence changes.
+3. This connects the parametric and epistemic dimensions: a concept with high opinion sensitivity AND high ATMS instability is doubly fragile.
 
 **Dependencies:** Phase 1 (WBF) complete.
 
 ### Phase 4: Polish and integration
 
 1. Replace `consensus_pair` fold in `relate.py` with `fuse()` for N > 2 sources
-2. Add `fragility()` method to `BoundWorld`
-3. Add cost annotations (optional) to ranking
+2. Add cost annotations to ranking (ordinal tiers, epistemic ROI)
+3. Queryable auto-discovery Tier 2 (concepts with no claims via parameterization graph walk)
 4. Sobol indices (optional, if OAT proves insufficient)
 5. Shapley impact (optional, for small frameworks)
 
