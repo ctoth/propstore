@@ -11,9 +11,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.labels import AssumptionRef
-from propstore.core.row_types import StanceRowInput
+from propstore.core.row_types import ConflictRowInput, StanceRowInput
 
 if TYPE_CHECKING:
+    from propstore.core.graph_types import CompiledWorldGraph
     from propstore.world.types import ChainResult, ResolutionStrategy
     from propstore.z3_conditions import Z3ConditionSolver
 
@@ -86,6 +87,16 @@ class Environment:
 @runtime_checkable
 class StanceStore(Protocol):
     def stances_between(self, claim_ids: set[str]) -> Sequence[StanceRowInput]: ...
+
+
+@runtime_checkable
+class ConflictStore(Protocol):
+    def conflicts(self) -> Sequence[ConflictRowInput]: ...
+
+
+@runtime_checkable
+class CompiledGraphStore(Protocol):
+    def compiled_graph(self) -> CompiledWorldGraph: ...
 
 
 @runtime_checkable

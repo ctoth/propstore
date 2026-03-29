@@ -36,7 +36,12 @@ from propstore.probabilistic_relations import (
     relation_from_row,
     relation_map,
 )
-from propstore.core.environment import ArtifactStore, Environment
+from propstore.core.environment import (
+    ArtifactStore,
+    CompiledGraphStore,
+    ConflictStore,
+    Environment,
+)
 
 _ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
 _UNCONDITIONAL_TYPES = frozenset({"undercuts", "supersedes"})
@@ -98,8 +103,10 @@ def _stance_row_from_edge(edge: RelationEdge) -> dict:
     }
     data.update(dict(edge.attributes))
     if edge.provenance is not None:
-        data.setdefault("source_table", edge.provenance.source_table)
-        data.setdefault("source_id", edge.provenance.source_id)
+        if edge.provenance.source_table is not None:
+            data.setdefault("source_table", edge.provenance.source_table)
+        if edge.provenance.source_id is not None:
+            data.setdefault("source_id", edge.provenance.source_id)
         row_identity = _row_identity_from_provenance(edge.provenance)
         for key, value in row_identity:
             data.setdefault(key, value)
@@ -118,21 +125,28 @@ def _conflict_row_from_witness(conflict: ConflictWitness) -> dict:
 
 
 def _claim_node_from_row(row: dict) -> ClaimNode:
+    attributes = tuple(
+        (str(key), value)
+        for key, value in row.items()
+        if key not in {"id", "concept_id", "target_concept", "type", "value"}
+        and value is not None
+    )
     return ClaimNode(
         claim_id=str(row["id"]),
         concept_id=str(row.get("concept_id") or row.get("target_concept") or ""),
         claim_type=str(row.get("type") or "unknown"),
         scalar_value=row.get("value"),
-        attributes={
-            str(key): value
-            for key, value in row.items()
-            if key not in {"id", "concept_id", "target_concept", "type", "value"}
-            and value is not None
-        },
+        attributes=attributes,
     )
 
 
 def _relation_edge_from_row(row: dict) -> RelationEdge:
+    attributes = tuple(
+        (str(key), value)
+        for key, value in row.items()
+        if key not in {"claim_id", "target_claim_id", "stance_type"}
+        and value is not None
+    )
     return RelationEdge(
         source_id=str(row["claim_id"]),
         target_id=str(row["target_claim_id"]),
@@ -143,27 +157,23 @@ def _relation_edge_from_row(row: dict) -> RelationEdge:
                 f"{row['claim_id']}->{row['target_claim_id']}:{row['stance_type']}"
             ),
         ),
-        attributes={
-            str(key): value
-            for key, value in row.items()
-            if key not in {"claim_id", "target_claim_id", "stance_type"}
-            and value is not None
-        },
+        attributes=attributes,
     )
 
 
 def _conflict_witness_from_row(row: dict) -> ConflictWitness:
     warning_class = row.get("warning_class") or row.get("conflict_class") or "conflict"
+    details = tuple(
+        (str(key), value)
+        for key, value in row.items()
+        if key not in {"claim_a_id", "claim_b_id", "warning_class", "conflict_class"}
+        and value is not None
+    )
     return ConflictWitness(
         left_claim_id=str(row["claim_a_id"]),
         right_claim_id=str(row["claim_b_id"]),
         kind=str(warning_class),
-        details={
-            str(key): value
-            for key, value in row.items()
-            if key not in {"claim_a_id", "claim_b_id", "warning_class", "conflict_class"}
-            and value is not None
-        },
+        details=details,
     )
 
 
@@ -181,7 +191,7 @@ def _minimal_compiled_graph(
     )
     conflicts = tuple(
         _conflict_witness_from_row(row)
-        for row in getattr(store, "conflicts", lambda: [])()
+        for row in (store.conflicts() if isinstance(store, ConflictStore) else ())
         if row.get("claim_a_id") in active_claim_ids
         and row.get("claim_b_id") in active_claim_ids
     )
@@ -196,9 +206,8 @@ def _active_graph_from_store(
     store: ArtifactStore,
     active_claim_ids: set[str],
 ) -> ActiveWorldGraph:
-    compiled_getter = getattr(store, "compiled_graph", None)
-    if callable(compiled_getter):
-        compiled = compiled_getter()
+    if isinstance(store, CompiledGraphStore):
+        compiled = store.compiled_graph()
     else:
         compiled = _minimal_compiled_graph(store, active_claim_ids)
     all_claim_ids = {claim.claim_id for claim in compiled.claims}
