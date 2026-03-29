@@ -1,6 +1,7 @@
 """pks worldline — CLI commands for materialized query artifacts."""
 from __future__ import annotations
 
+import json
 import sys
 from typing import Any
 
@@ -107,6 +108,87 @@ def _apply_reasoning_options(func):
     return func
 
 
+_REVISION_OPTIONS = [
+    click.option("--revision-operation", "revision_operation", default=None,
+                 type=click.Choice(["expand", "contract", "revise", "iterated_revise"]),
+                 help="Optional revision operation to record/run with this worldline"),
+    click.option("--revision-atom", "revision_atom", default=None,
+                 help="Revision atom as JSON mapping"),
+    click.option("--revision-target", "revision_target", default=None,
+                 help="Revision target for contract"),
+    click.option("--revision-conflict", "revision_conflicts", multiple=True,
+                 help="Revision conflict mapping as atom_id=target[,target...]"),
+    click.option("--revision-operator", "revision_operator", default=None,
+                 type=click.Choice(["restrained", "lexicographic"]),
+                 help="Iterated revision operator family"),
+]
+
+
+def _apply_revision_options(func):
+    for option in reversed(_REVISION_OPTIONS):
+        func = option(func)
+    return func
+
+
+def _parse_revision_atom(raw: str | None) -> dict[str, Any] | None:
+    if raw is None:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(f"Invalid --revision-atom JSON: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise click.ClickException("--revision-atom must decode to a JSON object")
+    return parsed
+
+
+def _parse_revision_conflicts(raw_conflicts: tuple[str, ...]) -> dict[str, list[str]]:
+    conflicts: dict[str, list[str]] = {}
+    for entry in raw_conflicts:
+        atom_id, sep, targets = entry.partition("=")
+        if not sep:
+            raise click.ClickException(
+                "Invalid --revision-conflict; expected atom_id=target[,target...]",
+            )
+        parsed_targets = [target.strip() for target in targets.split(",") if target.strip()]
+        conflicts[str(atom_id)] = parsed_targets
+    return conflicts
+
+
+def _build_revision_dict(
+    revision_operation: str | None,
+    revision_atom: str | None,
+    revision_target: str | None,
+    revision_conflicts: tuple[str, ...],
+    revision_operator: str | None,
+) -> dict[str, Any] | None:
+    if revision_operation is None:
+        return None
+
+    parsed_atom = _parse_revision_atom(revision_atom)
+    parsed_conflicts = _parse_revision_conflicts(revision_conflicts)
+
+    if revision_operation in {"expand", "revise", "iterated_revise"} and parsed_atom is None:
+        raise click.ClickException(f"--revision-atom is required for {revision_operation}")
+    if revision_operation == "contract" and revision_target is None:
+        raise click.ClickException("--revision-target is required for contract")
+    if revision_operation == "iterated_revise" and revision_operator is None:
+        raise click.ClickException("--revision-operator is required for iterated_revise")
+
+    revision: dict[str, Any] = {
+        "operation": revision_operation,
+    }
+    if parsed_atom is not None:
+        revision["atom"] = parsed_atom
+    if revision_target is not None:
+        revision["target"] = revision_target
+    if parsed_conflicts:
+        revision["conflicts"] = parsed_conflicts
+    if revision_operator is not None:
+        revision["operator"] = revision_operator
+    return revision
+
+
 @worldline.command("create")
 @click.argument("name")
 @click.option("--bind", "bindings", multiple=True, help="Condition binding (key=value)")
@@ -115,6 +197,7 @@ def _apply_reasoning_options(func):
 @click.option("--strategy", default=None, type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
 @click.option("--context", default=None, help="Context to scope the query")
 @_apply_reasoning_options
+@_apply_revision_options
 @click.pass_obj
 def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
                      overrides: tuple[str, ...], targets: tuple[str, ...],
@@ -123,7 +206,9 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
                      set_comparison: str, link_principle: str, decision_criterion: str,
                      pessimism_index: float, praf_strategy: str,
                      praf_epsilon: float, praf_confidence: float,
-                     praf_seed: int | None) -> None:
+                     praf_seed: int | None, revision_operation: str | None,
+                     revision_atom: str | None, revision_target: str | None,
+                     revision_conflicts: tuple[str, ...], revision_operator: str | None) -> None:
     """Create a worldline definition (question only, no results yet)."""
     from propstore.worldline import WorldlineDefinition
 
@@ -169,6 +254,16 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
     if policy:
         definition["policy"] = policy
 
+    revision = _build_revision_dict(
+        revision_operation,
+        revision_atom,
+        revision_target,
+        revision_conflicts,
+        revision_operator,
+    )
+    if revision:
+        definition["revision"] = revision
+
     wl = WorldlineDefinition.from_dict(definition)
     wl.to_file(path)
 
@@ -189,6 +284,7 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
 @click.option("--strategy", default=None, type=click.Choice(["recency", "sample_size", "argumentation", "override"]))
 @click.option("--context", default=None, help="Context scope")
 @_apply_reasoning_options
+@_apply_revision_options
 @click.pass_obj
 def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
                   overrides: tuple[str, ...], targets: tuple[str, ...],
@@ -197,7 +293,9 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
                   set_comparison: str, link_principle: str, decision_criterion: str,
                   pessimism_index: float, praf_strategy: str,
                   praf_epsilon: float, praf_confidence: float,
-                  praf_seed: int | None) -> None:
+                  praf_seed: int | None, revision_operation: str | None,
+                  revision_atom: str | None, revision_target: str | None,
+                  revision_conflicts: tuple[str, ...], revision_operator: str | None) -> None:
     """Run (materialize) a worldline. Creates it first if it doesn't exist."""
     from propstore.world import WorldModel
     from propstore.worldline import WorldlineDefinition
@@ -247,6 +345,16 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
         )
         if policy:
             definition["policy"] = policy
+
+        revision = _build_revision_dict(
+            revision_operation,
+            revision_atom,
+            revision_target,
+            revision_conflicts,
+            revision_operator,
+        )
+        if revision:
+            definition["revision"] = revision
 
         wl = WorldlineDefinition.from_dict(definition)
 
@@ -298,6 +406,16 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
     if wl.inputs.environment.context_id:
         click.echo(f"  Context: {wl.inputs.environment.context_id}")
     click.echo(f"  Targets: {wl.targets}")
+    if wl.revision is not None:
+        click.echo(f"  Revision query: {wl.revision.operation}")
+        if wl.revision.atom is not None:
+            click.echo(f"  Revision atom: {wl.revision.atom}")
+        if wl.revision.target is not None:
+            click.echo(f"  Revision target: {wl.revision.target}")
+        if wl.revision.conflicts:
+            click.echo(f"  Revision conflicts: {wl.revision.conflicts}")
+        if wl.revision.operator is not None:
+            click.echo(f"  Revision operator: {wl.revision.operator}")
 
     if wl.results is None:
         click.echo("  (not yet materialized — run 'pks worldline run' first)")
@@ -360,6 +478,24 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
         defeated = wl.results.argumentation.get("defeated", [])
         if defeated:
             click.echo(f"Defeated claims: {', '.join(defeated)}")
+
+    if wl.results.revision:
+        revision = wl.results.revision
+        click.echo(f"Revision result: {revision.get('operation', '?')}")
+        if revision.get("input_atom_id"):
+            click.echo(f"Input atom: {revision['input_atom_id']}")
+        target_atom_ids = revision.get("target_atom_ids") or []
+        if target_atom_ids:
+            click.echo(f"Target atoms: {', '.join(target_atom_ids)}")
+        if revision.get("error"):
+            click.echo(f"Revision error: {revision['error']}")
+        result_payload = revision.get("result") or {}
+        rejected = result_payload.get("rejected_atom_ids") or []
+        if rejected:
+            click.echo(f"Rejected atoms: {', '.join(rejected)}")
+        accepted = result_payload.get("accepted_atom_ids") or []
+        if accepted:
+            click.echo(f"Accepted atoms: {', '.join(accepted)}")
 
     if wl.results.dependencies.get("claims"):
         click.echo(f"Dependencies: {', '.join(wl.results.dependencies['claims'])}")
@@ -475,6 +611,8 @@ def worldline_refresh(obj: dict, name: str) -> None:
         set_comparison="elitist", link_principle="last", decision_criterion="pignistic",
         pessimism_index=0.5, praf_strategy="auto", praf_epsilon=0.01,
         praf_confidence=0.95, praf_seed=None,
+        revision_operation=None, revision_atom=None, revision_target=None,
+        revision_conflicts=(), revision_operator=None,
     )
 
 
