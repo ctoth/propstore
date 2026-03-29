@@ -1176,6 +1176,43 @@ def test_exact_dp_rejects_or_downgrades_unsupported_skeptical_acceptance_mode():
     assert result.acceptance_probs == {"a": 0.0, "b": 0.0}
 
 
+def test_direct_exact_dp_falls_back_to_exact_enum_for_non_grounded_semantics():
+    """Direct tree-decomp entrypoint must fall back cleanly outside grounded semantics."""
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+    from propstore.praf_treedecomp import compute_exact_dp
+
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b"}),
+        defeats=frozenset({("a", "b"), ("b", "a")}),
+    )
+    praf = ProbabilisticAF(
+        framework=af,
+        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+    )
+
+    direct = compute_exact_dp(praf, semantics="preferred")
+    exact_enum = compute_praf_acceptance(
+        praf,
+        semantics="preferred",
+        strategy="exact_enum",
+        query_kind="argument_acceptance",
+        inference_mode="credulous",
+    )
+
+    assert direct == exact_enum.acceptance_probs
+
+
+def test_exact_dp_capability_surface_does_not_claim_extension_probability():
+    """Exact-DP support flags must match the implementation we actually expose."""
+    from propstore.praf import _exact_dp_supports_query
+
+    assert _exact_dp_supports_query(
+        query_kind="extension_probability",
+        inference_mode=None,
+    ) is False
+
+
 def test_query_kind_argument_acceptance_requires_inference_mode():
     """Argument acceptance queries must state whether they are credulous or skeptical."""
     from propstore.praf import ProbabilisticAF, compute_praf_acceptance

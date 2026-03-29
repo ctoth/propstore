@@ -394,8 +394,6 @@ def _exact_dp_supports_query(
 ) -> bool:
     if query_kind == "argument_acceptance":
         return inference_mode == "credulous"
-    if query_kind == "extension_probability":
-        return True
     return False
 
 

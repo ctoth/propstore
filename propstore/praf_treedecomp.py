@@ -402,7 +402,15 @@ def _compute_brute_force_fallback(
     """
     from propstore.praf import _compute_exact_enumeration
 
-    return _compute_exact_enumeration(praf, semantics).acceptance_probs
+    result = _compute_exact_enumeration(
+        praf,
+        semantics,
+        query_kind="argument_acceptance",
+        inference_mode="credulous",
+        queried_set=None,
+    )
+    assert result.acceptance_probs is not None
+    return result.acceptance_probs
 
 
 # ===================================================================
