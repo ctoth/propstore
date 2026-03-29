@@ -4,7 +4,20 @@ Compiler and reasoning backend for structured scientific claims.
 
 `propstore` is the engine layer in a larger workflow. The paper-facing frontend lives in the sibling `research-papers-plugin` repo, which handles paper retrieval, reading, annotation, and claim extraction. `propstore` takes the resulting structured concepts, claims, contexts, and stances; validates them; compiles them into a sidecar SQLite store; and supports conflict analysis, argumentation queries, counterfactual overlays, and ATMS-style inspection over the compiled corpus.
 
-## Where it fits
+## Architecture
+
+```text
+Layer 6: Agent Workflow    — extract-claims, reconcile, relate, adjudicate
+Layer 5: Render            — resolution strategies, world queries, worldlines, hypotheticals
+Layer 4: Argumentation     — Dung AF, ASPIC+, PrAF, bipolar, ATMS
+Layer 3: Heuristic         — embeddings, LLM stance classification (proposals only)
+Layer 2: Theory / Typing   — forms, dimensions, CEL type-checking, Z3 conditions
+Layer 1: Source Storage    — claims, concepts, contexts, stances, provenance (immutable)
+```
+
+Dependencies flow downward only. Layers 1-2 are the formal core. Layer 3 produces proposals, never mutations. Layer 4 operates over assumption-labeled data. Layer 5 applies policy at query time. Layer 6 orchestrates multi-step agent workflows.
+
+### Where it fits
 
 ```text
 PDFs / paper directories
@@ -95,6 +108,13 @@ Compare algorithms across papers:
 
 ```bash
 uv run pks -C knowledge claim compare claim50 claim51 -b T0=0.008
+```
+
+Rank claims by fragility (what to learn next):
+
+```bash
+uv run pks -C knowledge world fragility --top-k 10
+uv run pks -C knowledge world fragility --concept concept5 --sort-by roi
 ```
 
 Export graphs and inspect sensitivity:
@@ -222,8 +242,12 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 ## Documentation
 
 - [Data Model](docs/data-model.md) — concepts, forms, claim types, conditions, stances, contexts
-- [Argumentation](docs/argumentation.md) — reasoning backends, conflict detection, ATMS, subjective logic
-- [CLI Reference](docs/cli-reference.md) — command reference
+- [Argumentation](docs/argumentation.md) — reasoning backends, conflict detection, ATMS overview
+- [Structured Argumentation (ASPIC+)](docs/structured-argumentation.md) — recursive argument construction, three-type attack, preference defeat
+- [Probabilistic Argumentation (PrAF)](docs/probabilistic-argumentation.md) — MC sampling, Agresti-Coull stopping, DF-QuAD gradual semantics
+- [Subjective Logic and Calibration](docs/subjective-logic.md) — Opinion algebra, temperature scaling, evidence-to-opinion mapping, decision criteria
+- [Worldlines](docs/worldlines.md) — materialized query artifacts, provenance tracking, staleness detection
+- [CLI Reference](docs/cli-reference.md) — command reference (69 commands across 7 groups)
 - [Integration](docs/integration.md) — how this fits with `research-papers-plugin`
 
 ## Dependencies

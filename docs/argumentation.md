@@ -23,7 +23,7 @@ The bridge layer (`argumentation.py`) converts raw stances into a Dung AF:
 4. Build the Dung AF from surviving defeats
 5. Compute extensions under chosen semantics
 
-propstore ships multiple reasoning backends at different abstraction levels. The **claim-graph** backend builds a Dung AF over active claim rows using heuristic metadata for preferences. The **structured-projection** backend delegates to `aspic_bridge.py` for full ASPIC+ argument construction (recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack determination per Modgil & Prakken 2018 Def 8, last-link/weakest-link preference defeat per Defs 19-21). The **praf** backend adds probabilistic argument/defeat acceptance via MC sampling (Li et al. 2012) with Agresti-Coull stopping, DF-QuAD gradual semantics (Freedman et al. 2025), and optional COH enforcement (Hunter & Thimm 2017). The **atms** backend provides label propagation and bounded replay over the active belief space (de Kleer 1986).
+propstore ships multiple reasoning backends at different abstraction levels. The **claim-graph** backend builds a Dung AF over active claim rows using heuristic metadata for preferences. The **structured-projection** and **aspic** backends delegate to `aspic_bridge.py` for full ASPIC+ argument construction (recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack determination per Modgil & Prakken 2018 Def 8, last-link/weakest-link preference defeat per Defs 19-21). See [Structured Argumentation](structured-argumentation.md) for full details. The **praf** backend adds probabilistic argument/defeat acceptance via MC sampling (Li et al. 2012) with Agresti-Coull stopping, DF-QuAD gradual semantics (Freedman et al. 2025), and optional COH enforcement (Hunter & Thimm 2017). See [Probabilistic Argumentation](probabilistic-argumentation.md) for full details. The **atms** backend provides label propagation and bounded replay over the active belief space (de Kleer 1986).
 
 ## Conflict detection
 
@@ -116,6 +116,8 @@ The grounded extension is unique and represents the skeptically justified claims
 The bipolar backend (`bipolar.py`) implements Cayrol 2005: support relations create derived defeat paths via fixpoint computation. Three admissibility variants (d-admissible, s-admissible, c-admissible), stable extensions, and three corresponding preferred extension types.
 
 ## Subjective logic and calibration
+
+See [Subjective Logic and Calibration](subjective-logic.md) for full details.
 
 The opinion algebra (`opinion.py`) implements Jøsang 2001: Opinion = (b,d,u,a) with negation, conjunction, disjunction, consensus fusion, discounting, ordering, and uncertainty maximization. `calibrate.py` provides temperature scaling (Guo et al. 2017), corpus CDF calibration, evidence-to-opinion mapping (Sensoy et al. 2018), and ECE computation.
 
