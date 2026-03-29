@@ -551,6 +551,81 @@ class TestStanceGraphIntegrity:
             "target_justification_id" in error for error in result.errors
         )
 
+    def test_inline_conditions_differ_must_be_string(self, claims_dir):
+        data = make_claim_file_data([
+            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+            make_parameter_claim(
+                "claim2",
+                "concept1",
+                450.0,
+                "Hz",
+                stances=[{
+                    "type": "supports",
+                    "target": "claim1",
+                    "conditions_differ": ["vowel = /a/"],
+                }],
+            ),
+        ])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any(
+            "conditions_differ" in error for error in result.errors
+        )
+
+    def test_inline_resolution_must_be_mapping(self, claims_dir):
+        data = make_claim_file_data([
+            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+            make_parameter_claim(
+                "claim2",
+                "concept1",
+                450.0,
+                "Hz",
+                stances=[{
+                    "type": "supports",
+                    "target": "claim1",
+                    "resolution": ["nli_first_pass"],
+                }],
+            ),
+        ])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any(
+            "resolution" in error for error in result.errors
+        )
+
+    def test_inline_resolution_method_required(self, claims_dir):
+        data = make_claim_file_data([
+            make_parameter_claim("claim1", "concept1", 440.0, "Hz"),
+            make_parameter_claim(
+                "claim2",
+                "concept1",
+                450.0,
+                "Hz",
+                stances=[{
+                    "type": "supports",
+                    "target": "claim1",
+                    "resolution": {
+                        "model": "test-model",
+                        "confidence": 0.9,
+                    },
+                }],
+            ),
+        ])
+        write_claim_file(claims_dir, "test_paper.yaml", data)
+
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert not result.ok
+        assert any(
+            "resolution" in error and "method" in error for error in result.errors
+        )
+
 
 class TestDraftArtifactBoundary:
     def test_draft_claim_file_rejected_from_final_validation(self, tmp_path):

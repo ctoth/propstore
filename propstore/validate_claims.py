@@ -321,6 +321,29 @@ def _validate_stances(
                     "target_justification_id must be a non-empty string"
                 )
 
+        conditions_differ = stance.get("conditions_differ")
+        if conditions_differ is not None and not isinstance(conditions_differ, str):
+            result.errors.append(
+                f"{filename}: claim '{cid}' stance #{index} "
+                "conditions_differ must be a string"
+            )
+
+        resolution = stance.get("resolution")
+        if resolution is not None:
+            if not isinstance(resolution, dict):
+                result.errors.append(
+                    f"{filename}: claim '{cid}' stance #{index} "
+                    "resolution must be a mapping"
+                )
+                continue
+
+            method = resolution.get("method")
+            if not isinstance(method, str) or not method:
+                result.errors.append(
+                    f"{filename}: claim '{cid}' stance #{index} "
+                    "resolution.method must be a non-empty string"
+                )
+
 
 def _validate_value_fields(
     claim: dict, cid: str, filename: str,
