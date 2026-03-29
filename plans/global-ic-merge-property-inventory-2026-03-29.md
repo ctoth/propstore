@@ -133,12 +133,14 @@ problem across multiple concepts.
     - independent per-concept winners exist, but the global winner set changes
       once a cross-concept constraint is enforced
 
-16. Factorization sanity when `mu` does not couple subproblems.
+16. Factorization sanity when `mu` does not couple subproblems and the source
+    multiset itself factorizes.
     Literature anchor: the preorder is over whole interpretations, but uncoupled
     domains should not introduce fake interactions.
     Test shape:
-    - if concepts are independent and `mu` is separable, the global winners are
-      the product of the per-concept winners
+    - if concepts are independent, the source multiset is the Cartesian product
+      of per-concept source choices, and `mu` is separable, the global winners
+      are the product of the per-concept winners
 
 17. Branch-filter and branch-weight effects only act through the formal source
     multiset.

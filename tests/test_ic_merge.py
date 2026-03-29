@@ -7,6 +7,8 @@ postulates from the paper.
 """
 from __future__ import annotations
 
+from itertools import product
+
 import pytest
 from hypothesis import given, settings, assume, HealthCheck
 from hypothesis import strategies as st
@@ -397,6 +399,232 @@ class TestIcMergeDispatcher:
 
 
 class TestAssignmentLevelICMerge:
+    def test_cross_concept_constraint_changes_winner_set_vs_independent_solves(self):
+        global_problem = ICMergeProblem(
+            concept_ids=("x", "y"),
+            sources=(
+                MergeSource(
+                    source_id="s1",
+                    assignment=MergeAssignment(values={"x": 0.0, "y": 0.0}),
+                ),
+                MergeSource(
+                    source_id="s2",
+                    assignment=MergeAssignment(values={"x": 0.0, "y": 1.0}),
+                ),
+                MergeSource(
+                    source_id="s3",
+                    assignment=MergeAssignment(values={"x": 1.0, "y": 0.0}),
+                ),
+            ),
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CUSTOM,
+                    concept_ids=("x", "y"),
+                    metadata={
+                        "predicate": lambda values: values["x"] + values["y"] == 1.0,
+                    },
+                    description="x and y must sum to exactly 1",
+                ),
+            ),
+            operator=MergeOperator.SIGMA,
+        )
+
+        unconstrained_x = solve_ic_merge(
+            scalar_profile_problem(
+                {"s1": 0.0, "s2": 0.0, "s3": 1.0},
+                operator=MergeOperator.SIGMA,
+                concept_id="x",
+            )
+        )
+        unconstrained_y = solve_ic_merge(
+            scalar_profile_problem(
+                {"s1": 0.0, "s2": 1.0, "s3": 0.0},
+                operator=MergeOperator.SIGMA,
+                concept_id="y",
+            )
+        )
+
+        constrained = solve_ic_merge(global_problem)
+
+        independent_winner = MergeAssignment(
+            values={
+                "x": unconstrained_x.winners[0].value_for("x"),
+                "y": unconstrained_y.winners[0].value_for("y"),
+            }
+        )
+        assert independent_winner == MergeAssignment(values={"x": 0.0, "y": 0.0})
+        assert not assignment_satisfies_mu(global_problem, independent_winner)
+        assert constrained.winners == (
+            MergeAssignment(values={"x": 0.0, "y": 1.0}),
+            MergeAssignment(values={"x": 1.0, "y": 0.0}),
+        )
+
+    def test_custom_constraint_is_scoped_to_declared_concepts(self):
+        problem = ICMergeProblem(
+            concept_ids=("x", "y", "z"),
+            sources=(
+                MergeSource(
+                    source_id="s1",
+                    assignment=MergeAssignment(values={"x": 0, "y": 0, "z": 0}),
+                ),
+                MergeSource(
+                    source_id="s2",
+                    assignment=MergeAssignment(values={"x": 1, "y": 1, "z": 1}),
+                ),
+            ),
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CUSTOM,
+                    concept_ids=("x", "y"),
+                    metadata={
+                        "predicate": lambda values: set(values) == {"x", "y"},
+                    },
+                ),
+            ),
+            operator=MergeOperator.SIGMA,
+        )
+
+        result = solve_ic_merge(problem)
+
+        assert result.winners
+        assert result.admissible_count == 8
+
+    @given(
+        st.lists(
+            st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
+            min_size=2,
+            max_size=5,
+        ),
+        st.integers(min_value=0, max_value=4),
+        st.sampled_from(list(MergeOperator)),
+    )
+    @settings(
+        max_examples=40,
+        deadline=None,
+        suppress_health_check=[HealthCheck.too_slow],
+    )
+    def test_cross_concept_winners_always_satisfy_custom_mu(
+        self,
+        source_pairs,
+        max_sum,
+        operator,
+    ):
+        x_values = {x for x, _ in source_pairs}
+        y_values = {y for _, y in source_pairs}
+        assume(any(x + y <= max_sum for x, y in product(x_values, y_values)))
+
+        problem = ICMergeProblem(
+            concept_ids=("x", "y"),
+            sources=tuple(
+                MergeSource(
+                    source_id=f"s{index}",
+                    assignment=MergeAssignment(values={"x": x, "y": y}),
+                )
+                for index, (x, y) in enumerate(source_pairs)
+            ),
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CUSTOM,
+                    concept_ids=("x", "y"),
+                    metadata={
+                        "predicate": lambda values, limit=max_sum: values["x"] + values["y"] <= limit,
+                    },
+                    description="sum-bounded cross-concept admissibility",
+                ),
+            ),
+            operator=operator,
+        )
+
+        result = solve_ic_merge(problem)
+
+        assert result.winners
+        assert all(assignment_satisfies_mu(problem, winner) for winner in result.winners)
+
+    @given(
+        st.sets(st.integers(min_value=0, max_value=2), min_size=1, max_size=3),
+        st.sets(st.integers(min_value=0, max_value=2), min_size=1, max_size=3),
+        st.sampled_from(list(MergeOperator)),
+    )
+    @settings(
+        max_examples=40,
+        deadline=None,
+        suppress_health_check=[HealthCheck.too_slow],
+    )
+    def test_separable_constraints_factorize_across_concepts(
+        self,
+        x_domain,
+        y_domain,
+        operator,
+    ):
+        source_pairs = list(product(sorted(x_domain), sorted(y_domain)))
+        x_profile = {f"x{index}": x for index, x in enumerate(sorted(x_domain))}
+        y_profile = {f"y{index}": y for index, y in enumerate(sorted(y_domain))}
+        x_values = sorted(set(x_profile.values()))
+        y_values = sorted(set(y_profile.values()))
+        x_upper = x_values[min(len(x_values) - 1, len(x_values) // 2)]
+        y_upper = y_values[min(len(y_values) - 1, len(y_values) // 2)]
+
+        global_problem = ICMergeProblem(
+            concept_ids=("x", "y"),
+            sources=tuple(
+                MergeSource(
+                    source_id=f"s{index}",
+                    assignment=MergeAssignment(values={"x": x, "y": y}),
+                )
+                for index, (x, y) in enumerate(source_pairs)
+            ),
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.RANGE,
+                    concept_ids=("x",),
+                    metadata={"lower": x_values[0], "upper": x_upper},
+                ),
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.RANGE,
+                    concept_ids=("y",),
+                    metadata={"lower": y_values[0], "upper": y_upper},
+                ),
+            ),
+            operator=operator,
+        )
+
+        x_result = solve_ic_merge(
+            scalar_profile_problem(
+                x_profile,
+                operator=operator,
+                concept_id="x",
+                constraints=(
+                    IntegrityConstraint(
+                        kind=IntegrityConstraintKind.RANGE,
+                        concept_ids=("x",),
+                        metadata={"lower": x_values[0], "upper": x_upper},
+                    ),
+                ),
+            )
+        )
+        y_result = solve_ic_merge(
+            scalar_profile_problem(
+                y_profile,
+                operator=operator,
+                concept_id="y",
+                constraints=(
+                    IntegrityConstraint(
+                        kind=IntegrityConstraintKind.RANGE,
+                        concept_ids=("y",),
+                        metadata={"lower": y_values[0], "upper": y_upper},
+                    ),
+                ),
+            )
+        )
+
+        global_result = solve_ic_merge(global_problem)
+        expected_winners = tuple(
+            MergeAssignment(values={"x": x_assignment.value_for("x"), "y": y_assignment.value_for("y")})
+            for x_assignment, y_assignment in product(x_result.winners, y_result.winners)
+        )
+
+        assert global_result.winners == expected_winners
+
     def test_two_concept_problem_returns_assignment_winner(self):
         problem = ICMergeProblem(
             concept_ids=("x", "y"),

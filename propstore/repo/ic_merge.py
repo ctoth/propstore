@@ -174,15 +174,26 @@ def assignment_distance(assignment: MergeAssignment, source: MergeSource) -> flo
     return distance
 
 
+def _constraint_scope_values(
+    assignment: MergeAssignment,
+    constraint: IntegrityConstraint,
+) -> dict[str, Any]:
+    return {
+        concept_id: assignment.value_for(concept_id)
+        for concept_id in constraint.concept_ids
+    }
+
+
 def _constraint_holds(
     assignment: MergeAssignment,
     constraint: IntegrityConstraint,
 ) -> bool:
+    scoped_values = _constraint_scope_values(assignment, constraint)
+
     if constraint.kind == IntegrityConstraintKind.RANGE:
         lower = constraint.metadata.get("lower")
         upper = constraint.metadata.get("upper")
-        for concept_id in constraint.concept_ids:
-            value = assignment.value_for(concept_id)
+        for value in scoped_values.values():
             try:
                 numeric = float(value)
             except (TypeError, ValueError):
@@ -198,8 +209,8 @@ def _constraint_holds(
         extensible = bool(constraint.metadata.get("extensible", False))
         if extensible:
             return True
-        for concept_id in constraint.concept_ids:
-            if assignment.value_for(concept_id) not in allowed_values:
+        for value in scoped_values.values():
+            if value not in allowed_values:
                 return False
         return True
 
@@ -208,9 +219,7 @@ def _constraint_holds(
 
     if constraint.kind == IntegrityConstraintKind.CUSTOM:
         predicate = constraint.metadata.get("predicate")
-        if not callable(predicate):
-            raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
-        return bool(predicate(dict(assignment.values)))
+        return bool(predicate(scoped_values))
 
     raise ValueError(f"Unsupported integrity constraint kind: {constraint.kind}")
 

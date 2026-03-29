@@ -551,6 +551,18 @@ class IntegrityConstraint:
     cel: str | None = None
     description: str | None = None
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "concept_ids", tuple(self.concept_ids))
+        object.__setattr__(self, "metadata", dict(self.metadata))
+        if not self.concept_ids:
+            raise ValueError("IntegrityConstraint requires at least one concept id")
+        if len(set(self.concept_ids)) != len(self.concept_ids):
+            raise ValueError("IntegrityConstraint has duplicate concept ids")
+        if self.kind == IntegrityConstraintKind.CUSTOM:
+            predicate = self.metadata.get("predicate")
+            if not callable(predicate):
+                raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
+
 
 @dataclass(frozen=True)
 class MergeAssignment:
