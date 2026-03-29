@@ -38,7 +38,7 @@ venvPath = "."
 venv = ".venv"
 
 [tool.uv.sources]
-ast-equiv = { path = "../ast-equiv" }
+ast-equiv = { git = "https://github.com/ctoth/ast-equiv" }
 bridgman = { git = "https://github.com/ctoth/bridgman" }
 
 [tool.pytest.ini_options]
