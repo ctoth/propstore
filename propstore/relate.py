@@ -211,19 +211,12 @@ async def _classify_stance_async(
         # 2. Corpus-distance opinion: fuse via consensus (Jøsang 2001, Theorem 7, p.25)
         if reference_distances is not None and embedding_distance is not None and len(reference_distances) > 0:
             from propstore.calibrate import CorpusCalibrator
-            from propstore.opinion import consensus_pair
+            from propstore.opinion import fuse
             corpus_cal = CorpusCalibrator(reference_distances)
             corpus_opinion = corpus_cal.to_opinion(embedding_distance)
-            # Guard: consensus_pair raises if both opinions are dogmatic (u_A = u_B = 0)
-            # If either is dogmatic, skip fusion and use that opinion directly
-            if opinion.u < 1e-9 and corpus_opinion.u < 1e-9:
-                pass  # Both dogmatic — keep categorical opinion
-            elif opinion.u < 1e-9:
-                pass  # Categorical is dogmatic — keep it
-            elif corpus_opinion.u < 1e-9:
-                opinion = corpus_opinion  # Corpus is dogmatic — use it
-            else:
-                opinion = consensus_pair(opinion, corpus_opinion)
+            # fuse(method="auto") handles dogmatic inputs via CCF fallback
+            # (Jøsang 2001, Theorem 7 for WBF; CCF for dogmatic edge cases)
+            opinion = fuse(opinion, corpus_opinion)
 
         # Backward-compatible confidence = probability expectation (Jøsang 2001, p.5, Def 6)
         confidence = opinion.expectation()  # E(ω) = b + a·u
