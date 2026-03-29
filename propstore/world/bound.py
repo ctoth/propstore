@@ -391,6 +391,39 @@ class BoundWorld(BeliefSpace):
             entrenchment=self.revision_entrenchment(overrides=overrides),
         )
 
+    def epistemic_state(
+        self,
+        *,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+    ):
+        """Build the explicit iterated revision state for this scoped world."""
+        from propstore.revision.iterated import make_epistemic_state
+
+        return make_epistemic_state(
+            self.revision_base(),
+            self.revision_entrenchment(overrides=overrides),
+        )
+
+    def iterated_revise(
+        self,
+        atom,
+        *,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+        conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
+        operator: str = "restrained",
+        state=None,
+    ):
+        """Revise an explicit epistemic state using the selected iterated operator."""
+        from propstore.revision.iterated import iterated_revise as iterated_revise_state
+
+        current_state = state or self.epistemic_state(overrides=overrides)
+        return iterated_revise_state(
+            current_state,
+            atom,
+            conflicts=conflicts,
+            operator=operator,
+        )
+
     def claim_status(self, claim_id: str) -> ATMSInspection:
         """Return the ATMS-native status and support-quality metadata for a claim."""
         return self.atms_engine().claim_status(claim_id)

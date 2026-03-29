@@ -868,6 +868,24 @@ def _emit_revision_explanation(explanation: dict) -> None:
         click.echo(line)
 
 
+def _emit_epistemic_state(state) -> None:
+    click.echo(f"Iterated state ({len(state.accepted_atom_ids)} accepted atoms)")
+    click.echo(f"History length: {len(state.history)}")
+    click.echo("Ranking:")
+    for rank, atom_id in enumerate(state.ranked_atom_ids, start=1):
+        click.echo(f"  {rank}. {atom_id}")
+
+
+def _emit_iterated_revision(result, next_state, *, operator: str) -> None:
+    click.echo(f"Operator: {operator}")
+    _emit_revision_result(result)
+    click.echo(f"Next state ({len(next_state.accepted_atom_ids)} accepted atoms)")
+    click.echo(f"History length: {len(next_state.history)}")
+    click.echo("Ranking:")
+    for rank, atom_id in enumerate(next_state.ranked_atom_ids, start=1):
+        click.echo(f"  {rank}. {atom_id}")
+
+
 @world.command("revision-base")
 @click.argument("args", nargs=-1)
 @click.pass_obj
@@ -1010,6 +1028,52 @@ def world_revision_explain(
 
         explanation = bound.revision_explain(result)
         _emit_revision_explanation(explanation)
+
+
+@world.command("iterated-state")
+@click.argument("args", nargs=-1)
+@click.pass_obj
+def world_iterated_state(obj: dict, args: tuple[str, ...]) -> None:
+    """Inspect the current explicit iterated revision state for a scoped world."""
+    repo: Repository = obj["repo"]
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        bound = wm.bind(**bindings)
+        state = bound.epistemic_state()
+        _emit_epistemic_state(state)
+
+
+@world.command("iterated-revise")
+@click.argument("args", nargs=-1)
+@click.option("--atom", "atom_json", required=True, help="JSON revision atom to admit")
+@click.option("--conflict", "conflicts", multiple=True, help="Existing atom or claim id that conflicts with the new atom")
+@click.option("--operator", type=click.Choice(["restrained", "lexicographic"]), default="restrained")
+@click.pass_obj
+def world_iterated_revise(
+    obj: dict,
+    args: tuple[str, ...],
+    atom_json: str,
+    conflicts: tuple[str, ...],
+    operator: str,
+) -> None:
+    """Run one iterated revision episode and print the next explicit state."""
+    from propstore.revision.operators import normalize_revision_input
+
+    repo: Repository = obj["repo"]
+    with open_world_model(repo) as wm:
+        bindings, _ = _parse_bindings(args)
+        bound = wm.bind(**bindings)
+        atom = _parse_revision_atom_json(atom_json)
+        state = bound.epistemic_state()
+        normalized = normalize_revision_input(state.base, atom)
+        conflict_map = {normalized.atom_id: tuple(conflicts)} if conflicts else None
+        result, next_state = bound.iterated_revise(
+            atom,
+            conflicts=conflict_map,
+            operator=operator,
+            state=state,
+        )
+        _emit_iterated_revision(result, next_state, operator=operator)
 
 
 def _bind_atms_world(
