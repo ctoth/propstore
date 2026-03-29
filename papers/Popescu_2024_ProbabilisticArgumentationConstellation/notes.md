@@ -102,6 +102,12 @@ The algorithm uses "nice" tree-decompositions with four node types: *(p.5)*
 3. **Introduce node**: one child, adds exactly one argument (B_t = B_{t'} ∪ {a})
 4. **Forget node**: one child, removes exactly one argument (B_t = B_{t'} \ {a})
 
+Important boundary from the paper text and figures: Popescu & Wallner assume a valid
+tree decomposition / nice tree decomposition is available and illustrate one in Fig. 3,
+but they do **not** present a concrete algorithm for constructing the underlying tree
+decomposition from an elimination ordering. The local bug in our bag-parent selection is
+therefore not something the paper directly specifies; the paper starts from a valid TD.
+
 ### Algorithm Structure (Algorithm 1 — main)
 
 For a given input PAF F = (A, R, P): *(p.5-6)*
@@ -110,6 +116,10 @@ For a given input PAF F = (A, R, P): *(p.5-6)*
 3. Process nodes in **post-order** traversal
 4. For each node type (leaf, introduce, forget, join), apply the corresponding sub-algorithm
 5. Return the probability from the root node's table
+
+The paper also states that root and leaf nodes can be assumed to have empty bags, and
+that one can transform a rooted decomposition so that each node has at most two children
+and each introduce / forget node changes exactly one argument. *(p.5-6)*
 
 ### Table Structure
 Each row in a table represents a partial labelling of the arguments in the current bag. For a bag with arguments {a, b, c}, a row might be (I, O, U) indicating a is in, b is out, c is undecided. *(p.6)*
@@ -188,6 +198,12 @@ This means: for bounded treewidth, the algorithm runs in polynomial time (linear
 - For baseline comparison: Monte Carlo sampling and ASP-based exact computation *(p.7)*
 - Database-style tree expansion operations (Gottlob et al. 2001) *(p.1)*
 - The algorithm computes probabilities for admissible sets and stable semantics as well, under complete semantics conditions *(p.5)*
+
+Implementation consequence for our repo: Popescu 2024 is the authority for the DP over
+a valid nice TD, but not for the exact decomposition-construction routine in
+`compute_tree_decomposition()`. If our local constructor violates running intersection
+or returns a disconnected forest, that is our auxiliary TD-builder bug, not a conflict
+with the DP described in the paper.
 
 ### Data Structures Needed *(p.5-6)*
 - Tree-decomposition: tree T with bags B_t for each node t
