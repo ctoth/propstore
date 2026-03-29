@@ -128,11 +128,31 @@ def branch_head(kr: KnowledgeRepo, name: str) -> str | None:
     return sha_bytes.decode("ascii")
 
 
+def _ancestor_distances(kr: KnowledgeRepo, start_sha: str) -> dict[str, int]:
+    """Return shortest-path distances from a commit to all of its ancestors."""
+    distances: dict[str, int] = {start_sha: 0}
+    queue: deque[str] = deque([start_sha])
+    while queue:
+        current = queue.popleft()
+        current_distance = distances[current]
+        commit_obj = kr._repo[current.encode("ascii")]
+        for parent in commit_obj.parents:
+            parent_sha = parent.decode("ascii")
+            next_distance = current_distance + 1
+            previous = distances.get(parent_sha)
+            if previous is None or next_distance < previous:
+                distances[parent_sha] = next_distance
+                queue.append(parent_sha)
+    return distances
+
+
 def merge_base(kr: KnowledgeRepo, branch_a: str, branch_b: str) -> str:
     """Find common ancestor of two branches by walking parents.
 
-    Uses BFS from both branch tips simultaneously. For the same-branch
-    case, returns the branch tip.
+    Returns a Git-like best common ancestor: a common ancestor that is not
+    itself an ancestor of any other common ancestor. If multiple best common
+    ancestors remain, choose the nearest one by shortest-path distance from the
+    two tips, with lexical SHA tie-breaking for determinism.
 
     Konieczny & Pino Pérez 2002: IC merging requires identifying the
     common knowledge base from which branches diverged.
@@ -148,35 +168,30 @@ def merge_base(kr: KnowledgeRepo, branch_a: str, branch_b: str) -> str:
     if sha_a == sha_b:
         return sha_a
 
-    # BFS from both sides: collect ancestors of each, find first overlap
-    ancestors_a: set[str] = set()
-    ancestors_b: set[str] = set()
-    queue_a: deque[str] = deque([sha_a])
-    queue_b: deque[str] = deque([sha_b])
+    distances_a = _ancestor_distances(kr, sha_a)
+    distances_b = _ancestor_distances(kr, sha_b)
+    common_ancestors = set(distances_a) & set(distances_b)
+    if not common_ancestors:
+        raise ValueError(f"No common ancestor between {branch_a!r} and {branch_b!r}")
 
-    while queue_a or queue_b:
-        if queue_a:
-            current = queue_a.popleft()
-            if current in ancestors_b:
-                return current
-            if current not in ancestors_a:
-                ancestors_a.add(current)
-                commit_obj = kr._repo[current.encode("ascii")]
-                for p in commit_obj.parents:
-                    parent_sha = p.decode("ascii")
-                    if parent_sha not in ancestors_a:
-                        queue_a.append(parent_sha)
+    ancestor_cache = {
+        ancestor_sha: _ancestor_distances(kr, ancestor_sha)
+        for ancestor_sha in common_ancestors
+    }
+    best_common_ancestors = {
+        candidate
+        for candidate in common_ancestors
+        if not any(
+            other != candidate and candidate in ancestor_cache[other]
+            for other in common_ancestors
+        )
+    }
 
-        if queue_b:
-            current = queue_b.popleft()
-            if current in ancestors_a:
-                return current
-            if current not in ancestors_b:
-                ancestors_b.add(current)
-                commit_obj = kr._repo[current.encode("ascii")]
-                for p in commit_obj.parents:
-                    parent_sha = p.decode("ascii")
-                    if parent_sha not in ancestors_b:
-                        queue_b.append(parent_sha)
-
-    raise ValueError(f"No common ancestor between {branch_a!r} and {branch_b!r}")
+    return min(
+        best_common_ancestors,
+        key=lambda sha: (
+            max(distances_a[sha], distances_b[sha]),
+            distances_a[sha] + distances_b[sha],
+            sha,
+        ),
+    )

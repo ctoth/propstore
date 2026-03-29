@@ -11,7 +11,10 @@ Literature grounding:
 """
 from __future__ import annotations
 
+import time
+
 import pytest
+from dulwich.objects import Commit
 
 from propstore.repo import KnowledgeRepo
 from propstore.repo.branch import (
@@ -22,6 +25,33 @@ from propstore.repo.branch import (
     list_branches,
     merge_base,
 )
+
+
+def _create_two_parent_commit(
+    kr: KnowledgeRepo,
+    *,
+    left_parent: str,
+    right_parent: str,
+    target_branch: str = "master",
+    message: str = "merge commit",
+) -> str:
+    """Create a synthetic two-parent commit for DAG-shaped merge-base tests."""
+    left_commit = kr._repo[left_parent.encode("ascii")]
+    commit = Commit()
+    commit.tree = left_commit.tree
+    commit.author = b"tests <tests@propstore>"
+    commit.committer = b"tests <tests@propstore>"
+    commit.encoding = b"UTF-8"
+    commit.message = message.encode("utf-8")
+    now = int(time.time())
+    commit.commit_time = now
+    commit.author_time = now
+    commit.commit_timezone = 0
+    commit.author_timezone = 0
+    commit.parents = [left_parent.encode("ascii"), right_parent.encode("ascii")]
+    kr._repo.object_store.add_object(commit)
+    kr._repo.refs[f"refs/heads/{target_branch}".encode()] = commit.id
+    return commit.id.decode("ascii")
 
 
 # ── Group 1: Branch CRUD ──────────────────────────────────────────────
@@ -293,6 +323,36 @@ def test_merge_base_same_branch(tmp_path):
 
     result = merge_base(kr, "master", "master")
     assert result == sha
+
+
+def test_merge_base_prefers_nearer_common_ancestor_over_older_one(tmp_path):
+    """A branch tip that is itself a common ancestor must beat an older ancestor.
+
+    Regression for a merge-shaped DAG:
+    - branch tip B descends from base A
+    - master tip M is a merge commit with parents A and B
+
+    The correct merge base of master and the branch is B, not A.
+    """
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    base_sha = kr.commit_files({"base.yaml": b"base\n"}, "base")
+    create_branch(kr, "paper/merge", source_commit=base_sha)
+    branch_tip = kr.commit_files(
+        {"branch.yaml": b"branch\n"},
+        "branch commit",
+        branch="paper/merge",
+    )
+
+    merge_sha = _create_two_parent_commit(
+        kr,
+        left_parent=base_sha,
+        right_parent=branch_tip,
+        target_branch="master",
+    )
+    assert branch_head(kr, "master") == merge_sha
+
+    result = merge_base(kr, "master", "paper/merge")
+    assert result == branch_tip
 
 
 # ── Group 4: Backward Compatibility ──────────────────────────────────
