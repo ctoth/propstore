@@ -188,14 +188,14 @@ Conditions 5-8 correspond to IC5-IC8 on operators. Fair syncretic assignments ad
 
 ### Representation Theorems
 - **Theorem 3.7:** $\triangle$ is an IC merging operator iff there exists a syncretic assignment such that $mod(\triangle_{\mu}(\Psi)) = \min(mod(\mu), \leq_{\Psi})$ *(p.7)*
-- **Theorem 3.11:** $\triangle$ is an IC quasi-merging operator iff represented by a majority syncretic assignment *(p.10)*
-- **Theorem 3.13:** $\triangle$ is an IC majority merging operator iff represented by a majority syncretic assignment *(p.10)*
+- **Theorem 3.10:** $\triangle$ is an IC quasi-merging operator iff represented by a quasi-syncretic assignment *(p.10)*
+- **Theorem 3.11:** $\triangle$ is an IC majority merging operator iff represented by a majority syncretic assignment *(p.10)*
 - **Theorem 3.15:** $\triangle$ is an IC arbitration operator iff represented by a fair syncretic assignment *(p.11)*
 
 ### Operator hierarchy
 - $\triangle^{GMax}(\Psi) \vdash \triangle^{Max}(\Psi)$ (GMax refines Max) — Remark 4.10 *(p.17)*
 - $\triangle^{\Sigma}$ is a majority merging operator — Theorem 4.2 *(p.13)*
-- $\triangle^{Max}$ is a quasi-merging operator — Theorem 4.6 *(p.15)*
+- $\triangle^{Max}$ is a quasi-merging operator; it satisfies `(Arb)` and `(MI)`, but cannot satisfy `(IC6)` or `(Maj)` — Theorem 4.6 *(p.15)*
 - $\triangle^{GMax}$ is an arbitration operator — Theorem 4.14 *(p.18)*
 - $\triangle^{\Sigma}$ satisfies triangle inequality (Theorem 4.3): if $d$ satisfies triangle inequality, then $d_{\Sigma}$ does too *(p.13)*
 
@@ -227,7 +227,7 @@ Conditions 5-8 correspond to IC5-IC8 on operators. Fair syncretic assignments ad
 ## Results Summary
 The paper establishes a complete axiomatic framework for belief merging under integrity constraints. The key hierarchy is:
 - **Majority** ($\triangle^{\Sigma}$): sum of distances — democratic, large groups can override minorities *(p.12-14)*
-- **Quasi-merging** ($\triangle^{Max}$): max distance — more egalitarian but can't distinguish between some cases *(p.15-16)*
+- **Quasi-merging** ($\triangle^{Max}$): max distance — more egalitarian, satisfies arbitration-style duplicate insensitivity, but is not a majority operator *(p.15-16)*
 - **Arbitration** ($\triangle^{GMax}$): lexicographic max — no group can dominate, requires approval of all members *(p.17-19)*
 
 The building committee example (p.14-19) shows concretely how the three operators produce different results: $\triangle^{\Sigma}$ gives majority rule (build all three items), $\triangle^{Max}$ gives more interpretations (multiple tied options), $\triangle^{GMax}$ gives a fair compromise (build tennis court or car park, don't increase rent).
@@ -265,6 +265,7 @@ The building committee example (p.14-19) shows concretely how the three operator
 - IC4: no single source's beliefs are completely overridden when both are individually consistent with the constraint *(p.4)*
 - Sigma operator satisfies triangle inequality when base distance does *(p.13)*
 - GMax refines Max: $mod(\triangle^{GMax}_{\mu}(\Psi)) \subseteq mod(\triangle^{Max}_{\mu}(\Psi))$ *(p.17)*
+- Max satisfies arbitration-style duplicate insensitivity but not majority dominance: the paper states $\triangle^{Max}$ satisfies `(Arb)` and explicitly cannot satisfy `(Maj)` *(p.15)*
 - Singleton reduction: $\triangle_{\mu}(\{\varphi\})$ produces a KM revision operator *(p.20)*
 - Majority property: for any $\Psi_1, \Psi_2$, there exists $n$ such that $\triangle_{\mu}(\Psi_1 \sqcup \Psi_2^n) \vdash \triangle_{\mu}(\Psi_2)$ for majority operators *(p.5)*
 

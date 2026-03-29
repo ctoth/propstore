@@ -231,14 +231,14 @@ claims:
 
   - id: claim18
     type: observation
-    statement: "The Max operator (maximum distance) is a quasi-merging operator satisfying IC0-IC3 and IC7-IC8 but not IC4-IC6, and it satisfies (Arb) and (Maj)."
+    statement: "The Max operator (maximum distance) is a quasi-merging operator satisfying IC0-IC3 and IC7-IC8, it satisfies (Arb) and (MI), and it cannot satisfy (IC6) or (Maj)."
     concepts:
       - belief_constraint_fusion
     provenance:
       paper: Konieczny_2002_MergingInformationUnderConstraints
       page: 15
       section: "4.2 Max operators"
-      quote_fragment: "Theorem 4.6: Delta^Max is a quasi-merging operator. It satisfies (Arb), (Obj) and (Maj)"
+      quote_fragment: "Theorem 4.6: Delta^Max is a quasi-merging operator. Furthermore it satisfies (Arb), (Ic1) and (MI). In particular Delta^Max cannot satisfy (IC6) and (Maj)"
 
   - id: claim19
     type: observation
