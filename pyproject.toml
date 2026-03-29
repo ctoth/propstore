@@ -48,6 +48,7 @@ timeout_method = "thread"
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    "pytest-xdist>=3.8.0",
     "pytest-timeout>=2.3",
     "hypothesis>=6.0",
     "rope>=1.14.0",
