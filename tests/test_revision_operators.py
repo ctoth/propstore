@@ -62,6 +62,7 @@ def test_contract_uses_support_sensitive_incision_and_cascades_support_loss() ->
     assert "claim:legacy" in result.rejected_atom_ids
     assert "claim:dependent" in result.rejected_atom_ids
     assert "claim:independent" in result.accepted_atom_ids
+    assert result.explanation["claim:legacy"]["reason"] == "support_lost"
     assert result.explanation["claim:dependent"]["reason"] == "support_lost"
     assert result.explanation["claim:dependent"]["incision_set"] == ("assumption:shared_weak",)
 

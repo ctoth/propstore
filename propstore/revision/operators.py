@@ -74,7 +74,7 @@ def contract(
     return stabilize_belief_base(
         base,
         incision_set=incision_set,
-        forced_rejections=target_ids,
+        forced_rejections=_forced_rejections_for_targets(base, target_ids),
     )
 
 
@@ -232,6 +232,25 @@ def _choose_incision_set(
             break
 
     return tuple(best_combo or ())
+
+
+def _forced_rejections_for_targets(
+    base: BeliefBase,
+    target_ids: Sequence[str],
+) -> tuple[str, ...]:
+    atom_by_id = {atom.atom_id: atom for atom in base.atoms}
+    forced: list[str] = []
+    for target_id in target_ids:
+        atom = atom_by_id.get(target_id)
+        if atom is None:
+            forced.append(target_id)
+            continue
+        if atom.kind != "claim":
+            forced.append(target_id)
+            continue
+        if not base.support_sets.get(target_id):
+            forced.append(target_id)
+    return tuple(forced)
 
 
 def _has_surviving_support(
