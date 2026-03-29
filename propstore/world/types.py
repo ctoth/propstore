@@ -184,6 +184,98 @@ class ATMSConceptStabilityReport(TypedDict):
     witnesses: list[ATMSConceptFutureStatusEntry]
 
 
+class ATMSNodeRelevanceState(TypedDict):
+    queryable_ids: list[str]
+    queryable_cels: list[str]
+    environment: list[str]
+    consistent: bool
+    status: ATMSNodeStatus
+
+
+class ATMSConceptRelevanceState(TypedDict):
+    queryable_ids: list[str]
+    queryable_cels: list[str]
+    environment: list[str]
+    consistent: bool
+    status: str
+
+
+ATMSNodeWitnessPair = TypedDict(
+    "ATMSNodeWitnessPair",
+    {
+        "queryable_id": str,
+        "queryable_cel": str,
+        "without": ATMSNodeRelevanceState,
+        "with": ATMSNodeRelevanceState,
+    },
+)
+
+ATMSConceptWitnessPair = TypedDict(
+    "ATMSConceptWitnessPair",
+    {
+        "queryable_id": str,
+        "queryable_cel": str,
+        "without": ATMSConceptRelevanceState,
+        "with": ATMSConceptRelevanceState,
+    },
+)
+
+
+class ATMSNodeRelevanceReport(TypedDict):
+    node_id: str
+    claim_id: str | None
+    current: ATMSInspection
+    current_status: ATMSNodeStatus
+    relevant_queryables: list[str]
+    irrelevant_queryables: list[str]
+    witness_pairs: dict[str, list[ATMSNodeWitnessPair]]
+
+
+class ATMSConceptRelevanceReport(TypedDict):
+    concept_id: str
+    current_status: str
+    relevant_queryables: list[str]
+    irrelevant_queryables: list[str]
+    witness_pairs: dict[str, list[ATMSConceptWitnessPair]]
+
+
+class ATMSNodeInterventionPlan(TypedDict):
+    target: str
+    node_id: str
+    claim_id: str | None
+    current_status: ATMSNodeStatus
+    target_status: ATMSNodeStatus
+    queryable_ids: list[str]
+    queryable_cels: list[str]
+    environment: list[str]
+    consistent: bool
+    result_status: ATMSNodeStatus
+    result_out_kind: ATMSOutKind | None
+    minimality_basis: str
+
+
+class ATMSConceptInterventionPlan(TypedDict):
+    target: str
+    concept_id: str
+    current_status: str
+    target_status: str
+    queryable_ids: list[str]
+    queryable_cels: list[str]
+    environment: list[str]
+    consistent: bool
+    result_status: str
+    minimality_basis: str
+
+
+class ATMSNextQuerySuggestion(TypedDict):
+    queryable_id: str
+    queryable_cel: str
+    plan_count: int
+    smallest_plan_size: int
+    plan_queryable_cels: list[list[str]]
+    example_plans: list[ATMSNodeInterventionPlan | ATMSConceptInterventionPlan]
+
+
 class ResolutionStrategy(StrEnum):
     RECENCY = "recency"
     SAMPLE_SIZE = "sample_size"

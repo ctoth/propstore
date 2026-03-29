@@ -22,9 +22,14 @@ from propstore.world.labelled import (
 )
 from propstore.world.value_resolver import ActiveClaimResolver, collect_known_values
 from propstore.world.types import (
+    ATMSConceptInterventionPlan,
+    ATMSConceptRelevanceReport,
     ATMSConceptStabilityReport,
     ATMSFutureStatusReport,
     ATMSInspection,
+    ATMSNextQuerySuggestion,
+    ATMSNodeInterventionPlan,
+    ATMSNodeRelevanceReport,
     ATMSNodeStabilityReport,
     BeliefSpace,
     DerivedResult,
@@ -536,7 +541,7 @@ class BoundWorld(BeliefSpace):
         claim_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSNodeRelevanceReport:
         """Return which bounded queryables can flip a claim's ATMS status."""
         self._require_atms_backend()
         return self.atms_engine().claim_relevance(claim_id, queryables, limit=limit)
@@ -556,7 +561,7 @@ class BoundWorld(BeliefSpace):
         concept_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSConceptRelevanceReport:
         """Return which bounded queryables can flip a concept's value status."""
         self._require_atms_backend()
         return self.atms_engine().concept_relevance(concept_id, queryables, limit=limit)
@@ -578,7 +583,7 @@ class BoundWorld(BeliefSpace):
         target_status: str,
         limit: int = 8,
         max_plans: int | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNodeInterventionPlan]:
         """Return bounded additive intervention plans for one claim."""
         self._require_atms_backend()
         return self.atms_engine().claim_interventions(
@@ -596,7 +601,7 @@ class BoundWorld(BeliefSpace):
         target_value_status: str,
         limit: int = 8,
         max_plans: int | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSConceptInterventionPlan]:
         """Return bounded additive intervention plans for one concept."""
         self._require_atms_backend()
         return self.atms_engine().concept_interventions(
@@ -614,7 +619,7 @@ class BoundWorld(BeliefSpace):
         target_status: str,
         limit: int = 8,
         max_suggestions: int | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNextQuerySuggestion]:
         """Return bounded next-query suggestions derived from claim intervention plans."""
         self._require_atms_backend()
         return self.atms_engine().next_queryables_for_claim(
@@ -632,7 +637,7 @@ class BoundWorld(BeliefSpace):
         target_value_status: str,
         limit: int = 8,
         max_suggestions: int | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNextQuerySuggestion]:
         """Return bounded next-query suggestions derived from concept intervention plans."""
         self._require_atms_backend()
         return self.atms_engine().next_queryables_for_concept(

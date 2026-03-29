@@ -37,14 +37,23 @@ from propstore.world.labelled import (
 from propstore.world.labelled import SupportQuality
 from propstore.world.types import (
     ATMSConceptFutureStatusEntry,
+    ATMSConceptInterventionPlan,
+    ATMSConceptRelevanceReport,
+    ATMSConceptRelevanceState,
     ATMSConceptStabilityReport,
     ATMSFutureEnvironmentReport,
     ATMSFutureStatusReport,
     ATMSInspection,
+    ATMSNextQuerySuggestion,
     ATMSNodeStatus,
     ATMSNodeFutureStatusEntry,
+    ATMSNodeInterventionPlan,
+    ATMSNodeRelevanceReport,
+    ATMSNodeRelevanceState,
     ATMSNodeStabilityReport,
     ATMSOutKind,
+    ATMSConceptWitnessPair,
+    ATMSNodeWitnessPair,
     ATMSWhyOutReport,
     Environment,
     QueryableAssumption,
@@ -635,16 +644,22 @@ class ATMSEngine:
         node_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSNodeRelevanceReport:
         """Summarize which queryables can flip a node's bounded ATMS status."""
         current = self.node_status(node_id)
         states = self._node_relevance_states(node_id, queryables, limit=limit)
-        relevance = self._relevance_from_states(states, current.status)
+        relevant_queryables, irrelevant_queryables, witness_pairs = self._node_relevance_from_states(
+            states,
+            current.status,
+        )
         return {
             "node_id": node_id,
             "claim_id": current.claim_id,
             "current": current,
-            **relevance,
+            "current_status": current.status,
+            "relevant_queryables": relevant_queryables,
+            "irrelevant_queryables": irrelevant_queryables,
+            "witness_pairs": witness_pairs,
         }
 
     def claim_relevance(
@@ -652,7 +667,7 @@ class ATMSEngine:
         claim_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSNodeRelevanceReport:
         node_id = self._claim_node_ids.get(claim_id)
         if node_id is None:
             raise KeyError(f"Unknown ATMS claim: {claim_id}")
@@ -663,15 +678,20 @@ class ATMSEngine:
         concept_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSConceptRelevanceReport:
         """Summarize which queryables can flip a concept's bounded value status."""
         current_status = self._runtime.concept_status(concept_id)
         states = self._concept_relevance_states(concept_id, queryables, limit=limit)
-        relevance = self._relevance_from_states(states, current_status)
+        relevant_queryables, irrelevant_queryables, witness_pairs = self._concept_relevance_from_states(
+            states,
+            current_status,
+        )
         return {
             "concept_id": concept_id,
             "current_status": current_status,
-            **relevance,
+            "relevant_queryables": relevant_queryables,
+            "irrelevant_queryables": irrelevant_queryables,
+            "witness_pairs": witness_pairs,
         }
 
     def node_interventions(
@@ -682,7 +702,7 @@ class ATMSEngine:
         *,
         limit: int = 8,
         max_plans: int | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNodeInterventionPlan]:
         """Return minimal additive plans that reach the requested ATMS node status."""
         normalized_target = self._coerce_node_target_status(target_status)
         current = self.node_status(node_id)
@@ -712,7 +732,7 @@ class ATMSEngine:
         *,
         limit: int = 8,
         max_plans: int | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNodeInterventionPlan]:
         node_id = self._claim_node_ids.get(claim_id)
         if node_id is None:
             raise KeyError(f"Unknown ATMS claim: {claim_id}")
@@ -732,7 +752,7 @@ class ATMSEngine:
         *,
         limit: int = 8,
         max_plans: int | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSConceptInterventionPlan]:
         """Return minimal additive plans that reach the requested concept value status."""
         current_status = self._runtime.concept_status(concept_id)
         candidates = [
@@ -761,7 +781,7 @@ class ATMSEngine:
         *,
         limit: int = 8,
         max_suggestions: int | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNextQuerySuggestion]:
         plans = self.node_interventions(
             node_id,
             queryables,
@@ -778,7 +798,7 @@ class ATMSEngine:
         *,
         limit: int = 8,
         max_suggestions: int | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNextQuerySuggestion]:
         node_id = self._claim_node_ids.get(claim_id)
         if node_id is None:
             raise KeyError(f"Unknown ATMS claim: {claim_id}")
@@ -798,7 +818,7 @@ class ATMSEngine:
         *,
         limit: int = 8,
         max_suggestions: int | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNextQuerySuggestion]:
         plans = self.concept_interventions(
             concept_id,
             queryables,
@@ -1556,12 +1576,12 @@ class ATMSEngine:
         node_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int,
-    ) -> dict[tuple[str, ...], dict[str, Any]]:
+    ) -> dict[tuple[str, ...], ATMSNodeRelevanceState]:
         current = self.node_status(node_id)
-        states: dict[tuple[str, ...], dict[str, Any]] = {
+        states: dict[tuple[str, ...], ATMSNodeRelevanceState] = {
             (): {
-                "queryable_ids": (),
-                "queryable_cels": (),
+                "queryable_ids": [],
+                "queryable_cels": [],
                 "environment": list(self._bound_environment_key().assumption_ids),
                 "consistent": not self.nogoods.excludes(self._bound_environment_key()),
                 "status": current.status,
@@ -1570,8 +1590,8 @@ class ATMSEngine:
         for future in self.node_future_statuses(node_id, queryables, limit=limit)["futures"]:
             key = tuple(future["queryable_ids"])
             states[key] = {
-                "queryable_ids": tuple(future["queryable_ids"]),
-                "queryable_cels": tuple(future["queryable_cels"]),
+                "queryable_ids": list(future["queryable_ids"]),
+                "queryable_cels": list(future["queryable_cels"]),
                 "environment": list(future["environment"]),
                 "consistent": future["consistent"],
                 "status": future["status"],
@@ -1583,11 +1603,11 @@ class ATMSEngine:
         concept_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int,
-    ) -> dict[tuple[str, ...], dict[str, Any]]:
-        states: dict[tuple[str, ...], dict[str, Any]] = {
+    ) -> dict[tuple[str, ...], ATMSConceptRelevanceState]:
+        states: dict[tuple[str, ...], ATMSConceptRelevanceState] = {
             (): {
-                "queryable_ids": (),
-                "queryable_cels": (),
+                "queryable_ids": [],
+                "queryable_cels": [],
                 "environment": list(self._bound_environment_key().assumption_ids),
                 "consistent": not self.nogoods.excludes(self._bound_environment_key()),
                 "status": self._runtime.concept_status(concept_id),
@@ -1596,19 +1616,19 @@ class ATMSEngine:
         for future in self._concept_future_entries(concept_id, queryables, limit=limit):
             key = tuple(future["queryable_ids"])
             states[key] = {
-                "queryable_ids": tuple(future["queryable_ids"]),
-                "queryable_cels": tuple(future["queryable_cels"]),
+                "queryable_ids": list(future["queryable_ids"]),
+                "queryable_cels": list(future["queryable_cels"]),
                 "environment": list(future["environment"]),
                 "consistent": future["consistent"],
                 "status": future["status"],
             }
         return states
 
-    def _relevance_from_states(
+    def _node_relevance_from_states(
         self,
-        states: dict[tuple[str, ...], dict[str, Any]],
-        current_status: ATMSNodeStatus | str,
-    ) -> dict[str, Any]:
+        states: dict[tuple[str, ...], ATMSNodeRelevanceState],
+        current_status: ATMSNodeStatus,
+    ) -> tuple[list[str], list[str], dict[str, list[ATMSNodeWitnessPair]]]:
         known_queryables = sorted({
             (queryable_id, queryable_cel)
             for state in states.values()
@@ -1619,9 +1639,9 @@ class ATMSEngine:
             )
         })
         relevant_queryables: list[str] = []
-        witness_pairs: dict[str, list[dict[str, Any]]] = {}
+        witness_pairs: dict[str, list[ATMSNodeWitnessPair]] = {}
         for queryable_id, queryable_cel in known_queryables:
-            pairs: list[dict[str, Any]] = []
+            pairs: list[ATMSNodeWitnessPair] = []
             for key, without_state in states.items():
                 if queryable_id in key or not without_state["consistent"]:
                     continue
@@ -1651,21 +1671,22 @@ class ATMSEngine:
                 })
             if pairs:
                 relevant_queryables.append(queryable_cel)
-                witness_pairs[queryable_cel] = self._minimal_witness_pairs(pairs)
+                witness_pairs[queryable_cel] = self._minimal_node_witness_pairs(pairs)
         relevant_set = set(relevant_queryables)
-        return {
-            "current_status": current_status,
-            "relevant_queryables": relevant_queryables,
-            "irrelevant_queryables": [
+        return (
+            relevant_queryables,
+            [
                 queryable_cel
                 for _queryable_id, queryable_cel in known_queryables
                 if queryable_cel not in relevant_set
             ],
-            "witness_pairs": witness_pairs,
-        }
+            witness_pairs,
+        )
 
     @staticmethod
-    def _minimal_witness_pairs(pairs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _minimal_node_witness_pairs(
+        pairs: list[ATMSNodeWitnessPair],
+    ) -> list[ATMSNodeWitnessPair]:
         ordered = sorted(
             pairs,
             key=lambda pair: (
@@ -1673,7 +1694,87 @@ class ATMSEngine:
                 tuple(pair["with"]["queryable_ids"]),
             ),
         )
-        minimal: list[dict[str, Any]] = []
+        minimal: list[ATMSNodeWitnessPair] = []
+        minimal_sets: list[set[str]] = []
+        for pair in ordered:
+            queryable_set = set(pair["with"]["queryable_ids"])
+            if any(existing.issubset(queryable_set) for existing in minimal_sets):
+                continue
+            minimal.append(pair)
+            minimal_sets.append(queryable_set)
+        return minimal
+
+    def _concept_relevance_from_states(
+        self,
+        states: dict[tuple[str, ...], ATMSConceptRelevanceState],
+        current_status: str,
+    ) -> tuple[list[str], list[str], dict[str, list[ATMSConceptWitnessPair]]]:
+        known_queryables = sorted({
+            (queryable_id, queryable_cel)
+            for state in states.values()
+            for queryable_id, queryable_cel in zip(
+                state["queryable_ids"],
+                state["queryable_cels"],
+                strict=True,
+            )
+        })
+        relevant_queryables: list[str] = []
+        witness_pairs: dict[str, list[ATMSConceptWitnessPair]] = {}
+        for queryable_id, queryable_cel in known_queryables:
+            pairs: list[ATMSConceptWitnessPair] = []
+            for key, without_state in states.items():
+                if queryable_id in key or not without_state["consistent"]:
+                    continue
+                with_key = tuple(sorted(key + (queryable_id,)))
+                with_state = states.get(with_key)
+                if with_state is None or not with_state["consistent"]:
+                    continue
+                if without_state["status"] == with_state["status"]:
+                    continue
+                pairs.append({
+                    "queryable_id": queryable_id,
+                    "queryable_cel": queryable_cel,
+                    "without": {
+                        "queryable_ids": list(without_state["queryable_ids"]),
+                        "queryable_cels": list(without_state["queryable_cels"]),
+                        "environment": list(without_state["environment"]),
+                        "consistent": without_state["consistent"],
+                        "status": without_state["status"],
+                    },
+                    "with": {
+                        "queryable_ids": list(with_state["queryable_ids"]),
+                        "queryable_cels": list(with_state["queryable_cels"]),
+                        "environment": list(with_state["environment"]),
+                        "consistent": with_state["consistent"],
+                        "status": with_state["status"],
+                    },
+                })
+            if pairs:
+                relevant_queryables.append(queryable_cel)
+                witness_pairs[queryable_cel] = self._minimal_concept_witness_pairs(pairs)
+        relevant_set = set(relevant_queryables)
+        return (
+            relevant_queryables,
+            [
+                queryable_cel
+                for _queryable_id, queryable_cel in known_queryables
+                if queryable_cel not in relevant_set
+            ],
+            witness_pairs,
+        )
+
+    @staticmethod
+    def _minimal_concept_witness_pairs(
+        pairs: list[ATMSConceptWitnessPair],
+    ) -> list[ATMSConceptWitnessPair]:
+        ordered = sorted(
+            pairs,
+            key=lambda pair: (
+                len(pair["with"]["queryable_ids"]),
+                tuple(pair["with"]["queryable_ids"]),
+            ),
+        )
+        minimal: list[ATMSConceptWitnessPair] = []
         minimal_sets: list[set[str]] = []
         for pair in ordered:
             queryable_set = set(pair["with"]["queryable_ids"])
@@ -1711,7 +1812,7 @@ class ATMSEngine:
         current: ATMSInspection,
         target_status: ATMSNodeStatus,
         future: ATMSNodeFutureStatusEntry,
-    ) -> dict[str, Any]:
+    ) -> ATMSNodeInterventionPlan:
         return {
             "target": node_id,
             "node_id": node_id,
@@ -1734,7 +1835,7 @@ class ATMSEngine:
         current_status: str,
         target_status: str,
         future: ATMSConceptFutureStatusEntry,
-    ) -> dict[str, Any]:
+    ) -> ATMSConceptInterventionPlan:
         return {
             "target": concept_id,
             "concept_id": concept_id,
@@ -1750,11 +1851,14 @@ class ATMSEngine:
 
     @staticmethod
     def _next_queryables_from_plans(
-        plans: list[dict[str, Any]],
+        plans: list[ATMSNodeInterventionPlan] | list[ATMSConceptInterventionPlan],
         *,
         max_suggestions: int | None,
-    ) -> list[dict[str, Any]]:
-        grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    ) -> list[ATMSNextQuerySuggestion]:
+        grouped: dict[
+            tuple[str, str],
+            list[ATMSNodeInterventionPlan | ATMSConceptInterventionPlan],
+        ] = defaultdict(list)
         for plan in plans:
             for queryable_id, queryable_cel in zip(
                 plan["queryable_ids"],
@@ -1763,7 +1867,7 @@ class ATMSEngine:
             ):
                 grouped[(queryable_id, queryable_cel)].append(plan)
 
-        suggestions = [
+        suggestions: list[ATMSNextQuerySuggestion] = [
             {
                 "queryable_id": queryable_id,
                 "queryable_cel": queryable_cel,
@@ -2019,6 +2123,22 @@ class ATMSEngine:
             result["supported_claim_ids"] = list(future["supported_claim_ids"])
         return result
 
+    @staticmethod
+    def _serialize_relevance_state(
+        state: ATMSNodeRelevanceState | ATMSConceptRelevanceState,
+    ) -> dict[str, Any]:
+        return {
+            "queryable_ids": list(state["queryable_ids"]),
+            "queryable_cels": list(state["queryable_cels"]),
+            "environment": list(state["environment"]),
+            "consistent": state["consistent"],
+            "status": (
+                state["status"].value
+                if isinstance(state["status"], ATMSNodeStatus)
+                else state["status"]
+            ),
+        }
+
     @classmethod
     def _serialize_stability_report(
         cls,
@@ -2045,7 +2165,10 @@ class ATMSEngine:
         return serialized
 
     @classmethod
-    def _serialize_relevance_report(cls, report: dict[str, Any]) -> dict[str, Any]:
+    def _serialize_relevance_report(
+        cls,
+        report: ATMSNodeRelevanceReport | ATMSConceptRelevanceReport,
+    ) -> dict[str, Any]:
         serialized = {
             "relevant_queryables": list(report["relevant_queryables"]),
             "irrelevant_queryables": list(report["irrelevant_queryables"]),
@@ -2054,8 +2177,8 @@ class ATMSEngine:
                     {
                         "queryable_id": pair["queryable_id"],
                         "queryable_cel": pair["queryable_cel"],
-                        "without": cls._serialize_future_entry(pair["without"]),
-                        "with": cls._serialize_future_entry(pair["with"]),
+                        "without": cls._serialize_relevance_state(pair["without"]),
+                        "with": cls._serialize_relevance_state(pair["with"]),
                     }
                     for pair in pairs
                 ]
@@ -2073,7 +2196,10 @@ class ATMSEngine:
         return serialized
 
     @classmethod
-    def _serialize_intervention_plan(cls, plan: dict[str, Any]) -> dict[str, Any]:
+    def _serialize_intervention_plan(
+        cls,
+        plan: ATMSNodeInterventionPlan | ATMSConceptInterventionPlan,
+    ) -> dict[str, Any]:
         serialized = {
             "target": plan["target"],
             "queryable_ids": list(plan["queryable_ids"]),
@@ -2101,7 +2227,10 @@ class ATMSEngine:
         return serialized
 
     @classmethod
-    def _serialize_next_query_suggestion(cls, suggestion: dict[str, Any]) -> dict[str, Any]:
+    def _serialize_next_query_suggestion(
+        cls,
+        suggestion: ATMSNextQuerySuggestion,
+    ) -> dict[str, Any]:
         return {
             "queryable_id": suggestion["queryable_id"],
             "queryable_cel": suggestion["queryable_cel"],
