@@ -1,6 +1,9 @@
 """Tests for pks init."""
 from __future__ import annotations
 
+import builtins
+import importlib
+import sys
 from pathlib import Path
 
 import pytest
@@ -18,6 +21,41 @@ def empty_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 class TestInit:
+    def test_preference_import_does_not_require_world_layer(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Kernel submodules should import without package root pulling in world machinery."""
+        blocked = {
+            "propstore.world.bound",
+            "propstore.world.hypothetical",
+            "propstore.world.model",
+        }
+        original_import = builtins.__import__
+
+        def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name in blocked:
+                raise ImportError(f"blocked {name}")
+            return original_import(name, globals, locals, fromlist, level)
+
+        for module_name in list(sys.modules):
+            if module_name == "propstore" or module_name.startswith("propstore.world"):
+                monkeypatch.delitem(sys.modules, module_name, raising=False)
+        monkeypatch.delitem(sys.modules, "propstore.preference", raising=False)
+        monkeypatch.setattr(builtins, "__import__", guarded_import)
+
+        preference = importlib.import_module("propstore.preference")
+
+        assert preference.strictly_weaker([1.0], [2.0], "elitist") is True
+
+    def test_root_exports_still_resolve_lazily(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Public package-root exports should remain available after lazy-loading."""
+        for module_name in list(sys.modules):
+            if module_name == "propstore" or module_name.startswith("propstore.world"):
+                monkeypatch.delitem(sys.modules, module_name, raising=False)
+
+        propstore = importlib.import_module("propstore")
+
+        assert propstore.RenderPolicy.__name__ == "RenderPolicy"
+        assert propstore.WorldModel.__name__ == "WorldModel"
+
     def test_creates_default_structure(self, empty_workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["init"])
