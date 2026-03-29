@@ -360,6 +360,48 @@ class TestDPAgreesBruteForce:
         )
         self._cross_validate(praf, semantics="preferred")
 
+    def test_review_counterexample_matches_exact_enumeration(self):
+        """The review's grounded mismatch example must agree with exact enumeration."""
+        from propstore.praf import compute_praf_acceptance
+
+        praf = _make_praf(
+            {"0", "1", "2", "3", "4"},
+            {
+                ("0", "2"),
+                ("1", "1"),
+                ("1", "2"),
+                ("2", "1"),
+                ("3", "0"),
+                ("3", "1"),
+                ("3", "3"),
+                ("4", "1"),
+                ("4", "2"),
+            },
+            p_arg=0.5,
+            p_defeat=0.5,
+        )
+        dp_result = compute_praf_acceptance(
+            praf,
+            semantics="grounded",
+            strategy="exact_dp",
+        )
+        bf_result = compute_praf_acceptance(
+            praf,
+            semantics="grounded",
+            strategy="exact_enum",
+        )
+
+        expected = {
+            "0": 0.375,
+            "1": 0.117431640625,
+            "2": 0.240478515625,
+            "3": 0.25,
+            "4": 0.5,
+        }
+        for arg, probability in expected.items():
+            assert dp_result.acceptance_probs[arg] == pytest.approx(probability)
+            assert bf_result.acceptance_probs[arg] == pytest.approx(probability)
+
 
 # ===================================================================
 # 9. test_dp_agrees_with_mc
