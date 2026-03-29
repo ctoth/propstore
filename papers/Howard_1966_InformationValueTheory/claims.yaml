@@ -1,0 +1,187 @@
+source:
+  paper: Howard_1966_InformationValueTheory
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "The value of information about an uncertain variable is the expected increase in profit (or utility) from having perfect knowledge of that variable before making a decision."
+    concepts:
+      - value_of_information
+      - clairvoyance
+      - expected_profit
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 24
+      section: "Clairvoyance"
+      quote_fragment: "We define v_cx as the increase in profit that arises from obtaining clairvoyance about x"
+
+  - id: claim2
+    type: equation
+    expression: "v_cx = E[v|C_x, E] - E[v|E]"
+    sympy: "Eq(value_of_clairvoyance_x, expected_profit_with_clairvoyance_x - expected_profit_without_clairvoyance)"
+    variables:
+      - symbol: "v_cx"
+        concept: "value_of_clairvoyance"
+        role: "dependent"
+      - symbol: "E[v|C_x, E]"
+        concept: "expected_profit_with_clairvoyance"
+        role: "independent"
+      - symbol: "E[v|E]"
+        concept: "expected_profit_without_clairvoyance"
+        role: "independent"
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 24
+      section: "Clairvoyance"
+
+  - id: claim3
+    type: equation
+    expression: "E[v|C_x, E] = integral_x E[v|x, E] {x|E}"
+    sympy: "Eq(expected_profit_with_clairvoyance_x, Integral(expected_profit_given_x * prior_density_x, x))"
+    variables:
+      - symbol: "E[v|C_x, E]"
+        concept: "expected_profit_with_clairvoyance"
+        role: "dependent"
+      - symbol: "E[v|x, E]"
+        concept: "expected_profit_given_x"
+        role: "independent"
+      - symbol: "{x|E}"
+        concept: "prior_density"
+        role: "independent"
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 24
+      section: "Clairvoyance"
+
+  - id: claim4
+    type: observation
+    statement: "The value of clairvoyance about any variable must be non-negative, because perfect information cannot make a rational decision maker worse off under optimal use."
+    concepts:
+      - value_of_clairvoyance
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 24
+      section: "Clairvoyance"
+
+  - id: claim5
+    type: observation
+    statement: "The value of clairvoyance serves as an upper bound on the value of any real (imperfect) information source about the same variable, analogous to the Carnot cycle providing an upper bound on engine efficiency."
+    concepts:
+      - value_of_clairvoyance
+      - value_of_information
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 25
+      section: "Analysis of Clairvoyance about Our Costs"
+      quote_fragment: "The concept of clairvoyance plays the same role in analyzing decision problems that the concept of a Carnot engine plays in analyzing thermodynamic problems"
+
+  - id: claim6
+    type: mechanism
+    statement: "The expansion concept (law of total probability) serves as the fundamental inferential tool linking probability theory to human reasoning: introducing a new random variable v into a problem by writing {u|S} = integral_v {u|vS}{v|S}, which allows sequential consideration of uncertain factors in expected-value calculations."
+    concepts:
+      - expansion_concept
+      - conditional_probability
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 23
+      section: "An Inferential Concept"
+      quote_fragment: "The concept of expansion permits us to introduce a new consideration into the problem"
+
+  - id: claim7
+    type: observation
+    statement: "The joint value of eliminating uncertainty about multiple independent factors can differ from the sum of the individual values of eliminating each factor separately — information values are non-additive even for independent variables."
+    concepts:
+      - value_of_information
+      - information_interaction
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 26
+      section: "Analysis of Clairvoyance about Our Costs and the Lowest Competitive Bid"
+      quote_fragment: "the joint elimination of the uncertainty about a number of even independent factors in a problem can have a value that differs from the sum"
+
+  - id: claim8
+    type: parameter
+    concept: value_of_clairvoyance_cost
+    value: 0.0104
+    unit: "fraction of bid range"
+    conditions:
+      - "prior_cost == 'uniform(0,1)'"
+      - "prior_competitor_bid == 'uniform(0,2)'"
+    notes: "1/96 in the bidding example; value of knowing own cost p"
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 25
+      section: "Analysis of Clairvoyance about Our Costs"
+
+  - id: claim9
+    type: parameter
+    concept: value_of_clairvoyance_competitor_bid
+    value: 0.2813
+    unit: "fraction of bid range"
+    conditions:
+      - "prior_cost == 'uniform(0,1)'"
+      - "prior_competitor_bid == 'uniform(0,2)'"
+    notes: "27/96 in the bidding example; value of knowing lowest competitor bid l. 27x more valuable than knowing own cost."
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 26
+      section: "Analysis of Clairvoyance about the Lowest Competitive Bid"
+
+  - id: claim10
+    type: parameter
+    concept: value_of_joint_clairvoyance
+    value: 0.3021
+    unit: "fraction of bid range"
+    conditions:
+      - "prior_cost == 'uniform(0,1)'"
+      - "prior_competitor_bid == 'uniform(0,2)'"
+    notes: "29/96 in the bidding example; joint value of knowing both p and l. Not equal to sum of individual values (28/96)."
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 26
+      section: "Analysis of Clairvoyance about Our Costs and the Lowest Competitive Bid"
+
+  - id: claim11
+    type: observation
+    statement: "In the bidding problem, information about the lowest competitor bid is 27 times more valuable than information about own cost, because knowing the competitor bid allows controlling profitability directly while knowing own cost still leaves large uncertainty about winning."
+    concepts:
+      - value_of_clairvoyance
+      - value_of_information
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 26
+      section: "Analysis of Clairvoyance about Our Costs and the Lowest Competitive Bid"
+
+  - id: claim12
+    type: comparison
+    statement: "Unlike Shannon's information theory which measures only probabilistic structure without considering economic consequences, information value theory jointly considers probabilistic and economic factors to assign numerical values to information relevant to decision-making."
+    concepts:
+      - value_of_information
+      - shannon_information
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 22
+      section: "Abstract"
+      quote_fragment: "no theory that involves just the probabilities of outcomes without considering their consequences could possibly be adequate"
+
+  - id: claim13
+    type: limitation
+    statement: "The clairvoyance framework assumes perfect information (complete elimination of uncertainty), which is a theoretical upper bound not achievable in practice; real information sources are imperfect due to statistical effects, incompetence, or mendacity."
+    concepts:
+      - clairvoyance
+      - value_of_information
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 26
+      section: "Conclusion"
+
+  - id: claim14
+    type: observation
+    statement: "The information interaction effect between variables p and l is 1/96: the joint clairvoyance value (29/96) exceeds the sum of individual values (1/96 + 27/96 = 28/96) by 1/96, demonstrating positive synergy in information gathering."
+    concepts:
+      - information_interaction
+      - value_of_clairvoyance
+    provenance:
+      paper: Howard_1966_InformationValueTheory
+      page: 26
+      section: "Analysis of Clairvoyance about Our Costs and the Lowest Competitive Bid"

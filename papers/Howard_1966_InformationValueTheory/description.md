@@ -1,0 +1,4 @@
+---
+tags: [decision-theory, value-of-information, uncertainty, probability]
+---
+Howard develops a formal theory for assigning monetary value to the elimination of uncertainty in decision problems, introducing the concept of "clairvoyance" (perfect information) as a computable upper bound on the worth of any information source. Through a bidding problem example, he demonstrates that the value of knowing different uncertain variables can differ dramatically and that the joint value of eliminating multiple uncertainties is not generally equal to the sum of individual values. This foundational work provides the theoretical basis for deciding which uncertainties are most worth resolving in any decision-analytic framework, directly applicable to prioritizing evidence gathering in argumentation systems.

@@ -1,0 +1,207 @@
+source:
+  paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Epistemic entrenchment is a total preorder over sentences in a knowledge set that determines retraction priority: less entrenched sentences are retracted first during contraction."
+    concepts:
+      - epistemic_entrenchment
+      - knowledge_set
+      - contraction_function
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 88
+      section: "3. Epistemic Entrenchment"
+      quote_fragment: "epistemic entrenchment which determines their priority in revisions and contractions"
+
+  - id: claim2
+    type: observation
+    statement: "An epistemic entrenchment ordering must satisfy five postulates: transitivity (EE1), dominance (EE2), conjunctiveness (EE3), minimality (EE4), and maximality (EE5)."
+    concepts:
+      - epistemic_entrenchment
+      - rationality_postulates
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 89
+      section: "3. Epistemic Entrenchment"
+
+  - id: claim3
+    type: observation
+    statement: "Dominance (EE2): if A logically entails B, then A is at most as entrenched as B, because retracting A is a smaller change than retracting B."
+    concepts:
+      - epistemic_entrenchment
+      - logical_entailment
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 89
+      section: "3. Epistemic Entrenchment"
+      quote_fragment: "If A logically entails B, and either A or B must be retracted from K, then it will be a smaller change to give up A"
+
+  - id: claim4
+    type: observation
+    statement: "Conjunctiveness (EE3): for any sentences A and B, either A is at most as entrenched as A&B or B is at most as entrenched as A&B."
+    concepts:
+      - epistemic_entrenchment
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 89
+      section: "3. Epistemic Entrenchment"
+
+  - id: claim5
+    type: observation
+    statement: "Postulates EE1-EE3 together force connectivity: for any two sentences A and B, either A is at most as entrenched as B or B is at most as entrenched as A."
+    concepts:
+      - epistemic_entrenchment
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 89
+      section: "3. Epistemic Entrenchment"
+      quote_fragment: "A ≤ B or B ≤ A (connectivity)"
+    notes: "Lemma 3(i). Connectivity is a consequence, not an assumption."
+
+  - id: claim6
+    type: mechanism
+    statement: "Condition (C≤) constructs an entrenchment ordering from a contraction function: A ≤ B if and only if A is not in K contracted by A&B, or A&B is a logical truth. This works because when forced to give up A&B, if A is retracted rather than B, then A is at most as entrenched as B."
+    concepts:
+      - epistemic_entrenchment
+      - contraction_function
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 89
+      section: "3. Epistemic Entrenchment"
+      quote_fragment: "A ≤ B if and only if A ∉ K⁻(A&B) or A&B ∈ K₁"
+
+  - id: claim7
+    type: mechanism
+    statement: "Condition (C-) constructs a contraction function from an entrenchment ordering: B survives contraction of K by A if and only if B is in K and either A is strictly less entrenched than A∨B, or A is a logical truth. This works because B contributes something beyond A when giving up A∨B would be a bigger loss."
+    concepts:
+      - epistemic_entrenchment
+      - contraction_function
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 89
+      section: "3. Epistemic Entrenchment"
+      quote_fragment: "B ∈ K⁻A if and only if B ∈ K and either A < A∨B or ⊢ A"
+
+  - id: claim8
+    type: observation
+    statement: "A revision method for a knowledge system satisfies the AGM rationality postulates (K*1-K*8) if and only if there exists an ordering of epistemic entrenchment satisfying EE1-EE5 such that this ordering determines the retraction priority."
+    concepts:
+      - epistemic_entrenchment
+      - revision_function
+      - rationality_postulates
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 90
+      section: "3. Epistemic Entrenchment"
+    notes: "The central representation theorem, combining Theorems 3-5."
+
+  - id: claim9
+    type: observation
+    statement: "The bridging conditions (C≤) and (C-) are exact inverses: applying (C≤) to extract an entrenchment ordering from a contraction function, then applying (C-) to reconstruct the contraction function, returns the original function, and vice versa."
+    concepts:
+      - epistemic_entrenchment
+      - contraction_function
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 90
+      section: "3. Epistemic Entrenchment"
+    notes: "Theorem 5. C→ and E→ are inverses."
+
+  - id: claim10
+    type: observation
+    statement: "The amount of information needed to uniquely determine an epistemic entrenchment ordering is linear in the number of atomic facts of the knowledge system."
+    concepts:
+      - epistemic_entrenchment
+      - computational_complexity
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 90
+      section: "3. Epistemic Entrenchment"
+    notes: "Theorem 6. Only the ordering of n atomic propositions needs to be specified; the ordering over all 2^n elements follows from EE1-EE5."
+
+  - id: claim11
+    type: parameter
+    concept: entrenchment_ordering_count
+    value: null
+    unit: "orderings"
+    conditions:
+      - "knowledge_set_atoms == n"
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 94
+      section: "3. Epistemic Entrenchment"
+    notes: "Theorem 7. For a finite Boolean knowledge set with 2^n elements, there are exactly n! different total orderings satisfying EE1-EE5. The ordering is completely determined by the permutation of the n dual atoms (co-atoms/top elements)."
+
+  - id: claim12
+    type: mechanism
+    statement: "Revision is reducible to contraction via the Levi identity: K*A = (K⁻¬A)⁺A. First contract by the negation of the new information, then expand by the new information. This preserves all eight rationality postulates for revision."
+    concepts:
+      - revision_function
+      - contraction_function
+      - levi_identity
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 87
+      section: "2. Postulates for Revisions and Contractions"
+      quote_fragment: "K*A = (K⁻-A)⁺A"
+    notes: "Theorem 1. Makes contraction the more fundamental operation."
+
+  - id: claim13
+    type: mechanism
+    statement: "Contraction is definable from revision via the Harper identity: K⁻A = K ∩ K*¬A. A sentence B survives contraction by A if and only if B is accepted both in K and in the revision K*¬A."
+    concepts:
+      - revision_function
+      - contraction_function
+      - harper_identity
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 87
+      section: "2. Postulates for Revisions and Contractions"
+      quote_fragment: "K⁻A = K ∩ K*-A"
+    notes: "Theorem 2."
+
+  - id: claim14
+    type: comparison
+    statement: "Unlike naive database update (Fagin et al. 1983) which simply deletes tuples, belief revision must handle derived facts: deleting a fact from a knowledge system requires determining which logically dependent facts must also be retracted, because the database is not a flat collection but a system with logical interdependencies."
+    concepts:
+      - knowledge_set
+      - contraction_function
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 86
+      section: "2. Postulates for Revisions and Contractions"
+      quote_fragment: "the database is not viewed merely as a collection of atomic facts, but rather as a collection of facts from which other facts can be derived"
+
+  - id: claim15
+    type: limitation
+    statement: "The framework does not specify how to initially construct or learn an epistemic entrenchment ordering from empirical data — the ordering is assumed given or derived from an existing contraction function satisfying the AGM postulates."
+    concepts:
+      - epistemic_entrenchment
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 88
+      section: "3. Epistemic Entrenchment"
+      quote_fragment: "we must first find further information about the epistemic status of the elements of a knowledge state"
+
+  - id: claim16
+    type: limitation
+    statement: "The framework is restricted to finitary classical propositional logic with compactness; it does not handle first-order logic or non-monotonic extensions."
+    concepts:
+      - knowledge_set
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 84
+      section: "1. Program"
+
+  - id: claim17
+    type: observation
+    statement: "The conjunction of supplementary postulates K*7 and K*8 for revision is equivalent to a vacuity principle: K*A∨B equals K*A, or K*B, or K*A ∩ K*B."
+    concepts:
+      - revision_function
+      - rationality_postulates
+    provenance:
+      paper: Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic
+      page: 87
+      section: "2. Postulates for Revisions and Contractions"

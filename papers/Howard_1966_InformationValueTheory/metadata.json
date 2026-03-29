@@ -1,0 +1,17 @@
+{
+  "title": "Information Value Theory",
+  "authors": [
+    "Ronald A. Howard"
+  ],
+  "abstract": "The information theory developed by Shannon was designed to place a quantitative measure on the amount of information involved in any communication. In this paper the theory of the value of information that arises from considering jointly the probabilistic and economic factors that affect decisions is discussed and illustrated. It is found that numerical values can be assigned to the elimination or reduction of any uncertainty. Furthermore, it is seen that the joint elimination of the uncertainty about a number of even independent factors in a problem can have a value that differs from the sum of the values of eliminating the uncertainty in each factor separately.",
+  "arxiv_id": null,
+  "year": "1966",
+  "doi": "10.1109/TSSC.1966.300074",
+  "url": "https://www.semanticscholar.org/paper/a7b3c2a88ca459d50010a33db8c2f113f1323e0c",
+  "pdf_url": "",
+  "bibtex": "@Article{Howard1966InformationVT,\n author = {R. Howard},\n booktitle = {IEEE Transactions on Systems Science and Cybernetics},\n journal = {IEEE Trans. Syst. Sci. Cybern.},\n pages = {22-26},\n title = {Information Value Theory},\n volume = {2},\n year = {1966}\n}\n",
+  "venue": "IEEE Transactions on Systems Science and Cybernetics",
+  "venue_type": "journal",
+  "volume": "2",
+  "pages": "22-26"
+}
