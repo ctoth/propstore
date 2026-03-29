@@ -117,8 +117,6 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
         raise TypeError("build_compiled_world_graph requires all_concepts()")
     if not isinstance(store, ClaimCatalogStore):
         raise TypeError("build_compiled_world_graph requires claims_for()")
-    if not isinstance(store, RelationshipCatalogStore):
-        raise TypeError("build_compiled_world_graph requires all_relationships()")
     if not isinstance(store, ParameterizationCatalogStore):
         raise TypeError("build_compiled_world_graph requires all_parameterizations()")
     if not isinstance(store, ConflictStore):
@@ -126,7 +124,11 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
 
     concept_rows = store.all_concepts()
     claim_rows = store.claims_for(None)
-    relationship_rows = store.all_relationships()
+    relationship_rows = (
+        store.all_relationships()
+        if isinstance(store, RelationshipCatalogStore)
+        else []
+    )
     parameterization_rows = [
         coerce_parameterization_row(row)
         for row in store.all_parameterizations()

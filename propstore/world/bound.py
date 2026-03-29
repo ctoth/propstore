@@ -194,6 +194,20 @@ class BoundWorld(BeliefSpace):
         """Convert keyword bindings to CEL condition strings."""
         return [binding_condition_to_cel(key, value) for key, value in bindings.items()]
 
+    def rebind(
+        self,
+        environment: Environment,
+        *,
+        policy: RenderPolicy | None = None,
+    ) -> BoundWorld:
+        """Create the same bound-world view over a new environment."""
+        return self.__class__(
+            self._store,
+            environment=environment,
+            context_hierarchy=self._context_hierarchy,
+            policy=policy,
+        )
+
     def is_active(self, claim: dict) -> bool:
         """Check if a claim is active under the current bindings and context."""
         claim_id = claim.get("id")

@@ -18,9 +18,10 @@ import json
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from itertools import combinations, product
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, runtime_checkable
 
 from propstore.core.activation import activate_compiled_world_graph
+from propstore.core.environment import ArtifactStore
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness, ParameterizationEdge
 from propstore.propagation import evaluate_parameterization
@@ -40,10 +41,61 @@ from propstore.world.types import (
     ATMSOutKind,
     Environment,
     QueryableAssumption,
+    ValueResult,
 )
 
 if TYPE_CHECKING:
+    from propstore.validate_contexts import ContextHierarchy
     from propstore.world.bound import BoundWorld
+
+
+@runtime_checkable
+class _ATMSRuntimeLike(Protocol):
+    @property
+    def environment(self) -> Environment: ...
+
+    @property
+    def active_graph(self) -> ActiveWorldGraph: ...
+
+    @property
+    def all_parameterizations(self) -> Callable[[], list[dict[str, Any]]]: ...
+
+    @property
+    def active_claims(self) -> Callable[[], list[dict[str, Any]]]: ...
+
+    @property
+    def conflicts(self) -> Callable[[], list[dict[str, Any]]]: ...
+
+    @property
+    def is_param_compatible(self) -> Callable[[str | None], bool]: ...
+
+    @property
+    def claim_support(self) -> Callable[[dict[str, Any]], tuple[Label | None, SupportQuality]]: ...
+
+    @property
+    def concept_status(self) -> Callable[[str], str]: ...
+
+    @property
+    def replay(self) -> Callable[[tuple[QueryableAssumption, ...]], "_ATMSRuntimeLike"]: ...
+
+
+@runtime_checkable
+class _ATMSBoundLike(Protocol):
+    _environment: Environment
+    _active_graph: ActiveWorldGraph | None
+    _store: ArtifactStore
+    _context_hierarchy: ContextHierarchy | None
+    _policy: Any
+
+    def is_param_compatible(self, conditions_cel: str | None) -> bool: ...
+    def claim_support(self, claim: dict[str, Any]) -> tuple[Label | None, SupportQuality]: ...
+    def value_of(self, concept_id: str) -> ValueResult: ...
+    def rebind(
+        self,
+        environment: Environment,
+        *,
+        policy: Any = None,
+    ) -> "_ATMSBoundLike": ...
 
 
 @dataclass(frozen=True)
@@ -84,21 +136,8 @@ class _ATMSRuntime:
         return self.active_graph
 
 
-def _is_runtime_like(candidate: Any) -> bool:
-    return all(
-        hasattr(candidate, name)
-        for name in (
-            "environment",
-            "active_graph",
-            "all_parameterizations",
-            "active_claims",
-            "conflicts",
-            "is_param_compatible",
-            "claim_support",
-            "concept_status",
-            "replay",
-        )
-    )
+def _is_runtime_like(candidate: object) -> TypeGuard[_ATMSRuntimeLike]:
+    return isinstance(candidate, _ATMSRuntimeLike)
 
 
 def _claim_node_to_row(claim_node: ClaimNode) -> dict[str, Any]:
@@ -172,8 +211,8 @@ def _extend_environment(
     )
 
 
-def _runtime_from_bound(bound: Any) -> _ATMSRuntime:
-    active_graph = getattr(bound, "_active_graph", None)
+def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
+    active_graph = bound._active_graph
     if active_graph is None:
         active_graph = activate_compiled_world_graph(
             build_compiled_world_graph(bound._store),
@@ -210,16 +249,10 @@ def _runtime_from_bound(bound: Any) -> _ATMSRuntime:
 
     def _replay(queryable_set: tuple[QueryableAssumption, ...]) -> _ATMSRuntime:
         future_environment = _extend_environment(bound._environment, queryable_set)
-        binder = getattr(bound._store, "bind", None)
-        if callable(binder):
-            future_bound = binder(environment=future_environment, policy=bound._policy)
-        else:
-            future_bound = bound.__class__(
-                bound._store,
-                environment=future_environment,
-                context_hierarchy=bound._context_hierarchy,
-                policy=bound._policy,
-            )
+        future_bound = bound.rebind(
+            environment=future_environment,
+            policy=bound._policy,
+        )
         return _runtime_from_bound(future_bound)
 
     return _ATMSRuntime(
@@ -238,8 +271,14 @@ def _runtime_from_bound(bound: Any) -> _ATMSRuntime:
 class ATMSEngine:
     """Global exact-support propagation engine for one bound world."""
 
-    def __init__(self, bound: BoundWorld | _ATMSRuntime | Any) -> None:
-        self._runtime = bound if isinstance(bound, _ATMSRuntime) or _is_runtime_like(bound) else _runtime_from_bound(bound)
+    def __init__(self, bound: _ATMSRuntimeLike | _ATMSBoundLike) -> None:
+        runtime: _ATMSRuntimeLike | _ATMSRuntime
+        if _is_runtime_like(bound):
+            runtime = bound
+        else:
+            assert isinstance(bound, _ATMSBoundLike)
+            runtime = _runtime_from_bound(bound)
+        self._runtime = runtime
         self._bound = self._runtime
         self._nodes: dict[str, ATMSNode] = {}
         self._justifications: dict[str, ATMSJustification] = {}
