@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -325,6 +326,18 @@ class BoundWorld(BeliefSpace):
 
             self._atms_engine = ATMSEngine(self)
         return self._atms_engine
+
+    def revision_base(self):
+        """Project this bound world into a revision-facing belief base."""
+        from propstore.revision.projection import project_belief_base
+
+        return project_belief_base(self)
+
+    def revision_entrenchment(self, *, overrides: Mapping[str, Mapping[str, Any]] | None = None):
+        """Compute the current revision-facing entrenchment ordering."""
+        from propstore.revision.entrenchment import compute_entrenchment
+
+        return compute_entrenchment(self, self.revision_base(), overrides=overrides)
 
     def claim_status(self, claim_id: str) -> ATMSInspection:
         """Return the ATMS-native status and support-quality metadata for a claim."""
