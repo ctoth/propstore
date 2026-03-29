@@ -876,7 +876,7 @@ def _emit_epistemic_state(state) -> None:
         click.echo(f"  {rank}. {atom_id}")
 
 
-def _emit_iterated_revision(result, next_state, *, operator: str) -> None:
+def _emit_iterated_revision(result, previous_state, next_state, *, operator: str) -> None:
     click.echo(f"Operator: {operator}")
     _emit_revision_result(result)
     click.echo(f"Next state ({len(next_state.accepted_atom_ids)} accepted atoms)")
@@ -884,6 +884,29 @@ def _emit_iterated_revision(result, next_state, *, operator: str) -> None:
     click.echo("Ranking:")
     for rank, atom_id in enumerate(next_state.ranked_atom_ids, start=1):
         click.echo(f"  {rank}. {atom_id}")
+    click.echo("Ranking delta:")
+    previous_ranking = previous_state.ranking
+    for atom_id in next_state.ranked_atom_ids:
+        old_rank = previous_ranking.get(atom_id)
+        new_rank = next_state.ranking.get(atom_id)
+        if old_rank is None:
+            click.echo(f"  + {atom_id}: new at rank {new_rank}")
+        elif old_rank != new_rank:
+            click.echo(f"  ~ {atom_id}: {old_rank} -> {new_rank}")
+    for atom_id, old_rank in previous_ranking.items():
+        if atom_id not in next_state.ranking:
+            click.echo(f"  - {atom_id}: dropped from rank {old_rank}")
+    click.echo("History:")
+    last_episode = next_state.history[-1] if next_state.history else None
+    if last_episode is None:
+        click.echo("  (empty)")
+    else:
+        click.echo(
+            f"  {last_episode.operator}: input={last_episode.input_atom_id} "
+            f"targets={list(last_episode.target_atom_ids)} "
+            f"accepted={len(last_episode.accepted_atom_ids)} "
+            f"rejected={len(last_episode.rejected_atom_ids)}"
+        )
 
 
 @world.command("revision-base")
@@ -1073,7 +1096,7 @@ def world_iterated_revise(
             operator=operator,
             state=state,
         )
-        _emit_iterated_revision(result, next_state, operator=operator)
+        _emit_iterated_revision(result, state, next_state, operator=operator)
 
 
 def _bind_atms_world(

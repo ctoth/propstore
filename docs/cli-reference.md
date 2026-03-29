@@ -619,6 +619,96 @@ Show what changes if claims are removed or added.
 uv run pks world hypothetical domain=speech --remove speech.pitch.claim_02
 ```
 
+#### `pks world revision-base [ARGS]...`
+
+Show the current finite revision belief base for a scoped world.
+
+```bash
+uv run pks world revision-base speaker_sex=male
+```
+
+#### `pks world revision-entrenchment [ARGS]...`
+
+Show the current deterministic entrenchment ordering for that scoped revision base.
+
+```bash
+uv run pks world revision-entrenchment speaker_sex=male
+```
+
+#### `pks world expand [ARGS]...`
+
+Run one-shot expansion over the derived revision base. Does not mutate source YAML.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--atom` | TEXT | -- | JSON revision atom to add (required) |
+
+```bash
+uv run pks world expand speaker_sex=male --atom '{"kind":"claim","id":"synthetic_freq","value":123.0}'
+```
+
+#### `pks world contract [ARGS]...`
+
+Run one-shot contraction over the derived revision base. Does not mutate source YAML.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--target` | TEXT | -- | Existing atom or claim id to contract (repeatable, required) |
+
+```bash
+uv run pks world contract speaker_sex=male --target freq_claim1
+```
+
+#### `pks world revise [ARGS]...`
+
+Run one-shot revision over the derived revision base. Does not mutate source YAML.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--atom` | TEXT | -- | JSON revision atom to admit (required) |
+| `--conflict` | TEXT | -- | Existing atom or claim id that conflicts with the new atom |
+
+```bash
+uv run pks world revise speaker_sex=male --atom '{"kind":"claim","id":"synthetic_freq","value":123.0}' --conflict freq_claim1
+```
+
+#### `pks world revision-explain [ARGS]...`
+
+Explain one one-shot revision operation over the current scoped world.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--operation` | `expand\|contract\|revise` | -- | Revision operation to explain (required) |
+| `--atom` | TEXT | -- | JSON revision atom for `expand` / `revise` |
+| `--target` | TEXT | -- | Existing atom or claim id for `contract` |
+| `--conflict` | TEXT | -- | Existing atom or claim id that conflicts with the new atom |
+
+```bash
+uv run pks world revision-explain speaker_sex=male --operation contract --target freq_claim1
+```
+
+#### `pks world iterated-state [ARGS]...`
+
+Inspect the current explicit iterated revision state for a scoped world.
+
+```bash
+uv run pks world iterated-state speaker_sex=male
+```
+
+#### `pks world iterated-revise [ARGS]...`
+
+Run one iterated revision episode and print the next explicit epistemic state. This remains a revision-state transform, not a worldline.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--atom` | TEXT | -- | JSON revision atom to admit (required) |
+| `--conflict` | TEXT | -- | Existing atom or claim id that conflicts with the new atom |
+| `--operator` | `restrained\|lexicographic` | restrained | Iterated operator family |
+
+```bash
+uv run pks world iterated-revise speaker_sex=male --atom '{"kind":"claim","id":"synthetic_freq","value":123.0}' --conflict freq_claim1 --operator lexicographic
+```
+
 #### `pks world sensitivity CONCEPT_ID [ARGS]...`
 
 Analyze which input most influences a derived quantity.

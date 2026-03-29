@@ -389,22 +389,20 @@ So the rule is:
 
 ### CLI
 
-Add a dedicated CLI module rather than burying this in existing command groups:
-
-```text
-propstore/cli/revision.py
-```
-
-Initial commands:
+The public surface is currently exposed under the existing `pks world` group:
 
 ```bash
-pks world revise <claim-or-concept> [bindings...]
-pks world contract <claim-or-concept> [bindings...]
-pks world expand <claim-or-concept> [bindings...]
-pks world revision-explain <claim-or-concept> [bindings...]
+pks world revision-base [bindings...]
+pks world revision-entrenchment [bindings...]
+pks world expand [bindings...] --atom '{...}'
+pks world contract [bindings...] --target <atom-or-claim-id>
+pks world revise [bindings...] --atom '{...}' [--conflict <atom-or-claim-id>]
+pks world revision-explain [bindings...] --operation <expand|contract|revise> ...
+pks world iterated-state [bindings...]
+pks world iterated-revise [bindings...] --atom '{...}' [--conflict <atom-or-claim-id>] [--operator restrained|lexicographic]
 ```
 
-These commands operate on derived state and print results plus explanation. They do not rewrite YAML.
+These commands operate on derived state and print results plus explanation. They do not rewrite YAML and they do not declare worldline schemas.
 
 ---
 
