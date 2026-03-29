@@ -22,7 +22,10 @@ from propstore.world.labelled import (
 )
 from propstore.world.value_resolver import ActiveClaimResolver, collect_known_values
 from propstore.world.types import (
+    ATMSConceptStabilityReport,
+    ATMSFutureStatusReport,
     ATMSInspection,
+    ATMSNodeStabilityReport,
     BeliefSpace,
     DerivedResult,
     Environment,
@@ -465,7 +468,7 @@ class BoundWorld(BeliefSpace):
         claim_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSFutureStatusReport:
         """Return bounded future-environment status changes for one claim."""
         self._require_atms_backend()
         return self.atms_engine().claim_future_statuses(claim_id, queryables, limit=limit)
@@ -475,7 +478,7 @@ class BoundWorld(BeliefSpace):
         concept_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, dict[str, Any]]:
+    ) -> dict[str, ATMSFutureStatusReport]:
         """Return bounded future-environment status changes for active claims of a concept."""
         self._require_atms_backend()
         return {
@@ -493,7 +496,7 @@ class BoundWorld(BeliefSpace):
         claim_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSNodeStabilityReport:
         """Return bounded ATMS stability for one claim over replayed future worlds."""
         self._require_atms_backend()
         return self.atms_engine().claim_stability(claim_id, queryables, limit=limit)
@@ -513,7 +516,7 @@ class BoundWorld(BeliefSpace):
         concept_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSConceptStabilityReport:
         """Return bounded value-status stability for one concept over replayed future worlds."""
         self._require_atms_backend()
         return self.atms_engine().concept_stability(concept_id, queryables, limit=limit)

@@ -6,7 +6,7 @@ import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict, runtime_checkable
 
 from propstore.core.environment import ArtifactStore, Environment  # noqa: F401
 from propstore.core.labels import (
@@ -109,6 +109,79 @@ class ATMSInspection:
     out_kind: ATMSOutKind | None = None
     claim_id: str | None = None
     kind: str | None = None
+
+
+class ATMSFutureEnvironmentReport(TypedDict):
+    queryable_ids: list[str]
+    queryable_cels: list[str]
+    environment: list[str]
+    consistent: bool
+    supported_claim_ids: list[str]
+    nogoods: list[list[str]]
+
+
+class ATMSNodeFutureStatusEntry(TypedDict):
+    queryable_ids: list[str]
+    queryable_cels: list[str]
+    environment: list[str]
+    consistent: bool
+    status: ATMSNodeStatus
+    out_kind: ATMSOutKind | None
+    reason: str
+    support_quality: SupportQuality
+    essential_support: list[str]
+
+
+class ATMSConceptFutureStatusEntry(TypedDict):
+    queryable_ids: list[str]
+    queryable_cels: list[str]
+    environment: list[str]
+    consistent: bool
+    status: str
+    supported_claim_ids: list[str]
+
+
+class ATMSFutureStatusReport(TypedDict):
+    node_id: str
+    claim_id: str | None
+    current: ATMSInspection
+    could_become_in: bool
+    could_become_out: bool
+    futures: list[ATMSNodeFutureStatusEntry]
+
+
+class ATMSWhyOutReport(TypedDict):
+    node_id: str
+    claim_id: str | None
+    status: ATMSNodeStatus
+    out_kind: ATMSOutKind | None
+    reason: str
+    support_quality: SupportQuality
+    future_activatable: bool
+    candidate_queryable_cels: list[list[str]]
+
+
+class ATMSNodeStabilityReport(TypedDict):
+    node_id: str
+    claim_id: str | None
+    current: ATMSInspection
+    stable: bool
+    limit: int
+    future_count: int
+    consistent_future_count: int
+    inconsistent_future_count: int
+    witnesses: list[ATMSNodeFutureStatusEntry]
+
+
+class ATMSConceptStabilityReport(TypedDict):
+    concept_id: str
+    current_status: str
+    stable: bool
+    limit: int
+    future_count: int
+    consistent_future_count: int
+    inconsistent_future_count: int
+    witnesses: list[ATMSConceptFutureStatusEntry]
 
 
 class ResolutionStrategy(StrEnum):

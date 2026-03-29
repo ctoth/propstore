@@ -18,7 +18,7 @@ import json
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from itertools import combinations, product
-from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, runtime_checkable
+from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, runtime_checkable
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.environment import ArtifactStore
@@ -36,9 +36,16 @@ from propstore.world.labelled import (
 )
 from propstore.world.labelled import SupportQuality
 from propstore.world.types import (
+    ATMSConceptFutureStatusEntry,
+    ATMSConceptStabilityReport,
+    ATMSFutureEnvironmentReport,
+    ATMSFutureStatusReport,
     ATMSInspection,
     ATMSNodeStatus,
+    ATMSNodeFutureStatusEntry,
+    ATMSNodeStabilityReport,
     ATMSOutKind,
+    ATMSWhyOutReport,
     Environment,
     QueryableAssumption,
     ValueResult,
@@ -134,6 +141,22 @@ class _ATMSRuntime:
     @property
     def _active_graph(self) -> ActiveWorldGraph:
         return self.active_graph
+
+
+@dataclass(frozen=True)
+class _FutureReplay:
+    queryable_ids: tuple[str, ...]
+    queryable_cels: tuple[str, ...]
+    environment_key: EnvironmentKey
+    consistent: bool
+    future_engine: ATMSEngine
+
+
+_FutureEntryT = TypeVar(
+    "_FutureEntryT",
+    ATMSNodeFutureStatusEntry,
+    ATMSConceptFutureStatusEntry,
+)
 
 
 def _is_runtime_like(candidate: object) -> TypeGuard[_ATMSRuntimeLike]:
@@ -354,15 +377,15 @@ class ATMSEngine:
         self,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> list[dict[str, Any]]:
-        futures: list[dict[str, Any]] = []
+    ) -> list[ATMSFutureEnvironmentReport]:
+        futures: list[ATMSFutureEnvironmentReport] = []
         for future in self._future_entries(queryables, limit):
-            future_engine = future["future_engine"]
+            future_engine = future.future_engine
             futures.append({
-                "queryable_ids": list(future["queryable_ids"]),
-                "queryable_cels": list(future["queryable_cels"]),
-                "environment": list(future["environment_key"].assumption_ids),
-                "consistent": future["consistent"],
+                "queryable_ids": list(future.queryable_ids),
+                "queryable_cels": list(future.queryable_cels),
+                "environment": list(future.environment_key.assumption_ids),
+                "consistent": future.consistent,
                 "supported_claim_ids": sorted(future_engine.supported_claim_ids()),
                 "nogoods": [
                     list(environment.assumption_ids)
@@ -376,17 +399,17 @@ class ATMSEngine:
         node_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSFutureStatusReport:
         current = self.node_status(node_id)
-        futures: list[dict[str, Any]] = []
+        futures: list[ATMSNodeFutureStatusEntry] = []
         for future in self._future_entries(queryables, limit):
-            future_engine = future["future_engine"]
+            future_engine = future.future_engine
             inspection = future_engine._future_node_inspection(node_id, fallback=self._nodes.get(node_id))
             futures.append({
-                "queryable_ids": list(future["queryable_ids"]),
-                "queryable_cels": list(future["queryable_cels"]),
-                "environment": list(future["environment_key"].assumption_ids),
-                "consistent": future["consistent"],
+                "queryable_ids": list(future.queryable_ids),
+                "queryable_cels": list(future.queryable_cels),
+                "environment": list(future.environment_key.assumption_ids),
+                "consistent": future.consistent,
                 "status": inspection.status,
                 "out_kind": inspection.out_kind,
                 "reason": inspection.reason,
@@ -417,7 +440,7 @@ class ATMSEngine:
         claim_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSFutureStatusReport:
         node_id = self._claim_node_ids.get(claim_id)
         if node_id is None:
             raise KeyError(f"Unknown ATMS claim: {claim_id}")
@@ -428,7 +451,7 @@ class ATMSEngine:
         node_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...] | None = None,
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSWhyOutReport:
         inspection = self.node_status(node_id)
         candidate_queryable_cels: list[list[str]] = []
         if inspection.status == ATMSNodeStatus.OUT and queryables:
@@ -450,7 +473,7 @@ class ATMSEngine:
         node_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNodeFutureStatusEntry]:
         report = self.node_future_statuses(node_id, queryables, limit=limit)
         return [
             future
@@ -463,7 +486,7 @@ class ATMSEngine:
         node_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNodeFutureStatusEntry]:
         report = self.node_future_statuses(node_id, queryables, limit=limit)
         return [
             future
@@ -477,7 +500,7 @@ class ATMSEngine:
         node_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ATMSNodeFutureStatusEntry]:
         """Return minimal bounded consistent futures whose ATMS status flips."""
         report = self.node_future_statuses(node_id, queryables, limit=limit)
         current_status = report["current"].status
@@ -521,7 +544,7 @@ class ATMSEngine:
         node_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSNodeStabilityReport:
         """Summarize bounded ATMS stability over the implemented replay substrate."""
         report = self.node_future_statuses(node_id, queryables, limit=limit)
         consistent_futures = [future for future in report["futures"] if future["consistent"]]
@@ -547,7 +570,7 @@ class ATMSEngine:
         claim_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSNodeStabilityReport:
         node_id = self._claim_node_ids.get(claim_id)
         if node_id is None:
             raise KeyError(f"Unknown ATMS claim: {claim_id}")
@@ -558,7 +581,7 @@ class ATMSEngine:
         concept_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> ATMSConceptStabilityReport:
         """Summarize bounded concept stability using the current BoundWorld value status."""
         current_status = self._runtime.concept_status(concept_id)
         futures = self._concept_future_entries(concept_id, queryables, limit=limit)
@@ -1476,18 +1499,18 @@ class ATMSEngine:
         self,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int,
-    ) -> list[dict[str, Any]]:
-        entries: list[dict[str, Any]] = []
+    ) -> list[_FutureReplay]:
+        entries: list[_FutureReplay] = []
         for queryable_set in self._iter_future_queryable_sets(queryables, limit):
             future_engine = self._future_engine(queryable_set)
             environment_key = future_engine._bound_environment_key()
-            entries.append({
-                "queryable_ids": tuple(queryable.assumption_id for queryable in queryable_set),
-                "queryable_cels": tuple(queryable.cel for queryable in queryable_set),
-                "environment_key": environment_key,
-                "consistent": not future_engine.nogoods.excludes(environment_key),
-                "future_engine": future_engine,
-            })
+            entries.append(_FutureReplay(
+                queryable_ids=tuple(queryable.assumption_id for queryable in queryable_set),
+                queryable_cels=tuple(queryable.cel for queryable in queryable_set),
+                environment_key=environment_key,
+                consistent=not future_engine.nogoods.excludes(environment_key),
+                future_engine=future_engine,
+            ))
         return entries
 
     def _concept_future_entries(
@@ -1495,22 +1518,22 @@ class ATMSEngine:
         concept_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int,
-    ) -> list[dict[str, Any]]:
-        futures: list[dict[str, Any]] = []
+    ) -> list[ATMSConceptFutureStatusEntry]:
+        futures: list[ATMSConceptFutureStatusEntry] = []
         for future in self._future_entries(queryables, limit):
-            future_engine = future["future_engine"]
+            future_engine = future.future_engine
             futures.append({
-                "queryable_ids": list(future["queryable_ids"]),
-                "queryable_cels": list(future["queryable_cels"]),
-                "environment": list(future["environment_key"].assumption_ids),
-                "consistent": future["consistent"],
+                "queryable_ids": list(future.queryable_ids),
+                "queryable_cels": list(future.queryable_cels),
+                "environment": list(future.environment_key.assumption_ids),
+                "consistent": future.consistent,
                 "status": future_engine._runtime.concept_status(concept_id),
                 "supported_claim_ids": sorted(future_engine.supported_claim_ids(concept_id)),
             })
         return futures
 
     @staticmethod
-    def _minimal_future_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _minimal_future_entries(entries: list[_FutureEntryT]) -> list[_FutureEntryT]:
         ordered = sorted(
             entries,
             key=lambda entry: (
@@ -1518,7 +1541,7 @@ class ATMSEngine:
                 tuple(entry["queryable_ids"]),
             ),
         )
-        minimal: list[dict[str, Any]] = []
+        minimal: list[_FutureEntryT] = []
         minimal_sets: list[set[str]] = []
         for entry in ordered:
             queryable_set = set(entry["queryable_ids"])
@@ -1672,7 +1695,7 @@ class ATMSEngine:
 
     @staticmethod
     def _future_reaches_node_target(
-        future: dict[str, Any],
+        future: ATMSNodeFutureStatusEntry,
         target_status: ATMSNodeStatus,
     ) -> bool:
         if future["status"] != target_status:
@@ -1687,7 +1710,7 @@ class ATMSEngine:
         *,
         current: ATMSInspection,
         target_status: ATMSNodeStatus,
-        future: dict[str, Any],
+        future: ATMSNodeFutureStatusEntry,
     ) -> dict[str, Any]:
         return {
             "target": node_id,
@@ -1710,7 +1733,7 @@ class ATMSEngine:
         *,
         current_status: str,
         target_status: str,
-        future: dict[str, Any],
+        future: ATMSConceptFutureStatusEntry,
     ) -> dict[str, Any]:
         return {
             "target": concept_id,
@@ -1919,7 +1942,7 @@ class ATMSEngine:
         }
 
     @classmethod
-    def _serialize_future_report(cls, report: dict[str, Any]) -> dict[str, Any]:
+    def _serialize_future_report(cls, report: ATMSFutureStatusReport) -> dict[str, Any]:
         return {
             "node_id": report["node_id"],
             "claim_id": report["claim_id"],
@@ -1953,7 +1976,7 @@ class ATMSEngine:
         }
 
     @classmethod
-    def _serialize_why_out(cls, report: dict[str, Any]) -> dict[str, Any]:
+    def _serialize_why_out(cls, report: ATMSWhyOutReport) -> dict[str, Any]:
         return {
             "node_id": report["node_id"],
             "claim_id": report["claim_id"],
@@ -1969,7 +1992,10 @@ class ATMSEngine:
         }
 
     @classmethod
-    def _serialize_future_entry(cls, future: dict[str, Any]) -> dict[str, Any]:
+    def _serialize_future_entry(
+        cls,
+        future: ATMSNodeFutureStatusEntry | ATMSConceptFutureStatusEntry,
+    ) -> dict[str, Any]:
         result = {
             "queryable_ids": list(future["queryable_ids"]),
             "queryable_cels": list(future["queryable_cels"]),
@@ -1994,7 +2020,10 @@ class ATMSEngine:
         return result
 
     @classmethod
-    def _serialize_stability_report(cls, report: dict[str, Any]) -> dict[str, Any]:
+    def _serialize_stability_report(
+        cls,
+        report: ATMSNodeStabilityReport | ATMSConceptStabilityReport,
+    ) -> dict[str, Any]:
         serialized = {
             "stable": report["stable"],
             "limit": report["limit"],
