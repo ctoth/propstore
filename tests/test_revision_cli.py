@@ -128,3 +128,5 @@ def test_world_iterated_revise_shows_operator_and_next_state_summary(revision_cl
     assert "Operator: lexicographic" in result.output
     assert "Next state" in result.output
     assert "claim:synthetic_freq" in result.output
+    assert "Ranking delta:" in result.output
+    assert "History:" in result.output
