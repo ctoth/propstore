@@ -1,0 +1,15 @@
+{
+  "title": "Ordinal Conditional Functions: A Dynamic Theory of Epistemic States",
+  "authors": [
+    "W. Spohn"
+  ],
+  "year": "1988",
+  "doi": "10.1007/978-94-009-2865-7_6",
+  "url": "https://www.semanticscholar.org/paper/10ee418d0058b8e771f28e24fc28cbf968cbabbb",
+  "pdf_url": "https://kops.uni-konstanz.de/bitstreams/cf9e812a-170d-40d4-aba3-3c11326f9d89/download",
+  "bibtex": "@Inproceedings{Spohn1988OrdinalCF,\n author = {W. Spohn},\n pages = {105-134},\n title = {Ordinal Conditional Functions: A Dynamic Theory of Epistemic States},\n year = {1988}\n}\n",
+  "abstract": "Introduces ordinal conditional functions (OCFs) as a qualitative, ordinal-valued representation of epistemic states that assigns disbelief grades to propositions and supports reversible, iterated belief change via conditionalization with an explicit firmness parameter. OCFs solve the closure problem of simple conditional functions, prove commutativity of conditionalization, and establish independence properties paralleling probability theory.",
+  "venue": "Causation in Decision, Belief Change, and Statistics II",
+  "volume": "",
+  "pages": "105-134"
+}

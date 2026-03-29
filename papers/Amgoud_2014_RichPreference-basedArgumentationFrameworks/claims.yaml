@@ -1,0 +1,236 @@
+source:
+  paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-29T04:19:24Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "An argumentation framework is a pair (A, R) where A is a set of arguments and R is a binary attack relation on A."
+    concepts:
+      - preference_based_argumentation
+      - logic_based_argument
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 1
+      section: "2. Basics of argumentation"
+      quote_fragment: "An argumentation framework (AF) is a pair F = (A, R)"
+
+  - id: claim2
+    type: observation
+    statement: "An argument is a pair (H, h) where H is a minimal consistent subset of the knowledge base that classically entails the conclusion h."
+    concepts:
+      - logic_based_argument
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 2
+      section: "2. Basics of argumentation"
+      quote_fragment: "An argument built from Sigma is a pair a = (H, h) such that H is consistent, H entails h, H is minimal"
+
+  - id: claim3
+    type: mechanism
+    statement: "Undercut attack occurs when argument a attacks argument b because a's conclusion is the negation of some hypothesis in b's support, capturing the idea that a undermines one of b's premises."
+    concepts:
+      - logic_based_argument
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 2
+      section: "2. Basics of argumentation"
+      quote_fragment: "an argument attacks another one if the conclusion of the first argument contradicts some of the hypotheses of the second one"
+
+  - id: claim4
+    type: comparison
+    statement: "Existing preference-based argumentation frameworks that remove attacks when the attacked argument is preferred can produce extensions that are not conflict-free with respect to the original attack relation, even when the knowledge base is consistent."
+    concepts:
+      - preference_based_argumentation
+      - logic_based_argument
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 4
+      section: "3. Handling critical attacks"
+      quote_fragment: "the extensions they compute are not always conflict-free"
+
+  - id: claim5
+    type: mechanism
+    statement: "A critical attack is an asymmetric attack where (a,b) is in the attack relation but (b,a) is not; critical attacks cannot be resolved by preference orderings because the attacked argument has no counter-attack to suppress."
+    concepts:
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 4
+      section: "3. Handling critical attacks"
+      quote_fragment: "an attack (a,b) is critical iff it is an attack from a to b and there is no attack from b to a"
+
+  - id: claim6
+    type: mechanism
+    statement: "The rich PAF computes defeats by preserving all critical (asymmetric) attacks unchanged and keeping symmetric attacks only when the attacker is not strictly less preferred than the attacked argument, inverting the defeat direction rather than removing the attack."
+    concepts:
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 4
+      section: "4. Rich preference-based argumentation frameworks"
+      quote_fragment: "Def(T) contains critical attacks and symmetric attacks where the attacker is not strictly less preferred"
+
+  - id: claim7
+    type: observation
+    statement: "For any rich PAF, every extension under any Dung semantics (grounded, preferred, stable, complete) is conflict-free with respect to the original attack relation, not just the derived defeat relation."
+    concepts:
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 5
+      section: "4. Rich preference-based argumentation frameworks"
+      quote_fragment: "every extension is conflict-free w.r.t. R"
+
+  - id: claim8
+    type: observation
+    statement: "When the preference relation is a total preorder and the attack relation is symmetric, the rich PAF has exactly one stable extension which equals its preferred and grounded extensions."
+    concepts:
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 6
+      section: "4.1. Refining the attack relation by preferences"
+      quote_fragment: "the corresponding PAF has a unique stable/preferred/grounded extension"
+
+  - id: claim9
+    type: mechanism
+    statement: "The democratic preference lifting compares arguments by requiring that for every hypothesis in the first argument's support, there exists a hypothesis in the second argument's support that is at least as preferred, making it sensitive to all premises."
+    concepts:
+      - preference_based_argumentation
+      - logic_based_argument
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 8
+      section: "4.2. Refining argumentation by preferences"
+      quote_fragment: "democratic relation"
+
+  - id: claim10
+    type: comparison
+    statement: "The democratic preference lifting strictly refines the elitist preference lifting: every strict preference preserved by the elitist relation is also preserved by the democratic relation, but the democratic relation resolves additional conflicts."
+    concepts:
+      - preference_based_argumentation
+      - refinement_property
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 8
+      section: "4.2. Refining argumentation by preferences"
+      quote_fragment: "the democratic relation refines the elitist relation"
+
+  - id: claim11
+    type: observation
+    statement: "A refinement relation between preference criteria is transitive: if criterion C3 refines C2 and C2 refines C1, then C3 refines C1."
+    concepts:
+      - refinement_property
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 7
+      section: "4.2. Refining argumentation by preferences"
+      quote_fragment: "refinement is transitive"
+
+  - id: claim12
+    type: mechanism
+    statement: "A stratified knowledge base partitions formulas into priority levels where lower-numbered strata are more preferred, inducing a total preorder on formulas that can be lifted to a preference relation on arguments."
+    concepts:
+      - logic_based_argument
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 9
+      section: "5. Coherence-based approach for handling inconsistency"
+      quote_fragment: "stratified knowledge base Sigma = Sigma_1 union ... union Sigma_n"
+
+  - id: claim13
+    type: observation
+    statement: "The stable extensions of a rich PAF built over a stratified knowledge base with the democratic preference lifting correspond one-to-one with the preferred sub-theories of that knowledge base."
+    concepts:
+      - preference_based_argumentation
+      - logic_based_argument
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 11
+      section: "6. Recovering sub-theories"
+      quote_fragment: "stable extensions are exactly the argument sets of the preferred sub-theories"
+
+  - id: claim14
+    type: observation
+    statement: "A preferred sub-theory is a maximal consistent subset of a knowledge base such that every excluded formula is dominated by a conflicting subset of included formulas under the preference ordering."
+    concepts:
+      - logic_based_argument
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 10
+      section: "5. Coherence-based approach for handling inconsistency"
+      quote_fragment: "preferred sub-theory"
+
+  - id: claim15
+    type: observation
+    statement: "The democratic sub-theory of a stratified knowledge base is the unique maximal set of formulas surviving preference-based filtering, from which preferred sub-theories are computed as maximal consistent subsets."
+    concepts:
+      - logic_based_argument
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 10
+      section: "5. Coherence-based approach for handling inconsistency"
+      quote_fragment: "democratic sub-theory"
+
+  - id: claim16
+    type: comparison
+    statement: "Unlike Modgil and Prakken's ASPIC+ which handles only one role of preferences (resolving critical attacks via last-link or weakest-link ordering), the rich PAF handles both roles: conflict resolution among symmetric attacks and argument comparison for determining acceptable arguments."
+    concepts:
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 14
+      section: "7. Related work"
+      quote_fragment: "only one role of preferences: handling critical attacks"
+
+  - id: claim17
+    type: limitation
+    statement: "The rich PAF framework handles only propositional logic with undercut attacks; extension to first-order logic or rebut-based attacks is not addressed."
+    concepts:
+      - preference_based_argumentation
+      - logic_based_argument
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 14
+      section: "8. Conclusion"
+
+  - id: claim18
+    type: limitation
+    statement: "The framework addresses only flat (non-recursive) argumentation; recursive argumentation frameworks where arguments can attack the preference relation itself are not considered."
+    concepts:
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 14
+      section: "8. Conclusion"
+
+  - id: claim19
+    type: observation
+    statement: "When the preference relation is empty (no preferences), the rich PAF's defeat relation equals the original attack relation, reducing to a standard Dung AF."
+    concepts:
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 5
+      section: "4. Rich preference-based argumentation frameworks"
+      quote_fragment: "Def(T) = R when preference is empty"
+
+  - id: claim20
+    type: observation
+    statement: "When a rich PAF has no critical attacks and the preference is a total preorder, the rich PAF's extensions coincide with those computed by the existing (flawed) PAF approach, meaning the existing approach is correct only in the absence of asymmetric attacks."
+    concepts:
+      - preference_based_argumentation
+    provenance:
+      paper: Amgoud_2014_RichPreference-basedArgumentationFrameworks
+      page: 5
+      section: "4. Rich preference-based argumentation frameworks"
+      quote_fragment: "if a PAF has no critical attacks, the two approaches coincide"

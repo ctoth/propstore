@@ -238,8 +238,11 @@ This paper is directly relevant to propstore's need for formalizing belief revis
 - [[Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic]] — cited as [20], the standard AGM reference for detailed exposition of the postulates and epistemic entrenchment.
 - [[Dixon_1993_ATMSandAGM]] — not directly cited but deeply relevant: Dixon proved ATMS context switching is behaviorally equivalent to AGM operations. Bonanno's branching-time frames provide the formal temporal structure that Dixon's result operates within.
 
+### Now in Collection
+- [[Booth_2006_AdmissibleRestrainedRevision]] — cited as [11]; defines admissible revision operators (subclass of DP) and restrained revision (most conservative admissible operator)
+- [[Bonanno_2007_AGMBeliefRevisionTemporalLogic]] — the foundational predecessor; introduces temporal belief revision frames with five modal operators and proves axiomatic characterizations of AGM postulates K*1-K*6 (logic L_b) and K*1-K*8 (logic L_AGM) via the Qualitative Bayes Rule. Key constraint: Backward Uniqueness requires unique predecessor per instant, ruling out DAG structures.
+- [[Darwiche_1997_LogicIteratedBeliefRevision]] — iterated revision postulates (DP1-DP4), expressible in Bonanno's ternary function framework
+
 ### New Leads (Not Yet in Collection)
-- Bonanno (2007) — "Axiomatic characterization of the AGM theory of belief revision in a temporal logic", Artificial Intelligence 171: 144-160 — the foundational predecessor to this paper, introducing branching-time belief revision frames
-- Darwiche & Pearl (1997) — "On the logic of iterated belief revision", Artificial Intelligence 89: 1-29 — iterated revision postulates (DP1-DP4), expressible in Bonanno's ternary function framework
 - Nayak, Pagnucco & Peppas (2003) — "Dynamic belief revision operators", Artificial Intelligence 146: 193-228 — REFstrong/Conjunction postulate analysis
 - Hansson (1968) — "Choice structures and preference relations", Synthese 18: 443-458 — choice-theoretic foundation for rationalizability results

@@ -1,0 +1,165 @@
+source:
+  paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-03-29T04:21:31Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A temporal belief revision frame requires Backward Uniqueness: each instant has at most one predecessor in the successor relation, making the temporal structure tree-like forward but linear backward."
+    concepts:
+      - branching_time_frame
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 3
+      section: "2 The semantics"
+      quote_fragment: "acyclicity: if (t_1,...,t_n) is a sequence with t_i -> t_{i+1} then t_1 != t_n"
+
+  - id: claim2
+    type: observation
+    statement: "The Qualitative Bayes Rule (QBR) states that when prior beliefs and new information are compatible, revised beliefs equal the intersection of prior beliefs with new information: if t1->t2 and B_t1(w) cap I_t2(w) is non-empty, then B_t2(w) = B_t1(w) cap I_t2(w)."
+    concepts:
+      - qualitative_bayes_rule
+      - belief_revision_function
+      - belief_state
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 8
+      section: "3 The basic logic and two extensions"
+      quote_fragment: "if t_1 -> t_2 and B_{t_1}(w) cap I_{t_2}(w) != empty then B_{t_2}(w) = B_{t_1}(w) cap I_{t_2}(w)"
+
+  - id: claim3
+    type: observation
+    statement: "Logic L_b (= L_0 + A + ND + NA + WC) provides an axiomatic characterization of the first six AGM postulates (K*1-K*6) for belief revision: every AGM-compliant revision satisfying K*1-K*6 can be realized by an L_b-model, and every L_b-model satisfies K*1-K*6."
+    concepts:
+      - agm_consistency
+      - belief_revision_function
+      - qualitative_bayes_rule
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 12
+      section: "4 Axiomatic characterization of AGM"
+      quote_fragment: "Proposition 11: L_b provides an axiomatic characterization of the first six of AGM postulates"
+
+  - id: claim4
+    type: observation
+    statement: "Logic L_AGM (= L_b + K7 + K8) provides an axiomatic characterization of the full set of AGM postulates (K*1-K*8): every AGM-compliant revision satisfying K*1-K*8 can be realized by an L_AGM-model, and every L_AGM-model satisfies K*1-K*8."
+    concepts:
+      - agm_consistency
+      - belief_revision_function
+      - branching_time_frame
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 17
+      section: "4 Axiomatic characterization of AGM"
+      quote_fragment: "Proposition 12: Logic L_AGM provides an axiomatic characterization of the full set of AGM postulates"
+
+  - id: claim5
+    type: mechanism
+    statement: "The QBR is the qualitative counterpart of Bayesian conditioning: in a probabilistic setting with prior P_{w,t1} and posterior P_{w,t2}, if supp(P_{w,t1}) cap F is non-empty then supp(P_{w,t2}) = supp(P_{w,t1}) cap F, which becomes QBR when beliefs are identified with probability supports and information with the conditioning event."
+    concepts:
+      - qualitative_bayes_rule
+      - bayesian_updating
+      - belief_revision_function
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 8
+      section: "3 The basic logic and two extensions"
+      quote_fragment: "Bayes' rule requires that, if P_{w,t1}(F) > 0, then for every event E, P_{w,t2}(E) = P_{w,t1}(E cap F)/P_{w,t1}(F)"
+
+  - id: claim6
+    type: observation
+    statement: "The information operator I has non-standard semantics requiring equality rather than subset: I_t(w) = [phi]_t (the truth set of phi at time t), meaning information fully determines the set of compatible states rather than merely constraining it."
+    concepts:
+      - branching_time_frame
+      - belief_state
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 5
+      section: "2 The semantics"
+      quote_fragment: "instead of simply requiring that I_t(w) subset [phi]_t we require equality: I_t(w) = [phi]_t"
+
+  - id: claim7
+    type: observation
+    statement: "In L_b-frames, beliefs must be a subset of information-compatible states (B_t(w) subset I_t(w)) and non-vacuous information implies non-vacuous beliefs (if I_t(w) is non-empty then B_t(w) is non-empty)."
+    concepts:
+      - belief_state
+      - qualitative_bayes_rule
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 8
+      section: "3 The basic logic and two extensions"
+      quote_fragment: "Definition 6: (2) for all w in Omega, for all t in T, B_t(w) subset I_t(w), (3) if I_t(w) != empty then B_t(w) != empty"
+
+  - id: claim8
+    type: comparison
+    statement: "Unlike Kraus and Lehmann (1988) who use a knowledge operator and next-time but not branching time, and unlike Friedman and Halpern (1994) who use branching time but no explicit information operator, this framework combines branching-time structure with separate belief (B) and information (I) operators, enabling axiomatic characterization of AGM postulates."
+    concepts:
+      - branching_time_frame
+      - belief_revision_function
+      - agm_consistency
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 23
+      section: "5 Related literature"
+      quote_fragment: "The intersection of a belief operator and a next-time operator is briefly discussed by Kraus and Lehmann"
+
+  - id: claim9
+    type: limitation
+    statement: "The temporal belief revision framework requires Backward Uniqueness (each instant has at most one predecessor), which rules out DAG-like structures where a node can have multiple predecessors such as merge commits in a version control graph."
+    concepts:
+      - branching_time_frame
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 5
+      section: "3 The basic logic and two extensions"
+      quote_fragment: "Backward Uniqueness axiom: diamond^{-1} phi -> circle^{-1} phi"
+
+  - id: claim10
+    type: limitation
+    statement: "Only belief revision (where objective facts do not change over time) is treated, not belief update (where both facts and beliefs change). The framework assumes the world is fixed and only the agent's epistemic state evolves."
+    concepts:
+      - belief_revision_function
+      - belief_state
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 4
+      section: "2 The semantics"
+      quote_fragment: "the objective facts describing the world do not change -- so that only the beliefs of the agent change over time"
+
+  - id: claim11
+    type: observation
+    statement: "The CAR frame condition for L_AGM frames requires that when information at t2 is a subset of information at t3 and is compatible with prior beliefs, revised beliefs at t2 equal the intersection of revised beliefs at t3 with information at t2."
+    concepts:
+      - agm_consistency
+      - branching_time_frame
+      - qualitative_bayes_rule
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 10
+      section: "3 The basic logic and two extensions"
+      quote_fragment: "Definition 8: An L_AGM-frame is a temporal belief revision frame that satisfies the following properties"
+
+  - id: claim12
+    type: mechanism
+    statement: "Necessitation is NOT a valid rule of inference for the information operator I (unlike for B, circle, circle^{-1}, and A), because the information operator has non-standard equality semantics -- this is why the 'all state' operator A is needed as a separate primitive to express universal validity."
+    concepts:
+      - branching_time_frame
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 6
+      section: "3 The basic logic and two extensions"
+      quote_fragment: "necessitation for I is not a rule of inference of this logic (indeed it is not validity preserving)"
+
+  - id: claim13
+    type: observation
+    statement: "Boolean formulas (the modal-free fragment) have truth values that depend only on the state and not on the time instant, making them suitable as informational inputs for belief revision where the world does not change."
+    concepts:
+      - belief_revision_function
+    provenance:
+      paper: Bonanno_2007_AGMBeliefRevisionTemporalLogic
+      page: 6
+      section: "3 The basic logic and two extensions"
+      quote_fragment: "the truth value of a Boolean formula does not change over time: it is only a function of the state"

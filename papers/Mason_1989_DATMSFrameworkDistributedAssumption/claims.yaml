@@ -1,0 +1,218 @@
+source:
+  paper: Mason_1989_DATMSFrameworkDistributedAssumption
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-03-29T04:21:36Z"
+
+claims:
+  - id: claim1
+    type: mechanism
+    statement: "In a multi-agent ATMS, the number of contexts an agent considers can be dangerously high because each communicated fact from another agent may introduce new assumption sets, causing context explosion."
+    concepts:
+      - atms
+      - assumption_set
+      - context_explosion
+      - distributed_reasoning
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 300
+      section: "13.4.1 Contradiction Knowledge"
+      quote_fragment: "the number of contexts an agent considers can be dangerously high, since each fact it receives from other agents may involve yet another context"
+
+  - id: claim2
+    type: mechanism
+    statement: "Contradiction knowledge (nogoods) is the primary mechanism for limiting context explosion in a multi-agent assumption-based reasoning system, by pruning inconsistent assumption sets and the partial hypotheses they would generate."
+    concepts:
+      - nogood
+      - contradiction_knowledge
+      - context_explosion
+      - atms
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 300
+      section: "13.4.1 Contradiction Knowledge"
+      quote_fragment: "contradiction knowledge plays a key role in limiting control and communication problems in a multiagent assumption based reasoning system"
+
+  - id: claim3
+    type: observation
+    statement: "In a distributed assumption-based reasoning network, forcing global consistency across agents is both impractical (theoretically impossible per Konolige 1986) and undesirable (can propagate faulty information through wrong consensus)."
+    concepts:
+      - distributed_reasoning
+      - belief_revision
+      - consistency
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 298
+      section: "13.3.1 The Problem of Belief Revision"
+      quote_fragment: "it is unreasonable and intuitively wrong to try and ensure all agents views are consistent"
+
+  - id: claim4
+    type: mechanism
+    statement: "Each agent in DATMS maintains its own ATMS with locally consistent assumption sets (extensions), but the union of two agents' extensions may be inconsistent -- a 'hung jury' model that preserves agent autonomy and prevents contamination from faulty external data."
+    concepts:
+      - atms
+      - belief_revision
+      - distributed_reasoning
+      - extension
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 299
+      section: "13.3.1 The Problem of Belief Revision"
+      quote_fragment: "It is better to have a 'hung jury' and let agents stand by their beliefs based on their own view of the evidence"
+
+  - id: claim5
+    type: observation
+    statement: "A globally unique fact identifier of the form Fact-ID = <identifier:agent> is necessary in a distributed ATMS to enable building assumption sets and justifications from mixtures of internally deduced and externally communicated facts, and to support culpability tracking."
+    concepts:
+      - fact_identifier
+      - distributed_reasoning
+      - culpability
+      - assumption_set
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 303
+      section: "13.4.3 Identifiers"
+      quote_fragment: "An identification scheme for a multiagent assumption based reasoner must provide unique identification within the global context of a system of agents"
+
+  - id: claim6
+    type: observation
+    statement: "DATMS defines four fact creation operators with distinct assumption set semantics: GIVEN (premise, A(c)=c), ASSUMED (self-dependent, A(c)=union of antecedent sets + c), ASSERTED (purely derivative, A(c)=union of antecedent sets), and COMMUNICATED (external, A(c)=communicated assumption set)."
+    concepts:
+      - assumption_set
+      - atms
+      - inference_rule
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 305
+      section: "13.5.2 The Truth Maintenance System"
+
+  - id: claim7
+    type: observation
+    statement: "Communicated facts in DATMS have justification 'EXTERNAL' because their antecedents reside in the external agent, making local dependency information unavailable for those antecedents."
+    concepts:
+      - justification
+      - communicated_fact
+      - distributed_reasoning
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 304
+      section: "13.5.2 The Truth Maintenance System"
+      quote_fragment: "Communicated antecedents have no local dependency records since they were deduced externally"
+
+  - id: claim8
+    type: observation
+    statement: "If assumption set A is INCONSISTENT and A is a subset of B, then B must also be INCONSISTENT, because the facts in A that caused the inconsistency are also in B."
+    concepts:
+      - assumption_set
+      - nogood
+      - consistency
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 305
+      section: "13.5.2 The Truth Maintenance System"
+      quote_fragment: "If A is INCONSISTENT then B must also be INCONSISTENT, since the subset of facts of A that cause it to be INCONSISTENT will also be in B"
+
+  - id: claim9
+    type: mechanism
+    statement: "The CONTRADICT predicate in DATMS TMS rules takes a communication policy argument that controls which agents are informed of an inconsistency finding, enabling domain-specific contradiction propagation rather than universal broadcast."
+    concepts:
+      - nogood
+      - communication_policy
+      - distributed_reasoning
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 307
+      section: "13.5.2 Truth Maintenance Rules"
+      quote_fragment: "the CONTRADICT predicate also takes an argument that directs how the inconsistency finding should be propagated among the other agents"
+
+  - id: claim10
+    type: mechanism
+    statement: "When a DATMS agent receives a TMS message containing a NOGOOD assumption set, it treats the nogood as locally derived: the nogood is entered into the local NOGOODS database and any local assumption sets containing it are also marked INCONSISTENT."
+    concepts:
+      - nogood
+      - distributed_reasoning
+      - assumption_set
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 308
+      section: "13.5.2 Truth Maintenance Rules"
+      quote_fragment: "the transmitted NOGOOD set is treated as though it were locally derived and entered into a NOGOODS database"
+
+  - id: claim11
+    type: observation
+    statement: "Three kinds of inconsistencies arise in a distributed ATMS: those involving only internally deduced facts, those involving a mixture of internal and external facts, and those involving only externally deduced facts. An agent will generally not possess the knowledge to detect purely external inconsistencies."
+    concepts:
+      - nogood
+      - distributed_reasoning
+      - consistency
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 301
+      section: "13.4.4 Truth Maintenance Communication Policy"
+      quote_fragment: "Three kinds of inconsistencies will arise, those involving only internally deduced facts, those involving a mixture of internally and externally deduced facts, and those involving only externally deduced facts"
+
+  - id: claim12
+    type: mechanism
+    statement: "DATMS uses FOBJECT declarations to let agents selectively accept only specified types of external facts, limiting context explosion by filtering irrelevant incoming facts before they enter the local ATMS."
+    concepts:
+      - distributed_reasoning
+      - context_explosion
+      - communication_policy
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 311
+      section: "13.5.3 Result Sharing Mechanisms"
+      quote_fragment: "The assumption based reasoning agents thus can distinguish externally deduced facts from internally deduced facts in working memory"
+
+  - id: claim13
+    type: comparison
+    statement: "Unlike Smith and Davis's result-sharing model which assumes mutual credibility and can lead to wrong consensus through belief contamination, DATMS agents do not revise their beliefs based on whether external results confirm or deny them -- they only integrate external facts into their own ATMS as additional evidence."
+    concepts:
+      - belief_revision
+      - distributed_reasoning
+      - result_sharing
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 299
+      section: "13.3.2 A New View of Problem Solving Activity"
+      quote_fragment: "An agent will not revise its beliefs according to whether they are confirmed or denied by externally generated results"
+
+  - id: claim14
+    type: limitation
+    statement: "DATMS does not provide a mechanism for detecting inconsistencies that involve only externally deduced facts, since an agent lacks the dependency information needed to identify contradictions among facts deduced entirely by other agents."
+    concepts:
+      - nogood
+      - distributed_reasoning
+      - consistency
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 301
+      section: "13.4.4 Truth Maintenance Communication Policy"
+      quote_fragment: "an agent will not possess the knowledge to detect inconsistencies involving only external inconsistencies, so the latter situation may be dismissed"
+
+  - id: claim15
+    type: limitation
+    statement: "TMS performance in multi-agent settings is highly task-specific (Provan 1987), and the ability to apply discriminatory contradiction knowledge early in problem solving is a key feature that determines performance. Communication strategies are necessarily domain-dependent."
+    concepts:
+      - atms
+      - context_explosion
+      - communication_policy
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 315
+      section: "13.6.3 On Performance"
+      quote_fragment: "the performance of any TMS will be highly dependent upon the nature of the task at hand"
+
+  - id: claim16
+    type: observation
+    statement: "Culpability -- the ability to trace results back to each originating agent -- plays a role in three areas of distributed assumption-based reasoning: creating new facts by deduction, propagating effects of contradictions, and creating an explanation facility."
+    concepts:
+      - culpability
+      - distributed_reasoning
+      - provenance
+    provenance:
+      paper: Mason_1989_DATMSFrameworkDistributedAssumption
+      page: 300
+      section: "13.4.2 Culpability"
+      quote_fragment: "Culpability is the extent to which results derived by a system may be traced back to each cooperating individual"

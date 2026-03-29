@@ -1,0 +1,4 @@
+---
+tags: [belief-revision, agm, temporal-logic, branching-time, modal-logic]
+---
+Provides a complete axiomatic characterization of the AGM belief revision postulates within a branching-time temporal logic, defining two logics (L_b for basic postulates K*1-K*6, L_AGM for the full set K*1-K*8) interpreted over temporal belief revision frames governed by the Qualitative Bayes Rule. The key semantic insight is that AGM revision corresponds to Bayesian conditioning at the qualitative level: revised beliefs equal prior beliefs intersected with new information when compatible. Critical for propstore's branching-time belief revision mapping because the framework requires Backward Uniqueness (each instant has at most one predecessor), which fails on DAG structures like git's commit graph where merge commits have multiple parents.

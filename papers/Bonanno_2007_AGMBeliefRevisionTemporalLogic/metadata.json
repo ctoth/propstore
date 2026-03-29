@@ -1,0 +1,15 @@
+{
+  "title": "Axiomatic characterization of the AGM theory of belief revision in a temporal logic",
+  "authors": [
+    "G. Bonanno"
+  ],
+  "year": "2007",
+  "doi": "10.1016/j.artint.2006.12.001",
+  "url": "https://www.semanticscholar.org/paper/58c4fc296bbbfcbda6d0b473a8cebafb135f4ad8",
+  "pdf_url": "http://www.econ.ucdavis.edu/faculty/bonanno/PDF/AGM.pdf",
+  "bibtex": "@Article{Bonanno2007AxiomaticCO,\n author = {G. Bonanno},\n booktitle = {Artificial Intelligence},\n journal = {Artif. Intell.},\n pages = {144-160},\n title = {Axiomatic characterization of the AGM theory of belief revision in a temporal logic},\n volume = {171},\n year = {2007}\n}\n",
+  "venue": "Artificial Intelligence",
+  "venue_type": "journal",
+  "volume": "171",
+  "pages": "144-160"
+}

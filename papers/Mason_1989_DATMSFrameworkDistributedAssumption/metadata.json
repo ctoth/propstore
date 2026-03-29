@@ -1,0 +1,16 @@
+{
+  "title": "DATMS: A Framework for Distributed Assumption Based Reasoning",
+  "authors": [
+    "C. L. Mason",
+    "Rowland R. Johnson"
+  ],
+  "year": "1989",
+  "doi": "10.1016/B978-1-55860-092-8.50017-4",
+  "arxiv_id": null,
+  "abstract": "The Distributed ATMS, DATMS, is a problem solving framework for multiagent assumption based reasoning. It is based on the problem solving paradigm of result sharing rule-based expert systems using assumption based truth maintenance systems. We are implementing and experimenting with the DATMS under MATE, a Multi-Agent Test Environment, using C and Common Lisp on a network of Sun workstations. This framework was motivated by the problem of seismic interpretation for Comprehensive or Low-Yield Test Ban Treaty verification, where a widespread network of seismic sensor stations are required to monitor treaty compliance, and seismologists use assumption based reasoning in a collaborative fashion to interpret the seismic data. The DATMS framework differs from other previously designed problem solving organizations in (1) its method of reasoning, (2) its ability to support an explanation facility, and (3) its addressing of the problem of culpability.",
+  "url": "https://www.semanticscholar.org/paper/f6c3410689582213f7c1a874c12b3a447a5725b4",
+  "pdf_url": "",
+  "bibtex": "@Inproceedings{Mason1989DATMSAF,\n author = {C. L. Mason and Rowland R. Johnson},\n booktitle = {Distributed Artificial Intelligence},\n pages = {293-317},\n title = {DATMS: A Framework for Distributed Assumption Based Reasoning},\n year = {1989}\n}\n",
+  "venue": "Distributed Artificial Intelligence",
+  "pages": "293-317"
+}

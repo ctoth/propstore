@@ -1,0 +1,16 @@
+{
+  "title": "Rich preference-based argumentation frameworks",
+  "authors": [
+    "Leila Amgoud",
+    "Srdjan Vesic"
+  ],
+  "year": "2014",
+  "doi": "10.1016/j.ijar.2013.10.010",
+  "url": "https://www.semanticscholar.org/paper/b69ff9fd2f13ce26db39053364861a5f621a64be",
+  "pdf_url": "https://doi.org/10.1016/j.ijar.2013.10.010",
+  "bibtex": "@Article{Amgoud2014RichPA,\n author = {Leila Amgoud and Srdjan Vesic},\n booktitle = {International Journal of Approximate Reasoning},\n journal = {Int. J. Approx. Reason.},\n pages = {585-606},\n title = {Rich preference-based argumentation frameworks},\n volume = {55},\n year = {2014}\n}\n",
+  "venue": "International Journal of Approximate Reasoning",
+  "venue_type": "journal",
+  "volume": "55",
+  "pages": "585-606"
+}

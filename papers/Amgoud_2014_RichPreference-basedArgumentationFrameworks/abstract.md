@@ -1,0 +1,11 @@
+# Abstract
+
+## Original Text (Verbatim)
+
+An argumentation framework is seen as a directed graph whose nodes are arguments and arcs are attacks between the arguments. Preferences between arguments are used in argumentation in mainly two different ways: (i) for computing sets of acceptable arguments, called extensions, and (ii) for determining or refining the attack relation. Existing works consider only one criterion for comparing arguments and do not take into account other important criteria like the intrinsic strengths of arguments. In this paper, we argue that neither the first role nor the second one is sufficient alone, and that combining differences in strengths of arguments can help in argumentation frameworks. We show that they may play two important complementary roles. In order to handle the two roles, we propose a new abstract and general framework which treats properly both roles: only the first role is tackled in existing literature (in a sound part of the papers), we start by showing that existing models that handle the second role of preferences (i.e., determining or refining the attack relation) do not satisfy an important property: the extensions they compute are not always conflict-free. To solve this problem, we propose a new abstract and general framework which treats properly both roles of preferences and returns conflict-free extensions. We then propose an instantiation of this abstract framework which is in full correspondence with a well-known logical framework, namely the preferred sub-theories.
+
+---
+
+## Our Interpretation
+
+The paper addresses the fundamental question of how preference orderings should interact with attack relations in argumentation frameworks. The key finding is that existing approaches that remove attacks based on preferences are flawed -- they can produce inconsistent extensions. The proposed rich PAF framework fixes this by inverting (not removing) defeated attacks and preserving all asymmetric (critical) attacks. This is directly relevant to propstore because IC merging produces preference orderings over formulas, and this paper provides the formal theory for how those orderings should feed into the argumentation layer without breaking consistency guarantees.

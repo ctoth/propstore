@@ -258,7 +258,7 @@ This paper is critical for propstore's belief revision operations. The project's
 
 ## Related Work Worth Reading
 
-- Spohn [23, 24]: Ordinal conditional functions — the mathematical framework underlying the bullet operator
+- Spohn [23, 24]: Ordinal conditional functions — the mathematical framework underlying the bullet operator -> NOW IN COLLECTION: [[Spohn_1988_OrdinalConditionalFunctionsDynamic]]
 - Boutilier [3, 4]: Natural revision — the absolute minimization approach that C1-C4 improve upon
 - Katsuno and Mendelzon [17]: The KM representation theorem that this paper extends
 - Lehmann [18]: Belief revision revised — related approach to iterated revision
@@ -271,8 +271,10 @@ This paper is critical for propstore's belief revision operations. The project's
 - [[Gärdenfors_1988_RevisionsKnowledgeSystemsEpistemic]] — cited as [8]; epistemic entrenchment orderings that this paper shows cannot be constrained by one-step postulates alone
 - [[Reiter_1980_DefaultReasoning]] — cited as [21]; default logic as one of the frameworks where belief change arises
 
+### Now in Collection (previously listed as leads)
+- [[Spohn_1988_OrdinalConditionalFunctionsDynamic]] — Defines ordinal conditional functions (OCFs/kappa-functions) as qualitative epistemic state representations mapping propositions to ordinal disbelief grades. OCFs support reversible A_n-conditionalization with firmness parameter n, prove commutativity of conditionalization, and establish independence properties paralleling probability theory. This is the mathematical foundation for the bullet operator and (mu,m)-conditionalization used in this paper.
+
 ### New Leads (Not Yet in Collection)
-- Spohn (1987) — "Ordinal conditional functions: a dynamic theory of epistemic states" — the mathematical foundation for the bullet operator; essential for implementing ranking-based revision
 - Boutilier (1996) — "Iterated revision and minimal revision of conditional beliefs" — the natural revision approach that C1-C4 improve upon
 - Katsuno & Mendelzon (1991) — "Propositional knowledge base revision and minimal change" — the KM representation theorem extended here
 

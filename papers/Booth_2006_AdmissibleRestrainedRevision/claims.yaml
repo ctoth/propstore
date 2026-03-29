@@ -1,0 +1,211 @@
+source:
+  paper: Booth_2006_AdmissibleRestrainedRevision
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-03-29T04:14:35Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Admissible revision operators are exactly those satisfying BAGM postulates (E1-E4, E5r, E6s) plus Darwiche-Pearl postulates (CR1-CR4) plus the Independence postulate (P)."
+    concepts:
+      - iterated_belief_revision
+      - belief_revision_function
+      - agm_consistency
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 5
+      section: "3. Admissible Revision"
+      quote_fragment: "Definition 2: A revision operator satisfying (E5) by replacing (E5) with (E5r) in DP-AGM is defined as BAGM."
+
+  - id: claim2
+    type: observation
+    statement: "Natural revision (Boutilier 1996) is not admissible because it completely ignores the penultimate input, violating postulate (P)."
+    concepts:
+      - iterated_belief_revision
+      - belief_revision_function
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 6
+      section: "3. Admissible Revision"
+      quote_fragment: "natural revision is the most conservative of all DP-operators. Such a strict adherence to minimal change is inadvisable"
+
+  - id: claim3
+    type: observation
+    statement: "Postulate (P) requires that if alpha does not entail not-mu, then alpha is in B(E * mu * alpha) iff alpha is in B(E * alpha), ensuring the penultimate input does not completely override prior beliefs about sentences consistent with it."
+    concepts:
+      - iterated_belief_revision
+      - belief_state
+      - plausibility_ordering
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 5
+      section: "3. Admissible Revision"
+      quote_fragment: "(P) requires an alpha-world that is at least as plausible as a not-alpha-world to be strictly more plausible than it after an alpha-revision"
+
+  - id: claim4
+    type: observation
+    statement: "Restrained revision is the most conservative admissible revision operator, effecting as few changes to the plausibility ordering as possible while satisfying admissibility."
+    concepts:
+      - iterated_belief_revision
+      - plausibility_ordering
+      - belief_revision_function
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 11
+      section: "4. Restrained Revision"
+      quote_fragment: "restrained revision is the most conservative of admissible revision operators, effecting as few changes as possible"
+
+  - id: claim5
+    type: observation
+    statement: "Lexicographic revision (Nayak 1994) is the least conservative admissible revision operator, making all alpha-worlds strictly more plausible than all not-alpha-worlds after revision by alpha."
+    concepts:
+      - iterated_belief_revision
+      - plausibility_ordering
+      - belief_revision_function
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 8
+      section: "3. Admissible Revision"
+      quote_fragment: "lexicographic revision is the least conservative"
+
+  - id: claim6
+    type: mechanism
+    statement: "Restrained revision works by maintaining the relative ordering of all non-alpha-world valuations unchanged, while splitting alpha-worlds and not-alpha-worlds at the same plausibility level into two tiers with alpha-worlds ranked more plausible than not-alpha-worlds, because this is the minimal reordering that satisfies admissibility."
+    concepts:
+      - iterated_belief_revision
+      - plausibility_ordering
+      - belief_state
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 11
+      section: "4. Restrained Revision"
+      quote_fragment: "(RR) says the relative ordering of the valuations that are not (preceq_{E*alpha})-minimal remains unchanged"
+
+  - id: claim7
+    type: observation
+    statement: "Restrained revision is exactly characterized by BAGM plus postulates (C1), (C2), (C1P), (C2D), (I), and (D) (Theorem 2)."
+    concepts:
+      - iterated_belief_revision
+      - agm_consistency
+      - belief_revision_function
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 12
+      section: "4. Restrained Revision"
+      quote_fragment: "Theorem 2: BAGM, (C1), (C2), (C1P), (C2D), (I) and (D) provide an exact characterisation of restrained revision"
+
+  - id: claim8
+    type: mechanism
+    statement: "Restrained revision can be decomposed as a composite operator consisting of backwards revision (Papini 2001) followed by natural revision, because backwards revision by not-alpha moves not-alpha-worlds up in plausibility and then natural revision by alpha makes alpha-worlds minimal, achieving the same result as the axiomatic definition."
+    concepts:
+      - iterated_belief_revision
+      - belief_revision_function
+      - plausibility_ordering
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 17
+      section: "5. Restrained Revision as a Composite Operator"
+      quote_fragment: "restrained revision can also be viewed as a composite operator, consisting of natural revision preceded by an application of a backwards revision operator"
+
+  - id: claim9
+    type: comparison
+    statement: "Unlike natural revision which completely ignores the penultimate input and is therefore inadmissible, restrained revision preserves information from the penultimate input while remaining maximally conservative, as demonstrated by the fact that natural revision fails postulate (P) whereas restrained revision satisfies it."
+    concepts:
+      - iterated_belief_revision
+      - belief_revision_function
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 6
+      section: "3. Admissible Revision"
+      quote_fragment: "Admissible revision ensures that the penultimate input is not ignored completely, thereby eliminating natural revision"
+
+  - id: claim10
+    type: comparison
+    statement: "Unlike lexicographic revision which treats the most recent input as maximally authoritative by making all alpha-worlds more plausible than all not-alpha-worlds, restrained revision only reorders worlds at the boundary between alpha and not-alpha at the same plausibility level, making it appropriate for unreliable or noisy information sources."
+    concepts:
+      - iterated_belief_revision
+      - plausibility_ordering
+      - belief_revision_function
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 18
+      section: "6. How to Choose a Revision Operator"
+      quote_fragment: "restrained revision is the most conservative... lexicographic revision is the least conservative"
+
+  - id: claim11
+    type: observation
+    statement: "The choice between admissible revision operators should be determined by the reliability of the information source: restrained revision for unreliable or noisy sources, lexicographic revision for highly reliable sources."
+    concepts:
+      - iterated_belief_revision
+      - belief_revision_function
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 18
+      section: "6. How to Choose a Revision Operator"
+      quote_fragment: "We propose the establishment of a principled approach for choosing an appropriate revision operator in different contexts"
+
+  - id: claim12
+    type: observation
+    statement: "Two sentences s and t counteract with respect to epistemic state E (written s approx_E t) iff not-s is in B(E) and not-t is in B(E * s), meaning accepting s causes t to be rejected."
+    concepts:
+      - belief_state
+      - iterated_belief_revision
+      - plausibility_ordering
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 9
+      section: "3. Admissible Revision"
+      quote_fragment: "Definition 3: s and t counteract with respect to an epistemic state E"
+
+  - id: claim13
+    type: observation
+    statement: "Postulate (D) requires that if alpha is already believed (alpha in B(E)), then revision by alpha leaves the plausibility ordering unchanged (E * alpha = E), providing a stability condition for restrained revision."
+    concepts:
+      - iterated_belief_revision
+      - belief_state
+      - plausibility_ordering
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 11
+      section: "4. Restrained Revision"
+      quote_fragment: "(D) If alpha in B(E) then E * alpha = E"
+
+  - id: claim14
+    type: limitation
+    statement: "The admissible revision framework assumes simple epistemic states representable as total preorders on worlds; complex epistemic states where an operator operates on structured state require additional supplementary postulates not provided in this paper."
+    concepts:
+      - belief_state
+      - iterated_belief_revision
+      - plausibility_ordering
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 20
+      section: "6. How to Choose a Revision Operator"
+      quote_fragment: "the question of how to uniquely determine the further enriched epistemic state resulting from a revision... is beyond the scope of this paper"
+
+  - id: claim15
+    type: observation
+    statement: "For any admissible revision operator, restrained revision produces a plausibility ordering that is at least as close to the original as the operator's output, while lexicographic revision produces the most distant ordering, establishing restrained and lexicographic as the two extremes of the admissibility spectrum."
+    concepts:
+      - iterated_belief_revision
+      - plausibility_ordering
+      - belief_revision_function
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 11
+      section: "4. Restrained Revision"
+      quote_fragment: "restrained revision is the most conservative of admissible revision operators... while lexicographic revision is the least conservative"
+
+  - id: claim16
+    type: observation
+    statement: "The compact syntactic representation of restrained revision reduces postulates (C1)+(P) and (C2)+(D) each to single rules (C1P) and (C2D), and both (C1P) and (C2D) together with (I) reduce to the single rule (CID)."
+    concepts:
+      - iterated_belief_revision
+      - agm_consistency
+    provenance:
+      paper: Booth_2006_AdmissibleRestrainedRevision
+      page: 14
+      section: "4. Restrained Revision"
+      quote_fragment: "Proposition 9: (C1) and (P) are together equivalent to the single rule (C1P)"

@@ -1,0 +1,4 @@
+---
+tags: [atms, distributed-reasoning, belief-revision, truth-maintenance]
+---
+Extends de Kleer's ATMS to a multi-agent setting where each agent maintains its own local ATMS, shares results and nogoods via message passing, and deliberately allows inconsistent views across the network while maintaining local consistency. The framework introduces globally unique fact identifiers (Fact-ID = <id:agent>), four fact creation operators (GIVEN/ASSUMED/ASSERTED/COMMUNICATED) with distinct assumption set semantics, and configurable contradiction propagation policies. Directly relevant to propstore's ATMS scalability concerns: confirms that context explosion is real in multi-context/multi-agent settings and that contradiction knowledge (nogoods) is the primary defense, while validating the liberal non-commitment philosophy of allowing agents/branches to hold rival perspectives.
