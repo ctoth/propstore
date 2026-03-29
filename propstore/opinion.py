@@ -360,37 +360,40 @@ def ccf(*opinions: Opinion) -> Opinion:
     if len(opinions) == 1:
         return opinions[0]
 
-    dogmatic = [op for op in opinions if op.u < _TOL]
-    non_dogmatic = [op for op in opinions if op.u >= _TOL]
+    # Three-phase CCF per van der Heijden 2018 Definition 5.
+    # Note: unlike prior implementation, we do NOT delegate to WBF for
+    # non-dogmatic inputs — CCF and WBF are distinct operators.
+    N = len(opinions)
 
-    if len(dogmatic) == 0:
-        # No dogmatic — same as WBF
-        return wbf(*opinions)
+    # Phase 1 — Consensus extraction: minimum belief/disbelief across sources.
+    consensus_b = min(op.b for op in opinions)
+    consensus_d = min(op.d for op in opinions)
 
-    if len(non_dogmatic) == 0:
-        # All dogmatic — average belief masses
-        N = len(opinions)
-        b_fused = sum(op.b for op in opinions) / N
-        d_fused = sum(op.d for op in opinions) / N
-        u_fused = 0.0
+    # Phase 2 — Compromise on residuals: average of what each source
+    # contributes beyond the consensus.
+    compromise_b = sum(op.b - consensus_b for op in opinions) / N
+    compromise_d = sum(op.d - consensus_d for op in opinions) / N
+
+    # Phase 3 — Combine and normalize.
+    raw_b = consensus_b + compromise_b
+    raw_d = consensus_d + compromise_d
+    # Uncertainty: average of source uncertainties (0 for dogmatic).
+    raw_u = sum(op.u for op in opinions) / N
+
+    raw_sum = raw_b + raw_d + raw_u
+    if raw_sum < _TOL:
+        # Degenerate case — return vacuous
         a_fused = sum(op.a for op in opinions) / N
         a_fused = max(0.01, min(0.99, a_fused))
-        return Opinion(b_fused, d_fused, u_fused, a_fused)
+        return Opinion(0.0, 0.0, 1.0, a_fused)
 
-    # Mixed: fuse non-dogmatic via WBF, then average with dogmatic
-    wbf_result = wbf(*non_dogmatic) if len(non_dogmatic) > 1 else non_dogmatic[0]
-    all_to_average = dogmatic + [wbf_result]
-    N = len(all_to_average)
-    b_fused = sum(op.b for op in all_to_average) / N
-    d_fused = sum(op.d for op in all_to_average) / N
-    u_fused = sum(op.u for op in all_to_average) / N
-    a_fused = sum(op.a for op in all_to_average) / N
+    # Normalize so b + d + u = 1
+    b_fused = max(0.0, raw_b / raw_sum)
+    d_fused = max(0.0, raw_d / raw_sum)
+    u_fused = max(0.0, raw_u / raw_sum)
+
+    a_fused = sum(op.a for op in opinions) / N
     a_fused = max(0.01, min(0.99, a_fused))
-
-    # Clamp for float drift
-    b_fused = max(0.0, b_fused)
-    d_fused = max(0.0, d_fused)
-    u_fused = max(0.0, u_fused)
 
     return Opinion(b_fused, d_fused, u_fused, a_fused)
 

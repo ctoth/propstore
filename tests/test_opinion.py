@@ -828,6 +828,161 @@ class TestCCF:
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
 
+# ── CCF Definition 5 tests (van der Heijden 2018) ───────────────────
+
+
+class TestCCFDefinition5:
+    """CCF matches van der Heijden 2018 Definition 5 three-phase process."""
+
+    def test_all_dogmatic_agreeing(self):
+        """Two identical dogmatic opinions should fuse to the same opinion."""
+        a = Opinion.dogmatic_true(0.5)
+        result = ccf(a, a)
+        assert result.b == pytest.approx(1.0, abs=1e-6)
+        assert result.d == pytest.approx(0.0, abs=1e-6)
+        assert result.u == pytest.approx(0.0, abs=1e-6)
+
+    def test_all_dogmatic_disagreeing(self):
+        """CCF of dogmatic_true and dogmatic_false: consensus at midpoint.
+
+        Consensus: min(1,0)=0 for b, min(0,1)=0 for d
+        Residuals: (1,0) and (0,1), average = (0.5, 0.5)
+        Combined: b=0.5, d=0.5, u=0
+        """
+        a = Opinion.dogmatic_true(0.5)
+        b = Opinion.dogmatic_false(0.5)
+        result = ccf(a, b)
+        assert result.b == pytest.approx(0.5, abs=1e-6)
+        assert result.d == pytest.approx(0.5, abs=1e-6)
+        assert result.u == pytest.approx(0.0, abs=1e-6)
+
+    def test_all_dogmatic_three_sources(self):
+        """Three dogmatic: two true, one false.
+
+        Consensus b: min(1,1,0)=0; consensus d: min(0,0,1)=0
+        Residual b: [1,1,0], mean=2/3; residual d: [0,0,1], mean=1/3
+        Combined: b=2/3, d=1/3, u=0
+        """
+        dt = Opinion.dogmatic_true(0.5)
+        df = Opinion.dogmatic_false(0.5)
+        result = ccf(dt, dt, df)
+        assert result.b == pytest.approx(2.0 / 3.0, abs=1e-6)
+        assert result.d == pytest.approx(1.0 / 3.0, abs=1e-6)
+        assert result.u == pytest.approx(0.0, abs=1e-6)
+
+    def test_mixed_dogmatic_nondogmatic(self):
+        """Mixed case: CCF should NOT just average WBF result with dogmatic.
+
+        Dogmatic: b=1, d=0, u=0
+        Uncertain: b=0.4, d=0.2, u=0.4
+
+        Consensus b: min(1, 0.4) = 0.4; consensus d: min(0, 0.2) = 0.0
+        Residual b: [0.6, 0.0], mean=0.3; residual d: [0.0, 0.2], mean=0.1
+        Raw: b=0.7, d=0.1, u_avg=mean(0, 0.4)=0.2
+        Sum=1.0, no normalization needed.
+        """
+        dogmatic = Opinion.dogmatic_true(0.5)
+        uncertain = Opinion(0.4, 0.2, 0.4, 0.5)
+        result = ccf(dogmatic, uncertain)
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-6
+        assert result.b == pytest.approx(0.7, abs=1e-6)
+        assert result.d == pytest.approx(0.1, abs=1e-6)
+        assert result.u == pytest.approx(0.2, abs=1e-6)
+
+    def test_three_sources_mixed(self):
+        """Three sources: two dogmatic, one uncertain."""
+        d1 = Opinion.dogmatic_true(0.5)
+        d2 = Opinion.dogmatic_false(0.5)
+        u1 = Opinion(0.3, 0.3, 0.4, 0.5)
+        result = ccf(d1, d2, u1)
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-6
+
+    def test_consensus_phase_extracts_minimum(self):
+        """Verify consensus phase: fused b >= min(b_i) for each source.
+
+        The three-phase process extracts min as consensus, then adds compromise.
+        So fused b should be >= consensus_b = min(b_i).
+        """
+        a = Opinion(0.6, 0.1, 0.3, 0.5)
+        b = Opinion(0.2, 0.5, 0.3, 0.5)
+        result = ccf(a, b)
+        # Consensus b = min(0.6, 0.2) = 0.2
+        # Residual b = [0.4, 0.0], mean = 0.2
+        # Combined b = 0.2 + 0.2 = 0.4
+        assert result.b == pytest.approx(0.4, abs=1e-6)
+        # Consensus d = min(0.1, 0.5) = 0.1
+        # Residual d = [0.0, 0.4], mean = 0.2
+        # Combined d = 0.1 + 0.2 = 0.3
+        assert result.d == pytest.approx(0.3, abs=1e-6)
+        # u = mean(0.3, 0.3) = 0.3
+        assert result.u == pytest.approx(0.3, abs=1e-6)
+
+
+class TestCCFProperties:
+    """CCF properties from van der Heijden 2018."""
+
+    @given(a=valid_opinions(), b=valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_ccf_commutativity(self, a, b):
+        """CCF(a, b) == CCF(b, a)."""
+        r1 = ccf(a, b)
+        r2 = ccf(b, a)
+        assert abs(r1.b - r2.b) < 1e-6
+        assert abs(r1.d - r2.d) < 1e-6
+        assert abs(r1.u - r2.u) < 1e-6
+
+    @given(a=valid_opinions(), b=valid_opinions(), c=valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_ccf_commutativity_three(self, a, b, c):
+        """CCF(a, b, c) is the same regardless of argument order."""
+        result_abc = ccf(a, b, c)
+        result_bca = ccf(b, c, a)
+        result_cab = ccf(c, a, b)
+        assert abs(result_abc.b - result_bca.b) < 1e-6
+        assert abs(result_abc.b - result_cab.b) < 1e-6
+        assert abs(result_abc.d - result_bca.d) < 1e-6
+        assert abs(result_abc.d - result_cab.d) < 1e-6
+
+    @given(a=valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_ccf_single_identity(self, a):
+        """CCF of a single opinion is itself."""
+        result = ccf(a)
+        assert result == a
+
+    @given(a=valid_opinions(), b=valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_ccf_sum_invariant_property(self, a, b):
+        """Fused opinion satisfies b + d + u = 1."""
+        result = ccf(a, b)
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-6
+
+    @given(a=valid_opinions(), b=valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_ccf_non_negative(self, a, b):
+        """Fused opinion has non-negative components."""
+        result = ccf(a, b)
+        assert result.b >= -1e-9
+        assert result.d >= -1e-9
+        assert result.u >= -1e-9
+
+    @given(a=valid_opinions(), b=valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_ccf_expectation_between_inputs(self, a, b):
+        """Fused expectation is between input expectations (same base rate).
+
+        When base rates differ, the averaged base rate can shift the
+        expectation outside the input range.  Restrict to same base rate.
+        """
+        # Force same base rate so the property holds
+        b2 = Opinion(b.b, b.d, b.u, a.a)
+        result = ccf(a, b2)
+        e_min = min(a.expectation(), b2.expectation())
+        e_max = max(a.expectation(), b2.expectation())
+        # Allow small tolerance for numerical issues
+        assert e_min - 0.01 <= result.expectation() <= e_max + 0.01
+
+
 # ── Fuse dispatcher tests ───────────────────────────────────────────
 
 
