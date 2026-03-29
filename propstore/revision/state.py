@@ -28,3 +28,5 @@ class BeliefBase:
     scope: RevisionScope
     atoms: tuple[BeliefAtom, ...]
     assumptions: tuple[AssumptionRef, ...] = field(default_factory=tuple)
+    support_sets: Mapping[str, tuple[tuple[str, ...], ...]] = field(default_factory=dict)
+    essential_support: Mapping[str, tuple[str, ...]] = field(default_factory=dict)

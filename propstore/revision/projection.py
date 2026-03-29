@@ -12,6 +12,8 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
     """
     atoms: list[BeliefAtom] = []
     supporting_assumption_ids: set[str] = set()
+    support_sets: dict[str, tuple[tuple[str, ...], ...]] = {}
+    essential_support: dict[str, tuple[str, ...]] = {}
     for claim in sorted(bound.active_claims(None), key=lambda row: str(row.get("id") or "")):
         claim_id = claim.get("id")
         if not claim_id:
@@ -19,12 +21,25 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
         label, quality = bound.claim_support(claim)
         if quality is not SupportQuality.EXACT:
             continue
+        atom_id = f"claim:{claim_id}"
         if label is not None:
             for environment in label.environments:
                 supporting_assumption_ids.update(environment.assumption_ids)
+            support_sets[atom_id] = tuple(
+                environment.assumption_ids
+                for environment in label.environments
+            )
+        else:
+            support_sets[atom_id] = ()
+        essential = bound.claim_essential_support(claim_id)
+        essential_support[atom_id] = (
+            essential.assumption_ids
+            if essential is not None
+            else ()
+        )
         atoms.append(
             BeliefAtom(
-                atom_id=f"claim:{claim_id}",
+                atom_id=atom_id,
                 kind="claim",
                 payload=dict(claim),
                 label=label,
@@ -48,4 +63,6 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
         scope=scope,
         atoms=tuple(atoms),
         assumptions=assumptions,
+        support_sets=support_sets,
+        essential_support=essential_support,
     )

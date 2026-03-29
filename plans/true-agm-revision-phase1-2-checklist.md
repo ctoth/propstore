@@ -296,6 +296,7 @@ Implement true one-shot expansion, contraction, and revision over the projected 
 
 Deliverables:
 
+- support/incision-ready belief-base structures
 - `propstore/revision/operators.py`
 - `propstore/revision/explain.py`
 - `RevisionResult`
@@ -306,7 +307,30 @@ Deliverables:
 
 ## Phase 2 Checklist
 
-### 1. Add operator surface
+### 1. Strengthen belief-base structures for support-sensitive contraction
+
+Primary files:
+
+- `propstore/revision/state.py`
+- `propstore/revision/projection.py`
+
+Tasks:
+
+- extend the projected revision state so contraction can operate on support, not just top-level atoms
+- expose for each projected claim atom:
+  - supporting environments / support sets
+  - essential support where available
+  - stable assumption ids participating in each support set
+- keep the representation serializable and deterministic
+- do **not** yet implement operator behavior here
+
+Acceptance:
+
+- the projected belief base makes support/incision candidates explicit
+- later operator code can choose incision sets without re-deriving support structure ad hoc
+- the support representation remains independent of merge-layer objects
+
+### 2. Add operator surface
 
 Primary file:
 
@@ -330,7 +354,7 @@ Acceptance:
 - contraction explanations identify the incision set and affected support
 - no merge-layer dependencies
 
-### 2. Define revision input adapters
+### 3. Define revision input adapters
 
 Primary files:
 
@@ -350,7 +374,7 @@ Acceptance:
 
 - caller can revise by existing or exploratory input without storage mutation
 
-### 3. Implement local post-revision stabilization
+### 4. Implement local post-revision stabilization
 
 Primary files:
 
@@ -371,7 +395,7 @@ Acceptance:
 - stabilized result is returned, not an intermediate state
 - rerunning stabilization on a stabilized result is idempotent
 
-### 4. Add explanation surface
+### 5. Add explanation surface
 
 Primary files:
 
@@ -383,19 +407,22 @@ Tasks:
 - define the default explanation contract:
   - accepted atoms
   - rejected atoms
+  - incision set
+  - support sets cut by the incision
   - ranking rationale
   - support-trace-on-demand hook
 
 - distinguish:
   - dropped by lower entrenchment
   - retained by stronger support
+  - dropped because supporting assumptions were incised
   - unchanged because irrelevant to input
 
 Acceptance:
 
 - every contraction/revision result includes actionable rationale
 
-### 5. Add BoundWorld delegation hooks for operators
+### 6. Add BoundWorld delegation hooks for operators
 
 Primary file:
 
@@ -415,7 +442,7 @@ Acceptance:
 
 - `BoundWorld` is the entry surface, not the operator owner
 
-### 6. Add Phase 2 CLI commands
+### 7. Add Phase 2 CLI commands
 
 Primary file:
 
@@ -437,7 +464,7 @@ Acceptance:
 - commands work over the current scoped sidecar-backed world
 - command output surfaces accepted/rejected atoms and reason summary
 
-### 7. Decide whether to add worldline capture now
+### 8. Decide whether to add worldline capture now
 
 Primary files:
 
@@ -464,13 +491,17 @@ Acceptance:
 
 Add tests in:
 
+- `tests/test_revision_state.py`
 - `tests/test_revision_operators.py`
 - `tests/test_revision_cli.py`
 
 Core tests:
 
+- projected belief base exposes deterministic support/incision candidates
+- essential support is available to explanation and contraction code
 - revision success
-- contraction removes lower-entrenched competing support
+- contraction removes a minimal low-entrenchment incision set over support
+- rejected claim atoms are explained as consequences of support loss
 - irrelevant input is vacuous
 - Levi identity holds at the package’s operational level
 - Harper round-trip is consistent with package semantics
