@@ -29,11 +29,7 @@ def compute_entrenchment(
     reasons: dict[str, dict[str, Any]] = {}
 
     for atom in base.atoms:
-        override = override_map.get(atom.atom_id)
-        if override is not None:
-            override_rank = 0
-        else:
-            override_rank = 1
+        override_rank, override_key, override = _match_override(atom, base, override_map)
 
         support_count = (
             len(atom.label.environments)
@@ -44,6 +40,7 @@ def compute_entrenchment(
         scored.append((override_rank, -support_count, atom.atom_id))
         reasons[atom.atom_id] = {
             "override": override.get("priority") if override is not None else None,
+            "override_key": override_key,
             "support_count": support_count,
             "essential_support": _essential_support_ids(bound, atom.atom_id),
         }
@@ -63,3 +60,41 @@ def _essential_support_ids(bound, atom_id: str) -> list[str]:
     if essential is None:
         return []
     return list(essential.assumption_ids)
+
+
+def _match_override(
+    atom,
+    base: BeliefBase,
+    override_map: Mapping[str, Mapping[str, Any]],
+) -> tuple[int, str | None, Mapping[str, Any] | None]:
+    candidates: list[tuple[int, str]] = [(0, atom.atom_id)]
+
+    for source_id in _override_source_ids(atom):
+        candidates.append((1, f"source:{source_id}"))
+
+    context_id = base.scope.context_id
+    if context_id:
+        candidates.append((1, f"context:{context_id}"))
+
+    candidates.append((2, f"kind:{atom.kind}"))
+
+    for rank, key in candidates:
+        override = override_map.get(key)
+        if override is not None:
+            return rank, key, override
+    return 3, None, None
+
+
+def _override_source_ids(atom) -> tuple[str, ...]:
+    payload = dict(atom.payload)
+    nested_source = payload.get("source")
+    provenance = payload.get("provenance")
+    candidates = (
+        payload.get("source_paper"),
+        payload.get("source_id"),
+        nested_source.get("paper") if isinstance(nested_source, Mapping) else None,
+        nested_source.get("id") if isinstance(nested_source, Mapping) else None,
+        provenance.get("paper") if isinstance(provenance, Mapping) else None,
+        provenance.get("source_id") if isinstance(provenance, Mapping) else None,
+    )
+    return tuple(str(value) for value in candidates if value)
