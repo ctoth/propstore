@@ -26,6 +26,10 @@ from propstore.repo.paf_merge import (
     max_merge_frameworks,
     leximax_merge_frameworks,
 )
+from propstore.repo.paf_queries import (
+    credulously_accepted_arguments,
+    skeptically_accepted_arguments,
+)
 from propstore.repo.ic_merge import (
     MergeOperator,
     sigma_merge,
@@ -52,6 +56,8 @@ __all__ = [
     "sum_merge_frameworks",
     "max_merge_frameworks",
     "leximax_merge_frameworks",
+    "credulously_accepted_arguments",
+    "skeptically_accepted_arguments",
     "MergeOperator",
     "sigma_merge",
     "max_merge",
