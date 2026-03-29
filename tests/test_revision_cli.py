@@ -86,3 +86,45 @@ def test_world_revision_explain_shows_atom_status_and_reason(revision_cli_worksp
     assert "claim:freq_claim1" in result.output
     assert "status=rejected" in result.output
     assert "reason=support_lost" in result.output
+
+
+def test_world_iterated_state_shows_ranked_atoms_and_empty_history(revision_cli_workspace) -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        [
+            "world",
+            "iterated-state",
+            "speaker_sex=male",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Iterated state" in result.output
+    assert "History length: 0" in result.output
+    assert "claim:freq_claim1" in result.output
+
+
+def test_world_iterated_revise_shows_operator_and_next_state_summary(revision_cli_workspace) -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli,
+        [
+            "world",
+            "iterated-revise",
+            "speaker_sex=male",
+            "--atom",
+            '{"kind":"claim","id":"synthetic_freq","value":123.0}',
+            "--conflict",
+            "freq_claim1",
+            "--operator",
+            "lexicographic",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Operator: lexicographic" in result.output
+    assert "Next state" in result.output
+    assert "claim:synthetic_freq" in result.output
