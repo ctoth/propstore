@@ -386,7 +386,7 @@ def _validate_parameter(
     concept = claim.get("concept")
     if not concept:
         result.errors.append(f"{filename}: parameter claim '{cid}' missing 'concept'")
-    elif concept not in concept_registry:
+    elif concept_registry and concept not in concept_registry:
         result.errors.append(
             f"{filename}: parameter claim '{cid}' references nonexistent concept '{concept}'")
     else:
@@ -480,7 +480,7 @@ def _validate_equation(
         for var in variables:
             if isinstance(var, dict):
                 var_concept = var.get("concept")
-                if var_concept and var_concept not in concept_registry:
+                if var_concept and var_concept not in concept_registry and concept_registry:
                     result.errors.append(
                         f"{filename}: equation claim '{cid}' variable references "
                         f"nonexistent concept '{var_concept}'")
@@ -499,7 +499,7 @@ def _validate_equation(
                     continue
                 var_concept = var.get("concept")
                 var_symbol = var.get("symbol")
-                if not var_concept or var_concept not in concept_registry:
+                if not var_concept or not concept_registry or var_concept not in concept_registry:
                     continue
                 concept_data = concept_registry[var_concept]
                 form_def = concept_data.get("_form_definition")
@@ -561,7 +561,7 @@ def _validate_observation(
         result.errors.append(f"{filename}: {claim_type} claim '{cid}' missing 'concepts' (at least one required)")
     elif isinstance(concepts, list):
         for concept_id in concepts:
-            if concept_id not in concept_registry:
+            if concept_id not in concept_registry and concept_registry:
                 result.errors.append(
                     f"{filename}: {claim_type} claim '{cid}' references "
                     f"nonexistent concept '{concept_id}'")
@@ -586,7 +586,7 @@ def _validate_model(
         for param in parameters:
             if isinstance(param, dict):
                 param_concept = param.get("concept")
-                if param_concept and param_concept not in concept_registry:
+                if param_concept and param_concept not in concept_registry and concept_registry:
                     result.errors.append(
                         f"{filename}: model claim '{cid}' parameter references "
                         f"nonexistent concept '{param_concept}'")
@@ -599,7 +599,7 @@ def _validate_measurement(
     target_concept = claim.get("target_concept")
     if not target_concept:
         result.errors.append(f"{filename}: measurement claim '{cid}' missing 'target_concept'")
-    elif target_concept not in concept_registry:
+    elif target_concept not in concept_registry and concept_registry:
         result.errors.append(
             f"{filename}: measurement claim '{cid}' references nonexistent concept '{target_concept}'")
 
@@ -638,7 +638,7 @@ def _validate_algorithm(
         for var in variables:
             if isinstance(var, dict):
                 var_concept = var.get("concept")
-                if var_concept and var_concept not in concept_registry:
+                if var_concept and var_concept not in concept_registry and concept_registry:
                     result.errors.append(
                         f"{filename}: algorithm claim '{cid}' variable references "
                         f"nonexistent concept '{var_concept}'")
