@@ -58,5 +58,6 @@ class EpistemicState:
     base: BeliefBase
     accepted_atom_ids: tuple[str, ...]
     ranked_atom_ids: tuple[str, ...]
+    ranking: Mapping[str, int] = field(default_factory=dict)
     entrenchment_reasons: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
     history: tuple[RevisionEpisode, ...] = field(default_factory=tuple)

@@ -107,14 +107,12 @@ def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, Entrenchm
             BeliefAtom("claim:right_dependent", "claim", {"id": "right_dependent"}),
         ),
         support_sets={
-            "claim:legacy": (
-                ("assumption:left_path",),
-                ("assumption:right_path",),
-            ),
+            "claim:legacy": (("assumption:left_path", "assumption:right_path"),),
             "claim:left_dependent": (("assumption:left_path",),),
             "claim:right_dependent": (("assumption:right_path",),),
         },
         essential_support={
+            "claim:legacy": ("assumption:left_path", "assumption:right_path"),
             "claim:left_dependent": ("assumption:left_path",),
             "claim:right_dependent": ("assumption:right_path",),
         },
