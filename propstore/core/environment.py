@@ -99,6 +99,11 @@ class ClaimCatalogStore(Protocol):
 
 
 @runtime_checkable
+class ClaimLookupStore(Protocol):
+    def get_claim(self, claim_id: str) -> dict | None: ...
+
+
+@runtime_checkable
 class ConceptCatalogStore(Protocol):
     def all_concepts(self) -> list[dict]: ...
 
@@ -106,6 +111,11 @@ class ConceptCatalogStore(Protocol):
 @runtime_checkable
 class RelationshipCatalogStore(Protocol):
     def all_relationships(self) -> list[dict]: ...
+
+
+@runtime_checkable
+class ExplanationStore(Protocol):
+    def explain(self, claim_id: str) -> list[dict]: ...
 
 
 @runtime_checkable
@@ -119,8 +129,18 @@ class ConflictStore(Protocol):
 
 
 @runtime_checkable
+class ParameterizationLookupStore(Protocol):
+    def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationRowInput]: ...
+
+
+@runtime_checkable
 class ParameterizationCatalogStore(Protocol):
     def all_parameterizations(self) -> Sequence[ParameterizationRowInput]: ...
+
+
+@runtime_checkable
+class ConditionSolverStore(Protocol):
+    def condition_solver(self) -> Z3ConditionSolver: ...
 
 
 @runtime_checkable

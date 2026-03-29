@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
+from propstore.core.environment import ArtifactStore, CompiledGraphStore, StanceStore
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.graph_types import (
@@ -12,6 +14,7 @@ from propstore.core.graph_types import (
     ConflictWitness,
     GraphDelta,
 )
+from propstore.core.row_types import coerce_conflict_row, coerce_stance_row
 from propstore.world.bound import BoundWorld, _recomputed_conflicts
 from propstore.world.types import (
     BeliefSpace,
@@ -23,29 +26,32 @@ from propstore.world.types import (
 
 
 def _claim_pair(left_id: str, right_id: str) -> tuple[str, str]:
-    return tuple(sorted((str(left_id), str(right_id))))
+    left, right = sorted((str(left_id), str(right_id)))
+    return left, right
 
 
 def _conflict_witness_from_row(row: dict) -> ConflictWitness:
+    conflict = coerce_conflict_row(row)
     return ConflictWitness(
-        left_claim_id=str(row["claim_a_id"]),
-        right_claim_id=str(row["claim_b_id"]),
-        kind=str(row.get("warning_class") or row.get("conflict_class") or "conflict"),
-        details={
-            str(key): value
-            for key, value in row.items()
-            if key not in {"claim_a_id", "claim_b_id", "warning_class", "conflict_class"}
-            and value is not None
-        },
+        left_claim_id=conflict.claim_a_id,
+        right_claim_id=conflict.claim_b_id,
+        kind=str(conflict.warning_class or conflict.conflict_class or "conflict"),
+        details=tuple(
+            entry
+            for entry in (
+                (("concept_id", conflict.concept_id) if conflict.concept_id is not None else None),
+                *tuple(conflict.attributes.items()),
+            )
+            if entry is not None
+        ),
     )
 
 
 def _compiled_graph_for_bound(base: BoundWorld) -> CompiledWorldGraph:
     if base._active_graph is not None:
         return base._active_graph.compiled
-    compiled_getter = getattr(base._store, "compiled_graph", None)
-    if callable(compiled_getter):
-        return compiled_getter()
+    if isinstance(base._store, CompiledGraphStore):
+        return base._store.compiled_graph()
     return build_compiled_world_graph(base._store)
 
 
@@ -70,7 +76,7 @@ def _claim_node_for_synthetic(
         scalar_value=synthetic.value,
         provenance=(existing.provenance if existing is not None else None),
         label=(existing.label if existing is not None else None),
-        attributes=attributes,
+        attributes=tuple(attributes.items()),
     )
 
 
@@ -79,7 +85,11 @@ def _synthetic_row(
     *,
     existing_row: dict | None,
 ) -> dict:
-    row = dict(existing_row) if existing_row is not None else {"id": synthetic.id}
+    row: dict[str, Any] = (
+        dict(existing_row)
+        if existing_row is not None
+        else {"id": synthetic.id}
+    )
     row["id"] = synthetic.id
     row["concept_id"] = synthetic.concept_id
     row["type"] = synthetic.type
@@ -91,7 +101,7 @@ def _synthetic_row(
 class _GraphOverlayStore:
     def __init__(
         self,
-        base_store,
+        base_store: ArtifactStore,
         *,
         claims: list[dict],
         stances: list[dict],
@@ -108,9 +118,22 @@ class _GraphOverlayStore:
     def __getattr__(self, name: str):
         return getattr(self._base, name)
 
+    def get_concept(self, concept_id: str) -> dict | None:
+        concept = self._base.get_concept(concept_id)
+        return None if concept is None else dict(concept)
+
     def get_claim(self, claim_id: str) -> dict | None:
         claim = self._claims_by_id.get(claim_id)
         return None if claim is None else dict(claim)
+
+    def resolve_alias(self, alias: str) -> str | None:
+        return self._base.resolve_alias(alias)
+
+    def resolve_concept(self, name: str) -> str | None:
+        return self._base.resolve_concept(name)
+
+    def all_concepts(self) -> list[dict]:
+        return [dict(concept) for concept in self._base.all_concepts()]
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
@@ -139,8 +162,56 @@ class _GraphOverlayStore:
     def conflicts(self) -> list[dict]:
         return [dict(conflict) for conflict in self._conflicts]
 
+    def all_parameterizations(self) -> list[dict]:
+        return [dict(row) for row in self._base.all_parameterizations()]
+
+    def all_relationships(self) -> list[dict]:
+        return [dict(row) for row in self._base.all_relationships()]
+
     def all_claim_stances(self) -> list[dict]:
         return [dict(stance) for stance in self._stances]
+
+    def concept_ids_for_group(self, group_id: int) -> set[str]:
+        return set(self._base.concept_ids_for_group(group_id))
+
+    def search(self, query: str) -> list[dict]:
+        return [dict(row) for row in self._base.search(query)]
+
+    def similar_claims(
+        self,
+        claim_id: str,
+        model_name: str | None = None,
+        top_k: int = 10,
+    ) -> list[dict]:
+        return [
+            dict(row)
+            for row in self._base.similar_claims(
+                claim_id,
+                model_name=model_name,
+                top_k=top_k,
+            )
+        ]
+
+    def similar_concepts(
+        self,
+        concept_id: str,
+        model_name: str | None = None,
+        top_k: int = 10,
+    ) -> list[dict]:
+        return [
+            dict(row)
+            for row in self._base.similar_concepts(
+                concept_id,
+                model_name=model_name,
+                top_k=top_k,
+            )
+        ]
+
+    def stats(self) -> dict:
+        return dict(self._base.stats())
+
+    def parameterizations_for(self, concept_id: str) -> list[dict]:
+        return [dict(row) for row in self._base.parameterizations_for(concept_id)]
 
     def explain(self, claim_id: str) -> list[dict]:
         if claim_id not in self._claims_by_id:
@@ -154,6 +225,22 @@ class _GraphOverlayStore:
 
     def compiled_graph(self) -> CompiledWorldGraph:
         return CompiledWorldGraph.from_dict(self._compiled.to_dict())
+
+    def condition_solver(self):
+        return self._base.condition_solver()
+
+    def has_table(self, name: str) -> bool:
+        return self._base.has_table(name)
+
+    def group_members(self, concept_id: str) -> list[str]:
+        return list(self._base.group_members(concept_id))
+
+    def chain_query(self, target_concept_id: str, strategy=None, **bindings: Any):
+        return self._base.chain_query(
+            target_concept_id,
+            strategy=strategy,
+            **bindings,
+        )
 
 
 class HypotheticalWorld(BeliefSpace):
@@ -186,6 +273,8 @@ class HypotheticalWorld(BeliefSpace):
         overlay_claims: list[dict] = []
         for claim in base_claim_rows:
             claim_id = claim.get("id")
+            if not isinstance(claim_id, str):
+                continue
             replacement = synthetics_by_id.get(claim_id)
             if claim_id in self._removed_ids and replacement is None:
                 continue
@@ -212,32 +301,32 @@ class HypotheticalWorld(BeliefSpace):
             for claim in overlay_claims
             if claim.get("id") is not None
         }
-        stances_between = getattr(base._store, "stances_between", None)
-        overlay_stances = (
-            list(stances_between(overlay_claim_ids))
-            if callable(stances_between)
-            else []
-        )
+        if not isinstance(base._store, StanceStore):
+            raise TypeError("HypotheticalWorld requires stances_between() on the base store")
+        overlay_stances = [
+            coerce_stance_row(stance).to_dict()
+            for stance in base._store.stances_between(overlay_claim_ids)
+        ]
 
-        conflicts_fn = getattr(base._store, "conflicts", None)
         overlay_conflicts = [
-            dict(conflict)
-            for conflict in (conflicts_fn() if callable(conflicts_fn) else [])
-            if conflict.get("claim_a_id") in overlay_claim_ids
-            and conflict.get("claim_b_id") in overlay_claim_ids
+            conflict.to_dict()
+            for conflict in (
+                coerce_conflict_row(conflict_input)
+                for conflict_input in base._store.conflicts()
+            )
+            if conflict.claim_a_id in overlay_claim_ids
+            and conflict.claim_b_id in overlay_claim_ids
         ]
         seen_conflict_pairs = {
             _claim_pair(conflict["claim_a_id"], conflict["claim_b_id"])
             for conflict in overlay_conflicts
         }
-        all_concepts = getattr(base._store, "all_concepts", None)
-        if callable(all_concepts):
-            for conflict in _recomputed_conflicts(base._store, overlay_claims):
-                pair = _claim_pair(conflict["claim_a_id"], conflict["claim_b_id"])
-                if pair in seen_conflict_pairs:
-                    continue
-                overlay_conflicts.append(conflict)
-                seen_conflict_pairs.add(pair)
+        for conflict in _recomputed_conflicts(base._store, overlay_claims):
+            pair = _claim_pair(conflict["claim_a_id"], conflict["claim_b_id"])
+            if pair in seen_conflict_pairs:
+                continue
+            overlay_conflicts.append(conflict)
+            seen_conflict_pairs.add(pair)
 
         self._compiled_graph = CompiledWorldGraph(
             concepts=self._compiled_graph.concepts,

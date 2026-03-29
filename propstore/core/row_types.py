@@ -62,6 +62,20 @@ class ConflictRow:
     def __post_init__(self) -> None:
         object.__setattr__(self, "attributes", dict(self.attributes))
 
+    def to_dict(self) -> dict[str, Any]:
+        data = {
+            "claim_a_id": self.claim_a_id,
+            "claim_b_id": self.claim_b_id,
+        }
+        if self.concept_id is not None:
+            data["concept_id"] = self.concept_id
+        if self.warning_class is not None:
+            data["warning_class"] = self.warning_class
+        if self.conflict_class is not None:
+            data["conflict_class"] = self.conflict_class
+        data.update(self.attributes)
+        return data
+
     @classmethod
     def from_mapping(cls, row_map: Mapping[str, Any]) -> ConflictRow:
         attributes = {
@@ -92,6 +106,22 @@ class ParameterizationRow:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "attributes", dict(self.attributes))
+
+    def to_dict(self) -> dict[str, Any]:
+        data = {
+            "output_concept_id": self.output_concept_id,
+            "concept_ids": self.concept_ids,
+        }
+        if self.formula is not None:
+            data["formula"] = self.formula
+        if self.sympy is not None:
+            data["sympy"] = self.sympy
+        if self.exactness is not None:
+            data["exactness"] = self.exactness
+        if self.conditions_cel is not None:
+            data["conditions_cel"] = self.conditions_cel
+        data.update(self.attributes)
+        return data
 
     @classmethod
     def from_mapping(

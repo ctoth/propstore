@@ -6,9 +6,11 @@ import json
 from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.activation import is_claim_mapping_active
+from propstore.core.environment import ArtifactStore
+from propstore.core.row_types import coerce_conflict_row, coerce_parameterization_row
 from propstore.world.labelled import (
     AssumptionRef,
     EnvironmentKey,
@@ -36,7 +38,10 @@ if TYPE_CHECKING:
     from propstore.fragility import FragilityReport
     from propstore.validate_contexts import ContextHierarchy
     from propstore.world.atms import ATMSEngine
-    from propstore.world.model import WorldModel
+
+@runtime_checkable
+class _ContextHierarchyLoader(Protocol):
+    def _load_context_hierarchy(self) -> ContextHierarchy | None: ...
 
 
 def _concept_registry_for_store(world) -> dict[str, dict]:
@@ -53,12 +58,17 @@ def _concept_registry_for_store(world) -> dict[str, dict]:
         params = world.parameterizations_for(cid)
         if params:
             cdata["parameterization_relationships"] = []
-            for param in params:
+            for param_input in params:
+                param = coerce_parameterization_row(param_input)
                 cdata["parameterization_relationships"].append({
-                    "inputs": json.loads(param["concept_ids"]),
-                    "sympy": param.get("sympy"),
-                    "exactness": param.get("exactness"),
-                    "conditions": json.loads(param["conditions_cel"]) if param.get("conditions_cel") else [],
+                    "inputs": json.loads(param.concept_ids),
+                    "sympy": param.sympy,
+                    "exactness": param.exactness,
+                    "conditions": (
+                        json.loads(param.conditions_cel)
+                        if param.conditions_cel
+                        else []
+                    ),
                 })
         registry[cid] = cdata
     return registry
@@ -96,8 +106,11 @@ def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
         data={"claims": [_claim_row_to_source_claim(claim) for claim in claims]},
     )
     concept_registry = _concept_registry_for_store(world)
-    hierarchy_loader = getattr(world, "_load_context_hierarchy", None)
-    context_hierarchy: ContextHierarchy | None = hierarchy_loader() if callable(hierarchy_loader) else None
+    context_hierarchy = (
+        world._load_context_hierarchy()
+        if isinstance(world, _ContextHierarchyLoader)
+        else None
+    )
     records = detect_conflicts(
         [synthetic],
         concept_registry,
@@ -124,7 +137,7 @@ class BoundWorld(BeliefSpace):
 
     def __init__(
         self,
-        world: WorldModel,
+        world: ArtifactStore,
         bindings: dict[str, Any] | None = None,
         context_id: str | None = None,
         context_hierarchy: ContextHierarchy | None = None,
@@ -165,7 +178,10 @@ class BoundWorld(BeliefSpace):
             self._context_visible = None  # no context filtering
         self._conflicts_cache: dict[str | None, list[dict]] = {}
         self._resolver = ActiveClaimResolver(
-            parameterizations_for=getattr(self._store, "parameterizations_for", lambda _cid: []),
+            parameterizations_for=lambda concept_id: [
+                coerce_parameterization_row(row).to_dict()
+                for row in self._store.parameterizations_for(concept_id)
+            ],
             is_param_compatible=self.is_param_compatible,
             value_of=self.value_of,
             extract_variable_concepts=self.extract_variable_concepts,
@@ -187,12 +203,10 @@ class BoundWorld(BeliefSpace):
             if claim_id in self._inactive_claim_id_set:
                 return False
 
-        solver_getter = getattr(self._store, "condition_solver", None)
-        solver = solver_getter() if callable(solver_getter) else None
         return is_claim_mapping_active(
             claim,
             environment=self._environment,
-            solver=solver,
+            solver=self._store.condition_solver(),
             context_hierarchy=self._context_hierarchy,
         )
 
@@ -420,7 +434,7 @@ class BoundWorld(BeliefSpace):
         return iterated_revise_state(
             current_state,
             atom,
-            conflicts=conflicts,
+            conflicts=None if conflicts is None else dict(conflicts),
             operator=operator,
         )
 
@@ -695,12 +709,15 @@ class BoundWorld(BeliefSpace):
         active_claims = self.active_claims(concept_id)
         active_ids = {c["id"] for c in active_claims}
 
-        result = []
-        all_conflicts = self._store.conflicts()
+        result: list[dict] = []
+        all_conflicts = [
+            coerce_conflict_row(conflict)
+            for conflict in self._store.conflicts()
+        ]
         for conflict in all_conflicts:
-            if conflict["claim_a_id"] in active_ids and conflict["claim_b_id"] in active_ids:
-                if concept_id is None or conflict.get("concept_id") == concept_id:
-                    result.append(conflict)
+            if conflict.claim_a_id in active_ids and conflict.claim_b_id in active_ids:
+                if concept_id is None or conflict.concept_id == concept_id:
+                    result.append(conflict.to_dict())
         seen = {(c["claim_a_id"], c["claim_b_id"], c.get("concept_id")) for c in result}
         for conflict in _recomputed_conflicts(self._store, active_claims):
             key = (conflict["claim_a_id"], conflict["claim_b_id"], conflict.get("concept_id"))
