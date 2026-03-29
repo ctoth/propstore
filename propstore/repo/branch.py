@@ -16,7 +16,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from propstore.repo.git_backend import _ref_get
+from propstore.repo.git_backend import _commit_object, _ref_delete, _ref_get, _ref_set
 
 if TYPE_CHECKING:
     from propstore.repo.git_backend import KnowledgeRepo
@@ -70,9 +70,7 @@ def create_branch(kr: KnowledgeRepo, name: str, source_commit: str | None = None
     else:
         sha_bytes = source_commit.encode("ascii")
 
-    kr._repo.refs[ref] = sha_bytes
-    # Store branch metadata for later retrieval
-    kr._branch_meta = getattr(kr, "_branch_meta", {})
+    _ref_set(kr._repo.refs, ref, sha_bytes)
     kr._branch_meta[name] = {
         "parent_branch": "master" if source_commit is None else "",
         "created_at": int(time.time()),
@@ -92,7 +90,7 @@ def delete_branch(kr: KnowledgeRepo, name: str) -> None:
     ref = f"refs/heads/{name}".encode()
     if _ref_get(kr._repo.refs, ref) is None:
         raise ValueError(f"Branch {name!r} does not exist")
-    del kr._repo.refs[ref]
+    _ref_delete(kr._repo.refs, ref)
 
 
 def list_branches(kr: KnowledgeRepo) -> list[BranchInfo]:
@@ -108,13 +106,15 @@ def list_branches(kr: KnowledgeRepo) -> list[BranchInfo]:
             continue
         name = ref_bytes[len(prefix):].decode("utf-8")
         tip_sha = sha_bytes.decode("ascii")
-        meta = getattr(kr, "_branch_meta", {}).get(name, {})
+        meta = kr._branch_meta.get(name, {})
+        parent_branch = meta.get("parent_branch", "")
+        created_at = meta.get("created_at", 0)
         result.append(BranchInfo(
             name=name,
             tip_sha=tip_sha,
             kind=_detect_kind(name),
-            parent_branch=meta.get("parent_branch", ""),
-            created_at=meta.get("created_at", 0),
+            parent_branch=parent_branch if isinstance(parent_branch, str) else "",
+            created_at=created_at if isinstance(created_at, int) else 0,
         ))
     return result
 
@@ -135,7 +135,7 @@ def _ancestor_distances(kr: KnowledgeRepo, start_sha: str) -> dict[str, int]:
     while queue:
         current = queue.popleft()
         current_distance = distances[current]
-        commit_obj = kr._repo[current.encode("ascii")]
+        commit_obj = _commit_object(kr._repo, current.encode("ascii"))
         for parent in commit_obj.parents:
             parent_sha = parent.decode("ascii")
             next_distance = current_distance + 1

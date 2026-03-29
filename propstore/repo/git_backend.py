@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 import yaml
 from dulwich.objects import Blob, Tree, Commit
@@ -49,6 +51,51 @@ def _ref_get(refs, ref_name: bytes) -> bytes | None:
         return None
 
 
+def _ref_set(refs: Any, ref_name: bytes, object_id: bytes) -> None:
+    refs[ref_name] = object_id
+
+
+def _ref_delete(refs: Any, ref_name: bytes) -> None:
+    del refs[ref_name]
+
+
+def _symref_get(refs: Any, ref_name: bytes) -> bytes | None:
+    return refs.get_symrefs().get(ref_name)
+
+
+def _set_symbolic_ref(refs: Any, name: bytes, target: bytes) -> None:
+    refs.set_symbolic_ref(name, target)
+
+
+def _walker(repo: Any, tip: bytes, *, max_entries: int) -> Any:
+    return repo.get_walker(include=[tip], max_entries=max_entries)
+
+
+def _repo_object(repo: Repo, object_id: bytes) -> Blob | Tree | Commit:
+    obj = repo[object_id]
+    if isinstance(obj, (Blob, Tree, Commit)):
+        return obj
+    raise TypeError(f"Unexpected git object type: {type(obj).__name__}")
+
+
+def _commit_object(repo: Repo, object_id: bytes) -> Commit:
+    obj = _repo_object(repo, object_id)
+    if isinstance(obj, Commit):
+        return obj
+    raise TypeError(f"Expected commit object, got {type(obj).__name__}")
+
+
+def _tree_object(repo: Repo, object_id: bytes) -> Tree:
+    obj = _repo_object(repo, object_id)
+    if isinstance(obj, Tree):
+        return obj
+    raise TypeError(f"Expected tree object, got {type(obj).__name__}")
+
+
+def _tree_add(tree: Any, name: bytes, mode: int, object_id: bytes) -> None:
+    tree.add(name, mode, object_id)
+
+
 class KnowledgeRepo:
     """Git-backed knowledge repository wrapping a Dulwich Repo.
 
@@ -59,6 +106,7 @@ class KnowledgeRepo:
     def __init__(self, dulwich_repo: Repo, root: Path) -> None:
         self._repo = dulwich_repo
         self._root = root
+        self._branch_meta: dict[str, dict[str, str | int]] = {}
 
     @property
     def root(self) -> Path:
@@ -119,21 +167,21 @@ class KnowledgeRepo:
     # ── Write ────────────────────────────────────────────────────────
 
     def commit_files(
-        self, changes: dict[str | Path, bytes], message: str, *, branch: str = "master"
+        self, changes: Mapping[str | Path, bytes], message: str, *, branch: str = "master"
     ) -> str:
         """Add/update files and commit. Returns the commit sha hex."""
         return self._commit(adds=changes, deletes=[], message=message, branch=branch)
 
     def commit_deletes(
-        self, paths: list[str | Path], message: str, *, branch: str = "master"
+        self, paths: Sequence[str | Path], message: str, *, branch: str = "master"
     ) -> str:
         """Delete files and commit. Returns the commit sha hex."""
         return self._commit(adds={}, deletes=paths, message=message, branch=branch)
 
     def commit_batch(
         self,
-        adds: dict[str | Path, bytes],
-        deletes: list[str | Path],
+        adds: Mapping[str | Path, bytes],
+        deletes: Sequence[str | Path],
         message: str,
         *,
         branch: str = "master",
@@ -160,7 +208,7 @@ class KnowledgeRepo:
                 return []
 
         result: list[dict] = []
-        walker = self._repo.get_walker(include=[tip], max_entries=max_count)
+        walker = _walker(self._repo, tip, max_entries=max_count)
         for entry in walker:
             c = entry.commit
             result.append({
@@ -199,8 +247,8 @@ class KnowledgeRepo:
             head = self._repo.head()
         except KeyError:
             return
-        commit = self._repo[head]
-        tree = self._repo[commit.tree]
+        commit = _commit_object(self._repo, head)
+        tree = _tree_object(self._repo, commit.tree)
         # Collect all paths in the git tree
         git_paths: set[str] = set()
         self._collect_tree_paths(tree, "", git_paths)
@@ -268,7 +316,7 @@ class KnowledgeRepo:
 
         # Resolve commit2 (parent of commit1)
         if commit2 is None:
-            commit1_obj = self._repo[commit1.encode("ascii")]
+            commit1_obj = _commit_object(self._repo, commit1.encode("ascii"))
             if commit1_obj.parents:
                 commit2 = commit1_obj.parents[0].decode("ascii")
             else:
@@ -302,7 +350,7 @@ class KnowledgeRepo:
         Returns: {"sha": str, "message": str, "author": str, "time": str,
                   "added": [...], "modified": [...], "deleted": [...]}
         """
-        commit_obj = self._repo[sha.encode("ascii")]
+        commit_obj = _commit_object(self._repo, sha.encode("ascii"))
         info = {
             "sha": sha,
             "message": commit_obj.message.decode("utf-8", errors="replace").strip(),
@@ -328,8 +376,8 @@ class KnowledgeRepo:
 
     def _commit(
         self,
-        adds: dict[str, bytes],
-        deletes: list[str],
+        adds: Mapping[str | Path, bytes],
+        deletes: Sequence[str | Path],
         message: str,
         branch: str = "master",
     ) -> str:
@@ -346,8 +394,8 @@ class KnowledgeRepo:
         # Get current tree from branch tip, or start empty
         tip_sha = _ref_get(self._repo.refs, branch_ref)
         if tip_sha is not None:
-            parent_commit = self._repo[tip_sha]
-            base_tree = self._repo[parent_commit.tree]
+            parent_commit = _commit_object(self._repo, tip_sha)
+            base_tree = _tree_object(self._repo, parent_commit.tree)
             parents = [tip_sha]
         else:
             base_tree = None
@@ -387,11 +435,11 @@ class KnowledgeRepo:
         commit.author_timezone = 0
         commit.parents = parents
         store.add_object(commit)
-        self._repo.refs[branch_ref] = commit.id
+        _ref_set(self._repo.refs, branch_ref, commit.id)
         # Only set HEAD symref when committing to master
         if branch == "master":
-            if not self._repo.refs.get_symrefs().get(b"HEAD"):
-                self._repo.refs.set_symbolic_ref(b"HEAD", b"refs/heads/master")
+            if not _symref_get(self._repo.refs, b"HEAD"):
+                _set_symbolic_ref(self._repo.refs, b"HEAD", b"refs/heads/master")
 
         return commit.id.decode("ascii")
 
@@ -402,7 +450,7 @@ class KnowledgeRepo:
         for entry in tree.items():
             name = entry.path.decode("utf-8")
             path = f"{prefix}{name}" if not prefix else f"{prefix}/{name}"
-            obj = self._repo[entry.sha]
+            obj = _repo_object(self._repo, entry.sha)
             if isinstance(obj, Tree):
                 self._flatten_tree(obj, path, out)
             elif isinstance(obj, Blob):
@@ -426,14 +474,14 @@ class KnowledgeRepo:
         tree = Tree()
         # Add direct blobs
         for name, sha in sorted(direct_blobs):
-            tree.add(name.encode("utf-8"), 0o100644, sha)
+            _tree_add(tree, name.encode("utf-8"), 0o100644, sha)
 
         # Recursively build subtrees
         for dirname in sorted(children):
             sub_entries = {rest: sha for rest, sha in children[dirname]}
             sub_tree = self._build_tree_from_flat(sub_entries, store)
             store.add_object(sub_tree)
-            tree.add(dirname.encode("utf-8"), 0o040000, sub_tree.id)
+            _tree_add(tree, dirname.encode("utf-8"), 0o040000, sub_tree.id)
 
         store.add_object(tree)
         return tree
@@ -442,13 +490,13 @@ class KnowledgeRepo:
         """Get the root tree for a commit (or HEAD)."""
         try:
             if commit is not None:
-                commit_obj = self._repo[commit.encode("ascii")]
+                commit_obj = _commit_object(self._repo, commit.encode("ascii"))
             else:
                 head = self._repo.head()
-                commit_obj = self._repo[head]
+                commit_obj = _commit_object(self._repo, head)
         except KeyError:
             return None
-        return self._repo[commit_obj.tree]
+        return _tree_object(self._repo, commit_obj.tree)
 
     def _walk_tree(self, tree: Tree | None, parts: tuple[str, ...]):
         """Walk a tree by path parts, returning the final object or None."""
@@ -461,7 +509,7 @@ class KnowledgeRepo:
             found = False
             for entry in obj.items():
                 if entry.path.decode("utf-8") == part:
-                    obj = self._repo[entry.sha]
+                    obj = _repo_object(self._repo, entry.sha)
                     found = True
                     break
             if not found:
@@ -479,7 +527,7 @@ class KnowledgeRepo:
         for entry in tree.items():
             name = entry.path.decode("utf-8")
             path = f"{prefix}{name}" if not prefix else f"{prefix}/{name}"
-            obj = self._repo[entry.sha]
+            obj = _repo_object(self._repo, entry.sha)
             if isinstance(obj, Tree):
                 self._collect_tree_paths(obj, path, out)
             elif isinstance(obj, Blob):
