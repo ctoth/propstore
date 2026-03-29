@@ -24,6 +24,7 @@ from propstore.world.types import (
     IntegrityConstraint,
     IntegrityConstraintKind,
     MergeAssignment,
+    MergeOperator,
     MergeSource,
     ReasoningBackend,
     RenderPolicy,
@@ -250,7 +251,7 @@ def _resolve_ic_merge(
     merge_operator = (
         policy.merge_operator
         if policy is not None
-        else "sigma"
+        else MergeOperator.SIGMA
     )
 
     source_rows: list[Mapping[str, object]] = []

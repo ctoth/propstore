@@ -8,6 +8,8 @@ The result is a claim-graph backend inspired by Dung and ASPIC+ ideas.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from propstore.core.analyzers import (
     _ATTACK_TYPES,
     _NON_ATTACK_TYPES,
@@ -23,6 +25,9 @@ from propstore.world.types import (
     ReasoningBackend,
     validate_backend_semantics,
 )
+
+if TYPE_CHECKING:
+    from propstore.praf import ProbabilisticAF
 
 
 def build_argumentation_framework(

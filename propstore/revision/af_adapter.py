@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from propstore.revision.state import EpistemicState
 from propstore.world.labelled import Label, SupportQuality
@@ -16,10 +16,25 @@ class RevisionArgumentationView:
     support_metadata: Mapping[str, tuple[Label | None, SupportQuality]]
 
 
+@runtime_checkable
+class _StanceStore(Protocol):
+    def stances_between(self, claim_ids: set[str]) -> Sequence[Mapping[str, Any]]: ...
+
+
+@runtime_checkable
+class _ConflictStore(Protocol):
+    def conflicts(self) -> Sequence[Mapping[str, Any]]: ...
+
+
+@runtime_checkable
+class _TableStore(Protocol):
+    def has_table(self, name: str) -> bool: ...
+
+
 class RevisionArgumentationStore:
     """Read-only store overlay exposing the claims active in a revision state."""
 
-    def __init__(self, backing_store, active_claims: tuple[dict[str, Any], ...]) -> None:
+    def __init__(self, backing_store: object, active_claims: tuple[dict[str, Any], ...]) -> None:
         self._backing_store = backing_store
         self._active_claims = tuple(dict(claim) for claim in active_claims)
         self._claims_by_id = {
@@ -52,32 +67,29 @@ class RevisionArgumentationStore:
 
     def stances_between(self, claim_ids: set[str]) -> list[dict]:
         requested = self._active_claim_ids & {str(claim_id) for claim_id in claim_ids}
-        getter = getattr(self._backing_store, "stances_between", None)
-        if not callable(getter):
+        if not isinstance(self._backing_store, _StanceStore):
             return []
         return [
             dict(row)
-            for row in getter(set(requested))
+            for row in self._backing_store.stances_between(set(requested))
             if row.get("claim_id") in requested
             and row.get("target_claim_id") in requested
         ]
 
     def conflicts(self) -> list[dict]:
-        getter = getattr(self._backing_store, "conflicts", None)
-        if not callable(getter):
+        if not isinstance(self._backing_store, _ConflictStore):
             return []
         return [
             dict(row)
-            for row in getter()
+            for row in self._backing_store.conflicts()
             if row.get("claim_a_id") in self._active_claim_ids
             and row.get("claim_b_id") in self._active_claim_ids
         ]
 
     def has_table(self, name: str) -> bool:
-        getter = getattr(self._backing_store, "has_table", None)
-        if not callable(getter):
+        if not isinstance(self._backing_store, _TableStore):
             return False
-        return bool(getter(name))
+        return bool(self._backing_store.has_table(name))
 
     def __getattr__(self, name: str) -> Any:
         if name == "compiled_graph":
@@ -86,7 +98,7 @@ class RevisionArgumentationStore:
 
 
 def project_epistemic_state_argumentation_view(
-    backing_store,
+    backing_store: object,
     state: EpistemicState,
 ) -> RevisionArgumentationView:
     """Project an epistemic state into the current argumentation input surfaces."""

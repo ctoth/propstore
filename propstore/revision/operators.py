@@ -47,7 +47,7 @@ def expand(base: BeliefBase, atom: BeliefAtom | str | Mapping[str, Any]) -> Revi
     atom_by_id = {existing.atom_id: existing for existing in base.atoms}
     atom_by_id.setdefault(atom.atom_id, atom)
     stabilized = stabilize_belief_base(
-        _rebuild_base(base, atom_by_id.values()),
+        _rebuild_base(base, tuple(atom_by_id.values())),
         incision_set=(),
     )
     explanation = dict(stabilized.explanation)
