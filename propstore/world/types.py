@@ -116,6 +116,7 @@ class ResolutionStrategy(StrEnum):
     SAMPLE_SIZE = "sample_size"
     ARGUMENTATION = "argumentation"
     OVERRIDE = "override"
+    IC_MERGE = "ic_merge"
 
 
 class ReasoningBackend(StrEnum):
@@ -210,6 +211,14 @@ class RenderPolicy:
     # Default False preserves legacy suppression behavior; True is the principled
     # non-commitment choice (render-time policy, not build-time filter).
     include_conflict_stances: bool = False
+    # IC merge fields (Konieczny & Pino Pérez 2002)
+    # merge_operator selects distance aggregation: "sigma" (majority), "max"
+    # (quasi-merge), or "gmax" (arbitration).
+    merge_operator: str = "sigma"
+    # branch_filter restricts which branches are included as sources.
+    branch_filter: tuple[str, ...] | None = None
+    # branch_weights assigns per-branch importance weights.
+    branch_weights: Mapping[str, float] | None = None
     future_queryables: tuple[str, ...] = field(default_factory=tuple)
     future_limit: int | None = None
     overrides: Mapping[str, str] = field(default_factory=dict)
@@ -220,6 +229,23 @@ class RenderPolicy:
             raise TypeError("RenderPolicy.reasoning_backend must be a ReasoningBackend")
         if self.strategy is not None and not isinstance(self.strategy, ResolutionStrategy):
             raise TypeError("RenderPolicy.strategy must be a ResolutionStrategy or None")
+        if self.merge_operator not in ("sigma", "max", "gmax"):
+            raise ValueError(
+                f"RenderPolicy.merge_operator must be 'sigma', 'max', or 'gmax', "
+                f"got '{self.merge_operator}'"
+            )
+        if self.branch_filter is not None:
+            object.__setattr__(
+                self,
+                "branch_filter",
+                tuple(self.branch_filter),
+            )
+        if self.branch_weights is not None:
+            object.__setattr__(
+                self,
+                "branch_weights",
+                dict(self.branch_weights),
+            )
         object.__setattr__(
             self,
             "future_queryables",
@@ -291,6 +317,17 @@ class RenderPolicy:
                 else int(data["praf_mc_seed"])
             ),
             include_conflict_stances=bool(data.get("include_conflict_stances", False)),
+            merge_operator=str(data.get("merge_operator", "sigma")),
+            branch_filter=(
+                None
+                if data.get("branch_filter") is None
+                else tuple(data["branch_filter"])
+            ),
+            branch_weights=(
+                None
+                if data.get("branch_weights") is None
+                else dict(data["branch_weights"])
+            ),
             future_queryables=tuple(data.get("future_queryables") or ()),
             future_limit=(
                 None
@@ -331,6 +368,12 @@ class RenderPolicy:
             data["praf_mc_seed"] = self.praf_mc_seed
         if self.include_conflict_stances:
             data["include_conflict_stances"] = self.include_conflict_stances
+        if self.merge_operator != "sigma":
+            data["merge_operator"] = self.merge_operator
+        if self.branch_filter is not None:
+            data["branch_filter"] = list(self.branch_filter)
+        if self.branch_weights is not None:
+            data["branch_weights"] = dict(self.branch_weights)
         if self.future_queryables:
             data["future_queryables"] = list(self.future_queryables)
         if self.future_limit is not None:

@@ -10,6 +10,14 @@ from propstore.repo.branch_reasoning import (
     branch_nogoods_from_merge,
     inject_branch_stances,
 )
+from propstore.repo.ic_merge import (
+    MergeOperator,
+    sigma_merge,
+    max_merge,
+    gmax_merge,
+    ic_merge,
+    claim_distance,
+)
 
 __all__ = [
     "KnowledgeRepo",
@@ -20,4 +28,10 @@ __all__ = [
     "make_branch_assumption",
     "branch_nogoods_from_merge",
     "inject_branch_stances",
+    "MergeOperator",
+    "sigma_merge",
+    "max_merge",
+    "gmax_merge",
+    "ic_merge",
+    "claim_distance",
 ]
