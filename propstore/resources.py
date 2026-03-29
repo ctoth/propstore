@@ -8,6 +8,7 @@ Resources live in propstore/_resources/.
 from __future__ import annotations
 
 import json
+from importlib.resources.abc import Traversable
 from pathlib import Path
 
 
@@ -26,19 +27,21 @@ def _is_development_mode() -> bool:
     return _DEVELOPMENT_MODE
 
 
-def _get_resource_root() -> Path:
-    """Get root resource directory.
+def _development_resource(relative_path: str) -> Path:
+    return Path(__file__).resolve().parent / "_resources" / relative_path
 
-    Development: Path("<repo>/propstore/_resources")
-    Installed: importlib.resources.files("propstore") / "_resources"
-    """
+
+def _installed_resource(relative_path: str) -> Traversable:
+    from importlib.resources import files
+
+    return files("propstore").joinpath("_resources", relative_path)
+
+
+def _get_resource(relative_path: str) -> Path | Traversable:
+    """Get a resource handle for development or installed mode."""
     if _is_development_mode():
-        return Path(__file__).resolve().parent / "_resources"
-    else:
-        from importlib.resources import files
-        # files() returns a Traversable; for our JSON use case we need
-        # as_posix() compatible access, but read_text works on both.
-        return files("propstore") / "_resources"  # type: ignore[return-value] # Traversable is not Path; works at runtime via duck typing
+        return _development_resource(relative_path)
+    return _installed_resource(relative_path)
 
 
 def load_resource_text(relative_path: str) -> str:
@@ -48,8 +51,7 @@ def load_resource_text(relative_path: str) -> str:
         relative_path: Path relative to propstore/_resources/
                       Example: "physgen_units.json"
     """
-    root = _get_resource_root()
-    resource = root.joinpath(relative_path)
+    resource = _get_resource(relative_path)
     return resource.read_text(encoding="utf-8")
 
 
@@ -60,6 +62,5 @@ def load_resource_json(relative_path: str) -> dict | list:
 
 def resource_exists(relative_path: str) -> bool:
     """Check if a resource exists."""
-    root = _get_resource_root()
-    resource = root.joinpath(relative_path)
+    resource = _get_resource(relative_path)
     return resource.is_file()

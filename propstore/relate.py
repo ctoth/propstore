@@ -27,6 +27,17 @@ def _require_litellm():
         )
 
 
+def _response_content_text(response: object) -> str | None:
+    choices = getattr(response, "choices", None)
+    if not isinstance(choices, list) or not choices:
+        return None
+    message = getattr(choices[0], "message", None)
+    if message is None:
+        return None
+    content = getattr(message, "content", None)
+    return content if isinstance(content, str) else None
+
+
 _CLASSIFICATION_PROMPT = """Given two propositional claims from scientific papers, classify their epistemic relationship.
 
 Claim A (from {source_a}):
@@ -178,7 +189,24 @@ async def _classify_stance_async(
                 },
             }
 
-    text = response.choices[0].message.content.strip()  # type: ignore[union-attr] # litellm ModelResponse content may be typed as optional but is always present for non-streaming
+    response_text = _response_content_text(response)
+    if response_text is None:
+        return {
+            "target": claim_b["id"],
+            "type": "error",
+            "strength": "weak",
+            "note": "missing response content",
+            "conditions_differ": None,
+            "resolution": {
+                "method": f"nli_{'first' if pass_number == 1 else 'second'}_pass",
+                "model": model_name,
+                "embedding_model": embedding_model,
+                "embedding_distance": embedding_distance,
+                "pass_number": pass_number,
+                "confidence": 0.0,
+            },
+        }
+    text = response_text.strip()
     try:
         result = json.loads(text)
     except json.JSONDecodeError:
