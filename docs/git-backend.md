@@ -9,7 +9,7 @@ Dulwich is confined to a single file (`propstore/repo/git_backend.py`). Everythi
 - **Object store is truth, working tree is a view.** `sync_worktree()` materializes HEAD to disk. The object store is never derived from the filesystem.
 - **Dulwich confined to one file.** Only `propstore/repo/git_backend.py` imports Dulwich. All other modules use `KnowledgeRepo` or `TreeReader`.
 - **HEAD is secondary; branch refs are primary.** Branch refs (`refs/heads/{name}`) are the authoritative pointers. HEAD symref is only set when the active branch is master.
-- **No merge commits.** Strictly linear history per branch. Each commit has exactly one parent. This enforces Backward Uniqueness (Bonanno 2007, claim 9): the history leading to any belief state is unique.
+- **Linear ordinary history per branch; merge commits exist globally.** Ordinary branch commits created by `KnowledgeRepo._commit()` have exactly one parent, so each branch's non-merge history stays linear. Repository merges created by `propstore/repo/merge_commit.py:create_merge_commit()` write two-parent commits on the target branch.
 - **Branch metadata is ephemeral.** `_branch_meta` is stored as an attribute on the `KnowledgeRepo` instance, not persisted to git. It is lost when the process exits.
 
 ## KnowledgeRepo
@@ -53,6 +53,8 @@ All three delegate to `_commit()`, which:
 6. Updates the branch ref; only sets HEAD symref when `branch == "master"`
 
 `propstore/repo/git_backend.py:KnowledgeRepo._commit`
+
+`_commit()` is the ordinary single-parent commit path. Formal repository merges use `create_merge_commit()` instead; that code path writes a two-parent commit after constructing the merge framework.
 
 ### History
 
@@ -103,7 +105,7 @@ Backed by a `KnowledgeRepo` and an optional commit SHA. Delegates to `KnowledgeR
 
 ## Branch Operations
 
-Branches provide isolated epistemic states (Darwiche & Pearl 1997, C1-C4). Each branch maintains independent linear history. Commits to one branch are invisible on other branches.
+Branches provide isolated epistemic states (Darwiche & Pearl 1997, C1-C4). Each branch maintains independent ordinary history until an explicit merge writes a two-parent commit onto a target branch. Commits to one branch are invisible on other branches until merged.
 
 `propstore/repo/branch.py`
 
@@ -131,6 +133,33 @@ Fields: `name`, `tip_sha`, `kind`, `parent_branch`, `created_at`.
 | `list_branches(kr)` | Iterates `refs/heads/*`, infers kind from name prefix. |
 | `branch_head(kr, name)` | Tip SHA lookup for a named branch. |
 | `merge_base(kr, branch_a, branch_b)` | BFS from both tips, returns the first overlap. Identifies the common knowledge base for IC merging (Konieczny & Pino Perez 2002). |
+
+## Formal Merge Layer
+
+The repository merge path now has an explicit formal layer above raw git writes.
+
+### Merge Framework
+
+`propstore/repo/merge_classifier.py:build_merge_framework`
+
+Builds a `RepoMergeFramework` from two branch tips. Its public payload is:
+
+- `arguments` — branch-local argument summaries with provenance back to claims
+- `framework` — a partial argumentation framework over those arguments
+- `branch_a`, `branch_b`, `merge_base` — branch provenance and common ancestor
+
+The partial framework records `attack`, `ignorance`, and `non-attack` over the merged argument universe. This is the canonical merge object for downstream inspection, exact operators, and reporting.
+
+### Merge Commit Creation
+
+`propstore/repo/merge_commit.py:create_merge_commit`
+
+1. Build the formal merge framework with `build_merge_framework()`
+2. Materialize merged claim storage from the merged argument set
+3. Write a git commit with `parents = [left_sha, right_sha]`
+4. Update the target branch ref
+
+The two-parent git commit is storage/provenance. The merge semantics live in the formal merge framework and its completion-based queries.
 
 ## Historical Builds
 
@@ -218,9 +247,32 @@ pks promote
 
 Moves files from `proposals/stances/` to `stances/`, commits the batch atomically, and syncs the working tree.
 
+### pks merge inspect
+
+Inspect the formal merge framework between two branches.
+
+```bash
+uv run pks merge inspect agent/paper-a agent/paper-b --semantics grounded
+```
+
+Output is a YAML summary derived from `propstore/repo/merge_report.py`, including branch provenance, framework size, uncertain pairs, and acceptance under the requested semantics.
+
+### pks merge commit
+
+Create a two-parent storage merge commit from the formal merge framework.
+
+```bash
+uv run pks merge commit agent/paper-a agent/paper-b --target-branch master
+```
+
+Options:
+
+- `--message` — override the default commit message
+- `--target-branch` — choose which branch receives the merge commit
+
 ## References
 
-- **Bonanno, G. (2007).** "Axiomatic Characterization of the AGM Theory of Belief Revision in a Temporal Logic." — Backward Uniqueness (claim 9): the history leading to any belief state is unique. Grounds the strictly-linear-history invariant.
+- **Bonanno, G. (2007).** "Axiomatic Characterization of the AGM Theory of Belief Revision in a Temporal Logic." — Backward Uniqueness (claim 9): the history leading to any belief state is unique. Grounds the linear ordinary-history invariant inside a branch, not a global no-merge-commit claim.
 
 - **Darwiche, A. & Pearl, J. (1997).** "On the Logic of Iterated Belief Revision." — C1-C4 postulates for iterated revision. Each branch is an independent epistemic state.
 

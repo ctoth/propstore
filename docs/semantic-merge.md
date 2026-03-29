@@ -1,97 +1,194 @@
 # Semantic Merge
 
-propstore formalizes git operations as belief revision. Branches are independent epistemic states; merges classify conflicts rather than resolving them; render-time operators aggregate multi-branch knowledge under different policies.
+propstore now exposes a formal repository merge layer built around partial argumentation frameworks rather than the older public six-bucket merge-classification API.
 
-The key insight: merge drivers classify conflicts, never resolve them. Both sides flow into storage with provenance. Resolution is a render-time computation parameterized by operator choice. This preserves propstore's non-commitment discipline while giving git's DAG formal belief-revision semantics.
+The central split is:
+
+- **storage merge**: a two-parent git commit that preserves both sides with provenance
+- **formal merge**: an explicit partial framework with `attack / ignorance / non_attack`, completion semantics, exact merge operators, and query/report surfaces
+
+Merge commits are not themselves the IC merge operator. They are provenance-preserving storage objects built from the formal merge object.
+
+## What Exists Now
+
+The repository layer exposes these public merge modules:
+
+| Module | What it does |
+|---|---|
+| `propstore/repo/merge_framework.py` | `PartialArgumentationFramework`, completion enumeration, exact per-pair edit distance |
+| `propstore/repo/merge_classifier.py` | `MergeArgument`, `RepoMergeFramework`, `build_merge_framework()` — direct repo emission of the formal merge object |
+| `propstore/repo/merge_commit.py` | `create_merge_commit()` — two-parent storage merge built from the formal merge object |
+| `propstore/repo/branch_reasoning.py` | branch assumptions, nogoods, and synthetic contradiction stances derived from the merge framework |
+| `propstore/repo/paf_merge.py` | exact `consensual_expand()`, `sum_merge_frameworks()`, `max_merge_frameworks()`, `leximax_merge_frameworks()` |
+| `propstore/repo/paf_queries.py` | skeptical and credulous completion queries |
+| `propstore/repo/merge_report.py` | repo-facing summary/report helper over merge frameworks |
+| `propstore/repo/structured_merge.py` | branch-local structured summaries via ASPIC projection, then exact merge candidates over those summaries |
+
+`propstore/repo/__init__.py` re-exports the public merge surface.
 
 ## Formal Mapping
 
-| Git operation | Belief revision operation | Correctness criteria | Source |
-|---|---|---|---|
-| commit on branch | iterated revision of epistemic state | DP postulates C1-C4 | Darwiche & Pearl 1997 |
-| branch | context fork in branching-time frame | BU validated | Bonanno 2007 |
-| merge classification | three-way diff at claim granularity | IC3 syntax independence | Coste-Marquis et al. 2007 |
-| merge commit | IC merging of multiple belief bases | IC0-IC8 | Konieczny & Pino Perez 2002 |
-| branch assumption | DATMS agent belief space | nogood-based pruning | Mason & Johnson 1989 |
-| cross-branch attack | PAF attack from merge conflict | contradicts stances | Coste-Marquis et al. 2007 |
+| Git operation | Formal role | Status |
+|---|---|---|
+| branch | isolated source belief state | implemented operationally |
+| merge-base | common ancestor for source comparison | implemented |
+| repo merge object | partial argumentation framework over emitted alternatives | implemented |
+| completion query | skeptical / credulous acceptance over completions | implemented |
+| exact AF merge operators | Sum / Max / Leximax over tiny AF profiles | implemented |
+| storage merge commit | provenance-preserving two-parent commit | implemented |
+| branch-local structured summary | ASPIC-derived AF summary per branch | implemented first slice |
 
-Two frameworks apply to two operations:
+The literature alignment is:
 
-- **Within a branch**: linear commit sequence, Backward Uniqueness holds (Bonanno 2007 claim 9), Darwiche-Pearl iterated revision applies.
-- **At merge points**: IC merging (Konieczny & Pino Perez 2002) applies — this is belief MERGING, not revision.
+- **Coste-Marquis et al. 2007**: partial frameworks, consensual expansion, completions, AF-level merge operators
+- **Konieczny & Pino Perez 2002**: operator vocabulary and aggregation intuition
+- **Modgil / Prakken / ASPIC+**: branch-local structured summaries
+- **Mason & Johnson 1989**: branch assumptions and nogoods
 
-The frameworks do not need unification. Branches are Darwiche-Pearl territory. Merges are Konieczny territory.
-
-## Package Structure
-
-All repository-layer concerns live in `propstore/repo/`:
-
-| Module | What it does |
-|--------|-------------|
-| `git_backend.py` | `KnowledgeRepo` — Dulwich wrapper, commit/read/diff, branch-parameterized `_commit()` |
-| `branch.py` | `BranchInfo` dataclass, `create_branch()`, `delete_branch()`, `list_branches()`, `branch_head()`, `merge_base()` |
-| `merge_classifier.py` | `MergeClassification` enum (6 values), `MergeItem` dataclass, `classify_merge()` — three-way diff |
-| `merge_commit.py` | `create_merge_commit()` — two-parent commits with provenance annotation |
-| `branch_reasoning.py` | `make_branch_assumption()`, `branch_nogoods_from_merge()`, `inject_branch_stances()` — ATMS/ASPIC+ bridge |
-| `ic_merge.py` | `MergeOperator` enum, `sigma_merge()`, `max_merge()`, `gmax_merge()`, `ic_merge()`, `claim_distance()` |
-
-`propstore/repo/__init__.py` re-exports all public names.
-
-## Merge Classification
+## Repository Merge Object
 
 `propstore/repo/merge_classifier.py`
 
-### MergeClassification
-
-Six-valued enum for claim-level merge results:
-
-| Value | Meaning |
-|-------|---------|
-| `IDENTICAL` | Same claim, same value on both branches |
-| `COMPATIBLE` | Different claims, no conflict (one-sided edit or disjoint additions) |
-| `PHI_NODE` | Same concept, different values under mutually exclusive conditions — both kept |
-| `CONFLICT` | Contradictory claims (via `conflict_detector`) |
-| `NOVEL_LEFT` | Claim only on the left branch |
-| `NOVEL_RIGHT` | Claim only on the right branch |
-
-Classification is analogous to Coste-Marquis 2007 Definition 9: PAF three-valued attack relation (attack/non-attack/ignorance) applied to claim values rather than argument attack pairs.
-
-### MergeItem
-
-A frozen dataclass carrying the full three-way context for a single claim:
-
-- `classification` — one of the six values above
-- `claim_id`, `concept_id` — claim identity
-- `left_value`, `right_value`, `base_value` — the claim dict from each version (or `None`)
-- `left_branch`, `right_branch` — branch names
-
-### classify_merge()
+### `build_merge_framework()`
 
 ```python
-def classify_merge(kr: KnowledgeRepo, branch_a: str, branch_b: str) -> list[MergeItem]
+def build_merge_framework(
+    kr: KnowledgeRepo,
+    branch_a: str,
+    branch_b: str,
+) -> RepoMergeFramework
 ```
 
-Three-way diff at claim granularity:
+This is the public repo merge boundary.
 
-1. Find merge-base via `merge_base(kr, branch_a, branch_b)`
-2. Load claims from base, left tip, and right tip via `GitTreeReader`
-3. Index all claims by ID
-4. For each claim ID in the union, classify:
-   - All three present and unchanged → `IDENTICAL`
-   - Only one side modified → `COMPATIBLE`
-   - Both modified identically → `IDENTICAL`
-   - Both modified differently → delegate to `_classify_modified_both()`
-   - Present only on one side → `NOVEL_LEFT` or `NOVEL_RIGHT` (or `COMPATIBLE` when both branches diverged)
+It:
 
-The `_classify_modified_both()` helper builds synthetic `LoadedClaimFile` objects and calls `detect_conflicts()` from the conflict detector to distinguish `CONFLICT` (genuine overlap) from `PHI_NODE` (mutually exclusive conditions).
+1. finds the merge base
+2. loads claims from base, left, and right snapshots via `GitTreeReader`
+3. emits branch-specific alternatives as `MergeArgument` objects
+4. constructs a `PartialArgumentationFramework` over the emitted alternatives
 
-Comparison uses `_claim_semantic_key()` which excludes provenance metadata, satisfying IC3 (syntax independence).
+The output is:
 
-## Merge Commits
+- `RepoMergeFramework.branch_a`, `branch_b`
+- `RepoMergeFramework.arguments`: emitted alternatives with provenance
+- `RepoMergeFramework.framework`: the formal partial framework
+
+### `MergeArgument`
+
+Each emitted alternative carries:
+
+- `claim_id`: emitted ID, possibly disambiguated
+- `canonical_claim_id`: original semantic claim identity before emission
+- `concept_id`
+- `claim`: full claim dict ready for storage serialization
+- `branch_origins`: source branches supporting this emitted alternative
+
+### How disagreement is represented
+
+The public output is no longer a six-valued merge enum. Instead:
+
+- **compatible / identical / one-sided edit** cases collapse to one emitted alternative where appropriate
+- **conflict** cases emit both branch alternatives and mark them as mutual `attack`
+- **phi-node / regime split** cases emit both branch alternatives and mark them as mutual `ignorance`
+
+The internal left-v-right conflict check still uses the existing conflict detector to distinguish genuine overlap from regime split. But that distinction now feeds the formal merge object directly instead of becoming the public API.
+
+## Partial Framework Kernel
+
+`propstore/repo/merge_framework.py`
+
+### `PartialArgumentationFramework`
+
+The kernel is a strict partition of all ordered pairs in `A x A` into:
+
+- `attacks`
+- `ignorance`
+- `non_attacks`
+
+Construction fails if the partition is incomplete or overlapping.
+
+### Completions
+
+`enumerate_paf_completions()` returns every Dung AF produced by resolving each ignorance pair either as attack or non-attack.
+
+This is exact and intended for tiny merge objects and exact tests, not large-scale approximate inference.
+
+### Distance
+
+`merge_framework_edit_distance()` is exact Hamming distance over per-pair labels on a shared argument universe. It also accepts ordinary Dung AFs by coercing them to total partial frameworks with empty ignorance.
+
+## Exact Merge Operators
+
+`propstore/repo/paf_merge.py`
+
+### `consensual_expand()`
+
+Expands a source AF to a shared universe:
+
+- in-scope known attacks stay attacks
+- in-scope absent attacks become explicit non-attacks
+- out-of-scope pairs become ignorance
+
+### `sum_merge_frameworks()`
+
+Exact search over tiny candidate AFs minimizing total edit distance to the expanded source profile.
+
+### `max_merge_frameworks()`
+
+Exact search minimizing worst-case edit distance to any source.
+
+### `leximax_merge_frameworks()`
+
+Exact lexicographic refinement of `max_merge_frameworks()`.
+
+These operators currently target tiny AF profiles and are intended as exact merge kernels, not large-corpus approximations.
+
+## Completion Queries
+
+`propstore/repo/paf_queries.py`
+
+### `skeptically_accepted_arguments()`
+
+Returns arguments accepted in every extension of every completion under the chosen semantics.
+
+### `credulously_accepted_arguments()`
+
+Returns arguments accepted in some extension of some completion under the chosen semantics.
+
+Currently supported semantics are:
+
+- `grounded`
+- `preferred`
+- `stable`
+
+## Branch Reasoning
+
+`propstore/repo/branch_reasoning.py`
+
+This module now consumes `RepoMergeFramework`, not legacy merge items.
+
+### `make_branch_assumption()`
+
+Builds branch assumption refs for ATMS reasoning.
+
+### `branch_nogoods_from_merge()`
+
+Generates nogoods only from **mutual attacks** between single-origin emitted alternatives.
+
+Ignorance does not produce nogoods.
+
+### `inject_branch_stances()`
+
+Exports merge attacks as synthetic `contradicts` stances for current consumers that still speak in stance rows.
+
+This is a bridge from the formal merge framework to existing contradiction-based consumers. It does not define the merge semantics itself.
+
+## Storage Merge Commits
 
 `propstore/repo/merge_commit.py`
 
-### create_merge_commit()
+### `create_merge_commit()`
 
 ```python
 def create_merge_commit(
@@ -104,139 +201,66 @@ def create_merge_commit(
 ) -> str
 ```
 
-Creates a Dulwich commit with two parents (the tips of `branch_a` and `branch_b`). The merged tree is built from the classification results:
+This creates a two-parent commit from the formal merge framework.
 
-- **IDENTICAL / NOVEL_LEFT / NOVEL_RIGHT**: included directly
-- **COMPATIBLE**: the modified version is included (or both if disjoint additions)
-- **CONFLICT / PHI_NODE**: both versions included with:
-  - `branch_origin` provenance annotation via `_annotate_provenance()`
-  - Disambiguated IDs via `_disambiguate_id()` (appends `__{branch_suffix}` so both can coexist)
+Behavior:
 
-All merged claims are serialized into a single `claims/merged.yaml` file. Non-claim files are merged with left-wins-on-conflict.
+- non-claim files are merged left-over-right
+- claim content is serialized from `RepoMergeFramework.arguments`
+- conflicting emitted alternatives keep disambiguated IDs and `branch_origin` provenance
+- the commit stores both parents and updates `target_branch`
 
-Returns the merge commit SHA as a string. Updates the `target_branch` ref.
+This is the storage representation of a merge, not the query-time merge operator.
 
-## Branch Reasoning
+## Structured Merge Slice
 
-`propstore/repo/branch_reasoning.py`
+`propstore/repo/structured_merge.py`
 
-Three functions bridge merge classification to the ATMS and ASPIC+ reasoning backends.
+### `build_branch_structured_summary()`
 
-### make_branch_assumption()
+Reads a branch snapshot directly from git:
 
-```python
-def make_branch_assumption(branch_name: str) -> AssumptionRef
-```
+- claims from claim files
+- stance rows from both inline claim stances and `stances/*.yaml`
 
-Creates an `AssumptionRef` with `kind="branch"` for use in ATMS label propagation. Per Mason & Johnson 1989: each agent's belief space maps to an assumption set. A git branch is an agent.
+Then it builds a branch-local ASPIC projection via `build_aspic_projection()`.
 
-Branch names are sanitized (slashes and hyphens become underscores) for `assumption_id`, but the original name is preserved in the `source` field.
+### `build_structured_merge_candidates()`
 
-### branch_nogoods_from_merge()
+Builds two branch-local structured summaries, extracts their AFs, and feeds those AFs through the exact operator layer (`sum`, `max`, or `leximax`).
 
-```python
-def branch_nogoods_from_merge(items: list[MergeItem]) -> NogoodSet
-```
+This is the first implemented slice of the structured boundary. It is a branch-local structured summary pipeline, not yet a full theorem about instantiate-then-merge versus merge-then-instantiate.
 
-Generates ATMS nogoods from merge classification. Per Mason & Johnson 1989, claim 2: contradictions detected across agents become nogoods that limit context explosion.
+## CLI Surface
 
-Only `CONFLICT` items generate nogoods. Each creates a nogood `EnvironmentKey` containing both branch assumption IDs, meaning you cannot simultaneously accept both branches' values for that claim.
+`propstore/cli/merge_cmds.py`
 
-### inject_branch_stances()
+### `pks merge inspect BRANCH_A BRANCH_B`
 
-```python
-def inject_branch_stances(items: list[MergeItem]) -> list[dict[str, str]]
-```
+Builds the formal merge framework and prints a YAML summary including:
 
-Synthesizes cross-branch stances for ASPIC+ attack generation. Per Coste-Marquis et al. 2007: conflicts between sources become attacks in the merged AF.
+- emitted arguments
+- attack and ignorance pairs
+- completion count
+- skeptical results
+- credulous results
+- per-argument status summary
 
-Only `CONFLICT` items produce stances (symmetric `contradicts`). `PHI_NODE` items produce no stances — per PAF Definition 9, ignorance is NOT attack. Each conflict produces two stance dicts (both attack directions).
+### `pks merge commit BRANCH_A BRANCH_B`
 
-## IC Merge Operators
+Creates the two-parent storage merge commit from the same formal merge object and prints the commit SHA.
 
-`propstore/repo/ic_merge.py`
+## What This Does Not Claim
 
-Render-time belief merging from Konieczny & Pino Perez 2002. Each operator takes a branch profile (dict mapping branch names to claim values) and returns the winning value.
-
-### claim_distance()
-
-```python
-def claim_distance(a: Any, b: Any) -> float
-```
-
-Distance between two claim values. Numeric values use absolute difference; non-numeric use Hamming distance (0 if equal, 1 if different). Adapts Konieczny 2002 claim 13/17 from propositional Hamming distance to a scalar-value domain.
-
-### sigma_merge() — Majority
-
-```python
-def sigma_merge(profile: dict[str, Any]) -> Any
-```
-
-Minimizes sum of distances to all branches (Konieczny 2002 claims 13-15). Satisfies IC0-IC8 + Maj. Candidates are drawn from the profile values (discrete selection, no interpolation). Ties broken by smaller value for IC3 syntax independence.
-
-### max_merge() — Quasi-merge
-
-```python
-def max_merge(profile: dict[str, Any]) -> Any
-```
-
-Minimizes maximum distance to any branch (Konieczny 2002 claims 17-18). Satisfies IC0-IC3, IC7-IC8, Arb. Does NOT satisfy IC4-IC6. Uses deduplicated values for the Arb property (insensitivity to source multiplicity).
-
-### gmax_merge() — Arbitration
-
-```python
-def gmax_merge(profile: dict[str, Any]) -> Any
-```
-
-Lexicographic comparison of sorted distance vectors (Konieczny 2002 claims 19-20). Refines Max. Satisfies IC0-IC8 + Arb. Uses deduplicated values for the Arb property.
-
-### ic_merge() — Dispatcher
-
-```python
-def ic_merge(profile: dict[str, Any], *, operator: str = "sigma") -> Any
-```
-
-Dispatches to `sigma_merge`, `max_merge`, or `gmax_merge`. Default is Sigma.
-
-## RenderPolicy Integration
-
-`propstore/world/types.py`
-
-`ResolutionStrategy` includes `IC_MERGE = "ic_merge"` as a strategy enum value.
-
-`RenderPolicy` includes three fields for IC merge configuration:
-
-| Field | Type | Default | Purpose |
-|-------|------|---------|---------|
-| `merge_operator` | `str` | `"sigma"` | Distance aggregation: `"sigma"`, `"max"`, or `"gmax"` |
-| `branch_filter` | `tuple[str, ...] \| None` | `None` | Restricts which branches are included as sources |
-| `branch_weights` | `Mapping[str, float] \| None` | `None` | Per-branch importance weights (not yet consumed by operators) |
-
-`RenderPolicy` validates `merge_operator` on construction and supports YAML round-tripping via `from_dict()` / `to_dict()`.
-
-## Future Work
-
-- **Integrity constraints**: the mu parameter from IC0 (merged result must entail mu) is not yet implemented. When form-level validation is wired in, mu will map to the concept's form constraints.
-- **Branch weights**: `branch_weights` is declared on `RenderPolicy` but not yet consumed by the merge operators. When implemented, weighted Sigma would use `w_i * d(I, phi_i)`.
-- **Rich PAF attack inversion**: Amgoud & Vesic 2014 attack inversion (not removal) for preference-based defeat. Currently deferred — `aspic_bridge.py` would need enrichment.
-- **Stability postulate verification**: Booth & Meyer 2006 admissible/restrained revision. Confirmed that argumentation and merging compose as a pipeline, but the formal verification is not implemented.
+- merge commits are not themselves IC merge operators
+- the old public `MergeClassification` / `MergeItem` API is not the current public contract
+- full structured merge equivalence theorems are not yet established
+- the exact AF merge operators are not optimized for large profiles
+- source-weighted structured preference aggregation is not yet implemented
 
 ## References
 
-- **Konieczny, S. & Pino Perez, R. (2002).** "Merging Information under Constraints: A Logical Framework." — IC postulates IC0-IC8, Sigma/Max/GMax operators, representation theorems. Grounds the IC merge operators.
-
-- **Coste-Marquis, S. et al. (2007).** "Merging Argumentation Systems." — PAF three-valued attack relation, AF edit distance, aggregation lifting IC to argumentation. Grounds merge classification and cross-branch attack generation.
-
-- **Darwiche, A. & Pearl, J. (1997).** "On the Logic of Iterated Belief Revision." — C1-C4 postulates for iterated revision. Each branch is an independent epistemic state. Grounds branch isolation.
-
-- **Bonanno, G. (2007).** "Axiomatic Characterization of the AGM Theory of Belief Revision in a Temporal Logic." — Backward Uniqueness (BU). Git merge commits violate BU, confirming that merge points require IC merging rather than temporal revision. Grounds the two-framework separation.
-
-- **Mason, C. & Johnson, R. (1989).** "DATMS: A Framework for Distributed Assumption Based Reasoning." — DATMS: each agent's belief space maps to an ATMS assumption set. Nogoods from cross-agent contradictions. Grounds branch assumptions and nogood generation.
-
-- **Baumann, R. & Brewka, G. (2015).** "AGM Meets Abstract Argumentation: Expansion and Revision for Dung Frameworks." — AGM expansion/revision for Dung AFs, kernel union operator. Referenced for AF expansion semantics.
-
-- **Spohn, W. (1988).** "Ordinal Conditional Functions: A Dynamic Theory of Epistemic States." — OCFs as epistemic states and distance metric. Branch commit histories carry implicit OCFs. Referenced for distance metric grounding.
-
-- **Booth, R. & Meyer, T. (2006).** "Admissible and Restrained Revision." — Argumentation and merging compose as a pipeline, not alternatives. Confirmed but not formally verified.
-
-- **Amgoud, L. & Vesic, S. (2014).** "Rich Preference-based Argumentation Frameworks." — Attack inversion for preference-based defeat, democratic preference lifting. Deferred — would enrich `aspic_bridge.py`.
+- **Coste-Marquis et al. (2007).** Partial frameworks, completions, consensual expansion, and AF merge operators.
+- **Konieczny & Pino Perez (2002).** IC-merge operator family and aggregation vocabulary.
+- **Modgil / Prakken.** ASPIC+ structured argumentation substrate.
+- **Mason & Johnson (1989).** DATMS-style assumption-space interpretation for branch assumptions and nogoods.

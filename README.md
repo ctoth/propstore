@@ -36,12 +36,13 @@ If you want a reproducible showcase corpus, use a dedicated demo repo or local d
 
 ## Semantic Merge
 
-propstore formalizes git operations as belief revision. Branches are independent epistemic states; merges classify conflicts rather than resolving them; render-time operators aggregate multi-branch knowledge under different policies.
+propstore now exposes a formal repository-merge layer instead of treating merge classification as a claim-bucket side path. Branches still isolate paper processing, agent runs, and hypotheses, but merges are represented as explicit partial argumentation frameworks over branch-local argument summaries.
 
-- **Branches** isolate paper processing, agent runs, and hypotheses (Darwiche & Pearl 1997)
-- **Merge classification** produces three-way diffs at claim granularity (Coste-Marquis et al. 2007)
-- **Branch reasoning** generates ATMS nogoods and ASPIC+ stances from conflicts (Mason & Johnson 1989)
-- **IC merge operators** — Sigma (majority), Max (egalitarian), GMax (arbitration) — are selectable render policies (Konieczny & Pino Perez 2002)
+- **Branches** isolate epistemic states and preserve source-local history (Darwiche & Pearl 1997)
+- **Formal merge framework** records arguments plus `attack / ignorance / non-attack` over the merged universe
+- **Exact merge operators** — Sum, Max, Leximax — select merged completions over that framework
+- **Completion queries** answer skeptical and credulous acceptance before any storage merge is written
+- **Storage merge commits** are two-parent git commits produced from the formal merge object, not the merge semantics themselves
 
 See [Semantic Merge](docs/semantic-merge.md) for the full architecture and [Git Backend](docs/git-backend.md) for branch operations.
 
@@ -58,6 +59,7 @@ See [Semantic Merge](docs/semantic-merge.md) for the full architecture and [Git 
 - Exposes ATMS-style support, stability, relevance, and intervention queries over the active belief space
 - Materializes worldlines: traced, reproducible paths through the knowledge space with full provenance
 - Versions knowledge repos with git-backed storage (Dulwich), enabling historical builds and branch-based isolation
+- Inspects and commits branch merges through a formal partial-argumentation layer before writing two-parent git commits
 - Validates dimensional consistency of claims via Pint and bridgman, with SI normalization at build time
 - Provides a Python API for programmatic access (WorldModel, BoundWorld, HypotheticalWorld)
 - Represents uncertainty honestly via subjective logic opinions with calibrated evidence mapping
@@ -124,6 +126,13 @@ Promote heuristic proposals to source-of-truth:
 ```bash
 # Promote heuristic proposals to source-of-truth
 uv run pks -C knowledge promote
+```
+
+Inspect or execute a formal branch merge:
+
+```bash
+uv run pks -C knowledge merge inspect agent/paper-a agent/paper-b --semantics grounded
+uv run pks -C knowledge merge commit agent/paper-a agent/paper-b --target-branch master
 ```
 
 Compare algorithms across papers:
@@ -276,8 +285,8 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 - [Algorithm Comparison](docs/algorithm-comparison.md) — ast-equiv four-tier equivalence ladder
 - [Fragility Analysis](docs/fragility.md) — parametric, epistemic, and conflict fragility with ROI ranking
 - [Worldlines](docs/worldlines.md) — materialized query artifacts, provenance tracking, staleness detection
-- [CLI Reference](docs/cli-reference.md) — command reference (69 commands across 7 groups)
-- [Semantic Merge](docs/semantic-merge.md) — git-as-belief-revision, merge classification, IC merge operators, branch reasoning
+- [CLI Reference](docs/cli-reference.md) — command reference for the current `pks` surface, including merge inspection and merge commit commands
+- [Semantic Merge](docs/semantic-merge.md) — formal repository merge frameworks, completion queries, exact AF merge operators, branch reasoning
 - [Git Backend](docs/git-backend.md) — Dulwich-backed versioning, KnowledgeRepo, TreeReader, branch primitives
 - [Units and Forms](docs/units-and-forms.md) — dimensional type system, SI normalization, form algebra
 - [Python API](docs/python-api.md) — WorldModel, BoundWorld, HypotheticalWorld, result types
@@ -285,7 +294,7 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 
 ## Future Work
 
-- **Semantic merge (Phase 3-4)** — Branch-aware ATMS/ASPIC+ integration and full render-time IC merge wiring. Phases 1-2 (branch primitives, merge classification, merge commits, IC merge operators, branch reasoning) are implemented. See `docs/semantic-merge.md`.
+- **Structured merge deepening** — The formal merge backbone is implemented; the remaining work is richer branch-local structured projection, stronger structured correspondence results, and more source-preference integration. See `docs/semantic-merge.md`.
 - **AGM revision** — Full belief revision operations (Dixon 1993, Alchouron et al. 1985). Currently aspirational — the ATMS provides bounded replay, not full revision.
 - **Extended Josang operators** — Deduction, comultiplication, abduction (Josang & McAnally 2004; Josang 2008). Requires retrieving source papers.
 - **Interval dominance** — Denoeux 2019 interval dominance criterion for decision-making under uncertainty.

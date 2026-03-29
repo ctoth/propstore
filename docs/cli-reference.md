@@ -63,6 +63,33 @@ Build sidecar from a historical commit (non-destructive).
 uv run pks checkout abc1234
 ```
 
+### `pks merge inspect BRANCH_A BRANCH_B`
+
+Inspect the formal merge framework between two branches. Reports the merged argument universe, uncertain relations, and acceptance summary for the requested semantics.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--semantics` | `grounded\|preferred\|stable` | grounded | Completion semantics used for the summary |
+
+```bash
+uv run pks merge inspect agent/paper-a agent/paper-b
+uv run pks merge inspect agent/paper-a agent/paper-b --semantics preferred
+```
+
+### `pks merge commit BRANCH_A BRANCH_B`
+
+Create a two-parent storage merge commit from the formal merge framework between two branches.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--message` | TEXT | -- | Override the default merge commit message |
+| `--target-branch` | TEXT | master | Branch ref that receives the merge commit |
+
+```bash
+uv run pks merge commit agent/paper-a agent/paper-b
+uv run pks merge commit agent/paper-a agent/paper-b --target-branch synthesis --message "Merge paper branches"
+```
+
 ### `pks log`
 
 Show knowledge repository history.
