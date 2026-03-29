@@ -1,6 +1,7 @@
 """Branch-local structured projection and exact merge candidates."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -18,6 +19,58 @@ class BranchStructuredSummary:
     active_claims: tuple[dict[str, Any], ...]
     stance_rows: tuple[StanceRow, ...]
     projection: StructuredProjection
+
+
+@dataclass(frozen=True)
+class _StructuredMergeClaimView:
+    raw: dict[str, Any]
+    claim_id: str
+    stances: tuple[dict[str, Any], ...]
+
+
+def _optional_string(value: object) -> str | None:
+    if isinstance(value, str) and value:
+        return value
+    return None
+
+
+def _claim_view(claim: dict[str, Any]) -> _StructuredMergeClaimView | None:
+    claim_id = _optional_string(claim.get("id"))
+    if claim_id is None:
+        return None
+    raw_stances = claim.get("stances")
+    if not isinstance(raw_stances, list):
+        return _StructuredMergeClaimView(raw=claim, claim_id=claim_id, stances=tuple())
+    stances = tuple(stance for stance in raw_stances if isinstance(stance, dict))
+    return _StructuredMergeClaimView(raw=claim, claim_id=claim_id, stances=stances)
+
+
+def _stance_row_from_mapping(
+    source_claim_id: str,
+    stance: Mapping[str, Any],
+) -> StanceRow | None:
+    target = _optional_string(stance.get("target"))
+    stance_type = _optional_string(stance.get("type"))
+    if target is None or stance_type is None:
+        return None
+
+    attributes: dict[str, Any] = {}
+    target_justification_id: str | None = None
+    for key, value in stance.items():
+        if key in {"target", "type"} or value is None:
+            continue
+        if key == "target_justification_id":
+            target_justification_id = str(value)
+            continue
+        attributes[str(key)] = value
+
+    return StanceRow(
+        claim_id=source_claim_id,
+        target_claim_id=target,
+        stance_type=stance_type,
+        target_justification_id=target_justification_id,
+        attributes=attributes,
+    )
 
 
 class _BranchSnapshotStore:
@@ -60,34 +113,13 @@ def _load_branch_claims(reader) -> list[dict[str, Any]]:
 def _inline_stance_rows(active_claims: list[dict[str, Any]]) -> list[StanceRow]:
     rows: list[StanceRow] = []
     for claim in active_claims:
-        claim_id = claim.get("id")
-        if not claim_id:
+        claim_view = _claim_view(claim)
+        if claim_view is None:
             continue
-        for stance in claim.get("stances", []) or []:
-            if not isinstance(stance, dict):
-                continue
-            target = stance.get("target")
-            stance_type = stance.get("type")
-            if not target or not stance_type:
-                continue
-            attributes: dict[str, Any] = {}
-            target_justification_id: str | None = None
-            for key, value in stance.items():
-                if key in {"target", "type"} or value is None:
-                    continue
-                if key == "target_justification_id":
-                    target_justification_id = str(value)
-                    continue
-                attributes[key] = value
-            rows.append(
-                StanceRow(
-                    claim_id=str(claim_id),
-                    target_claim_id=str(target),
-                    stance_type=str(stance_type),
-                    target_justification_id=target_justification_id,
-                    attributes=attributes,
-                )
-            )
+        for stance in claim_view.stances:
+            row = _stance_row_from_mapping(claim_view.claim_id, stance)
+            if row is not None:
+                rows.append(row)
     return rows
 
 
@@ -95,34 +127,15 @@ def _file_stance_rows(reader) -> list[StanceRow]:
     rows: list[StanceRow] = []
     for _stem, raw in reader.list_yaml("stances"):
         data = yaml.safe_load(raw) or {}
-        source_claim = data.get("source_claim")
-        if not source_claim:
+        source_claim = _optional_string(data.get("source_claim"))
+        if source_claim is None:
             continue
         for stance in data.get("stances", []) or []:
             if not isinstance(stance, dict):
                 continue
-            target = stance.get("target")
-            stance_type = stance.get("type")
-            if not target or not stance_type:
-                continue
-            attributes: dict[str, Any] = {}
-            target_justification_id: str | None = None
-            for key, value in stance.items():
-                if key in {"target", "type"} or value is None:
-                    continue
-                if key == "target_justification_id":
-                    target_justification_id = str(value)
-                    continue
-                attributes[key] = value
-            rows.append(
-                StanceRow(
-                    claim_id=str(source_claim),
-                    target_claim_id=str(target),
-                    stance_type=str(stance_type),
-                    target_justification_id=target_justification_id,
-                    attributes=attributes,
-                )
-            )
+            row = _stance_row_from_mapping(source_claim, stance)
+            if row is not None:
+                rows.append(row)
     return rows
 
 
