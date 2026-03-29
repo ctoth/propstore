@@ -1023,3 +1023,191 @@ class TestFuse:
         r2 = ccf(a, b)
         assert abs(r1.b - r2.b) < 1e-9
         assert abs(r1.d - r2.d) < 1e-9
+
+
+# ── Additional fusion property tests (audit-2026-03-28 gaps) ──────
+
+
+class TestWBFAdditionalProperties:
+    """WBF properties identified as missing in audit-2026-03-28."""
+
+    @given(
+        valid_opinions(min_uncertainty=0.05),
+        valid_opinions(min_uncertainty=0.05),
+        valid_opinions(min_uncertainty=0.05),
+    )
+    @settings(max_examples=200, deadline=None)
+    def test_wbf_three_source_commutativity(self, a, b, c):
+        """WBF(a, b, c) is the same regardless of argument order.
+
+        Jøsang Theorem 7 generalizes to N sources — the multi-source
+        formula uses symmetric sums so order should not matter.
+        """
+        r_abc = wbf(a, b, c)
+        r_bca = wbf(b, c, a)
+        r_cab = wbf(c, a, b)
+        assert abs(r_abc.b - r_bca.b) < 1e-6, f"b: {r_abc.b} vs {r_bca.b}"
+        assert abs(r_abc.b - r_cab.b) < 1e-6, f"b: {r_abc.b} vs {r_cab.b}"
+        assert abs(r_abc.d - r_bca.d) < 1e-6, f"d: {r_abc.d} vs {r_bca.d}"
+        assert abs(r_abc.d - r_cab.d) < 1e-6, f"d: {r_abc.d} vs {r_cab.d}"
+        assert abs(r_abc.u - r_bca.u) < 1e-6, f"u: {r_abc.u} vs {r_bca.u}"
+        assert abs(r_abc.u - r_cab.u) < 1e-6, f"u: {r_abc.u} vs {r_cab.u}"
+
+    @given(valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_wbf_self_fusion_preserves_belief_disbelief_ratio(self, a):
+        """When fusing identical opinions, the b:d ratio is preserved.
+
+        WBF self-fusion concentrates belief mass (reduces u) while
+        maintaining the relative proportion of b and d. Expectation
+        is NOT preserved in general because E = b + a*u and u shrinks.
+        """
+        assume(a.b + a.d > 1e-6)  # skip near-vacuous
+        result = wbf(a, a)
+        # b/d ratio should be preserved
+        if a.b > 1e-9 and a.d > 1e-9:
+            orig_ratio = a.b / a.d
+            result_ratio = result.b / result.d
+            assert abs(orig_ratio - result_ratio) < 1e-4, (
+                f"b:d ratio changed: {orig_ratio} -> {result_ratio}"
+            )
+
+    @given(valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_wbf_self_fusion_reduces_uncertainty(self, a):
+        """Fusing an opinion with itself concentrates belief: u decreases."""
+        result = wbf(a, a)
+        assert result.u <= a.u + _TOL
+
+    @given(valid_opinions(min_uncertainty=0.05))
+    @settings(max_examples=200, deadline=None)
+    def test_wbf_base_rate_clamping_observable(self, a):
+        """Document that WBF clamps base rates to [0.01, 0.99].
+
+        This is a known deviation from Jøsang 2001 (audit-2026-03-28 bug #2).
+        The test documents the current behavior so any future fix is visible.
+        """
+        result = wbf(a, a)
+        assert result.a >= 0.01, f"Base rate below clamp: {result.a}"
+        assert result.a <= 0.99, f"Base rate above clamp: {result.a}"
+
+
+class TestCCFAdditionalProperties:
+    """CCF properties identified as missing in audit-2026-03-28."""
+
+    @pytest.mark.xfail(
+        reason="CCF min+average formula is not associative — confirmed semantic "
+        "mismatch with van der Heijden 2018 Def 5 (audit-2026-03-28 bug #1). "
+        "Counterexample: a=(0,0.5,0.5), b=(0,0.5,0.5), c=(0.5,0,0.5) gives "
+        "delta=0.125 on b component. Fix requires implementing the actual "
+        "van der Heijden 2018 Definition 5 formula.",
+        strict=True,
+    )
+    @given(
+        a=valid_opinions(),
+        b=valid_opinions(),
+        c=valid_opinions(),
+    )
+    @settings(max_examples=100, deadline=None)
+    def test_ccf_associativity(self, a, b, c):
+        """CCF(CCF(a, b), c) ≈ CCF(a, CCF(b, c)).
+
+        If CCF is a proper averaging operator, it should be associative
+        (or at least approximately so given float arithmetic).
+        This test documents a confirmed semantic mismatch: the current
+        min+average implementation is NOT associative.
+        """
+        ab_c = ccf(ccf(a, b), c)
+        a_bc = ccf(a, ccf(b, c))
+        assert abs(ab_c.b - a_bc.b) < 1e-6, (
+            f"CCF not associative — b: {ab_c.b} vs {a_bc.b}, "
+            f"delta={abs(ab_c.b - a_bc.b)}"
+        )
+        assert abs(ab_c.d - a_bc.d) < 1e-6, (
+            f"CCF not associative — d: {ab_c.d} vs {a_bc.d}, "
+            f"delta={abs(ab_c.d - a_bc.d)}"
+        )
+        assert abs(ab_c.u - a_bc.u) < 1e-6, (
+            f"CCF not associative — u: {ab_c.u} vs {a_bc.u}, "
+            f"delta={abs(ab_c.u - a_bc.u)}"
+        )
+
+    @given(a=valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_ccf_self_fusion_preserves_expectation(self, a):
+        """CCF(a, a) should preserve E(a) — fusing identical sources adds no info."""
+        result = ccf(a, a)
+        assert abs(result.expectation() - a.expectation()) < 1e-4, (
+            f"E changed: {a.expectation()} -> {result.expectation()}"
+        )
+
+    @given(a=valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_ccf_base_rate_clamping_observable(self, a):
+        """Document that CCF clamps base rates to [0.01, 0.99].
+
+        Known deviation from literature (audit-2026-03-28 bug #2).
+        """
+        result = ccf(a, a)
+        assert result.a >= 0.01
+        assert result.a <= 0.99
+
+
+class TestConjunctionDisjunctionDeMorgan:
+    """Conjunction/disjunction should satisfy De Morgan's law via negation.
+
+    Per Jøsang 2001: ~(A & B) should equal (~A | ~B) for independent opinions.
+    This is a consequence of the dual construction of conjunction/disjunction.
+    """
+
+    @given(valid_opinions(), valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_de_morgan_conjunction(self, a, b):
+        """~(a & b) ≈ (~a | ~b)."""
+        lhs = ~(a & b)
+        rhs = (~a) | (~b)
+        assert abs(lhs.b - rhs.b) < 1e-9, f"b: {lhs.b} vs {rhs.b}"
+        assert abs(lhs.d - rhs.d) < 1e-9, f"d: {lhs.d} vs {rhs.d}"
+        assert abs(lhs.u - rhs.u) < 1e-9, f"u: {lhs.u} vs {rhs.u}"
+
+    @given(valid_opinions(), valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_de_morgan_disjunction(self, a, b):
+        """~(a | b) ≈ (~a & ~b)."""
+        lhs = ~(a | b)
+        rhs = (~a) & (~b)
+        assert abs(lhs.b - rhs.b) < 1e-9, f"b: {lhs.b} vs {rhs.b}"
+        assert abs(lhs.d - rhs.d) < 1e-9, f"d: {lhs.d} vs {rhs.d}"
+        assert abs(lhs.u - rhs.u) < 1e-9, f"u: {lhs.u} vs {rhs.u}"
+
+
+class TestDiscountProperties:
+    """Discount operator properties from Jøsang 2001 Def 14."""
+
+    @given(valid_opinions(), valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_discount_preserves_base_rate(self, trust, source):
+        """Discounting preserves the source's base rate (Jøsang Def 14)."""
+        result = discount(trust, source)
+        assert abs(result.a - source.a) < 1e-9
+
+    @given(valid_opinions(), valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_discount_sum_invariant(self, trust, source):
+        """Discounted opinion satisfies b + d + u = 1."""
+        result = discount(trust, source)
+        assert abs(result.b + result.d + result.u - 1.0) < 1e-9
+
+    @given(valid_opinions())
+    @settings(max_examples=200, deadline=None)
+    def test_discount_full_trust_is_identity(self, source):
+        """Discounting with dogmatic trust returns the source unchanged.
+
+        Per Jøsang Def 14: when trust = (1, 0, 0, a), the discount
+        formula yields b=1*source.b, d=1*source.d, u=0+0+1*source.u = source.u.
+        """
+        full_trust = Opinion.dogmatic_true(0.5)
+        result = discount(full_trust, source)
+        assert abs(result.b - source.b) < 1e-9
+        assert abs(result.d - source.d) < 1e-9
+        assert abs(result.u - source.u) < 1e-9
