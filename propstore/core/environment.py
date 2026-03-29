@@ -11,7 +11,11 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.labels import AssumptionRef
-from propstore.core.row_types import ConflictRowInput, StanceRowInput
+from propstore.core.row_types import (
+    ConflictRowInput,
+    ParameterizationRowInput,
+    StanceRowInput,
+)
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import CompiledWorldGraph
@@ -90,8 +94,33 @@ class StanceStore(Protocol):
 
 
 @runtime_checkable
+class ClaimCatalogStore(Protocol):
+    def claims_for(self, concept_id: str | None) -> list[dict]: ...
+
+
+@runtime_checkable
+class ConceptCatalogStore(Protocol):
+    def all_concepts(self) -> list[dict]: ...
+
+
+@runtime_checkable
+class RelationshipCatalogStore(Protocol):
+    def all_relationships(self) -> list[dict]: ...
+
+
+@runtime_checkable
+class ClaimStanceInventoryStore(Protocol):
+    def all_claim_stances(self) -> Sequence[StanceRowInput]: ...
+
+
+@runtime_checkable
 class ConflictStore(Protocol):
     def conflicts(self) -> Sequence[ConflictRowInput]: ...
+
+
+@runtime_checkable
+class ParameterizationCatalogStore(Protocol):
+    def all_parameterizations(self) -> Sequence[ParameterizationRowInput]: ...
 
 
 @runtime_checkable
