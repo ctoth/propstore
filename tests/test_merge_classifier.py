@@ -619,13 +619,119 @@ def test_merge_commit_valid_claims(tmp_path):
     assert not result.errors, f"Validation errors in merged claims: {result.errors}"
 
 
-def test_concordance_deterministic(tmp_path):
-    """Non-conflicting merges produce unique, deterministic result.
+def test_compatible_one_sided_modification(tmp_path):
+    """When one branch modifies a claim and the other doesn't, only the modified version appears.
 
-    Per Coste-Marquis et al. 2007, claim 7 (p.15): concordant profiles
-    produce a unique merged result regardless of aggregation function.
-    When branches make compatible (non-conflicting) changes, repeated
-    merges must produce identical trees.
+    Regression test: the COMPATIBLE handler previously included BOTH
+    the unchanged and modified versions, producing duplicates.
+    """
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+
+    base_claims = [_param_claim("claim1", "concept_x", 250.0)]
+    base_sha = kr.commit_files(
+        {"claims/shared.yaml": _claim_yaml(base_claims)},
+        "seed: base claim",
+    )
+
+    branch_name = "paper/compat"
+    create_branch(kr, branch_name, source_commit=base_sha)
+
+    # Left: keep claim1 unchanged (same as base)
+    # (no commit on master — stays at base)
+
+    # Right: modify claim1 to new value
+    right_claims = [_param_claim("claim1", "concept_x", 999.0)]
+    kr.commit_files(
+        {"claims/shared.yaml": _claim_yaml(right_claims)},
+        "right: modify claim1",
+        branch=branch_name,
+    )
+
+    # Verify classification is COMPATIBLE
+    items = classify_merge(kr, "master", branch_name)
+    claim1_items = [i for i in items if i.claim_id == "claim1"]
+    assert len(claim1_items) == 1
+    assert claim1_items[0].classification == MergeClassification.COMPATIBLE
+
+    # Create merge and verify no duplication
+    merge_sha = create_merge_commit(kr, "master", branch_name)
+
+    from propstore.tree_reader import GitTreeReader
+    from propstore.validate_claims import load_claim_files
+
+    reader = GitTreeReader(kr, commit=merge_sha)
+    claim_files = load_claim_files(None, reader=reader)
+
+    all_claims = []
+    for cf in claim_files:
+        for claim in cf.data.get("claims", []):
+            if claim["id"] == "claim1":
+                all_claims.append(claim)
+
+    # Must have exactly ONE version of claim1 (the modified one)
+    assert len(all_claims) == 1, f"Expected 1 claim1, got {len(all_claims)}: {all_claims}"
+    assert all_claims[0]["value"] == 999.0
+
+
+def test_merge_commit_conflict_valid_claims(tmp_path):
+    """Merged conflicting claims with disambiguated IDs pass schema validation.
+
+    Per Konieczny & Pino Perez 2002, IC0 (p.4): the merged result must
+    satisfy the integrity constraint. Disambiguated IDs (claim1__master,
+    claim1__paper_conflict) and provenance annotations must not break
+    the claim schema.
+    """
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+
+    base_claims = [_param_claim("claim1", "concept_x", 250.0)]
+    base_sha = kr.commit_files(
+        {"claims/shared.yaml": _claim_yaml(base_claims)},
+        "seed",
+    )
+
+    branch_name = "paper/ic0"
+    create_branch(kr, branch_name, source_commit=base_sha)
+
+    # Both sides modify same claim differently — produces CONFLICT
+    kr.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        "left: modify claim1",
+    )
+    kr.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        "right: modify claim1",
+        branch=branch_name,
+    )
+
+    merge_sha = create_merge_commit(kr, "master", branch_name)
+
+    from propstore.tree_reader import GitTreeReader
+    from propstore.validate_claims import load_claim_files, validate_claims
+
+    reader = GitTreeReader(kr, commit=merge_sha)
+    claim_files = load_claim_files(None, reader=reader)
+
+    # Verify disambiguated claims are present
+    all_ids = set()
+    for cf in claim_files:
+        for claim in cf.data.get("claims", []):
+            all_ids.add(claim["id"])
+    assert any("claim1__" in cid for cid in all_ids), f"No disambiguated claim1 IDs: {all_ids}"
+
+    # IC0: merged result must pass schema validation
+    # Provide minimal concept registry so parameter validation doesn't KeyError on empty dict
+    concept_reg = {"concept_x": {"id": "concept_x", "name": "Concept X"}}
+    result = validate_claims(claim_files, concept_registry=concept_reg)
+    assert not result.errors, f"Validation errors in conflict-merged claims: {result.errors}"
+
+
+def test_concordance_deterministic(tmp_path):
+    """Non-conflicting merges are deterministic: same input produces same tree.
+
+    Verifies that the merge function is a pure function — repeated calls
+    with identical inputs produce identical tree content. This is a basic
+    correctness property, not a test of concordance (Coste-Marquis 2007
+    Proposition 26), which concerns uniqueness across aggregation functions.
     """
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
 

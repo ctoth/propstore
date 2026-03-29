@@ -107,21 +107,42 @@ def create_merge_commit(
             claim = item.left_value or item.right_value or item.base_value
             if claim is not None:
                 merged_claims.append(copy.deepcopy(claim))
-        elif item.classification in (MergeClassification.NOVEL_LEFT, MergeClassification.COMPATIBLE):
-            # Include claim from whichever side has it
+        elif item.classification == MergeClassification.NOVEL_LEFT:
             if item.left_value is not None:
                 merged_claims.append(copy.deepcopy(item.left_value))
-            if item.right_value is not None and item.left_value is None:
-                merged_claims.append(copy.deepcopy(item.right_value))
-            # If both sides have it (COMPATIBLE with both present), include both
-            if (item.classification == MergeClassification.COMPATIBLE
-                    and item.left_value is not None and item.right_value is not None):
-                merged_claims.append(copy.deepcopy(item.right_value))
+        elif item.classification == MergeClassification.COMPATIBLE:
+            # COMPATIBLE: one-sided modification or disjoint additions.
+            # When base exists and only one side changed, include the changed version.
+            # When both are new (no base), include both.
+            if item.base_value is not None:
+                # One-sided edit of existing claim — pick the modified version
+                left_changed = item.left_value is not None and item.left_value != item.base_value
+                right_changed = item.right_value is not None and item.right_value != item.base_value
+                if left_changed and right_changed:
+                    # Both changed identically (classifier verified compatible)
+                    merged_claims.append(copy.deepcopy(item.left_value))
+                elif left_changed:
+                    merged_claims.append(copy.deepcopy(item.left_value))
+                elif right_changed:
+                    merged_claims.append(copy.deepcopy(item.right_value))
+                else:
+                    # Neither changed from base — include base
+                    merged_claims.append(copy.deepcopy(item.base_value))
+            else:
+                # No base — disjoint additions from both branches
+                if item.left_value is not None:
+                    merged_claims.append(copy.deepcopy(item.left_value))
+                if item.right_value is not None:
+                    merged_claims.append(copy.deepcopy(item.right_value))
         elif item.classification == MergeClassification.NOVEL_RIGHT:
             if item.right_value is not None:
                 merged_claims.append(copy.deepcopy(item.right_value))
         elif item.classification in (MergeClassification.CONFLICT, MergeClassification.PHI_NODE):
             # Both versions preserved with branch_origin provenance
+            # TODO(Phase 3): Auto-generate stance files for PHI_NODE and
+            # CONFLICT items per semantic-merge-spec. Deferred to Phase 3
+            # when ASPIC+ integration provides the argumentation context
+            # needed to produce meaningful stances.
             if item.left_value is not None:
                 left_annotated = _annotate_provenance(item.left_value, branch_a)
                 left_annotated["id"] = _disambiguate_id(item.claim_id, branch_a)

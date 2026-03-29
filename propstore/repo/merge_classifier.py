@@ -5,7 +5,10 @@ ancestor. Each claim is classified into one of six categories.
 
 Literature grounding:
 - Coste-Marquis et al. 2007, Def 9: PAF three-valued attack relation
-  maps to CONFLICT (attack), COMPATIBLE (non-attack), PHI_NODE (ignorance).
+  (attack/non-attack/ignorance over argument pairs) is analogous to
+  CONFLICT/COMPATIBLE/PHI_NODE over claim values. The analogy is
+  structural, not a formal isomorphism — PAF operates on argument
+  attack pairs, this classifier operates on claim three-way diffs.
 - Konieczny & Pino Perez 2002, IC3: classification is syntax-independent
   (keyed by claim ID, not filename or YAML order).
 """
@@ -154,8 +157,9 @@ def classify_merge(
 ) -> list[MergeItem]:
     """Three-way diff at claim granularity.
 
-    Per Coste-Marquis 2007 Definition 9: classification maps to
-    PAF three-valued relation (attack/non-attack/ignorance).
+    Classification is analogous to Coste-Marquis 2007 Definition 9's
+    PAF three-valued relation (attack/non-attack/ignorance), applied
+    to claim values rather than argument attack pairs.
 
     Algorithm:
     1. Find merge-base
