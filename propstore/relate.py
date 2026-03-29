@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import json
 import logging
 import sqlite3
@@ -18,8 +19,7 @@ from propstore.stances import VALID_STANCE_TYPES
 
 def _require_litellm():
     try:
-        import litellm
-        return litellm
+        return importlib.import_module("litellm")
     except ImportError:
         raise ImportError(
             "litellm is required for relate commands. "

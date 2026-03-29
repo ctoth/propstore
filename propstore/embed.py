@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import dataclasses
+import importlib
 import logging
 import struct
 import sqlite3
@@ -12,8 +13,7 @@ from typing import Any
 
 def _require_litellm():
     try:
-        import litellm
-        return litellm
+        return importlib.import_module("litellm")
     except ImportError:
         raise ImportError(
             "litellm is required for embedding commands. "
@@ -23,8 +23,7 @@ def _require_litellm():
 
 def _require_sqlite_vec():
     try:
-        import sqlite_vec
-        return sqlite_vec
+        return importlib.import_module("sqlite_vec")
     except ImportError:
         raise ImportError(
             "sqlite-vec is required for embedding commands. "
