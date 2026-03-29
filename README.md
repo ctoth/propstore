@@ -246,6 +246,12 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 - [Structured Argumentation (ASPIC+)](docs/structured-argumentation.md) — recursive argument construction, three-type attack, preference defeat
 - [Probabilistic Argumentation (PrAF)](docs/probabilistic-argumentation.md) — MC sampling, Agresti-Coull stopping, DF-QuAD gradual semantics
 - [Subjective Logic and Calibration](docs/subjective-logic.md) — Opinion algebra, temperature scaling, evidence-to-opinion mapping, decision criteria
+- [ATMS](docs/atms.md) — assumption-based truth maintenance, label propagation, bounded replay, interventions
+- [Bipolar Argumentation](docs/bipolar-argumentation.md) — Cayrol 2005, derived defeats, three admissibility variants
+- [Conflict Detection](docs/conflict-detection.md) — Z3 condition reasoning, regime splits, six conflict classes
+- [Parameterization and Sensitivity](docs/parameterization.md) — derivation chains, chain queries, elasticity analysis
+- [Algorithm Comparison](docs/algorithm-comparison.md) — ast-equiv four-tier equivalence ladder
+- [Fragility Analysis](docs/fragility.md) — parametric, epistemic, and conflict fragility with ROI ranking
 - [Worldlines](docs/worldlines.md) — materialized query artifacts, provenance tracking, staleness detection
 - [CLI Reference](docs/cli-reference.md) — command reference (69 commands across 7 groups)
 - [Integration](docs/integration.md) — how this fits with `research-papers-plugin`

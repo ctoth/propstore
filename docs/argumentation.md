@@ -27,6 +27,8 @@ propstore ships multiple reasoning backends at different abstraction levels. The
 
 ## Conflict detection
 
+See [Conflict Detection](conflict-detection.md) for full details.
+
 When two claims bind to the same concept, the conflict detector classifies them:
 
 | Class | Meaning |
@@ -50,7 +52,7 @@ Condition disjointness is checked via Z3 satisfiability. Category concepts get E
 
 ## ATMS backend
 
-The ATMS (Assumption-based Truth Maintenance System) backend provides label propagation and nogood pruning over the active belief space. It tracks exact support only — which assumptions justify each claim.
+The ATMS (Assumption-based Truth Maintenance System) backend provides label propagation and nogood pruning over the active belief space. It tracks exact support only — which assumptions justify each claim. See [ATMS](atms.md) for full details.
 
 The `atms` backend does not expose Dung extensions. `pks world extensions --backend atms` is rejected by design. Use the ATMS-native commands instead:
 
@@ -113,7 +115,7 @@ The grounded extension is unique and represents the skeptically justified claims
 
 ## Bipolar argumentation
 
-The bipolar backend (`bipolar.py`) implements Cayrol 2005: support relations create derived defeat paths via fixpoint computation. Three admissibility variants (d-admissible, s-admissible, c-admissible), stable extensions, and three corresponding preferred extension types.
+The bipolar backend (`bipolar.py`) implements Cayrol 2005: support relations create derived defeat paths via fixpoint computation. Three admissibility variants (d-admissible, s-admissible, c-admissible), stable extensions, and three corresponding preferred extension types. See [Bipolar Argumentation](bipolar-argumentation.md) for full details.
 
 ## Subjective logic and calibration
 
