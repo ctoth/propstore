@@ -9,7 +9,7 @@ import yaml
 from dulwich.objects import Blob, Commit
 
 from propstore.repo.branch import branch_head
-from propstore.repo.git_backend import _DEFAULT_AUTHOR
+from propstore.repo.git_backend import _DEFAULT_AUTHOR, _ref_set
 from propstore.repo.merge_classifier import build_merge_framework
 
 if TYPE_CHECKING:
@@ -29,6 +29,10 @@ def create_merge_commit(
 
     left_sha = branch_head(kr, branch_a)
     right_sha = branch_head(kr, branch_b)
+    if left_sha is None:
+        raise ValueError(f"Branch {branch_a!r} does not exist")
+    if right_sha is None:
+        raise ValueError(f"Branch {branch_b!r} does not exist")
 
     left_entries: dict[str, bytes] = {}
     left_tree = kr._get_tree(left_sha)
@@ -92,6 +96,6 @@ def create_merge_commit(
     commit.parents = [left_sha.encode("ascii"), right_sha.encode("ascii")]
     store.add_object(commit)
 
-    target_ref = f"refs/heads/{target_branch}".encode()
-    kr._repo.refs[target_ref] = commit.id
+    target_ref = f"refs/heads/{target_branch}".encode("ascii")
+    _ref_set(kr._repo.refs, target_ref, commit.id)
     return commit.id.decode("ascii")

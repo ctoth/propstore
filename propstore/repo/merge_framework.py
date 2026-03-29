@@ -4,11 +4,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 from itertools import combinations, product
+from typing import TypeAlias
 
 from propstore.dung import ArgumentationFramework
 
 AttackPair = tuple[str, str]
-FrameworkLike = "PartialArgumentationFramework | ArgumentationFramework"
 
 
 class PairState(StrEnum):
@@ -85,6 +85,9 @@ class PartialArgumentationFramework:
 
     def completions(self) -> list[ArgumentationFramework]:
         return enumerate_paf_completions(self)
+
+
+FrameworkLike: TypeAlias = PartialArgumentationFramework | ArgumentationFramework
 
 
 def enumerate_paf_completions(
