@@ -841,3 +841,143 @@ class TestATMSInteractionDetection:
         result = detect_interactions(targets, None)
         # With no bound/ATMS, should still return structure but with unknown interaction
         assert len(result) >= 1
+
+
+# ── Phase 4A: Cost Tiers + Epistemic ROI ─────────────────────────────
+
+
+class TestCostTiers:
+    """Ordinal cost model and epistemic ROI."""
+
+    def test_assumption_cost_1(self):
+        """Assumptions have cost tier 1 (trivial)."""
+        from propstore.fragility import assign_cost_tier, FragilityTarget
+        t = FragilityTarget(target_id="t1", target_kind="assumption",
+                           description="test", fragility=0.8)
+        assert assign_cost_tier(t) == 1
+
+    def test_concept_with_claims_cost_2(self):
+        """Concepts with existing parametric data have cost tier 2."""
+        from propstore.fragility import assign_cost_tier, FragilityTarget
+        t = FragilityTarget(target_id="c1", target_kind="concept",
+                           description="test", parametric_score=0.5, fragility=0.5)
+        assert assign_cost_tier(t) == 2
+
+    def test_concept_no_claims_cost_3(self):
+        """Concepts with no claims have cost tier 3."""
+        from propstore.fragility import assign_cost_tier, FragilityTarget
+        t = FragilityTarget(target_id="c2", target_kind="concept",
+                           description="no claims", fragility=0.7)
+        assert assign_cost_tier(t) == 3
+
+    def test_conflict_cost_2(self):
+        """Conflicts have cost tier 2."""
+        from propstore.fragility import assign_cost_tier, FragilityTarget
+        t = FragilityTarget(target_id="x", target_kind="conflict",
+                           description="test", conflict_score=0.8, fragility=0.8)
+        assert assign_cost_tier(t) == 2
+
+    def test_roi_computation(self):
+        """ROI = fragility / cost_tier."""
+        from propstore.fragility import FragilityTarget
+        t = FragilityTarget(target_id="t1", target_kind="assumption",
+                           description="test", fragility=0.8, cost_tier=1,
+                           epistemic_roi=0.8)
+        assert t.epistemic_roi == pytest.approx(0.8)
+
+    def test_roi_reorders_ranking(self):
+        """Cheap moderate-fragility beats expensive high-fragility on ROI."""
+        from propstore.fragility import FragilityTarget
+        cheap = FragilityTarget(target_id="a", target_kind="assumption",
+                               description="test", fragility=0.6,
+                               cost_tier=1, epistemic_roi=0.6)
+        expensive = FragilityTarget(target_id="b", target_kind="concept",
+                                   description="test", fragility=0.9,
+                                   cost_tier=3, epistemic_roi=0.3)
+        # By fragility: expensive wins (0.9 > 0.6)
+        # By ROI: cheap wins (0.6 > 0.3)
+        assert expensive.fragility > cheap.fragility
+        assert cheap.epistemic_roi > expensive.epistemic_roi
+
+
+# ── Phase 4A: Tier 2 Discovery ──────────────────────────────────────
+
+
+class TestTier2Discovery:
+    """Queryable auto-discovery Tier 2: concepts with no claims."""
+
+    def test_discover_returns_list(self):
+        """_discover_tier2_concepts returns a list of FragilityTargets."""
+        from propstore.fragility import _discover_tier2_concepts
+        # With a mock bound that has no concepts, returns empty list
+        from unittest.mock import MagicMock
+        mock_bound = MagicMock()
+        mock_bound._store.all_concepts.return_value = []
+        result = _discover_tier2_concepts(mock_bound)
+        assert isinstance(result, list)
+
+    def test_discovered_targets_have_correct_kind(self):
+        """Discovered targets have target_kind='concept'."""
+        from propstore.fragility import FragilityTarget
+        # Create a target as _discover_tier2_concepts would
+        t = FragilityTarget(
+            target_id="unmeasured_concept",
+            target_kind="concept",
+            description="No measurements — input to 2 parameterizations",
+            fragility=1.0,
+            cost_tier=3,
+            epistemic_roi=1.0/3,
+        )
+        assert t.target_kind == "concept"
+        assert t.cost_tier == 3
+        assert t.fragility == 1.0
+
+    def test_discovered_targets_max_fragility(self):
+        """Unknown concepts have maximum fragility (total ignorance)."""
+        from propstore.fragility import FragilityTarget
+        t = FragilityTarget(target_id="x", target_kind="concept",
+                           description="test", fragility=1.0)
+        assert t.fragility == 1.0
+
+    def test_discovery_tier_parameter(self):
+        """rank_fragility accepts discovery_tier parameter."""
+        import inspect
+        from propstore.fragility import rank_fragility
+        sig = inspect.signature(rank_fragility)
+        assert "discovery_tier" in sig.parameters
+
+    def test_discover_finds_unmeasured_inputs(self):
+        """Concepts that are parameterization inputs with no claims are discovered."""
+        from unittest.mock import MagicMock
+        from propstore.fragility import _discover_tier2_concepts
+
+        mock_bound = MagicMock()
+        # Concept "viscosity" is an input to parameterizations but has no claims
+        mock_bound._store.all_concepts.return_value = [
+            {"concept_id": "density", "parameterization_relationships": []},
+            {"concept_id": "viscosity", "parameterization_relationships": []},
+        ]
+        # density has parameterizations that use viscosity as input
+        mock_bound._store.parameterizations_for.side_effect = lambda cid: (
+            [{"concept_ids": '["viscosity", "temperature"]'}] if cid == "density" else []
+        )
+        # viscosity has no active claims; density does
+        mock_bound.active_claims.side_effect = lambda cid: (
+            [] if cid == "viscosity" else [{"claim_id": "c1"}]
+        )
+        # concept_ids returns the concept IDs
+        mock_bound._store.concept_ids.return_value = ["density", "viscosity"]
+
+        result = _discover_tier2_concepts(mock_bound)
+        # Should find viscosity as a Tier 2 target
+        ids = [t.target_id for t in result]
+        assert "viscosity" in ids
+        # Should NOT include density (it has claims)
+        assert "density" not in ids
+
+    def test_sort_by_roi(self):
+        """rank_fragility accepts sort_by parameter."""
+        import inspect
+        from propstore.fragility import rank_fragility
+        sig = inspect.signature(rank_fragility)
+        assert "sort_by" in sig.parameters

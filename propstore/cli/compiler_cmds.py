@@ -1850,11 +1850,14 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
 @click.option("--skip-parametric", is_flag=True, default=False)
 @click.option("--skip-epistemic", is_flag=True, default=False)
 @click.option("--skip-conflict", is_flag=True, default=False)
+@click.option("--sort-by", "sort_by", type=click.Choice(["fragility", "roi"]), default="fragility")
+@click.option("--discovery-tier", "discovery_tier", type=int, default=1, help="1=ATMS only, 2=also unknown concepts")
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 @click.pass_obj
 def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
                     top_k: int, combination: str, skip_parametric: bool,
-                    skip_epistemic: bool, skip_conflict: bool, fmt: str) -> None:
+                    skip_epistemic: bool, skip_conflict: bool,
+                    sort_by: str, discovery_tier: int, fmt: str) -> None:
     """Rank epistemic targets by fragility — what to learn next."""
     from propstore.fragility import rank_fragility
 
@@ -1874,6 +1877,8 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
             include_epistemic=not skip_epistemic,
             include_conflict=not skip_conflict,
             combination=combination,
+            sort_by=sort_by,
+            discovery_tier=discovery_tier,
         )
 
         if fmt == "json":
@@ -1889,6 +1894,8 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
                         "parametric_score": t.parametric_score,
                         "epistemic_score": t.epistemic_score,
                         "conflict_score": t.conflict_score,
+                        "cost_tier": t.cost_tier,
+                        "epistemic_roi": t.epistemic_roi,
                     }
                     for t in report.targets
                 ],
@@ -1896,20 +1903,18 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
             }
             click.echo(json.dumps(result_dict, indent=2))
         else:
-            click.echo(f"Fragility Analysis (top {top_k}, combination={combination})")
-            click.echo("=" * 46)
+            click.echo(f"Fragility Analysis (top {top_k}, combination={combination}, sort={sort_by})")
+            click.echo("=" * 60)
             click.echo("")
             click.echo(
-                f"{'Rank':>4}  {'Score':>5}  {'Kind':<12} {'Target':<30} "
-                f"{'Parametric':>10}  {'Epistemic':>10}  {'Conflict':>10}"
+                f"{'Rank':>4}  {'Score':>5}  {'ROI':>5}  {'Cost':>4}  {'Kind':<12} {'Target'}"
             )
             for i, t in enumerate(report.targets, 1):
-                p = f"{t.parametric_score:.2f}" if t.parametric_score is not None else "None"
-                e = f"{t.epistemic_score:.2f}" if t.epistemic_score is not None else "None"
-                c = f"{t.conflict_score:.2f}" if t.conflict_score is not None else "None"
+                roi = f"{t.epistemic_roi:.2f}" if t.epistemic_roi is not None else "  -  "
+                cost = str(t.cost_tier) if t.cost_tier is not None else "-"
                 click.echo(
-                    f"{i:>4}  {t.fragility:>5.2f}  {t.target_kind:<12} "
-                    f"{t.target_id:<30} {p:>10}  {e:>10}  {c:>10}"
+                    f"{i:>4}  {t.fragility:>5.2f}  {roi:>5}  {cost:>4}  {t.target_kind:<12} "
+                    f"{t.target_id}"
                 )
             click.echo("")
             click.echo(f"World fragility: {report.world_fragility:.2f}")

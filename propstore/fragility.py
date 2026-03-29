@@ -42,6 +42,10 @@ class FragilityTarget:
     # Combined score
     fragility: float = 0.0
 
+    # Cost and ROI (Phase 4A)
+    cost_tier: int | None = None          # 1=trivial, 2=cheap, 3=moderate, 4=expensive
+    epistemic_roi: float | None = None    # fragility / cost_tier (higher = better ROI)
+
     # Provenance
     parametric_detail: dict[str, Any] | None = None
     epistemic_detail: dict[str, Any] | None = None
@@ -56,6 +60,27 @@ class FragilityReport:
     world_fragility: float = 0.0
     analysis_scope: str = ""
     interactions: tuple[dict, ...] = ()  # Phase 2: pairwise interaction results
+
+
+def assign_cost_tier(target: FragilityTarget) -> int:
+    """Assign ordinal cost tier based on target kind and properties.
+
+    Cost tiers:
+      1 (trivial): Check existing data, add an assumption (Tier 1 queryables)
+      2 (cheap): Read a paper, run a calculation, measure a known concept
+      3 (moderate): Commission new analysis, collect new samples
+      4 (expensive): Run an experiment, replicate a study
+    """
+    if target.target_kind == "assumption":
+        return 1
+    if target.target_kind == "conflict":
+        return 2
+    if target.target_kind == "concept":
+        if target.parametric_score is not None:
+            return 2  # has existing claims / parametric data
+        return 3  # no claims — need to find/produce data
+    # Default for unknown kinds
+    return 3
 
 
 def combine_fragility(
@@ -628,6 +653,56 @@ def imps_rev(
     return strengths_removed[target] - strengths_full[target]
 
 
+def _discover_tier2_concepts(bound: Any) -> list[FragilityTarget]:
+    """Find concepts with no claims that appear in parameterization relationships.
+
+    These are 'known unknowns' — concepts the system knows about
+    (they appear in formulas) but has no measurements for.
+    """
+    try:
+        store = bound._store
+        # Collect all concept IDs that appear as inputs in parameterizations
+        all_cids = store.concept_ids() if hasattr(store, "concept_ids") else []
+        input_counts: dict[str, int] = {}
+
+        for cid in all_cids:
+            params = store.parameterizations_for(cid) if hasattr(store, "parameterizations_for") else []
+            for param in params:
+                concept_ids_json = param.get("concept_ids")
+                if not concept_ids_json:
+                    continue
+                import json
+                input_ids = json.loads(concept_ids_json) if isinstance(concept_ids_json, str) else concept_ids_json
+                for iid in input_ids:
+                    input_counts[iid] = input_counts.get(iid, 0) + 1
+
+        # Find inputs that have no active claims
+        targets: list[FragilityTarget] = []
+        for iid, count in input_counts.items():
+            try:
+                claims = bound.active_claims(iid)
+            except Exception:
+                claims = []
+            if not claims:
+                cost = 3
+                frag = 1.0
+                roi = frag / cost
+                targets.append(FragilityTarget(
+                    target_id=iid,
+                    target_kind="concept",
+                    description=f"No measurements \u2014 input to {count} parameterizations",
+                    parametric_score=None,
+                    epistemic_score=None,
+                    conflict_score=None,
+                    fragility=frag,
+                    cost_tier=cost,
+                    epistemic_roi=roi,
+                ))
+        return targets
+    except Exception:
+        return []
+
+
 def rank_fragility(
     bound: Any,  # BoundWorld — string annotation to avoid circular import
     *,
@@ -639,6 +714,8 @@ def rank_fragility(
     include_conflict: bool = True,
     combination: str = "top2",
     atms_limit: int = 8,
+    sort_by: str = "fragility",  # "fragility" or "roi"
+    discovery_tier: int = 1,  # 1 = ATMS queryables only, 2 = also unknown concepts
 ) -> FragilityReport:
     """Rank epistemic targets by fragility.
 
@@ -709,8 +786,7 @@ def rank_fragility(
 
         frag = combine_fragility(p_score, e_score, c_score, combination)
 
-        targets.append(
-            FragilityTarget(
+        t = FragilityTarget(
                 target_id=cid,
                 target_kind="concept",
                 description=f"Concept {cid}",
@@ -722,10 +798,33 @@ def rank_fragility(
                 epistemic_detail=entry["e_detail"],
                 conflict_detail=entry["c_detail"],
             )
-        )
+        cost = assign_cost_tier(t)
+        roi = t.fragility / cost if cost else None
+        targets.append(FragilityTarget(
+            target_id=t.target_id,
+            target_kind=t.target_kind,
+            description=t.description,
+            parametric_score=t.parametric_score,
+            epistemic_score=t.epistemic_score,
+            conflict_score=t.conflict_score,
+            fragility=t.fragility,
+            cost_tier=cost,
+            epistemic_roi=roi,
+            parametric_detail=t.parametric_detail,
+            epistemic_detail=t.epistemic_detail,
+            conflict_detail=t.conflict_detail,
+        ))
 
-    # Sort by fragility descending, take top_k
-    targets.sort(key=lambda t: t.fragility, reverse=True)
+    # Tier 2 discovery: find concepts with no claims
+    if discovery_tier >= 2:
+        tier2 = _discover_tier2_concepts(bound)
+        targets.extend(tier2)
+
+    # Sort by chosen criterion
+    if sort_by == "roi":
+        targets.sort(key=lambda t: t.epistemic_roi if t.epistemic_roi is not None else -1.0, reverse=True)
+    else:
+        targets.sort(key=lambda t: t.fragility, reverse=True)
     targets = targets[:top_k]
 
     # World fragility = mean of top min(10, len) scores
