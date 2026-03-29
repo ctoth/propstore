@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import math
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 
 from propstore.world.labelled import Label, SupportQuality
 from propstore.world.types import (
@@ -16,6 +18,7 @@ from propstore.world.types import (
     ArtifactStore,
     BeliefSpace,
     ClaimSupportView,
+    HasActiveGraph,
     HasATMSEngine,
     ReasoningBackend,
     RenderPolicy,
@@ -27,7 +30,89 @@ from propstore.world.types import (
 )
 
 
-def _resolve_recency(claims: list[dict]) -> tuple[str | None, str | None]:
+@dataclass(frozen=True)
+class _ResolutionClaimView:
+    id: str
+    value: float | str | None
+    provenance_json: str | Mapping[str, object] | None
+    sample_size: int | None
+    opinion_belief: float | None
+    opinion_disbelief: float | None
+    opinion_uncertainty: float | None
+    opinion_base_rate: float | None
+    confidence: float | None
+
+
+def _claim_id(claim: Mapping[str, object]) -> str:
+    claim_id = claim.get("id")
+    if not isinstance(claim_id, str) or not claim_id:
+        raise KeyError("resolution requires each claim to have a non-empty string id")
+    return claim_id
+
+
+def _claim_value(claim: Mapping[str, object]) -> float | str | None:
+    value = claim.get("value")
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, str):
+        return value
+    return None
+
+
+def _claim_optional_int(claim: Mapping[str, object], key: str) -> int | None:
+    value = claim.get(key)
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    return None
+
+
+def _claim_optional_float(claim: Mapping[str, object], key: str) -> float | None:
+    value = claim.get(key)
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    return None
+
+
+def _claim_provenance_json(claim: Mapping[str, object]) -> str | Mapping[str, object] | None:
+    provenance = claim.get("provenance_json")
+    if isinstance(provenance, str):
+        return provenance
+    if isinstance(provenance, Mapping):
+        return provenance
+    return None
+
+
+def _resolution_claim_view(claim: Mapping[str, object]) -> _ResolutionClaimView:
+    return _ResolutionClaimView(
+        id=_claim_id(claim),
+        value=_claim_value(claim),
+        provenance_json=_claim_provenance_json(claim),
+        sample_size=_claim_optional_int(claim, "sample_size"),
+        opinion_belief=_claim_optional_float(claim, "opinion_belief"),
+        opinion_disbelief=_claim_optional_float(claim, "opinion_disbelief"),
+        opinion_uncertainty=_claim_optional_float(claim, "opinion_uncertainty"),
+        opinion_base_rate=_claim_optional_float(claim, "opinion_base_rate"),
+        confidence=_claim_optional_float(claim, "confidence"),
+    )
+
+
+def _coerce_resolution_claim(
+    claim: _ResolutionClaimView | Mapping[str, object],
+) -> _ResolutionClaimView:
+    if isinstance(claim, _ResolutionClaimView):
+        return claim
+    return _resolution_claim_view(claim)
+
+
+def _resolve_recency(
+    claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+) -> tuple[str | None, str | None]:
     """Pick the claim with the most recent date in provenance_json.
 
     If multiple claims share the same best date, returns ``(None, reason)``
@@ -36,21 +121,22 @@ def _resolve_recency(claims: list[dict]) -> tuple[str | None, str | None]:
     """
     best_date = ""
     dated_claims: list[tuple[str, str]] = []  # (claim_id, date)
-    for c in claims:
-        prov = c.get("provenance_json")
+    for c in (_coerce_resolution_claim(claim) for claim in claims):
+        prov = c.provenance_json
         if not prov:
             continue
         try:
             prov_data = json.loads(prov) if isinstance(prov, str) else prov
         except (json.JSONDecodeError, TypeError):
             continue
-        date = prov_data.get("date") or ""
+        date = prov_data.get("date") if isinstance(prov_data, Mapping) else ""
+        date = date or ""
         if isinstance(date, str) and date >= best_date:
             if date > best_date:
                 best_date = date
-                dated_claims = [(c["id"], date)]
+                dated_claims = [(c.id, date)]
             else:
-                dated_claims.append((c["id"], date))
+                dated_claims.append((c.id, date))
     if not dated_claims:
         return None, "no dates in provenance"
     if len(dated_claims) == 1:
@@ -59,7 +145,9 @@ def _resolve_recency(claims: list[dict]) -> tuple[str | None, str | None]:
     return None, f"tied recency ({best_date}): {', '.join(tied_ids)}"
 
 
-def _resolve_sample_size(claims: list[dict]) -> tuple[str | None, str | None]:
+def _resolve_sample_size(
+    claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+) -> tuple[str | None, str | None]:
     """Pick the claim with the largest sample_size.
 
     If multiple claims share the same best sample_size, returns
@@ -68,14 +156,14 @@ def _resolve_sample_size(claims: list[dict]) -> tuple[str | None, str | None]:
     """
     best_n: int | None = None
     best_claims: list[str] = []
-    for c in claims:
-        n = c.get("sample_size")
+    for c in (_coerce_resolution_claim(claim) for claim in claims):
+        n = c.sample_size
         if n is not None:
             if best_n is None or n > best_n:
                 best_n = n
-                best_claims = [c["id"]]
+                best_claims = [c.id]
             elif n == best_n:
-                best_claims.append(c["id"])
+                best_claims.append(c.id)
     if not best_claims:
         return None, "no sample_size values"
     if len(best_claims) == 1:
@@ -84,8 +172,8 @@ def _resolve_sample_size(claims: list[dict]) -> tuple[str | None, str | None]:
 
 
 def _resolve_claim_graph_argumentation(
-    target_claims: list[dict],
-    active_claims: list[dict],
+    target_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    active_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
     world: ArtifactStore,
     *,
     semantics: str = "grounded",
@@ -110,8 +198,10 @@ def _resolve_claim_graph_argumentation(
     if not world.has_table("relation_edge"):
         return None, "no stance data"
 
-    active_ids = {c["id"] for c in active_claims}
-    target_ids = {c["id"] for c in target_claims}
+    active_views = tuple(_coerce_resolution_claim(claim) for claim in active_claims)
+    target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
+    active_ids = {c.id for c in active_views}
+    target_ids = {c.id for c in target_views}
     shared = (
         shared_analyzer_input_from_active_graph(active_graph, comparison=comparison)
         if active_graph is not None
@@ -146,8 +236,8 @@ def _resolve_claim_graph_argumentation(
 
 
 def _resolve_structured_argumentation(
-    target_claims: list[dict],
-    active_claims: list[dict],
+    target_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    active_claim_rows: list[dict],
     view: BeliefSpace,
     world: ArtifactStore,
     *,
@@ -170,19 +260,17 @@ def _resolve_structured_argumentation(
 
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     if isinstance(view, ClaimSupportView):
-        for claim in active_claims:
-            claim_id = claim.get("id")
-            if not claim_id:
-                continue
+        for claim in active_claim_rows:
+            claim_id = _claim_id(claim)
             support_metadata[claim_id] = view.claim_support(claim)
 
     projection = build_structured_projection(
         world,
-        active_claims,
+        active_claim_rows,
         support_metadata=support_metadata,
         comparison=comparison,
         link=link,
-        active_graph=getattr(view, "_active_graph", None),
+        active_graph=view._active_graph if isinstance(view, HasActiveGraph) else None,
     )
     result = compute_structured_justified_arguments(
         projection,
@@ -190,10 +278,11 @@ def _resolve_structured_argumentation(
         backend=ReasoningBackend.STRUCTURED_PROJECTION,
     )
 
+    target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
     target_arg_ids = frozenset(
         arg_id
-        for claim in target_claims
-        for arg_id in projection.claim_to_argument_ids.get(claim["id"], ())
+        for claim in target_views
+        for arg_id in projection.claim_to_argument_ids.get(claim.id, ())
     )
     if isinstance(result, frozenset):
         survivor_args = result & target_arg_ids
@@ -227,8 +316,8 @@ def _resolve_structured_argumentation(
 
 
 def _resolve_aspic_argumentation(
-    target_claims: list[dict],
-    active_claims: list[dict],
+    target_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    active_claim_rows: list[dict],
     view: BeliefSpace,
     world: ArtifactStore,
     *,
@@ -253,19 +342,17 @@ def _resolve_aspic_argumentation(
 
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     if isinstance(view, ClaimSupportView):
-        for claim in active_claims:
-            claim_id = claim.get("id")
-            if not claim_id:
-                continue
+        for claim in active_claim_rows:
+            claim_id = _claim_id(claim)
             support_metadata[claim_id] = view.claim_support(claim)
 
     projection = build_aspic_projection(
         world,
-        active_claims,
+        active_claim_rows,
         support_metadata=support_metadata,
         comparison=comparison,
         link=link,
-        active_graph=getattr(view, "_active_graph", None),
+        active_graph=view._active_graph if isinstance(view, HasActiveGraph) else None,
     )
     result = compute_structured_justified_arguments(
         projection,
@@ -273,10 +360,11 @@ def _resolve_aspic_argumentation(
         backend=ReasoningBackend.ASPIC,
     )
 
+    target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
     target_arg_ids = frozenset(
         arg_id
-        for claim in target_claims
-        for arg_id in projection.claim_to_argument_ids.get(claim["id"], ())
+        for claim in target_views
+        for arg_id in projection.claim_to_argument_ids.get(claim.id, ())
     )
     if isinstance(result, frozenset):
         survivor_args = result & target_arg_ids
@@ -310,8 +398,8 @@ def _resolve_aspic_argumentation(
 
 
 def _resolve_praf(
-    target_claims: list[dict],
-    active_claims: list[dict],
+    target_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    active_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
     world: ArtifactStore,
     *,
     semantics: str = "grounded",
@@ -340,8 +428,10 @@ def _resolve_praf(
     if not world.has_table("relation_edge"):
         return None, "no stance data", None
 
-    active_ids = {c["id"] for c in active_claims}
-    target_ids = {c["id"] for c in target_claims}
+    target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
+    active_views = tuple(_coerce_resolution_claim(claim) for claim in active_claims)
+    active_ids = {c.id for c in active_views}
+    target_ids = {c.id for c in target_views}
 
     # Extract PrAF parameters from policy
     strategy = "auto"
@@ -407,16 +497,16 @@ def _resolve_praf(
 
     if len(best_claims) > 1 and decision_criterion != "pignistic":
         # Build a lookup from claim id to claim dict
-        claim_lookup = {c["id"]: c for c in target_claims}
+        claim_lookup = {c.id: c for c in target_views}
         decision_values: dict[str, float | None] = {}
         for cid in best_claims:
-            c = claim_lookup.get(cid, {})
+            claim = claim_lookup.get(cid)
             decision_values[cid] = apply_decision_criterion(
-                c.get("opinion_belief"),
-                c.get("opinion_disbelief"),
-                c.get("opinion_uncertainty"),
-                c.get("opinion_base_rate"),
-                c.get("confidence"),
+                None if claim is None else claim.opinion_belief,
+                None if claim is None else claim.opinion_disbelief,
+                None if claim is None else claim.opinion_uncertainty,
+                None if claim is None else claim.opinion_base_rate,
+                None if claim is None else claim.confidence,
                 criterion=decision_criterion,
                 pessimism_index=pessimism_index,
             )
@@ -444,7 +534,7 @@ def _resolve_praf(
 
 
 def _resolve_atms_support(
-    target_claims: list[dict],
+    target_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
     view: BeliefSpace,
 ) -> tuple[str | None, str | None]:
     """Resolve by ATMS-supported status over the active belief space."""
@@ -452,7 +542,7 @@ def _resolve_atms_support(
         raise NotImplementedError("ATMS backend requires a bound world with an ATMS engine")
 
     engine = view.atms_engine()
-    target_ids = {claim["id"] for claim in target_claims}
+    target_ids = {claim.id for claim in (_coerce_resolution_claim(row) for row in target_claims)}
     supported = engine.supported_claim_ids() & target_ids
     if len(supported) == 0:
         return None, "all ATMS-supported claims defeated"
@@ -481,7 +571,12 @@ def resolve(
         return ResolvedResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
 
     if vr.status == "determined":
-        value = vr.claims[0].get("value") if vr.claims else None
+        determined_claim = (
+            _resolution_claim_view(vr.claims[0])
+            if vr.claims
+            else None
+        )
+        value = None if determined_claim is None else determined_claim.value
         return ResolvedResult(
             concept_id=concept_id, status=ValueStatus.DETERMINED,
             value=value, claims=vr.claims,
@@ -524,10 +619,13 @@ def resolve(
 
     # Conflicted — apply strategy
     active = vr.claims
+    active_views = tuple(_resolution_claim_view(claim) for claim in active)
+    active_claim_rows = list(view.active_claims())
+    active_claim_views = tuple(_resolution_claim_view(claim) for claim in active_claim_rows)
     winner_id: str | None = None
     reason: str | None = None
     _acceptance_probs: dict[str, float] | None = None
-    active_graph = getattr(view, "_active_graph", None)
+    active_graph = view._active_graph if isinstance(view, HasActiveGraph) else None
 
     if strategy == ResolutionStrategy.OVERRIDE:
         override_id = (overrides or {}).get(concept_id)
@@ -536,7 +634,7 @@ def resolve(
                 concept_id=concept_id, status=ValueStatus.CONFLICTED,
                 claims=active, reason="no override specified",
             )
-        active_ids = {c["id"] for c in active}
+        active_ids = {claim.id for claim in active_views}
         if override_id not in active_ids:
             raise ValueError(
                 f"Override claim {override_id} is not an active claim for {concept_id}"
@@ -545,10 +643,10 @@ def resolve(
         reason = f"override: {override_id}"
 
     elif strategy == ResolutionStrategy.RECENCY:
-        winner_id, reason = _resolve_recency(active)
+        winner_id, reason = _resolve_recency(active_views)
 
     elif strategy == ResolutionStrategy.SAMPLE_SIZE:
-        winner_id, reason = _resolve_sample_size(active)
+        winner_id, reason = _resolve_sample_size(active_views)
 
     elif strategy == ResolutionStrategy.ARGUMENTATION:
         if world is None:
@@ -559,8 +657,8 @@ def resolve(
         _, semantics = validate_backend_semantics(reasoning_backend, semantics)
         if reasoning_backend == ReasoningBackend.CLAIM_GRAPH:
             winner_id, reason = _resolve_claim_graph_argumentation(
-                active,
-                view.active_claims(),
+                active_views,
+                active_claim_views,
                 world,
                 semantics=semantics,
                 comparison=comparison,
@@ -568,8 +666,8 @@ def resolve(
             )
         elif reasoning_backend == ReasoningBackend.STRUCTURED_PROJECTION:
             winner_id, reason = _resolve_structured_argumentation(
-                active,
-                view.active_claims(),
+                active_views,
+                active_claim_rows,
                 view,
                 world,
                 semantics=semantics,
@@ -578,8 +676,8 @@ def resolve(
             )
         elif reasoning_backend == ReasoningBackend.ASPIC:
             winner_id, reason = _resolve_aspic_argumentation(
-                active,
-                view.active_claims(),
+                active_views,
+                active_claim_rows,
                 view,
                 world,
                 semantics=semantics,
@@ -588,8 +686,8 @@ def resolve(
             )
         elif reasoning_backend == ReasoningBackend.PRAF:
             winner_id, reason, _acceptance_probs = _resolve_praf(
-                active,
-                view.active_claims(),
+                active_views,
+                active_claim_views,
                 world,
                 semantics=semantics,
                 comparison=comparison,
@@ -597,7 +695,7 @@ def resolve(
                 active_graph=active_graph,
             )
         elif reasoning_backend == ReasoningBackend.ATMS:
-            winner_id, reason = _resolve_atms_support(active, view)
+            winner_id, reason = _resolve_atms_support(active_views, view)
         else:
             raise NotImplementedError(
                 f"Reasoning backend '{reasoning_backend.value}' is not implemented"
@@ -610,8 +708,8 @@ def resolve(
             acceptance_probs=_acceptance_probs,
         )
 
-    winning_claim = next((c for c in active if c["id"] == winner_id), None)
-    value = winning_claim.get("value") if winning_claim else None
+    winning_claim = next((claim for claim in active_views if claim.id == winner_id), None)
+    value = None if winning_claim is None else winning_claim.value
     return ResolvedResult(
         concept_id=concept_id, status=ValueStatus.RESOLVED,
         value=value, claims=active,

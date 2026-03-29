@@ -17,6 +17,7 @@ from propstore.core.labels import (
 from propstore.world.labelled import SupportQuality
 
 if TYPE_CHECKING:
+    from propstore.core.graph_types import ActiveWorldGraph
     from propstore.z3_conditions import Z3ConditionSolver
 
 
@@ -834,6 +835,11 @@ class ATMSEngineView(Protocol):
 @runtime_checkable
 class HasATMSEngine(Protocol):
     def atms_engine(self) -> ATMSEngineView: ...
+
+
+@runtime_checkable
+class HasActiveGraph(Protocol):
+    _active_graph: ActiveWorldGraph | None
 
 
 @runtime_checkable
