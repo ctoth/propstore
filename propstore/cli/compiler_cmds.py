@@ -6,7 +6,10 @@ import re
 import sqlite3
 import sys
 import unicodedata
+from collections.abc import Mapping, Sequence
+from enum import Enum
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import click
 import yaml
@@ -14,8 +17,26 @@ import yaml
 from propstore.cli.helpers import EXIT_VALIDATION, open_world_model, write_yaml_file
 from propstore.cli.repository import Repository
 
+if TYPE_CHECKING:
+    from propstore.core.graph_types import ActiveWorldGraph
+    from propstore.world import BoundWorld, QueryableAssumption, RenderPolicy, WorldModel
+    from propstore.world.labelled import Label, SupportQuality
 
-def _format_value_with_si(claim: dict) -> str:
+
+def _maybe_float(value: object) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    return None
+
+
+def _format_value_with_si(claim: Mapping[str, object]) -> str:
     """Format a claim's value with optional SI normalization.
 
     Returns e.g. ``value=0.2 kHz (SI: 200.0 Hz)`` when the stored unit
@@ -24,12 +45,31 @@ def _format_value_with_si(claim: dict) -> str:
     value = claim.get("value")
     unit = claim.get("unit")
     value_si = claim.get("value_si")
-    if unit and value_si is not None and float(value_si) != float(value):
+    numeric_value = _maybe_float(value)
+    numeric_value_si = _maybe_float(value_si)
+    if (
+        isinstance(unit, str)
+        and numeric_value is not None
+        and numeric_value_si is not None
+        and numeric_value_si != numeric_value
+    ):
         return f"value={value} {unit} (SI: {value_si} Hz)"
-    elif unit:
+    if isinstance(unit, str):
         return f"value={value} {unit}"
-    else:
-        return f"value={value}"
+    return f"value={value}"
+
+
+def _bind_world(
+    wm: WorldModel,
+    bindings: Mapping[str, str],
+    *,
+    context_id: str | None = None,
+    policy: RenderPolicy | None = None,
+) -> BoundWorld:
+    from propstore.world import Environment
+
+    environment = Environment(bindings=dict(bindings), context_id=context_id)
+    return wm.bind(environment=environment, policy=policy)
 
 
 @click.command()
@@ -704,7 +744,7 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
             key, _, value = b.partition("=")
             parsed[key] = value
 
-        bound = wm.bind(**parsed)
+        bound = _bind_world(wm, parsed)
 
         if query_concept:
             resolved = _resolve_world_target(wm, query_concept)
@@ -796,7 +836,12 @@ def _parse_bindings(args: tuple[str, ...]) -> tuple[dict[str, str], str | None]:
     """
     from propstore.cli.helpers import parse_kv_pairs
 
-    parsed, remaining = parse_kv_pairs(args)
+    parsed_objects, remaining = parse_kv_pairs(args)
+    parsed: dict[str, str] = {}
+    for key, value in parsed_objects.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            raise click.ClickException("world bindings must be plain string key=value pairs")
+        parsed[key] = value
     concept_id = remaining[-1] if remaining else None
     return parsed, concept_id
 
@@ -917,7 +962,7 @@ def world_revision_base(obj: dict, args: tuple[str, ...]) -> None:
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
         base = bound.revision_base()
 
         click.echo(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
@@ -943,7 +988,7 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...]) -> None:
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
         report = bound.revision_entrenchment()
 
         click.echo(f"Entrenchment ({len(report.ranked_atom_ids)} atoms)")
@@ -969,7 +1014,7 @@ def world_expand(obj: dict, args: tuple[str, ...], atom_json: str) -> None:
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
         result = bound.expand(_parse_revision_atom_json(atom_json))
         _emit_revision_result(result)
 
@@ -983,8 +1028,8 @@ def world_contract(obj: dict, args: tuple[str, ...], targets: tuple[str, ...]) -
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = wm.bind(**bindings)
-        result = bound.contract(targets if len(targets) > 1 else targets[0])
+        bound = _bind_world(wm, bindings)
+        result = bound.contract(_contract_target_arg(targets))
         _emit_revision_result(result)
 
 
@@ -1000,7 +1045,7 @@ def world_revise(obj: dict, args: tuple[str, ...], atom_json: str, conflicts: tu
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
         atom = _parse_revision_atom_json(atom_json)
         base = bound.revision_base()
         normalized = normalize_revision_input(base, atom)
@@ -1030,7 +1075,7 @@ def world_revision_explain(
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
 
         if operation == "expand":
             if atom_json is None:
@@ -1039,7 +1084,7 @@ def world_revision_explain(
         elif operation == "contract":
             if not targets:
                 raise click.ClickException("--target is required for --operation contract")
-            result = bound.contract(targets if len(targets) > 1 else targets[0])
+            result = bound.contract(_contract_target_arg(targets))
         else:
             if atom_json is None:
                 raise click.ClickException("--atom is required for --operation revise")
@@ -1061,7 +1106,7 @@ def world_iterated_state(obj: dict, args: tuple[str, ...]) -> None:
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
         state = bound.epistemic_state()
         _emit_epistemic_state(state)
 
@@ -1085,7 +1130,7 @@ def world_iterated_revise(
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
         atom = _parse_revision_atom_json(atom_json)
         state = bound.epistemic_state()
         normalized = normalize_revision_input(state.base, atom)
@@ -1105,15 +1150,12 @@ def _bind_atms_world(
     *,
     context: str | None = None,
 ):
-    from propstore.world import Environment, ReasoningBackend, RenderPolicy, WorldModel
+    from propstore.world import ReasoningBackend, RenderPolicy, WorldModel
 
     wm = WorldModel(repo)
     bindings, concept_id = _parse_bindings(args)
     policy = RenderPolicy(reasoning_backend=ReasoningBackend.ATMS)
-    if context:
-        bound = wm.bind(Environment(bindings=bindings, context_id=context), policy=policy)
-    else:
-        bound = wm.bind(policy=policy, **bindings)
+    bound = _bind_world(wm, bindings, context_id=context, policy=policy)
     return wm, bound, bindings, concept_id
 
 
@@ -1123,8 +1165,10 @@ def _format_assumption_ids(assumption_ids: list[str] | tuple[str, ...]) -> str:
     return "[" + ", ".join(assumption_ids) + "]"
 
 
-def _parse_queryables(queryables: tuple[str, ...]) -> list[str]:
-    parsed: list[str] = []
+def _parse_queryables(
+    queryables: tuple[str, ...],
+) -> list[QueryableAssumption | str]:
+    parsed: list[QueryableAssumption | str] = []
     for queryable in queryables:
         if any(operator in queryable for operator in ("==", "!=", ">=", "<=", ">", "<")):
             parsed.append(queryable)
@@ -1135,6 +1179,45 @@ def _parse_queryables(queryables: tuple[str, ...]) -> list[str]:
             continue
         parsed.append(queryable)
     return parsed
+
+
+def _contract_target_arg(targets: tuple[str, ...]) -> str | tuple[str, ...]:
+    if len(targets) == 1:
+        return targets[0]
+    return targets
+
+
+def _format_status_value(status: object) -> str:
+    if isinstance(status, str):
+        return status
+    if isinstance(status, Enum):
+        return str(status.value)
+    return str(status)
+
+
+def _support_metadata_for(
+    bound: object,
+    active_claims: Sequence[dict[str, Any]],
+) -> dict[str, tuple[Label | None, SupportQuality]]:
+    from propstore.world.types import ClaimSupportView
+
+    if not isinstance(bound, ClaimSupportView):
+        return {}
+
+    support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
+    for claim in active_claims:
+        claim_id = claim.get("id")
+        if isinstance(claim_id, str) and claim_id:
+            support_metadata[claim_id] = bound.claim_support(claim)
+    return support_metadata
+
+
+def _active_graph_for(bound: object) -> ActiveWorldGraph | None:
+    from propstore.world.types import HasActiveGraph
+
+    if isinstance(bound, HasActiveGraph):
+        return bound._active_graph
+    return None
 
 
 def _format_future_summary(future: dict) -> str:
@@ -1498,9 +1581,7 @@ def world_atms_interventions(
     if claim is not None:
         plans = bound.claim_interventions(target, parsed_queryables, target_status, limit=limit)
         for plan in plans:
-            status_val = plan["result_status"]
-            if hasattr(status_val, "value"):
-                status_val = status_val.value
+            status_val = _format_status_value(plan["result_status"])
             click.echo(
                 f"  plan [{', '.join(plan['queryable_cels'])}] -> {status_val}"
             )
@@ -1510,9 +1591,7 @@ def world_atms_interventions(
     resolved = _resolve_world_target(wm, target)
     plans = bound.concept_interventions(resolved, parsed_queryables, target_status, limit=limit)
     for plan in plans:
-        status_val = plan["result_status"]
-        if hasattr(status_val, "value"):
-            status_val = status_val.value
+        status_val = _format_status_value(plan["result_status"])
         click.echo(
             f"  plan [{', '.join(plan['queryable_cels'])}] -> {status_val}"
         )
@@ -1583,7 +1662,7 @@ def world_derive(obj: dict, concept_id: str, args: tuple[str, ...]) -> None:
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
         resolved = _resolve_world_target(wm, concept_id)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
         result = bound.derived_value(resolved)
 
     click.echo(f"{resolved}: {result.status}")
@@ -1649,12 +1728,13 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
         WorldModel,
         resolve,
     )
+    from propstore.world.types import normalize_argumentation_semantics
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
         resolved = _resolve_world_target(wm, concept_id)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
         strat = ResolutionStrategy(strategy)
         overrides_dict = {resolved: override_id} if override_id else None
         backend = ReasoningBackend(reasoning_backend)
@@ -1662,7 +1742,7 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
         policy = RenderPolicy(
             reasoning_backend=backend,
             strategy=strat,
-            semantics=semantics,
+            semantics=normalize_argumentation_semantics(semantics),
             comparison=set_comparison,
             decision_criterion=decision_criterion,
             pessimism_index=pessimism_index,
@@ -1730,16 +1810,12 @@ def world_extensions(obj: dict, args: tuple[str, ...],
     Usage: pks world extensions domain=example --semantics grounded
     """
     from propstore.argumentation import stance_summary
-    from propstore.world import Environment, ReasoningBackend, WorldModel
+    from propstore.world import ReasoningBackend, WorldModel
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        if context:
-            env = Environment(bindings=bindings, context_id=context)
-            bound = wm.bind(env)
-        else:
-            bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings, context_id=context)
         active = bound.active_claims()
         if not active:
             click.echo("No active claims for given bindings.")
@@ -1781,8 +1857,9 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                        f"{summary['included_as_attacks']} included as attacks")
             click.echo("\nAcceptance probabilities:")
             claim_map = {c["id"]: c for c in active}
+            acceptance_probs = praf_result.acceptance_probs or {}
             for cid, prob in sorted(
-                praf_result.acceptance_probs.items(),
+                acceptance_probs.items(),
                 key=lambda x: -x[1],
             ):
                 c = claim_map.get(cid)
@@ -1822,20 +1899,12 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                 compute_structured_justified_arguments,
             )
 
-            support_metadata: dict[str, tuple[object | None, object]] = {}
-            claim_support = getattr(bound, "claim_support", None)
-            if callable(claim_support):
-                for claim in active:
-                    claim_id = claim.get("id")
-                    if claim_id:
-                        support_metadata[claim_id] = claim_support(claim)
-
             projection = build_structured_projection(
                 wm,
                 active,
-                support_metadata=support_metadata,
+                support_metadata=_support_metadata_for(bound, active),
                 comparison=set_comparison,
-                active_graph=getattr(bound, "_active_graph", None),
+                active_graph=_active_graph_for(bound),
             )
             result = compute_structured_justified_arguments(
                 projection,
@@ -1849,20 +1918,12 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                 compute_structured_justified_arguments as compute_aspic_justified,
             )
 
-            aspic_support_metadata: dict[str, tuple[object | None, object]] = {}
-            aspic_claim_support = getattr(bound, "claim_support", None)
-            if callable(aspic_claim_support):
-                for claim in active:
-                    claim_id = claim.get("id")
-                    if claim_id:
-                        aspic_support_metadata[claim_id] = aspic_claim_support(claim)
-
             aspic_projection = build_aspic_projection(
                 wm,
                 active,
-                support_metadata=aspic_support_metadata,
+                support_metadata=_support_metadata_for(bound, active),
                 comparison=set_comparison,
-                active_graph=getattr(bound, "_active_graph", None),
+                active_graph=_active_graph_for(bound),
             )
             result = compute_aspic_justified(
                 aspic_projection,
@@ -1988,7 +2049,7 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
         synthetics: list[SyntheticClaim] = []
         if add_json:
             data = json.loads(add_json)
@@ -2069,7 +2130,7 @@ def world_export_graph(obj: dict, args: tuple[str, ...], fmt: str,
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
-        bound = wm.bind(**bindings) if bindings else None
+        bound = _bind_world(wm, bindings) if bindings else None
         graph = build_knowledge_graph(wm, bound=bound, group_id=group_id)
 
         if fmt == "json":
@@ -2102,7 +2163,7 @@ def world_sensitivity(obj: dict, concept_id: str, args: tuple[str, ...],
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
         resolved = _resolve_world_target(wm, concept_id)
-        bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings)
         result = analyze_sensitivity(wm, resolved, bound)
 
         if result is None:
@@ -2162,10 +2223,7 @@ def world_fragility(obj: dict, args: tuple[str, ...], concept_id: str | None,
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, context_id = _parse_bindings(args)
-        if context_id:
-            bound = wm.bind(context_id=context_id, **bindings)
-        else:
-            bound = wm.bind(**bindings)
+        bound = _bind_world(wm, bindings, context_id=context_id)
 
         report = rank_fragility(
             bound,
@@ -2288,7 +2346,7 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
                     if r.derivation_chain:
                         click.echo(f"    chain: {r.derivation_chain}")
         else:
-            bound = wm.bind(**bindings)
+            bound = _bind_world(wm, bindings)
             conflicts = bound.conflicts()
             if not conflicts:
                 click.echo("No conflicts under current bindings.")
