@@ -21,7 +21,7 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 
 ## Architectural Layers (one-way dependencies, top depends on bottom)
 
-1. **Source-of-truth storage** — Claims, concepts, forms, contexts, conditions, provenance. Immutable except by explicit user migration. Never mutated by heuristic or LLM output.
+1. **Source-of-truth storage** — Claims, concepts, forms, contexts, conditions, provenance. Immutable except by explicit user migration. Never mutated by heuristic or LLM output. `propstore/repo/` provides git-backed storage with branch isolation, semantic merge classification, two-parent merge commits, branch reasoning (ATMS/ASPIC+ bridge), and IC merge operators.
 2. **Theory / typing layer** — Forms, dimensions, condition languages, parameterization graphs, CEL type-checking, Z3 condition reasoning.
 3. **Heuristic analysis layer** — Embedding similarity, LLM stance classification, candidate concept merges. All output is **proposal artifacts**, never source mutations.
 4. **Argumentation layer** — Dung AF construction, ASPIC+ bridge (`aspic_bridge.py` translates claims/stances to formal ASPIC+ types, `aspic.py` builds recursive arguments), preference ordering, extension computation. Operates over assumption-labeled data, not hardened source facts.
@@ -51,12 +51,23 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 | Li et al. 2012 | PrAF = (A, P_A, D, P_D): MC sampling with Agresti-Coull stopping for probabilistic AFs | Implemented — MC sampling with Agresti-Coull |
 | Denoeux 2019 | Decision-making with belief functions: pignistic, Hurwicz, interval criteria | Partial — pignistic, Hurwicz, lower/upper bound criteria implemented (`world/types.py:apply_decision_criterion`); interval dominance not implemented |
 | Freedman et al. 2025 | DF-QuAD gradual semantics for quantitative bipolar argumentation frameworks | Implemented — but P_A conflated with base score |
+| Konieczny & Pino Perez 2002 | IC merging: IC0-IC8 postulates, Sigma/Max/GMax operators | Implemented — `propstore/repo/ic_merge.py`; integrity constraint mu not yet wired |
+| Coste-Marquis et al. 2007 | PAF three-valued attack relation, AF edit distance, merge classification | Implemented — `propstore/repo/merge_classifier.py` |
+| Darwiche & Pearl 1997 | Iterated revision C1-C4, epistemic states | Implemented — branch isolation in `propstore/repo/branch.py` |
+| Bonanno 2007 | Backward Uniqueness (BU); git merges need IC merging, not temporal revision | Validated — BU confirmed for linear branches, IC merging for merge points |
+| Mason & Johnson 1989 | DATMS: agent belief spaces as ATMS assumptions, nogoods for scalability | Implemented — `propstore/repo/branch_reasoning.py` |
+| Baumann & Brewka 2015 | AGM expansion/revision for Dung AFs, kernel union operator | Referenced — kernel union for AF expansion semantics |
+| Spohn 1988 | Ordinal Conditional Functions as epistemic states and distance metric | Referenced — OCF distance adapted for claim_distance |
+| Booth & Meyer 2006 | Admissible/restrained revision; argumentation and merging compose | Confirmed — pipeline composition validated, not formally verified |
+| Amgoud & Vesic 2014 | Rich PAF: attack inversion, democratic preference lifting | Deferred — would enrich aspic_bridge.py with Def(T) attack inversion |
 
 ## Known Limitations
 
 **Decision criteria:** Denoeux 2019 pignistic, Hurwicz, and lower/upper bound criteria
 are implemented in `world/types.py:apply_decision_criterion` and wired through the CLI
 (`--decision-criterion`). Interval dominance is not yet implemented.
+
+**Semantic merge:** Phases 1-2 (branch primitives, merge classification, merge commits, IC merge operators, branch reasoning) are implemented in `propstore/repo/`. Phase 3 (branch-aware ATMS/ASPIC+ with sidecar integration) and Phase 4 (full render-time IC merge wiring) are not yet implemented. IC0 integrity constraint (mu parameter) is not wired. Branch weights on RenderPolicy are declared but not consumed. Rich PAF attack inversion (Amgoud & Vesic 2014) is deferred.
 
 **Deduction, comultiplication, abduction:** These extended Jøsang operators (Jøsang & McAnally 2004; Jøsang 2008) are not implemented. The 2001 paper's core operators are complete. Implementing these requires retrieving the source papers.
 

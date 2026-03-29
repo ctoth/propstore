@@ -13,6 +13,7 @@ Layer 4: Argumentation     — Dung AF, ASPIC+, PrAF, bipolar, ATMS
 Layer 3: Heuristic         — embeddings, LLM stance classification (proposals only)
 Layer 2: Theory / Typing   — forms, dimensions, CEL type-checking, Z3 conditions
 Layer 1: Source Storage    — claims, concepts, contexts, stances, provenance (immutable)
+        └── propstore/repo/ — git-backed storage, branch isolation, semantic merge
 ```
 
 Dependencies flow downward only. Layers 1-2 are the formal core. Layer 3 produces proposals, never mutations. Layer 4 operates over assumption-labeled data. Layer 5 applies policy at query time. Layer 6 orchestrates multi-step agent workflows.
@@ -32,6 +33,17 @@ If you want to work with raw papers, start with `research-papers-plugin`.
 If you want to work on the compiler, validator, sidecar builder, or reasoning engine, start here.
 
 If you want a reproducible showcase corpus, use a dedicated demo repo or local demo corpus rather than assuming this source tree is itself a polished demo dataset.
+
+## Semantic Merge
+
+propstore formalizes git operations as belief revision. Branches are independent epistemic states; merges classify conflicts rather than resolving them; render-time operators aggregate multi-branch knowledge under different policies.
+
+- **Branches** isolate paper processing, agent runs, and hypotheses (Darwiche & Pearl 1997)
+- **Merge classification** produces three-way diffs at claim granularity (Coste-Marquis et al. 2007)
+- **Branch reasoning** generates ATMS nogoods and ASPIC+ stances from conflicts (Mason & Johnson 1989)
+- **IC merge operators** — Sigma (majority), Max (egalitarian), GMax (arbitration) — are selectable render policies (Konieczny & Pino Perez 2002)
+
+See [Semantic Merge](docs/semantic-merge.md) for the full architecture and [Git Backend](docs/git-backend.md) for branch operations.
 
 ## What It Does Today
 
@@ -265,6 +277,7 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 - [Fragility Analysis](docs/fragility.md) — parametric, epistemic, and conflict fragility with ROI ranking
 - [Worldlines](docs/worldlines.md) — materialized query artifacts, provenance tracking, staleness detection
 - [CLI Reference](docs/cli-reference.md) — command reference (69 commands across 7 groups)
+- [Semantic Merge](docs/semantic-merge.md) — git-as-belief-revision, merge classification, IC merge operators, branch reasoning
 - [Git Backend](docs/git-backend.md) — Dulwich-backed versioning, KnowledgeRepo, TreeReader, branch primitives
 - [Units and Forms](docs/units-and-forms.md) — dimensional type system, SI normalization, form algebra
 - [Python API](docs/python-api.md) — WorldModel, BoundWorld, HypotheticalWorld, result types
@@ -272,7 +285,7 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 
 ## Future Work
 
-- **Semantic merge** — Multi-branch knowledge repos with formal merge semantics. Phase 1 (branch primitives with Darwiche-Pearl isolation) is implemented. The design proposal at `proposals/semantic-merge-spec.md` covers IC merging (Konieczny & Pino Perez 2002), AGM-compatible contraction (Alchouron et al. 1985), and arbitration operators.
+- **Semantic merge (Phase 3-4)** — Branch-aware ATMS/ASPIC+ integration and full render-time IC merge wiring. Phases 1-2 (branch primitives, merge classification, merge commits, IC merge operators, branch reasoning) are implemented. See `docs/semantic-merge.md`.
 - **AGM revision** — Full belief revision operations (Dixon 1993, Alchouron et al. 1985). Currently aspirational — the ATMS provides bounded replay, not full revision.
 - **Extended Josang operators** — Deduction, comultiplication, abduction (Josang & McAnally 2004; Josang 2008). Requires retrieving source papers.
 - **Interval dominance** — Denoeux 2019 interval dominance criterion for decision-making under uncertainty.
