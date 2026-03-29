@@ -218,6 +218,7 @@ Stop condition:
 
 - Design anchor:
   - `plans/ic-merge-mu-design-2026-03-29.md`
+  - `plans/global-ic-merge-production-contract-2026-03-29.md`
 - Completed prerequisite:
   - `plans/review-remediation-plan-2026-03-29.md`
 - Literature anchor:
