@@ -100,7 +100,10 @@ def test_revise_matches_operational_levi_identity() -> None:
     expanded = expand(contracted.revised_base, new_atom)
 
     assert revised.accepted_atom_ids == expanded.accepted_atom_ids
-    assert revised.rejected_atom_ids == expanded.rejected_atom_ids
+    assert tuple(atom.atom_id for atom in revised.revised_base.atoms) == tuple(
+        atom.atom_id for atom in expanded.revised_base.atoms
+    )
+    assert revised.rejected_atom_ids == contracted.rejected_atom_ids
     assert revised.incision_set == contracted.incision_set
 
 
@@ -116,4 +119,3 @@ def test_revision_operators_do_not_import_ic_merge() -> None:
         elif isinstance(node, ast.ImportFrom) and node.module is not None:
             imports.append(node.module)
     assert "propstore.repo.ic_merge" not in imports
-

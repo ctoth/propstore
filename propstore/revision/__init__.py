@@ -1,14 +1,19 @@
 """Revision-facing projection and entrenchment helpers."""
 
 from propstore.revision.entrenchment import EntrenchmentReport, compute_entrenchment
+from propstore.revision.operators import contract, expand, revise
 from propstore.revision.projection import project_belief_base
-from propstore.revision.state import BeliefAtom, BeliefBase, RevisionScope
+from propstore.revision.state import BeliefAtom, BeliefBase, RevisionResult, RevisionScope
 
 __all__ = [
     "BeliefAtom",
     "BeliefBase",
     "EntrenchmentReport",
+    "RevisionResult",
     "RevisionScope",
+    "contract",
     "compute_entrenchment",
+    "expand",
     "project_belief_base",
+    "revise",
 ]

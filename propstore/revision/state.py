@@ -30,3 +30,12 @@ class BeliefBase:
     assumptions: tuple[AssumptionRef, ...] = field(default_factory=tuple)
     support_sets: Mapping[str, tuple[tuple[str, ...], ...]] = field(default_factory=dict)
     essential_support: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class RevisionResult:
+    revised_base: BeliefBase
+    accepted_atom_ids: tuple[str, ...]
+    rejected_atom_ids: tuple[str, ...]
+    incision_set: tuple[str, ...] = field(default_factory=tuple)
+    explanation: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
