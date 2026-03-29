@@ -132,10 +132,10 @@ Suggested Hypothesis properties:
 Stop condition:
 - global `mu` can be expressed with CEL over merged assignments
 
-### 4. Add optional Z3-backed pruning/validation for global `mu`
+### 4. Make Z3 the canonical validator/pruner for global `mu`
 
 Commit message:
-- `feat(merge): prune global ic-merge candidates with z3`
+- `feat(merge): make z3 canonical for global mu validation`
 
 Scope:
 - `propstore/repo/ic_merge.py`
@@ -144,16 +144,23 @@ Scope:
   - `tests/test_ic_merge.py`
 
 Work:
-- use Z3 where available to reject impossible assignment regions earlier
-- keep brute-force enumeration as the trusted reference on bounded cases
-- prove equivalence between pruned and unpruned winner sets on supported inputs
+- use Z3 by default to validate and prune global `mu` constraints on supported
+  CEL inputs
+- keep brute-force enumeration as the trusted reference oracle on bounded cases
+- prove equivalence between the Z3-backed production path and the brute-force
+  oracle on supported inputs
+- do not introduce a second user-facing semantics mode
 
 Required RED tests:
-- Z3-pruned and brute-force paths agree on bounded multi-concept cases
-- solver unavailability or translation failure falls back cleanly
+- the default Z3-backed path and the brute-force oracle agree on bounded
+  multi-concept cases
+- unsupported or untranslated constraints fail explicitly instead of silently
+  creating a semantic fork
 
 Stop condition:
-- Z3 is an optimization/validation layer, not a semantic fork
+- Z3 is the canonical production validator/pruner for supported global `mu`
+  constraints, and the brute-force oracle remains only as the correctness
+  reference in tests and bounded verification
 
 ### 5. Wire global IC merge into production resolution surfaces
 
