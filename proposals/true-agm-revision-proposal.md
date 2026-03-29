@@ -387,6 +387,50 @@ So the rule is:
 - Phase 2 must not commit to declarative worldline revision inputs or a durable revision-state schema
 - Phase 3 should define the persistent replay shape after `EpistemicState` is explicit
 
+Now that `EpistemicState` is explicit, worldline integration can proceed, but it must still keep the question/answer boundary clean:
+
+- `WorldlineDefinition` gets an optional `revision` query block
+- `WorldlineResult` gets an optional `revision` result payload
+- the query block is the requested operation
+- the result payload is the materialized episode/state outcome
+
+Recommended worldline query contract:
+
+```yaml
+revision:
+  operation: revise | contract | expand | iterated_revise
+  atom: {...}              # for expand/revise/iterated_revise
+  target: claim_id         # for contract
+  conflicts:
+    claim:new: [legacy]
+  operator: restrained     # only for iterated_revise
+```
+
+Recommended worldline result contract:
+
+```yaml
+revision:
+  operation: revise | contract | expand | iterated_revise
+  input_atom_id: claim:new | null
+  target_atom_ids: [claim:legacy]
+  result:
+    accepted_atom_ids: [...]
+    rejected_atom_ids: [...]
+    incision_set: [...]
+    explanation: {...}
+  state:                   # present for iterated_revise only
+    accepted_atom_ids: [...]
+    ranked_atom_ids: [...]
+    ranking: {...}
+    history: [...]
+```
+
+Design rule:
+
+- store episode results plus enough state summary to verify replay
+- do not persist only an opaque state blob
+- do not collapse one-shot `RevisionResult` and iterated `EpistemicState` into the same field shape
+
 ### CLI
 
 The public surface is currently exposed under the existing `pks world` group:
@@ -538,6 +582,28 @@ Current projection contract:
 Success criteria:
 
 - AF/ASPIC+ consumers can observe revised state without becoming the primary reviser
+
+### Phase 5: Worldline Revision Capture And Replay
+
+Goal:
+
+- make revision episodes reproducible and staleness-sensitive in the existing worldline system
+
+Tasks:
+
+1. Add a `revision` query block to `WorldlineDefinition`
+2. Add a `revision` result payload to `WorldlineResult`
+3. Capture one-shot revision episodes in `worldline_runner.py`
+4. Capture iterated revision episodes plus explicit state summary
+5. Include revision payloads in worldline content hashing and stale detection
+6. Keep merge-point refusal explicit in captured errors/results
+
+Success criteria:
+
+- worldlines can replay explicit revision-aware runs
+- one-shot and iterated revision payloads are distinguishable
+- changing revision-relevant support/claim inputs changes the worldline content hash
+- merge points still refuse revision rather than silently degrading to merge
 
 ---
 
