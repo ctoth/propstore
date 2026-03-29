@@ -34,8 +34,16 @@ build-backend = "hatchling.build"
 packages = ["propstore"]
 
 [tool.pyright]
+typeCheckingMode = "basic"
 venvPath = "."
 venv = ".venv"
+strict = [
+    "propstore/core/labels.py",
+    "propstore/core/results.py",
+    "propstore/conflict_detector/models.py",
+    "propstore/dung.py",
+    "propstore/opinion.py",
+]
 
 [tool.uv.sources]
 ast-equiv = { git = "https://github.com/ctoth/ast-equiv" }

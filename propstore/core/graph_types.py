@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,24 +10,43 @@ from propstore.core.environment import Environment
 from propstore.core.labels import EnvironmentKey, Label
 
 
-def _freeze_value(value: Any) -> Any:
+def _pairs_from_mapping(value: Mapping[str, object]) -> list[tuple[str, object]]:
+    pairs: list[tuple[str, object]] = []
+    for key, item in value.items():
+        pairs.append((str(key), item))
+    return pairs
+
+
+def _pairs_from_iterable(value: tuple[tuple[str, object], ...]) -> list[tuple[str, object]]:
+    pairs: list[tuple[str, object]] = []
+    for key, item in value:
+        pairs.append((str(key), item))
+    return pairs
+
+
+def _freeze_value(value: object) -> object:
     if isinstance(value, Mapping):
-        return tuple(sorted((str(key), _freeze_value(item)) for key, item in value.items()))
+        frozen_items: list[tuple[str, object]] = []
+        for entry in value.items():
+            key: object = entry[0]
+            item: object = entry[1]
+            frozen_items.append((str(key), _freeze_value(item)))
+        return tuple(sorted(frozen_items))
     if isinstance(value, (list, tuple)):
-        return tuple(_freeze_value(item) for item in value)
+        sequence: list[object] = list(value)
+        return tuple(_freeze_value(item) for item in sequence)
     return value
 
 
 def _normalize_pairs(
-    value: Mapping[str, Any] | Iterable[tuple[str, Any]] | None,
-) -> tuple[tuple[str, Any], ...]:
+    value: Mapping[str, object] | tuple[tuple[str, object], ...] | None,
+) -> tuple[tuple[str, object], ...]:
     if value is None:
         return ()
-    if isinstance(value, Mapping):
-        items = value.items()
-    else:
-        items = value
-    return tuple(sorted((str(key), _freeze_value(item)) for key, item in items))
+    pairs = _pairs_from_mapping(value) if isinstance(value, Mapping) else _pairs_from_iterable(value)
+    return tuple(
+        sorted((key, _freeze_value(item)) for key, item in pairs)
+    )
 
 
 def label_to_dict(label: Label | None) -> list[list[str]] | None:

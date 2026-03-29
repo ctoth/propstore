@@ -8,7 +8,6 @@ This is a leaf module with ZERO imports from propstore.
 
 from __future__ import annotations
 
-import functools
 import math
 from dataclasses import dataclass
 
