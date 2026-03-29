@@ -30,6 +30,12 @@ from propstore.repo.paf_queries import (
     credulously_accepted_arguments,
     skeptically_accepted_arguments,
 )
+from propstore.repo.merge_report import summarize_merge_framework
+from propstore.repo.structured_merge import (
+    BranchStructuredSummary,
+    build_branch_structured_summary,
+    build_structured_merge_candidates,
+)
 from propstore.repo.ic_merge import (
     MergeOperator,
     sigma_merge,
@@ -58,6 +64,10 @@ __all__ = [
     "leximax_merge_frameworks",
     "credulously_accepted_arguments",
     "skeptically_accepted_arguments",
+    "summarize_merge_framework",
+    "BranchStructuredSummary",
+    "build_branch_structured_summary",
+    "build_structured_merge_candidates",
     "MergeOperator",
     "sigma_merge",
     "max_merge",
