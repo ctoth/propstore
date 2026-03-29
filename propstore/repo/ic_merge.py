@@ -275,19 +275,45 @@ def _eval_cel_ast(node: ASTNode, bindings: Mapping[str, Any]) -> Any:
     raise TypeError(f"Unsupported CEL AST node: {type(node)}")
 
 
-def _eval_cel_constraint(
-    assignment: MergeAssignment,
-    constraint: IntegrityConstraint,
-) -> bool:
+def _validate_cel_constraint(constraint: IntegrityConstraint) -> dict[str, Any]:
     if not constraint.cel:
         raise ValueError("CEL integrity constraint requires a non-empty cel expression")
     registry = _scoped_cel_registry(constraint)
     errors = check_cel_expression(constraint.cel, registry)
     if errors:
         raise ValueError(_cel_errors_text(errors))
+    return registry
+
+
+def _eval_cel_constraint_bruteforce(
+    assignment: MergeAssignment,
+    constraint: IntegrityConstraint,
+) -> bool:
+    registry = _validate_cel_constraint(constraint)
     bindings = _cel_bindings(assignment, constraint, registry)
     ast = parse_cel(constraint.cel)
     return bool(_eval_cel_ast(ast, bindings))
+
+
+def _eval_cel_constraint_z3(
+    assignment: MergeAssignment,
+    constraint: IntegrityConstraint,
+) -> bool:
+    registry = _validate_cel_constraint(constraint)
+    bindings = _cel_bindings(assignment, constraint, registry)
+    try:
+        from propstore.z3_conditions import Z3ConditionSolver
+    except ImportError as exc:
+        raise RuntimeError("Z3 is required for CEL IC-merge evaluation") from exc
+    solver = Z3ConditionSolver(registry)
+    return solver.is_condition_satisfied(constraint.cel, bindings)
+
+
+def _eval_cel_constraint(
+    assignment: MergeAssignment,
+    constraint: IntegrityConstraint,
+) -> bool:
+    return _eval_cel_constraint_z3(assignment, constraint)
 
 
 def _constraint_holds(

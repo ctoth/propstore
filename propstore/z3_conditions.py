@@ -12,7 +12,7 @@ determines which type each concept gets.
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from propstore.cel_checker import (
@@ -299,6 +299,31 @@ class Z3ConditionSolver:
             expr = z3_exprs[0] if len(z3_exprs) == 1 else z3.And(*z3_exprs)
         self._condition_set_cache[normalized] = expr
         return expr
+
+    def _binding_to_z3(self, name: str, value: Any) -> Any:
+        info = self._registry.get(name)
+        if info is None or info.kind == KindType.QUANTITY:
+            return self._get_real(name) == z3.RealVal(value, self._ctx)
+        if info.kind == KindType.BOOLEAN:
+            return self._get_bool(name) == z3.BoolVal(bool(value), self._ctx)
+        if info.kind == KindType.CATEGORY:
+            const, val_map = self._get_enum(name)
+            z3_val = val_map.get(value)
+            if z3_val is None:
+                raise Z3TranslationError(
+                    f"Unknown category value '{value}' for concept '{name}'"
+                )
+            return const == z3_val
+        return self._get_real(name) == z3.RealVal(value, self._ctx)
+
+    def is_condition_satisfied(self, condition: str, bindings: Mapping[str, Any]) -> bool:
+        """Check whether one CEL condition holds under a concrete assignment."""
+        expr = self._condition_to_z3(condition)
+        solver = z3.Solver(ctx=self._ctx)
+        solver.add(expr)
+        for name, value in bindings.items():
+            solver.add(self._binding_to_z3(name, value))
+        return solver.check() == z3.sat
 
     def are_disjoint(self, conditions_a: Sequence[str], conditions_b: Sequence[str]) -> bool:
         """Check if two condition sets are disjoint (their conjunction is UNSAT)."""

@@ -7,6 +7,7 @@ postulates from the paper.
 """
 from __future__ import annotations
 
+import importlib
 from itertools import product
 
 import pytest
@@ -16,7 +17,10 @@ from hypothesis import strategies as st
 from propstore.cel_checker import ConceptInfo, KindType
 from propstore.repo.ic_merge import (
     MergeOperator,
+    _eval_cel_constraint_bruteforce,
+    _eval_cel_constraint_z3,
     assignment_satisfies_mu,
+    enumerate_candidate_assignments,
     sigma_merge,
     max_merge,
     gmax_merge,
@@ -34,6 +38,8 @@ from propstore.world.types import (
     RenderPolicy,
     ResolutionStrategy,
 )
+
+ic_merge_module = importlib.import_module("propstore.repo.ic_merge")
 
 # ── Strategies ──────────────────────────────────────────────────────
 
@@ -473,6 +479,73 @@ class TestAssignmentLevelICMerge:
         with pytest.raises(ValueError, match="Undefined concept"):
             solve_ic_merge(problem)
 
+    def test_unsupported_translated_cel_fails_explicitly(self):
+        extensible_category_registry = {
+            "task": ConceptInfo(
+                id="task",
+                canonical_name="task",
+                kind=KindType.CATEGORY,
+                category_values=["speech", "singing"],
+                category_extensible=True,
+            )
+        }
+        problem = ICMergeProblem(
+            concept_ids=("task",),
+            sources=(
+                MergeSource(
+                    source_id="s1",
+                    assignment=MergeAssignment(values={"task": "speech"}),
+                ),
+            ),
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CEL,
+                    concept_ids=("task",),
+                    cel="task == 'yodel'",
+                    metadata={"registry": extensible_category_registry},
+                ),
+            ),
+            operator=MergeOperator.SIGMA,
+        )
+
+        with pytest.raises(ValueError, match="Value 'yodel' not in value set"):
+            solve_ic_merge(problem)
+
+    def test_default_cel_path_uses_z3_not_bruteforce(self, monkeypatch):
+        monkeypatch.setattr(
+            ic_merge_module,
+            "_eval_cel_constraint_bruteforce",
+            lambda assignment, constraint: (_ for _ in ()).throw(
+                AssertionError("bruteforce CEL oracle should not be the default path")
+            ),
+        )
+        problem = ICMergeProblem(
+            concept_ids=("x", "y"),
+            sources=(
+                MergeSource(
+                    source_id="s1",
+                    assignment=MergeAssignment(values={"x": 0.0, "y": 0.0}),
+                ),
+                MergeSource(
+                    source_id="s2",
+                    assignment=MergeAssignment(values={"x": 0.0, "y": 1.0}),
+                ),
+            ),
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CEL,
+                    concept_ids=("x", "y"),
+                    cel="x + y <= 1",
+                    metadata={"registry": _numeric_cel_registry("x", "y")},
+                ),
+            ),
+            operator=MergeOperator.SIGMA,
+        )
+
+        result = solve_ic_merge(problem)
+
+        assert result.winners
+
     @given(
         st.lists(
             st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
@@ -565,6 +638,51 @@ class TestAssignmentLevelICMerge:
 
         assert result.winners == tuple()
         assert result.reason == "no admissible assignments"
+
+    @given(
+        st.lists(
+            st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
+            min_size=2,
+            max_size=5,
+        ),
+        st.integers(min_value=0, max_value=4),
+    )
+    @settings(
+        max_examples=40,
+        deadline=None,
+        suppress_health_check=[HealthCheck.too_slow],
+    )
+    def test_z3_and_bruteforce_cel_agree_on_bounded_cases(
+        self,
+        source_pairs,
+        limit,
+    ):
+        problem = ICMergeProblem(
+            concept_ids=("x", "y"),
+            sources=tuple(
+                MergeSource(
+                    source_id=f"s{index}",
+                    assignment=MergeAssignment(values={"x": x, "y": y}),
+                )
+                for index, (x, y) in enumerate(source_pairs)
+            ),
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CEL,
+                    concept_ids=("x", "y"),
+                    cel=f"x + y <= {limit}",
+                    metadata={"registry": _numeric_cel_registry("x", "y")},
+                ),
+            ),
+            operator=MergeOperator.SIGMA,
+        )
+        constraint = problem.constraints[0]
+
+        for assignment in enumerate_candidate_assignments(problem):
+            assert _eval_cel_constraint_z3(assignment, constraint) == _eval_cel_constraint_bruteforce(
+                assignment,
+                constraint,
+            )
 
     def test_cross_concept_constraint_changes_winner_set_vs_independent_solves(self):
         global_problem = ICMergeProblem(
