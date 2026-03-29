@@ -339,6 +339,58 @@ class BoundWorld(BeliefSpace):
 
         return compute_entrenchment(self, self.revision_base(), overrides=overrides)
 
+    def expand(self, atom):
+        """Expand the scoped revision belief base without mutating source storage."""
+        from propstore.revision.operators import expand as expand_revision_base
+
+        return expand_revision_base(self.revision_base(), atom)
+
+    def contract(
+        self,
+        targets,
+        *,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+    ):
+        """Contract the scoped revision belief base using the current entrenchment."""
+        from propstore.revision.operators import contract as contract_revision_base
+
+        return contract_revision_base(
+            self.revision_base(),
+            targets,
+            entrenchment=self.revision_entrenchment(overrides=overrides),
+        )
+
+    def revise(
+        self,
+        atom,
+        *,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+        conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
+    ):
+        """Revise the scoped belief base by delegating to the revision package."""
+        from propstore.revision.operators import revise as revise_revision_base
+
+        return revise_revision_base(
+            self.revision_base(),
+            atom,
+            entrenchment=self.revision_entrenchment(overrides=overrides),
+            conflicts=conflicts,
+        )
+
+    def revision_explain(
+        self,
+        result,
+        *,
+        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Render the default explanation payload for a revision result."""
+        from propstore.revision.explain import build_revision_explanation
+
+        return build_revision_explanation(
+            result,
+            entrenchment=self.revision_entrenchment(overrides=overrides),
+        )
+
     def claim_status(self, claim_id: str) -> ATMSInspection:
         """Return the ATMS-native status and support-quality metadata for a claim."""
         return self.atms_engine().claim_status(claim_id)
