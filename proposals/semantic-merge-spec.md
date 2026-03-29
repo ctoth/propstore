@@ -346,16 +346,56 @@ Phase 1 is strict prerequisite. Phases 2 and 3 can partially overlap. Phase 4 de
 
 Total: 89 claims extracted and registered in propstore.
 
-## Open Questions and Gap-Closing Papers
+## Resolved Theoretical Gaps
 
-Five theoretical gaps identified during design review. Each maps to specific papers being retrieved:
+Five gaps were identified during design review. All five are now closed (81 additional claims across 5 papers):
 
-| Gap | Question | Paper to close it | Status |
-|-----|----------|-------------------|--------|
-| 1+4 | What's the distance metric for structured claims? What's the epistemic state representation? | **Spohn 1988** — OCFs are both the distance and the epistemic state | Retrieving |
-| 2 | Does PLS hold on acyclic DAGs (git's commit graph)? | **Bonanno 2007** — frame conditions in temporal logic | Retrieving |
-| 3 | Does ATMS scale with N branch assumptions and pairwise conflicts? | **Mason & Johnson 1989** — DATMS distributed scaling | Retrieving |
-| 5 | Do ASPIC+ argumentation and IC merging compose or compete? | **Booth & Meyer 2006** — admissible revision operators | Retrieving |
-| 5 | How do IC merge preference orderings feed ASPIC+ preferences? | **Amgoud & Vesic 2014** — rich preference-based AFs | Retrieving |
+### Gap 1+4: Distance metric and epistemic state representation
+**Answer: Ordinal Conditional Functions (Spohn 1988, 16 claims)**
 
-**Implementation must not begin until these gaps are closed.** Each paper's claims will be extracted and the formal properties verified against the design before coding starts.
+OCFs (kappa-functions) assign ordinal disbelief grades to propositions. They ARE both the distance metric (difference in kappa-rankings) and the epistemic state (a branch's kappa-function over worlds is its faithful assignment). `A_n`-conditionalization with firmness parameter `n` is the concrete revision operator. Bonus: conditionalization is commutative — merge order doesn't matter for independent evidence.
+
+**Design implication**: Each branch carries an implicit OCF derived from its commit history. The firmness parameter `n` maps to source credibility (peer-reviewed paper = high `n`, LLM extraction = low `n`).
+
+### Gap 2: PLS on acyclic DAGs
+**Answer: It doesn't hold — and that's fine (Bonanno 2007, 13 claims)**
+
+Bonanno's framework requires Backward Uniqueness (BU): each temporal instant has at most one predecessor. Git merge commits have multiple parents, violating BU. **The direct AGM-temporal-logic mapping does NOT hold on DAGs.**
+
+**Resolution**: Two frameworks for two operations:
+- **Within a branch**: linear commit sequence, BU holds, Darwiche-Pearl iterated revision applies
+- **At merge points**: IC merging (Konieczny & Pino Pérez) applies — this is belief MERGING, not revision
+
+The frameworks don't need unification. Branches are Darwiche-Pearl territory. Merges are Konieczny territory.
+
+### Gap 3: ATMS scalability with many branch assumptions
+**Answer: Manageable via nogoods (Mason & Johnson 1989, 16 claims)**
+
+Context explosion is real and acknowledged — contexts can be "dangerously high" in multi-agent ATMS. But contradiction knowledge (nogoods) is the primary defense. The paper validates liberal non-commitment: don't force global consistency. This matches propstore's core principle.
+
+**Design implication**: Invest in efficient nogood management. Don't eagerly compute all branch combinations — use nogoods to prune. See also Provan 1987 for complexity analysis (future paper lead).
+
+### Gap 5: Argumentation vs IC merging — compose or compete?
+**Answer: They compose (Booth & Meyer 2006, 16 claims; Amgoud & Vesic 2014, 20 claims)**
+
+Argumentation determines the preference/defeat structure (WHAT defeats WHAT). Revision operators determine HOW to update the epistemic state. They are a pipeline, not alternatives:
+
+1. IC merging produces total preorders over formulas (= stratified knowledge bases)
+2. Rich PAF (Amgoud & Vesic) builds an AF from stratified bases via **attack inversion** (not removal — removal violates conflict-freeness)
+3. Democratic preference lifting (not elitist) maps formula-level preferences to argument-level
+4. Stable extensions of rich PAF = preferred sub-theories of stratified bases (Theorem 1, Amgoud 2014)
+5. Restrained revision (conservative) vs lexicographic revision (aggressive) = render policy choice
+
+**Design implication**: Phase 3 (ASPIC+ integration) and Phase 4 (IC merge operators) are a pipeline, not parallel. `aspic_bridge.py` needs enrichment: implement Def(T) attack inversion for preference-based defeat.
+
+## Additional Papers Grounding This Proposal (Round 2)
+
+| Paper | Claims | What it provides |
+|---|---|---|
+| Spohn 1988 | 16 | OCFs as epistemic states and distance metric |
+| Bonanno 2007 | 13 | BU axiom — git merges need IC merging, not temporal revision |
+| Mason & Johnson 1989 | 16 | DATMS scalability — nogoods as defense against context explosion |
+| Booth & Meyer 2006 | 16 | Admissible/restrained revision — argumentation and merging compose |
+| Amgoud & Vesic 2014 | 20 | Rich PAF — attack inversion, democratic lifting, preference pipeline |
+
+**Total across both rounds: 10 papers, 170 claims. All theoretical foundations locked down.**
