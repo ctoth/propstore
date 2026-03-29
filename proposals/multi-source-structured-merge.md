@@ -1,7 +1,7 @@
 # Proposal: Explicit Multi-Source Merge Semantics for Structured Argumentation
 
 **Date:** 2026-03-29
-**Status:** Draft
+**Status:** Draft for Phase 6 completion and consolidation
 **Grounded in:** local codebase, `proposals/semantic-merge-spec.md`, `reviews/03-29-2026.md`, and the local paper corpus including Coste-Marquis 2007, Konieczny 2002, Modgil 2018, Odekerken 2023/2025, Dung 1995, Hunter 2017, Li 2011
 
 ---
@@ -15,20 +15,22 @@ Propstore already has strong pieces:
 - Dung and probabilistic AF reasoning
 - ATMS-style exact-support and bounded future-query analysis
 
-What it does **not** yet have is a principled multi-source merge layer for argumentation.
+What it does **not** yet have is a fully consolidated, system-level multi-source merge layer for argumentation.
 
-Today, branch disagreement is handled operationally:
+Today, the repo has a split state:
 
-- `merge_classifier` assigns claim-level buckets such as `CONFLICT` and `PHI_NODE`
-- `branch_reasoning` turns some of those buckets into synthetic `contradicts` stances
-- merge commits preserve both sides with provenance
-- render-time policies pick outcomes later
+- `merge_framework.py` defines a formal partial framework kernel
+- `paf_merge.py` implements exact Sum / Max / Leximax operators over tiny profiles
+- `paf_queries.py` exposes skeptical and credulous completion queries
+- `merge_classifier.py` emits a repo-facing merge object over claim alternatives
+- `structured_merge.py` provides a first branch-local structured-summary slice
+- `branch_reasoning.py` still contains bridge code that exports merge attacks as synthetic contradiction stances for older consumers
 
-This is useful, but it is not yet a clean formal account of multi-source structured merge. In particular:
+This is a strong start, but it is not yet a clean, consolidated account of multi-source structured merge. In particular:
 
-1. **Merge uncertainty is collapsed too early.** Conflict-like and ignorance-like cases are represented as engineered buckets rather than as first-class partial/incomplete argumentation objects.
-2. **The structured/abstract boundary is underspecified.** The repo has strong ASPIC+ machinery, but merge currently operates below it on claims rather than over source-specific argumentation structures.
-3. **The current docs overstate the formal story.** The operational behavior is real, but several git/merge correspondences are still described more strongly than the implementation justifies.
+1. **The formal path is not yet the only path.** Some consumers still depend on bridge behavior such as synthetic contradiction stances rather than consuming merge objects directly.
+2. **The structured/abstract boundary is only partially landed.** The repo has a first branch-local structured-summary slice, but not yet the full execution-grade structured merge path the architecture calls for.
+3. **The draft proposal understates what is already implemented and overstates what remains greenfield.** The control surface needs to distinguish completion work from invention work.
 4. **Source-aware preference aggregation is still ad hoc.** The repo can apply preferences inside ASPIC+, but it does not yet define a principled path from branch/source metadata to post-merge defeat behavior.
 
 The missing work is not "generic incompleteness" in argumentation. The local literature already covers that fairly well. The missing work is **multi-source structured merge semantics**.
@@ -67,6 +69,46 @@ It does **not** require settling every open theoretical question up front. The p
 - The local subjective-logic cluster provides an optional source-fusion layer if premise-level uncertainty fusion becomes necessary.
 
 The key point: we do **not** need more literature before we can define the architecture and first formal object boundary.
+
+---
+
+## Current Repo Baseline
+
+Already implemented in the repo:
+
+- `propstore/repo/merge_framework.py`
+  - `PartialArgumentationFramework`
+  - exact completion enumeration
+  - exact per-pair edit distance
+- `propstore/repo/paf_merge.py`
+  - exact `consensual_expand()`
+  - exact `sum`, `max`, and `leximax` merge over tiny AF profiles
+- `propstore/repo/paf_queries.py`
+  - skeptical and credulous completion queries
+- `propstore/repo/merge_classifier.py`
+  - `RepoMergeFramework` direct emission from repo snapshots
+- `propstore/repo/merge_report.py`
+  - repo-facing inspection summaries
+- `propstore/cli/merge_cmds.py`
+  - `pks merge inspect`
+  - `pks merge commit`
+- `propstore/repo/structured_merge.py`
+  - first branch-local structured summary pipeline via ASPIC projection
+
+Still acting as bridge or incomplete surface:
+
+- `propstore/repo/branch_reasoning.py`
+  - still exports synthetic `contradicts` stances for older consumers
+- `propstore/repo/structured_merge.py`
+  - still works at a first-slice summary level rather than a fully specified structured merge contract
+- source-preference handling
+  - still not formalized as part of merge semantics
+
+Therefore the next work is **not** “invent the merge kernel.” It is:
+
+1. finish the remaining formal boundary work
+2. remove semantic bridges where the formal path should now be authoritative
+3. tighten the structured boundary and policy story
 
 ---
 
@@ -286,17 +328,18 @@ This is the motivating application shape for the proposal: merging knowledge con
 - Document merge commits as provenance-preserving storage objects.
 - Reserve "merge operator" for the formal render/query layer.
 
-### Phase B: Add A Real Merge Object
+### Phase B: Consolidate The Real Merge Object
 
-- Introduce a merge datatype representing `attack / non-attack / ignorance`.
-- Define branch-local projection into that datatype.
+- Keep `PartialArgumentationFramework` as the canonical merge kernel.
+- Eliminate remaining production paths that bypass or reinterpret it.
+- Tighten branch-local projection into that datatype.
 - Define invariants and tests for expansion, completion, and profile aggregation.
 
-### Phase C: Query The Merge Object
+### Phase C: Query The Merge Object Directly
 
 - Add completion-based acceptance queries.
 - Add skeptical / credulous / majority-style status reporting.
-- Integrate with worldline / render outputs.
+- Integrate with worldline / render outputs without routing through stance-bridge code.
 
 ### Phase D: Reconnect Structured Reasoning
 
@@ -533,13 +576,14 @@ These are manageable if treated as design constraints rather than after-the-fact
 
 ## Implementation Sequence
 
-1. Write down the merge datatype and its invariants.
-2. Upgrade the repo layer to emit that datatype directly.
-3. Refactor docs so current behavior is described honestly.
-4. Add completion/query code over the merged partial object.
-5. Connect worldline/render reporting.
-6. Add branch-local structured projection code and fixtures.
-7. Revisit source weighting and explanation overlays.
+This sequence is for the **remaining** work, starting from the current repo baseline rather than from zero.
+
+1. Audit the current merge implementation against this proposal and mark what is already landed.
+2. Tighten docs so current behavior is described honestly and the remaining gap is explicit.
+3. Identify and remove remaining legacy/bridge production paths that still bypass the formal merge object.
+4. Tighten user-visible query/report surfaces around the canonical merge object.
+5. Strengthen branch-local structured projection and its invariants.
+6. Revisit source weighting and explanation overlays.
 
 ---
 
@@ -566,47 +610,59 @@ Given those choices, the work is implementable now.
 
 ---
 
-### Milestone 1: Kernel and repo direct emission
+### Milestone 1: Consolidation audit and boundary cleanup
 
 Deliverables:
 
-- first-class `PartialArgumentationFramework` kernel
-- completion enumeration
-- edit distance
-- repo-layer direct emission of the new merge object
+- proposal/checklist/audit aligned to current code
+- explicit classification of:
+  - canonical formal paths
+  - bridge paths
+  - remaining legacy paths
 - doc cleanup separating storage merge from formal merge
+
+Required artifacts:
+
+- merge implementation checklist
+- merge gap audit
+
+### Milestone 2: Canonical merge object everywhere
+
+Deliverables:
+
+- repo-layer direct emission remains canonical
+- remaining bridge or legacy production paths are either removed or explicitly marked transitional
+- immediate consumers are updated to speak merge object semantics directly where feasible
 
 Required tests:
 
-- `tests/test_paf_core.py`
-- kernel and distance properties
-- `tests/test_repo_merge_object.py`
+- existing merge kernel tests stay green
+- targeted tests for any replaced bridge/legacy consumers
 
-### Milestone 2: Exact merge operators
+### Milestone 3: Exact merge operators
 
 Deliverables:
 
-- consensual expansion
-- exact Sum / Max / Leximax merge over tiny AFs
-- majority-PAF and concordance behavior
+- exact operator layer remains authoritative
+- missing literature regressions and operator comparison cases are added where absent
 
 Required tests:
 
 - `tests/test_paf_merge.py`
 - named literature regressions
 
-### Milestone 3: Query semantics
+### Milestone 4: Query semantics
 
 Deliverables:
 
 - skeptical and credulous queries over completions
-- user-facing query/report helpers for tiny merged frameworks
+- user-facing query/report helpers over the canonical merge object
 
 Required tests:
 
 - `tests/test_paf_queries.py`
 
-### Milestone 4: World/query integration
+### Milestone 5: World/query integration
 
 Deliverables:
 
@@ -617,7 +673,7 @@ Required tests:
 
 - world/query integration tests
 
-### Milestone 5: Structured projection
+### Milestone 6: Structured projection
 
 Deliverables:
 
