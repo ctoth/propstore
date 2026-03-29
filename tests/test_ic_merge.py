@@ -176,13 +176,12 @@ class TestSigmaMerge:
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
-    def test_sigma_ic4_fairness(self, profile):
-        """Neither source is completely ignored when both are individually valid.
+    def test_sigma_result_closure(self, profile):
+        """Sigma result is always one of the input values (closure over candidate set).
 
-        Per Konieczny 2002 IC4 (claim5): fairness — if two profiles each
-        individually produce a result consistent with constraints, then
-        their merge does not ignore either entirely. Result must equal
-        at least one branch's value.
+        This verifies discrete selection: the merge operator picks from the
+        profile values, it does not interpolate.
+        # Full IC4 fairness (profile subset independence) requires multi-concept testing, deferred.
         """
         assume(len(set(profile.values())) >= 2)  # at least two distinct values
         result = sigma_merge(profile)

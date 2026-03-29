@@ -7,6 +7,16 @@ values) and returns the winning value that minimizes aggregated distance.
 - Sigma (majority): minimizes sum of distances — IC0-IC8 + Maj
 - Max (quasi-merge): minimizes max distance — IC0-IC3, IC7-IC8 + Arb (NOT IC4-IC6)
 - GMax (arbitration): lexicographic sorted distances — IC0-IC8 + Arb
+
+NOTE: Konieczny 2002 defines merging over propositional belief bases with
+min-over-models Hamming distance. This implementation adapts the operators
+to a scalar-value domain: numeric claims use absolute difference, categorical
+claims use Hamming distance (0/1). The aggregation functions (sum/max/leximax)
+are preserved exactly; only the base distance function is simplified.
+
+The paper's integrity constraint parameter mu (IC0: result must entail mu)
+is not yet implemented. Currently, merging is unconstrained. When form-level
+validation is wired in, mu will map to the concept's form constraints.
 """
 from __future__ import annotations
 
@@ -147,6 +157,9 @@ def ic_merge(profile: dict[str, Any], *, operator: str = "sigma") -> Any:
     Default is Sigma (majority), the canonical IC merging operator
     (Konieczny & Pino Pérez 2002, claim15).
     """
+    # TODO: branch_weights from RenderPolicy not yet consumed.
+    # When implemented, weighted_sigma would use w_i * d(I, phi_i)
+    # per Konieczny 2002 weighted profile extension.
     dispatch = {
         "sigma": sigma_merge,
         "max": max_merge,
