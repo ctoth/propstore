@@ -107,6 +107,75 @@ def test_revise_matches_operational_levi_identity() -> None:
     assert revised.incision_set == contracted.incision_set
 
 
+def test_normalize_revision_input_resolves_existing_claim_ids() -> None:
+    from propstore.revision.operators import normalize_revision_input
+
+    base, _ = _base_with_shared_support()
+
+    atom = normalize_revision_input(base, "legacy")
+
+    assert atom.atom_id == "claim:legacy"
+    assert atom.kind == "claim"
+
+
+def test_normalize_revision_input_builds_synthetic_claim_atoms() -> None:
+    from propstore.revision.operators import normalize_revision_input
+
+    base, _ = _base_with_shared_support()
+
+    atom = normalize_revision_input(
+        base,
+        {
+            "kind": "claim",
+            "id": "new",
+            "value": 3.0,
+        },
+    )
+
+    assert atom.atom_id == "claim:new"
+    assert atom.kind == "claim"
+    assert atom.payload["id"] == "new"
+    assert atom.payload["value"] == 3.0
+
+
+def test_normalize_revision_input_builds_assumption_atoms() -> None:
+    from propstore.revision.operators import normalize_revision_input
+
+    base, _ = _base_with_shared_support()
+
+    atom = normalize_revision_input(
+        base,
+        {
+            "kind": "assumption",
+            "assumption_id": "queryable:extra",
+            "cel": "x == 2",
+        },
+    )
+
+    assert atom.atom_id == "assumption:queryable:extra"
+    assert atom.kind == "assumption"
+    assert atom.payload["assumption_id"] == "queryable:extra"
+    assert atom.payload["cel"] == "x == 2"
+
+
+def test_expand_accepts_synthetic_claim_mapping_via_adapter() -> None:
+    from propstore.revision.operators import expand
+
+    base, _ = _base_with_shared_support()
+
+    result = expand(
+        base,
+        {
+            "kind": "claim",
+            "id": "new_from_adapter",
+            "value": 9.0,
+        },
+    )
+
+    assert "claim:new_from_adapter" in result.accepted_atom_ids
+    assert any(atom.atom_id == "claim:new_from_adapter" for atom in result.revised_base.atoms)
+
+
 def test_revision_operators_do_not_import_ic_merge() -> None:
     path = Path("propstore/revision/operators.py")
     assert path.exists()
