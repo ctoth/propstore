@@ -164,6 +164,28 @@ class KnowledgeRepo:
             if entry.mode & 0o100000  # regular file
         )
 
+    def list_dir_entries(
+        self,
+        subdir: str | Path,
+        commit: str | None = None,
+    ) -> list[tuple[str, bool]]:
+        """List direct entries in a subdirectory, including child directories."""
+        subdir = _normalize_path(subdir)
+        tree = self._get_tree(commit)
+        if tree is None:
+            return []
+        parts = PurePosixPath(subdir).parts
+        subtree = self._walk_tree(tree, parts)
+        if subtree is None or not isinstance(subtree, Tree):
+            return []
+        return sorted(
+            (
+                entry.path.decode("utf-8"),
+                bool(entry.mode & 0o040000),
+            )
+            for entry in subtree.items()
+        )
+
     # ── Write ────────────────────────────────────────────────────────
 
     def commit_files(
