@@ -9,6 +9,7 @@ from propstore.world import (
     RenderPolicy,
     ResolutionStrategy,
 )
+from propstore.world.types import IntegrityConstraint, IntegrityConstraintKind
 
 
 def test_render_policy_defaults():
@@ -105,3 +106,26 @@ def test_render_policy_override_fields():
 
     assert policy.overrides["concept1"] == "claim1"
     assert policy.concept_strategies["concept2"] == ResolutionStrategy.RECENCY
+
+
+def test_render_policy_roundtrip_preserves_integrity_constraints():
+    policy = RenderPolicy(
+        strategy=ResolutionStrategy.IC_MERGE,
+        integrity_constraints=(
+            IntegrityConstraint(
+                kind=IntegrityConstraintKind.CEL,
+                concept_ids=("concept1", "concept2"),
+                cel="x + y <= 1",
+                metadata={
+                    "concept_registry": {
+                        "x": {"kind": "quantity", "form": "number"},
+                        "y": {"kind": "quantity", "form": "number"},
+                    }
+                },
+            ),
+        ),
+    )
+
+    restored = RenderPolicy.from_dict(policy.to_dict())
+
+    assert restored == policy

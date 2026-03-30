@@ -564,6 +564,41 @@ class IntegrityConstraint:
                 raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
 
 
+def integrity_constraint_from_dict(data: Mapping[str, Any]) -> IntegrityConstraint:
+    return IntegrityConstraint(
+        kind=(
+            data["kind"]
+            if isinstance(data["kind"], IntegrityConstraintKind)
+            else IntegrityConstraintKind(str(data["kind"]))
+        ),
+        concept_ids=tuple(str(concept_id) for concept_id in data.get("concept_ids", ())),
+        metadata=dict(data.get("metadata") or {}),
+        cel=(
+            None
+            if data.get("cel") is None
+            else str(data["cel"])
+        ),
+        description=(
+            None
+            if data.get("description") is None
+            else str(data["description"])
+        ),
+    )
+
+
+def integrity_constraint_to_dict(constraint: IntegrityConstraint) -> dict[str, Any]:
+    metadata = dict(constraint.metadata)
+    if constraint.kind == IntegrityConstraintKind.CUSTOM and "predicate" in metadata:
+        raise TypeError("CUSTOM integrity constraints with callable predicates are not serializable")
+    return {
+        "kind": constraint.kind.value,
+        "concept_ids": list(constraint.concept_ids),
+        "metadata": metadata,
+        "cel": constraint.cel,
+        "description": constraint.description,
+    }
+
+
 @dataclass(frozen=True)
 class MergeAssignment:
     values: Mapping[str, Any]
@@ -709,6 +744,8 @@ class RenderPolicy:
     branch_filter: tuple[str, ...] | None = None
     # branch_weights assigns per-branch importance weights.
     branch_weights: Mapping[str, float] | None = None
+    # explicit integrity constraints for global IC merge
+    integrity_constraints: tuple[IntegrityConstraint, ...] = field(default_factory=tuple)
     future_queryables: tuple[str, ...] = field(default_factory=tuple)
     future_limit: int | None = None
     overrides: Mapping[str, str] = field(default_factory=dict)
@@ -741,6 +778,11 @@ class RenderPolicy:
                 "branch_weights",
                 dict(self.branch_weights),
             )
+        object.__setattr__(
+            self,
+            "integrity_constraints",
+            tuple(self.integrity_constraints),
+        )
         object.__setattr__(
             self,
             "future_queryables",
@@ -818,6 +860,10 @@ class RenderPolicy:
                 if data.get("branch_weights") is None
                 else dict(data["branch_weights"])
             ),
+            integrity_constraints=tuple(
+                integrity_constraint_from_dict(item)
+                for item in (data.get("integrity_constraints") or ())
+            ),
             future_queryables=tuple(data.get("future_queryables") or ()),
             future_limit=(
                 None
@@ -864,6 +910,11 @@ class RenderPolicy:
             data["branch_filter"] = list(self.branch_filter)
         if self.branch_weights is not None:
             data["branch_weights"] = dict(self.branch_weights)
+        if self.integrity_constraints:
+            data["integrity_constraints"] = [
+                integrity_constraint_to_dict(constraint)
+                for constraint in self.integrity_constraints
+            ]
         if self.future_queryables:
             data["future_queryables"] = list(self.future_queryables)
         if self.future_limit is not None:

@@ -14,6 +14,7 @@ from propstore.world.resolution import (
     resolve,
 )
 from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy, ValueResult
+from propstore.world.types import IntegrityConstraint, IntegrityConstraintKind
 
 
 class _World:
@@ -63,6 +64,77 @@ class _ICMergeWorld:
         if concept_id != "concept1":
             return None
         return dict(self._concept)
+
+
+class _GlobalICMergeWorld:
+    def __init__(self) -> None:
+        self._concepts = {
+            "concept1": {
+                "id": "concept1",
+                "canonical_name": "x",
+                "form": "quantity",
+                "form_parameters": None,
+                "range_min": None,
+                "range_max": None,
+            },
+            "concept2": {
+                "id": "concept2",
+                "canonical_name": "y",
+                "form": "quantity",
+                "form_parameters": None,
+                "range_min": None,
+                "range_max": None,
+            },
+        }
+
+    def get_concept(self, concept_id: str) -> dict | None:
+        concept = self._concepts.get(concept_id)
+        return None if concept is None else dict(concept)
+
+
+class _GlobalICMergeView:
+    def __init__(self) -> None:
+        self._claims = [
+            {"id": "claim_ax", "concept_id": "concept1", "value": 1.0, "branch": "a"},
+            {"id": "claim_ay", "concept_id": "concept2", "value": 0.0, "branch": "a"},
+            {"id": "claim_bx", "concept_id": "concept1", "value": 1.0, "branch": "b"},
+            {"id": "claim_by", "concept_id": "concept2", "value": 1.0, "branch": "b"},
+            {"id": "claim_cx", "concept_id": "concept1", "value": 0.0, "branch": "c"},
+            {"id": "claim_cy", "concept_id": "concept2", "value": 0.0, "branch": "c"},
+        ]
+
+    def value_of(self, concept_id: str):
+        return ValueResult(
+            concept_id=concept_id,
+            status="conflicted",
+            claims=[claim for claim in self._claims if claim["concept_id"] == concept_id],
+        )
+
+    def active_claims(self, concept_id: str | None = None):
+        if concept_id is None:
+            return list(self._claims)
+        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+
+
+class _DuplicateSourceICMergeView:
+    def __init__(self) -> None:
+        self._claims = [
+            {"id": "claim_a1", "concept_id": "concept1", "value": 10.0, "branch": "a"},
+            {"id": "claim_a2", "concept_id": "concept1", "value": 11.0, "branch": "a"},
+            {"id": "claim_b1", "concept_id": "concept1", "value": 12.0, "branch": "b"},
+        ]
+
+    def value_of(self, concept_id: str):
+        return ValueResult(
+            concept_id=concept_id,
+            status="conflicted",
+            claims=[claim for claim in self._claims if claim["concept_id"] == concept_id],
+        )
+
+    def active_claims(self, concept_id: str | None = None):
+        if concept_id is None:
+            return list(self._claims)
+        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
 
 
 class _ICMergeView:
@@ -336,3 +408,62 @@ def test_ic_merge_resolution_reports_no_admissible_assignments() -> None:
 
     assert result.status == "conflicted"
     assert result.reason == "no admissible assignments"
+
+
+def test_global_ic_merge_resolution_reads_target_from_global_assignment() -> None:
+    result = resolve(
+        _GlobalICMergeView(),
+        "concept1",
+        strategy=ResolutionStrategy.IC_MERGE,
+        world=_GlobalICMergeWorld(),
+        policy=RenderPolicy(
+            strategy=ResolutionStrategy.IC_MERGE,
+            integrity_constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CEL,
+                    concept_ids=("concept1", "concept2"),
+                    cel="x + y <= 0",
+                ),
+            ),
+        ),
+    )
+
+    assert result.status == "resolved"
+    assert result.winning_claim_id == "claim_cx"
+    assert result.value == 0.0
+
+
+def test_global_ic_merge_branch_filter_changes_sources_not_projection_logic() -> None:
+    result = resolve(
+        _GlobalICMergeView(),
+        "concept1",
+        strategy=ResolutionStrategy.IC_MERGE,
+        world=_GlobalICMergeWorld(),
+        policy=RenderPolicy(
+            strategy=ResolutionStrategy.IC_MERGE,
+            branch_filter=("a", "b"),
+            integrity_constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CEL,
+                    concept_ids=("concept1", "concept2"),
+                    cel="x + y <= 0",
+                ),
+            ),
+        ),
+    )
+
+    assert result.status == "conflicted"
+    assert result.reason == "no admissible assignments"
+
+
+def test_global_ic_merge_reports_duplicate_claims_per_source_explicitly() -> None:
+    result = resolve(
+        _DuplicateSourceICMergeView(),
+        "concept1",
+        strategy=ResolutionStrategy.IC_MERGE,
+        world=_ICMergeWorld(lower=0.0, upper=20.0),
+        policy=RenderPolicy(strategy=ResolutionStrategy.IC_MERGE),
+    )
+
+    assert result.status == "conflicted"
+    assert result.reason == "source 'a' has multiple active claims for concept 'concept1'"

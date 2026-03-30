@@ -12,6 +12,8 @@ import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from propstore.cel_checker import ConceptInfo, KindType
+from propstore.form_utils import kind_type_from_form_name
 from propstore.world.labelled import Label, SupportQuality
 from propstore.world.types import (
     ArgumentationSemantics,
@@ -234,8 +236,165 @@ def _concept_integrity_constraints(
     return tuple(constraints)
 
 
+def _filtered_ic_merge_claim_rows(
+    active_claim_rows: Sequence[Mapping[str, object]],
+    policy: RenderPolicy | None,
+) -> list[Mapping[str, object]]:
+    branch_filter = None if policy is None else policy.branch_filter
+    filtered: list[Mapping[str, object]] = []
+    for claim in active_claim_rows:
+        value = _claim_value(claim)
+        if value is None:
+            continue
+        branch = claim.get("branch")
+        if (
+            branch_filter is not None
+            and isinstance(branch, str)
+            and branch not in branch_filter
+        ):
+            continue
+        filtered.append(claim)
+    return filtered
+
+
+def _integrity_constraint_concept_ids(constraints: Sequence[IntegrityConstraint]) -> set[str]:
+    return {
+        concept_id
+        for constraint in constraints
+        for concept_id in constraint.concept_ids
+    }
+
+
+def _cel_registry_for_concepts(
+    world: ArtifactStore,
+    concept_ids: Sequence[str],
+) -> dict[str, ConceptInfo]:
+    registry: dict[str, ConceptInfo] = {}
+    for concept_id in concept_ids:
+        concept = world.get_concept(concept_id)
+        if concept is None:
+            continue
+        canonical_name = concept.get("canonical_name")
+        form = concept.get("form")
+        if not isinstance(canonical_name, str) or not canonical_name:
+            continue
+        kind = kind_type_from_form_name(form)
+        if kind is None:
+            kind = KindType.QUANTITY
+        form_parameters = _normalized_form_parameters(concept)
+        registry[canonical_name] = ConceptInfo(
+            id=concept_id,
+            canonical_name=canonical_name,
+            kind=kind,
+            category_values=list(form_parameters.get("values") or ()),
+            category_extensible=bool(form_parameters.get("extensible", True)),
+        )
+    return registry
+
+
+def _enriched_policy_integrity_constraints(
+    world: ArtifactStore,
+    constraints: Sequence[IntegrityConstraint],
+) -> tuple[IntegrityConstraint, ...]:
+    concept_ids = sorted(_integrity_constraint_concept_ids(constraints))
+    cel_registry = _cel_registry_for_concepts(world, concept_ids)
+    enriched: list[IntegrityConstraint] = []
+    for constraint in constraints:
+        metadata = dict(constraint.metadata)
+        if constraint.kind == IntegrityConstraintKind.CEL and "registry" not in metadata:
+            metadata["registry"] = cel_registry
+        enriched.append(
+            IntegrityConstraint(
+                kind=constraint.kind,
+                concept_ids=constraint.concept_ids,
+                metadata=metadata,
+                cel=constraint.cel,
+                description=constraint.description,
+            )
+        )
+    return tuple(enriched)
+
+
+def _build_global_ic_merge_problem(
+    active_claim_rows: Sequence[Mapping[str, object]],
+    target_concept_id: str,
+    *,
+    world: ArtifactStore,
+    policy: RenderPolicy | None,
+) -> ICMergeProblem:
+    branch_weights = None if policy is None else policy.branch_weights
+    merge_operator = (
+        policy.merge_operator
+        if policy is not None
+        else MergeOperator.SIGMA
+    )
+    explicit_constraints = (
+        tuple()
+        if policy is None
+        else _enriched_policy_integrity_constraints(world, policy.integrity_constraints)
+    )
+    concept_ids = {
+        _claim_concept_id(claim)
+        for claim in active_claim_rows
+    }
+    concept_ids.add(target_concept_id)
+    concept_ids.update(_integrity_constraint_concept_ids(explicit_constraints))
+
+    grouped: dict[str, dict[str, object]] = {}
+    for claim in active_claim_rows:
+        claim_id = _claim_id(claim)
+        concept_id = _claim_concept_id(claim)
+        branch = claim.get("branch")
+        source_id = branch if isinstance(branch, str) and branch else claim_id
+        per_source = grouped.setdefault(source_id, {})
+        if concept_id in per_source:
+            raise ValueError(
+                f"source '{source_id}' has multiple active claims for concept '{concept_id}'"
+            )
+        per_source[concept_id] = claim
+
+    sources: list[MergeSource] = []
+    for source_id, concept_claims in grouped.items():
+        sample_claim = next(iter(concept_claims.values()))
+        branch = sample_claim.get("branch")
+        weight = 1.0
+        if branch_weights is not None and isinstance(branch, str) and branch:
+            weight = float(branch_weights.get(branch, 1.0))
+        sources.append(
+            MergeSource(
+                source_id=source_id,
+                assignment=MergeAssignment(
+                    values={
+                        concept_id: _claim_value(claim)
+                        for concept_id, claim in concept_claims.items()
+                    }
+                ),
+                weight=weight,
+            )
+        )
+
+    automatic_constraints: list[IntegrityConstraint] = []
+    for concept_id in sorted(concept_ids):
+        automatic_constraints.extend(_concept_integrity_constraints(world, concept_id))
+
+    return ICMergeProblem(
+        concept_ids=tuple(sorted(concept_ids)),
+        sources=tuple(sources),
+        constraints=tuple(automatic_constraints) + explicit_constraints,
+        operator=merge_operator,
+    )
+
+
+def _claim_concept_id(claim: Mapping[str, object]) -> str:
+    concept_id = claim.get("concept_id")
+    if not isinstance(concept_id, str) or not concept_id:
+        raise KeyError("resolution requires each claim to have a non-empty string concept_id")
+    return concept_id
+
+
 def _resolve_ic_merge(
     target_claim_rows: Sequence[Mapping[str, object]],
+    active_claim_rows: Sequence[Mapping[str, object]],
     concept_id: str,
     *,
     world: ArtifactStore,
@@ -246,70 +405,43 @@ def _resolve_ic_merge(
     if world is None:
         return None, "ic_merge strategy requires an explicit artifact store"
 
-    branch_filter = None if policy is None else policy.branch_filter
-    branch_weights = None if policy is None else policy.branch_weights
-    merge_operator = (
-        policy.merge_operator
-        if policy is not None
-        else MergeOperator.SIGMA
-    )
-
-    source_rows: list[Mapping[str, object]] = []
-    for claim in target_claim_rows:
-        branch = claim.get("branch")
-        if (
-            branch_filter is not None
-            and isinstance(branch, str)
-            and branch not in branch_filter
-        ):
-            continue
-        source_rows.append(claim)
-
-    if not source_rows:
+    filtered_rows = _filtered_ic_merge_claim_rows(active_claim_rows, policy)
+    if not filtered_rows:
         return None, "no IC-merge sources after branch filter"
-
-    sources: list[MergeSource] = []
-    for claim in source_rows:
-        claim_id = _claim_id(claim)
-        branch = claim.get("branch")
-        source_id = branch if isinstance(branch, str) and branch else claim_id
-        weight = 1.0
-        if branch_weights is not None and isinstance(branch, str) and branch:
-            weight = float(branch_weights.get(branch, 1.0))
-        sources.append(
-            MergeSource(
-                source_id=source_id,
-                assignment=MergeAssignment(values={concept_id: _claim_value(claim)}),
-                weight=weight,
-            )
+    try:
+        problem = _build_global_ic_merge_problem(
+            filtered_rows,
+            concept_id,
+            world=world,
+            policy=policy,
         )
+    except (KeyError, TypeError, ValueError) as exc:
+        return None, str(exc)
 
-    problem = ICMergeProblem(
-        concept_ids=(concept_id,),
-        sources=tuple(sources),
-        constraints=_concept_integrity_constraints(world, concept_id),
-        operator=merge_operator,
-    )
     result = solve_ic_merge(problem)
     if not result.winners:
         return None, result.reason
 
-    if len(result.winners) != 1:
-        return None, f"{len(result.winners)} IC-merge assignments tied"
+    target_values = {
+        winner.value_for(concept_id)
+        for winner in result.winners
+    }
+    if len(target_values) != 1:
+        return None, f"{len(result.winners)} IC-merge assignments disagree on target value"
 
-    winning_value = result.winners[0].value_for(concept_id)
+    winning_value = next(iter(target_values))
     matching_claims = [
         claim
-        for claim in source_rows
+        for claim in target_claim_rows
         if _claim_value(claim) == winning_value
     ]
     if len(matching_claims) != 1:
         return None, (
-            f"merged value represented by {len(matching_claims)} active claims"
+            f"merged target value represented by {len(matching_claims)} active claims"
         )
 
     return _claim_id(matching_claims[0]), (
-        f"IC merge ({merge_operator}) winner satisfies {len(problem.constraints)} constraints"
+        f"global IC merge ({problem.operator}) winner satisfies {len(problem.constraints)} constraints across {len(problem.concept_ids)} concepts"
     )
 
 
@@ -741,6 +873,7 @@ def resolve(
             )
         winner_id, reason = _resolve_ic_merge(
             active,
+            active_claim_rows,
             concept_id,
             world=world,
             policy=policy,
