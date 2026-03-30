@@ -291,7 +291,10 @@ def _eval_cel_constraint_bruteforce(
 ) -> bool:
     registry = _validate_cel_constraint(constraint)
     bindings = _cel_bindings(assignment, constraint, registry)
-    ast = parse_cel(constraint.cel)
+    expr = constraint.cel
+    if expr is None:
+        raise ValueError("CEL integrity constraint requires a non-empty cel expression")
+    ast = parse_cel(expr)
     return bool(_eval_cel_ast(ast, bindings))
 
 
@@ -301,12 +304,15 @@ def _eval_cel_constraint_z3(
 ) -> bool:
     registry = _validate_cel_constraint(constraint)
     bindings = _cel_bindings(assignment, constraint, registry)
+    expr = constraint.cel
+    if expr is None:
+        raise ValueError("CEL integrity constraint requires a non-empty cel expression")
     try:
         from propstore.z3_conditions import Z3ConditionSolver
     except ImportError as exc:
         raise RuntimeError("Z3 is required for CEL IC-merge evaluation") from exc
     solver = Z3ConditionSolver(registry)
-    return solver.is_condition_satisfied(constraint.cel, bindings)
+    return solver.is_condition_satisfied(expr, bindings)
 
 
 def _eval_cel_constraint(
