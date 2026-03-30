@@ -12,8 +12,7 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.build_sidecar import _content_hash, build_sidecar
-from propstore.validate import load_concepts
-from propstore.validate_contexts import LoadedContext
+from propstore.tree_reader import FilesystemReader
 
 
 _CLAIM_SELECT_SQL = """
@@ -208,10 +207,9 @@ def concept_dir(tmp_path):
 
 
 @pytest.fixture
-def repo(concept_dir):
-    """Create a Repository pointing at the knowledge/ directory."""
-    from propstore.cli.repository import Repository
-    return Repository(concept_dir.parent)
+def knowledge_reader(concept_dir):
+    """Return a FilesystemReader rooted at the knowledge/ directory."""
+    return FilesystemReader(concept_dir.parent)
 
 
 @pytest.fixture
@@ -222,46 +220,40 @@ def sidecar_path(tmp_path):
 # ── Table existence ──────────────────────────────────────────────────
 
 class TestTableCreation:
-    def test_creates_sqlite_file(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_creates_sqlite_file(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         assert sidecar_path.exists()
 
-    def test_concept_table_exists(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_concept_table_exists(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='concept'")
         assert cursor.fetchone() is not None
         conn.close()
 
-    def test_alias_table_exists(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_alias_table_exists(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='alias'")
         assert cursor.fetchone() is not None
         conn.close()
 
-    def test_relationship_table_exists(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_relationship_table_exists(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='relationship'")
         assert cursor.fetchone() is not None
         conn.close()
 
-    def test_parameterization_table_exists(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_parameterization_table_exists(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='parameterization'")
         assert cursor.fetchone() is not None
         conn.close()
 
-    def test_fts_table_exists(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_fts_table_exists(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='concept_fts'")
         assert cursor.fetchone() is not None
@@ -271,17 +263,15 @@ class TestTableCreation:
 # ── Concept table contents ───────────────────────────────────────────
 
 class TestConceptTable:
-    def test_concept_count(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_concept_count(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         count = conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0]
         assert count == 5
         conn.close()
 
-    def test_concept_fields(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_concept_fields(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT * FROM concept WHERE id='concept1'").fetchone()
@@ -292,18 +282,16 @@ class TestConceptTable:
         assert "vocal fold" in row["definition"]
         conn.close()
 
-    def test_proposed_concept_included(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_proposed_concept_included(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute("SELECT status FROM concept WHERE id='concept5'").fetchone()
         assert row[0] == "proposed"
         conn.close()
 
-    def test_concept_has_content_hash(self, concept_dir, sidecar_path):
+    def test_concept_has_content_hash(self, knowledge_reader, sidecar_path):
         """Concepts have non-empty content_hash."""
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT content_hash FROM concept WHERE id='concept1'").fetchone()
@@ -311,24 +299,22 @@ class TestConceptTable:
         assert len(row["content_hash"]) == 16
         conn.close()
 
-    def test_concept_has_seq(self, concept_dir, sidecar_path):
+    def test_concept_has_seq(self, knowledge_reader, sidecar_path):
         """Concepts have sequential numbering."""
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         seqs = [r[0] for r in conn.execute("SELECT seq FROM concept ORDER BY seq").fetchall()]
         assert seqs == list(range(1, len(seqs) + 1))
         conn.close()
 
-    def test_content_hash_deterministic(self, concept_dir, sidecar_path):
+    def test_content_hash_deterministic(self, knowledge_reader, sidecar_path):
         """Same content produces same hash across builds."""
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         hash1 = conn.execute("SELECT content_hash FROM concept WHERE id='concept1'").fetchone()[0]
         conn.close()
 
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         hash2 = conn.execute("SELECT content_hash FROM concept WHERE id='concept1'").fetchone()[0]
         conn.close()
@@ -338,18 +324,16 @@ class TestConceptTable:
 # ── Alias table contents ─────────────────────────────────────────────
 
 class TestAliasTable:
-    def test_alias_count(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_alias_count(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         count = conn.execute("SELECT COUNT(*) FROM alias").fetchone()[0]
         # F0, pitch, Ps, ra, Ra = 5
         assert count == 5
         conn.close()
 
-    def test_alias_lookup(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_alias_lookup(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute(
             "SELECT concept_id FROM alias WHERE alias_name='F0'"
@@ -357,9 +341,8 @@ class TestAliasTable:
         assert row[0] == "concept1"
         conn.close()
 
-    def test_alias_source(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_alias_source(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute(
             "SELECT source FROM alias WHERE alias_name='Ps'"
@@ -371,9 +354,8 @@ class TestAliasTable:
 # ── Relationship table contents ──────────────────────────────────────
 
 class TestRelationshipTable:
-    def test_relationship_count(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_relationship_count(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         count = conn.execute("SELECT COUNT(*) FROM relationship").fetchone()[0]
         # broader(concept1→concept4), narrower(concept4→concept1),
@@ -381,9 +363,8 @@ class TestRelationshipTable:
         assert count == 3
         conn.close()
 
-    def test_relationship_fields(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_relationship_fields(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute(
@@ -397,17 +378,15 @@ class TestRelationshipTable:
 # ── Parameterization table contents ──────────────────────────────────
 
 class TestParameterizationTable:
-    def test_parameterization_count(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_parameterization_count(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         count = conn.execute("SELECT COUNT(*) FROM parameterization").fetchone()[0]
         assert count == 1
         conn.close()
 
-    def test_parameterization_fields(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_parameterization_fields(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT * FROM parameterization").fetchone()
@@ -416,9 +395,8 @@ class TestParameterizationTable:
         assert row["exactness"] == "exact"
         conn.close()
 
-    def test_parameterization_has_output_concept_id(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_parameterization_has_output_concept_id(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT * FROM parameterization").fetchone()
@@ -429,9 +407,8 @@ class TestParameterizationTable:
 # ── FTS5 index ───────────────────────────────────────────────────────
 
 class TestFTS:
-    def test_fts_search_by_name(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_fts_search_by_name(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         rows = conn.execute(
             "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH 'frequency'"
@@ -440,9 +417,8 @@ class TestFTS:
         assert "concept1" in ids
         conn.close()
 
-    def test_fts_search_by_alias(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_fts_search_by_alias(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         rows = conn.execute(
             "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH 'pitch'"
@@ -451,9 +427,8 @@ class TestFTS:
         assert "concept1" in ids
         conn.close()
 
-    def test_fts_search_by_definition(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_fts_search_by_definition(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         rows = conn.execute(
             "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH 'glottis'"
@@ -462,9 +437,8 @@ class TestFTS:
         assert "concept2" in ids
         conn.close()
 
-    def test_fts_search_by_condition(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_fts_search_by_condition(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         rows = conn.execute(
             "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH 'speech'"
@@ -478,9 +452,8 @@ class TestFTS:
 # ── Rebuild skipping ─────────────────────────────────────────────────
 
 class TestRebuildSkipping:
-    def test_skip_rebuild_when_unchanged(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_skip_rebuild_when_unchanged(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
 
         # Set mtime 2 seconds in the past so any rewrite would be detectable
         import os
@@ -489,13 +462,12 @@ class TestRebuildSkipping:
         mtime1 = sidecar_path.stat().st_mtime
 
         # Build again — should skip
-        build_sidecar(concepts, sidecar_path)
+        build_sidecar(knowledge_reader, sidecar_path)
         mtime2 = sidecar_path.stat().st_mtime
         assert mtime1 == mtime2
 
-    def test_rebuild_when_forced(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_rebuild_when_forced(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
 
         # Set mtime 2 seconds in the past so forced rebuild produces a newer mtime
         import os
@@ -503,75 +475,53 @@ class TestRebuildSkipping:
         os.utime(sidecar_path, (stat.st_atime, stat.st_mtime - 2))
         mtime1 = sidecar_path.stat().st_mtime
 
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         mtime2 = sidecar_path.stat().st_mtime
         assert mtime2 > mtime1
 
-    def test_rebuild_when_contexts_change(self, concept_dir, sidecar_path):
-        concepts = load_concepts(concept_dir)
-        context_v1 = [
-            LoadedContext(
-                filename="ctx_root",
-                filepath=None,
-                data={"id": "ctx_root", "name": "Root", "assumptions": ["task == 'speech'"]},
-            )
-        ]
-        context_v2 = [
-            LoadedContext(
-                filename="ctx_root",
-                filepath=None,
-                data={"id": "ctx_root", "name": "Root", "assumptions": ["task == 'singing'"]},
-            )
-        ]
+    def test_rebuild_when_contexts_change(self, concept_dir, knowledge_reader, sidecar_path):
+        contexts_dir = concept_dir.parent / "contexts"
+        contexts_dir.mkdir(exist_ok=True)
+        (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
+            {"id": "ctx_root", "name": "Root", "assumptions": ["task == 'speech'"]},
+            default_flow_style=False,
+        ))
 
-        assert build_sidecar(concepts, sidecar_path, force=True, context_files=context_v1) is True
-        assert build_sidecar(concepts, sidecar_path, context_files=context_v2) is True
+        assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
 
-    def test_rebuild_when_form_files_change(self, concept_dir, sidecar_path, repo):
-        concepts = load_concepts(concept_dir)
+        (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
+            {"id": "ctx_root", "name": "Root", "assumptions": ["task == 'singing'"]},
+            default_flow_style=False,
+        ))
 
-        assert build_sidecar(concepts, sidecar_path, force=True, repo=repo) is True
+        assert build_sidecar(knowledge_reader, sidecar_path) is True
 
-        form_path = repo.forms_dir / "frequency.yaml"
+    def test_rebuild_when_form_files_change(self, concept_dir, knowledge_reader, sidecar_path):
+        assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
+
+        form_path = concept_dir.parent / "forms" / "frequency.yaml"
         form_data = yaml.safe_load(form_path.read_text())
         form_data["note"] = "changed semantic form contract"
         form_path.write_text(yaml.dump(form_data, default_flow_style=False))
 
-        assert build_sidecar(concepts, sidecar_path, repo=repo) is True
+        assert build_sidecar(knowledge_reader, sidecar_path) is True
 
-    def test_rebuild_when_stance_files_change(self, concept_dir, sidecar_path, claim_files, repo):
-        concepts = load_concepts(concept_dir)
-        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+    def test_rebuild_when_stance_files_change(self, concept_dir, knowledge_reader, sidecar_path, claim_files):
+        assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
 
-        assert build_sidecar(
-            concepts,
-            sidecar_path,
-            force=True,
-            claim_files=claim_files,
-            concept_registry=concept_registry,
-            repo=repo,
-        ) is True
-
-        stance_path = repo.stances_dir / "claim1.yaml"
-        repo.stances_dir.mkdir(parents=True, exist_ok=True)
-        stance_path.write_text(yaml.dump({
+        stances_dir = concept_dir.parent / "stances"
+        stances_dir.mkdir(parents=True, exist_ok=True)
+        (stances_dir / "claim1.yaml").write_text(yaml.dump({
             "source_claim": "claim1",
             "stances": [{"type": "supports", "target": "claim5", "note": "new stance file"}],
         }, default_flow_style=False))
 
-        assert build_sidecar(
-            concepts,
-            sidecar_path,
-            claim_files=claim_files,
-            concept_registry=concept_registry,
-            repo=repo,
-        ) is True
+        assert build_sidecar(knowledge_reader, sidecar_path) is True
 
-    def test_rebuild_when_semantic_version_changes(self, concept_dir, sidecar_path, monkeypatch):
+    def test_rebuild_when_semantic_version_changes(self, knowledge_reader, sidecar_path, monkeypatch):
         import propstore.build_sidecar as build_sidecar_module
 
-        concepts = load_concepts(concept_dir)
-        assert build_sidecar(concepts, sidecar_path, force=True) is True
+        assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
 
         monkeypatch.setattr(
             build_sidecar_module,
@@ -580,7 +530,7 @@ class TestRebuildSkipping:
             raising=False,
         )
 
-        assert build_sidecar(concepts, sidecar_path) is True
+        assert build_sidecar(knowledge_reader, sidecar_path) is True
 
     @given(
         assumption_a=st.sampled_from(["task == 'speech'", "task == 'singing'", "task == 'whisper'"]),
@@ -594,33 +544,30 @@ class TestRebuildSkipping:
         assumption_b,
     ):
         assume(assumption_a != assumption_b)
-        concepts = load_concepts(concept_dir)
-        context_a = [
-            LoadedContext(
-                filename="ctx_root",
-                filepath=None,
-                data={"id": "ctx_root", "name": "Root", "assumptions": [assumption_a]},
-            )
-        ]
-        context_b = [
-            LoadedContext(
-                filename="ctx_root",
-                filepath=None,
-                data={"id": "ctx_root", "name": "Root", "assumptions": [assumption_b]},
-            )
-        ]
-        assert _content_hash(concepts, context_files=context_a) != _content_hash(
-            concepts,
-            context_files=context_b,
-        )
+        contexts_dir = concept_dir.parent / "contexts"
+        contexts_dir.mkdir(exist_ok=True)
+
+        (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
+            {"id": "ctx_root", "name": "Root", "assumptions": [assumption_a]},
+            default_flow_style=False,
+        ))
+        hash_a = _content_hash(FilesystemReader(concept_dir.parent))
+
+        (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
+            {"id": "ctx_root", "name": "Root", "assumptions": [assumption_b]},
+            default_flow_style=False,
+        ))
+        hash_b = _content_hash(FilesystemReader(concept_dir.parent))
+
+        assert hash_a != hash_b
 
 
 # ── Claim fixtures ───────────────────────────────────────────────────
 
 @pytest.fixture
 def claim_files(concept_dir):
-    """Create claim files in a claims subdirectory alongside concepts."""
-    claims_dir = concept_dir / "claims_data"
+    """Create claim files in the knowledge/claims directory."""
+    claims_dir = concept_dir.parent / "claims"
     claims_dir.mkdir(exist_ok=True)
 
     alpha = {
@@ -734,11 +681,9 @@ def claim_files(concept_dir):
 
 
 @pytest.fixture
-def sidecar_with_claims(concept_dir, sidecar_path, claim_files):
+def sidecar_with_claims(knowledge_reader, sidecar_path, claim_files):
     """Build a sidecar that includes claim and conflict tables."""
-    concepts = load_concepts(concept_dir)
-    concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-    build_sidecar(concepts, sidecar_path, claim_files=claim_files, concept_registry=concept_registry)
+    build_sidecar(knowledge_reader, sidecar_path)
     return sidecar_path
 
 
@@ -825,9 +770,9 @@ class TestClaimTable:
         assert "log(Ps)" in row["expression"]
         conn.close()
 
-    def test_equation_claim_preserves_sympy_error(self, concept_dir, sidecar_path, repo):
+    def test_equation_claim_preserves_sympy_error(self, concept_dir, knowledge_reader, sidecar_path):
         """Equation claims preserve the auto-generation error when sympy cannot be derived."""
-        claims_dir = concept_dir / "claims_equation_error"
+        claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
             "source": {"paper": "equation_error_paper"},
@@ -848,18 +793,7 @@ class TestClaimTable:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        from propstore.validate_claims import build_concept_registry, load_claim_files
-
-        claim_files = load_claim_files(claims_dir)
-        concepts = load_concepts(concept_dir)
-        concept_registry = build_concept_registry(repo)
-        build_sidecar(
-            concepts,
-            sidecar_path,
-            force=True,
-            claim_files=claim_files,
-            concept_registry=concept_registry,
-        )
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
         row = _fetch_claim(conn, "claim1")
@@ -867,9 +801,9 @@ class TestClaimTable:
         assert row["sympy_error"] is not None
         conn.close()
 
-    def test_legacy_list_value_raises(self, concept_dir, sidecar_path, repo):
+    def test_legacy_list_value_raises(self, concept_dir, knowledge_reader, sidecar_path):
         """Legacy list value format raises TypeError — no silent conversion."""
-        claims_dir = concept_dir / "claims_range"
+        claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
             "source": {"paper": "range_paper"},
@@ -886,18 +820,12 @@ class TestClaimTable:
         }
         (claims_dir / "range_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
 
-        from propstore.validate_claims import load_claim_files, build_concept_registry
-
-        claim_files = load_claim_files(claims_dir)
-        concepts = load_concepts(concept_dir)
-        concept_registry = build_concept_registry(repo)
         with pytest.raises(TypeError):
-            build_sidecar(concepts, sidecar_path, force=True,
-                          claim_files=claim_files, concept_registry=concept_registry)
+            build_sidecar(knowledge_reader, sidecar_path, force=True)
 
-    def test_proper_bounds_without_value(self, concept_dir, sidecar_path, repo):
+    def test_proper_bounds_without_value(self, concept_dir, knowledge_reader, sidecar_path):
         """Proper bounds format (lower_bound + upper_bound, no value) stores correctly."""
-        claims_dir = concept_dir / "claims_bounds"
+        claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
             "source": {"paper": "bounds_paper"},
@@ -915,13 +843,7 @@ class TestClaimTable:
         }
         (claims_dir / "bounds_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
 
-        from propstore.validate_claims import load_claim_files, build_concept_registry
-
-        claim_files = load_claim_files(claims_dir)
-        concepts = load_concepts(concept_dir)
-        concept_registry = build_concept_registry(repo)
-        build_sidecar(concepts, sidecar_path, force=True,
-                      claim_files=claim_files, concept_registry=concept_registry)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
         row = _fetch_claim(conn, "claim1")
@@ -930,10 +852,9 @@ class TestClaimTable:
         assert row["upper_bound"] == 300.0
         conn.close()
 
-    def test_no_claim_table_without_claims(self, concept_dir, sidecar_path):
-        """Normalized claim tables are not created when claim_files is None."""
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path)
+    def test_no_claim_table_without_claims(self, knowledge_reader, sidecar_path):
+        """Normalized claim tables are not created when no claims directory exists."""
+        build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='claim_core'")
         assert cursor.fetchone() is None
@@ -979,8 +900,8 @@ class TestClaimStanceTable:
         assert "conflicting value" in row["note"]
         conn.close()
 
-    def test_invalid_inline_stance_target_raises(self, concept_dir, sidecar_path, repo):
-        claims_dir = concept_dir / "claims_invalid_stance_target"
+    def test_invalid_inline_stance_target_raises(self, concept_dir, knowledge_reader, sidecar_path):
+        claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
             "source": {"paper": "invalid_stance_target"},
@@ -1008,22 +929,11 @@ class TestClaimStanceTable:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        from propstore.validate_claims import build_concept_registry, load_claim_files
-
-        claim_files = load_claim_files(claims_dir)
-        concepts = load_concepts(concept_dir)
-        concept_registry = build_concept_registry(repo)
         with pytest.raises(sqlite3.IntegrityError):
-            build_sidecar(
-                concepts,
-                sidecar_path,
-                force=True,
-                claim_files=claim_files,
-                concept_registry=concept_registry,
-            )
+            build_sidecar(knowledge_reader, sidecar_path, force=True)
 
-    def test_invalid_inline_stance_type_raises(self, concept_dir, sidecar_path, repo):
-        claims_dir = concept_dir / "claims_invalid_stance_type"
+    def test_invalid_inline_stance_type_raises(self, concept_dir, knowledge_reader, sidecar_path):
+        claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
             "source": {"paper": "invalid_stance_type"},
@@ -1051,27 +961,16 @@ class TestClaimStanceTable:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        from propstore.validate_claims import build_concept_registry, load_claim_files
-
-        claim_files = load_claim_files(claims_dir)
-        concepts = load_concepts(concept_dir)
-        concept_registry = build_concept_registry(repo)
         with pytest.raises(ValueError, match="contradicts"):
-            build_sidecar(
-                concepts,
-                sidecar_path,
-                force=True,
-                claim_files=claim_files,
-                concept_registry=concept_registry,
-            )
+            build_sidecar(knowledge_reader, sidecar_path, force=True)
 
     def test_invalid_inline_stance_resolution_shape_raises_cleanly(
         self,
         concept_dir,
+        knowledge_reader,
         sidecar_path,
-        repo,
     ):
-        claims_dir = concept_dir / "claims_invalid_stance_resolution"
+        claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
             "source": {"paper": "invalid_stance_resolution"},
@@ -1103,19 +1002,8 @@ class TestClaimStanceTable:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        from propstore.validate_claims import build_concept_registry, load_claim_files
-
-        claim_files = load_claim_files(claims_dir)
-        concepts = load_concepts(concept_dir)
-        concept_registry = build_concept_registry(repo)
         with pytest.raises(ValueError, match="resolution"):
-            build_sidecar(
-                concepts,
-                sidecar_path,
-                force=True,
-                claim_files=claim_files,
-                concept_registry=concept_registry,
-            )
+            build_sidecar(knowledge_reader, sidecar_path, force=True)
 
     @given(
         stance_pairs=st.lists(
@@ -1136,10 +1024,9 @@ class TestClaimStanceTable:
         self,
         concept_dir,
         sidecar_path,
-        repo,
         stance_pairs,
     ):
-        claims_dir = concept_dir / "claims_property_stances"
+        claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claims = []
         for claim_id, value in (("claim1", 100.0), ("claim2", 120.0), ("claim3", 140.0)):
@@ -1166,18 +1053,8 @@ class TestClaimStanceTable:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        from propstore.validate_claims import build_concept_registry, load_claim_files
-
-        claim_files = load_claim_files(claims_dir)
-        concepts = load_concepts(concept_dir)
-        concept_registry = build_concept_registry(repo)
-        build_sidecar(
-            concepts,
-            sidecar_path,
-            force=True,
-            claim_files=claim_files,
-            concept_registry=concept_registry,
-        )
+        knowledge_reader = FilesystemReader(concept_dir.parent)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
         try:
@@ -1262,20 +1139,18 @@ class TestClaimFTS:
 # ── Parameterization group table ────────────────────────────────────
 
 class TestParameterizationGroupTable:
-    def test_parameterization_group_table_exists(self, concept_dir, sidecar_path):
+    def test_parameterization_group_table_exists(self, knowledge_reader, sidecar_path):
         """parameterization_group table created during build."""
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         cursor = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='parameterization_group'")
         assert cursor.fetchone() is not None
         conn.close()
 
-    def test_parameterization_groups_reflect_components(self, concept_dir, sidecar_path):
+    def test_parameterization_groups_reflect_components(self, knowledge_reader, sidecar_path):
         """Groups reflect connected components from parameterizations."""
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
 
         # Concepts with parameterization links should share a group
@@ -1318,57 +1193,51 @@ class TestConceptFormMetadata:
                    "parameters": {"numerator": "duration", "denominator": "duration"}},
                   (forms_dir / "duration_ratio.yaml").open("w"))
 
-    def test_concept_has_is_dimensionless_column(self, concept_dir, sidecar_path):
+    def test_concept_has_is_dimensionless_column(self, concept_dir, knowledge_reader, sidecar_path):
         self._setup_forms(concept_dir)
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT * FROM concept WHERE id='concept1'").fetchone()
         assert "is_dimensionless" in row.keys()
         conn.close()
 
-    def test_frequency_concept_not_dimensionless(self, concept_dir, sidecar_path):
+    def test_frequency_concept_not_dimensionless(self, concept_dir, knowledge_reader, sidecar_path):
         self._setup_forms(concept_dir)
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute("SELECT is_dimensionless FROM concept WHERE id='concept1'").fetchone()
         assert row[0] == 0
         conn.close()
 
-    def test_ratio_concept_is_dimensionless(self, concept_dir, sidecar_path):
+    def test_ratio_concept_is_dimensionless(self, concept_dir, knowledge_reader, sidecar_path):
         self._setup_forms(concept_dir)
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute("SELECT is_dimensionless FROM concept WHERE id='concept5'").fetchone()
         assert row[0] == 1
         conn.close()
 
-    def test_concept_has_unit_symbol_column(self, concept_dir, sidecar_path):
+    def test_concept_has_unit_symbol_column(self, concept_dir, knowledge_reader, sidecar_path):
         self._setup_forms(concept_dir)
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT * FROM concept WHERE id='concept1'").fetchone()
         assert "unit_symbol" in row.keys()
         conn.close()
 
-    def test_frequency_concept_unit_symbol(self, concept_dir, sidecar_path):
+    def test_frequency_concept_unit_symbol(self, concept_dir, knowledge_reader, sidecar_path):
         self._setup_forms(concept_dir)
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute("SELECT unit_symbol FROM concept WHERE id='concept1'").fetchone()
         assert row[0] == "Hz"
         conn.close()
 
-    def test_ratio_concept_unit_symbol_null(self, concept_dir, sidecar_path):
+    def test_ratio_concept_unit_symbol_null(self, concept_dir, knowledge_reader, sidecar_path):
         self._setup_forms(concept_dir)
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         row = conn.execute("SELECT unit_symbol FROM concept WHERE id='concept5'").fetchone()
         assert row[0] is None
@@ -1380,7 +1249,7 @@ class TestConceptFormMetadata:
 @pytest.fixture
 def algorithm_claim_files(concept_dir):
     """Create claim files containing an algorithm claim."""
-    claims_dir = concept_dir / "claims_algo"
+    claims_dir = concept_dir.parent / "claims"
     claims_dir.mkdir(exist_ok=True)
 
     algo_paper = {
@@ -1405,15 +1274,9 @@ def algorithm_claim_files(concept_dir):
 
 
 @pytest.fixture
-def sidecar_with_algorithm(concept_dir, sidecar_path, algorithm_claim_files):
+def sidecar_with_algorithm(knowledge_reader, sidecar_path, algorithm_claim_files):
     """Build a sidecar that includes an algorithm claim."""
-    concepts = load_concepts(concept_dir)
-    concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-    build_sidecar(
-        concepts, sidecar_path, force=True,
-        claim_files=algorithm_claim_files,
-        concept_registry=concept_registry,
-    )
+    build_sidecar(knowledge_reader, sidecar_path, force=True)
     return sidecar_path
 
 
@@ -1453,11 +1316,11 @@ class TestAlgorithmBindings:
     canonical AST that includes the concept bindings (not empty bindings)."""
 
     def test_algorithm_canonical_ast_includes_bindings(
-        self, concept_dir, sidecar_path,
+        self, concept_dir, knowledge_reader, sidecar_path,
     ):
         """When variables is a list of dicts (per schema), canonical_ast must
         contain the concept names from the bindings, not the raw variable names."""
-        claims_dir = concept_dir / "claims_algo_bindings"
+        claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
 
         algo_paper = {
@@ -1479,16 +1342,7 @@ class TestAlgorithmBindings:
             yaml.dump(algo_paper, default_flow_style=False)
         )
 
-        from propstore.validate_claims import load_claim_files
-        claim_files = load_claim_files(claims_dir)
-
-        concepts = load_concepts(concept_dir)
-        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-        build_sidecar(
-            concepts, sidecar_path, force=True,
-            claim_files=claim_files,
-            concept_registry=concept_registry,
-        )
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
         row = _fetch_claim(conn, "algo_bind_claim1")
@@ -1565,20 +1419,11 @@ class TestNormalizedSidecarStorage:
 
     def test_normalized_storage_is_deterministic_across_rebuilds(
         self,
-        concept_dir,
+        knowledge_reader,
         sidecar_path,
         claim_files,
     ):
-        concepts = load_concepts(concept_dir)
-        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-
-        build_sidecar(
-            concepts,
-            sidecar_path,
-            force=True,
-            claim_files=claim_files,
-            concept_registry=concept_registry,
-        )
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
 
         def snapshot_tables() -> dict[str, list[tuple]]:
             conn = sqlite3.connect(sidecar_path)
@@ -1609,13 +1454,7 @@ class TestNormalizedSidecarStorage:
             return tables
 
         first = snapshot_tables()
-        build_sidecar(
-            concepts,
-            sidecar_path,
-            force=True,
-            claim_files=claim_files,
-            concept_registry=concept_registry,
-        )
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         second = snapshot_tables()
 
         assert second == first
@@ -1698,12 +1537,11 @@ class TestFormAlgebraDimVerified:
     """
 
     def test_form_algebra_stores_entry_when_dimensions_missing(
-        self, concept_dir, sidecar_path, repo
+        self, knowledge_reader, sidecar_path
     ):
         """Forms without dimensions must still produce form_algebra rows."""
         # The fixture forms have no dimensions — the entry must still appear
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True, repo=repo)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         rows = conn.execute("SELECT * FROM form_algebra").fetchall()
@@ -1714,7 +1552,7 @@ class TestFormAlgebraDimVerified:
         assert row["dim_verified"] == 0, "entry without dimensions should have dim_verified=0"
 
     def test_form_algebra_dim_verified_true_when_dimensions_present(
-        self, concept_dir, sidecar_path, repo
+        self, concept_dir, knowledge_reader, sidecar_path
     ):
         """Forms WITH valid dimensions and no sympy to verify → dim_verified=1."""
         # Add dimensions to the form files
@@ -1747,8 +1585,7 @@ class TestFormAlgebraDimVerified:
             }],
         }, default_flow_style=False))
 
-        concepts = load_concepts(concept_dir)
-        build_sidecar(concepts, sidecar_path, force=True, repo=repo)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
@@ -1795,7 +1632,7 @@ class TestClaimValueSI:
     def _build_with_claims(self, concept_dir, sidecar_path, claims_list):
         """Helper: write claim file, build sidecar, return db path."""
         self._setup_frequency_form_with_kHz(concept_dir)
-        claims_dir = concept_dir / "claims_si_test"
+        claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
             "source": {"paper": "si_test_paper"},
@@ -1804,15 +1641,8 @@ class TestClaimValueSI:
         (claims_dir / "si_test_paper.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
-        from propstore.validate_claims import load_claim_files
-        claim_files = load_claim_files(claims_dir)
-        concepts = load_concepts(concept_dir)
-        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-        build_sidecar(
-            concepts, sidecar_path, force=True,
-            claim_files=claim_files,
-            concept_registry=concept_registry,
-        )
+        knowledge_reader = FilesystemReader(concept_dir.parent)
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
         return sidecar_path
 
     def test_claim_value_si_normalized(self, concept_dir, sidecar_path):
