@@ -52,9 +52,10 @@ def create_merge_commit(
         if not path.startswith("claims/"):
             merged_entries[path] = sha
 
+    sorted_arguments = sorted(merge.arguments, key=lambda argument: argument.claim_id)
     merged_claims = [
         copy.deepcopy(argument.claim)
-        for argument in sorted(merge.arguments, key=lambda argument: argument.claim_id)
+        for argument in sorted_arguments
     ]
 
     if merged_claims:
@@ -77,6 +78,25 @@ def create_merge_commit(
         claim_paths = [path for path in merged_entries if path.startswith("claims/")]
         for path in claim_paths:
             del merged_entries[path]
+
+    manifest = {
+        "merge": {
+            "branch_a": branch_a,
+            "branch_b": branch_b,
+            "arguments": [
+                {
+                    "claim_id": argument.claim_id,
+                    "canonical_claim_id": argument.canonical_claim_id,
+                    "branch_origins": list(argument.branch_origins),
+                }
+                for argument in sorted_arguments
+            ],
+        }
+    }
+    manifest_content = yaml.dump(manifest, sort_keys=False).encode("utf-8")
+    manifest_blob = Blob.from_string(manifest_content)
+    kr._repo.object_store.add_object(manifest_blob)
+    merged_entries["merge/manifest.yaml"] = manifest_blob.id
 
     store = kr._repo.object_store
     root_tree = kr._build_tree_from_flat(merged_entries, store)

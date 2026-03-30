@@ -228,3 +228,38 @@ def test_conflict_merge_is_deterministic(tmp_path):
     commit_a = kr._repo[merge_sha_a.encode()]
     commit_b = kr._repo[merge_sha_b.encode()]
     assert commit_a.tree == commit_b.tree
+
+
+def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    base_sha = kr.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        "seed",
+    )
+    branch_name = "paper/conflict"
+    create_branch(kr, branch_name, source_commit=base_sha)
+    kr.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        "left",
+    )
+    kr.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        "right",
+        branch=branch_name,
+    )
+
+    merge = build_merge_framework(kr, "master", branch_name)
+    expected_origins = {
+        argument.claim_id: list(argument.branch_origins)
+        for argument in merge.arguments
+    }
+
+    merge_sha = create_merge_commit(kr, "master", branch_name)
+
+    manifest_path = kr.tree(commit=merge_sha) / "merge" / "manifest.yaml"
+    manifest = yaml.safe_load(manifest_path.read_text())
+    observed_origins = {
+        row["claim_id"]: row["branch_origins"]
+        for row in manifest["merge"]["arguments"]
+    }
+    assert observed_origins == expected_origins

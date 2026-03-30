@@ -121,3 +121,46 @@ def test_merge_commit_cli_returns_commit_sha(tmp_path):
 
     assert result.exit_code == 0, result.output
     assert len(result.output.strip()) == 40
+
+
+def test_merge_cli_paths_do_not_depend_on_branch_reasoning_bridge(tmp_path, monkeypatch):
+    repo = Repository.init(tmp_path / "knowledge")
+    git = repo.git
+    assert git is not None
+
+    base_sha = git.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        "seed",
+    )
+    branch_name = "paper/conflict"
+    create_branch(git, branch_name, source_commit=base_sha)
+    git.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        "left",
+    )
+    git.commit_files(
+        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        "right",
+        branch=branch_name,
+    )
+
+    import propstore.repo.branch_reasoning as branch_reasoning
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("branch_reasoning bridge should not be used by merge CLI")
+
+    monkeypatch.setattr(branch_reasoning, "inject_branch_stances", _boom)
+    monkeypatch.setattr(branch_reasoning, "branch_nogoods_from_merge", _boom)
+
+    runner = CliRunner()
+    inspect_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "merge", "inspect", "master", branch_name],
+    )
+    commit_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "merge", "commit", "master", branch_name],
+    )
+
+    assert inspect_result.exit_code == 0, inspect_result.output
+    assert commit_result.exit_code == 0, commit_result.output
