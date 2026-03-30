@@ -1,6 +1,8 @@
 """Tests for exact merge operators over tiny argumentation frameworks."""
 from __future__ import annotations
 
+from itertools import product
+
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
@@ -15,6 +17,10 @@ from propstore.repo.paf_merge import (
 
 PAIR_SPACE = [("A", "A"), ("A", "B"), ("B", "A"), ("B", "B")]
 st_attack_pairs = st.sets(st.sampled_from(PAIR_SPACE), max_size=len(PAIR_SPACE))
+ALL_ATTACK_SETS = [
+    set(pair for pair, enabled in zip(PAIR_SPACE, mask, strict=True) if enabled)
+    for mask in product([False, True], repeat=len(PAIR_SPACE))
+]
 
 
 def _af(arguments: set[str], attacks: set[tuple[str, str]]) -> ArgumentationFramework:
@@ -36,6 +42,18 @@ def test_consensual_expand_preserves_in_scope_pairs_and_marks_out_of_scope_as_ig
     assert ("B", "B") in expanded.ignorance
 
 
+def test_consensual_expand_on_shared_universe_introduces_no_ignorance():
+    af = _af({"A", "B"}, {("A", "B")})
+
+    expanded = consensual_expand(af, frozenset({"A", "B"}))
+
+    assert expanded.ignorance == frozenset()
+    assert expanded.attacks == frozenset({("A", "B")})
+    assert expanded.non_attacks == frozenset(
+        {("A", "A"), ("B", "A"), ("B", "B")}
+    )
+
+
 @settings(
     max_examples=25,
     deadline=None,
@@ -48,6 +66,15 @@ def test_sum_merge_unanimity(attacks: set[tuple[str, str]]):
     result = sum_merge_frameworks({"left": framework, "right": framework})
 
     assert result == [framework]
+
+
+def test_concordant_profiles_yield_unique_result_for_all_operators():
+    framework = _af({"A", "B"}, {("A", "B"), ("B", "A")})
+    profile = {"left": framework, "right": framework, "third": framework}
+
+    assert sum_merge_frameworks(profile) == [framework]
+    assert max_merge_frameworks(profile) == [framework]
+    assert leximax_merge_frameworks(profile) == [framework]
 
 
 @settings(
@@ -110,3 +137,54 @@ def test_leximax_refines_max_results():
 
     assert leximax_results
     assert set(leximax_results).issubset(set(max_results))
+
+
+def test_sum_and_max_diverge_on_tiny_exact_profile():
+    found = None
+    for left_attacks in ALL_ATTACK_SETS:
+        for middle_attacks in ALL_ATTACK_SETS:
+            for right_attacks in ALL_ATTACK_SETS:
+                profile = {
+                    "left": _af({"A", "B"}, left_attacks),
+                    "middle": _af({"A", "B"}, middle_attacks),
+                    "right": _af({"A", "B"}, right_attacks),
+                }
+                sum_results = sum_merge_frameworks(profile)
+                max_results = max_merge_frameworks(profile)
+                if set(sum_results) != set(max_results):
+                    found = (profile, sum_results, max_results)
+                    break
+            if found is not None:
+                break
+        if found is not None:
+            break
+
+    assert found is not None
+    _profile, sum_results, max_results = found
+    assert set(sum_results) != set(max_results)
+
+
+def test_leximax_strictly_refines_a_multi_result_max_profile():
+    found = None
+    for left_attacks in ALL_ATTACK_SETS:
+        for middle_attacks in ALL_ATTACK_SETS:
+            for right_attacks in ALL_ATTACK_SETS:
+                profile = {
+                    "left": _af({"A", "B"}, left_attacks),
+                    "middle": _af({"A", "B"}, middle_attacks),
+                    "right": _af({"A", "B"}, right_attacks),
+                }
+                max_results = max_merge_frameworks(profile)
+                leximax_results = leximax_merge_frameworks(profile)
+                if len(max_results) > 1 and set(leximax_results) < set(max_results):
+                    found = (profile, max_results, leximax_results)
+                    break
+            if found is not None:
+                break
+        if found is not None:
+            break
+
+    assert found is not None
+    _profile, max_results, leximax_results = found
+    assert len(max_results) > 1
+    assert set(leximax_results) < set(max_results)
