@@ -198,7 +198,7 @@ When opinion columns are NULL (backward compatibility with pre-opinion data), th
 
 ### Integration with resolution
 
-Decision criteria are used in PrAF resolution (`world/resolution.py:393`) as a tiebreaker when multiple claims have equal acceptance probability after MC sampling. For non-PrAF resolution strategies (recency, sample_size, claim_graph, structured_projection, ASPIC, ATMS), each strategy has its own winner-selection logic and does not use decision criteria.
+Decision criteria are used in PrAF resolution (`world/resolution.py:393`) as a tiebreaker when multiple claims have equal acceptance probability after MC sampling. For non-PrAF resolution strategies (recency, sample_size, claim_graph, ASPIC, ATMS), each strategy has its own winner-selection logic and does not use decision criteria.
 
 ### CLI usage
 

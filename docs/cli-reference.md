@@ -802,7 +802,7 @@ Show argumentation extensions -- all claims that survive scrutiny. Supports [Arg
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--backend` | `claim_graph\|structured_projection\|aspic\|atms\|praf` | claim_graph | Argumentation backend |
+| `--backend` | `claim_graph\|aspic\|atms\|praf` | claim_graph | Argumentation backend |
 
 ```bash
 uv run pks world extensions domain=speech --semantics grounded
@@ -1021,12 +1021,13 @@ Used by: `world extensions`, `world resolve`, `worldline create`, `worldline run
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--reasoning-backend` | `claim_graph\|structured_projection\|aspic\|atms\|praf` | claim_graph | Argumentation backend |
+| `--reasoning-backend` | `claim_graph\|aspic\|atms\|praf` | claim_graph | Argumentation backend |
 | `--semantics` | `grounded\|preferred\|stable` | grounded | Argumentation semantics |
 | `--set-comparison` | `elitist\|democratic` | elitist | Set comparison for preference ordering |
 | `--context` | TEXT | -- | Context to scope the argumentation |
 
 Note: `world extensions` uses `--backend` instead of `--reasoning-backend`.
+`structured_projection` remains accepted only as a legacy alias in parsed policy inputs, not as a CLI option value.
 
 ### PrAF Options
 

@@ -365,8 +365,8 @@ Which reasoning engine computes the argumentation graph.
 | Value | Description |
 |-------|-------------|
 | `CLAIM_GRAPH` | Default claim graph with Dung AF. |
-| `STRUCTURED_PROJECTION` | Structured projection. |
-| `ASPIC` | ASPIC+ recursive argument construction. |
+| `STRUCTURED_PROJECTION` | Legacy alias of `ASPIC` for parsed/stored inputs. |
+| `ASPIC` | ASPIC+ recursive argument construction. Canonical structured backend. |
 | `ATMS` | Assumption-based truth maintenance. |
 | `PRAF` | Probabilistic argumentation framework. |
 

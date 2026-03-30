@@ -199,21 +199,21 @@ The structured argumentation backend is available via the `pks world` CLI:
 
 ```bash
 # Compute extensions using the ASPIC+ backend
-pks world extensions --backend structured_projection --semantics grounded
+pks world extensions --backend aspic --semantics grounded
 
 # Preferred extensions with democratic set comparison
-pks world extensions --backend structured_projection --semantics preferred --set-comparison democratic
+pks world extensions --backend aspic --semantics preferred --set-comparison democratic
 
-# The aspic backend is an alias for structured_projection
-pks world extensions --backend aspic --semantics grounded
+# Legacy stored policies may still use structured_projection and normalize to aspic
+pks worldline run my-worldline
 ```
 
-Extension semantics (grounded, preferred, stable) work identically to the claim-graph backend. The difference is in how the Dung AF is constructed: the structured_projection backend builds it from recursive ASPIC+ arguments with formal preference defeat, rather than from flat claim-row heuristics.
+Extension semantics (grounded, preferred, stable) work identically to the claim-graph backend. The difference is in how the Dung AF is constructed: the `aspic` backend builds it from recursive ASPIC+ arguments with formal preference defeat, rather than from flat claim-row heuristics. `structured_projection` remains a legacy parsed-input alias only.
 
 ## Known Limitations
 
 - **Rule ordering always empty**: `build_preference_config()` sets `rule_order=frozenset()`. Only premise ordering derived from metadata strength vectors has discriminating power. This means two arguments using different defeasible rules but identical premises are preference-incomparable.
-- **aspic backend is an alias**: `structured_projection` and `aspic` both route through the same `aspic_bridge.build_aspic_projection()` entry point.
+- **legacy alias remains on input**: stored policies that still say `structured_projection` normalize to `aspic`, but the public CLI backend name is `aspic`.
 - **K_a partition missing**: Odekerken (2023) defines assumption premises as a third knowledge base partition K_a. This is not yet implemented.
 
 ## References

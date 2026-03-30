@@ -176,7 +176,7 @@ def _frameworks_with_optional_attacks(draw):
     )
 
 
-def test_worldline_policy_accepts_structured_projection_backend() -> None:
+def test_worldline_policy_accepts_legacy_structured_projection_alias() -> None:
     worldline = WorldlineDefinition.from_dict({
         "id": "structured_backend",
         "targets": ["force"],
@@ -874,7 +874,7 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
     assert result.argumentation["justified"] == ["external_c", "target_a"]
 
 
-def test_world_extensions_cli_accepts_structured_projection_backend(monkeypatch) -> None:
+def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
     class FakeRepo:
         pass
 
@@ -922,7 +922,7 @@ def test_world_extensions_cli_accepts_structured_projection_backend(monkeypatch)
         }
 
     def _unexpected_claim_graph(*args, **kwargs):
-        raise AssertionError("claim_graph path should not run for --backend structured_projection")
+        raise AssertionError("claim_graph path should not run for --backend aspic")
 
     monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
     monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
@@ -956,3 +956,11 @@ def test_world_extensions_cli_accepts_structured_projection_backend(monkeypatch)
     assert "Backend: aspic" in result.output
     assert "Accepted (1 claims):" in result.output
     assert "target_a: target = 1.0" in result.output
+
+
+def test_world_extensions_cli_rejects_structured_projection_backend_name() -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["world", "extensions", "--backend", "structured_projection"])
+
+    assert result.exit_code != 0
+    assert "Invalid value for '--backend'" in result.output

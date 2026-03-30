@@ -71,8 +71,7 @@ propstore ships multiple reasoning backends at different abstraction levels, sel
 | Backend | What it does | Key files |
 |---------|-------------|-----------|
 | `claim_graph` | Dung AF over active claim rows with heuristic metadata preferences. Default backend. | `argumentation.py`, `dung.py`, `dung_z3.py` |
-| `structured_projection` | Full ASPIC+ argument construction: recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack (Def 8), last-link/weakest-link preference defeat (Defs 19-21) | `aspic_bridge.py`, `aspic.py` |
-| `aspic` | Direct ASPIC+ bridge entry point | `aspic_bridge.py` |
+| `aspic` | Full ASPIC+ argument construction: recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack (Def 8), last-link/weakest-link preference defeat (Defs 19-21). `structured_projection` remains a legacy alias for parsed inputs, not a public CLI backend name. | `aspic_bridge.py`, `aspic.py` |
 | `praf` | Probabilistic argumentation: MC sampling with Agresti-Coull stopping (Li et al. 2012), DF-QuAD gradual semantics (Freedman et al. 2025), optional COH enforcement (Hunter & Thimm 2017) | `praf.py`, `praf_dfquad.py` |
 | `atms` | ATMS label propagation and bounded replay over the active belief space (de Kleer 1986). Does not expose Dung extensions — use ATMS-native commands instead. | `world/atms.py` |
 
