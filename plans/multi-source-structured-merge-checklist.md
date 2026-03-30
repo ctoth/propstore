@@ -53,6 +53,8 @@ Primary files:
 - `proposals/multi-source-structured-merge.md`
 - `plans/multi-source-structured-merge-checklist.md`
 - `reports/multi-source-structured-merge-gap-audit-2026-03-29.md`
+- `reports/multi-source-merge-consumer-inventory-2026-03-29.md`
+- `reports/structured-merge-contract-gaps-2026-03-29.md`
 
 Tasks:
 
@@ -254,8 +256,10 @@ These should exist before any Phase 6 production edits:
 1. updated `proposals/multi-source-structured-merge.md`
 2. this checklist
 3. a repo-grounded gap audit
+4. a live merge-consumer inventory
+5. a structured-summary contract gap memo
 
-If any of the three disagree, coding should wait until they are reconciled.
+If any of these disagree, coding should wait until they are reconciled.
 
 ---
 
