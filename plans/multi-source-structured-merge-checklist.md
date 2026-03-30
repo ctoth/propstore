@@ -3,7 +3,7 @@
 **Date:** 2026-03-29
 **Depends on:** `proposals/multi-source-structured-merge.md`
 **Scope:** remaining preparation and implementation control surface for formal multi-source merge completion
-**Status:** In progress
+**Status:** Implemented through Phase 6
 
 ---
 
@@ -34,7 +34,7 @@ So the job is no longer “invent merge semantics.” The job is:
 - `6.0`: complete as control-surface preparation
 - `6.1`: complete for the current canonical consumer set
 - `6.2`: implemented in tests; control docs reconciled
-- `6.3`: partially implemented in code/tests, but still open at the contract/lossiness boundary
+- `6.3`: implemented, including explicit lossiness and relation-boundary contract for the first structured slice
 - `6.4`: implemented for the current inspect/commit/report surfaces
 - `6.5`: planning/scoping complete; future policy objects remain Phase 8 work
 
@@ -285,18 +285,14 @@ If any of these disagree, coding should wait until they are reconciled.
 
 ## Next Coding Slice
 
-After the policy-readiness scoping memo, the next remaining Phase 6 closeout work is the explicit structured-summary contract/lossiness boundary from Phase 6.3.
+Phase 6 is now closed for the current merge architecture. The next work belongs to later roadmap phases rather than further Phase 6 consolidation.
 
 Recommended targets:
 
-- `proposals/multi-source-structured-merge.md`
-- `plans/multi-source-structured-merge-checklist.md`
-- `reports/structured-merge-contract-gaps-2026-03-29.md`
-- `propstore/repo/structured_merge.py`
-- `tests/test_structured_merge_projection.py`
+- `proposals/epistemic-operating-system-roadmap.md`
+- future Phase 7 or Phase 8 control surfaces
 
 Why:
 
-- the remaining substantive merge gap is no longer operator/query or inspect/commit surface work
-- the current structured-summary slice still needs a fully explicit lossiness and relation-semantics contract
-- Phase 8 policy work should build on an honest structured-summary boundary, not an accidental one
+- the merge kernel, public surfaces, and first structured-summary boundary are now closed for Phase 6
+- the next architectural work is structured-state semantics and policy/governance above the completed merge layer

@@ -161,7 +161,6 @@ Already implemented:
 
 Not yet implemented as first-class, system-level capabilities:
 
-- the full formal merge-object stack from `proposals/multi-source-structured-merge.md` as the single authoritative merge path
 - structured/warrant-level revision beyond the current adapter projection
 - a first-class policy/governance subsystem
 - durable state snapshots and journal/diff APIs beyond worldline payload capture
@@ -170,11 +169,16 @@ Not yet implemented as first-class, system-level capabilities:
 
 Partially implemented and needing consolidation rather than invention:
 
-- repo-level partial merge framework objects
-- exact AF merge operators over tiny profiles
-- first-slice branch-local structured merge summaries
 - fragility ranking and bounded ATMS intervention planning
 - worldlines as the seed of a later process manager
+
+Implemented through Phase 6:
+
+- the formal merge-object stack from `proposals/multi-source-structured-merge.md` as the single authoritative merge path for the current architecture
+- repo-level partial merge framework objects
+- exact AF merge operators over tiny profiles
+- completion-query/report and storage-merge surfaces over the canonical merge object
+- first-slice branch-local structured merge summaries with explicit lossiness boundary
 
 ---
 
@@ -182,7 +186,7 @@ Partially implemented and needing consolidation rather than invention:
 
 ### A. Multi-source epistemic merge
 
-The merge proposal is still draft. Until it lands, the operating system has no first-class way to aggregate multiple branch-local epistemic states without falling back to weaker operational paths.
+The Phase 6 merge kernel is now landed. The remaining work is no longer basic multi-source merge existence, but richer structured-state, policy, and governance layers on top of it.
 
 ### B. Structured epistemic consumers
 

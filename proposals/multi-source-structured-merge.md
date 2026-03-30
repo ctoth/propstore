@@ -1,7 +1,7 @@
 # Proposal: Explicit Multi-Source Merge Semantics for Structured Argumentation
 
 **Date:** 2026-03-29
-**Status:** Draft for Phase 6 completion and consolidation
+**Status:** Implemented through Phase 6
 **Grounded in:** local codebase, `proposals/semantic-merge-spec.md`, `reviews/03-29-2026.md`, and the local paper corpus including Coste-Marquis 2007, Konieczny 2002, Modgil 2018, Odekerken 2023/2025, Dung 1995, Hunter 2017, Li 2011
 
 ---
@@ -15,7 +15,7 @@ Propstore already has strong pieces:
 - Dung and probabilistic AF reasoning
 - ATMS-style exact-support and bounded future-query analysis
 
-What it does **not** yet have is a fully consolidated, system-level multi-source merge layer for argumentation.
+What it now has is a consolidated Phase 6 multi-source merge layer for argumentation, with later structured-policy and governance work still deferred to later roadmap phases.
 
 Today, the repo has a split state:
 
@@ -25,15 +25,15 @@ Today, the repo has a split state:
 - `merge_classifier.py` emits a repo-facing merge object over claim alternatives
 - `structured_merge.py` provides a first branch-local structured-summary slice
 
-This is a strong start, but it is not yet a clean, consolidated account of multi-source structured merge. In particular:
+Phase 6 resolved the main consolidation work:
 
-1. **The formal path is not yet the only path.** Some public and structured-facing surfaces still need consolidation around the canonical merge object.
-2. **The structured/abstract boundary is only partially landed.** The repo has a first branch-local structured-summary slice, but not yet the full execution-grade structured merge path the architecture calls for.
-3. **The draft proposal understates what is already implemented and overstates what remains greenfield.** The control surface needs to distinguish completion work from invention work.
-4. **Source-aware preference aggregation is still ad hoc.** The repo can apply preferences inside ASPIC+, but it does not yet define a principled path from branch/source metadata to post-merge defeat behavior.
-   - Current default: keep this downstream of the merge kernel and formalize it later as policy/governance work.
+1. **The formal path is now the canonical public path.**
+2. **The operator/query layer is pinned by tests.**
+3. **The inspect/commit/report surfaces now speak honestly in terms of the canonical merge object.**
+4. **The first structured-summary slice now has an explicit lossiness and relation-boundary contract.**
+5. **Source-aware preference aggregation remains downstream of the merge kernel by design.**
 
-The missing work is not "generic incompleteness" in argumentation. The local literature already covers that fairly well. The missing work is **multi-source structured merge semantics**.
+The remaining work is no longer “finish merge semantics.” It is later structured-policy, governance, and richer structured-state work above the completed Phase 6 layer.
 
 ---
 
