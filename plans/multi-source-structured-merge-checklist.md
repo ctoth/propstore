@@ -258,6 +258,7 @@ These should exist before any Phase 6 production edits:
 3. a repo-grounded gap audit
 4. a live merge-consumer inventory
 5. a structured-summary contract gap memo
+6. a first coding-slice RED/GREEN plan
 
 If any of these disagree, coding should wait until they are reconciled.
 
