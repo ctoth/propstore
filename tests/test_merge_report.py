@@ -67,8 +67,25 @@ def test_merge_report_surfaces_conflict_query_state(tmp_path):
 
     assert report["completion_count"] == 1
     assert len(report["attacks"]) == 2
+    assert report["relation_counts"] == {
+        "attack": 2,
+        "ignorance": 0,
+        "non_attack": 2,
+    }
     assert report["skeptical"] == []
     assert report["credulous"] == []
+    assert report["canonical_groups"] == {
+        "claim1": sorted(report["arguments"]),
+    }
+    assert len(report["argument_details"]) == 2
+    for detail in report["argument_details"]:
+        assert detail["claim_id"] in report["arguments"]
+        assert detail["canonical_claim_id"] == "claim1"
+        assert detail["concept_id"] == "concept_x"
+        assert detail["branch_origins"]
+        assert detail["provenance"]["branch_origin"] in detail["branch_origins"]
+        assert detail["credulously_accepted"] is False
+        assert detail["skeptically_accepted"] is False
 
 
 def test_merge_report_surfaces_ignorance_query_state(tmp_path):
@@ -104,7 +121,21 @@ def test_merge_report_surfaces_ignorance_query_state(tmp_path):
 
     assert report["completion_count"] == 4
     assert len(report["ignorance"]) == 2
+    assert report["relation_counts"] == {
+        "attack": 0,
+        "ignorance": 2,
+        "non_attack": 2,
+    }
     assert report["skeptical"] == []
     assert len(report["credulous"]) == 2
+    assert report["canonical_groups"] == {
+        "claim1": sorted(report["arguments"]),
+    }
+    assert len(report["argument_details"]) == 2
+    detail_by_id = {
+        detail["claim_id"]: detail for detail in report["argument_details"]
+    }
     for claim_id in report["credulous"]:
         assert report["statuses"][claim_id]["credulously_accepted"] is True
+        assert detail_by_id[claim_id]["credulously_accepted"] is True
+        assert detail_by_id[claim_id]["provenance"]["branch_origin"] in detail_by_id[claim_id]["branch_origins"]

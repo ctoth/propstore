@@ -81,6 +81,15 @@ def test_merge_inspect_cli_surfaces_query_summary(tmp_path):
     payload = yaml.safe_load(result.output)
     assert payload["completion_count"] == 4
     assert len(payload["credulous"]) == 2
+    assert payload["relation_counts"] == {
+        "attack": 0,
+        "ignorance": 2,
+        "non_attack": 2,
+    }
+    assert payload["canonical_groups"] == {
+        "claim1": sorted(payload["arguments"]),
+    }
+    assert len(payload["argument_details"]) == 2
 
 
 def test_merge_commit_cli_returns_commit_sha(tmp_path):
