@@ -33,12 +33,7 @@ if TYPE_CHECKING:
     from propstore.tree_reader import TreeReader
 
 
-@dataclass
-class LoadedConcept:
-    """A concept loaded from a YAML file, with its source filename."""
-    filename: str  # just the stem, no extension
-    filepath: Path | None
-    data: dict
+from propstore.loaded import LoadedEntry as LoadedConcept
 
 
 @dataclass

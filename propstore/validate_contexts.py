@@ -17,12 +17,7 @@ if TYPE_CHECKING:
     from propstore.tree_reader import TreeReader
 
 
-@dataclass
-class LoadedContext:
-    """A context loaded from a YAML file."""
-    filename: str
-    filepath: Path | None
-    data: dict
+from propstore.loaded import LoadedEntry as LoadedContext
 
 
 def load_contexts(

@@ -88,12 +88,7 @@ def _maybe_schema_float(value: object) -> object:
         return value
 
 
-@dataclass
-class LoadedClaimFile:
-    """A claim file loaded from YAML, with its source filename."""
-    filename: str  # just the stem, no extension
-    filepath: Path | None
-    data: dict
+from propstore.loaded import LoadedEntry as LoadedClaimFile
 
 
 
