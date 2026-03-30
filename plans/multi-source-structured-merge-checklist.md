@@ -123,6 +123,8 @@ Primary files:
 - `tests/test_paf_core.py`
 - `tests/test_paf_merge.py`
 - `tests/test_paf_queries.py`
+- `reports/multi-source-merge-operator-query-gap-audit-2026-03-29.md`
+- `plans/multi-source-merge-phase62-slice.md`
 
 Tasks:
 
