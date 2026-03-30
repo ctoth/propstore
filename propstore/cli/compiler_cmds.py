@@ -109,7 +109,7 @@ def validate(obj: dict) -> None:
     concept_result = validate_concepts(
         concepts,
         claims_dir=(tree / "claims") if (tree / "claims").exists() else None,
-        repo=repo,
+        forms_dir=tree / "forms",
     )
 
     for w in concept_result.warnings:
@@ -187,7 +187,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     concept_result = validate_concepts(
         concepts,
         claims_dir=(tree / "claims") if (tree / "claims").exists() else None,
-        repo=repo,
+        forms_dir=tree / "forms",
     )
     if not concept_result.ok:
         for e in concept_result.errors:

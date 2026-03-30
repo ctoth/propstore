@@ -20,6 +20,7 @@ class LoadedEntry:
 
     filename: str
     source_path: KnowledgePath | None
+    knowledge_root: KnowledgePath | None
     data: dict[str, Any]
 
     def __init__(
@@ -27,9 +28,13 @@ class LoadedEntry:
         filename: str,
         source_path: KnowledgePath | Path | None = None,
         data: dict[str, Any] | None = None,
+        knowledge_root: KnowledgePath | Path | None = None,
     ) -> None:
         self.filename = filename
         self.source_path = (
             None if source_path is None else coerce_knowledge_path(source_path)
+        )
+        self.knowledge_root = (
+            None if knowledge_root is None else coerce_knowledge_path(knowledge_root)
         )
         self.data = {} if data is None else data

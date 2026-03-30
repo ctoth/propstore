@@ -17,6 +17,7 @@ Tests the compiler contract checks that JSON Schema can't express:
 import pytest
 import yaml
 
+from propstore.loaded import LoadedEntry
 from propstore.validate import (
     load_concepts,
     validate_concepts,
@@ -790,3 +791,15 @@ class TestSympyExceptNarrowing:
         concepts = load_concepts(concept_dir)
         with pytest.raises(NameError, match="undefined_variable_bug"):
             validate_concepts(concepts)
+
+
+class TestValidatorSemanticRootContract:
+    def test_manual_entries_require_explicit_forms_root(self, tmp_path):
+        concept = LoadedEntry(
+            filename="fundamental_frequency",
+            source_path=tmp_path / "knowledge" / "concepts" / "fundamental_frequency.yaml",
+            data=make_quantity_concept("concept1", "fundamental_frequency"),
+        )
+
+        with pytest.raises(TypeError, match="forms_dir or knowledge_root"):
+            validate_concepts([concept])

@@ -28,7 +28,6 @@ from propstore.cel_checker import (
 from propstore.form_utils import kind_type_from_form_name, load_form_path
 
 if TYPE_CHECKING:
-    from propstore.cli.repository import Repository
     from propstore.knowledge_path import KnowledgePath
 
 from propstore.loaded import LoadedEntry
@@ -66,11 +65,17 @@ def load_yaml_entries(root: KnowledgePath | None) -> list[LoadedEntry]:
     if not root.is_dir():
         return []
     results: list[LoadedEntry] = []
+    knowledge_root = root.parent if root.name else root
     for entry in root.iterdir():
         if entry.is_file() and entry.suffix == ".yaml":
             data = yaml.safe_load(entry.read_bytes())
             results.append(
-                LoadedEntry(filename=entry.stem, source_path=entry, data=data if data else {})
+                LoadedEntry(
+                    filename=entry.stem,
+                    source_path=entry,
+                    knowledge_root=knowledge_root,
+                    data=data if data else {},
+                )
             )
     return results
 
@@ -108,7 +113,7 @@ def validate_concepts(
     concepts: list[LoadedEntry],
     claims_dir: KnowledgePath | None = None,
     *,
-    repo: Repository | None = None,
+    forms_dir: KnowledgePath | None = None,
 ) -> ValidationResult:
     """Run all compiler contract validation checks.
 
@@ -117,21 +122,22 @@ def validate_concepts(
         claims_dir: Optional path to claims directory. When provided,
             canonical_claim references on parameterizations are validated
             against the claim IDs found in claim files.
-        repo: A Repository object. When provided, forms_dir is resolved
-            from repo instead of inferred from concept file paths.
+        forms_dir: Optional explicit forms root. When omitted, concepts must
+            carry ``knowledge_root`` metadata so the validator can resolve
+            ``knowledge_root / "forms"`` without guessing from local paths.
     """
     result = ValidationResult()
     id_to_concept: dict[str, LoadedEntry] = {}
     cel_registry = build_cel_registry_from_loaded(concepts)
 
     def _forms_dir(c: LoadedEntry) -> KnowledgePath:
-        if repo is not None:
-            return repo.tree() / "forms"
-        if c.source_path is None:
+        if forms_dir is not None:
+            return forms_dir
+        if c.knowledge_root is None:
             raise TypeError(
-                "validate_concepts requires source paths when repo is not provided"
+                "validate_concepts requires forms_dir or knowledge_root metadata"
             )
-        return c.source_path.parent.parent / "forms"
+        return c.knowledge_root / "forms"
 
     def _effective_dims(form_def) -> dict[str, int] | None:
         if form_def.dimensions is not None:

@@ -226,9 +226,16 @@ def add(
         return
 
     concepts = load_concepts(_concepts_tree(repo))
-    concepts.append(LoadedEntry(filename=name, source_path=semantic_path, data=data))
+    concepts.append(
+        LoadedEntry(
+            filename=name,
+            source_path=semantic_path,
+            knowledge_root=repo.tree(),
+            data=data,
+        )
+    )
 
-    result = validate_concepts(concepts, repo=repo)
+    result = validate_concepts(concepts, forms_dir=repo.tree() / "forms")
     if not result.ok:
         for e in result.errors:
             click.echo(f"ERROR: {e}", err=True)
@@ -360,6 +367,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             type(concept_record)(
                 filename=name if concept_path == filepath else concept_record.filename,
                 source_path=(source_path.parent / f"{name}.yaml") if concept_path == filepath else source_path,
+                knowledge_root=concept_record.knowledge_root,
                 data=concept_data,
             )
         )
@@ -368,7 +376,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     concept_validation = validate_concepts(
         updated_concepts,
         claims_dir=claims_root if claims_root.exists() else None,
-        repo=repo,
+        forms_dir=repo.tree() / "forms",
     )
     if not concept_validation.ok:
         for e in concept_validation.errors:
@@ -574,13 +582,14 @@ def link(
             LoadedEntry(
                 filename=concept_record.filename,
                 source_path=concept_record.source_path,
+                knowledge_root=concept_record.knowledge_root,
                 data=data if concept_path == filepath else concept_record.data,
             )
         )
     validation = validate_concepts(
         updated_concepts,
         claims_dir=(repo.tree() / "claims") if (repo.tree() / "claims").exists() else None,
-        repo=repo,
+        forms_dir=repo.tree() / "forms",
     )
     if not validation.ok:
         for e in validation.errors:

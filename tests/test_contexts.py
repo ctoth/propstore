@@ -1209,19 +1209,12 @@ class TestContextCLIIntegration:
     @staticmethod
     def _make_workspace(tmp_path):
         """Create a minimal workspace with concepts, forms, and contexts."""
+        from propstore.cli.repository import Repository
+
         knowledge = tmp_path / "knowledge"
+        repo = Repository.init(knowledge)
         concepts = knowledge / "concepts"
-        concepts.mkdir(parents=True)
         forms = knowledge / "forms"
-        forms.mkdir()
-        contexts = knowledge / "contexts"
-        contexts.mkdir()
-        claims = knowledge / "claims"
-        claims.mkdir()
-        sidecar = knowledge / "sidecar"
-        sidecar.mkdir()
-        stances = knowledge / "stances"
-        stances.mkdir()
 
         # Write a form
         (forms / "structural.yaml").write_text(yaml.dump(
@@ -1229,7 +1222,6 @@ class TestContextCLIIntegration:
 
         # Write a concept
         counters = concepts / ".counters"
-        counters.mkdir()
         (counters / "global.next").write_text("2\n")
         (concepts / "test_concept.yaml").write_text(yaml.dump({
             "id": "concept1", "canonical_name": "test_concept",
@@ -1237,7 +1229,30 @@ class TestContextCLIIntegration:
             "domain": "test", "form": "structural", "created_date": "2026-03-22",
         }, default_flow_style=False))
 
+        repo.git.commit_files(
+            {
+                "forms/structural.yaml": (forms / "structural.yaml").read_bytes(),
+                "concepts/test_concept.yaml": (concepts / "test_concept.yaml").read_bytes(),
+            },
+            "Seed context CLI workspace",
+        )
+        repo.git.sync_worktree()
         return tmp_path
+
+    @staticmethod
+    def _commit_workspace_paths(workspace, relpaths, message):
+        from propstore.repo import KnowledgeRepo
+
+        root = workspace / "knowledge"
+        repo = KnowledgeRepo.open(root)
+        repo.commit_files(
+            {
+                relpath: (root / relpath).read_bytes()
+                for relpath in relpaths
+            },
+            message,
+        )
+        repo.sync_worktree()
 
     def test_build_with_contexts(self, tmp_path, monkeypatch):
         """pks build processes context files and creates sidecar tables."""
@@ -1245,6 +1260,7 @@ class TestContextCLIIntegration:
         monkeypatch.chdir(ws)
         ctx_dir = ws / "knowledge" / "contexts"
         write_context(ctx_dir, "ctx_test", make_context("ctx_test", "Test", "A test context"))
+        self._commit_workspace_paths(ws, ["contexts/ctx_test.yaml"], "Seed committed context")
 
         runner = CliRunner()
         result = runner.invoke(cli, ["build"])
@@ -1295,6 +1311,7 @@ class TestContextCLIIntegration:
         monkeypatch.chdir(ws)
         ctx_dir = ws / "knowledge" / "contexts"
         write_context(ctx_dir, "ctx_parent", make_context("ctx_parent", "Parent"))
+        self._commit_workspace_paths(ws, ["contexts/ctx_parent.yaml"], "Seed committed parent context")
         runner = CliRunner()
         result = runner.invoke(cli, [
             "context", "add",
@@ -1312,6 +1329,7 @@ class TestContextCLIIntegration:
         monkeypatch.chdir(ws)
         ctx_dir = ws / "knowledge" / "contexts"
         write_context(ctx_dir, "ctx_dup", make_context("ctx_dup", "Dup"))
+        self._commit_workspace_paths(ws, ["contexts/ctx_dup.yaml"], "Seed committed duplicate context")
         runner = CliRunner()
         result = runner.invoke(cli, [
             "context", "add", "--name", "ctx_dup", "--description", "Dup",
@@ -1325,6 +1343,11 @@ class TestContextCLIIntegration:
         ctx_dir = ws / "knowledge" / "contexts"
         write_context(ctx_dir, "ctx_a", make_context("ctx_a", "A"))
         write_context(ctx_dir, "ctx_b", make_context("ctx_b", "B"))
+        self._commit_workspace_paths(
+            ws,
+            ["contexts/ctx_a.yaml", "contexts/ctx_b.yaml"],
+            "Seed committed context list fixtures",
+        )
         runner = CliRunner()
         result = runner.invoke(cli, ["context", "list"])
         assert result.exit_code == 0
@@ -1350,6 +1373,11 @@ class TestContextCLIIntegration:
                 "provenance": {"paper": "test", "page": 1},
             }],
         }, default_flow_style=False))
+        self._commit_workspace_paths(
+            ws,
+            ["contexts/ctx_atms.yaml", "claims/test.yaml"],
+            "Seed committed contextual claim fixtures",
+        )
 
         runner = CliRunner()
         result = runner.invoke(cli, ["build"])
