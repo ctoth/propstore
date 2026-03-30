@@ -33,6 +33,35 @@ def worldline(obj: dict) -> None:
     """Materialized query artifacts — traced paths through the knowledge space."""
 
 
+def _worldlines_tree(repo: Repository):
+    return repo.tree() / "worldlines"
+
+
+def _worldline_relpath(name: str) -> str:
+    return f"worldlines/{name}.yaml"
+
+
+def _load_worldline_definition(repo: Repository, name: str):
+    from propstore.worldline import WorldlineDefinition
+
+    path = _worldlines_tree(repo) / f"{name}.yaml"
+    if not path.exists():
+        raise FileNotFoundError(name)
+    data = yaml.safe_load(path.read_bytes())
+    if not isinstance(data, dict):
+        raise ValueError(f"Worldline file {path.as_posix()} is not a YAML mapping")
+    return WorldlineDefinition.from_dict(data)
+
+
+def _dump_worldline_yaml_bytes(worldline) -> bytes:
+    return yaml.dump(
+        worldline.to_dict(),
+        default_flow_style=False,
+        allow_unicode=True,
+        sort_keys=False,
+    ).encode("utf-8")
+
+
 def _build_policy_dict(
     strategy: str | None,
     reasoning_backend: str,
@@ -227,10 +256,9 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
 
     repo: Repository = obj["repo"]
     wl_dir = repo.worldlines_dir
-    wl_dir.mkdir(parents=True, exist_ok=True)
-
     path = wl_dir / f"{name}.yaml"
-    if path.exists():
+    semantic_path = _worldlines_tree(repo) / f"{name}.yaml"
+    if semantic_path.exists():
         click.echo(f"ERROR: Worldline '{name}' already exists at {path}", err=True)
         sys.exit(1)
 
@@ -278,13 +306,17 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
         definition["revision"] = revision
 
     wl = WorldlineDefinition.from_dict(definition)
-    wl.to_file(path)
 
     git = repo.git
     if git is not None:
-        rel_path = path.relative_to(repo.root).as_posix()
-        git.commit_files({rel_path: path.read_bytes()}, f"Create worldline: {name}")
+        git.commit_files(
+            {_worldline_relpath(name): _dump_worldline_yaml_bytes(wl)},
+            f"Create worldline: {name}",
+        )
         git.sync_worktree()
+    else:
+        wl_dir.mkdir(parents=True, exist_ok=True)
+        wl.to_file(path)
 
     click.echo(f"Created worldline '{name}' at {path}")
 
@@ -316,12 +348,12 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
 
     repo: Repository = obj["repo"]
     wl_dir = repo.worldlines_dir
-    wl_dir.mkdir(parents=True, exist_ok=True)
     path = wl_dir / f"{name}.yaml"
+    semantic_path = _worldlines_tree(repo) / f"{name}.yaml"
 
     # If file exists, load it; otherwise create from CLI args
-    if path.exists():
-        wl = WorldlineDefinition.from_file(path)
+    if semantic_path.exists():
+        wl = _load_worldline_definition(repo, name)
     else:
         if not targets:
             click.echo("ERROR: --target required when creating a new worldline", err=True)
@@ -380,8 +412,18 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
 
     result = run_worldline(wl, wm)
     wl.results = result
-    wl.to_file(path)
     wm.close()
+
+    git = repo.git
+    if git is not None:
+        git.commit_files(
+            {_worldline_relpath(name): _dump_worldline_yaml_bytes(wl)},
+            f"Materialize worldline: {name}",
+        )
+        git.sync_worktree()
+    else:
+        wl_dir.mkdir(parents=True, exist_ok=True)
+        wl.to_file(path)
 
     click.echo(f"Worldline '{name}' materialized ({len(result.values)} targets)")
     for target, val in result.values.items():
@@ -404,12 +446,11 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
     from propstore.worldline import WorldlineDefinition
 
     repo: Repository = obj["repo"]
-    path = repo.worldlines_dir / f"{name}.yaml"
-    if not path.exists():
+    try:
+        wl = _load_worldline_definition(repo, name)
+    except FileNotFoundError:
         click.echo(f"ERROR: Worldline '{name}' not found", err=True)
         sys.exit(1)
-
-    wl = WorldlineDefinition.from_file(path)
 
     click.echo(f"Worldline: {wl.name or wl.id}")
     if wl.inputs.environment.bindings:
@@ -521,19 +562,25 @@ def worldline_list(obj: dict) -> None:
     from propstore.worldline import WorldlineDefinition
 
     repo: Repository = obj["repo"]
-    wl_dir = repo.worldlines_dir
-    if not wl_dir.exists():
+    wl_tree = _worldlines_tree(repo)
+    if not wl_tree.exists():
         click.echo("No worldlines directory.")
         return
 
-    files = sorted(wl_dir.glob("*.yaml"))
+    files = sorted(
+        (entry for entry in wl_tree.iterdir() if entry.is_file() and entry.suffix == ".yaml"),
+        key=lambda entry: entry.name,
+    )
     if not files:
         click.echo("No worldlines.")
         return
 
     for f in files:
         try:
-            wl = WorldlineDefinition.from_file(f)
+            data = yaml.safe_load(f.read_bytes())
+            if not isinstance(data, dict):
+                raise ValueError("not a YAML mapping")
+            wl = WorldlineDefinition.from_dict(data)
             status = "materialized" if wl.results else "pending"
             targets = ", ".join(wl.targets[:3])
             if len(wl.targets) > 3:
@@ -552,20 +599,16 @@ def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
     from propstore.worldline import WorldlineDefinition
 
     repo: Repository = obj["repo"]
-    wl_dir = repo.worldlines_dir
-
-    path_a = wl_dir / f"{name_a}.yaml"
-    path_b = wl_dir / f"{name_b}.yaml"
-
-    if not path_a.exists():
+    try:
+        wl_a = _load_worldline_definition(repo, name_a)
+    except FileNotFoundError:
         click.echo(f"ERROR: Worldline '{name_a}' not found", err=True)
         sys.exit(1)
-    if not path_b.exists():
+    try:
+        wl_b = _load_worldline_definition(repo, name_b)
+    except FileNotFoundError:
         click.echo(f"ERROR: Worldline '{name_b}' not found", err=True)
         sys.exit(1)
-
-    wl_a = WorldlineDefinition.from_file(path_a)
-    wl_b = WorldlineDefinition.from_file(path_b)
 
     if wl_a.results is None or wl_b.results is None:
         click.echo("ERROR: Both worldlines must be materialized first", err=True)
@@ -636,8 +679,14 @@ def worldline_delete(obj: dict, name: str) -> None:
     """Delete a worldline."""
     repo: Repository = obj["repo"]
     path = repo.worldlines_dir / f"{name}.yaml"
-    if not path.exists():
+    semantic_path = _worldlines_tree(repo) / f"{name}.yaml"
+    if not semantic_path.exists():
         click.echo(f"ERROR: Worldline '{name}' not found", err=True)
         sys.exit(1)
-    path.unlink()
+    git = repo.git
+    if git is not None:
+        git.commit_deletes([_worldline_relpath(name)], f"Delete worldline: {name}")
+        git.sync_worktree()
+    else:
+        path.unlink()
     click.echo(f"Deleted worldline '{name}'")

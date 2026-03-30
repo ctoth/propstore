@@ -659,6 +659,167 @@ def test_form_remove_uses_committed_head_for_reference_checks(tmp_path):
     assert "referenced by 1 concept" in result.output
 
 
+def test_worldline_create_creates_commit(tmp_path):
+    """Creating a worldline in a git-backed repo creates a commit."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    commits_before = len(git.log(max_count=100))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "worldline", "create", "wl_test",
+        "--target", "concept1",
+    ])
+    assert result.exit_code == 0, result.output
+
+    commits_after = len(git.log(max_count=100))
+    assert commits_after == commits_before + 1
+
+    data = yaml.safe_load(git.read_file("worldlines/wl_test.yaml"))
+    assert data["id"] == "wl_test"
+    assert data["targets"] == ["concept1"]
+
+
+def test_worldline_create_uses_committed_head_for_duplicate_checks(tmp_path):
+    """Worldline create should reject duplicates based on committed HEAD."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    git.commit_files({
+        "worldlines/wl_test.yaml": yaml.dump({
+            "id": "wl_test",
+            "name": "wl_test",
+            "targets": ["concept1"],
+        }).encode("utf-8"),
+    }, "Seed worldline")
+    git.sync_worktree()
+    (root / "worldlines" / "wl_test.yaml").unlink()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "worldline", "create", "wl_test",
+        "--target", "concept1",
+    ])
+    assert result.exit_code != 0
+    assert "already exists" in result.output
+
+
+def test_worldline_show_reads_git_head_not_worktree(tmp_path):
+    """Worldline show should ignore uncommitted worktree edits in git-backed repos."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    git.commit_files({
+        "worldlines/wl_test.yaml": yaml.dump({
+            "id": "wl_test",
+            "name": "Committed Worldline",
+            "targets": ["concept1"],
+        }, default_flow_style=False, sort_keys=False).encode("utf-8"),
+    }, "Seed worldline")
+    git.sync_worktree()
+    (root / "worldlines" / "wl_test.yaml").write_text(
+        yaml.dump({
+            "id": "wl_test",
+            "name": "Worktree Worldline",
+            "targets": ["concept1"],
+        }, default_flow_style=False, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "worldline", "show", "wl_test",
+    ])
+    assert result.exit_code == 0, result.output
+    assert "Committed Worldline" in result.output
+    assert "Worktree Worldline" not in result.output
+
+
+def test_worldline_list_reads_git_head_not_worktree(tmp_path):
+    """Worldline list should ignore uncommitted worktree additions in git-backed repos."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    git.commit_files({
+        "worldlines/wl_test.yaml": yaml.dump({
+            "id": "wl_test",
+            "name": "Committed Worldline",
+            "targets": ["concept1"],
+        }).encode("utf-8"),
+    }, "Seed worldline")
+    git.sync_worktree()
+    (root / "worldlines" / "rogue.yaml").write_text(
+        yaml.dump({
+            "id": "rogue",
+            "name": "Rogue Worldline",
+            "targets": ["concept2"],
+        }, default_flow_style=False, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "worldline", "list",
+    ])
+    assert result.exit_code == 0, result.output
+    assert "wl_test" in result.output
+    assert "rogue" not in result.output
+
+
+def test_worldline_delete_commits_delete_from_git_head(tmp_path):
+    """Worldline delete should remove the committed definition even if the worktree is missing it."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    git.commit_files({
+        "worldlines/wl_test.yaml": yaml.dump({
+            "id": "wl_test",
+            "name": "Committed Worldline",
+            "targets": ["concept1"],
+        }).encode("utf-8"),
+    }, "Seed worldline")
+    git.sync_worktree()
+    (root / "worldlines" / "wl_test.yaml").unlink()
+    commits_before = len(git.log(max_count=100))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "worldline", "delete", "wl_test",
+    ])
+    assert result.exit_code == 0, result.output
+
+    commits_after = len(git.log(max_count=100))
+    assert commits_after == commits_before + 1
+    with pytest.raises(FileNotFoundError):
+        git.read_file("worldlines/wl_test.yaml")
+
+
 # ── Phase 3: Build sidecar from git ─────────────────────────────────
 
 

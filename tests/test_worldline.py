@@ -18,12 +18,23 @@ from hypothesis import strategies as st
 
 from propstore.build_sidecar import build_sidecar
 from propstore.cli.worldline_cmds import _parse_kv_args
+from propstore.knowledge_path import FilesystemKnowledgePath
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
 
 
 # ── Test fixtures ───────────────────────────────────────────────────
+
+
+class _FakeWorldlineRepo:
+    def __init__(self, worldlines_dir: Path):
+        self.worldlines_dir = worldlines_dir
+        self.git = None
+        self._root = worldlines_dir.parent
+
+    def tree(self):
+        return FilesystemKnowledgePath(self._root)
 
 
 @pytest.fixture
@@ -1786,7 +1797,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_create, "create")
 
@@ -1816,7 +1827,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_create, "create")
 
@@ -1846,7 +1857,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_create, "create")
 
@@ -1877,7 +1888,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_create, "create")
 
@@ -1906,7 +1917,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_create, "create")
 
@@ -1936,7 +1947,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_create, "create")
 
@@ -1968,7 +1979,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_create, "create")
 
@@ -2000,7 +2011,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_create, "create")
 
@@ -2041,7 +2052,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_run, "run")
 
@@ -2097,7 +2108,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir, "git": None})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_create, "create")
 
@@ -2154,7 +2165,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_run, "run")
 
@@ -2215,7 +2226,7 @@ class TestWorldlineCLIFlags:
         @click.pass_context
         def fake_cli(ctx):
             ctx.ensure_object(dict)
-            ctx.obj["repo"] = type("R", (), {"worldlines_dir": wl_dir})()
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
 
         fake_cli.add_command(worldline_show, "show")
 
