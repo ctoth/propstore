@@ -174,9 +174,8 @@ def add(
     """Add a new form definition."""
     repo: Repository = obj["repo"]
     fdir = repo.forms_dir
-    forms_tree = repo.tree() / "forms"
     path = fdir / f"{name}.yaml"
-    if (forms_tree / f"{name}.yaml").exists():
+    if path.exists():
         click.echo(f"ERROR: Form '{name}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
@@ -223,7 +222,7 @@ def add(
         click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
         return
 
-    git = repo.git
+    git = getattr(repo, "git", None)
     if git is not None:
         yaml_bytes = yaml.dump(
             data, default_flow_style=False, sort_keys=False, allow_unicode=True
