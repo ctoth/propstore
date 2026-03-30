@@ -7,35 +7,48 @@ for parameterized concepts, answering: "which input most influences this output?
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.propagation import parse_cached
 
 
 @dataclass
 class SensitivityEntry:
-    input_concept_id: str
+    input_concept_id: ConceptId
     partial_derivative_expr: str  # symbolic string
     partial_derivative_value: float | None  # numerical at current inputs
     elasticity: float | None  # (df/dx * x/f) -- normalized sensitivity
 
+    def __post_init__(self) -> None:
+        self.input_concept_id = to_concept_id(self.input_concept_id)
+
 
 @dataclass
 class SensitivityResult:
-    concept_id: str
+    concept_id: ConceptId
     formula: str
     entries: list[SensitivityEntry] = field(default_factory=list)  # sorted by |elasticity| descending
-    input_values: dict[str, float] = field(default_factory=dict)
+    input_values: dict[ConceptId, float] = field(default_factory=dict)
     output_value: float | None = None
+
+    def __post_init__(self) -> None:
+        self.concept_id = to_concept_id(self.concept_id)
+        self.entries = list(self.entries)
+        self.input_values = {
+            to_concept_id(concept_id): float(value)
+            for concept_id, value in self.input_values.items()
+        }
 
 
 def analyze_sensitivity(
     world,
-    concept_id: str,
+    concept_id: ConceptId | str,
     bound,
     *,
-    override_values: dict[str, float] | None = None,
+    override_values: Mapping[str, float] | None = None,
 ) -> SensitivityResult | None:
     """Analyze which input most influences a derived quantity.
 
@@ -57,7 +70,8 @@ def analyze_sensitivity(
     """
     from sympy import Equality, Symbol, diff as sym_diff
 
-    params = world.parameterizations_for(concept_id)
+    typed_concept_id = to_concept_id(concept_id)
+    params = world.parameterizations_for(typed_concept_id)
     if not params:
         return None
 
@@ -76,13 +90,13 @@ def analyze_sensitivity(
         return None
 
     input_ids = json.loads(param["concept_ids"])
-    effective_inputs = [iid for iid in input_ids if iid != concept_id]
+    effective_inputs = [to_concept_id(iid) for iid in input_ids if iid != typed_concept_id]
 
     if not effective_inputs:
         return None
 
     # Parse the expression
-    all_names = set(effective_inputs) | {concept_id}
+    all_names = {str(input_id) for input_id in effective_inputs} | {str(typed_concept_id)}
     parsed, symbols = parse_cached(sympy_str, tuple(sorted(all_names)))
 
     # Handle Eq form: extract RHS
@@ -92,10 +106,10 @@ def analyze_sensitivity(
         expr = parsed
 
     # Resolve input values
-    input_values: dict[str, float] = {}
+    input_values: dict[ConceptId, float] = {}
     for iid in effective_inputs:
-        if override_values and iid in override_values:
-            input_values[iid] = override_values[iid]
+        if override_values and str(iid) in override_values:
+            input_values[iid] = override_values[str(iid)]
             continue
 
         # Try value_of
@@ -119,7 +133,11 @@ def analyze_sensitivity(
         return None
 
     # Compute output value
-    subs_pairs: Any = [(symbols[k], v) for k, v in input_values.items() if k in symbols]
+    subs_pairs: Any = [
+        (symbols[str(concept_id)], value)
+        for concept_id, value in input_values.items()
+        if str(concept_id) in symbols
+    ]
     try:
         result: Any = expr.subs(subs_pairs)
         output_value = float(result)
@@ -129,7 +147,7 @@ def analyze_sensitivity(
     # Compute partial derivatives and elasticities
     entries: list[SensitivityEntry] = []
     for iid in effective_inputs:
-        input_sym = symbols.get(iid, Symbol(iid))
+        input_sym = symbols.get(str(iid), Symbol(str(iid)))
         partial = sym_diff(expr, input_sym)
         partial_str = str(partial)
 
@@ -157,7 +175,7 @@ def analyze_sensitivity(
     entries.sort(key=lambda e: abs(e.elasticity) if e.elasticity is not None else -1, reverse=True)
 
     return SensitivityResult(
-        concept_id=concept_id,
+        concept_id=typed_concept_id,
         formula=param.get("formula", sympy_str),
         entries=entries,
         input_values=input_values,

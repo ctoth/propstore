@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.id_types import to_concept_id
 from propstore.world.labelled import compile_environment_assumptions
 
 if TYPE_CHECKING:
@@ -815,9 +816,9 @@ class WorldModel(ArtifactStore):
                 result = bound.value_of(target_concept_id)
 
         return ChainResult(
-            target_concept_id=target_concept_id,
+            target_concept_id=to_concept_id(target_concept_id),
             result=result,
             steps=steps,
             bindings_used=bindings,
-            unresolved_dependencies=unresolved_conflicted,
+            unresolved_dependencies=[to_concept_id(concept_id) for concept_id in unresolved_conflicted],
         )

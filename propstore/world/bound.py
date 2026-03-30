@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.activation import is_claim_mapping_active
 from propstore.core.environment import ArtifactStore
-from propstore.core.id_types import to_context_id
+from propstore.core.id_types import ConceptId, to_context_id
 from propstore.core.row_types import coerce_conflict_row, coerce_parameterization_row
 from propstore.world.labelled import (
     AssumptionRef,
@@ -281,7 +281,10 @@ class BoundWorld(BeliefSpace):
         active = self.active_claims(concept_id)
         return [c for c in active if c.get("type") == "algorithm"]
 
-    def collect_known_values(self, variable_concepts: list[str]) -> dict[str, Any]:
+    def collect_known_values(
+        self,
+        variable_concepts: Sequence[ConceptId | str],
+    ) -> dict[ConceptId, Any]:
         """Resolve numeric values for a list of concept IDs."""
         return collect_known_values(variable_concepts, self.value_of)
 
@@ -337,7 +340,7 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         *,
-        override_values: dict[str, float | str | None] | None = None,
+        override_values: Mapping[str, float | str | None] | None = None,
     ) -> DerivedResult:
         """Derive a value for concept_id via parameterization relationships."""
         result = self._resolver.derived_value(
@@ -818,7 +821,7 @@ class BoundWorld(BeliefSpace):
         self,
         result: DerivedResult,
         *,
-        override_values: dict[str, float | str | None] | None,
+        override_values: Mapping[str, float | str | None] | None,
     ) -> DerivedResult:
         if result.status != "derived":
             return result
@@ -887,7 +890,7 @@ class BoundWorld(BeliefSpace):
         self,
         concept_id: str,
         *,
-        override_values: dict[str, float | str | None] | None,
+        override_values: Mapping[str, float | str | None] | None,
         seen: set[str],
     ) -> Label | None:
         if override_values and concept_id in override_values:

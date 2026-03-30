@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, Mapping
 
 from propstore.core.environment import ArtifactStore, CompiledGraphStore, StanceStore
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
-from propstore.core.id_types import to_claim_id, to_claim_ids, to_concept_id
+from propstore.core.id_types import ConceptId, to_claim_id, to_claim_ids, to_concept_id
 from propstore.core.graph_types import (
     ClaimNode,
     CompiledWorldGraph,
@@ -366,7 +367,10 @@ class HypotheticalWorld(BeliefSpace):
     def inactive_claims(self, concept_id: str | None = None) -> list[dict]:
         return self._overlay.inactive_claims(concept_id)
 
-    def collect_known_values(self, variable_concepts: list[str]) -> dict:
+    def collect_known_values(
+        self,
+        variable_concepts: Sequence[ConceptId | str],
+    ) -> dict[ConceptId, Any]:
         return self._overlay.collect_known_values(variable_concepts)
 
     def value_of(self, concept_id: str) -> ValueResult:
@@ -376,7 +380,7 @@ class HypotheticalWorld(BeliefSpace):
         self,
         concept_id: str,
         *,
-        override_values: dict[str, float | str | None] | None = None,
+        override_values: Mapping[str, float | str | None] | None = None,
     ) -> DerivedResult:
         return self._overlay.derived_value(
             concept_id,

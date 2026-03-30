@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -62,21 +63,22 @@ def _parameterization_concept_ids(param: ParameterizationRow) -> tuple[ConceptId
 
 
 def collect_known_values(
-    variable_concepts: list[str],
-    value_of: Callable[[str], ValueResult],
-) -> dict[str, Any]:
+    variable_concepts: Sequence[ConceptId | str],
+    value_of: Callable[[ConceptId | str], ValueResult],
+) -> dict[ConceptId, Any]:
     """Resolve numeric values for a list of concept IDs.
 
     Shared implementation used by BoundWorld and HypotheticalWorld.
     """
-    known: dict[str, Any] = {}
+    known: dict[ConceptId, Any] = {}
     for cid in variable_concepts:
-        vr = value_of(cid)
+        normalized_cid = to_concept_id(cid)
+        vr = value_of(normalized_cid)
         if vr.status == "determined" and vr.claims:
             val = _claim_value(vr.claims[0])
             if val is not None:
                 try:
-                    known[cid] = float(val)
+                    known[normalized_cid] = float(val)
                 except (TypeError, ValueError):
                     pass
     return known
@@ -88,11 +90,11 @@ class ActiveClaimResolver:
     def __init__(
         self,
         *,
-        parameterizations_for: Callable[[str], list[ParameterizationRow]],
+        parameterizations_for: Callable[[ConceptId | str], list[ParameterizationRow]],
         is_param_compatible: Callable[[str | None], bool],
-        value_of: Callable[[str], ValueResult],
+        value_of: Callable[[ConceptId | str], ValueResult],
         extract_variable_concepts: Callable[[dict], list[str]],
-        collect_known_values: Callable[[list[str]], dict[str, Any]],
+        collect_known_values: Callable[[Sequence[ConceptId | str]], dict[ConceptId, Any]],
         extract_bindings: Callable[[dict], dict[str, str]],
     ) -> None:
         self._parameterizations_for = parameterizations_for
@@ -104,10 +106,10 @@ class ActiveClaimResolver:
 
     def derived_value(
         self,
-        concept_id: str,
+        concept_id: ConceptId | str,
         *,
-        override_values: dict[str, float | str | None] | None = None,
-        _derivation_stack: set[str] | None = None,
+        override_values: Mapping[str, float | str | None] | None = None,
+        _derivation_stack: set[ConceptId] | None = None,
     ) -> DerivedResult:
         from propstore.propagation import evaluate_parameterization
 
@@ -115,7 +117,7 @@ class ActiveClaimResolver:
         if _derivation_stack is None:
             _derivation_stack = set()
 
-        params = self._parameterizations_for(concept_id)
+        params = self._parameterizations_for(typed_concept_id)
         if not params:
             return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
@@ -129,7 +131,7 @@ class ActiveClaimResolver:
             saw_compatible_candidate = True
 
             candidate = self._derive_from_parameterization(
-                concept_id,
+                typed_concept_id,
                 param,
                 override_values=override_values,
                 derivation_stack=_derivation_stack,
@@ -150,7 +152,7 @@ class ActiveClaimResolver:
             return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.UNDERSPECIFIED)
         return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.UNDERSPECIFIED)
 
-    def value_of_from_active(self, active: list[dict], concept_id: str) -> ValueResult:
+    def value_of_from_active(self, active: list[dict], concept_id: ConceptId | str) -> ValueResult:
         typed_concept_id = to_concept_id(concept_id)
         if not active:
             return ValueResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
@@ -195,12 +197,15 @@ class ActiveClaimResolver:
                     claims=[claim.raw for claim in algo_claims],
                 )
 
-            all_var_concepts: set[str] = set()
+            all_var_concepts: set[ConceptId] = set()
             for claim in algo_claims:
-                all_var_concepts.update(self._extract_variable_concepts(claim.raw))
-            all_var_concepts.discard(concept_id)
+                all_var_concepts.update(
+                    to_concept_id(concept_id)
+                    for concept_id in self._extract_variable_concepts(claim.raw)
+                )
+            all_var_concepts.discard(typed_concept_id)
 
-            known_values = self._collect_known_values(list(all_var_concepts))
+            known_values = self._collect_known_values(tuple(all_var_concepts))
             if self._all_algorithms_equivalent(algo_claims, known_values):
                 return ValueResult(
                     concept_id=typed_concept_id,
@@ -223,22 +228,21 @@ class ActiveClaimResolver:
 
     def _derive_from_parameterization(
         self,
-        concept_id: str,
+        concept_id: ConceptId,
         param: ParameterizationRow,
         *,
-        override_values: dict[str, float | str | None] | None,
-        derivation_stack: set[str],
+        override_values: Mapping[str, float | str | None] | None,
+        derivation_stack: set[ConceptId],
     ) -> DerivedResult:
         from propstore.propagation import evaluate_parameterization
 
-        typed_concept_id = to_concept_id(concept_id)
         sympy_expr = param.sympy
         if not sympy_expr:
-            return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.UNDERSPECIFIED)
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
         effective_inputs = [iid for iid in _parameterization_concept_ids(param) if iid != concept_id]
 
-        input_values: dict[str, float] = {}
+        input_values: dict[ConceptId, float] = {}
         for input_id in effective_inputs:
             override_value = self._coerce_override_value(override_values, input_id)
             if override_value is not None:
@@ -249,15 +253,15 @@ class ActiveClaimResolver:
             if value_result.status == "determined":
                 value = _claim_value(value_result.claims[0]) if value_result.claims else None
                 if value is None:
-                    return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.UNDERSPECIFIED)
+                    return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
                 input_values[input_id] = float(value)
                 continue
 
             if value_result.status == "conflicted":
-                return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED)
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.CONFLICTED)
 
             if input_id in derivation_stack:
-                return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.UNDERSPECIFIED)
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
             derivation_stack.add(input_id)
             try:
@@ -273,15 +277,19 @@ class ActiveClaimResolver:
                 input_values[input_id] = float(derived.value)
                 continue
             if derived.status == "conflicted":
-                return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED)
-            return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.UNDERSPECIFIED)
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.CONFLICTED)
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
-        result = evaluate_parameterization(sympy_expr, input_values, concept_id)
+        result = evaluate_parameterization(
+            sympy_expr,
+            {str(input_id): value for input_id, value in input_values.items()},
+            concept_id,
+        )
         if result is None:
-            return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.UNDERSPECIFIED)
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
         return DerivedResult(
-            concept_id=typed_concept_id,
+            concept_id=concept_id,
             status=ValueStatus.DERIVED,
             value=result,
             formula=param.formula,
@@ -291,12 +299,13 @@ class ActiveClaimResolver:
 
     @staticmethod
     def _coerce_override_value(
-        override_values: dict[str, float | str | None] | None,
-        input_id: str,
+        override_values: Mapping[str, float | str | None] | None,
+        input_id: ConceptId,
     ) -> float | None:
-        if not override_values or input_id not in override_values:
+        override_key = str(input_id)
+        if not override_values or override_key not in override_values:
             return None
-        override_value = override_values[input_id]
+        override_value = override_values[override_key]
         if override_value is None:
             return None
         try:
@@ -327,7 +336,7 @@ class ActiveClaimResolver:
         if constant_body is None:
             return None
 
-        concept_ids = list(dict.fromkeys(bindings.values()))
+        concept_ids = [to_concept_id(concept_id) for concept_id in dict.fromkeys(bindings.values())]
         known_values = self._collect_known_values(concept_ids)
         if any(concept_id not in known_values for concept_id in concept_ids):
             return None
@@ -338,7 +347,7 @@ class ActiveClaimResolver:
                 bindings,
                 constant_body,
                 {},
-                known_values=known_values,
+                known_values={str(concept_id): value for concept_id, value in known_values.items()},
             )
         except (ValueError, SyntaxError) as exc:
             logging.warning(
@@ -353,7 +362,7 @@ class ActiveClaimResolver:
     def _all_algorithms_equivalent(
         self,
         algo_claims: list[_ActiveClaimView],
-        known_values: dict[str, Any],
+        known_values: Mapping[ConceptId, Any],
     ) -> bool:
         for i in range(len(algo_claims)):
             for j in range(i + 1, len(algo_claims)):
@@ -369,7 +378,11 @@ class ActiveClaimResolver:
                         bindings_a,
                         body_b,
                         bindings_b,
-                        known_values=known_values if known_values else None,
+                        known_values=(
+                            {str(concept_id): value for concept_id, value in known_values.items()}
+                            if known_values
+                            else None
+                        ),
                     )
                 except (ValueError, SyntaxError) as exc:
                     logging.warning("ast_compare failed in algorithm equivalence check: %s", exc)

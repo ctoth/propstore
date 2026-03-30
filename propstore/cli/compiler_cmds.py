@@ -2033,6 +2033,7 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
 
     Usage: pks world hypothetical domain=example --remove claim2
     """
+    from propstore.core.id_types import to_concept_id
     from propstore.world import HypotheticalWorld, SyntheticClaim, WorldModel
 
     repo: Repository = obj["repo"]
@@ -2047,7 +2048,7 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
             for d in data:
                 synthetics.append(SyntheticClaim(
                     id=d["id"],
-                    concept_id=d["concept_id"],
+                    concept_id=to_concept_id(d["concept_id"]),
                     type=d.get("type", "parameter"),
                     value=d.get("value"),
                     conditions=d.get("conditions", []),

@@ -14,6 +14,7 @@ from propstore.core.id_types import (
     ClaimId,
     ConceptId,
     QueryableId,
+    to_concept_id,
     to_queryable_id,
 )
 from propstore.core.labels import (
@@ -60,9 +61,16 @@ class DerivedResult:
     status: ValueStatus
     value: float | None = None
     formula: str | None = None
-    input_values: dict[str, float] = field(default_factory=dict)
+    input_values: dict[ConceptId, float] = field(default_factory=dict)
     exactness: str | None = None
     label: Label | None = None
+
+    def __post_init__(self) -> None:
+        self.concept_id = to_concept_id(self.concept_id)
+        self.input_values = {
+            to_concept_id(concept_id): float(value)
+            for concept_id, value in self.input_values.items()
+        }
 
 
 class ATMSNodeStatus(Enum):
@@ -685,10 +693,14 @@ class ICMergeResult:
 @dataclass
 class SyntheticClaim:
     id: str
-    concept_id: str
+    concept_id: ConceptId
     type: str = "parameter"
     value: float | str | None = None
     conditions: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.concept_id = to_concept_id(self.concept_id)
+        self.conditions = list(self.conditions)
 
 
 @dataclass
@@ -700,11 +712,20 @@ class ChainStep:
 
 @dataclass
 class ChainResult:
-    target_concept_id: str
+    target_concept_id: ConceptId
     result: ValueResult | DerivedResult
     steps: list[ChainStep] = field(default_factory=list)
     bindings_used: dict[str, Any] = field(default_factory=dict)
-    unresolved_dependencies: list[str] = field(default_factory=list)
+    unresolved_dependencies: list[ConceptId] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.target_concept_id = to_concept_id(self.target_concept_id)
+        self.steps = list(self.steps)
+        self.bindings_used = dict(self.bindings_used)
+        self.unresolved_dependencies = [
+            to_concept_id(concept_id)
+            for concept_id in self.unresolved_dependencies
+        ]
 
 
 @dataclass(frozen=True)
@@ -1024,7 +1045,7 @@ class BeliefSpace(Protocol):
         self,
         concept_id: str,
         *,
-        override_values: dict[str, float | str | None] | None = None,
+        override_values: Mapping[str, float | str | None] | None = None,
     ) -> DerivedResult: ...
     def resolved_value(self, concept_id: str) -> ResolvedResult: ...
     def is_determined(self, concept_id: str) -> bool: ...
