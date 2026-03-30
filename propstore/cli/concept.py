@@ -13,13 +13,8 @@ import yaml
 from propstore.cli.helpers import (
     EXIT_ERROR,
     EXIT_VALIDATION,
-    CounterLock,
-    find_concept,
-    load_concept_file,
-    write_concept_file,
-    write_yaml_file,
 )
-from propstore.knowledge_path import FilesystemKnowledgePath, KnowledgePath
+from propstore.knowledge_path import KnowledgePath
 from propstore.cli.repository import Repository
 from propstore.loaded import LoadedEntry
 from propstore.validate import load_concepts, validate_concepts
@@ -117,10 +112,14 @@ def _rewrite_claim_conditions(claim_file_data: dict, old_name: str, new_name: st
     return changed
 
 
-def _require_local_source_path(source_path: KnowledgePath | None, *, label: str) -> Path:
-    if not isinstance(source_path, FilesystemKnowledgePath):
-        raise click.ClickException(f"{label} is not available on the local filesystem")
-    return source_path.concrete_path()
+def _require_git(repo: Repository):
+    if repo.git is None:
+        raise click.ClickException("concept mutations require a git-backed repository")
+    return repo.git
+
+
+def _concepts_tree(repo: Repository) -> KnowledgePath:
+    return repo.tree() / "concepts"
 
 
 def _require_repo_relative_source_path(source_path: KnowledgePath | None, *, label: str) -> str:
@@ -139,6 +138,20 @@ def _require_repo_tree_path(
     label: str,
 ) -> Path:
     return repo.root / Path(_require_repo_relative_source_path(source_path, label=label))
+
+
+def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedEntry | None:
+    concepts = load_concepts(_concepts_tree(repo))
+    direct = _concepts_tree(repo) / f"{id_or_name}.yaml"
+    if direct.exists():
+        direct_rel = direct.as_posix()
+        for concept in concepts:
+            if concept.source_path is not None and concept.source_path.as_posix() == direct_rel:
+                return concept
+    for concept in concepts:
+        if concept.data.get("id") == id_or_name:
+            return concept
+    return None
 
 
 # ── concept add ──────────────────────────────────────────────────────
@@ -163,91 +176,73 @@ def add(
 ) -> None:
     """Add a new concept to the registry."""
     repo: Repository = obj["repo"]
+    git = _require_git(repo)
     # Prompt for missing fields
     if definition is None:
         definition = click.prompt("Definition")
     if form_name is None:
         # List available forms
-        forms = repo.collection("forms")
-        if forms:
+        forms = repo.tree() / "forms"
+        if forms.exists():
             available = sorted(f.stem for f in forms.iterdir() if f.suffix == ".yaml")
             click.echo(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")
 
-    filepath = repo.concepts_dir / f"{name}.yaml"
-    if filepath.exists():
+    filepath = repo.root / "concepts" / f"{name}.yaml"
+    semantic_path = _concepts_tree(repo) / f"{name}.yaml"
+    if semantic_path.exists():
         click.echo(f"ERROR: Concept file '{filepath}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
-    git = repo.git
-    counter_lock: CounterLock | None = None
-    if git is not None:
-        next_counter = git.next_concept_id()
-    else:
-        counter_lock = CounterLock(repo.counters_dir)
-        counter_lock.__enter__()
-        next_counter = counter_lock.value
+    cid = f"concept{git.next_concept_id()}"
 
-    try:
-        cid = f"concept{next_counter}"
+    data = {
+        "id": cid,
+        "canonical_name": name,
+        "status": "proposed",
+        "definition": definition,
+        "domain": domain,
+        "created_date": str(date.today()),
+        "form": form_name,
+    }
 
-        data = {
-            "id": cid,
-            "canonical_name": name,
-            "status": "proposed",
-            "definition": definition,
-            "domain": domain,
-            "created_date": str(date.today()),
-            "form": form_name,
-        }
-
-        # Category concepts require --values
-        if form_name == "category":
-            if values is None:
-                click.echo("ERROR: --values is required when --form=category", err=True)
-                sys.exit(EXIT_ERROR)
-            value_list = [v.strip() for v in values.split(",") if v.strip()]
-            if not value_list:
-                click.echo("ERROR: --values must contain at least one value", err=True)
-                sys.exit(EXIT_ERROR)
-            data["form_parameters"] = {"values": value_list}
-        elif values is not None:
-            click.echo("ERROR: --values is only valid with --form=category", err=True)
+    # Category concepts require --values
+    if form_name == "category":
+        if values is None:
+            click.echo("ERROR: --values is required when --form=category", err=True)
             sys.exit(EXIT_ERROR)
+        value_list = [v.strip() for v in values.split(",") if v.strip()]
+        if not value_list:
+            click.echo("ERROR: --values must contain at least one value", err=True)
+            sys.exit(EXIT_ERROR)
+        data["form_parameters"] = {"values": value_list}
+    elif values is not None:
+        click.echo("ERROR: --values is only valid with --form=category", err=True)
+        sys.exit(EXIT_ERROR)
 
-        if dry_run:
-            click.echo(f"Would create {filepath}")
-            click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
-            return
+    if dry_run:
+        click.echo(f"Would create {filepath}")
+        click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
+        return
 
-        repo.concepts_dir.mkdir(parents=True, exist_ok=True)
-        concepts = load_concepts(repo.tree() / "concepts")
-        concepts.append(LoadedEntry(filename=name, source_path=filepath, data=data))
+    concepts = load_concepts(_concepts_tree(repo))
+    concepts.append(LoadedEntry(filename=name, source_path=semantic_path, data=data))
 
-        result = validate_concepts(concepts, repo=repo)
-        if not result.ok:
-            for e in result.errors:
-                click.echo(f"ERROR: {e}", err=True)
-            click.echo("Validation failed. No changes written.", err=True)
-            sys.exit(EXIT_VALIDATION)
+    result = validate_concepts(concepts, repo=repo)
+    if not result.ok:
+        for e in result.errors:
+            click.echo(f"ERROR: {e}", err=True)
+        click.echo("Validation failed. No changes written.", err=True)
+        sys.exit(EXIT_VALIDATION)
 
-        for w in result.warnings:
-            click.echo(f"WARNING: {w}", err=True)
+    for w in result.warnings:
+        click.echo(f"WARNING: {w}", err=True)
 
-        if git is not None:
-            yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-            rel_path = f"concepts/{name}.yaml"
-            git.commit_files({rel_path: yaml_bytes}, f"Add concept: {name} ({cid})")
-            git.sync_worktree()
-        else:
-            write_concept_file(filepath, data)
-            if counter_lock is None:
-                raise click.ClickException("counter lock was not initialized")
-            counter_lock.commit()
-        click.echo(f"Created {filepath} with ID {cid}")
-    finally:
-        if counter_lock is not None:
-            counter_lock.__exit__(None, None, None)
+    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+    rel_path = f"concepts/{name}.yaml"
+    git.commit_files({rel_path: yaml_bytes}, f"Add concept: {name} ({cid})")
+    git.sync_worktree()
+    click.echo(f"Created {filepath} with ID {cid}")
 
 
 # ── concept alias ────────────────────────────────────────────────────
@@ -262,22 +257,24 @@ def add(
 def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, dry_run: bool) -> None:
     """Add an alias to a concept."""
     repo: Repository = obj["repo"]
-    filepath = find_concept(concept_id, repo.concepts_dir)
-    if filepath is None:
+    git = _require_git(repo)
+    concept_entry = _find_concept_entry(repo, concept_id)
+    if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
-    data = load_concept_file(filepath)
+    filepath = _require_repo_tree_path(concept_entry.source_path, repo, label=f"concept '{concept_entry.filename}'")
+    data = deepcopy(concept_entry.data)
 
     # Warn if alias matches another concept's canonical_name
-    cdir = repo.concepts_dir
-    for entry in sorted(cdir.iterdir()):
-        if entry.is_file() and entry.suffix == ".yaml" and entry != filepath:
-            other = load_concept_file(entry)
-            if other.get("canonical_name") == name:
-                click.echo(
-                    f"WARNING: alias '{name}' matches canonical_name of "
-                    f"concept '{other.get('id')}'", err=True)
+    for other_entry in load_concepts(_concepts_tree(repo)):
+        if other_entry.source_path is not None and concept_entry.source_path is not None:
+            if other_entry.source_path.as_posix() == concept_entry.source_path.as_posix():
+                continue
+        if other_entry.data.get("canonical_name") == name:
+            click.echo(
+                f"WARNING: alias '{name}' matches canonical_name of "
+                f"concept '{other_entry.data.get('id')}'", err=True)
 
     new_alias: dict[str, str] = {"name": name, "source": source}
     if note:
@@ -292,14 +289,13 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
     data["aliases"] = aliases
     data["last_modified"] = str(date.today())
 
-    git = repo.git
-    if git is not None:
-        yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-        rel_path = filepath.relative_to(repo.root).as_posix()
-        git.commit_files({rel_path: yaml_bytes}, f"Add alias '{name}' to {data.get('id')}")
-        git.sync_worktree()
-    else:
-        write_concept_file(filepath, data)
+    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+    rel_path = _require_repo_relative_source_path(
+        concept_entry.source_path,
+        label=f"concept '{concept_entry.filename}'",
+    )
+    git.commit_files({rel_path: yaml_bytes}, f"Add alias '{name}' to {data.get('id')}")
+    git.sync_worktree()
 
     click.echo(f"Added alias '{name}' to {data.get('id')} ({filepath.stem})")
 
@@ -314,18 +310,25 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
 def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     """Rename a concept (updates canonical_name and filename)."""
     repo: Repository = obj["repo"]
-    filepath = find_concept(concept_id, repo.concepts_dir)
-    if filepath is None:
+    git = _require_git(repo)
+    concept_entry = _find_concept_entry(repo, concept_id)
+    if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
-    data = load_concept_file(filepath)
+    filepath = _require_repo_tree_path(
+        concept_entry.source_path,
+        repo,
+        label=f"concept '{concept_entry.filename}'",
+    )
+    data = deepcopy(concept_entry.data)
     old_name = data.get("canonical_name", filepath.stem)
     new_path = filepath.parent / f"{name}.yaml"
+    new_semantic_path = _concepts_tree(repo) / f"{name}.yaml"
     if old_name == name:
         click.echo(f"No change: concept already named '{name}'")
         return
-    if new_path.exists():
+    if new_semantic_path.exists():
         click.echo(f"ERROR: Concept file '{new_path}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
@@ -405,66 +408,43 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             click.echo("Rename validation failed. No changes written.", err=True)
             sys.exit(EXIT_VALIDATION)
 
-    git = repo.git
-    if git is not None:
-        # Collect all changed files for atomic commit
-        adds: dict[str | Path, bytes] = {}
-        for concept_record in updated_concepts:
-            target_rel = _require_repo_relative_source_path(
-                concept_record.source_path,
-                label=f"concept '{concept_record.filename}'",
-            )
-            target_path = repo.root / Path(target_rel)
-            if target_path == new_path or target_path in changed_concept_paths:
-                yaml_bytes = yaml.dump(
-                    concept_record.data, default_flow_style=False,
-                    sort_keys=False, allow_unicode=True,
-                ).encode("utf-8")
-                adds[target_rel] = yaml_bytes
-
-        for claim_file in updated_claim_files:
-            claim_rel = _require_repo_relative_source_path(
-                claim_file.source_path,
-                label=f"claim file '{claim_file.filename}'",
-            )
-            claim_path = repo.root / Path(claim_rel)
-            if claim_path in changed_claim_paths:
-                yaml_bytes = yaml.dump(
-                    claim_file.data, default_flow_style=False,
-                    sort_keys=False, allow_unicode=True,
-                ).encode("utf-8")
-                adds[claim_rel] = yaml_bytes
-
-        old_rel = filepath.relative_to(repo.root).as_posix()
-        git.commit_batch(
-            adds=adds,
-            deletes=[old_rel],
-            message=f"Rename concept: {old_name} -> {name}",
+    adds: dict[str | Path, bytes] = {}
+    for concept_record in updated_concepts:
+        target_rel = _require_repo_relative_source_path(
+            concept_record.source_path,
+            label=f"concept '{concept_record.filename}'",
         )
-        git.sync_worktree()
-    else:
-        # Write the renamed concept to the new path first, then remove old
-        for concept_record in updated_concepts:
-            target_path = _require_repo_tree_path(
-                concept_record.source_path,
-                repo,
-                label=f"concept '{concept_record.filename}'",
-            )
-            if target_path == new_path:
-                write_concept_file(new_path, concept_record.data)
-            elif target_path in changed_concept_paths:
-                write_concept_file(target_path, concept_record.data)
+        target_path = repo.root / Path(target_rel)
+        if target_path == new_path or target_path in changed_concept_paths:
+            yaml_bytes = yaml.dump(
+                concept_record.data, default_flow_style=False,
+                sort_keys=False, allow_unicode=True,
+            ).encode("utf-8")
+            adds[target_rel] = yaml_bytes
 
-        for claim_file in updated_claim_files:
-            claim_path = _require_repo_tree_path(
-                claim_file.source_path,
-                repo,
-                label=f"claim file '{claim_file.filename}'",
-            )
-            if claim_path in changed_claim_paths:
-                write_yaml_file(claim_path, claim_file.data)
+    for claim_file in updated_claim_files:
+        claim_rel = _require_repo_relative_source_path(
+            claim_file.source_path,
+            label=f"claim file '{claim_file.filename}'",
+        )
+        claim_path = repo.root / Path(claim_rel)
+        if claim_path in changed_claim_paths:
+            yaml_bytes = yaml.dump(
+                claim_file.data, default_flow_style=False,
+                sort_keys=False, allow_unicode=True,
+            ).encode("utf-8")
+            adds[claim_rel] = yaml_bytes
 
-        filepath.unlink(missing_ok=True)
+    old_rel = _require_repo_relative_source_path(
+        concept_entry.source_path,
+        label=f"concept '{concept_entry.filename}'",
+    )
+    git.commit_batch(
+        adds=adds,
+        deletes=[old_rel],
+        message=f"Rename concept: {old_name} -> {name}",
+    )
+    git.sync_worktree()
 
     click.echo(f"{old_name} -> {name}")
     click.echo(f"  {filepath} -> {new_path}")
@@ -481,23 +461,29 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
 def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> None:
     """Deprecate a concept with a replacement."""
     repo: Repository = obj["repo"]
-    filepath = find_concept(concept_id, repo.concepts_dir)
-    if filepath is None:
+    git = _require_git(repo)
+    concept_entry = _find_concept_entry(repo, concept_id)
+    if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
+    filepath = _require_repo_tree_path(
+        concept_entry.source_path,
+        repo,
+        label=f"concept '{concept_entry.filename}'",
+    )
 
     # Validate replacement target
-    replacement_path = find_concept(replaced_by, repo.concepts_dir)
-    if replacement_path is None:
+    replacement_entry = _find_concept_entry(repo, replaced_by)
+    if replacement_entry is None:
         click.echo(f"ERROR: Replacement concept '{replaced_by}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
-    replacement_data = load_concept_file(replacement_path)
+    replacement_data = replacement_entry.data
     if replacement_data.get("status") == "deprecated":
         click.echo(f"ERROR: Replacement concept '{replaced_by}' is itself deprecated", err=True)
         sys.exit(EXIT_ERROR)
 
-    data = load_concept_file(filepath)
+    data = deepcopy(concept_entry.data)
 
     if dry_run:
         click.echo(f"Would deprecate {data.get('id')} ({filepath.stem})")
@@ -508,14 +494,13 @@ def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> No
     data["replaced_by"] = replaced_by
     data["last_modified"] = str(date.today())
 
-    git = repo.git
-    if git is not None:
-        yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-        rel_path = filepath.relative_to(repo.root).as_posix()
-        git.commit_files({rel_path: yaml_bytes}, f"Deprecate {data.get('id')}, replaced by {replaced_by}")
-        git.sync_worktree()
-    else:
-        write_concept_file(filepath, data)
+    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+    rel_path = _require_repo_relative_source_path(
+        concept_entry.source_path,
+        label=f"concept '{concept_entry.filename}'",
+    )
+    git.commit_files({rel_path: yaml_bytes}, f"Deprecate {data.get('id')}, replaced by {replaced_by}")
+    git.sync_worktree()
 
     click.echo(f"Deprecated {data.get('id')} ({filepath.stem}), replaced by {replaced_by}")
 
@@ -543,16 +528,22 @@ def link(
 ) -> None:
     """Add a relationship between concepts."""
     repo: Repository = obj["repo"]
-    filepath = find_concept(source_id, repo.concepts_dir)
-    if filepath is None:
+    git = _require_git(repo)
+    concept_entry = _find_concept_entry(repo, source_id)
+    if concept_entry is None:
         click.echo(f"ERROR: Source concept '{source_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
+    filepath = _require_repo_tree_path(
+        concept_entry.source_path,
+        repo,
+        label=f"concept '{concept_entry.filename}'",
+    )
 
-    if find_concept(target_id, repo.concepts_dir) is None:
+    if _find_concept_entry(repo, target_id) is None:
         click.echo(f"ERROR: Target concept '{target_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
-    data = load_concept_file(filepath)
+    data = deepcopy(concept_entry.data)
 
     rel: dict[str, object] = {"type": rel_type, "target": target_id}
     if paper_source:
@@ -574,14 +565,15 @@ def link(
     concepts = load_concepts(repo.tree() / "concepts")
     updated_concepts = []
     for concept_record in concepts:
-        concept_path = _require_local_source_path(
+        concept_path = _require_repo_tree_path(
             concept_record.source_path,
+            repo,
             label=f"concept '{concept_record.filename}'",
         )
         updated_concepts.append(
             LoadedEntry(
                 filename=concept_record.filename,
-                source_path=concept_path,
+                source_path=concept_record.source_path,
                 data=data if concept_path == filepath else concept_record.data,
             )
         )
@@ -599,14 +591,13 @@ def link(
     for w in validation.warnings:
         click.echo(f"WARNING: {w}", err=True)
 
-    git = repo.git
-    if git is not None:
-        yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-        rel_path = filepath.relative_to(repo.root).as_posix()
-        git.commit_files({rel_path: yaml_bytes}, f"Link {source_id} {rel_type} {target_id}")
-        git.sync_worktree()
-    else:
-        write_concept_file(filepath, data)
+    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+    rel_path = _require_repo_relative_source_path(
+        concept_entry.source_path,
+        label=f"concept '{concept_entry.filename}'",
+    )
+    git.commit_files({rel_path: yaml_bytes}, f"Link {source_id} {rel_type} {target_id}")
+    git.sync_worktree()
 
     click.echo(f"Added {rel_type} -> {target_id} on {data.get('id')} ({filepath.stem})")
 
@@ -640,16 +631,14 @@ def search(obj: dict, query: str) -> None:
 
     # Fallback: grep over YAML files
     query_lower = query.lower()
-    cdir = repo.concepts_dir
-    if not cdir.exists():
+    concepts_tree = _concepts_tree(repo)
+    if not concepts_tree.exists():
         click.echo("No concepts directory found.")
         return
 
     found = False
-    for entry in sorted(cdir.iterdir()):
-        if not entry.is_file() or entry.suffix != ".yaml":
-            continue
-        data = load_concept_file(entry)
+    for entry in load_concepts(concepts_tree):
+        data = entry.data
         searchable = " ".join([
             data.get("canonical_name", ""),
             data.get("definition", ""),
@@ -673,12 +662,12 @@ def search(obj: dict, query: str) -> None:
 def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
     """List concepts, optionally filtered."""
     repo: Repository = obj["repo"]
-    cdir = repo.concepts_dir
-    if not cdir.exists():
+    concepts_tree = _concepts_tree(repo)
+    if not concepts_tree.exists():
         click.echo("No concepts directory found.")
         return
 
-    concepts = load_concepts(repo.tree() / "concepts")
+    concepts = load_concepts(concepts_tree)
     for c in concepts:
         d = c.data
         c_domain = d.get("domain", "")
@@ -702,12 +691,18 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
 def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
     """Add a value to a category concept's value set."""
     repo: Repository = obj["repo"]
-    filepath = find_concept(concept_name, repo.concepts_dir)
-    if filepath is None:
+    git = _require_git(repo)
+    concept_entry = _find_concept_entry(repo, concept_name)
+    if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_name}' not found", err=True)
         sys.exit(EXIT_ERROR)
+    filepath = _require_repo_tree_path(
+        concept_entry.source_path,
+        repo,
+        label=f"concept '{concept_entry.filename}'",
+    )
 
-    data = load_concept_file(filepath)
+    data = deepcopy(concept_entry.data)
 
     if data.get("form") != "category":
         click.echo(f"ERROR: '{concept_name}' is not a category concept (form={data.get('form')})", err=True)
@@ -732,14 +727,13 @@ def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
     fp["values"] = values
     data["form_parameters"] = fp
 
-    git = repo.git
-    if git is not None:
-        yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-        rel_path = filepath.relative_to(repo.root).as_posix()
-        git.commit_files({rel_path: yaml_bytes}, f"Add value '{value}' to {concept_name}")
-        git.sync_worktree()
-    else:
-        write_concept_file(filepath, data)
+    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+    rel_path = _require_repo_relative_source_path(
+        concept_entry.source_path,
+        label=f"concept '{concept_entry.filename}'",
+    )
+    git.commit_files({rel_path: yaml_bytes}, f"Add value '{value}' to {concept_name}")
+    git.sync_worktree()
     click.echo(f"Added '{value}' to {concept_name} — values: {', '.join(values)}")
 
 
@@ -788,12 +782,19 @@ def categories(obj: dict, as_json: bool) -> None:
 def show(obj: dict, concept_id_or_name: str) -> None:
     """Show full concept YAML."""
     repo: Repository = obj["repo"]
-    filepath = find_concept(concept_id_or_name, repo.concepts_dir)
-    if filepath is None:
+    concept_entry = _find_concept_entry(repo, concept_id_or_name)
+    if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id_or_name}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
-    click.echo(filepath.read_text())
+    click.echo(
+        yaml.dump(
+            concept_entry.data,
+            default_flow_style=False,
+            sort_keys=False,
+            allow_unicode=True,
+        ).rstrip()
+    )
 
 
 # ── concept embed ────────────────────────────────────────────────────

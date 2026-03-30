@@ -14,7 +14,7 @@ import pint
 import yaml
 
 from propstore.cel_checker import KindType
-from propstore.knowledge_path import KnowledgePath
+from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.resources import load_resource_json
 
 # Module-level unit registry for pint conversions
@@ -167,35 +167,18 @@ def parse_form(form_name: str, data: object) -> FormDefinition | None:
     )
 
 
-def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
+def load_form(forms_dir: Path | KnowledgePath, form_name: str | None) -> FormDefinition | None:
     """Load a single form definition and return a FormDefinition, or None.
 
-    Results are cached by (forms_dir, form_name) to avoid redundant disk reads.
+    Results are cached by (forms_dir, form_name) to avoid redundant reads.
     """
     if not isinstance(form_name, str) or not form_name:
         return None
+    forms_root = coerce_knowledge_path(forms_dir)
     cache_key = (_path_cache_key(forms_dir), form_name)
     if cache_key in _form_cache:
         return _form_cache[cache_key]
-    form_path = forms_dir / f"{form_name}.yaml"
-    if not form_path.exists():
-        _form_cache[cache_key] = None
-        return None
-    with open(form_path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    result = parse_form(form_name, data)
-    _form_cache[cache_key] = result
-    return result
-
-
-def load_form_path(forms_dir: KnowledgePath, form_name: str | None) -> FormDefinition | None:
-    """Load a single form definition from a knowledge-tree path."""
-    if not isinstance(form_name, str) or not form_name:
-        return None
-    cache_key = (_path_cache_key(forms_dir), form_name)
-    if cache_key in _form_cache:
-        return _form_cache[cache_key]
-    form_path = forms_dir / f"{form_name}.yaml"
+    form_path = forms_root / f"{form_name}.yaml"
     if not form_path.exists():
         _form_cache[cache_key] = None
         return None
@@ -203,6 +186,11 @@ def load_form_path(forms_dir: KnowledgePath, form_name: str | None) -> FormDefin
     result = parse_form(form_name, data)
     _form_cache[cache_key] = result
     return result
+
+
+def load_form_path(forms_dir: KnowledgePath, form_name: str | None) -> FormDefinition | None:
+    """Load a single form definition from a knowledge-tree path."""
+    return load_form(forms_dir, form_name)
 
 
 def normalize_to_si(value: float, unit: str | None, form: FormDefinition) -> float:
@@ -381,15 +369,14 @@ def kind_value_from_form_name(form: str | None) -> str:
     return kind.value
 
 
-def load_form_definition(forms_dir: Path, form_name: str | None) -> dict[str, Any]:
+def load_form_definition(forms_dir: Path | KnowledgePath, form_name: str | None) -> dict[str, Any]:
     """Load a form definition YAML file if present."""
     if not isinstance(form_name, str) or not form_name:
         return {}
-    form_path = forms_dir / f"{form_name}.yaml"
+    form_path = coerce_knowledge_path(forms_dir) / f"{form_name}.yaml"
     if not form_path.exists():
         return {}
-    with open(form_path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+    data = yaml.safe_load(form_path.read_bytes())
     return data if isinstance(data, dict) else {}
 
 

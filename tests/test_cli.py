@@ -13,6 +13,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.cli.repository import Repository
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -60,6 +61,16 @@ def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
     return path
 
 
+def _commit_workspace_paths(workspace: Path, relpaths: list[str], message: str = "Sync test changes") -> None:
+    repo = Repository.find(workspace / "knowledge")
+    adds = {
+        relpath: (workspace / "knowledge" / Path(relpath)).read_bytes()
+        for relpath in relpaths
+    }
+    repo.git.commit_files(adds, message)
+    repo.git.sync_worktree()
+
+
 
 @pytest.fixture()
 def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
@@ -67,13 +78,12 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.chdir(tmp_path)
 
     knowledge = tmp_path / "knowledge"
-    concepts = knowledge / "concepts"
-    concepts.mkdir(parents=True)
+    repo = Repository.init(knowledge)
 
     # Create form definition files
     forms_dir = knowledge / "forms"
-    forms_dir.mkdir()
     _dimensionless_forms = {"duration_ratio", "amplitude_ratio", "level", "dimensionless_compound"}
+    adds: dict[str, bytes] = {}
     for form_name in ("frequency", "category", "boolean", "structural",
                       "duration_ratio", "pressure", "level", "time",
                       "flow", "flow_derivative", "amplitude_ratio",
@@ -85,23 +95,31 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
                 "values": {"required": True, "note": "List of allowed category values"},
                 "extensible": {"required": False, "note": "Whether new values can be added (default true)"},
             }
-        (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump(form_data, default_flow_style=False))
+        adds[f"forms/{form_name}.yaml"] = yaml.dump(form_data, default_flow_style=False).encode("utf-8")
 
     # Write two concepts
-    _write_concept(concepts, "fundamental_frequency", _make_concept(
-        "fundamental_frequency", "concept1", "speech",
-        form="frequency",
-        range=[50, 1000],
-        aliases=[{"name": "F0", "source": "common"}],
-    ))
-    _write_concept(concepts, "task", _make_concept(
-        "task", "concept2", "speech",
-        form="category",
-        form_parameters={"values": ["speech", "singing"], "extensible": True},
-    ))
-
-    _write_counter(concepts, "speech", 3)
+    adds["concepts/fundamental_frequency.yaml"] = yaml.dump(
+        _make_concept(
+            "fundamental_frequency", "concept1", "speech",
+            form="frequency",
+            range=[50, 1000],
+            aliases=[{"name": "F0", "source": "common"}],
+        ),
+        default_flow_style=False,
+        sort_keys=False,
+    ).encode("utf-8")
+    adds["concepts/task.yaml"] = yaml.dump(
+        _make_concept(
+            "task", "concept2", "speech",
+            form="category",
+            form_parameters={"values": ["speech", "singing"], "extensible": True},
+        ),
+        default_flow_style=False,
+        sort_keys=False,
+    ).encode("utf-8")
+    adds["concepts/.counters/global.next"] = b"3\n"
+    repo.git.commit_files(adds, "Seed test workspace")
+    repo.git.sync_worktree()
 
     # Copy schema if it exists (for JSON Schema validation)
     schema_src = Path(__file__).parent.parent / "schema" / "generated" / "concept_registry.schema.json"
@@ -144,6 +162,11 @@ def freq_workspace(workspace: Path) -> Path:
             }
         ],
     })
+    _commit_workspace_paths(
+        workspace,
+        ["forms/frequency.yaml", "claims/freq_paper.yaml"],
+        "Seed committed frequency workspace",
+    )
 
     runner = CliRunner()
     sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
@@ -228,14 +251,16 @@ class TestConceptAdd:
             "--domain", "speech", "--name", "c1",
             "--definition", "d1", "--form", "boolean",
         ])
-        assert _read_counter(workspace / "knowledge" / "concepts", "speech") == 4
+        c1_data = yaml.safe_load((workspace / "knowledge" / "concepts" / "c1.yaml").read_text())
+        assert c1_data["id"] == "concept3"
 
         runner.invoke(cli, [
             "concept", "add",
             "--domain", "speech", "--name", "c2",
             "--definition", "d2", "--form", "boolean",
         ])
-        assert _read_counter(workspace / "knowledge" / "concepts", "speech") == 5
+        c2_data = yaml.safe_load((workspace / "knowledge" / "concepts" / "c2.yaml").read_text())
+        assert c2_data["id"] == "concept4"
 
     def test_dry_run_does_not_write(self, workspace: Path) -> None:
         runner = CliRunner()
@@ -319,6 +344,7 @@ class TestConceptRename:
             {"type": "related", "target": "concept2", "conditions": ["task == 'speech'"]}
         ]
         concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
+        _commit_workspace_paths(workspace, ["concepts/fundamental_frequency.yaml"], "Seed concept relationship edit")
 
         claims_dir = workspace / "knowledge" / "claims"
         _write_claim_file(
@@ -339,6 +365,7 @@ class TestConceptRename:
                 ],
             },
         )
+        _commit_workspace_paths(workspace, ["claims/paper.yaml"], "Seed claim conditions edit")
 
         runner = CliRunner()
         result = runner.invoke(cli, [
@@ -388,6 +415,7 @@ class TestConceptDeprecate:
         data["replaced_by"] = "concept1"
         with open(workspace / "knowledge" / "concepts" / "task.yaml", "w") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+        _commit_workspace_paths(workspace, ["concepts/task.yaml"], "Seed deprecated replacement")
 
         runner = CliRunner()
         result = runner.invoke(cli, [
@@ -486,6 +514,7 @@ class TestValidate:
             "definition": "dup",
             "form": "frequency",
         }))
+        _commit_workspace_paths(workspace, ["concepts/broken.yaml"], "Seed invalid concept for validate")
         runner = CliRunner()
         result = runner.invoke(cli, ["validate"])
         assert result.exit_code != 0
@@ -558,6 +587,7 @@ class TestBuild:
             "definition": "dup",
             "form": "frequency",
         }))
+        _commit_workspace_paths(workspace, ["concepts/broken.yaml"], "Seed invalid duplicate concept")
         runner = CliRunner()
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
         result = runner.invoke(cli, ["build", "-o", str(sidecar)])
@@ -842,6 +872,7 @@ class TestBuildExtended:
                 }
             ],
         })
+        _commit_workspace_paths(workspace, ["claims/paper.yaml"], "Seed committed claim file")
 
         runner = CliRunner()
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
@@ -1293,6 +1324,7 @@ class TestConceptAddValue:
             workspace / "knowledge" / "concepts", "fixed_cat",
             _make_concept("fixed_cat", "concept99", "test", form="category",
                           form_parameters={"values": ["a", "b"], "extensible": False}))
+        _commit_workspace_paths(workspace, ["concepts/fixed_cat.yaml"], "Seed non-extensible category")
 
         runner = CliRunner()
         result = runner.invoke(cli, [
@@ -1482,6 +1514,11 @@ class TestFormShowConversions:
         forms_dir = workspace / "knowledge" / "forms"
         (forms_dir / f"{name}.yaml").write_text(
             yaml.dump(data, default_flow_style=False, sort_keys=False))
+        _commit_workspace_paths(
+            workspace,
+            [f"forms/{name}.yaml"],
+            f"Seed committed form {name}",
+        )
 
     def test_form_show_displays_conversions(self, workspace: Path) -> None:
         self._write_form_with_conversions(workspace, "frequency", {

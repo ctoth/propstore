@@ -39,7 +39,7 @@ from propstore.form_utils import (
     FormDefinition,
     allowed_units_from_form_definition,
     json_safe,
-    load_form,
+    load_form_path,
     load_form_definition,
 )
 from propstore.stances import VALID_STANCE_TYPES
@@ -699,8 +699,8 @@ def _validate_algorithm(
 
 
 def build_concept_registry_from_paths(
-    concepts_dir: Path,
-    forms_dir: Path,
+    concepts_dir: Path | KnowledgePath,
+    forms_dir: Path | KnowledgePath,
 ) -> dict[str, dict]:
     """Load concepts and build a registry keyed by ID, canonical_name, and aliases.
 
@@ -708,7 +708,9 @@ def build_concept_registry_from_paths(
     All keys point to the same enriched concept data dict.
     """
     from propstore.validate import load_concepts
-    concepts = load_concepts(coerce_knowledge_path(concepts_dir))
+    concepts_root = coerce_knowledge_path(concepts_dir)
+    forms_root = coerce_knowledge_path(forms_dir)
+    concepts = load_concepts(concepts_root)
     registry: dict[str, dict] = {}
     for concept in concepts:
         cid = concept.data.get("id")
@@ -716,14 +718,14 @@ def build_concept_registry_from_paths(
             continue
         enriched = dict(concept.data)
         # Load structured form definition
-        form_def = load_form(forms_dir, enriched.get("form"))
+        form_def = load_form_path(forms_root, enriched.get("form"))
         if form_def is not None:
             enriched["_form_definition"] = form_def
             if form_def.allowed_units:
                 enriched["_allowed_units"] = sorted(form_def.allowed_units)
         else:
             # Fallback to legacy dict-based loading
-            form_definition = load_form_definition(forms_dir, enriched.get("form"))
+            form_definition = load_form_definition(forms_root, enriched.get("form"))
             allowed_units = sorted(allowed_units_from_form_definition(form_definition))
             if allowed_units:
                 enriched["_allowed_units"] = allowed_units
@@ -745,11 +747,11 @@ def build_concept_registry(repo: Repository | None) -> dict[str, dict]:
     """Load concepts and build {concept_id: concept_data} mapping.
 
     Args:
-        repo: A Repository object providing concepts_dir and forms_dir.
+        repo: A Repository object providing the semantic tree.
     """
     if repo is None:
         return {}
     return build_concept_registry_from_paths(
-        repo.concepts_dir,
-        repo.forms_dir,
+        repo.tree() / "concepts",
+        repo.tree() / "forms",
     )
