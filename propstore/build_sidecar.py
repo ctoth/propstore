@@ -30,7 +30,7 @@ from propstore.form_utils import (
     normalize_to_si,
     verify_form_algebra_dimensions,
 )
-from propstore.knowledge_path import FilesystemKnowledgePath, KnowledgePath
+from propstore.knowledge_path import KnowledgePath
 from propstore.stances import VALID_STANCE_TYPES
 from propstore.loaded import LoadedEntry
 from propstore.validate import load_concepts
@@ -93,23 +93,16 @@ def _optional_int(value: object) -> int | None:
 
 
 
-def _knowledge_root(root: KnowledgePath | Path) -> KnowledgePath:
-    if isinstance(root, Path):
-        return FilesystemKnowledgePath(root)
-    return root
-
-
-def _content_hash(knowledge_root: KnowledgePath | Path) -> str:
+def _content_hash(knowledge_root: KnowledgePath) -> str:
     """Hash all semantic inputs that define the compiled sidecar.
 
     Reads all knowledge subdirs through the knowledge tree path.
     Schema files (package code) are hashed separately from the filesystem.
     """
-    root = _knowledge_root(knowledge_root)
     h = hashlib.sha256()
     h.update(_SEMANTIC_INPUT_VERSION.encode())
     for subdir in ("concepts", "claims", "contexts", "forms", "stances"):
-        subtree = root / subdir
+        subtree = knowledge_root / subdir
         if not subtree.exists():
             continue
         for entry in subtree.iterdir():
@@ -175,15 +168,14 @@ def _claim_content_hash(claim: dict, source_paper: str) -> str:
 
 def _populate_stances_from_files(
     conn: sqlite3.Connection,
-    stances_root: KnowledgePath | Path,
+    stances_root: KnowledgePath,
 ) -> int:
     """Read stance YAML files and insert into normalized relation storage."""
-    root = _knowledge_root(stances_root)
-    if not root.exists():
+    if not stances_root.exists():
         return 0
     stance_entries = [
         (entry.stem, yaml.safe_load(entry.read_bytes()) or {})
-        for entry in root.iterdir()
+        for entry in stances_root.iterdir()
         if entry.is_file() and entry.suffix == ".yaml"
     ]
 
@@ -257,7 +249,7 @@ def _populate_stances_from_files(
 
 
 def build_sidecar(
-    knowledge_root: KnowledgePath | Path,
+    knowledge_root: KnowledgePath,
     sidecar_path: Path,
     force: bool = False,
     *,
@@ -271,14 +263,13 @@ def build_sidecar(
 
     Returns True if the sidecar was rebuilt, False if skipped.
     """
-    root = _knowledge_root(knowledge_root)
     sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Check if rebuild is needed
     if commit_hash is not None:
         content_hash = commit_hash
     else:
-        content_hash = _content_hash(root)
+        content_hash = _content_hash(knowledge_root)
     hash_path = sidecar_path.with_suffix(".hash")
 
     if not force and sidecar_path.exists() and hash_path.exists():
@@ -287,11 +278,19 @@ def build_sidecar(
             return False
 
     # Load all data through the knowledge tree
-    form_registry = load_all_forms_path(root / "forms")
-    concepts = load_concepts(root / "concepts")
-    claim_files = load_claim_files(root / "claims") if (root / "claims").exists() else None
+    form_registry = load_all_forms_path(knowledge_root / "forms")
+    concepts = load_concepts(knowledge_root / "concepts")
+    claim_files = (
+        load_claim_files(knowledge_root / "claims")
+        if (knowledge_root / "claims").exists()
+        else None
+    )
     from propstore.validate_contexts import load_contexts, ContextHierarchy
-    context_files = load_contexts(root / "contexts") if (root / "contexts").exists() else None
+    context_files = (
+        load_contexts(knowledge_root / "contexts")
+        if (knowledge_root / "contexts").exists()
+        else None
+    )
 
     # Build concept registry for claim processing
     concept_registry: dict[str, dict] = {}
@@ -390,7 +389,7 @@ def build_sidecar(
 
         # Populate stances from stance files
         if claim_files is not None:
-            _populate_stances_from_files(conn, root / "stances")
+            _populate_stances_from_files(conn, knowledge_root / "stances")
             _populate_justifications(conn)
 
         conn.commit()
