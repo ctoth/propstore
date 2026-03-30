@@ -23,6 +23,8 @@ class BranchStructuredSummary:
     claim_ids: tuple[str, ...]
     claim_provenance: dict[str, dict[str, Any]]
     content_signature: str
+    relation_surface: dict[str, str]
+    lossiness: tuple[str, ...]
     active_claims: tuple[dict[str, Any], ...]
     stance_rows: tuple[StanceRow, ...]
     projection: StructuredProjection
@@ -189,6 +191,25 @@ def _summary_content_signature(
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
+def _summary_relation_surface() -> dict[str, str]:
+    return {
+        "attack": "preserved_via_projection",
+        "non_attack": "not_preserved_in_summary",
+        "ignorance": "not_preserved_in_summary",
+    }
+
+
+def _summary_lossiness() -> tuple[str, ...]:
+    return (
+        "subargument_identity",
+        "justification_identity",
+        "preference_metadata",
+        "support_metadata",
+        "known_non_attack_relations",
+        "ignorance_relations",
+    )
+
+
 def _canonical_stance_rows(
     active_claims: list[dict[str, Any]],
     stance_rows: list[StanceRow],
@@ -275,6 +296,8 @@ def build_branch_structured_summary(kr, branch: str) -> BranchStructuredSummary:
         claim_ids=claim_ids,
         claim_provenance=claim_provenance,
         content_signature=content_signature,
+        relation_surface=_summary_relation_surface(),
+        lossiness=_summary_lossiness(),
         active_claims=tuple(active_claims),
         stance_rows=tuple(stance_rows),
         projection=projection,

@@ -70,6 +70,19 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
     assert summary.claim_ids == ("claim_a", "claim_b")
     assert summary.claim_provenance["claim_a"]["paper"] == "test_paper"
     assert summary.claim_provenance["claim_b"]["paper"] == "test_paper"
+    assert summary.relation_surface == {
+        "attack": "preserved_via_projection",
+        "non_attack": "not_preserved_in_summary",
+        "ignorance": "not_preserved_in_summary",
+    }
+    assert summary.lossiness == (
+        "subargument_identity",
+        "justification_identity",
+        "preference_metadata",
+        "support_metadata",
+        "known_non_attack_relations",
+        "ignorance_relations",
+    )
 
     claim_attack_pairs = {
         (
@@ -167,6 +180,27 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
     assert summary.claim_ids == ("claim_a",)
     assert set(summary.projection.argument_to_claim_id.values()) == {"claim_a"}
     assert summary.projection.framework.attacks == frozenset()
+
+
+def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_path):
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr.commit_files(
+        {
+            "claims/claims.yaml": _claim_yaml([
+                _obs_claim("claim_a", "A"),
+                _obs_claim("claim_b", "B"),
+            ]),
+        },
+        "seed structured branch",
+    )
+
+    summary = build_branch_structured_summary(kr, "master")
+
+    assert summary.relation_surface["attack"] == "preserved_via_projection"
+    assert summary.relation_surface["non_attack"] == "not_preserved_in_summary"
+    assert summary.relation_surface["ignorance"] == "not_preserved_in_summary"
+    assert "known_non_attack_relations" in summary.lossiness
+    assert "ignorance_relations" in summary.lossiness
 
 
 @settings(
