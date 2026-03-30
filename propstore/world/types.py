@@ -9,6 +9,12 @@ from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, runtime_checkable
 
 from propstore.core.environment import ArtifactStore, Environment  # noqa: F401
+from propstore.core.id_types import (
+    ClaimId,
+    ConceptId,
+    QueryableId,
+    to_queryable_id,
+)
 from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,
@@ -41,7 +47,7 @@ class ValueStatus(StrEnum):
 
 @dataclass
 class ValueResult:
-    concept_id: str
+    concept_id: ConceptId
     status: ValueStatus
     claims: list[dict] = field(default_factory=list)
     label: Label | None = None
@@ -49,7 +55,7 @@ class ValueResult:
 
 @dataclass
 class DerivedResult:
-    concept_id: str
+    concept_id: ConceptId
     status: ValueStatus
     value: float | None = None
     formula: str | None = None
@@ -77,7 +83,7 @@ class ATMSOutKind(Enum):
 class QueryableAssumption:
     """Future/queryable assumption available only to bounded future analysis."""
 
-    assumption_id: str
+    assumption_id: QueryableId
     cel: str
     kind: str = "queryable"
     source: str = "future"
@@ -91,7 +97,7 @@ class QueryableAssumption:
     ) -> QueryableAssumption:
         digest = hashlib.sha1(f"queryable\0{source}\0{cel}".encode("utf-8")).hexdigest()[:12]
         return cls(
-            assumption_id=f"queryable:{source}:{digest}",
+            assumption_id=to_queryable_id(f"queryable:{source}:{digest}"),
             cel=cel,
             source=source,
         )
@@ -525,11 +531,11 @@ def validate_backend_semantics(
 
 @dataclass
 class ResolvedResult:
-    concept_id: str
+    concept_id: ConceptId
     status: ValueStatus
     value: float | str | None = None
     claims: list[dict] = field(default_factory=list)
-    winning_claim_id: str | None = None
+    winning_claim_id: ClaimId | None = None
     strategy: str | None = None
     reason: str | None = None
     label: Label | None = None

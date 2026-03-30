@@ -7,6 +7,14 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.core.environment import Environment
+from propstore.core.id_types import (
+    ClaimId,
+    ConceptId,
+    to_claim_id,
+    to_claim_ids,
+    to_concept_id,
+    to_concept_ids,
+)
 from propstore.core.labels import EnvironmentKey, Label
 
 
@@ -69,7 +77,7 @@ def label_from_dict(data: list[list[str]] | None) -> Label | None:
 
 @dataclass(frozen=True, order=True)
 class ConceptNode:
-    concept_id: str
+    concept_id: ConceptId
     canonical_name: str
     status: str | None = None
     form: str | None = None
@@ -97,7 +105,7 @@ class ConceptNode:
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> ConceptNode:
         return cls(
-            concept_id=str(data["concept_id"]),
+            concept_id=to_concept_id(data["concept_id"]),
             canonical_name=str(data["canonical_name"]),
             status=(None if data.get("status") is None else str(data["status"])),
             form=(None if data.get("form") is None else str(data["form"])),
@@ -153,8 +161,8 @@ class ProvenanceRecord:
 
 @dataclass(frozen=True, order=True)
 class ClaimNode:
-    claim_id: str
-    concept_id: str
+    claim_id: ClaimId
+    concept_id: ConceptId
     claim_type: str
     scalar_value: float | str | None = None
     provenance: ProvenanceRecord | None = None
@@ -184,8 +192,8 @@ class ClaimNode:
     def from_dict(cls, data: Mapping[str, Any]) -> ClaimNode:
         provenance_data = data.get("provenance")
         return cls(
-            claim_id=str(data["claim_id"]),
-            concept_id=str(data["concept_id"]),
+            claim_id=to_claim_id(data["claim_id"]),
+            concept_id=to_concept_id(data["concept_id"]),
             claim_type=str(data["claim_type"]),
             scalar_value=data.get("scalar_value"),
             provenance=(
@@ -244,8 +252,8 @@ class RelationEdge:
 
 @dataclass(frozen=True, order=True)
 class ParameterizationEdge:
-    output_concept_id: str
-    input_concept_ids: tuple[str, ...]
+    output_concept_id: ConceptId
+    input_concept_ids: tuple[ConceptId, ...]
     formula: str | None = None
     sympy: str | None = None
     exactness: str | None = None
@@ -277,8 +285,8 @@ class ParameterizationEdge:
     def from_dict(cls, data: Mapping[str, Any]) -> ParameterizationEdge:
         provenance_data = data.get("provenance")
         return cls(
-            output_concept_id=str(data["output_concept_id"]),
-            input_concept_ids=tuple(str(item) for item in data.get("input_concept_ids") or ()),
+            output_concept_id=to_concept_id(data["output_concept_id"]),
+            input_concept_ids=to_concept_ids(data.get("input_concept_ids") or ()),
             formula=(None if data.get("formula") is None else str(data["formula"])),
             sympy=(None if data.get("sympy") is None else str(data["sympy"])),
             exactness=(None if data.get("exactness") is None else str(data["exactness"])),
@@ -293,15 +301,15 @@ class ParameterizationEdge:
 
 @dataclass(frozen=True, order=True)
 class ConflictWitness:
-    left_claim_id: str
-    right_claim_id: str
+    left_claim_id: ClaimId
+    right_claim_id: ClaimId
     kind: str
     details: tuple[tuple[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         left, right = sorted((self.left_claim_id, self.right_claim_id))
-        object.__setattr__(self, "left_claim_id", left)
-        object.__setattr__(self, "right_claim_id", right)
+        object.__setattr__(self, "left_claim_id", to_claim_id(left))
+        object.__setattr__(self, "right_claim_id", to_claim_id(right))
         object.__setattr__(self, "details", _normalize_pairs(self.details))
 
     def to_dict(self) -> dict[str, Any]:
@@ -317,8 +325,8 @@ class ConflictWitness:
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> ConflictWitness:
         return cls(
-            left_claim_id=str(data["left_claim_id"]),
-            right_claim_id=str(data["right_claim_id"]),
+            left_claim_id=to_claim_id(data["left_claim_id"]),
+            right_claim_id=to_claim_id(data["right_claim_id"]),
             kind=str(data["kind"]),
             details=data.get("details") or (),
         )
@@ -365,14 +373,14 @@ class CompiledWorldGraph:
 @dataclass(frozen=True)
 class GraphDelta:
     add_claims: tuple[ClaimNode, ...] = ()
-    remove_claim_ids: tuple[str, ...] = ()
+    remove_claim_ids: tuple[ClaimId, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "add_claims", tuple(sorted(self.add_claims)))
         object.__setattr__(
             self,
             "remove_claim_ids",
-            tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in self.remove_claim_ids))),
+            tuple(sorted(dict.fromkeys(to_claim_ids(self.remove_claim_ids)))),
         )
 
     @property
@@ -424,19 +432,19 @@ class GraphDelta:
 class ActiveWorldGraph:
     compiled: CompiledWorldGraph
     environment: Environment = field(default_factory=Environment)
-    active_claim_ids: tuple[str, ...] = ()
-    inactive_claim_ids: tuple[str, ...] = ()
+    active_claim_ids: tuple[ClaimId, ...] = ()
+    inactive_claim_ids: tuple[ClaimId, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(
             self,
             "active_claim_ids",
-            tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in self.active_claim_ids))),
+            tuple(sorted(dict.fromkeys(to_claim_ids(self.active_claim_ids)))),
         )
         object.__setattr__(
             self,
             "inactive_claim_ids",
-            tuple(sorted(dict.fromkeys(str(claim_id) for claim_id in self.inactive_claim_ids))),
+            tuple(sorted(dict.fromkeys(to_claim_ids(self.inactive_claim_ids)))),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -452,6 +460,6 @@ class ActiveWorldGraph:
         return cls(
             compiled=CompiledWorldGraph.from_dict(data.get("compiled") or {}),
             environment=Environment.from_dict(data.get("environment")),
-            active_claim_ids=tuple(str(item) for item in data.get("active_claim_ids") or ()),
-            inactive_claim_ids=tuple(str(item) for item in data.get("inactive_claim_ids") or ()),
+            active_claim_ids=to_claim_ids(data.get("active_claim_ids") or ()),
+            inactive_claim_ids=to_claim_ids(data.get("inactive_claim_ids") or ()),
         )

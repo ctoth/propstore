@@ -15,6 +15,12 @@ from propstore.core.environment import (
     RelationshipCatalogStore,
     StanceStore,
 )
+from propstore.core.id_types import (
+    ConceptId,
+    to_claim_id,
+    to_concept_id,
+    to_concept_ids,
+)
 from propstore.core.graph_types import (
     ClaimNode,
     CompiledWorldGraph,
@@ -112,6 +118,10 @@ def _parse_json_list(value: Any) -> tuple[str, ...]:
     return tuple(str(item) for item in value)
 
 
+def _parse_json_concept_ids(value: Any) -> tuple[ConceptId, ...]:
+    return to_concept_ids(_parse_json_list(value))
+
+
 def build_compiled_world_graph(store) -> CompiledWorldGraph:
     if not isinstance(store, ConceptCatalogStore):
         raise TypeError("build_compiled_world_graph requires all_concepts()")
@@ -160,7 +170,7 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
 
     concepts = tuple(
         ConceptNode(
-            concept_id=str(row["id"]),
+            concept_id=to_concept_id(row["id"]),
             canonical_name=str(row["canonical_name"]),
             status=(None if row.get("status") is None else str(row["status"])),
             form=(None if row.get("form") is None else str(row["form"])),
@@ -172,8 +182,8 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
 
     claims = tuple(
         ClaimNode(
-            claim_id=str(row["id"]),
-            concept_id=str(row.get("concept_id") or row.get("target_concept") or ""),
+            claim_id=to_claim_id(row["id"]),
+            concept_id=to_concept_id(row.get("concept_id") or row.get("target_concept") or ""),
             claim_type=str(row.get("type") or "unknown"),
             scalar_value=row.get("value"),
             provenance=_row_provenance(row, source_table="claim", source_id=str(row["id"])),
@@ -214,7 +224,7 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
     parameterizations = tuple(
         ParameterizationEdge(
             output_concept_id=parameterization.output_concept_id,
-            input_concept_ids=_parse_json_list(parameterization.concept_ids),
+            input_concept_ids=_parse_json_concept_ids(parameterization.concept_ids),
             formula=parameterization.formula,
             sympy=parameterization.sympy,
             exactness=parameterization.exactness,

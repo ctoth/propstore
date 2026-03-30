@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from propstore.aspic_bridge import build_aspic_projection
+from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
 from propstore.core.row_types import StanceRow
 from propstore.dung import ArgumentationFramework
 from propstore.structured_argument import StructuredProjection
@@ -24,7 +25,7 @@ class BranchStructuredSummary:
 @dataclass(frozen=True)
 class _StructuredMergeClaimView:
     raw: dict[str, Any]
-    claim_id: str
+    claim_id: ClaimId
     stances: tuple[dict[str, Any], ...]
 
 
@@ -40,13 +41,13 @@ def _claim_view(claim: dict[str, Any]) -> _StructuredMergeClaimView | None:
         return None
     raw_stances = claim.get("stances")
     if not isinstance(raw_stances, list):
-        return _StructuredMergeClaimView(raw=claim, claim_id=claim_id, stances=tuple())
+        return _StructuredMergeClaimView(raw=claim, claim_id=to_claim_id(claim_id), stances=tuple())
     stances = tuple(stance for stance in raw_stances if isinstance(stance, dict))
-    return _StructuredMergeClaimView(raw=claim, claim_id=claim_id, stances=stances)
+    return _StructuredMergeClaimView(raw=claim, claim_id=to_claim_id(claim_id), stances=stances)
 
 
 def _stance_row_from_mapping(
-    source_claim_id: str,
+    source_claim_id: ClaimId,
     stance: Mapping[str, Any],
 ) -> StanceRow | None:
     target = _optional_string(stance.get("target"))
@@ -55,18 +56,18 @@ def _stance_row_from_mapping(
         return None
 
     attributes: dict[str, Any] = {}
-    target_justification_id: str | None = None
+    target_justification_id: JustificationId | None = None
     for key, value in stance.items():
         if key in {"target", "type"} or value is None:
             continue
         if key == "target_justification_id":
-            target_justification_id = str(value)
+            target_justification_id = to_justification_id(value)
             continue
         attributes[str(key)] = value
 
     return StanceRow(
         claim_id=source_claim_id,
-        target_claim_id=target,
+        target_claim_id=to_claim_id(target),
         stance_type=stance_type,
         target_justification_id=target_justification_id,
         attributes=attributes,
@@ -133,7 +134,7 @@ def _file_stance_rows(reader) -> list[StanceRow]:
         for stance in data.get("stances", []) or []:
             if not isinstance(stance, dict):
                 continue
-            row = _stance_row_from_mapping(source_claim, stance)
+            row = _stance_row_from_mapping(to_claim_id(source_claim), stance)
             if row is not None:
                 rows.append(row)
     return rows

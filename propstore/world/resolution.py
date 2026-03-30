@@ -13,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from propstore.cel_checker import ConceptInfo, KindType
+from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.form_utils import kind_type_from_form_name
 from propstore.world.labelled import Label, SupportQuality
 from propstore.world.types import (
@@ -40,7 +41,7 @@ from propstore.world.types import (
 
 @dataclass(frozen=True)
 class _ResolutionClaimView:
-    id: str
+    id: ClaimId
     value: float | str | None
     provenance_json: str | Mapping[str, object] | None
     sample_size: int | None
@@ -51,11 +52,11 @@ class _ResolutionClaimView:
     confidence: float | None
 
 
-def _claim_id(claim: Mapping[str, object]) -> str:
+def _claim_id(claim: Mapping[str, object]) -> ClaimId:
     claim_id = claim.get("id")
     if not isinstance(claim_id, str) or not claim_id:
         raise KeyError("resolution requires each claim to have a non-empty string id")
-    return claim_id
+    return to_claim_id(claim_id)
 
 
 def _claim_value(claim: Mapping[str, object]) -> float | str | None:
@@ -282,11 +283,17 @@ def _cel_registry_for_concepts(
         if kind is None:
             kind = KindType.QUANTITY
         form_parameters = _normalized_form_parameters(concept)
+        raw_values = form_parameters.get("values")
+        category_values = [
+            value
+            for value in (raw_values if isinstance(raw_values, list | tuple) else ())
+            if isinstance(value, str)
+        ]
         registry[canonical_name] = ConceptInfo(
             id=concept_id,
             canonical_name=canonical_name,
             kind=kind,
-            category_values=list(form_parameters.get("values") or ()),
+            category_values=category_values,
             category_extensible=bool(form_parameters.get("extensible", True)),
         )
     return registry
@@ -340,7 +347,7 @@ def _build_global_ic_merge_problem(
     concept_ids.add(target_concept_id)
     concept_ids.update(_integrity_constraint_concept_ids(explicit_constraints))
 
-    grouped: dict[str, dict[str, object]] = {}
+    grouped: dict[str, dict[str, Mapping[str, object]]] = {}
     for claim in active_claim_rows:
         claim_id = _claim_id(claim)
         concept_id = _claim_concept_id(claim)
@@ -474,8 +481,8 @@ def _resolve_claim_graph_argumentation(
 
     active_views = tuple(_coerce_resolution_claim(claim) for claim in active_claims)
     target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
-    active_ids = {c.id for c in active_views}
-    target_ids = {c.id for c in target_views}
+    active_ids = {str(c.id) for c in active_views}
+    target_ids = {str(c.id) for c in target_views}
     shared = (
         shared_analyzer_input_from_active_graph(active_graph, comparison=comparison)
         if active_graph is not None
@@ -644,8 +651,8 @@ def _resolve_praf(
 
     target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
     active_views = tuple(_coerce_resolution_claim(claim) for claim in active_claims)
-    active_ids = {c.id for c in active_views}
-    target_ids = {c.id for c in target_views}
+    active_ids = {str(c.id) for c in active_views}
+    target_ids = {str(c.id) for c in target_views}
 
     # Extract PrAF parameters from policy
     strategy = "auto"
@@ -711,7 +718,10 @@ def _resolve_praf(
 
     if len(best_claims) > 1 and decision_criterion != "pignistic":
         # Build a lookup from claim id to claim dict
-        claim_lookup = {c.id: c for c in target_views}
+        claim_lookup: dict[str, _ResolutionClaimView] = {
+            str(c.id): c
+            for c in target_views
+        }
         decision_values: dict[str, float | None] = {}
         for cid in best_claims:
             claim = claim_lookup.get(cid)
@@ -779,10 +789,11 @@ def resolve(
     policy: RenderPolicy | None = None,
 ) -> ResolvedResult:
     """Apply a resolution strategy to a conflicted concept."""
+    typed_concept_id = to_concept_id(concept_id)
     vr = view.value_of(concept_id)
 
     if vr.status == "no_claims":
-        return ResolvedResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
+        return ResolvedResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
 
     if vr.status == "determined":
         determined_claim = (
@@ -792,13 +803,13 @@ def resolve(
         )
         value = None if determined_claim is None else determined_claim.value
         return ResolvedResult(
-            concept_id=concept_id, status=ValueStatus.DETERMINED,
+            concept_id=typed_concept_id, status=ValueStatus.DETERMINED,
             value=value, claims=vr.claims,
         )
 
     if vr.status != "conflicted":
         return ResolvedResult(
-            concept_id=concept_id, status=vr.status, claims=vr.claims,
+            concept_id=typed_concept_id, status=vr.status, claims=vr.claims,
         )
 
     if policy is not None:
@@ -827,7 +838,7 @@ def resolve(
         link = "last"
     if strategy is None:
         return ResolvedResult(
-            concept_id=concept_id, status=ValueStatus.CONFLICTED,
+            concept_id=typed_concept_id, status=ValueStatus.CONFLICTED,
             claims=vr.claims, reason="no resolution strategy configured",
         )
 
@@ -845,7 +856,7 @@ def resolve(
         override_id = (overrides or {}).get(concept_id)
         if override_id is None:
             return ResolvedResult(
-                concept_id=concept_id, status=ValueStatus.CONFLICTED,
+                concept_id=typed_concept_id, status=ValueStatus.CONFLICTED,
                 claims=active, reason="no override specified",
             )
         active_ids = {claim.id for claim in active_views}
@@ -865,7 +876,7 @@ def resolve(
     elif strategy == ResolutionStrategy.IC_MERGE:
         if world is None:
             return ResolvedResult(
-                concept_id=concept_id,
+                concept_id=typed_concept_id,
                 status=ValueStatus.CONFLICTED,
                 claims=active,
                 strategy=strategy.value,
@@ -882,7 +893,7 @@ def resolve(
     elif strategy == ResolutionStrategy.ARGUMENTATION:
         if world is None:
             return ResolvedResult(
-                concept_id=concept_id, status=ValueStatus.CONFLICTED,
+                concept_id=typed_concept_id, status=ValueStatus.CONFLICTED,
                 claims=active, reason="argumentation strategy requires an explicit artifact store",
             )
         _, semantics = validate_backend_semantics(reasoning_backend, semantics)
@@ -924,7 +935,7 @@ def resolve(
 
     if winner_id is None:
         return ResolvedResult(
-            concept_id=concept_id, status=ValueStatus.CONFLICTED,
+            concept_id=typed_concept_id, status=ValueStatus.CONFLICTED,
             claims=active, strategy=strategy.value, reason=reason,
             acceptance_probs=_acceptance_probs,
         )
@@ -932,9 +943,9 @@ def resolve(
     winning_claim = next((claim for claim in active_views if claim.id == winner_id), None)
     value = None if winning_claim is None else winning_claim.value
     return ResolvedResult(
-        concept_id=concept_id, status=ValueStatus.RESOLVED,
+        concept_id=typed_concept_id, status=ValueStatus.RESOLVED,
         value=value, claims=active,
-        winning_claim_id=winner_id,
+        winning_claim_id=to_claim_id(winner_id),
         strategy=strategy.value, reason=reason,
         acceptance_probs=_acceptance_probs,
     )

@@ -8,6 +8,7 @@ from typing import Any
 from propstore.core.environment import ArtifactStore, CompiledGraphStore, StanceStore
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
+from propstore.core.id_types import to_claim_id, to_claim_ids, to_concept_id
 from propstore.core.graph_types import (
     ClaimNode,
     CompiledWorldGraph,
@@ -70,8 +71,8 @@ def _claim_node_for_synthetic(
     else:
         attributes.pop("conditions_cel", None)
     return ClaimNode(
-        claim_id=synthetic.id,
-        concept_id=synthetic.concept_id,
+        claim_id=to_claim_id(synthetic.id),
+        concept_id=to_concept_id(synthetic.concept_id),
         claim_type=synthetic.type,
         scalar_value=synthetic.value,
         provenance=(existing.provenance if existing is not None else None),
@@ -262,7 +263,7 @@ class HypotheticalWorld(BeliefSpace):
                 _claim_node_for_synthetic(synthetic, compiled=self._base_compiled)
                 for synthetic in self._synthetics
             ),
-            remove_claim_ids=tuple(self._removed_ids),
+            remove_claim_ids=to_claim_ids(self._removed_ids),
         )
         self._compiled_graph = self._graph_delta.apply(self._base_compiled)
 

@@ -13,6 +13,7 @@ from propstore.bipolar import (
     s_preferred_extensions,
     stable_extensions as bipolar_stable_extensions,
 )
+from propstore.core.id_types import ClaimId, to_claim_id, to_claim_ids, to_concept_id
 from propstore.core.graph_types import (
     ActiveWorldGraph,
     ClaimNode,
@@ -137,8 +138,8 @@ def _claim_node_from_row(row: dict) -> ClaimNode:
         and value is not None
     )
     return ClaimNode(
-        claim_id=str(row["id"]),
-        concept_id=str(row.get("concept_id") or row.get("target_concept") or ""),
+        claim_id=to_claim_id(row["id"]),
+        concept_id=to_concept_id(row.get("concept_id") or row.get("target_concept") or ""),
         claim_type=str(row.get("type") or "unknown"),
         scalar_value=row.get("value"),
         attributes=attributes,
@@ -175,8 +176,8 @@ def _conflict_witness_from_row(row: dict) -> ConflictWitness:
         and value is not None
     )
     return ConflictWitness(
-        left_claim_id=str(row["claim_a_id"]),
-        right_claim_id=str(row["claim_b_id"]),
+        left_claim_id=to_claim_id(row["claim_a_id"]),
+        right_claim_id=to_claim_id(row["claim_b_id"]),
         kind=str(warning_class),
         details=details,
     )
@@ -216,16 +217,17 @@ def _active_graph_from_store(
     else:
         compiled = _minimal_compiled_graph(store, active_claim_ids)
     all_claim_ids = {claim.claim_id for claim in compiled.claims}
+    active_ids = set(to_claim_ids(active_claim_ids))
     return ActiveWorldGraph(
         compiled=compiled,
         environment=Environment(),
-        active_claim_ids=tuple(active_claim_ids),
-        inactive_claim_ids=tuple(all_claim_ids - set(active_claim_ids)),
+        active_claim_ids=tuple(active_ids),
+        inactive_claim_ids=tuple(all_claim_ids - active_ids),
     )
 
 
 def _active_claim_ids(active_graph: ActiveWorldGraph) -> set[str]:
-    return set(active_graph.active_claim_ids)
+    return {str(claim_id) for claim_id in active_graph.active_claim_ids}
 
 
 def _graph_claim_rows(active_graph: ActiveWorldGraph) -> dict[str, dict]:

@@ -6,13 +6,22 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.core.id_types import (
+    ClaimId,
+    ConceptId,
+    JustificationId,
+    to_claim_id,
+    to_concept_id,
+    to_justification_id,
+)
+
 
 @dataclass(frozen=True)
 class StanceRow:
-    claim_id: str
-    target_claim_id: str
+    claim_id: ClaimId
+    target_claim_id: ClaimId
     stance_type: str
-    target_justification_id: str | None = None
+    target_justification_id: JustificationId | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -27,19 +36,19 @@ class StanceRow:
             and value is not None
         }
         return cls(
-            claim_id=str(row_map["claim_id"]),
-            target_claim_id=str(row_map["target_claim_id"]),
+            claim_id=to_claim_id(row_map["claim_id"]),
+            target_claim_id=to_claim_id(row_map["target_claim_id"]),
             stance_type=str(row_map["stance_type"]),
             target_justification_id=(
                 None
                 if row_map.get("target_justification_id") is None
-                else str(row_map["target_justification_id"])
+                else to_justification_id(row_map["target_justification_id"])
             ),
             attributes=attributes,
         )
 
     def to_dict(self) -> dict[str, Any]:
-        data = {
+        data: dict[str, Any] = {
             "claim_id": self.claim_id,
             "target_claim_id": self.target_claim_id,
             "stance_type": self.stance_type,
@@ -52,9 +61,9 @@ class StanceRow:
 
 @dataclass(frozen=True)
 class ConflictRow:
-    claim_a_id: str
-    claim_b_id: str
-    concept_id: str | None = None
+    claim_a_id: ClaimId
+    claim_b_id: ClaimId
+    concept_id: ConceptId | None = None
     warning_class: str | None = None
     conflict_class: str | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
@@ -63,7 +72,7 @@ class ConflictRow:
         object.__setattr__(self, "attributes", dict(self.attributes))
 
     def to_dict(self) -> dict[str, Any]:
-        data = {
+        data: dict[str, Any] = {
             "claim_a_id": self.claim_a_id,
             "claim_b_id": self.claim_b_id,
         }
@@ -85,9 +94,13 @@ class ConflictRow:
             and value is not None
         }
         return cls(
-            claim_a_id=str(row_map["claim_a_id"]),
-            claim_b_id=str(row_map["claim_b_id"]),
-            concept_id=None if row_map.get("concept_id") is None else str(row_map["concept_id"]),
+            claim_a_id=to_claim_id(row_map["claim_a_id"]),
+            claim_b_id=to_claim_id(row_map["claim_b_id"]),
+            concept_id=(
+                None
+                if row_map.get("concept_id") is None
+                else to_concept_id(row_map["concept_id"])
+            ),
             warning_class=None if row_map.get("warning_class") is None else str(row_map["warning_class"]),
             conflict_class=None if row_map.get("conflict_class") is None else str(row_map["conflict_class"]),
             attributes=attributes,
@@ -96,7 +109,7 @@ class ConflictRow:
 
 @dataclass(frozen=True)
 class ParameterizationRow:
-    output_concept_id: str
+    output_concept_id: ConceptId
     concept_ids: str
     formula: str | None = None
     sympy: str | None = None
@@ -108,7 +121,7 @@ class ParameterizationRow:
         object.__setattr__(self, "attributes", dict(self.attributes))
 
     def to_dict(self) -> dict[str, Any]:
-        data = {
+        data: dict[str, Any] = {
             "output_concept_id": self.output_concept_id,
             "concept_ids": self.concept_ids,
         }
@@ -135,7 +148,7 @@ class ParameterizationRow:
             and value is not None
         }
         return cls(
-            output_concept_id=str(row_map["output_concept_id"]),
+            output_concept_id=to_concept_id(row_map["output_concept_id"]),
             concept_ids=str(row_map["concept_ids"]),
             formula=None if row_map.get("formula") is None else str(row_map["formula"]),
             sympy=None if row_map.get("sympy") is None else str(row_map["sympy"]),

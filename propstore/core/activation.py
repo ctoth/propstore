@@ -6,6 +6,7 @@ import json
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from propstore.core.id_types import ClaimId
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.environment import Environment
 from propstore.core.labels import binding_condition_to_cel
@@ -128,8 +129,8 @@ def activate_compiled_world_graph(
     solver: Z3ConditionSolver,
     context_hierarchy: ContextHierarchy | None = None,
 ) -> ActiveWorldGraph:
-    active_claim_ids: list[str] = []
-    inactive_claim_ids: list[str] = []
+    active_claim_ids: list[ClaimId] = []
+    inactive_claim_ids: list[ClaimId] = []
 
     for claim in compiled.claims:
         if is_claim_node_active(
