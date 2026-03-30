@@ -112,6 +112,12 @@ class KnowledgeRepo:
     def root(self) -> Path:
         return self._root
 
+    def tree(self, commit: str | None = None):
+        """Return a read-only knowledge tree rooted at this repository."""
+        from propstore.knowledge_path import GitKnowledgePath
+
+        return GitKnowledgePath(self, commit=commit)
+
     # ── Lifecycle ────────────────────────────────────────────────────
 
     @classmethod

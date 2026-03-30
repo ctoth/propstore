@@ -11,6 +11,7 @@ from propstore.aspic_bridge import build_aspic_projection
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
 from propstore.core.row_types import StanceRow
 from propstore.dung import ArgumentationFramework
+from propstore.knowledge_path import KnowledgePath
 from propstore.structured_argument import StructuredProjection
 
 
@@ -102,11 +103,11 @@ def _empty_projection() -> StructuredProjection:
     )
 
 
-def _load_branch_claims(reader) -> list[dict[str, Any]]:
+def _load_branch_claims(claims_root: KnowledgePath) -> list[dict[str, Any]]:
     from propstore.validate_claims import load_claim_files
 
     active_claims: list[dict[str, Any]] = []
-    for claim_file in load_claim_files(None, reader=reader):
+    for claim_file in load_claim_files(claims_root):
         active_claims.extend(claim_file.data.get("claims", []))
     return active_claims
 
@@ -124,10 +125,14 @@ def _inline_stance_rows(active_claims: list[dict[str, Any]]) -> list[StanceRow]:
     return rows
 
 
-def _file_stance_rows(reader) -> list[StanceRow]:
+def _file_stance_rows(stances_root: KnowledgePath) -> list[StanceRow]:
     rows: list[StanceRow] = []
-    for _stem, raw in reader.list_yaml("stances"):
-        data = yaml.safe_load(raw) or {}
+    if not stances_root.is_dir():
+        return rows
+    for entry in stances_root.iterdir():
+        if not entry.is_file() or entry.suffix != ".yaml":
+            continue
+        data = yaml.safe_load(entry.read_bytes()) or {}
         source_claim = _optional_string(data.get("source_claim"))
         if source_claim is None:
             continue
@@ -142,11 +147,10 @@ def _file_stance_rows(reader) -> list[StanceRow]:
 
 def build_branch_structured_summary(kr, branch: str) -> BranchStructuredSummary:
     from propstore.repo.branch import branch_head
-    from propstore.tree_reader import GitTreeReader
 
-    reader = GitTreeReader(kr, commit=branch_head(kr, branch))
-    active_claims = _load_branch_claims(reader)
-    stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(reader)
+    tree = kr.tree(commit=branch_head(kr, branch))
+    active_claims = _load_branch_claims(tree / "claims")
+    stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(tree / "stances")
     if active_claims:
         projection = build_aspic_projection(_BranchSnapshotStore(stance_rows), active_claims)
     else:

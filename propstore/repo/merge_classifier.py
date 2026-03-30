@@ -208,20 +208,19 @@ def build_merge_framework(
     branch_b: str,
 ) -> RepoMergeFramework:
     """Build the direct repository merge object for two branches."""
-    from propstore.tree_reader import GitTreeReader
     from propstore.validate_claims import load_claim_files
 
     base_sha = merge_base(kr, branch_a, branch_b)
     left_sha = branch_head(kr, branch_a)
     right_sha = branch_head(kr, branch_b)
 
-    base_reader = GitTreeReader(kr, commit=base_sha)
-    left_reader = GitTreeReader(kr, commit=left_sha)
-    right_reader = GitTreeReader(kr, commit=right_sha)
+    base_claims_root = kr.tree(commit=base_sha) / "claims"
+    left_claims_root = kr.tree(commit=left_sha) / "claims"
+    right_claims_root = kr.tree(commit=right_sha) / "claims"
 
-    base_idx = _index_claims(load_claim_files(None, reader=base_reader))
-    left_idx = _index_claims(load_claim_files(None, reader=left_reader))
-    right_idx = _index_claims(load_claim_files(None, reader=right_reader))
+    base_idx = _index_claims(load_claim_files(base_claims_root))
+    left_idx = _index_claims(load_claim_files(left_claims_root))
+    right_idx = _index_claims(load_claim_files(right_claims_root))
 
     all_ids = sorted(set(base_idx) | set(left_idx) | set(right_idx))
     emitted: list[MergeArgument] = []

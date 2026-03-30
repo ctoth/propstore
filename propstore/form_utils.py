@@ -277,20 +277,6 @@ def load_all_forms_path(forms_dir: KnowledgePath) -> dict[str, FormDefinition]:
     return registry
 
 
-def load_all_forms_from_reader(reader: object) -> dict[str, FormDefinition]:
-    """Load all form definitions via a TreeReader.
-
-    *reader* must implement ``list_yaml(subdir) -> list[(stem, bytes)]``.
-    """
-    registry: dict[str, FormDefinition] = {}
-    for stem, raw_bytes in reader.list_yaml("forms"):  # type: ignore[attr-defined]
-        data = yaml.safe_load(raw_bytes)
-        fd = parse_form(stem, data) if isinstance(data, dict) else None
-        if fd is not None:
-            registry[fd.name] = fd
-    return registry
-
-
 # ── Pure form utilities ─────────────────────────────────────────────
 
 

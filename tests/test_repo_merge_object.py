@@ -181,11 +181,9 @@ def test_create_merge_commit_preserves_conflicting_versions_with_provenance(tmp_
 
     merge_sha = create_merge_commit(kr, "master", branch_name)
 
-    from propstore.tree_reader import GitTreeReader
     from propstore.validate_claims import load_claim_files
 
-    reader = GitTreeReader(kr, commit=merge_sha)
-    claim_files = load_claim_files(None, reader=reader)
+    claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
 
     conflict_versions = []
     for claim_file in claim_files:

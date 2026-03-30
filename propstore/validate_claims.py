@@ -92,16 +92,8 @@ from propstore.loaded import LoadedEntry
 
 
 
-def load_claim_files(
-    claims_dir: KnowledgePath | Path | None,
-    *,
-    reader: object | None = None,
-) -> list[LoadedEntry]:
+def load_claim_files(claims_dir: KnowledgePath | Path | None) -> list[LoadedEntry]:
     """Load all claim YAML files from a claims subtree."""
-    if reader is not None:
-        from propstore.validate import _load_yaml_entries_from_reader
-
-        return _load_yaml_entries_from_reader(reader, "claims")
     return load_yaml_entries(claims_dir)
 
 

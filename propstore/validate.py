@@ -13,7 +13,7 @@ import re
 from dataclasses import dataclass, field
 from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, cast
+from typing import TYPE_CHECKING
 
 import yaml
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
@@ -77,28 +77,8 @@ def load_yaml_entries(root: KnowledgePath | Path | None) -> list[LoadedEntry]:
     return results
 
 
-def _load_yaml_entries_from_reader(reader: object, subdir: str) -> list[LoadedEntry]:
-    list_yaml_obj = getattr(reader, "list_yaml", None)
-    if not callable(list_yaml_obj):
-        raise TypeError("reader must define list_yaml(subdir)")
-    list_yaml = cast(Callable[[str], list[tuple[str, bytes]]], list_yaml_obj)
-    results: list[LoadedEntry] = []
-    for stem, raw_bytes in list_yaml(subdir):
-        data = yaml.safe_load(raw_bytes)
-        results.append(
-            LoadedEntry(filename=stem, source_path=None, data=data if data else {})
-        )
-    return results
-
-
-def load_concepts(
-    concepts_root: KnowledgePath | Path | None,
-    *,
-    reader: object | None = None,
-) -> list[LoadedEntry]:
+def load_concepts(concepts_root: KnowledgePath | Path | None) -> list[LoadedEntry]:
     """Load all concept YAML files from a concept subtree."""
-    if reader is not None:
-        return _load_yaml_entries_from_reader(reader, "concepts")
     return load_yaml_entries(concepts_root)
 
 

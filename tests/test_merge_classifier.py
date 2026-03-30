@@ -162,11 +162,9 @@ def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
 
     merge_sha = create_merge_commit(kr, "master", branch_name)
 
-    from propstore.tree_reader import GitTreeReader
     from propstore.validate_claims import load_claim_files
 
-    reader = GitTreeReader(kr, commit=merge_sha)
-    claim_files = load_claim_files(None, reader=reader)
+    claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     all_claim_ids = {
         claim["id"]
         for claim_file in claim_files
@@ -196,11 +194,9 @@ def test_merge_commit_valid_claims(tmp_path):
 
     merge_sha = create_merge_commit(kr, "master", branch_name)
 
-    from propstore.tree_reader import GitTreeReader
     from propstore.validate_claims import load_claim_files, validate_claims
 
-    reader = GitTreeReader(kr, commit=merge_sha)
-    claim_files = load_claim_files(None, reader=reader)
+    claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     result = validate_claims(
         claim_files,
         concept_registry={},

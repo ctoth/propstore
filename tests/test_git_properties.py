@@ -14,8 +14,8 @@ from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, initialize
 
+from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
 from propstore.repo import KnowledgeRepo
-from propstore.tree_reader import FilesystemReader, GitTreeReader
 
 # ── Strategies ──────────────────────────────────────────────────────
 
@@ -152,25 +152,32 @@ def test_worktree_fidelity(path: str, content: bytes) -> None:
     assert disk_path.read_bytes() == content
 
 
-# ── Property 6: TreeReader equivalence ──────────────────────────────
+# ── Property 6: KnowledgePath equivalence ───────────────────────────
 
 
 @settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(subdir=valid_subdir, filename=valid_filename, content=yaml_bytes)
-def test_tree_reader_equivalence(subdir: str, filename: str, content: bytes) -> None:
-    """GitTreeReader and FilesystemReader produce same output after sync."""
+def test_knowledge_path_equivalence(subdir: str, filename: str, content: bytes) -> None:
+    """GitKnowledgePath and FilesystemKnowledgePath produce same output after sync."""
     repo, root = _make_repo()
     path = f"{subdir}/{filename}"
     repo.commit_files({path: content}, f"add {path}")
     repo.sync_worktree()
 
-    git_reader = GitTreeReader(repo)
-    fs_reader = FilesystemReader(root)
+    git_tree = GitKnowledgePath(repo) / subdir
+    fs_tree = FilesystemKnowledgePath(root) / subdir
 
-    git_entries = git_reader.list_yaml(subdir)
-    fs_entries = fs_reader.list_yaml(subdir)
+    git_entries = {
+        (entry.stem, entry.read_bytes())
+        for entry in git_tree.iterdir()
+        if entry.is_file() and entry.suffix == ".yaml"
+    }
+    fs_entries = {
+        (entry.stem, entry.read_bytes())
+        for entry in fs_tree.iterdir()
+        if entry.is_file() and entry.suffix == ".yaml"
+    }
 
-    # Both should contain the same (stem, bytes) pairs
     assert set(git_entries) == set(fs_entries), (
         f"git={git_entries}, fs={fs_entries}"
     )

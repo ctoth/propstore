@@ -20,16 +20,8 @@ if TYPE_CHECKING:
 from propstore.loaded import LoadedEntry
 
 
-def load_contexts(
-    contexts_dir: KnowledgePath | Path | None,
-    *,
-    reader: object | None = None,
-) -> list[LoadedEntry]:
+def load_contexts(contexts_dir: KnowledgePath | Path | None) -> list[LoadedEntry]:
     """Load all context YAML files from a contexts subtree."""
-    if reader is not None:
-        from propstore.validate import _load_yaml_entries_from_reader
-
-        return _load_yaml_entries_from_reader(reader, "contexts")
     return load_yaml_entries(contexts_dir)
 
 

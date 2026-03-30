@@ -1,4 +1,4 @@
-"""Tests for the Dulwich-backed KnowledgeRepo and TreeReader implementations."""
+"""Tests for the Dulwich-backed KnowledgeRepo and KnowledgePath implementations."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,8 +6,8 @@ from pathlib import Path
 import yaml
 import pytest
 
+from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
 from propstore.repo import KnowledgeRepo
-from propstore.tree_reader import FilesystemReader, GitTreeReader
 
 
 # ── KnowledgeRepo lifecycle ─────────────────────────────────────────
@@ -237,10 +237,10 @@ def test_next_concept_id_ignores_non_concept_ids(tmp_path):
     assert kr.next_concept_id() == 1
 
 
-# ── TreeReader: GitTreeReader ───────────────────────────────────────
+# ── KnowledgePath: GitKnowledgePath ─────────────────────────────────
 
 
-def test_git_tree_reader_list_yaml(tmp_path):
+def test_git_knowledge_path_iterdir(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     kr.commit_files({
         "concepts/a.yaml": b"id: concept1\n",
@@ -248,53 +248,49 @@ def test_git_tree_reader_list_yaml(tmp_path):
         "concepts/readme.txt": b"not yaml\n",
     }, "add")
 
-    reader = GitTreeReader(kr)
-    entries = reader.list_yaml("concepts")
-    names = [name for name, _ in entries]
+    tree = GitKnowledgePath(kr) / "concepts"
+    entries = [entry for entry in tree.iterdir() if entry.is_file() and entry.suffix == ".yaml"]
+    names = [entry.stem for entry in entries]
     assert sorted(names) == ["a", "b"]
-    # Content matches
-    for name, content in entries:
-        assert content == kr.read_file(f"concepts/{name}.yaml")
+    for entry in entries:
+        assert entry.read_bytes() == kr.read_file(f"concepts/{entry.name}")
 
 
-def test_git_tree_reader_read_yaml(tmp_path):
+def test_git_knowledge_path_read_bytes(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     kr.commit_files({"concepts/foo.yaml": b"id: concept1\n"}, "add")
 
-    reader = GitTreeReader(kr)
-    assert reader.read_yaml("concepts/foo.yaml") == b"id: concept1\n"
-    assert reader.read_yaml("concepts/nonexistent.yaml") is None
+    tree = GitKnowledgePath(kr)
+    assert (tree / "concepts" / "foo.yaml").read_bytes() == b"id: concept1\n"
+    assert not (tree / "concepts" / "nonexistent.yaml").exists()
 
 
-def test_git_tree_reader_exists(tmp_path):
+def test_git_knowledge_path_exists(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     kr.commit_files({"concepts/a.yaml": b"x: 1\n"}, "add")
 
-    reader = GitTreeReader(kr)
-    assert reader.exists("concepts")
-    assert not reader.exists("claims")
+    tree = GitKnowledgePath(kr)
+    assert (tree / "concepts").exists()
+    assert not (tree / "claims").exists()
 
 
-def test_git_tree_reader_at_commit(tmp_path):
+def test_git_knowledge_path_at_commit(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     kr.commit_files({"concepts/a.yaml": b"v: 1\n"}, "v1")
     sha1 = kr.head_sha()
     kr.commit_files({"concepts/a.yaml": b"v: 2\n"}, "v2")
 
-    reader_current = GitTreeReader(kr)
-    reader_old = GitTreeReader(kr, commit=sha1)
+    current_tree = GitKnowledgePath(kr) / "concepts"
+    old_tree = GitKnowledgePath(kr, commit=sha1) / "concepts"
 
-    current_entries = dict(reader_current.list_yaml("concepts"))
-    old_entries = dict(reader_old.list_yaml("concepts"))
-
-    assert current_entries["a"] == b"v: 2\n"
-    assert old_entries["a"] == b"v: 1\n"
+    assert (current_tree / "a.yaml").read_bytes() == b"v: 2\n"
+    assert (old_tree / "a.yaml").read_bytes() == b"v: 1\n"
 
 
-# ── TreeReader: FilesystemReader ────────────────────────────────────
+# ── KnowledgePath: FilesystemKnowledgePath ──────────────────────────
 
 
-def test_filesystem_reader_list_yaml(tmp_path):
+def test_filesystem_knowledge_path_iterdir(tmp_path):
     root = tmp_path / "knowledge"
     concepts = root / "concepts"
     concepts.mkdir(parents=True)
@@ -302,37 +298,37 @@ def test_filesystem_reader_list_yaml(tmp_path):
     (concepts / "b.yaml").write_bytes(b"id: concept2\n")
     (concepts / "readme.txt").write_bytes(b"not yaml\n")
 
-    reader = FilesystemReader(root)
-    entries = reader.list_yaml("concepts")
-    names = [name for name, _ in entries]
+    tree = FilesystemKnowledgePath(root) / "concepts"
+    entries = [entry for entry in tree.iterdir() if entry.is_file() and entry.suffix == ".yaml"]
+    names = [entry.stem for entry in entries]
     assert sorted(names) == ["a", "b"]
 
 
-def test_filesystem_reader_read_yaml(tmp_path):
+def test_filesystem_knowledge_path_read_bytes(tmp_path):
     root = tmp_path / "knowledge"
     concepts = root / "concepts"
     concepts.mkdir(parents=True)
     (concepts / "foo.yaml").write_bytes(b"id: concept1\n")
 
-    reader = FilesystemReader(root)
-    assert reader.read_yaml("concepts/foo.yaml") == b"id: concept1\n"
-    assert reader.read_yaml("concepts/nonexistent.yaml") is None
+    tree = FilesystemKnowledgePath(root)
+    assert (tree / "concepts" / "foo.yaml").read_bytes() == b"id: concept1\n"
+    assert not (tree / "concepts" / "nonexistent.yaml").exists()
 
 
-def test_filesystem_reader_exists(tmp_path):
+def test_filesystem_knowledge_path_exists(tmp_path):
     root = tmp_path / "knowledge"
     (root / "concepts").mkdir(parents=True)
 
-    reader = FilesystemReader(root)
-    assert reader.exists("concepts")
-    assert not reader.exists("claims")
+    tree = FilesystemKnowledgePath(root)
+    assert (tree / "concepts").exists()
+    assert not (tree / "claims").exists()
 
 
-# ── TreeReader equivalence ──────────────────────────────────────────
+# ── KnowledgePath equivalence ───────────────────────────────────────
 
 
-def test_tree_reader_equivalence(tmp_path):
-    """GitTreeReader and FilesystemReader produce identical output after sync."""
+def test_knowledge_path_equivalence(tmp_path):
+    """GitKnowledgePath and FilesystemKnowledgePath produce identical output after sync."""
     root = tmp_path / "knowledge"
     kr = KnowledgeRepo.init(root)
     kr.commit_files({
@@ -341,20 +337,28 @@ def test_tree_reader_equivalence(tmp_path):
     }, "add concepts")
     kr.sync_worktree()
 
-    git_reader = GitTreeReader(kr)
-    fs_reader = FilesystemReader(root)
+    git_tree = GitKnowledgePath(kr) / "concepts"
+    fs_tree = FilesystemKnowledgePath(root) / "concepts"
 
-    git_entries = sorted(git_reader.list_yaml("concepts"))
-    fs_entries = sorted(fs_reader.list_yaml("concepts"))
+    git_entries = sorted(
+        (entry.stem, entry.read_bytes())
+        for entry in git_tree.iterdir()
+        if entry.is_file() and entry.suffix == ".yaml"
+    )
+    fs_entries = sorted(
+        (entry.stem, entry.read_bytes())
+        for entry in fs_tree.iterdir()
+        if entry.is_file() and entry.suffix == ".yaml"
+    )
 
     assert git_entries == fs_entries
 
 
-# ── Phase 2: Loader refactor — load via TreeReader ────────────────
+# ── Loader reads via KnowledgePath ─────────────────────────────────
 
 
-def test_load_concepts_from_tree_reader(tmp_path):
-    """load_concepts() works via GitTreeReader from a committed git tree."""
+def test_load_concepts_from_git_tree(tmp_path):
+    """load_concepts() works from a committed git-backed knowledge path."""
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     concept_data = {
         "id": "concept1",
@@ -368,18 +372,16 @@ def test_load_concepts_from_tree_reader(tmp_path):
         "concepts/test_concept.yaml": yaml.dump(concept_data).encode(),
     }, "add concept")
 
-    from propstore.tree_reader import GitTreeReader
     from propstore.validate import load_concepts
-    reader = GitTreeReader(kr)
-    concepts = load_concepts(None, reader=reader)
+    concepts = load_concepts(kr.tree() / "concepts")
     assert len(concepts) == 1
     assert concepts[0].data["id"] == "concept1"
     assert concepts[0].filepath is None
     assert concepts[0].filename == "test_concept"
 
 
-def test_load_claim_files_from_tree_reader(tmp_path):
-    """load_claim_files() works via GitTreeReader from a committed git tree."""
+def test_load_claim_files_from_git_tree(tmp_path):
+    """load_claim_files() works from a committed git-backed knowledge path."""
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     claim_data = {
         "claims": [
@@ -396,18 +398,16 @@ def test_load_claim_files_from_tree_reader(tmp_path):
         "claims/test_claims.yaml": yaml.dump(claim_data).encode(),
     }, "add claims")
 
-    from propstore.tree_reader import GitTreeReader
     from propstore.validate_claims import load_claim_files
-    reader = GitTreeReader(kr)
-    claim_files = load_claim_files(None, reader=reader)
+    claim_files = load_claim_files(kr.tree() / "claims")
     assert len(claim_files) == 1
     assert claim_files[0].data["claims"][0]["id"] == "claim1"
     assert claim_files[0].filepath is None
     assert claim_files[0].filename == "test_claims"
 
 
-def test_load_contexts_from_tree_reader(tmp_path):
-    """load_contexts() works via GitTreeReader from a committed git tree."""
+def test_load_contexts_from_git_tree(tmp_path):
+    """load_contexts() works from a committed git-backed knowledge path."""
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     context_data = {
         "id": "ctx1",
@@ -418,10 +418,8 @@ def test_load_contexts_from_tree_reader(tmp_path):
         "contexts/test_context.yaml": yaml.dump(context_data).encode(),
     }, "add context")
 
-    from propstore.tree_reader import GitTreeReader
     from propstore.validate_contexts import load_contexts
-    reader = GitTreeReader(kr)
-    contexts = load_contexts(None, reader=reader)
+    contexts = load_contexts(kr.tree() / "contexts")
     assert len(contexts) == 1
     assert contexts[0].data["id"] == "ctx1"
     assert contexts[0].filepath is None
