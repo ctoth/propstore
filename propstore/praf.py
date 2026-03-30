@@ -18,6 +18,20 @@ from dataclasses import dataclass
 _Z_SCORES = {0.90: 1.645, 0.95: 1.960, 0.99: 2.576}
 _DETERMINISTIC_EPSILON = 1e-12
 _UNSET = object()
+_ALLOWED_STRATEGIES = frozenset({
+    "auto",
+    "deterministic",
+    "mc",
+    "exact",
+    "exact_enum",
+    "exact_dp",
+    "dfquad",
+    "dfquad_quad",
+    "dfquad_baf",
+})
+_STRATEGY_ALIASES = {
+    "exact": "exact_enum",
+}
 
 
 def _z_for_confidence(confidence: float) -> float:
@@ -25,6 +39,15 @@ def _z_for_confidence(confidence: float) -> float:
     if confidence in _Z_SCORES:
         return _Z_SCORES[confidence]
     raise ValueError(f"Unsupported mc_confidence={confidence}; use 0.90, 0.95, or 0.99")
+
+
+def _normalize_strategy(strategy: str) -> tuple[str, str]:
+    """Normalize public strategy aliases and reject unsupported values."""
+    requested = str(strategy)
+    if requested not in _ALLOWED_STRATEGIES:
+        supported = ", ".join(sorted(_ALLOWED_STRATEGIES))
+        raise ValueError(f"Unknown strategy: {requested}. Supported strategies: {supported}")
+    return _STRATEGY_ALIASES.get(requested, requested), requested
 
 from propstore.dung import (
     ArgumentationFramework,
@@ -616,23 +639,28 @@ def compute_praf_acceptance(
     inference_mode:
         Required only for argument_acceptance: "credulous" or "skeptical".
     """
+    normalized_strategy, requested_strategy = _normalize_strategy(strategy)
     normalized_query_kind, normalized_inference_mode, normalized_queried_set = _validate_query_contract(
-        strategy=strategy,
+        strategy=normalized_strategy,
         query_kind=query_kind,
         inference_mode=inference_mode,
         queried_set=queried_set,
     )
 
-    if strategy == "deterministic":
-        return _deterministic_fallback(
+    if normalized_strategy == "deterministic":
+        result = _deterministic_fallback(
             praf,
             semantics,
             query_kind=normalized_query_kind,
             inference_mode=normalized_inference_mode,
             queried_set=normalized_queried_set,
         )
-    if strategy == "mc":
-        return _compute_mc(
+        return (
+            _with_strategy_override(result, strategy_requested=requested_strategy)
+            if requested_strategy != normalized_strategy else result
+        )
+    if normalized_strategy == "mc":
+        result = _compute_mc(
             praf,
             semantics,
             mc_epsilon,
@@ -642,15 +670,23 @@ def compute_praf_acceptance(
             inference_mode=normalized_inference_mode,
             queried_set=normalized_queried_set,
         )
-    if strategy == "exact_enum":
-        return _compute_exact_enumeration(
+        return (
+            _with_strategy_override(result, strategy_requested=requested_strategy)
+            if requested_strategy != normalized_strategy else result
+        )
+    if normalized_strategy == "exact_enum":
+        result = _compute_exact_enumeration(
             praf,
             semantics,
             query_kind=normalized_query_kind,
             inference_mode=normalized_inference_mode,
             queried_set=normalized_queried_set,
         )
-    if strategy == "exact_dp":
+        return (
+            _with_strategy_override(result, strategy_requested=requested_strategy)
+            if requested_strategy != normalized_strategy else result
+        )
+    if normalized_strategy == "exact_dp":
         supported = _exact_dp_supports_query(
             query_kind=normalized_query_kind,
             inference_mode=normalized_inference_mode,
@@ -673,25 +709,33 @@ def compute_praf_acceptance(
             )
             return _with_strategy_override(
                 downgraded,
-                strategy_requested="exact_dp",
-                downgraded_from="exact_dp",
+                strategy_requested=requested_strategy,
+                downgraded_from=requested_strategy,
             )
-        return _compute_exact_dp(
+        result = _compute_exact_dp(
             praf,
             semantics,
             query_kind=normalized_query_kind,
             inference_mode=normalized_inference_mode,
         )
-    if strategy == "dfquad":
+        return (
+            _with_strategy_override(result, strategy_requested=requested_strategy)
+            if requested_strategy != normalized_strategy else result
+        )
+    if normalized_strategy == "dfquad":
         raise ValueError(
             "strategy='dfquad' is ambiguous; use 'dfquad_quad' or 'dfquad_baf'"
         )
-    if strategy in {"dfquad_quad", "dfquad_baf"}:
-        return _compute_dfquad(
+    if normalized_strategy in {"dfquad_quad", "dfquad_baf"}:
+        result = _compute_dfquad(
             praf,
             semantics,
-            strategy=strategy,
+            strategy=normalized_strategy,
             tau=tau,
+        )
+        return (
+            _with_strategy_override(result, strategy_requested=requested_strategy)
+            if requested_strategy != normalized_strategy else result
         )
 
     # Auto dispatch

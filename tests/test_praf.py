@@ -100,6 +100,43 @@ def test_mc_convergence():
     assert result_fine.confidence_interval_half < result_coarse.confidence_interval_half
 
 
+def test_public_exact_alias_routes_to_exact_enumeration():
+    """Public strategy='exact' must behave as an explicit exact-enum alias."""
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    af = ArgumentationFramework(
+        arguments=frozenset({"a", "b"}),
+        defeats=frozenset({("a", "b")}),
+    )
+    praf = ProbabilisticAF(
+        framework=af,
+        p_args={arg: Opinion.dogmatic_true() for arg in af.arguments},
+        p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
+    )
+
+    aliased = compute_praf_acceptance(praf, semantics="grounded", strategy="exact")
+    direct = compute_praf_acceptance(praf, semantics="grounded", strategy="exact_enum")
+
+    assert aliased.acceptance_probs == direct.acceptance_probs
+    assert aliased.strategy_requested == "exact"
+    assert aliased.strategy_used == "exact_enum"
+
+
+def test_unknown_strategy_is_rejected_instead_of_silently_falling_back_to_auto():
+    """Unsupported strategy names must fail loudly rather than changing semantics."""
+    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+
+    af = ArgumentationFramework(arguments=frozenset({"a"}), defeats=frozenset())
+    praf = ProbabilisticAF(
+        framework=af,
+        p_args={"a": Opinion.dogmatic_true()},
+        p_defeats={},
+    )
+
+    with pytest.raises(ValueError, match="Unknown strategy"):
+        compute_praf_acceptance(praf, strategy="definitely_not_a_strategy")
+
+
 # ---------------------------------------------------------------------------
 # 4. test_mc_seeded_reproducibility
 # ---------------------------------------------------------------------------
