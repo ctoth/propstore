@@ -44,6 +44,7 @@ strict = [
     "propstore/conflict_detector/models.py",
     "propstore/dung.py",
     "propstore/opinion.py",
+    "propstore/aspic.py",
 ]
 
 [tool.uv.sources]

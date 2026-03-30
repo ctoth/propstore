@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import functools
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, TypeVar, Union
 
 if TYPE_CHECKING:
     from propstore.dung import ArgumentationFramework
@@ -159,6 +159,7 @@ class DefeasibleArg:
 
 
 Argument = Union[PremiseArg, StrictArg, DefeasibleArg]
+PreferenceOrderedT = TypeVar("PreferenceOrderedT", Literal, Rule)
 
 
 @dataclass(frozen=True)
@@ -394,9 +395,7 @@ def conc(a: Argument) -> Literal:
     """Conclusion of argument. Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
         return a.premise
-    if isinstance(a, (StrictArg, DefeasibleArg)):
-        return a.rule.consequent
-    raise TypeError(f"Unknown argument type: {type(a)}")
+    return a.rule.consequent
 
 
 @functools.cache
@@ -404,9 +403,10 @@ def prem(a: Argument) -> frozenset[Literal]:
     """All premises (recursive). Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
         return frozenset({a.premise})
-    if isinstance(a, (StrictArg, DefeasibleArg)):
-        return frozenset().union(*(prem(s) for s in a.sub_args))
-    raise TypeError(f"Unknown argument type: {type(a)}")
+    premises: set[Literal] = set()
+    for sub_arg in a.sub_args:
+        premises.update(prem(sub_arg))
+    return frozenset(premises)
 
 
 @functools.cache
@@ -414,9 +414,10 @@ def sub(a: Argument) -> frozenset[Argument]:
     """All sub-arguments including self. Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
         return frozenset({a})
-    if isinstance(a, (StrictArg, DefeasibleArg)):
-        return frozenset({a}).union(*(sub(s) for s in a.sub_args))
-    raise TypeError(f"Unknown argument type: {type(a)}")
+    sub_arguments: set[Argument] = {a}
+    for sub_arg in a.sub_args:
+        sub_arguments.update(sub(sub_arg))
+    return frozenset(sub_arguments)
 
 
 @functools.cache
@@ -424,9 +425,7 @@ def top_rule(a: Argument) -> Rule | None:
     """Top-level rule. None for PremiseArg. Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
         return None
-    if isinstance(a, (StrictArg, DefeasibleArg)):
-        return a.rule
-    raise TypeError(f"Unknown argument type: {type(a)}")
+    return a.rule
 
 
 @functools.cache
@@ -434,11 +433,12 @@ def def_rules(a: Argument) -> frozenset[Rule]:
     """All defeasible rules used. Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
         return frozenset()
-    if isinstance(a, StrictArg):
-        return frozenset().union(*(def_rules(s) for s in a.sub_args))
+    rules: set[Rule] = set()
+    for sub_arg in a.sub_args:
+        rules.update(def_rules(sub_arg))
     if isinstance(a, DefeasibleArg):
-        return frozenset({a.rule}).union(*(def_rules(s) for s in a.sub_args))
-    raise TypeError(f"Unknown argument type: {type(a)}")
+        rules.add(a.rule)
+    return frozenset(rules)
 
 
 @functools.cache
@@ -453,9 +453,10 @@ def last_def_rules(a: Argument) -> frozenset[Rule]:
         return frozenset()
     if isinstance(a, DefeasibleArg):
         return frozenset({a.rule})
-    if isinstance(a, StrictArg):
-        return frozenset().union(*(last_def_rules(s) for s in a.sub_args))
-    raise TypeError(f"Unknown argument type: {type(a)}")
+    rules: set[Rule] = set()
+    for sub_arg in a.sub_args:
+        rules.update(last_def_rules(sub_arg))
+    return frozenset(rules)
 
 
 @functools.cache
@@ -463,9 +464,10 @@ def prem_p(a: Argument) -> frozenset[Literal]:
     """Ordinary premises only (K_p members). Modgil & Prakken 2018, p.10."""
     if isinstance(a, PremiseArg):
         return frozenset() if a.is_axiom else frozenset({a.premise})
-    if isinstance(a, (StrictArg, DefeasibleArg)):
-        return frozenset().union(*(prem_p(s) for s in a.sub_args))
-    raise TypeError(f"Unknown argument type: {type(a)}")
+    premises: set[Literal] = set()
+    for sub_arg in a.sub_args:
+        premises.update(prem_p(sub_arg))
+    return frozenset(premises)
 
 
 def is_firm(a: Argument) -> bool:
@@ -568,11 +570,10 @@ def build_arguments(
         """All conclusions reachable in the sub-argument tree."""
         if isinstance(arg, PremiseArg):
             return frozenset({arg.premise})
-        if isinstance(arg, (StrictArg, DefeasibleArg)):
-            return frozenset({arg.rule.consequent}).union(
-                *(_all_concs(s) for s in arg.sub_args)
-            )
-        return frozenset()  # pragma: no cover
+        conclusions: set[Literal] = {arg.rule.consequent}
+        for sub_arg in arg.sub_args:
+            conclusions.update(_all_concs(sub_arg))
+        return frozenset(conclusions)
 
     # Step 2-3: Iterate until fixpoint
     all_rules = list(system.strict_rules | system.defeasible_rules)
@@ -581,14 +582,14 @@ def build_arguments(
         changed = False
         for rule in all_rules:
             # For each rule, get the sets of arguments matching each antecedent
-            ante_arg_sets = []
+            ante_arg_sets: list[tuple[Argument, ...]] = []
             skip = False
             for ante_lit in rule.antecedents:
                 args_for_lit = conc_index.get(ante_lit)
                 if not args_for_lit:
                     skip = True
                     break
-                ante_arg_sets.append(args_for_lit)
+                ante_arg_sets.append(tuple(args_for_lit))
             if skip:
                 continue
 
@@ -600,9 +601,9 @@ def build_arguments(
                 # (e.g., p->q, q->p producing ever-deeper arguments).
                 # ASPIC+ arguments are finite trees (Def 5); a conclusion
                 # appearing in a sub-argument would create a cycle.
-                combo_concs = frozenset().union(
-                    *(_all_concs(s) for s in combo)
-                )
+                combo_concs: set[Literal] = set()
+                for sub_arg in combo:
+                    combo_concs.update(_all_concs(sub_arg))
                 if rule.consequent in combo_concs:
                     continue
 
@@ -722,9 +723,9 @@ def compute_attacks(
 
 
 def _set_strictly_less(
-    gamma: frozenset,
-    gamma_prime: frozenset,
-    base_order: frozenset[tuple],
+    gamma: frozenset[PreferenceOrderedT],
+    gamma_prime: frozenset[PreferenceOrderedT],
+    base_order: frozenset[tuple[PreferenceOrderedT, PreferenceOrderedT]],
     comparison: str,
 ) -> bool:
     """Set comparison Gamma <_s Gamma' per Modgil & Prakken 2018, Def 19 (p.21).
@@ -944,5 +945,5 @@ class CSAF:
     attacks: frozenset[Attack]
     defeats: frozenset[tuple[Argument, Argument]]
     framework: ArgumentationFramework  # from dung.py
-    arg_to_id: dict  # Argument -> str
-    id_to_arg: dict  # str -> Argument
+    arg_to_id: dict[Argument, str]
+    id_to_arg: dict[str, Argument]
