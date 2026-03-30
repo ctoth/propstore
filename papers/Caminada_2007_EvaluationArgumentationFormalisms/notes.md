@@ -268,6 +268,39 @@ Key connections:
 - [ ] How do these postulates extend to bipolar argumentation frameworks (Cayrol 2005)?
 - [ ] Connection between Cl_tp and Clark completion for logic programs (mentioned in discussion)
 
+## Collection Cross-References
+
+### Already in Collection
+- [[Dung_1995_AcceptabilityArguments]] — cited as [42]; the foundational abstract argumentation framework (AF = (Args, Defeats), grounded/preferred/stable/complete extensions) that all of this paper's constructions build upon. The three rationality postulates are defined relative to Dung's semantics, and the key result (Cl_tp + restricted rebutting satisfies all postulates under ALL Dung semantics) requires Dung's framework as its semantic base.
+- [[Cayrol_2005_AcceptabilityArgumentsBipolarArgumentation]] — cited as [25]; Cayrol's gradual semantics paper is cited in the context of related valuation approaches. Cayrol's bipolar framework adds support relations that interact with the closure and consistency requirements this paper defines.
+- [[Caminada_2006_IssueReinstatementArgumentation]] — cited as [23] (same first author's companion paper); establishes the labelling-based semantics (in/out/undec) and semi-stable semantics that provide an alternative formal foundation for evaluating argumentation formalisms. The reinstatement labellings defined there are the formal substrate on which the postulates here are evaluated.
+- [[Pollock_1987_DefeasibleReasoning]] — cited as [36]; Pollock's rebutting vs. undercutting defeat distinction is adopted directly in this paper's Definitions 9-11. Restricted rebutting (Definition 15), the key ingredient of the preferred solution, directly refines Pollock's rebutting to apply only at defeasible rule conclusions.
+
+### New Leads (Not Yet in Collection)
+- Prakken & Sartor (1997) [39] — "Argument-based extended logic programming with defeasible priorities" — one of the two structured argumentation systems demonstrated to violate the rationality postulates; precursor to ASPIC+
+- Garcia & Simari (2004) [30] — "Defeasible logic programming: an argumentative approach" — DeLP; the second formalism shown to only partially satisfy the postulates (Example 6)
+- Amgoud et al. (2004) [4] — ASPIC Deliverable D2.2; the original ASPIC framework that this paper evaluates and finds deficient; precursor to ASPIC+
+
+### Supersedes or Recontextualizes
+- (none — this paper defines evaluation criteria that motivated the redesign of ASPIC into ASPIC+, but does not directly supersede a collection paper)
+
+### Cited By (in Collection)
+- [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] — cites this paper extensively; Example 4.1 (Married John) and Def 4.3 (closed under transposition) are drawn directly from this paper. ASPIC+ was designed specifically to satisfy the three rationality postulates defined here.
+- [[Modgil_2018_GeneralAccountArgumentationPreferences]] — cites this paper for the rationality postulates and transposition closure; the revised conflict-free definition (attack-based rather than defeat-based) is motivated by the need to ensure all four postulates hold without auxiliary assumptions.
+- [[Prakken_2010_AbstractFrameworkArgumentationStructured]] — cites this paper for the rationality postulates (closure, direct/indirect consistency) and the transposition/contraposition closure conditions (Defs 5.1-5.5).
+- [[Prakken_2012_AppreciationJohnPollock'sWork]] — cites this paper in the context of ASPIC's handling of Pollock-style defeat and the formal criteria for evaluating argumentation systems.
+- [[Odekerken_2023_ArgumentationReasoningASPICIncompleteInformation]] — cites the rationality postulates as the correctness criteria that the incomplete-information extension of ASPIC+ is designed to preserve.
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — cited in Baroni's Conceptual Links; both papers evaluate argumentation formalisms against formal criteria, covering complementary sides (structured vs. abstract, rule-based vs. extension-based).
+- [[Caminada_2006_IssueReinstatementArgumentation]] — the companion labelling paper already lists this paper in its Cited By section.
+
+### Conceptual Links (not citation-based)
+**Principle-based evaluation:**
+- [[Baroni_2007_Principle-basedEvaluationExtension-basedArgumentation]] — **Strong.** Both papers evaluate argumentation formalisms against formal criteria, but at different levels: Baroni evaluates abstract-level semantics (grounded, preferred, stable, semi-stable, CF2) against structural principles (reinstatement, directionality, SCC-recursiveness); this paper evaluates structured rule-based formalisms against semantic-output principles (closure, consistency). Together they provide a two-level evaluation framework: structural correctness (Baroni) and semantic-output correctness (Caminada & Amgoud).
+
+**Structured argumentation and ASPIC+:**
+- [[Modgil_2014_ASPICFrameworkStructuredArgumentation]] — **Strong.** ASPIC+ was redesigned specifically to satisfy the three rationality postulates defined in this paper. The transposition closure requirement (Def 4.3 in Modgil 2014) is taken directly from Definition 18 here, and restricted rebutting (Def 4.3 in Modgil 2014) from Definition 15 here.
+- [[Modgil_2018_GeneralAccountArgumentationPreferences]] — **Strong.** The revised attack-based conflict-free definition in Modgil 2018 (replacing defeat-based) is motivated directly by the need to guarantee all rationality postulates from this paper under a broader class of instantiations and preference orderings.
+
 ## Related Work Worth Reading
 - [4] Amgoud, M. Caminada, C. Cayrol, M. Lagasquie, and H. Prakken. Towards a consensual formal model: inference part. Technical report, In Deliverable D2.2 Draft Formal Semantics for Inference and Decision-Making. ASPIC project, 2004. (The ASPIC framework this paper evaluates)
 - [14] P. Baroni and M. Giacomin. Two-resolutions: a general schema for argumentation semantics. (Semi-stable semantics)
