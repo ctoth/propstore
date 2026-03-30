@@ -171,6 +171,14 @@ These remain the source of truth:
 
 This proposal does **not** replace these objects.
 
+When a storage merge commit is written, it does not replace them either.
+
+The intended interpretation is:
+
+- source branch artifacts remain the provenance-bearing epistemic ground truth
+- the merged partial framework is the semantic merge state
+- any serialized merged claim file is a materialized projection/export artifact derived from that state
+
 ### 2. Branch-local structured theory
 
 Each branch/source induces a structured theory from the stored entities:
@@ -205,6 +213,8 @@ The branch-local summaries are merged into a shared partial framework:
 Queries and render-time reasoning operate over this merged object and explain results back in terms of claims, justifications, and sources.
 
 This merged object remains structural. It is not the place to encode source-trust defeat policy, and it is not the place to import structured future-information machinery from the incomplete-information literature.
+
+This also means the merged partial framework, not `claims/merged.yaml`, is the thing that should be treated as “the merge result” semantically.
 
 The final target architecture is therefore:
 
@@ -344,6 +354,23 @@ After structured construction:
 - Query-time reasoning can then say whether the result is unresolved, skeptically rejected, credulously supported on one side, or preference-sensitive.
 
 This is the motivating application shape for the proposal: merging knowledge contributions as structured theories, not picking winners among rows.
+
+---
+
+## Storage Projection Rule
+
+If a merge is materialized back into repository files, that materialization should be read as:
+
+- a provenance-preserving storage/export artifact
+- a convenience view over the formal merge object
+- not a declaration that disagreement, ignorance, or alternative supported structures have vanished
+
+So:
+
+- branch history keeps the original evidence
+- the merge object keeps the formal disagreement structure
+- query/render policy decides what is accepted or highlighted
+- storage projection only serializes one repository-facing view of that state
 
 ---
 

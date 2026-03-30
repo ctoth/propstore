@@ -9,6 +9,12 @@ The central split is:
 
 Merge commits are not themselves the IC merge operator. They are provenance-preserving storage objects built from the formal merge object.
 
+The important consequence is:
+
+- source branch artifacts remain the epistemic source of truth
+- the formal merge object is the semantic merge state
+- any merged claim file such as `claims/merged.yaml` is a materialized projection for storage/export convenience, not the ontological truth of the merge
+
 ## What Exists Now
 
 The repository layer exposes these public merge modules:
@@ -187,6 +193,7 @@ Behavior:
 - the commit stores both parents and updates `target_branch`
 
 This is the storage representation of a merge, not the query-time merge operator.
+It should be read as a projection artifact, not as the thing that makes the disagreement disappear.
 
 ## Structured Merge Slice
 
@@ -238,6 +245,7 @@ Creates the two-parent storage merge commit from the same formal merge object an
 ## What This Does Not Claim
 
 - merge commits are not themselves IC merge operators
+- `claims/merged.yaml` is not a claim that the merge has produced a single final epistemic truth
 - the old public `MergeClassification` / `MergeItem` API is not the current public contract
 - full structured merge equivalence theorems are not yet established
 - the exact AF merge operators are not optimized for large profiles
