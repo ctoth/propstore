@@ -17,9 +17,8 @@ The most important live consumers are:
 The most important non-live but strategically important consumers are:
 
 - `structured_merge.py`
-- `branch_reasoning.py`
 
-So the first coding slice should harden active canonical surfaces and only then narrow bridge helpers.
+So the first coding slice should harden active canonical surfaces and only then tighten the structured boundary.
 
 ---
 
@@ -61,22 +60,7 @@ Why it matters:
 
 ---
 
-## Bridge Or Transitional Consumers
-
-### Branch reasoning bridge
-
-- [branch_reasoning.py](C:/Users/Q/code/propstore/propstore/repo/branch_reasoning.py)
-  - `branch_nogoods_from_merge(...)`
-  - `inject_branch_stances(...)`
-
-Current observed usage:
-
-- direct repo search shows test references, but no obvious live production callers of `inject_branch_stances(...)`
-
-Interpretation:
-
-- this is still bridge code
-- but it is not currently the highest-risk live dependency
+## Non-Live But Strategically Important Consumers
 
 ### Structured merge slice
 
@@ -102,7 +86,6 @@ Evidence:
 - [test_merge_classifier.py](C:/Users/Q/code/propstore/tests/test_merge_classifier.py)
 - [test_merge_report.py](C:/Users/Q/code/propstore/tests/test_merge_report.py)
 - [test_merge_cli.py](C:/Users/Q/code/propstore/tests/test_merge_cli.py)
-- [test_branch_reasoning.py](C:/Users/Q/code/propstore/tests/test_branch_reasoning.py)
 - [test_structured_merge_projection.py](C:/Users/Q/code/propstore/tests/test_structured_merge_projection.py)
 
 Interpretation:
@@ -120,8 +103,6 @@ Interpretation:
    - active canonical user surface
 3. [structured_merge.py](C:/Users/Q/code/propstore/propstore/repo/structured_merge.py)
    - under-specified semantic boundary
-4. [branch_reasoning.py](C:/Users/Q/code/propstore/propstore/repo/branch_reasoning.py)
-   - important bridge seam, but not the first live production bottleneck
 
 ---
 
@@ -131,4 +112,3 @@ Treat the next coding slice as:
 
 - harden the active canonical merge-object surfaces
 - define the structured-summary contract more sharply
-- then revisit bridge narrowing once live-consumer needs are fully pinned down

@@ -20,7 +20,6 @@ The literature refresh supports this sequencing:
 
 - merge stays structural
 - inspect/commit stay the public canonical surface
-- bridge reduction is later unless a live dependency proves otherwise
 
 ---
 
@@ -37,7 +36,6 @@ Optional only if forced by tests:
 
 Explicitly out of scope:
 
-- `propstore/repo/branch_reasoning.py`
 - `propstore/repo/structured_merge.py`
 - policy-weighted merge semantics
 - Odekerken-style stability/relevance machinery
@@ -52,7 +50,6 @@ Explicitly out of scope:
    - formal merge inspection
    - storage merge commit
    clearly separate
-4. the active inspect/commit path does not depend on `branch_reasoning.py`
 
 ---
 

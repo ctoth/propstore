@@ -18,7 +18,6 @@ The repository layer exposes these public merge modules:
 | `propstore/repo/merge_framework.py` | `PartialArgumentationFramework`, completion enumeration, exact per-pair edit distance |
 | `propstore/repo/merge_classifier.py` | `MergeArgument`, `RepoMergeFramework`, `build_merge_framework()` — direct repo emission of the formal merge object |
 | `propstore/repo/merge_commit.py` | `create_merge_commit()` — two-parent storage merge built from the formal merge object |
-| `propstore/repo/branch_reasoning.py` | branch assumptions, nogoods, and synthetic contradiction stances derived from the merge framework |
 | `propstore/repo/paf_merge.py` | exact `consensual_expand()`, `sum_merge_frameworks()`, `max_merge_frameworks()`, `leximax_merge_frameworks()` |
 | `propstore/repo/paf_queries.py` | skeptical and credulous completion queries |
 | `propstore/repo/merge_report.py` | repo-facing summary/report helper over merge frameworks |
@@ -43,7 +42,6 @@ The literature alignment is:
 - **Coste-Marquis et al. 2007**: partial frameworks, consensual expansion, completions, AF-level merge operators
 - **Konieczny & Pino Perez 2002**: operator vocabulary and aggregation intuition
 - **Modgil / Prakken / ASPIC+**: branch-local structured summaries
-- **Mason & Johnson 1989**: branch assumptions and nogoods
 
 ## Repository Merge Object
 
@@ -161,28 +159,6 @@ Currently supported semantics are:
 - `grounded`
 - `preferred`
 - `stable`
-
-## Branch Reasoning
-
-`propstore/repo/branch_reasoning.py`
-
-This module now consumes `RepoMergeFramework`, not legacy merge items.
-
-### `make_branch_assumption()`
-
-Builds branch assumption refs for ATMS reasoning.
-
-### `branch_nogoods_from_merge()`
-
-Generates nogoods only from **mutual attacks** between single-origin emitted alternatives.
-
-Ignorance does not produce nogoods.
-
-### `inject_branch_stances()`
-
-Exports merge attacks as synthetic `contradicts` stances for current consumers that still speak in stance rows.
-
-This is a bridge from the formal merge framework to existing contradiction-based consumers. It does not define the merge semantics itself.
 
 ## Storage Merge Commits
 

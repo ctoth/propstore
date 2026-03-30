@@ -10,11 +10,6 @@ from propstore.repo.merge_classifier import (
     build_merge_framework,
 )
 from propstore.repo.merge_commit import create_merge_commit
-from propstore.repo.branch_reasoning import (
-    make_branch_assumption,
-    branch_nogoods_from_merge,
-    inject_branch_stances,
-)
 from propstore.repo.merge_framework import (
     PairState,
     PartialArgumentationFramework,
@@ -51,9 +46,6 @@ __all__ = [
     "RepoMergeFramework",
     "build_merge_framework",
     "create_merge_commit",
-    "make_branch_assumption",
-    "branch_nogoods_from_merge",
-    "inject_branch_stances",
     "PairState",
     "PartialArgumentationFramework",
     "enumerate_paf_completions",

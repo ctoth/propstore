@@ -20,7 +20,6 @@ The repo already has:
 
 The main remaining gap is **not** kernel invention. It is **consolidation**:
 
-- remove or reduce bridge semantics
 - tighten the structured boundary
 - prepare explicit policy insertion points
 - make the proposal/checklist match the actual code
@@ -88,27 +87,7 @@ Assessment:
 
 ---
 
-## Bridge Code Still Present
-
-### Synthetic contradiction export
-
-- [branch_reasoning.py](C:/Users/Q/code/propstore/propstore/repo/branch_reasoning.py)
-  - `inject_branch_stances(...)`
-
-Why it matters:
-
-- this re-expresses merge attacks as synthetic `contradicts` stances for older consumers
-- that is useful as a bridge, but it is not the canonical merge semantics
-
-Assessment:
-
-- this is the highest-signal bridge path to target first
-- it should either shrink or become explicitly transitional in docs/tests
-
-Code-check correction:
-
-- current repo inspection shows `inject_branch_stances(...)` is referenced by tests, not by obvious production callers
-- that makes it an important bridge seam, but not the highest-risk live dependency
+## Under-Specified Boundary
 
 ### Structured summary contract
 
@@ -174,7 +153,6 @@ Evidence of already-landed coverage:
 - [test_paf_queries.py](C:/Users/Q/code/propstore/tests/test_paf_queries.py)
 - [test_repo_merge_object.py](C:/Users/Q/code/propstore/tests/test_repo_merge_object.py)
 - [test_structured_merge_projection.py](C:/Users/Q/code/propstore/tests/test_structured_merge_projection.py)
-- [test_branch_reasoning.py](C:/Users/Q/code/propstore/tests/test_branch_reasoning.py)
 - [test_merge_cli.py](C:/Users/Q/code/propstore/tests/test_merge_cli.py)
 - [test_merge_report.py](C:/Users/Q/code/propstore/tests/test_merge_report.py)
 
@@ -198,24 +176,10 @@ Reason:
 - `merge_report.py` proves what users actually see from the formal merge object
 - `structured_merge.py` is the largest still-under-specified semantic boundary
 
-Secondary target:
-
-- [branch_reasoning.py](C:/Users/Q/code/propstore/propstore/repo/branch_reasoning.py)
-
-Why second:
-
-- it is still bridge code
-- but current inspection suggests it is not the main live production dependency
-- it should be narrowed after the live consumer inventory confirms where stance-export is still needed
-
 Recommended RED tests first:
 
 1. active canonical merge query/report paths are explicitly identified
-2. no canonical merge query path depends on `inject_branch_stances(...)`
-3. structured-summary contract gaps are exposed by tests, especially provenance and identity stability
-4. bridge-specific invariants remain true:
-   - ignorance remains non-nogood and non-stance-generating
-   - mutual attacks remain the only branch-nogood source
+2. structured-summary contract gaps are exposed by tests, especially provenance and identity stability
 
 ---
 
@@ -227,6 +191,5 @@ Do not spend the next pass inventing new kernel abstractions.
 
 Do:
 
-1. replace or narrow bridge semantics
-2. tighten the structured summary contract
-3. prepare the policy seam cleanly
+1. tighten the structured summary contract
+2. prepare the policy seam cleanly

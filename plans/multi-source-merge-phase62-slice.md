@@ -9,7 +9,7 @@
 
 ## Goal
 
-Pin the merge kernel/operator/query semantics more tightly with exact tests before moving on to bridge cleanup or policy work.
+Pin the merge kernel/operator/query semantics more tightly with exact tests before moving on to policy work.
 
 This slice assumes the kernel code may already be correct. The point is to prove it more sharply.
 
@@ -80,7 +80,6 @@ The default expectation is:
 
 ## Out Of Scope
 
-- bridge cleanup in `branch_reasoning.py`
 - structured merge contract changes
 - CLI/report surface expansion
 - source-weighted merge policy

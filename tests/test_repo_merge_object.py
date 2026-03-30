@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import yaml
 
+import propstore.repo as repo_module
 from propstore.repo import KnowledgeRepo
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_classifier import build_merge_framework
@@ -194,3 +195,9 @@ def test_create_merge_commit_preserves_conflicting_versions_with_provenance(tmp_
     assert len(conflict_versions) == 2
     origins = {claim["provenance"]["branch_origin"] for claim in conflict_versions}
     assert origins == {"master", branch_name}
+
+
+def test_repo_public_merge_surface_excludes_bridge_helpers() -> None:
+    assert not hasattr(repo_module, "make_branch_assumption")
+    assert not hasattr(repo_module, "branch_nogoods_from_merge")
+    assert not hasattr(repo_module, "inject_branch_stances")

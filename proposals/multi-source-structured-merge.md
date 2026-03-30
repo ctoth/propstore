@@ -24,11 +24,10 @@ Today, the repo has a split state:
 - `paf_queries.py` exposes skeptical and credulous completion queries
 - `merge_classifier.py` emits a repo-facing merge object over claim alternatives
 - `structured_merge.py` provides a first branch-local structured-summary slice
-- `branch_reasoning.py` still contains bridge code that exports merge attacks as synthetic contradiction stances for older consumers
 
 This is a strong start, but it is not yet a clean, consolidated account of multi-source structured merge. In particular:
 
-1. **The formal path is not yet the only path.** Some consumers still depend on bridge behavior such as synthetic contradiction stances rather than consuming merge objects directly.
+1. **The formal path is not yet the only path.** Some public and structured-facing surfaces still need consolidation around the canonical merge object.
 2. **The structured/abstract boundary is only partially landed.** The repo has a first branch-local structured-summary slice, but not yet the full execution-grade structured merge path the architecture calls for.
 3. **The draft proposal understates what is already implemented and overstates what remains greenfield.** The control surface needs to distinguish completion work from invention work.
 4. **Source-aware preference aggregation is still ad hoc.** The repo can apply preferences inside ASPIC+, but it does not yet define a principled path from branch/source metadata to post-merge defeat behavior.
@@ -109,10 +108,8 @@ Already implemented in the repo:
 - `propstore/repo/structured_merge.py`
   - first branch-local structured summary pipeline via ASPIC projection
 
-Still acting as bridge or incomplete surface:
+Still acting as incomplete surface:
 
-- `propstore/repo/branch_reasoning.py`
-  - still exports synthetic `contradicts` stances for older consumers
 - `propstore/repo/structured_merge.py`
   - still works at a first-slice summary level rather than a fully specified structured merge contract
 - source-preference handling
@@ -433,8 +430,6 @@ This proposal fits naturally with existing components:
 
 - `propstore/repo/merge_classifier.py`
   - should be rewritten to emit the new formal merge object directly
-- `propstore/repo/branch_reasoning.py`
-  - should consume the new merge object directly instead of synthetic conflict buckets
 - `propstore/aspic.py` and `propstore/aspic_bridge.py`
   - remain the structured reasoning substrate for branch-local theories
 - `propstore/world/*`

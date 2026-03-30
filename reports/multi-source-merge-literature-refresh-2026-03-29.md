@@ -26,10 +26,9 @@ The literature supports four hard conclusions:
    - That is valuable for later inquiry and investigation layers, but it is not a reason to widen the merge kernel now.
    - The structured incomplete-information line belongs downstream of merge and alongside revision, not inside Phase 6 consolidation.
 
-4. **The next production task is canonical surface hardening, not bridge deletion for its own sake.**
-   - Current code inspection shows `branch_reasoning.py` is still a bridge seam, but not a live production bottleneck.
+4. **The next production task is canonical surface hardening.**
    - The live public surfaces are still the canonical inspect/commit paths.
-   - So the next coding slice should tighten those surfaces first, then return to bridge reduction only if a real consumer still depends on it.
+   - So the next coding slice should tighten those surfaces first.
 
 ---
 
@@ -122,9 +121,9 @@ Questions to pin with tests:
 2. Are inspect and commit still clearly separated as:
    - formal merge query surface
    - provenance/storage commit surface
-3. Do the active public paths stay on the canonical merge object without depending on `branch_reasoning.py`?
+3. Do the active public paths stay on the canonical merge object end to end?
 
-Only after that slice should Phase 6 return to bridge minimization.
+Only after that slice should Phase 6 return to the next remaining consolidation task.
 
 ---
 

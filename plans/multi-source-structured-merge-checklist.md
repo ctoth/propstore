@@ -86,7 +86,6 @@ Goal:
 Primary files:
 
 - `propstore/repo/merge_classifier.py`
-- `propstore/repo/branch_reasoning.py`
 - `propstore/repo/merge_report.py`
 - `propstore/repo/merge_commit.py`
 - any remaining merge-facing consumers identified by the audit
@@ -99,8 +98,7 @@ Tasks:
    - bridge but acceptable temporarily
    - must be replaced
 3. remove or replace remaining legacy merge-bucket dependencies
-4. reduce `inject_branch_stances()`-style bridge behavior to the minimum necessary surface once canonical-consumer inventory proves where it is still needed
-5. add explicit tests proving canonical consumers operate on `RepoMergeFramework` / `PartialArgumentationFramework`
+4. add explicit tests proving canonical consumers operate on `RepoMergeFramework` / `PartialArgumentationFramework`
 
 Acceptance:
 
@@ -275,23 +273,16 @@ If any of these disagree, coding should wait until they are reconciled.
 
 ## Next Coding Slice
 
-After the literature refresh and completion of the first coding slice plus Phase 6.2 hardening, the next coding slice should be:
-
-1. write RED tests around the active canonical inspect/commit path
-2. tighten the highest-value public merge surface if the tests expose drift
-3. verify the public path stays on `RepoMergeFramework` / `PartialArgumentationFramework`
-4. only then return to bridge narrowing if a live consumer still depends on it
+After the active inspect/commit surface cleanup, the next coding slice should be Phase 6.3 structured projection tightening.
 
 Recommended targets:
 
-- `propstore/repo/merge_commit.py`
-- `propstore/cli/merge_cmds.py`
-- `tests/test_merge_classifier.py`
-- `tests/test_merge_cli.py`
-- `propstore/repo/branch_reasoning.py` only after the consumer inventory confirms a live dependency
+- `propstore/repo/structured_merge.py`
+- `propstore/aspic_bridge.py`
+- `tests/test_structured_merge_projection.py`
 
 Why:
 
-- the active public path is still inspect + commit over the canonical merge object
-- `branch_reasoning.py` is still bridge code, but current inspection shows it is not the primary live production dependency
+- the live canonical merge object is now the only production-facing merge representation
+- the largest remaining under-specified boundary is the branch-local structured summary contract
 - the literature refresh says not to widen this phase into structured incomplete-information inquiry
