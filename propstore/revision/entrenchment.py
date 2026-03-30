@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.core.id_types import AssumptionId
 from propstore.revision.state import BeliefBase
 
 
@@ -52,7 +53,7 @@ def compute_entrenchment(
     )
 
 
-def _essential_support_ids(bound, atom_id: str) -> list[str]:
+def _essential_support_ids(bound, atom_id: str) -> list[AssumptionId]:
     if not atom_id.startswith("claim:"):
         return []
     claim_id = atom_id.partition(":")[2]

@@ -5,6 +5,7 @@ from dataclasses import replace
 from itertools import combinations
 from typing import Any
 
+from propstore.core.id_types import AssumptionId
 from propstore.revision.entrenchment import EntrenchmentReport
 from propstore.revision.state import BeliefAtom, BeliefBase, RevisionResult
 
@@ -204,7 +205,7 @@ def _choose_incision_set(
     target_ids: Sequence[str],
     entrenchment: EntrenchmentReport,
 ) -> tuple[str, ...]:
-    support_sets = [
+    support_sets: list[tuple[AssumptionId, ...]] = [
         tuple(support_set)
         for target_id in target_ids
         for support_set in base.support_sets.get(target_id, ())
@@ -216,8 +217,8 @@ def _choose_incision_set(
     rank_index = {atom_id: idx for idx, atom_id in enumerate(entrenchment.ranked_atom_ids)}
     fallback_rank = len(entrenchment.ranked_atom_ids) + len(candidates)
 
-    best_combo: tuple[str, ...] | None = None
-    best_score: tuple[int, int, tuple[str, ...]] | None = None
+    best_combo: tuple[AssumptionId, ...] | None = None
+    best_score: tuple[int, int, tuple[AssumptionId, ...]] | None = None
     for size in range(1, len(candidates) + 1):
         for combo in combinations(candidates, size):
             combo_set = set(combo)
@@ -254,7 +255,7 @@ def _forced_rejections_for_targets(
 
 
 def _has_surviving_support(
-    support_sets: Sequence[Sequence[str]],
+    support_sets: Sequence[Sequence[AssumptionId]],
     incision_set: Sequence[str],
 ) -> bool:
     incised = set(incision_set)

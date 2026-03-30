@@ -4,16 +4,25 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.core.id_types import AssumptionId, ContextId, to_assumption_ids, to_context_id
 from propstore.core.labels import AssumptionRef, Label
 
 
 @dataclass(frozen=True)
 class RevisionScope:
     bindings: Mapping[str, Any]
-    context_id: str | None = None
+    context_id: ContextId | None = None
     branch: str | None = None
     commit: str | None = None
     merge_parent_commits: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "context_id",
+            None if self.context_id is None else to_context_id(self.context_id),
+        )
+        object.__setattr__(self, "merge_parent_commits", tuple(self.merge_parent_commits))
 
 
 @dataclass(frozen=True)
@@ -29,8 +38,28 @@ class BeliefBase:
     scope: RevisionScope
     atoms: tuple[BeliefAtom, ...]
     assumptions: tuple[AssumptionRef, ...] = field(default_factory=tuple)
-    support_sets: Mapping[str, tuple[tuple[str, ...], ...]] = field(default_factory=dict)
-    essential_support: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    support_sets: Mapping[str, tuple[tuple[AssumptionId, ...], ...]] = field(default_factory=dict)
+    essential_support: Mapping[str, tuple[AssumptionId, ...]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "atoms", tuple(self.atoms))
+        object.__setattr__(self, "assumptions", tuple(self.assumptions))
+        object.__setattr__(
+            self,
+            "support_sets",
+            {
+                str(atom_id): tuple(to_assumption_ids(support_set) for support_set in support_sets)
+                for atom_id, support_sets in self.support_sets.items()
+            },
+        )
+        object.__setattr__(
+            self,
+            "essential_support",
+            {
+                str(atom_id): to_assumption_ids(support)
+                for atom_id, support in self.essential_support.items()
+            },
+        )
 
 
 @dataclass(frozen=True)
