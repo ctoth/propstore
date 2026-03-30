@@ -90,6 +90,20 @@ uv run pks merge commit agent/paper-a agent/paper-b
 uv run pks merge commit agent/paper-a agent/paper-b --target-branch synthesis --message "Merge paper branches"
 ```
 
+### `pks import-repo SOURCE_REPO`
+
+Import the committed semantic snapshot of another propstore repo onto a destination branch. Prints YAML `repo_import_commit` metadata with the source repo path, source commit, target branch, commit SHA, touched semantic paths, and whether the destination worktree was synced.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--target-branch` | TEXT | `import/<repo-name>` | Branch ref that receives the import commit |
+| `--message` | TEXT | -- | Override the default import commit message |
+
+```bash
+uv run pks -C repo-a import-repo ../repo-b
+uv run pks -C repo-a import-repo ../repo-b --target-branch master
+```
+
 ### `pks log`
 
 Show knowledge repository history.

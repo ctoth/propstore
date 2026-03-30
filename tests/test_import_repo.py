@@ -4,7 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import yaml
+from click.testing import CliRunner
 
+from propstore.cli import cli
 from propstore.cli.repository import Repository
 
 
@@ -192,5 +195,64 @@ def test_commit_repo_import_auto_syncs_master_but_not_other_branches(tmp_path):
     master_result = commit_repo_import(master_destination, master_plan)
     assert master_result.worktree_synced is True
     assert (master_destination.root / "claims" / "source.yaml").read_bytes() == (
+        b"claims:\n- id: imported\n"
+    )
+
+
+def test_import_repo_cli_emits_structured_yaml_for_import_commit(tmp_path):
+    destination = _init_project(tmp_path / "dest")
+    source = _init_project(tmp_path / "repo-b")
+    source_git = source.git
+    assert source_git is not None
+    source_git.commit_files(
+        {"claims/source.yaml": b"claims:\n- id: imported\n"},
+        "seed",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["-C", str(destination.root), "import-repo", str(source.root.parent)],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = yaml.safe_load(result.output)
+    assert payload["surface"] == "repo_import_commit"
+    assert payload["source_repo"] == str(source.root)
+    assert payload["source_commit"] == source_git.head_sha()
+    assert payload["target_branch"] == "import/repo-b"
+    assert len(payload["commit_sha"]) == 40
+    assert payload["touched_paths"] == ["claims/source.yaml"]
+    assert payload["worktree_synced"] is False
+
+
+def test_import_repo_cli_can_target_master_and_sync_worktree(tmp_path):
+    destination = _init_project(tmp_path / "dest")
+    source = _init_project(tmp_path / "repo-b")
+    source_git = source.git
+    assert source_git is not None
+    source_git.commit_files(
+        {"claims/source.yaml": b"claims:\n- id: imported\n"},
+        "seed",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(destination.root),
+            "import-repo",
+            str(source.root.parent),
+            "--target-branch",
+            "master",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = yaml.safe_load(result.output)
+    assert payload["target_branch"] == "master"
+    assert payload["worktree_synced"] is True
+    assert (destination.root / "claims" / "source.yaml").read_bytes() == (
         b"claims:\n- id: imported\n"
     )

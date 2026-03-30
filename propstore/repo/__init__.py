@@ -32,6 +32,12 @@ from propstore.repo.structured_merge import (
     build_branch_structured_summary,
     build_structured_merge_candidates,
 )
+from propstore.repo.repo_import import (
+    RepoImportPlan,
+    RepoImportResult,
+    commit_repo_import,
+    plan_repo_import,
+)
 from propstore.repo.ic_merge import (
     ICMergeProblem,
     ICMergeResult,
@@ -60,6 +66,10 @@ __all__ = [
     "BranchStructuredSummary",
     "build_branch_structured_summary",
     "build_structured_merge_candidates",
+    "RepoImportPlan",
+    "RepoImportResult",
+    "plan_repo_import",
+    "commit_repo_import",
     "ICMergeProblem",
     "ICMergeResult",
     "MergeOperator",
