@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 import click
 import yaml
 
-from propstore.cli.helpers import EXIT_VALIDATION, open_world_model, write_yaml_file
+from propstore.cli.helpers import EXIT_VALIDATION, open_world_model
 from propstore.cli.repository import Repository
 
 if TYPE_CHECKING:
@@ -88,13 +88,13 @@ def validate(obj: dict) -> None:
     )
 
     repo: Repository = obj["repo"]
-    cpd = repo.concepts_dir
-    if not cpd.exists():
-        click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
-        sys.exit(1)
-
     tree = repo.tree()
-    concepts = load_concepts(tree / "concepts")
+    concepts_root = tree / "concepts"
+    if not concepts_root.exists():
+        click.echo("No concept files found.")
+        return
+
+    concepts = load_concepts(concepts_root)
     if not concepts:
         click.echo("No concept files found.")
         return
@@ -102,7 +102,7 @@ def validate(obj: dict) -> None:
     # Validate form schema files
     from propstore.form_utils import validate_form_files
 
-    form_errors = validate_form_files(repo.forms_dir)
+    form_errors = validate_form_files(tree / "forms")
     for e in form_errors:
         click.echo(f"ERROR (form): {e}", err=True)
 
@@ -159,21 +159,16 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     )
 
     repo: Repository = obj["repo"]
+    git = repo.git
+    hash_key = None if git is None else git.head_sha()
+    tree = repo.tree(commit=hash_key) if hash_key is not None else repo.tree()
 
-    # Select semantic tree based on git backend availability
-    if repo.git:
-        hash_key = repo.git.head_sha()
-        tree = repo.tree(commit=hash_key)
-    else:
-        hash_key = None  # will use _content_hash
-        tree = repo.tree()
+    concepts_root = tree / "concepts"
+    if not concepts_root.exists():
+        click.echo("No concept files found.")
+        return
 
-    cpd = repo.concepts_dir
-    if not cpd.exists() and not repo.git:
-        click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
-        sys.exit(1)
-
-    concepts = load_concepts(tree / "concepts")
+    concepts = load_concepts(concepts_root)
     if not concepts:
         click.echo("No concept files found.")
         return
@@ -181,7 +176,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     # Step 0: Validate form schema files
     from propstore.form_utils import validate_form_files
 
-    form_errors = validate_form_files(repo.forms_dir)
+    form_errors = validate_form_files(tree / "forms")
     if form_errors:
         for e in form_errors:
             click.echo(f"ERROR (form): {e}", err=True)
@@ -327,14 +322,14 @@ def query(obj: dict, sql: str) -> None:
 def export_aliases(obj: dict, fmt: str) -> None:
     """Export the alias lookup table."""
     repo: Repository = obj["repo"]
-    all_concepts = repo.concepts_dir
-    if not all_concepts.exists():
+    concepts_root = repo.tree() / "concepts"
+    if not concepts_root.exists():
         click.echo("ERROR: No concepts directory.", err=True)
         sys.exit(1)
 
     from propstore.validate import load_concepts
 
-    concepts = load_concepts(repo.tree() / "concepts")
+    concepts = load_concepts(concepts_root)
     aliases: dict[str, dict[str, str]] = {}
 
     for c in concepts:
@@ -585,7 +580,7 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
                         skip = True
                         break
                     form_name = concept_data.get("form")
-                    fd = load_form(repo.forms_dir, form_name)
+                    fd = load_form(repo.tree() / "forms", form_name)
                     if fd is None:
                         skip = True
                         break
@@ -654,9 +649,21 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
         click.echo(f"Resolved {total_resolved} concept name(s) to IDs, {total_unresolved} unresolved")
         return
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    adds: dict[str, bytes] = {}
     for _source_path, destination_path, data in resolved_papers:
-        write_yaml_file(destination_path, data)
+        rel_path = destination_path.relative_to(repo.root).as_posix()
+        adds[rel_path] = yaml.dump(
+            data,
+            default_flow_style=False,
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8")
+
+    git = repo.git
+    if git is None:
+        raise click.ClickException("import-papers requires a git-backed repository")
+    git.commit_files(adds, f"Import {len(resolved_papers)} paper claim file(s)")
+    git.sync_worktree()
 
     click.echo(f"Imported {len(resolved_papers)} paper claim file(s) into {output_dir} ({total_claims} claims)")
     click.echo(f"Resolved {total_resolved} concept name(s) to IDs, {total_unresolved} unresolved")

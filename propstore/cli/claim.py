@@ -107,26 +107,31 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
     )
 
     repo: Repository = obj["repo"]
-    cd = Path(claims_path) if claims_path else repo.claims_dir
-    cpd = Path(concepts_path) if concepts_path else repo.concepts_dir
+    claims_root = coerce_knowledge_path(Path(claims_path)) if claims_path else repo.tree() / "claims"
+    concepts_override = Path(concepts_path) if concepts_path else None
+    concepts_root = coerce_knowledge_path(concepts_override) if concepts_override else repo.tree() / "concepts"
 
-    if not cd.exists():
-        click.echo(f"ERROR: Claims directory '{cd}' does not exist", err=True)
+    if not claims_root.exists():
+        click.echo(f"ERROR: Claims directory '{claims_root.as_posix()}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
-    if not cpd.exists():
-        click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
+    if not concepts_root.exists():
+        click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
 
-    files = load_claim_files(coerce_knowledge_path(cd))
+    files = load_claim_files(claims_root)
     if not files:
         click.echo("No claim files found.")
         return
 
-    forms_dir = cpd.parent / "forms"
-    if not forms_dir.exists():
-        forms_dir = repo.forms_dir
+    forms_root = (
+        coerce_knowledge_path(concepts_override.parent / "forms")
+        if concepts_override is not None
+        else repo.tree() / "forms"
+    )
+    if not forms_root.exists():
+        forms_root = repo.tree() / "forms"
 
-    registry = build_concept_registry_from_paths(cpd, forms_dir)
+    registry = build_concept_registry_from_paths(concepts_root, forms_root)
     result = validate_claims(files, registry)
 
     for w in result.warnings:
@@ -153,17 +158,22 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
     )
 
     repo: Repository = obj["repo"]
-    cpd = Path(concepts_path) if concepts_path else repo.concepts_dir
+    concepts_override = Path(concepts_path) if concepts_path else None
+    concepts_root = coerce_knowledge_path(concepts_override) if concepts_override else repo.tree() / "concepts"
 
-    if not cpd.exists():
-        click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
+    if not concepts_root.exists():
+        click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
 
-    forms_dir = cpd.parent / "forms"
-    if not forms_dir.exists():
-        forms_dir = repo.forms_dir
+    forms_root = (
+        coerce_knowledge_path(concepts_override.parent / "forms")
+        if concepts_override is not None
+        else repo.tree() / "forms"
+    )
+    if not forms_root.exists():
+        forms_root = repo.tree() / "forms"
 
-    registry = build_concept_registry_from_paths(cpd, forms_dir)
+    registry = build_concept_registry_from_paths(concepts_root, forms_root)
     result = validate_single_claim_file(filepath, registry)
 
     for w in result.warnings:
@@ -190,17 +200,17 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
     from propstore.validate_claims import build_concept_registry, load_claim_files
 
     repo: Repository = obj["repo"]
-    cd = repo.claims_dir
-    cpd = repo.concepts_dir
+    claims_root = repo.tree() / "claims"
+    concepts_root = repo.tree() / "concepts"
 
-    if not cd.exists():
-        click.echo(f"ERROR: Claims directory '{cd}' does not exist", err=True)
+    if not claims_root.exists():
+        click.echo(f"ERROR: Claims directory '{claims_root.as_posix()}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
-    if not cpd.exists():
-        click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
+    if not concepts_root.exists():
+        click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
 
-    files = load_claim_files(coerce_knowledge_path(cd))
+    files = load_claim_files(claims_root)
     if not files:
         click.echo("No claim files found.")
         return

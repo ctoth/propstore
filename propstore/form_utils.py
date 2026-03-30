@@ -239,14 +239,15 @@ def from_si(si_value: float, unit: str | None, form: FormDefinition) -> float:
         )
 
 
-def load_all_forms(forms_dir: Path) -> dict[str, FormDefinition]:
+def load_all_forms(forms_dir: Path | KnowledgePath) -> dict[str, FormDefinition]:
     """Load all form YAML files and return a registry keyed by form name."""
     registry: dict[str, FormDefinition] = {}
-    if not forms_dir.exists():
+    forms_root = coerce_knowledge_path(forms_dir)
+    if not forms_root.exists():
         return registry
-    for entry in sorted(forms_dir.iterdir()):
+    for entry in forms_root.iterdir():
         if entry.is_file() and entry.suffix == ".yaml":
-            fd = load_form(forms_dir, entry.stem)
+            fd = load_form(forms_root, entry.stem)
             if fd is not None:
                 registry[fd.name] = fd
     return registry
@@ -415,22 +416,22 @@ def _load_form_schema() -> dict:
     return _form_schema_cache
 
 
-def validate_form_files(forms_dir: Path) -> list[str]:
+def validate_form_files(forms_dir: Path | KnowledgePath) -> list[str]:
     """Validate all form YAML files against the form JSON Schema.
 
     Returns a list of error strings (empty means all valid).
     """
     errors: list[str] = []
-    if not forms_dir.exists():
+    forms_root = coerce_knowledge_path(forms_dir)
+    if not forms_root.exists():
         return errors
 
     schema = _load_form_schema()
 
-    for entry in sorted(forms_dir.iterdir()):
+    for entry in forms_root.iterdir():
         if not entry.is_file() or entry.suffix != ".yaml":
             continue
-        with open(entry, encoding="utf-8") as f:
-            data = yaml.safe_load(f)
+        data = yaml.safe_load(entry.read_bytes())
         if not isinstance(data, dict):
             errors.append(f"{entry.stem}: form file is not a YAML mapping")
             continue

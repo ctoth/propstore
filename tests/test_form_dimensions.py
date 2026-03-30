@@ -488,14 +488,7 @@ class TestSymbolTableReset:
 # ── Helpers ───────────────────────────────────────────────────────────
 
 
-class _MockRepo:
-    """Minimal mock of Repository for CLI testing."""
+def _make_mock_repo(base: Path):
+    from propstore.cli.repository import Repository
 
-    def __init__(self, base: Path) -> None:
-        self.forms_dir = base / "forms"
-        self.concepts_dir = base / "concepts"
-        self.forms_dir.mkdir(parents=True, exist_ok=True)
-
-
-def _make_mock_repo(base: Path) -> _MockRepo:
-    return _MockRepo(base)
+    return Repository.init(base)

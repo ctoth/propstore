@@ -635,6 +635,7 @@ class TestClaimValidate:
                 ],
             },
         )
+        _commit_workspace_paths(workspace, ["claims/paper.yaml"], "Seed committed claim validate override file")
 
         runner = CliRunner()
         result = runner.invoke(cli, [

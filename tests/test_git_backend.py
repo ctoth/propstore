@@ -1441,3 +1441,135 @@ def test_checkout_builds_from_historical(tmp_path):
     assert len(rows) == 1
     assert rows[0][0] == "concept1"
     assert rows[0][1] == "test_freq_v1"
+
+
+def test_validate_reads_git_head_not_worktree(tmp_path):
+    """pks validate must ignore uncommitted semantic edits in the worktree."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+
+    git.commit_files(
+        {
+            "forms/frequency.yaml": yaml.dump(
+                {
+                    "name": "frequency",
+                    "dimensionless": False,
+                    "unit_symbol": "Hz",
+                    "dimensions": {"T": -1},
+                },
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+            "concepts/fundamental_frequency.yaml": yaml.dump(
+                {
+                    "id": "concept1",
+                    "canonical_name": "fundamental_frequency",
+                    "status": "accepted",
+                    "definition": "F0",
+                    "domain": "speech",
+                    "form": "frequency",
+                },
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        "Seed committed concept state",
+    )
+    git.sync_worktree()
+
+    (repo.root / "concepts" / "fundamental_frequency.yaml").write_text(
+        yaml.dump(
+            {
+                "id": "concept1",
+                "canonical_name": "fundamental_frequency",
+                "status": "accepted",
+                "definition": "Broken worktree edit",
+                "domain": "speech",
+                "form": "missing_form",
+            },
+            default_flow_style=False,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "validate"])
+    assert result.exit_code == 0, result.output
+    assert "Validation passed" in result.output
+
+
+def test_import_papers_creates_commit(tmp_path):
+    """import-papers must persist imported claims through a git commit."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    git.commit_files(
+        {
+            "forms/frequency.yaml": yaml.dump(
+                {"name": "frequency", "dimensionless": False, "unit_symbol": "Hz"},
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+            "concepts/fundamental_frequency.yaml": yaml.dump(
+                {
+                    "id": "concept1",
+                    "canonical_name": "fundamental_frequency",
+                    "status": "accepted",
+                    "definition": "F0",
+                    "domain": "speech",
+                    "form": "frequency",
+                },
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        "Seed import target state",
+    )
+    git.sync_worktree()
+
+    papers_root = tmp_path / "plugin-papers"
+    paper_dir = papers_root / "Smith_2024_TestPaper"
+    paper_dir.mkdir(parents=True)
+    (paper_dir / "claims.yaml").write_text(
+        yaml.dump(
+            {
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 200.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "ignored_here", "page": 1},
+                    }
+                ]
+            },
+            default_flow_style=False,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    commits_before = len(git.log(max_count=100))
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["-C", str(root), "import-papers", "--papers-root", str(papers_root)],
+    )
+    assert result.exit_code == 0, result.output
+
+    commits_after = len(git.log(max_count=100))
+    assert commits_after == commits_before + 1
+    imported = yaml.safe_load(git.read_file("claims/Smith_2024_TestPaper.yaml"))
+    assert imported["source"]["paper"] == "Smith_2024_TestPaper"
+    assert imported["claims"][0]["id"] == "Smith_2024_TestPaper:claim1"
