@@ -1,8 +1,7 @@
 """Repository layer for propstore.
 
 Re-exports the canonical git-backed storage surface plus merge primitives.
-For IC-merge, the assignment-level ``solve_ic_merge`` path is the primary API;
-the scalar helpers remain available only as degenerate one-concept adapters.
+For IC-merge, the assignment-level ``solve_ic_merge`` path is the public API.
 """
 from propstore.repo.git_backend import KnowledgeRepo
 from propstore.repo.merge_classifier import (
@@ -43,11 +42,6 @@ from propstore.repo.ic_merge import (
     ICMergeResult,
     MergeOperator,
     claim_distance,
-    gmax_merge,
-    ic_merge,
-    max_merge,
-    scalar_profile_problem,
-    sigma_merge,
     solve_ic_merge,
 )
 
@@ -78,10 +72,5 @@ __all__ = [
     "ICMergeResult",
     "MergeOperator",
     "solve_ic_merge",
-    "scalar_profile_problem",
-    "sigma_merge",
-    "max_merge",
-    "gmax_merge",
-    "ic_merge",
     "claim_distance",
 ]

@@ -19,14 +19,14 @@ from propstore.repo.ic_merge import (
     MergeOperator,
     _eval_cel_constraint_bruteforce,
     _eval_cel_constraint_z3,
+    _gmax_merge,
+    _max_merge,
+    _scalar_ic_merge,
+    _scalar_profile_problem,
+    _sigma_merge,
     assignment_satisfies_mu,
     enumerate_candidate_assignments,
-    sigma_merge,
-    max_merge,
-    gmax_merge,
-    ic_merge,
     claim_distance,
-    scalar_profile_problem,
     solve_ic_merge,
 )
 from propstore.world.types import (
@@ -156,7 +156,7 @@ class TestSigmaMerge:
         In the scalar adaptation, unanimous profiles are fixed points.
         """
         profile = {"b1": 5.0, "b2": 5.0, "b3": 5.0}
-        result = sigma_merge(profile)
+        result = _sigma_merge(profile)
         assert result == 5.0
 
     def test_sigma_majority_wins(self):
@@ -166,7 +166,7 @@ class TestSigmaMerge:
         of a source dominate the result.
         """
         profile = {"b1": 10.0, "b2": 10.0, "b3": 10.0, "b4": 99.0}
-        result = sigma_merge(profile)
+        result = _sigma_merge(profile)
         assert result == 10.0  # 3 vs 1, majority wins
 
     @given(st_branch_profile)
@@ -180,9 +180,9 @@ class TestSigmaMerge:
 
         The scalar result depends on the multiset of values, not source labels.
         """
-        result1 = sigma_merge(profile)
+        result1 = _sigma_merge(profile)
         reversed_profile = dict(reversed(list(profile.items())))
-        result2 = sigma_merge(reversed_profile)
+        result2 = _sigma_merge(reversed_profile)
         assert result1 == result2
 
     @given(st_branch_profile)
@@ -197,7 +197,7 @@ class TestSigmaMerge:
         The winning interpretation must be a value that actually appears
         in the profile — sigma selects, it does not interpolate.
         """
-        result = sigma_merge(profile)
+        result = _sigma_merge(profile)
         assert result in profile.values()
 
     @given(st_branch_profile)
@@ -213,7 +213,7 @@ class TestSigmaMerge:
         profile values, it does not interpolate.
         """
         assume(len(set(profile.values())) >= 2)  # at least two distinct values
-        result = sigma_merge(profile)
+        result = _sigma_merge(profile)
         assert result in profile.values()
 
 
@@ -227,7 +227,7 @@ class TestMaxMerge:
         In the scalar adaptation, unanimous profiles are fixed points.
         """
         profile = {"b1": 5.0, "b2": 5.0}
-        result = max_merge(profile)
+        result = _max_merge(profile)
         assert result == 5.0
 
     def test_max_minimizes_worst_case(self):
@@ -240,7 +240,7 @@ class TestMaxMerge:
         Winner: 10.0.
         """
         profile = {"b1": 0.0, "b2": 10.0, "b3": 100.0}
-        result = max_merge(profile)
+        result = _max_merge(profile)
         assert result == 10.0
 
     @given(st_branch_profile)
@@ -254,9 +254,9 @@ class TestMaxMerge:
 
         The scalar result depends on values, not source labels.
         """
-        result1 = max_merge(profile)
+        result1 = _max_merge(profile)
         reversed_profile = dict(reversed(list(profile.items())))
-        result2 = max_merge(reversed_profile)
+        result2 = _max_merge(reversed_profile)
         assert result1 == result2
 
     @given(st_branch_profile)
@@ -271,10 +271,10 @@ class TestMaxMerge:
         Per Konieczny 2002 claim18: Max satisfies Arb — the result is
         insensitive to source multiplicity.
         """
-        result1 = max_merge(profile)
+        result1 = _max_merge(profile)
         first_key = next(iter(profile))
         augmented = {**profile, f"{first_key}_dup": profile[first_key]}
-        result2 = max_merge(augmented)
+        result2 = _max_merge(augmented)
         assert result1 == result2
 
     def test_max_duplicate_invariance_exposes_scalar_limit(self):
@@ -285,15 +285,15 @@ class TestMaxMerge:
         postulates, which require a model-theoretic result space.
         """
         profile_majority = {"b1": 0.0, "b2": 0.0, "b3": 0.0, "b4": 10.0}
-        result = max_merge(profile_majority)
+        result = _max_merge(profile_majority)
         single_profile = {"b1": 0.0, "b2": 10.0}
-        single_result = max_merge(single_profile)
+        single_result = _max_merge(single_profile)
         assert result == single_result
 
     def test_max_handles_unhashable_values(self):
         """Max must deduplicate equal unhashable values without crashing."""
         profile = {"b1": [1], "b2": [1], "b3": [2]}
-        result = max_merge(profile)
+        result = _max_merge(profile)
         assert result == [1]
 
 
@@ -307,7 +307,7 @@ class TestGMaxMerge:
         In the scalar adaptation, unanimous profiles are fixed points.
         """
         profile = {"b1": 5.0, "b2": 5.0}
-        result = gmax_merge(profile)
+        result = _gmax_merge(profile)
         assert result == 5.0
 
     def test_gmax_refines_max(self):
@@ -318,8 +318,8 @@ class TestGMaxMerge:
         distance vectors.
         """
         profile = {"b1": 0.0, "b2": 10.0, "b3": 5.0}
-        gmax_result = gmax_merge(profile)
-        max_result = max_merge(profile)
+        gmax_result = _gmax_merge(profile)
+        max_result = _max_merge(profile)
         # GMax must pick a value whose max distance is no worse than Max's pick
         gmax_max_dist = max(abs(gmax_result - v) for v in profile.values())
         max_max_dist = max(abs(max_result - v) for v in profile.values())
@@ -337,8 +337,8 @@ class TestGMaxMerge:
         Per Konieczny 2002 claim20: for any profile Psi,
         Delta^GMax(Psi) entails Delta^Max(Psi).
         """
-        gmax_result = gmax_merge(profile)
-        max_result = max_merge(profile)
+        gmax_result = _gmax_merge(profile)
+        max_result = _max_merge(profile)
         gmax_max_dist = max(abs(gmax_result - v) for v in profile.values())
         max_max_dist = max(abs(max_result - v) for v in profile.values())
         assert gmax_max_dist <= max_max_dist + 1e-9
@@ -354,9 +354,9 @@ class TestGMaxMerge:
 
         The scalar result depends on values, not source labels.
         """
-        result1 = gmax_merge(profile)
+        result1 = _gmax_merge(profile)
         reversed_profile = dict(reversed(list(profile.items())))
-        result2 = gmax_merge(reversed_profile)
+        result2 = _gmax_merge(reversed_profile)
         assert result1 == result2
 
     @given(st_branch_profile)
@@ -371,10 +371,10 @@ class TestGMaxMerge:
         Per Konieczny 2002 claim19: GMax satisfies Arb — the result is
         insensitive to source multiplicity.
         """
-        result1 = gmax_merge(profile)
+        result1 = _gmax_merge(profile)
         first_key = next(iter(profile))
         augmented = {**profile, f"{first_key}_dup": profile[first_key]}
-        result2 = gmax_merge(augmented)
+        result2 = _gmax_merge(augmented)
         assert result1 == result2
 
     def test_gmax_handles_unhashable_values(self):
@@ -384,28 +384,28 @@ class TestGMaxMerge:
             "b2": {"value": 1},
             "b3": {"value": 2},
         }
-        result = gmax_merge(profile)
+        result = _gmax_merge(profile)
         assert result == {"value": 1}
 
 
-# ── Group 5: ic_merge Dispatcher ────────────────────────────────────
+# ── Group 5: Scalar Kernel Dispatcher ───────────────────────────────
 
 
 class TestIcMergeDispatcher:
     def test_ic_merge_dispatches_sigma(self):
-        """ic_merge with operator='sigma' delegates to sigma_merge."""
+        """_scalar_ic_merge with operator='sigma' delegates to _sigma_merge."""
         profile = {"b1": 5.0, "b2": 5.0}
-        assert ic_merge(profile, operator="sigma") == sigma_merge(profile)
+        assert _scalar_ic_merge(profile, operator="sigma") == _sigma_merge(profile)
 
     def test_ic_merge_dispatches_max(self):
-        """ic_merge with operator='max' delegates to max_merge."""
+        """_scalar_ic_merge with operator='max' delegates to _max_merge."""
         profile = {"b1": 5.0, "b2": 5.0}
-        assert ic_merge(profile, operator="max") == max_merge(profile)
+        assert _scalar_ic_merge(profile, operator="max") == _max_merge(profile)
 
     def test_ic_merge_dispatches_gmax(self):
-        """ic_merge with operator='gmax' delegates to gmax_merge."""
+        """_scalar_ic_merge with operator='gmax' delegates to _gmax_merge."""
         profile = {"b1": 5.0, "b2": 5.0}
-        assert ic_merge(profile, operator="gmax") == gmax_merge(profile)
+        assert _scalar_ic_merge(profile, operator="gmax") == _gmax_merge(profile)
 
     def test_ic_merge_default_is_sigma(self):
         """Default operator is sigma (majority).
@@ -413,7 +413,7 @@ class TestIcMergeDispatcher:
         Sigma is the default aggregation kernel in the current scalar adapter.
         """
         profile = {"b1": 5.0, "b2": 10.0, "b3": 5.0}
-        assert ic_merge(profile) == sigma_merge(profile)
+        assert _scalar_ic_merge(profile) == _sigma_merge(profile)
 
 
 class TestAssignmentLevelICMerge:
@@ -715,14 +715,14 @@ class TestAssignmentLevelICMerge:
         )
 
         unconstrained_x = solve_ic_merge(
-            scalar_profile_problem(
+            _scalar_profile_problem(
                 {"s1": 0.0, "s2": 0.0, "s3": 1.0},
                 operator=MergeOperator.SIGMA,
                 concept_id="x",
             )
         )
         unconstrained_y = solve_ic_merge(
-            scalar_profile_problem(
+            _scalar_profile_problem(
                 {"s1": 0.0, "s2": 1.0, "s3": 0.0},
                 operator=MergeOperator.SIGMA,
                 concept_id="y",
@@ -874,7 +874,7 @@ class TestAssignmentLevelICMerge:
         )
 
         x_result = solve_ic_merge(
-            scalar_profile_problem(
+            _scalar_profile_problem(
                 x_profile,
                 operator=operator,
                 concept_id="x",
@@ -888,7 +888,7 @@ class TestAssignmentLevelICMerge:
             )
         )
         y_result = solve_ic_merge(
-            scalar_profile_problem(
+            _scalar_profile_problem(
                 y_profile,
                 operator=operator,
                 concept_id="y",
@@ -1020,7 +1020,7 @@ class TestAssignmentLevelICMerge:
 
     def test_range_constraint_filters_admissible_winners(self):
         profile = {"b1": 5.0, "b2": 10.0, "b3": 50.0}
-        problem = scalar_profile_problem(
+        problem = _scalar_profile_problem(
             profile,
             operator=MergeOperator.SIGMA,
             constraints=(
@@ -1039,7 +1039,7 @@ class TestAssignmentLevelICMerge:
 
     def test_category_constraint_rejects_non_member_values(self):
         profile = {"b1": "speech", "b2": "whisper", "b3": "song"}
-        problem = scalar_profile_problem(
+        problem = _scalar_profile_problem(
             profile,
             operator=MergeOperator.MAX,
             constraints=(
@@ -1069,12 +1069,12 @@ class TestAssignmentLevelICMerge:
         suppress_health_check=[HealthCheck.too_slow],
     )
     def test_unconstrained_single_concept_matches_scalar_dispatch(self, profile, operator):
-        problem = scalar_profile_problem(profile, operator=operator)
+        problem = _scalar_profile_problem(profile, operator=operator)
 
         result = solve_ic_merge(problem)
 
         assert result.scored_candidates
-        assert result.scored_candidates[0].assignment.value_for("__value__") == ic_merge(
+        assert result.scored_candidates[0].assignment.value_for("__value__") == _scalar_ic_merge(
             profile,
             operator=operator,
         )
@@ -1088,7 +1088,7 @@ class TestAssignmentLevelICMerge:
     def test_winners_always_satisfy_range_mu(self, profile):
         ordered_values = sorted(profile.values())
         upper = ordered_values[len(ordered_values) // 2]
-        problem = scalar_profile_problem(
+        problem = _scalar_profile_problem(
             profile,
             operator=MergeOperator.SIGMA,
             constraints=(
@@ -1120,8 +1120,8 @@ class TestAssignmentLevelICMerge:
             for index, value in enumerate(profile.values())
         }
 
-        original_result = solve_ic_merge(scalar_profile_problem(profile, operator=operator))
-        renamed_result = solve_ic_merge(scalar_profile_problem(renamed, operator=operator))
+        original_result = solve_ic_merge(_scalar_profile_problem(profile, operator=operator))
+        renamed_result = solve_ic_merge(_scalar_profile_problem(renamed, operator=operator))
 
         assert original_result.scored_candidates
         assert renamed_result.scored_candidates
@@ -1174,12 +1174,16 @@ class TestRenderPolicyIntegration:
 class TestPublicApiHonesty:
     def test_repo_public_api_exports_global_ic_merge_entrypoints(self):
         assert repo_api.solve_ic_merge is solve_ic_merge
-        assert repo_api.scalar_profile_problem is scalar_profile_problem
+        assert "scalar_profile_problem" not in repo_api.__all__
+        assert "sigma_merge" not in repo_api.__all__
+        assert "max_merge" not in repo_api.__all__
+        assert "gmax_merge" not in repo_api.__all__
+        assert "ic_merge" not in repo_api.__all__
 
     def test_ic_merge_module_docs_point_to_global_solver(self):
         module_doc = ic_merge_module.__doc__ or ""
-        adapter_doc = ic_merge_module.ic_merge.__doc__ or ""
-        scalar_problem_doc = ic_merge_module.scalar_profile_problem.__doc__ or ""
+        adapter_doc = ic_merge_module._scalar_ic_merge.__doc__ or ""
+        scalar_problem_doc = ic_merge_module._scalar_profile_problem.__doc__ or ""
 
         assert "solve_ic_merge" in module_doc
         assert "primary production entrypoint" in module_doc.lower()

@@ -5,12 +5,12 @@ one assignment-level merge problem over a declared concept domain subject to an
 integrity constraint ``mu``. Production resolution now routes through that
 global solver.
 
-This module also exposes scalar helpers for one-concept kernels:
+This module also keeps internal scalar helpers for one-concept kernels:
 
-- ``sigma_merge``: sum-distance kernel
-- ``max_merge``: worst-case-distance kernel
-- ``gmax_merge``: leximax refinement
-- ``scalar_profile_problem`` / ``ic_merge``: degenerate adapters into the
+- ``_sigma_merge``: sum-distance kernel
+- ``_max_merge``: worst-case-distance kernel
+- ``_gmax_merge``: leximax refinement
+- ``_scalar_profile_problem`` / ``_scalar_ic_merge``: degenerate adapters into the
   assignment-level surface
 
 Konieczny 2002 defines merging over propositional belief bases with
@@ -67,7 +67,7 @@ def claim_distance(a: Any, b: Any) -> float:
         return 0.0 if a == b else 1.0
 
 
-def sigma_merge(profile: dict[str, Any]) -> Any:
+def _sigma_merge(profile: dict[str, Any]) -> Any:
     """One-concept Sigma kernel over a scalar profile.
 
     Per Konieczny 2002 claim13-15: d_Sigma(I, Psi) = sum d(I, phi).
@@ -431,7 +431,7 @@ def solve_ic_merge(problem: ICMergeProblem) -> ICMergeResult:
     )
 
 
-def scalar_profile_problem(
+def _scalar_profile_problem(
     profile: Mapping[str, Any],
     *,
     operator: MergeOperator | str = MergeOperator.SIGMA,
@@ -453,7 +453,7 @@ def scalar_profile_problem(
     )
 
 
-def max_merge(profile: dict[str, Any]) -> Any:
+def _max_merge(profile: dict[str, Any]) -> Any:
     """One-concept Max kernel over a scalar profile.
 
     Per Konieczny 2002 claim17-18: d_Max(I, Psi) = max d(I, phi).
@@ -479,7 +479,7 @@ def max_merge(profile: dict[str, Any]) -> Any:
     return best_value
 
 
-def gmax_merge(profile: dict[str, Any]) -> Any:
+def _gmax_merge(profile: dict[str, Any]) -> Any:
     """One-concept GMax kernel over a scalar profile.
 
     Per Konieczny 2002 claim19-20: GMax refines Max.
@@ -511,15 +511,15 @@ def gmax_merge(profile: dict[str, Any]) -> Any:
     return best_value
 
 
-def ic_merge(profile: dict[str, Any], *, operator: str = "sigma") -> Any:
+def _scalar_ic_merge(profile: dict[str, Any], *, operator: str = "sigma") -> Any:
     """One-concept adapter that dispatches to the scalar kernels.
 
     Default is the Sigma aggregation kernel (Konieczny 2002 claim15).
     """
     dispatch = {
-        "sigma": sigma_merge,
-        "max": max_merge,
-        "gmax": gmax_merge,
+        "sigma": _sigma_merge,
+        "max": _max_merge,
+        "gmax": _gmax_merge,
     }
     fn = dispatch.get(operator)
     if fn is None:
