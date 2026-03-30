@@ -9,6 +9,7 @@ import yaml
 
 from propstore.cli.helpers import EXIT_ERROR, write_yaml_file
 from propstore.cli.repository import Repository
+from propstore.validate_contexts import load_contexts
 
 
 @click.group()
@@ -34,16 +35,18 @@ def add(
     """Add a new context to the registry."""
     repo: Repository = obj["repo"]
     contexts_dir = repo.contexts_dir
-    contexts_dir.mkdir(parents=True, exist_ok=True)
+    contexts_tree = repo.tree() / "contexts"
+    if repo.git is None:
+        contexts_dir.mkdir(parents=True, exist_ok=True)
 
     filepath = contexts_dir / f"{name}.yaml"
-    if filepath.exists():
+    if (contexts_tree / f"{name}.yaml").exists():
         click.echo(f"ERROR: Context file '{filepath}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
     # Validate inherits reference
     if inherits:
-        parent_path = contexts_dir / f"{inherits}.yaml"
+        parent_path = contexts_tree / f"{inherits}.yaml"
         if not parent_path.exists():
             click.echo(f"ERROR: Parent context '{inherits}' does not exist", err=True)
             sys.exit(EXIT_ERROR)
@@ -80,19 +83,14 @@ def add(
 def list_contexts(obj: dict) -> None:
     """List all registered contexts."""
     repo: Repository = obj["repo"]
-    contexts_dir = repo.contexts_dir
-    if not contexts_dir.exists():
-        click.echo("No contexts directory.")
-        return
-
-    files = sorted(contexts_dir.glob("*.yaml"))
-    if not files:
+    contexts = load_contexts(repo.tree() / "contexts")
+    if not contexts:
         click.echo("No contexts registered.")
         return
 
-    for f in files:
-        data = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
-        cid = data.get("id", f.stem)
+    for context in contexts:
+        data = context.data
+        cid = data.get("id", context.filename)
         desc = data.get("description", "")
         inherits = data.get("inherits")
         suffix = f" (inherits {inherits})" if inherits else ""

@@ -426,6 +426,239 @@ def test_load_contexts_from_git_tree(tmp_path):
     assert contexts[0].filename == "test_context"
 
 
+def test_context_add_creates_commit(tmp_path):
+    """Adding a context in a git-backed repo creates a commit."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    commits_before = len(git.log(max_count=100))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "context", "add",
+        "--name", "ctx_test",
+        "--description", "Committed context",
+    ])
+    assert result.exit_code == 0, result.output
+
+    commits_after = len(git.log(max_count=100))
+    assert commits_after == commits_before + 1
+
+    data = yaml.safe_load(git.read_file("contexts/ctx_test.yaml"))
+    assert data["id"] == "ctx_test"
+    assert data["description"] == "Committed context"
+
+
+def test_context_add_uses_committed_head_for_inheritance_checks(tmp_path):
+    """Inherited parent lookup should come from committed HEAD, not ambient files."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    git.commit_files({
+        "contexts/ctx_parent.yaml": yaml.dump({
+            "id": "ctx_parent",
+            "name": "ctx_parent",
+            "description": "Parent context",
+        }).encode("utf-8"),
+    }, "Add parent context")
+    git.sync_worktree()
+    (root / "contexts" / "ctx_parent.yaml").unlink()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "context", "add",
+        "--name", "ctx_child",
+        "--description", "Child context",
+        "--inherits", "ctx_parent",
+    ])
+    assert result.exit_code == 0, result.output
+
+    child = yaml.safe_load(git.read_file("contexts/ctx_child.yaml"))
+    assert child["inherits"] == "ctx_parent"
+
+
+def test_context_list_reads_git_head_not_worktree(tmp_path):
+    """Context listing should ignore uncommitted worktree edits in git-backed repos."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    git.commit_files({
+        "contexts/ctx_test.yaml": yaml.dump({
+            "id": "ctx_test",
+            "name": "ctx_test",
+            "description": "Committed description",
+        }).encode("utf-8"),
+    }, "Add context")
+    git.sync_worktree()
+    (root / "contexts" / "ctx_test.yaml").write_text(
+        yaml.dump({
+            "id": "ctx_test",
+            "name": "ctx_test",
+            "description": "Worktree-only description",
+        }, default_flow_style=False, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "context", "list",
+    ])
+    assert result.exit_code == 0, result.output
+    assert "Committed description" in result.output
+    assert "Worktree-only description" not in result.output
+
+
+def test_form_add_creates_commit(tmp_path):
+    """Adding a form in a git-backed repo creates a commit."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    commits_before = len(git.log(max_count=100))
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "form", "add",
+        "--name", "frequency_like",
+        "--unit", "Hz",
+        "--dimensions", '{"T": -1}',
+    ])
+    assert result.exit_code == 0, result.output
+
+    commits_after = len(git.log(max_count=100))
+    assert commits_after == commits_before + 1
+
+    data = yaml.safe_load(git.read_file("forms/frequency_like.yaml"))
+    assert data["name"] == "frequency_like"
+    assert data["unit_symbol"] == "Hz"
+
+
+def test_form_show_reads_git_head_not_worktree(tmp_path):
+    """Form show should ignore uncommitted worktree edits in git-backed repos."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    git.commit_files({
+        "forms/frequency.yaml": yaml.dump({
+            "name": "frequency",
+            "dimensionless": False,
+            "unit_symbol": "Hz",
+        }).encode("utf-8"),
+    }, "Add form")
+    git.sync_worktree()
+    (root / "forms" / "frequency.yaml").write_text(
+        yaml.dump({
+            "name": "frequency",
+            "dimensionless": False,
+            "unit_symbol": "kHz",
+        }, default_flow_style=False, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "form", "show", "frequency",
+    ])
+    assert result.exit_code == 0, result.output
+    assert "unit_symbol: Hz" in result.output
+    assert "unit_symbol: kHz" not in result.output
+
+
+def test_form_list_reads_git_head_not_worktree(tmp_path):
+    """Form list should ignore uncommitted worktree edits in git-backed repos."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    git.commit_files({
+        "forms/frequency.yaml": yaml.dump({
+            "name": "frequency",
+            "dimensionless": False,
+            "unit_symbol": "Hz",
+        }).encode("utf-8"),
+    }, "Add form")
+    git.sync_worktree()
+    (root / "forms" / "rogue.yaml").write_text(
+        yaml.dump({
+            "name": "rogue",
+            "dimensionless": True,
+        }, default_flow_style=False, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "form", "list",
+    ])
+    assert result.exit_code == 0, result.output
+    assert "frequency" in result.output
+    assert "rogue" not in result.output
+
+
+def test_form_remove_uses_committed_head_for_reference_checks(tmp_path):
+    """Form removal should respect committed concept references, not ambient files."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    git.commit_files({
+        "forms/frequency.yaml": yaml.dump({
+            "name": "frequency",
+            "dimensionless": False,
+            "unit_symbol": "Hz",
+        }).encode("utf-8"),
+        "concepts/fundamental_frequency.yaml": yaml.dump({
+            "id": "concept1",
+            "canonical_name": "fundamental_frequency",
+            "status": "accepted",
+            "definition": "Frequency concept",
+            "domain": "speech",
+            "form": "frequency",
+        }).encode("utf-8"),
+    }, "Seed form and concept")
+    git.sync_worktree()
+    (root / "concepts" / "fundamental_frequency.yaml").unlink()
+
+    runner = CliRunner()
+    result = runner.invoke(cli, [
+        "-C", str(root),
+        "form", "remove", "frequency",
+    ])
+    assert result.exit_code != 0
+    assert "referenced by 1 concept" in result.output
+
+
 # ── Phase 3: Build sidecar from git ─────────────────────────────────
 
 

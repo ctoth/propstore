@@ -9,6 +9,8 @@ import yaml
 
 from propstore.cli.helpers import EXIT_ERROR, write_yaml_file
 from propstore.cli.repository import Repository
+from propstore.form_utils import load_all_forms_path, load_form_path
+from propstore.validate import load_concepts
 
 
 @click.group()
@@ -31,13 +33,12 @@ def list_forms(obj: dict, dims_filter: str | None, show_dims_flag: bool) -> None
     With --dims M:1,L:1,T:-2: filter to forms matching those dimensions.
     """
     repo: Repository = obj["repo"]
-    fdir = repo.forms_dir
-    if not fdir.exists():
+    forms_tree = repo.tree() / "forms"
+    if not forms_tree.exists():
         click.echo("No forms directory found.")
         return
 
-    from propstore.form_utils import load_all_forms
-    registry = load_all_forms(fdir)
+    registry = load_all_forms_path(forms_tree)
 
     # Parse filter dimensions if provided
     filter_dims: dict[str, int] | None = None
@@ -95,15 +96,15 @@ def _format_dims_col(dimensions: dict[str, int] | None, is_dimensionless: bool) 
 def show(obj: dict, name: str) -> None:
     """Show full form definition YAML, plus algebra if sidecar exists."""
     repo: Repository = obj["repo"]
-    path = repo.forms_dir / f"{name}.yaml"
+    forms_tree = repo.tree() / "forms"
+    path = forms_tree / f"{name}.yaml"
     if not path.exists():
         click.echo(f"ERROR: Form '{name}' not found", err=True)
         sys.exit(EXIT_ERROR)
     click.echo(path.read_text())
 
     # Display unit conversions if the form has any
-    from propstore.form_utils import load_form
-    form_def = load_form(repo.forms_dir, name)
+    form_def = load_form_path(forms_tree, name)
     if form_def and form_def.conversions:
         click.echo("Unit Conversions:")
         si = form_def.unit_symbol or "SI"
@@ -173,8 +174,9 @@ def add(
     """Add a new form definition."""
     repo: Repository = obj["repo"]
     fdir = repo.forms_dir
+    forms_tree = repo.tree() / "forms"
     path = fdir / f"{name}.yaml"
-    if path.exists():
+    if (forms_tree / f"{name}.yaml").exists():
         click.echo(f"ERROR: Form '{name}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
@@ -221,8 +223,16 @@ def add(
         click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
         return
 
-    fdir.mkdir(parents=True, exist_ok=True)
-    write_yaml_file(path, data)
+    git = repo.git
+    if git is not None:
+        yaml_bytes = yaml.dump(
+            data, default_flow_style=False, sort_keys=False, allow_unicode=True
+        ).encode("utf-8")
+        git.commit_files({f"forms/{name}.yaml": yaml_bytes}, f"Add form: {name}")
+        git.sync_worktree()
+    else:
+        fdir.mkdir(parents=True, exist_ok=True)
+        write_yaml_file(path, data)
     click.echo(f"Created {path}")
 
 
@@ -236,22 +246,19 @@ def add(
 def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
     """Remove a form definition."""
     repo: Repository = obj["repo"]
+    forms_tree = repo.tree() / "forms"
     path = repo.forms_dir / f"{name}.yaml"
-    if not path.exists():
+    semantic_path = forms_tree / f"{name}.yaml"
+    if not semantic_path.exists():
         click.echo(f"ERROR: Form '{name}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
     # Check for concepts that reference this form
-    concepts_path = repo.concepts_dir
     referencing: list[str] = []
-    if concepts_path.exists():
-        for entry in sorted(concepts_path.iterdir()):
-            if not entry.is_file() or entry.suffix != ".yaml":
-                continue
-            with open(entry) as f:
-                data = yaml.safe_load(f)
-            if isinstance(data, dict) and data.get("form") == name:
-                referencing.append(f"{data.get('id', '?')} ({entry.stem})")
+    for concept in load_concepts(repo.tree() / "concepts"):
+        data = concept.data
+        if isinstance(data, dict) and data.get("form") == name:
+            referencing.append(f"{data.get('id', '?')} ({concept.filename})")
 
     if referencing and not force:
         click.echo(f"ERROR: Form '{name}' is referenced by {len(referencing)} concept(s):", err=True)
@@ -266,7 +273,12 @@ def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
             click.echo(f"  ({len(referencing)} concept(s) still reference this form)")
         return
 
-    path.unlink()
+    git = repo.git
+    if git is not None:
+        git.commit_deletes([f"forms/{name}.yaml"], f"Remove form: {name}")
+        git.sync_worktree()
+    else:
+        path.unlink()
     click.echo(f"Removed {path}")
     if referencing:
         click.echo(f"  WARNING: {len(referencing)} concept(s) still reference this form")
@@ -284,25 +296,27 @@ def validate(obj: dict, name: str | None) -> None:
     referenced by concepts actually exist.
     """
     repo: Repository = obj["repo"]
-    fdir = repo.forms_dir
-    if not fdir.exists():
+    forms_tree = repo.tree() / "forms"
+    if not forms_tree.exists():
         click.echo("No forms directory found.")
         return
 
     errors: list[str] = []
 
     if name is not None:
-        paths = [fdir / f"{name}.yaml"]
+        paths = [forms_tree / f"{name}.yaml"]
         if not paths[0].exists():
             click.echo(f"ERROR: Form '{name}' not found", err=True)
             sys.exit(EXIT_ERROR)
     else:
-        paths = sorted(p for p in fdir.iterdir() if p.is_file() and p.suffix == ".yaml")
+        paths = sorted(
+            (p for p in forms_tree.iterdir() if p.is_file() and p.suffix == ".yaml"),
+            key=lambda p: p.name,
+        )
 
     form_names: set[str] = set()
     for path in paths:
-        with open(path) as f:
-            data = yaml.safe_load(f)
+        data = yaml.safe_load(path.read_bytes())
         if not isinstance(data, dict):
             errors.append(f"{path.name}: not a valid YAML mapping")
             continue
@@ -315,19 +329,18 @@ def validate(obj: dict, name: str | None) -> None:
         form_names.add(form_name)
 
     # Check that concepts reference existing forms
-    concepts_path = repo.concepts_dir
-    if concepts_path.exists():
-        all_forms = {p.stem for p in fdir.iterdir() if p.is_file() and p.suffix == ".yaml"}
-        for entry in sorted(concepts_path.iterdir()):
-            if not entry.is_file() or entry.suffix != ".yaml":
-                continue
-            with open(entry) as f:
-                data = yaml.safe_load(f)
-            if not isinstance(data, dict):
-                continue
-            ref = data.get("form")
-            if isinstance(ref, str) and ref and ref not in all_forms:
-                errors.append(f"concept {entry.stem}: references missing form '{ref}'")
+    all_forms = {
+        p.stem
+        for p in forms_tree.iterdir()
+        if p.is_file() and p.suffix == ".yaml"
+    }
+    for concept in load_concepts(repo.tree() / "concepts"):
+        data = concept.data
+        if not isinstance(data, dict):
+            continue
+        ref = data.get("form")
+        if isinstance(ref, str) and ref and ref not in all_forms:
+            errors.append(f"concept {concept.filename}: references missing form '{ref}'")
 
     if errors:
         for e in errors:
