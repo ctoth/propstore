@@ -948,7 +948,7 @@ def test_checkout_builds_from_historical(tmp_path):
     runner = CliRunner()
     result = runner.invoke(cli, ["-C", str(root), "checkout", v1_sha])
     assert result.exit_code == 0, result.output
-    assert "1 concepts" in result.output
+    assert "Sidecar built from commit" in result.output
 
     # Verify sidecar contains only v1 data
     hash_path = repo.sidecar_path.with_suffix(".hash")
