@@ -185,7 +185,7 @@ class WorldModel(ArtifactStore):
                 context["excludes"].append(exclusion)
 
         loaded_contexts = [
-            LoadedEntry(filename=context_id, filepath=None, data=data)
+            LoadedEntry(filename=context_id, source_path=None, data=data)
             for context_id, data in contexts_by_id.items()
         ]
         self._context_hierarchy = ContextHierarchy(loaded_contexts)

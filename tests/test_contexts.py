@@ -1100,7 +1100,7 @@ class TestContextAwareConflicts:
         
         cf = LoadedEntry(
             filename="test",
-            filepath=Path("test.yaml"),
+            source_path=Path("test.yaml"),
             data={"claims": [
                 {
                     "id": "claim1",
@@ -1157,7 +1157,7 @@ class TestContextAwareConflicts:
 
         cf = LoadedEntry(
             filename="test",
-            filepath=Path("test.yaml"),
+            source_path=Path("test.yaml"),
             data={"claims": [
                 {
                     "id": "claim1",

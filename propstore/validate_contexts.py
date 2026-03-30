@@ -7,8 +7,6 @@ and provides a ContextHierarchy for querying inheritance, exclusion, and visibil
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
-
 from typing import TYPE_CHECKING
 
 from propstore.validate import ValidationResult, load_yaml_entries
@@ -20,7 +18,7 @@ if TYPE_CHECKING:
 from propstore.loaded import LoadedEntry
 
 
-def load_contexts(contexts_dir: KnowledgePath | Path | None) -> list[LoadedEntry]:
+def load_contexts(contexts_dir: KnowledgePath | None) -> list[LoadedEntry]:
     """Load all context YAML files from a contexts subtree."""
     return load_yaml_entries(contexts_dir)
 

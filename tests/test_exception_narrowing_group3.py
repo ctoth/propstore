@@ -188,7 +188,7 @@ class TestParamConflictsSympy:
 
         claim_file = LoadedEntry(
             filename="test",
-            filepath=Path("test.yaml"),
+            source_path=Path("test.yaml"),
             data={"source_paper": "test", "claims": [input_claim_a, input_claim_b, derived_claim]},
         )
 

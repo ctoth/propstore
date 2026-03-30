@@ -1710,7 +1710,13 @@ class TestTransitiveConsistency:
                 else:
                     new_claims.append(claim)
             new_data["claims"] = new_claims
-            modified_files.append(LoadedEntry(filename=cf.filename, filepath=cf.filepath, data=new_data))
+            modified_files.append(
+                LoadedEntry(
+                    filename=cf.filename,
+                    source_path=cf.source_path,
+                    data=new_data,
+                )
+            )
 
         records = detect_transitive_conflicts(modified_files, concept_registry)
         # With compatible value, no transitive conflict for concept5

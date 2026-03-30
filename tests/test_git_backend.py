@@ -376,7 +376,7 @@ def test_load_concepts_from_git_tree(tmp_path):
     concepts = load_concepts(kr.tree() / "concepts")
     assert len(concepts) == 1
     assert concepts[0].data["id"] == "concept1"
-    assert concepts[0].filepath is None
+    assert isinstance(concepts[0].source_path, GitKnowledgePath)
     assert concepts[0].filename == "test_concept"
 
 
@@ -402,7 +402,7 @@ def test_load_claim_files_from_git_tree(tmp_path):
     claim_files = load_claim_files(kr.tree() / "claims")
     assert len(claim_files) == 1
     assert claim_files[0].data["claims"][0]["id"] == "claim1"
-    assert claim_files[0].filepath is None
+    assert isinstance(claim_files[0].source_path, GitKnowledgePath)
     assert claim_files[0].filename == "test_claims"
 
 
@@ -422,7 +422,7 @@ def test_load_contexts_from_git_tree(tmp_path):
     contexts = load_contexts(kr.tree() / "contexts")
     assert len(contexts) == 1
     assert contexts[0].data["id"] == "ctx1"
-    assert contexts[0].filepath is None
+    assert isinstance(contexts[0].source_path, GitKnowledgePath)
     assert contexts[0].filename == "test_context"
 
 

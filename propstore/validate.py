@@ -31,7 +31,6 @@ if TYPE_CHECKING:
     from propstore.cli.repository import Repository
     from propstore.knowledge_path import KnowledgePath
 
-from propstore.knowledge_path import coerce_knowledge_path
 from propstore.loaded import LoadedEntry
 
 
@@ -60,15 +59,14 @@ def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict]]:
     return results
 
 
-def load_yaml_entries(root: KnowledgePath | Path | None) -> list[LoadedEntry]:
+def load_yaml_entries(root: KnowledgePath | None) -> list[LoadedEntry]:
     """Load all YAML entries from a knowledge-tree subtree."""
     if root is None:
         return []
-    subtree = coerce_knowledge_path(root)
-    if not subtree.is_dir():
+    if not root.is_dir():
         return []
     results: list[LoadedEntry] = []
-    for entry in subtree.iterdir():
+    for entry in root.iterdir():
         if entry.is_file() and entry.suffix == ".yaml":
             data = yaml.safe_load(entry.read_bytes())
             results.append(
@@ -77,7 +75,7 @@ def load_yaml_entries(root: KnowledgePath | Path | None) -> list[LoadedEntry]:
     return results
 
 
-def load_concepts(concepts_root: KnowledgePath | Path | None) -> list[LoadedEntry]:
+def load_concepts(concepts_root: KnowledgePath | None) -> list[LoadedEntry]:
     """Load all concept YAML files from a concept subtree."""
     return load_yaml_entries(concepts_root)
 
@@ -93,7 +91,7 @@ VALID_RELATIONSHIP_TYPES = frozenset([
 ])
 
 
-def _load_all_claim_ids(claims_dir: KnowledgePath | Path | None) -> set[str]:
+def _load_all_claim_ids(claims_dir: KnowledgePath | None) -> set[str]:
     """Load all claim IDs from claim YAML files in the given directory."""
     claim_ids: set[str] = set()
     for claim_file in load_yaml_entries(claims_dir):
@@ -108,7 +106,7 @@ def _load_all_claim_ids(claims_dir: KnowledgePath | Path | None) -> set[str]:
 
 def validate_concepts(
     concepts: list[LoadedEntry],
-    claims_dir: KnowledgePath | Path | None = None,
+    claims_dir: KnowledgePath | None = None,
     *,
     repo: Repository | None = None,
 ) -> ValidationResult:

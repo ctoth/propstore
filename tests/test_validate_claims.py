@@ -631,7 +631,7 @@ class TestDraftArtifactBoundary:
     def test_draft_claim_file_rejected_from_final_validation(self, tmp_path):
         draft_file = LoadedEntry(
             filename="draft_claims",
-            filepath=tmp_path / "draft_claims.yaml",
+            source_path=tmp_path / "draft_claims.yaml",
             data={
                 "stage": "draft",
                 "source": make_source(),

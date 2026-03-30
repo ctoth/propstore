@@ -108,7 +108,10 @@ class _BaseKnowledgePath(ABC):
 class FilesystemKnowledgePath(_BaseKnowledgePath):
     @classmethod
     def from_filesystem_path(cls, path: Path) -> FilesystemKnowledgePath:
-        return cls(path.parent, PurePosixPath(path.name))
+        absolute = path.resolve()
+        anchor = Path(absolute.anchor)
+        relative_path = PurePosixPath(*absolute.relative_to(anchor).parts)
+        return cls(anchor, relative_path)
 
     def __init__(
         self,

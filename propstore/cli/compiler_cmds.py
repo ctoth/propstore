@@ -93,7 +93,8 @@ def validate(obj: dict) -> None:
         click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
         sys.exit(1)
 
-    concepts = load_concepts(cpd)
+    tree = repo.tree()
+    concepts = load_concepts(tree / "concepts")
     if not concepts:
         click.echo("No concept files found.")
         return
@@ -107,7 +108,7 @@ def validate(obj: dict) -> None:
 
     concept_result = validate_concepts(
         concepts,
-        claims_dir=repo.collection("claims"),
+        claims_dir=(tree / "claims") if (tree / "claims").exists() else None,
         repo=repo,
     )
 
@@ -119,9 +120,9 @@ def validate(obj: dict) -> None:
     # Claims (if directory exists)
     claim_error_count = 0
     claim_file_count = 0
-    cd = repo.claims_dir
-    if cd.exists():
-        files = load_claim_files(cd)
+    claims_root = tree / "claims"
+    if claims_root.exists():
+        files = load_claim_files(claims_root)
         claim_file_count = len(files)
         if files:
             registry = build_concept_registry(repo)
@@ -190,7 +191,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     # Step 1: Validate concepts
     concept_result = validate_concepts(
         concepts,
-        claims_dir=repo.collection("claims"),
+        claims_dir=(tree / "claims") if (tree / "claims").exists() else None,
         repo=repo,
     )
     if not concept_result.ok:
@@ -333,7 +334,7 @@ def export_aliases(obj: dict, fmt: str) -> None:
 
     from propstore.validate import load_concepts
 
-    concepts = load_concepts(all_concepts)
+    concepts = load_concepts(repo.tree() / "concepts")
     aliases: dict[str, dict[str, str]] = {}
 
     for c in concepts:
@@ -484,7 +485,7 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
 
     # Build concept name → ID lookup table
     name_to_id: dict[str, str] = {}
-    concepts = load_concepts(repo.concepts_dir)
+    concepts = load_concepts(repo.tree() / "concepts")
     id_to_concept: dict[str, dict] = {}
     for c in concepts:
         cid = c.data.get("id", "")
@@ -2294,7 +2295,7 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
             from propstore.conflict_detector import detect_transitive_conflicts
             from propstore.validate_claims import load_claim_files
 
-            claim_files = load_claim_files(repo.claims_dir)
+            claim_files = load_claim_files(repo.tree() / "claims")
             concept_registry: dict[str, dict] = {}
             for cdata in wm.all_concepts():
                 cdata = dict(cdata)

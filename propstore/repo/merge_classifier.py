@@ -130,7 +130,7 @@ def _classify_pair(
 
     left_file = LoadedEntry(
         filename="_left",
-        filepath=None,
+        source_path=None,
         data={
             "source": {
                 "paper": "merge_left",
@@ -142,7 +142,7 @@ def _classify_pair(
     )
     right_file = LoadedEntry(
         filename="_right",
-        filepath=None,
+        source_path=None,
         data={
             "source": {
                 "paper": "merge_right",

@@ -500,7 +500,7 @@ class TestBuildCelRegistry:
         concepts = [
             LoadedEntry(
                 filename="temperature",
-                filepath=Path("fake/temperature.yaml"),
+                source_path=Path("fake/temperature.yaml"),
                 data={
                     "id": "concept1",
                     "canonical_name": "temperature",
@@ -509,7 +509,7 @@ class TestBuildCelRegistry:
             ),
             LoadedEntry(
                 filename="color",
-                filepath=Path("fake/color.yaml"),
+                source_path=Path("fake/color.yaml"),
                 data={
                     "id": "concept2",
                     "canonical_name": "color",
@@ -533,7 +533,7 @@ class TestBuildCelRegistry:
         concepts = [
             LoadedEntry(
                 filename="mystery",
-                filepath=Path("fake/mystery.yaml"),
+                source_path=Path("fake/mystery.yaml"),
                 data={
                     "canonical_name": "mystery",
                     "form": "quantity",

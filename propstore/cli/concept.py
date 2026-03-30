@@ -19,6 +19,7 @@ from propstore.cli.helpers import (
     write_concept_file,
     write_yaml_file,
 )
+from propstore.knowledge_path import FilesystemKnowledgePath, KnowledgePath
 from propstore.cli.repository import Repository
 from propstore.loaded import LoadedEntry
 from propstore.validate import load_concepts, validate_concepts
@@ -116,10 +117,10 @@ def _rewrite_claim_conditions(claim_file_data: dict, old_name: str, new_name: st
     return changed
 
 
-def _require_local_path(path: Path | None, *, label: str) -> Path:
-    if path is None:
+def _require_local_source_path(source_path: KnowledgePath | None, *, label: str) -> Path:
+    if not isinstance(source_path, FilesystemKnowledgePath):
         raise click.ClickException(f"{label} is not available on the local filesystem")
-    return path
+    return source_path.concrete_path()
 
 
 # ── concept add ──────────────────────────────────────────────────────
@@ -202,8 +203,8 @@ def add(
             return
 
         repo.concepts_dir.mkdir(parents=True, exist_ok=True)
-        concepts = load_concepts(repo.concepts_dir)
-        concepts.append(LoadedEntry(filename=name, filepath=filepath, data=data))
+        concepts = load_concepts(repo.tree() / "concepts")
+        concepts.append(LoadedEntry(filename=name, source_path=filepath, data=data))
 
         result = validate_concepts(concepts, repo=repo)
         if not result.ok:
@@ -315,12 +316,12 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         click.echo(f"  {filepath} -> {new_path}")
         return
 
-    loaded_concepts = load_concepts(repo.concepts_dir)
+    loaded_concepts = load_concepts(repo.tree() / "concepts")
     updated_concepts = []
     changed_concept_paths: set[Path] = set()
     for concept_record in loaded_concepts:
-        concept_path = _require_local_path(
-            concept_record.filepath,
+        concept_path = _require_local_source_path(
+            concept_record.source_path,
             label=f"concept '{concept_record.filename}'",
         )
         concept_data = deepcopy(concept_record.data)
@@ -333,14 +334,15 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         updated_concepts.append(
             type(concept_record)(
                 filename=name if concept_path == filepath else concept_record.filename,
-                filepath=new_path if concept_path == filepath else concept_path,
+                source_path=new_path if concept_path == filepath else concept_path,
                 data=concept_data,
             )
         )
 
+    claims_root = repo.tree() / "claims"
     concept_validation = validate_concepts(
         updated_concepts,
-        claims_dir=repo.collection("claims"),
+        claims_dir=claims_root if claims_root.exists() else None,
         repo=repo,
     )
     if not concept_validation.ok:
@@ -348,14 +350,13 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             click.echo(f"ERROR: {e}", err=True)
         click.echo("Rename validation failed. No changes written.", err=True)
         sys.exit(EXIT_VALIDATION)
-
-    claim_files = load_claim_files(repo.collection("claims")) if repo.collection("claims") else []
+    claim_files = load_claim_files(claims_root) if claims_root.exists() else []
     updated_claim_files = []
     changed_claim_paths: set[Path] = set()
     if claim_files:
         for claim_file in claim_files:
-            claim_path = _require_local_path(
-                claim_file.filepath,
+            claim_path = _require_local_source_path(
+                claim_file.source_path,
                 label=f"claim file '{claim_file.filename}'",
             )
             claim_data = deepcopy(claim_file.data)
@@ -363,7 +364,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 changed_claim_paths.add(claim_path)
             updated_claim_files.append(type(claim_file)(
                 filename=claim_file.filename,
-                filepath=claim_path,
+                source_path=claim_path,
                 data=claim_data,
             ))
         concept_registry = {
@@ -383,8 +384,8 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         # Collect all changed files for atomic commit
         adds: dict[str | Path, bytes] = {}
         for concept_record in updated_concepts:
-            target_path = _require_local_path(
-                concept_record.filepath,
+            target_path = _require_local_source_path(
+                concept_record.source_path,
                 label=f"concept '{concept_record.filename}'",
             )
             if target_path == new_path or target_path in changed_concept_paths:
@@ -396,8 +397,8 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 adds[rel] = yaml_bytes
 
         for claim_file in updated_claim_files:
-            claim_path = _require_local_path(
-                claim_file.filepath,
+            claim_path = _require_local_source_path(
+                claim_file.source_path,
                 label=f"claim file '{claim_file.filename}'",
             )
             if claim_path in changed_claim_paths:
@@ -418,8 +419,8 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     else:
         # Write the renamed concept to the new path first, then remove old
         for concept_record in updated_concepts:
-            target_path = _require_local_path(
-                concept_record.filepath,
+            target_path = _require_local_source_path(
+                concept_record.source_path,
                 label=f"concept '{concept_record.filename}'",
             )
             if target_path == new_path:
@@ -428,8 +429,8 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 write_concept_file(target_path, concept_record.data)
 
         for claim_file in updated_claim_files:
-            claim_path = _require_local_path(
-                claim_file.filepath,
+            claim_path = _require_local_source_path(
+                claim_file.source_path,
                 label=f"claim file '{claim_file.filename}'",
             )
             if claim_path in changed_claim_paths:
@@ -542,19 +543,23 @@ def link(
     data["relationships"] = rels
     data["last_modified"] = str(date.today())
 
-    concepts = load_concepts(repo.concepts_dir)
+    concepts = load_concepts(repo.tree() / "concepts")
     updated_concepts = []
     for concept_record in concepts:
+        concept_path = _require_local_source_path(
+            concept_record.source_path,
+            label=f"concept '{concept_record.filename}'",
+        )
         updated_concepts.append(
             LoadedEntry(
                 filename=concept_record.filename,
-                filepath=concept_record.filepath,
-                data=data if concept_record.filepath == filepath else concept_record.data,
+                source_path=concept_path,
+                data=data if concept_path == filepath else concept_record.data,
             )
         )
     validation = validate_concepts(
         updated_concepts,
-        claims_dir=repo.collection("claims"),
+        claims_dir=(repo.tree() / "claims") if (repo.tree() / "claims").exists() else None,
         repo=repo,
     )
     if not validation.ok:
@@ -645,7 +650,7 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
         click.echo("No concepts directory found.")
         return
 
-    concepts = load_concepts(cdir)
+    concepts = load_concepts(repo.tree() / "concepts")
     for c in concepts:
         d = c.data
         c_domain = d.get("domain", "")
@@ -718,7 +723,7 @@ def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
 def categories(obj: dict, as_json: bool) -> None:
     """List all category concepts and their allowed values."""
     repo: Repository = obj["repo"]
-    concepts = load_concepts(repo.concepts_dir)
+    concepts = load_concepts(repo.tree() / "concepts")
 
     cat_data = {}
     for c in concepts:

@@ -108,7 +108,7 @@ def _make_parameter_claim(claim_id, concept_id, value, unit="Hz", conditions=Non
 def _make_claim_file(claims, filename="test_paper"):
     return LoadedEntry(
         filename=filename,
-        filepath=Path(f"/fake/{filename}.yaml"),
+        source_path=Path(f"/fake/{filename}.yaml"),
         data={"source": {"paper": filename}, "claims": claims},
     )
 

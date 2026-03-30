@@ -24,6 +24,7 @@ import yaml
 import bridgman
 
 from propstore.resources import load_resource_json
+from propstore.knowledge_path import coerce_knowledge_path
 from propstore.validate import ValidationResult, load_yaml_dir, load_yaml_entries
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
@@ -92,7 +93,7 @@ from propstore.loaded import LoadedEntry
 
 
 
-def load_claim_files(claims_dir: KnowledgePath | Path | None) -> list[LoadedEntry]:
+def load_claim_files(claims_dir: KnowledgePath | None) -> list[LoadedEntry]:
     """Load all claim YAML files from a claims subtree."""
     return load_yaml_entries(claims_dir)
 
@@ -131,7 +132,7 @@ def validate_single_claim_file(
         data = yaml.safe_load(f)
     loaded = LoadedEntry(
         filename=filepath.stem,
-        filepath=filepath,
+        source_path=coerce_knowledge_path(filepath),
         data=data if data else {},
     )
     return validate_claims([loaded], concept_registry)
@@ -707,7 +708,7 @@ def build_concept_registry_from_paths(
     All keys point to the same enriched concept data dict.
     """
     from propstore.validate import load_concepts
-    concepts = load_concepts(concepts_dir)
+    concepts = load_concepts(coerce_knowledge_path(concepts_dir))
     registry: dict[str, dict] = {}
     for concept in concepts:
         cid = concept.data.get("id")

@@ -32,7 +32,7 @@ def _frequency_form() -> FormDefinition:
 def _stub_claim_file() -> LoadedEntry:
     return LoadedEntry(
         filename="test",
-        filepath=Path("test.yaml"),
+        source_path=Path("test.yaml"),
         data={"source": {"paper": "test"}, "claims": []},
     )
 
@@ -62,7 +62,7 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
     }
     claim_file = LoadedEntry(
         filename="test",
-        filepath=Path("test.yaml"),
+        source_path=Path("test.yaml"),
         data={"source": {"paper": "test"}, "claims": []},
     )
 
@@ -204,7 +204,7 @@ def test_transitive_propagation_normalizes_units():
     }
     claim_file = LoadedEntry(
         filename="test",
-        filepath=Path("test.yaml"),
+        source_path=Path("test.yaml"),
         data=claim_data,
     )
 

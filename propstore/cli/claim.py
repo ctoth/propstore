@@ -8,6 +8,7 @@ import click
 
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.cli.repository import Repository
+from propstore.knowledge_path import coerce_knowledge_path
 
 
 @click.group()
@@ -116,7 +117,7 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
         click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
 
-    files = load_claim_files(cd)
+    files = load_claim_files(coerce_knowledge_path(cd))
     if not files:
         click.echo("No claim files found.")
         return
@@ -199,7 +200,7 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
         click.echo(f"ERROR: Concepts directory '{cpd}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
 
-    files = load_claim_files(cd)
+    files = load_claim_files(coerce_knowledge_path(cd))
     if not files:
         click.echo("No claim files found.")
         return

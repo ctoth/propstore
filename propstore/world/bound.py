@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.activation import is_claim_mapping_active
@@ -121,7 +120,7 @@ def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
 
     synthetic = LoadedEntry(
         filename="<render>",
-        filepath=Path("<render>"),
+        source_path=None,
         data={"claims": [_claim_row_to_source_claim(claim) for claim in claims]},
     )
     concept_registry = _concept_registry_for_store(world)

@@ -99,3 +99,18 @@ def test_repository_tree_uses_filesystem_or_git_snapshot(tmp_path: Path) -> None
     assert isinstance(old_tree, GitKnowledgePath)
     assert (live_tree / "concepts" / "alpha.yaml").read_text() == "id: concept2\n"
     assert (old_tree / "concepts" / "alpha.yaml").read_text() == "id: concept1\n"
+
+
+def test_coerced_filesystem_path_preserves_parent_ancestry(tmp_path: Path) -> None:
+    root = tmp_path / "knowledge"
+    concepts = root / "concepts"
+    concepts.mkdir(parents=True)
+    concept_file = concepts / "alpha.yaml"
+    concept_file.write_text("id: concept1\n")
+
+    coerced = FilesystemKnowledgePath.from_filesystem_path(concept_file)
+
+    assert coerced.name == "alpha.yaml"
+    assert coerced.parent.concrete_path() == concepts
+    assert coerced.parent.parent.concrete_path() == root
+    assert (coerced.parent.parent / "forms").concrete_path() == root / "forms"
