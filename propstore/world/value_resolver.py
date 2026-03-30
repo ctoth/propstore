@@ -361,17 +361,21 @@ class ActiveClaimResolver:
 
     def _all_algorithms_equivalent(
         self,
-        algo_claims: list[_ActiveClaimView],
+        algo_claims: Sequence[_ActiveClaimView | dict[str, object]],
         known_values: Mapping[ConceptId, Any],
     ) -> bool:
-        for i in range(len(algo_claims)):
-            for j in range(i + 1, len(algo_claims)):
-                body_a = algo_claims[i].body or ""
-                body_b = algo_claims[j].body or ""
+        normalized_claims = [
+            claim if isinstance(claim, _ActiveClaimView) else _active_claim_view(claim)
+            for claim in algo_claims
+        ]
+        for i in range(len(normalized_claims)):
+            for j in range(i + 1, len(normalized_claims)):
+                body_a = normalized_claims[i].body or ""
+                body_b = normalized_claims[j].body or ""
                 if not body_a or not body_b:
                     return False
-                bindings_a = self._extract_bindings(algo_claims[i].raw)
-                bindings_b = self._extract_bindings(algo_claims[j].raw)
+                bindings_a = self._extract_bindings(normalized_claims[i].raw)
+                bindings_b = self._extract_bindings(normalized_claims[j].raw)
                 try:
                     result = ast_compare(
                         body_a,

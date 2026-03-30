@@ -9,7 +9,10 @@ from typing import Any, Mapping
 
 from propstore.core.environment import (
     ArtifactStore,
+    ClaimCatalogStore,
     CompiledGraphStore,
+    ConceptCatalogStore,
+    ParameterizationCatalogStore,
     ParameterizationLookupStore,
     StanceStore,
 )
@@ -59,18 +62,27 @@ def _conflict_witness_from_row(row: dict) -> ConflictWitness:
     )
 
 
-def _compiled_graph_for_bound(base: BoundWorld) -> CompiledWorldGraph:
+def _compiled_graph_for_bound(base: BoundWorld) -> CompiledWorldGraph | None:
     if base._active_graph is not None:
         return base._active_graph.compiled
     if isinstance(base._store, CompiledGraphStore):
         return base._store.compiled_graph()
-    if isinstance(base._store, ParameterizationLookupStore) and isinstance(
-        base._store, StanceStore
+    if (
+        isinstance(base._store, ConceptCatalogStore)
+        and isinstance(base._store, ClaimCatalogStore)
+        and isinstance(base._store, ParameterizationLookupStore)
+        and isinstance(base._store, StanceStore)
     ):
         return build_compiled_world_graph(
             _ParameterizationCatalogAdapter(base._store)
         )
-    return build_compiled_world_graph(base._store)
+    if (
+        isinstance(base._store, ConceptCatalogStore)
+        and isinstance(base._store, ClaimCatalogStore)
+        and isinstance(base._store, ParameterizationCatalogStore)
+    ):
+        return build_compiled_world_graph(base._store)
+    return None
 
 
 @dataclass(frozen=True)
@@ -100,7 +112,10 @@ class _ParameterizationCatalogAdapter:
             if not isinstance(concept_id, str):
                 continue
             for row_input in self.base.parameterizations_for(concept_id):
-                row = coerce_parameterization_row(row_input)
+                row = coerce_parameterization_row(
+                    row_input,
+                    output_concept_id=concept_id,
+                )
                 row_key = (
                     row.output_concept_id,
                     row.concept_ids,
@@ -168,7 +183,7 @@ class _GraphOverlayStore:
         claims: list[dict],
         stances: list[dict],
         conflicts: list[dict],
-        compiled: CompiledWorldGraph,
+        compiled: CompiledWorldGraph | None,
     ) -> None:
         self._base = base_store
         self._claims = [dict(claim) for claim in claims]
@@ -286,6 +301,8 @@ class _GraphOverlayStore:
         ]
 
     def compiled_graph(self) -> CompiledWorldGraph:
+        if self._compiled is None:
+            raise TypeError("compiled_graph() is unavailable for semantic-only overlays")
         return CompiledWorldGraph.from_dict(self._compiled.to_dict())
 
     def condition_solver(self):
@@ -319,14 +336,18 @@ class HypotheticalWorld(BeliefSpace):
         self._synthetics = list(add or [])
 
         self._base_compiled = _compiled_graph_for_bound(base)
-        self._graph_delta = GraphDelta(
-            add_claims=tuple(
-                _claim_node_for_synthetic(synthetic, compiled=self._base_compiled)
-                for synthetic in self._synthetics
-            ),
-            remove_claim_ids=to_claim_ids(self._removed_ids),
-        )
-        self._compiled_graph = self._graph_delta.apply(self._base_compiled)
+        if self._base_compiled is not None:
+            self._graph_delta = GraphDelta(
+                add_claims=tuple(
+                    _claim_node_for_synthetic(synthetic, compiled=self._base_compiled)
+                    for synthetic in self._synthetics
+                ),
+                remove_claim_ids=to_claim_ids(self._removed_ids),
+            )
+            self._compiled_graph = self._graph_delta.apply(self._base_compiled)
+        else:
+            self._graph_delta = None
+            self._compiled_graph = None
 
         base_claim_rows = [dict(claim) for claim in base._store.claims_for(None)]
         base_claim_rows_by_id = {claim["id"]: dict(claim) for claim in base_claim_rows}
@@ -363,12 +384,14 @@ class HypotheticalWorld(BeliefSpace):
             for claim in overlay_claims
             if claim.get("id") is not None
         }
-        if not isinstance(base._store, StanceStore):
-            raise TypeError("HypotheticalWorld requires stances_between() on the base store")
-        overlay_stances = [
-            coerce_stance_row(stance).to_dict()
-            for stance in base._store.stances_between(overlay_claim_ids)
-        ]
+        overlay_stances = (
+            [
+                coerce_stance_row(stance).to_dict()
+                for stance in base._store.stances_between(overlay_claim_ids)
+            ]
+            if isinstance(base._store, StanceStore)
+            else []
+        )
 
         overlay_conflicts = [
             conflict.to_dict()
@@ -390,13 +413,14 @@ class HypotheticalWorld(BeliefSpace):
             overlay_conflicts.append(conflict)
             seen_conflict_pairs.add(pair)
 
-        self._compiled_graph = CompiledWorldGraph(
-            concepts=self._compiled_graph.concepts,
-            claims=self._compiled_graph.claims,
-            relations=self._compiled_graph.relations,
-            parameterizations=self._compiled_graph.parameterizations,
-            conflicts=tuple(_conflict_witness_from_row(row) for row in overlay_conflicts),
-        )
+        if self._compiled_graph is not None:
+            self._compiled_graph = CompiledWorldGraph(
+                concepts=self._compiled_graph.concepts,
+                claims=self._compiled_graph.claims,
+                relations=self._compiled_graph.relations,
+                parameterizations=self._compiled_graph.parameterizations,
+                conflicts=tuple(_conflict_witness_from_row(row) for row in overlay_conflicts),
+            )
         self._overlay_store = _GraphOverlayStore(
             base._store,
             claims=overlay_claims,
@@ -404,11 +428,15 @@ class HypotheticalWorld(BeliefSpace):
             conflicts=overlay_conflicts,
             compiled=self._compiled_graph,
         )
-        self._active_graph = activate_compiled_world_graph(
-            self._compiled_graph,
-            environment=base._environment,
-            solver=self._overlay_store.condition_solver(),
-            context_hierarchy=base._context_hierarchy,
+        self._active_graph = (
+            activate_compiled_world_graph(
+                self._compiled_graph,
+                environment=base._environment,
+                solver=self._overlay_store.condition_solver(),
+                context_hierarchy=base._context_hierarchy,
+            )
+            if self._compiled_graph is not None
+            else None
         )
         self._overlay = BoundWorld(
             self._overlay_store,

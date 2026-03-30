@@ -140,6 +140,8 @@ class ParameterizationRow:
     def from_mapping(
         cls,
         row_map: Mapping[str, Any],
+        *,
+        output_concept_id: ConceptId | str | None = None,
     ) -> ParameterizationRow:
         attributes = {
             str(key): value
@@ -147,8 +149,11 @@ class ParameterizationRow:
             if key not in {"output_concept_id", "concept_ids", "formula", "sympy", "exactness", "conditions_cel"}
             and value is not None
         }
+        resolved_output_concept_id = row_map.get("output_concept_id", output_concept_id)
+        if resolved_output_concept_id is None:
+            raise KeyError("output_concept_id")
         return cls(
-            output_concept_id=to_concept_id(row_map["output_concept_id"]),
+            output_concept_id=to_concept_id(resolved_output_concept_id),
             concept_ids=str(row_map["concept_ids"]),
             formula=None if row_map.get("formula") is None else str(row_map["formula"]),
             sympy=None if row_map.get("sympy") is None else str(row_map["sympy"]),
@@ -181,7 +186,12 @@ def coerce_conflict_row(row: ConflictRowInput) -> ConflictRow:
 
 def coerce_parameterization_row(
     row: ParameterizationRowInput,
+    *,
+    output_concept_id: ConceptId | str | None = None,
 ) -> ParameterizationRow:
     if isinstance(row, ParameterizationRow):
         return row
-    return ParameterizationRow.from_mapping(row)
+    return ParameterizationRow.from_mapping(
+        row,
+        output_concept_id=output_concept_id,
+    )

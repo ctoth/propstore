@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.activation import is_claim_mapping_active
-from propstore.core.environment import ArtifactStore
+from propstore.core.environment import ArtifactStore, ConceptCatalogStore
 from propstore.core.id_types import ConceptId, to_context_id
 from propstore.core.row_types import coerce_conflict_row, coerce_parameterization_row
 from propstore.world.labelled import (
@@ -73,7 +73,10 @@ def _concept_registry_for_store(world) -> dict[str, dict]:
         if params:
             cdata["parameterization_relationships"] = []
             for param_input in params:
-                param = coerce_parameterization_row(param_input)
+                param = coerce_parameterization_row(
+                    param_input,
+                    output_concept_id=cid,
+                )
                 cdata["parameterization_relationships"].append({
                     "inputs": json.loads(param.concept_ids),
                     "sympy": param.sympy,
@@ -112,6 +115,8 @@ def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
     from propstore.loaded import LoadedEntry
 
     if len(claims) < 2:
+        return []
+    if not isinstance(world, ConceptCatalogStore):
         return []
 
     synthetic = LoadedEntry(
@@ -196,7 +201,10 @@ class BoundWorld(BeliefSpace):
         self._conflicts_cache: dict[str | None, list[dict]] = {}
         self._resolver = ActiveClaimResolver(
             parameterizations_for=lambda concept_id: [
-                coerce_parameterization_row(row)
+                coerce_parameterization_row(
+                    row,
+                    output_concept_id=concept_id,
+                )
                 for row in self._store.parameterizations_for(concept_id)
             ],
             is_param_compatible=self.is_param_compatible,
