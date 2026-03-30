@@ -1504,6 +1504,129 @@ def test_validate_reads_git_head_not_worktree(tmp_path):
     assert "Validation passed" in result.output
 
 
+def test_build_reads_git_head_not_worktree(tmp_path):
+    """pks build must ignore uncommitted semantic edits in the worktree."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+
+    git.commit_files(
+        {
+            "forms/frequency.yaml": yaml.dump(
+                {
+                    "name": "frequency",
+                    "dimensionless": False,
+                    "unit_symbol": "Hz",
+                    "dimensions": {"T": -1},
+                },
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+            "concepts/fundamental_frequency.yaml": yaml.dump(
+                {
+                    "id": "concept1",
+                    "canonical_name": "fundamental_frequency",
+                    "status": "accepted",
+                    "definition": "F0",
+                    "domain": "speech",
+                    "form": "frequency",
+                },
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        "Seed committed build state",
+    )
+    git.sync_worktree()
+
+    (repo.root / "concepts" / "fundamental_frequency.yaml").write_text(
+        yaml.dump(
+            {
+                "id": "concept1",
+                "canonical_name": "fundamental_frequency",
+                "status": "accepted",
+                "definition": "Broken worktree edit",
+                "domain": "speech",
+                "form": "missing_form",
+            },
+            default_flow_style=False,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "build", "--force"])
+    assert result.exit_code == 0, result.output
+    assert "Build rebuilt" in result.output
+
+
+def test_export_aliases_reads_git_head_not_worktree(tmp_path):
+    """export-aliases must ignore uncommitted semantic edits in the worktree."""
+    import json
+
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+
+    git.commit_files(
+        {
+            "forms/frequency.yaml": yaml.dump(
+                {"name": "frequency", "dimensionless": False, "unit_symbol": "Hz"},
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+            "concepts/fundamental_frequency.yaml": yaml.dump(
+                {
+                    "id": "concept1",
+                    "canonical_name": "fundamental_frequency",
+                    "status": "accepted",
+                    "definition": "F0",
+                    "domain": "speech",
+                    "form": "frequency",
+                    "aliases": [{"name": "pitch", "source": "common"}],
+                },
+                default_flow_style=False,
+                sort_keys=False,
+            ).encode("utf-8"),
+        },
+        "Seed committed alias state",
+    )
+    git.sync_worktree()
+
+    (repo.root / "concepts" / "fundamental_frequency.yaml").write_text(
+        yaml.dump(
+            {
+                "id": "concept1",
+                "canonical_name": "fundamental_frequency",
+                "status": "accepted",
+                "definition": "Broken worktree alias edit",
+                "domain": "speech",
+                "form": "frequency",
+                "aliases": [{"name": "bad_alias", "source": "worktree"}],
+            },
+            default_flow_style=False,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "export-aliases", "--format", "json"])
+    assert result.exit_code == 0, result.output
+    aliases = json.loads(result.output)
+    assert aliases["pitch"]["id"] == "concept1"
+    assert "bad_alias" not in aliases
+
+
 def test_import_papers_creates_commit(tmp_path):
     """import-papers must persist imported claims through a git commit."""
     from click.testing import CliRunner

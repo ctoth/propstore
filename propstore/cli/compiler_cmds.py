@@ -216,7 +216,6 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     # Step 2: Validate claims (if any)
     claim_files = None
     concept_registry = None
-    cd = repo.claims_dir
     if (tree / "claims").exists():
         files = load_claim_files(tree / "claims")
         if files:
