@@ -273,16 +273,16 @@ If any of these disagree, coding should wait until they are reconciled.
 
 ## Next Coding Slice
 
-After the active inspect/commit surface cleanup, the next coding slice should be Phase 6.3 structured projection tightening.
+After the active inspect/commit and reporting surface work, the next slice should be Phase 6.5 policy readiness scoping.
 
 Recommended targets:
 
-- `propstore/repo/structured_merge.py`
-- `propstore/aspic_bridge.py`
-- `tests/test_structured_merge_projection.py`
+- `proposals/multi-source-structured-merge.md`
+- `plans/multi-source-structured-merge-checklist.md`
+- a new policy-readiness memo under `reports/`
 
 Why:
 
-- the live canonical merge object is now the only production-facing merge representation
-- the largest remaining under-specified boundary is the branch-local structured summary contract
-- the literature refresh says not to widen this phase into structured incomplete-information inquiry
+- the public merge/query surfaces now speak honestly in terms of the canonical merge object
+- the next architectural risk is accidental policy leakage into the structural merge kernel
+- Phase 8 governance work needs a clean insertion point before more merge features accrete

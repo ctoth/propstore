@@ -79,6 +79,8 @@ def test_merge_inspect_cli_surfaces_query_summary(tmp_path):
 
     assert result.exit_code == 0, result.output
     payload = yaml.safe_load(result.output)
+    assert payload["surface"] == "formal_merge_report"
+    assert payload["framework_type"] == "partial_argumentation_framework"
     assert payload["completion_count"] == 4
     assert len(payload["credulous"]) == 2
     assert payload["relation_counts"] == {
@@ -92,7 +94,7 @@ def test_merge_inspect_cli_surfaces_query_summary(tmp_path):
     assert len(payload["argument_details"]) == 2
 
 
-def test_merge_commit_cli_returns_commit_sha(tmp_path):
+def test_merge_commit_cli_surfaces_storage_commit_metadata(tmp_path):
     repo = Repository.init(tmp_path / "knowledge")
     git = repo.git
     assert git is not None
@@ -120,5 +122,12 @@ def test_merge_commit_cli_returns_commit_sha(tmp_path):
     )
 
     assert result.exit_code == 0, result.output
-    assert len(result.output.strip()) == 40
-
+    payload = yaml.safe_load(result.output)
+    assert payload["surface"] == "storage_merge_commit"
+    assert payload["branch_a"] == "master"
+    assert payload["branch_b"] == branch_name
+    assert payload["target_branch"] == "master"
+    assert payload["claims_path"] == "claims/merged.yaml"
+    assert payload["manifest_path"] == "merge/manifest.yaml"
+    assert len(payload["commit_sha"]) == 40
+    assert "completion_count" not in payload

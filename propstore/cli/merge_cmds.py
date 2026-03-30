@@ -63,4 +63,13 @@ def merge_commit_cmd(
         message=message,
         target_branch=target_branch,
     )
-    click.echo(commit_sha)
+    payload = {
+        "surface": "storage_merge_commit",
+        "branch_a": branch_a,
+        "branch_b": branch_b,
+        "target_branch": target_branch,
+        "claims_path": "claims/merged.yaml",
+        "manifest_path": "merge/manifest.yaml",
+        "commit_sha": commit_sha,
+    }
+    click.echo(yaml.safe_dump(payload, sort_keys=False).rstrip())

@@ -215,8 +215,11 @@ This is the first implemented slice of the structured boundary. It is a branch-l
 
 Builds the formal merge framework and prints a YAML summary including:
 
+- `surface: formal_merge_report`
+- `framework_type: partial_argumentation_framework`
 - emitted arguments
 - attack and ignorance pairs
+- relation counts
 - completion count
 - skeptical results
 - credulous results
@@ -224,7 +227,13 @@ Builds the formal merge framework and prints a YAML summary including:
 
 ### `pks merge commit BRANCH_A BRANCH_B`
 
-Creates the two-parent storage merge commit from the same formal merge object and prints the commit SHA.
+Creates the two-parent storage merge commit from the same formal merge object and prints a YAML payload including:
+
+- `surface: storage_merge_commit`
+- `branch_a`, `branch_b`, and `target_branch`
+- `claims_path: claims/merged.yaml`
+- `manifest_path: merge/manifest.yaml`
+- `commit_sha`
 
 ## What This Does Not Claim
 

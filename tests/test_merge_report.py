@@ -65,6 +65,8 @@ def test_merge_report_surfaces_conflict_query_state(tmp_path):
         semantics="grounded",
     )
 
+    assert report["surface"] == "formal_merge_report"
+    assert report["framework_type"] == "partial_argumentation_framework"
     assert report["completion_count"] == 1
     assert len(report["attacks"]) == 2
     assert report["relation_counts"] == {
@@ -119,6 +121,8 @@ def test_merge_report_surfaces_ignorance_query_state(tmp_path):
         semantics="grounded",
     )
 
+    assert report["surface"] == "formal_merge_report"
+    assert report["framework_type"] == "partial_argumentation_framework"
     assert report["completion_count"] == 4
     assert len(report["ignorance"]) == 2
     assert report["relation_counts"] == {

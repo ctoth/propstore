@@ -65,7 +65,7 @@ uv run pks checkout abc1234
 
 ### `pks merge inspect BRANCH_A BRANCH_B`
 
-Inspect the formal merge framework between two branches. Reports the merged argument universe, uncertain relations, and acceptance summary for the requested semantics.
+Inspect the formal merge framework between two branches. Prints a YAML `formal_merge_report` with `framework_type: partial_argumentation_framework`, the merged argument universe, uncertain relations, and acceptance summary for the requested semantics.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -78,7 +78,7 @@ uv run pks merge inspect agent/paper-a agent/paper-b --semantics preferred
 
 ### `pks merge commit BRANCH_A BRANCH_B`
 
-Create a two-parent storage merge commit from the formal merge framework between two branches.
+Create a two-parent storage merge commit from the formal merge framework between two branches. Prints YAML `storage_merge_commit` metadata with the branch pair, target branch, `claims/merged.yaml`, `merge/manifest.yaml`, and the resulting commit SHA.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

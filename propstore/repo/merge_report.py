@@ -49,6 +49,8 @@ def summarize_merge_framework(
     }
 
     return {
+        "surface": "formal_merge_report",
+        "framework_type": "partial_argumentation_framework",
         "branch_a": merge.branch_a,
         "branch_b": merge.branch_b,
         "semantics": semantics,
