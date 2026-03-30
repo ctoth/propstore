@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import yaml
+from uuid import uuid4
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 from propstore.repo import KnowledgeRepo
 from propstore.repo.branch import create_branch
@@ -40,6 +43,10 @@ def _obs_claim(cid: str, statement: str) -> dict:
         "sample_size": 10,
         "provenance": {"paper": "test_paper", "page": 1},
     }
+
+
+def _hypothesis_repo_root(tmp_path, suffix: str):
+    return tmp_path / f"{suffix}_{uuid4().hex}"
 
 
 def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
@@ -160,3 +167,135 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
     assert summary.claim_ids == ("claim_a",)
     assert set(summary.projection.argument_to_claim_id.values()) == {"claim_a"}
     assert summary.projection.framework.attacks == frozenset()
+
+
+@settings(
+    max_examples=25,
+    deadline=None,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
+@given(
+    extra_targets=st.lists(
+        st.from_regex(r"claim_extra_[a-z]{1,3}", fullmatch=True),
+        min_size=1,
+        max_size=4,
+        unique=True,
+    )
+)
+def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
+    tmp_path,
+    extra_targets: list[str],
+):
+    repo_root = _hypothesis_repo_root(
+        tmp_path,
+        "knowledge_out_scope_" + "_".join(extra_targets),
+    )
+    kr = KnowledgeRepo.init(repo_root)
+    base_sha = kr.commit_files({}, "seed")
+    branch_name = "paper/out_of_scope"
+    create_branch(kr, branch_name, source_commit=base_sha)
+
+    base_claims = [
+        _obs_claim("claim_a", "A"),
+        _obs_claim("claim_b", "B"),
+    ]
+    in_scope_stances = [{"target": "claim_b", "type": "contradicts"}]
+    extra_stances = [
+        {"target": target, "type": "contradicts"}
+        for target in extra_targets
+    ]
+
+    kr.commit_files(
+        {
+            "claims/claims.yaml": _claim_yaml(base_claims),
+            "stances/claim_a.yaml": _stance_yaml("claim_a", in_scope_stances),
+        },
+        "left",
+    )
+    kr.commit_files(
+        {
+            "claims/claims.yaml": _claim_yaml(base_claims),
+            "stances/claim_a.yaml": _stance_yaml(
+                "claim_a",
+                in_scope_stances + extra_stances,
+            ),
+        },
+        "right",
+        branch=branch_name,
+    )
+
+    left_summary = build_branch_structured_summary(kr, "master")
+    right_summary = build_branch_structured_summary(kr, branch_name)
+
+    assert left_summary.claim_ids == right_summary.claim_ids
+    assert left_summary.claim_provenance == right_summary.claim_provenance
+    assert left_summary.content_signature == right_summary.content_signature
+    assert left_summary.stance_rows == right_summary.stance_rows
+    assert left_summary.projection.framework == right_summary.projection.framework
+
+
+@settings(
+    max_examples=25,
+    deadline=None,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
+@given(
+    claim_order=st.permutations(("claim_a", "claim_b", "claim_c")),
+    stance_order=st.permutations(("claim_b", "claim_c")),
+)
+def test_branch_structured_summary_is_order_invariant(
+    tmp_path,
+    claim_order: tuple[str, ...],
+    stance_order: tuple[str, ...],
+):
+    repo_root = _hypothesis_repo_root(
+        tmp_path,
+        "knowledge_order_"
+        + "_".join(claim_order)
+        + "__"
+        + "_".join(stance_order),
+    )
+    kr = KnowledgeRepo.init(repo_root)
+    base_sha = kr.commit_files({}, "seed")
+    branch_name = "paper/order_invariant"
+    create_branch(kr, branch_name, source_commit=base_sha)
+
+    claims_by_id = {
+        "claim_a": _obs_claim("claim_a", "A"),
+        "claim_b": _obs_claim("claim_b", "B"),
+        "claim_c": _obs_claim("claim_c", "C"),
+    }
+    stances = [{"target": target, "type": "contradicts"} for target in stance_order]
+
+    kr.commit_files(
+        {
+            "claims/claims.yaml": _claim_yaml([claims_by_id[claim_id] for claim_id in claim_order]),
+            "stances/claim_a.yaml": _stance_yaml("claim_a", stances),
+        },
+        "left",
+    )
+    kr.commit_files(
+        {
+            "claims/claims.yaml": _claim_yaml(
+                [claims_by_id["claim_c"], claims_by_id["claim_a"], claims_by_id["claim_b"]]
+            ),
+            "stances/claim_a.yaml": _stance_yaml(
+                "claim_a",
+                [
+                    {"target": "claim_c", "type": "contradicts"},
+                    {"target": "claim_b", "type": "contradicts"},
+                ],
+            ),
+        },
+        "right",
+        branch=branch_name,
+    )
+
+    left_summary = build_branch_structured_summary(kr, "master")
+    right_summary = build_branch_structured_summary(kr, branch_name)
+
+    assert left_summary.claim_ids == right_summary.claim_ids
+    assert left_summary.claim_provenance == right_summary.claim_provenance
+    assert left_summary.content_signature == right_summary.content_signature
+    assert left_summary.stance_rows == right_summary.stance_rows
+    assert left_summary.projection.framework == right_summary.projection.framework

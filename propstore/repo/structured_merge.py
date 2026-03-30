@@ -189,6 +189,31 @@ def _summary_content_signature(
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
+def _canonical_stance_rows(
+    active_claims: list[dict[str, Any]],
+    stance_rows: list[StanceRow],
+) -> list[StanceRow]:
+    in_scope_claim_ids = {
+        to_claim_id(claim_id)
+        for claim_id in _summary_claim_ids(active_claims)
+    }
+    canonical_rows = [
+        row
+        for row in stance_rows
+        if row.claim_id in in_scope_claim_ids and row.target_claim_id in in_scope_claim_ids
+    ]
+    canonical_rows.sort(
+        key=lambda row: (
+            str(row.claim_id),
+            str(row.target_claim_id),
+            row.stance_type,
+            "" if row.target_justification_id is None else str(row.target_justification_id),
+            json.dumps(_normalize_for_signature(dict(row.attributes)), sort_keys=True),
+        )
+    )
+    return canonical_rows
+
+
 def _load_branch_claims(claims_root: KnowledgePath) -> list[dict[str, Any]]:
     from propstore.validate_claims import load_claim_files
 
@@ -236,7 +261,8 @@ def build_branch_structured_summary(kr, branch: str) -> BranchStructuredSummary:
 
     tree = kr.tree(commit=branch_head(kr, branch))
     active_claims = _load_branch_claims(tree / "claims")
-    stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(tree / "stances")
+    raw_stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(tree / "stances")
+    stance_rows = _canonical_stance_rows(active_claims, raw_stance_rows)
     claim_ids = _summary_claim_ids(active_claims)
     claim_provenance = _summary_claim_provenance(active_claims)
     content_signature = _summary_content_signature(active_claims, stance_rows)
