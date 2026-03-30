@@ -67,8 +67,12 @@ def _bind_world(
     policy: RenderPolicy | None = None,
 ) -> BoundWorld:
     from propstore.world import Environment
+    from propstore.core.id_types import to_context_id
 
-    environment = Environment(bindings=dict(bindings), context_id=context_id)
+    environment = Environment(
+        bindings=dict(bindings),
+        context_id=(None if context_id is None else to_context_id(context_id)),
+    )
     return wm.bind(environment=environment, policy=policy)
 
 
@@ -1159,10 +1163,10 @@ def _bind_atms_world(
     return wm, bound, bindings, concept_id
 
 
-def _format_assumption_ids(assumption_ids: list[str] | tuple[str, ...]) -> str:
+def _format_assumption_ids(assumption_ids: Sequence[str]) -> str:
     if not assumption_ids:
         return "[]"
-    return "[" + ", ".join(assumption_ids) + "]"
+    return "[" + ", ".join(str(assumption_id) for assumption_id in assumption_ids) + "]"
 
 
 def _parse_queryables(

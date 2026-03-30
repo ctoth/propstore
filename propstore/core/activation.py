@@ -33,8 +33,8 @@ def _visible_contexts(
 ) -> set[str] | None:
     if environment.context_id is None or context_hierarchy is None:
         return None
-    visible = {environment.context_id}
-    visible.update(context_hierarchy.ancestors(environment.context_id))
+    visible = {str(environment.context_id)}
+    visible.update(str(context_id) for context_id in context_hierarchy.ancestors(str(environment.context_id)))
     return visible
 
 

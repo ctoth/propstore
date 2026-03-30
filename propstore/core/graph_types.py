@@ -8,6 +8,7 @@ from typing import Any
 
 from propstore.core.environment import Environment
 from propstore.core.id_types import (
+    to_assumption_ids,
     ClaimId,
     ConceptId,
     to_claim_id,
@@ -72,7 +73,7 @@ def label_to_dict(label: Label | None) -> list[list[str]] | None:
 def label_from_dict(data: list[list[str]] | None) -> Label | None:
     if data is None:
         return None
-    return Label(tuple(EnvironmentKey(tuple(environment)) for environment in data))
+    return Label(tuple(EnvironmentKey(to_assumption_ids(environment)) for environment in data))
 
 
 @dataclass(frozen=True, order=True)

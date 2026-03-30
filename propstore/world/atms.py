@@ -17,12 +17,22 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
+from collections.abc import Iterable
 from itertools import combinations, product
 from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, runtime_checkable
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.environment import ArtifactStore
 from propstore.core.graph_build import build_compiled_world_graph
+from propstore.core.id_types import (
+    AssumptionId,
+    ClaimId,
+    QueryableId,
+    to_assumption_id,
+    to_assumption_ids,
+    to_claim_ids,
+    to_queryable_ids,
+)
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness, ParameterizationEdge
 from propstore.propagation import evaluate_parameterization
 from propstore.world.labelled import (
@@ -163,7 +173,7 @@ class _ATMSRuntime:
 
 @dataclass(frozen=True)
 class _FutureReplay:
-    queryable_ids: tuple[str, ...]
+    queryable_ids: tuple[QueryableId, ...]
     queryable_cels: tuple[str, ...]
     environment_key: EnvironmentKey
     consistent: bool
@@ -175,6 +185,18 @@ _FutureEntryT = TypeVar(
     ATMSNodeFutureStatusEntry,
     ATMSConceptFutureStatusEntry,
 )
+
+
+def _queryable_id_list(values: Iterable[object]) -> list[QueryableId]:
+    return list(to_queryable_ids(values))
+
+
+def _assumption_id_list(values: Iterable[object]) -> list[AssumptionId]:
+    return list(to_assumption_ids(values))
+
+
+def _claim_id_list(values: list[str] | tuple[str, ...] | set[str]) -> list[ClaimId]:
+    return list(to_claim_ids(sorted(values)))
 
 
 def _is_runtime_like(candidate: object) -> TypeGuard[_ATMSRuntimeLike]:
@@ -222,7 +244,7 @@ def _extend_environment(
             environment.assumptions
             + tuple(
                 AssumptionRef(
-                    assumption_id=queryable.assumption_id,
+                    assumption_id=to_assumption_id(queryable.assumption_id),
                     kind=queryable.kind,
                     source=queryable.source,
                     cel=queryable.cel,
@@ -400,13 +422,13 @@ class ATMSEngine:
         for future in self._future_entries(queryables, limit):
             future_engine = future.future_engine
             futures.append({
-                "queryable_ids": list(future.queryable_ids),
+                "queryable_ids": _queryable_id_list(future.queryable_ids),
                 "queryable_cels": list(future.queryable_cels),
-                "environment": list(future.environment_key.assumption_ids),
+                "environment": _assumption_id_list(future.environment_key.assumption_ids),
                 "consistent": future.consistent,
-                "supported_claim_ids": sorted(future_engine.supported_claim_ids()),
+                "supported_claim_ids": _claim_id_list(future_engine.supported_claim_ids()),
                 "nogoods": [
-                    list(environment.assumption_ids)
+                    _assumption_id_list(environment.assumption_ids)
                     for environment in future_engine.nogoods.environments
                 ],
             })
@@ -423,17 +445,17 @@ class ATMSEngine:
         for future in self._future_entries(queryables, limit):
             future_engine = future.future_engine
             inspection = future_engine._future_node_inspection(node_id, fallback=self._nodes.get(node_id))
+            essential_support = self._serialize_environment_key(inspection.essential_support) or []
             futures.append({
-                "queryable_ids": list(future.queryable_ids),
+                "queryable_ids": _queryable_id_list(future.queryable_ids),
                 "queryable_cels": list(future.queryable_cels),
-                "environment": list(future.environment_key.assumption_ids),
+                "environment": _assumption_id_list(future.environment_key.assumption_ids),
                 "consistent": future.consistent,
                 "status": inspection.status,
                 "out_kind": inspection.out_kind,
                 "reason": inspection.reason,
                 "support_quality": inspection.support_quality,
-                "essential_support": self._serialize_environment_key(inspection.essential_support)
-                or [],
+                "essential_support": _assumption_id_list(essential_support),
             })
         return {
             "node_id": node_id,
@@ -1480,21 +1502,21 @@ class ATMSEngine:
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
     ) -> tuple[QueryableAssumption, ...]:
         current_ids = {
-            assumption.assumption_id
+            str(assumption.assumption_id)
             for assumption in self._runtime.environment.assumptions
         }
         current_cels = {
             assumption.cel
             for assumption in self._runtime.environment.assumptions
         }
-        normalized: dict[tuple[str, str], QueryableAssumption] = {}
+        normalized: dict[tuple[str, QueryableId], QueryableAssumption] = {}
         for queryable in queryables:
             candidate = (
                 queryable
                 if isinstance(queryable, QueryableAssumption)
                 else QueryableAssumption.from_cel(str(queryable))
             )
-            if candidate.assumption_id in current_ids or candidate.cel in current_cels:
+            if str(candidate.assumption_id) in current_ids or candidate.cel in current_cels:
                 continue
             normalized[(candidate.cel, candidate.assumption_id)] = candidate
         return tuple(
@@ -1552,12 +1574,12 @@ class ATMSEngine:
         for future in self._future_entries(queryables, limit):
             future_engine = future.future_engine
             futures.append({
-                "queryable_ids": list(future.queryable_ids),
+                "queryable_ids": _queryable_id_list(future.queryable_ids),
                 "queryable_cels": list(future.queryable_cels),
-                "environment": list(future.environment_key.assumption_ids),
+                "environment": _assumption_id_list(future.environment_key.assumption_ids),
                 "consistent": future.consistent,
                 "status": future_engine._runtime.concept_status(concept_id),
-                "supported_claim_ids": sorted(future_engine.supported_claim_ids(concept_id)),
+                "supported_claim_ids": _claim_id_list(future_engine.supported_claim_ids(concept_id)),
             })
         return futures
 
@@ -1571,7 +1593,7 @@ class ATMSEngine:
             ),
         )
         minimal: list[_FutureEntryT] = []
-        minimal_sets: list[set[str]] = []
+        minimal_sets: list[set[QueryableId]] = []
         for entry in ordered:
             queryable_set = set(entry["queryable_ids"])
             if any(existing.issubset(queryable_set) for existing in minimal_sets):
@@ -1585,13 +1607,13 @@ class ATMSEngine:
         node_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int,
-    ) -> dict[tuple[str, ...], ATMSNodeRelevanceState]:
+    ) -> dict[tuple[QueryableId, ...], ATMSNodeRelevanceState]:
         current = self.node_status(node_id)
-        states: dict[tuple[str, ...], ATMSNodeRelevanceState] = {
+        states: dict[tuple[QueryableId, ...], ATMSNodeRelevanceState] = {
             (): {
                 "queryable_ids": [],
                 "queryable_cels": [],
-                "environment": list(self._bound_environment_key().assumption_ids),
+                "environment": _assumption_id_list(self._bound_environment_key().assumption_ids),
                 "consistent": not self.nogoods.excludes(self._bound_environment_key()),
                 "status": current.status,
             }
@@ -1599,9 +1621,9 @@ class ATMSEngine:
         for future in self.node_future_statuses(node_id, queryables, limit=limit)["futures"]:
             key = tuple(future["queryable_ids"])
             states[key] = {
-                "queryable_ids": list(future["queryable_ids"]),
+                "queryable_ids": _queryable_id_list(future["queryable_ids"]),
                 "queryable_cels": list(future["queryable_cels"]),
-                "environment": list(future["environment"]),
+                "environment": _assumption_id_list(future["environment"]),
                 "consistent": future["consistent"],
                 "status": future["status"],
             }
@@ -1612,12 +1634,12 @@ class ATMSEngine:
         concept_id: str,
         queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
         limit: int,
-    ) -> dict[tuple[str, ...], ATMSConceptRelevanceState]:
-        states: dict[tuple[str, ...], ATMSConceptRelevanceState] = {
+    ) -> dict[tuple[QueryableId, ...], ATMSConceptRelevanceState]:
+        states: dict[tuple[QueryableId, ...], ATMSConceptRelevanceState] = {
             (): {
                 "queryable_ids": [],
                 "queryable_cels": [],
-                "environment": list(self._bound_environment_key().assumption_ids),
+                "environment": _assumption_id_list(self._bound_environment_key().assumption_ids),
                 "consistent": not self.nogoods.excludes(self._bound_environment_key()),
                 "status": self._runtime.concept_status(concept_id),
             }
@@ -1625,9 +1647,9 @@ class ATMSEngine:
         for future in self._concept_future_entries(concept_id, queryables, limit=limit):
             key = tuple(future["queryable_ids"])
             states[key] = {
-                "queryable_ids": list(future["queryable_ids"]),
+                "queryable_ids": _queryable_id_list(future["queryable_ids"]),
                 "queryable_cels": list(future["queryable_cels"]),
-                "environment": list(future["environment"]),
+                "environment": _assumption_id_list(future["environment"]),
                 "consistent": future["consistent"],
                 "status": future["status"],
             }
@@ -1635,7 +1657,7 @@ class ATMSEngine:
 
     def _node_relevance_from_states(
         self,
-        states: dict[tuple[str, ...], ATMSNodeRelevanceState],
+        states: dict[tuple[QueryableId, ...], ATMSNodeRelevanceState],
         current_status: ATMSNodeStatus,
     ) -> tuple[list[str], list[str], dict[str, list[ATMSNodeWitnessPair]]]:
         known_queryables = sorted({
@@ -1664,16 +1686,16 @@ class ATMSEngine:
                     "queryable_id": queryable_id,
                     "queryable_cel": queryable_cel,
                     "without": {
-                        "queryable_ids": list(without_state["queryable_ids"]),
+                        "queryable_ids": _queryable_id_list(without_state["queryable_ids"]),
                         "queryable_cels": list(without_state["queryable_cels"]),
-                        "environment": list(without_state["environment"]),
+                        "environment": _assumption_id_list(without_state["environment"]),
                         "consistent": without_state["consistent"],
                         "status": without_state["status"],
                     },
                     "with": {
-                        "queryable_ids": list(with_state["queryable_ids"]),
+                        "queryable_ids": _queryable_id_list(with_state["queryable_ids"]),
                         "queryable_cels": list(with_state["queryable_cels"]),
-                        "environment": list(with_state["environment"]),
+                        "environment": _assumption_id_list(with_state["environment"]),
                         "consistent": with_state["consistent"],
                         "status": with_state["status"],
                     },
@@ -1704,7 +1726,7 @@ class ATMSEngine:
             ),
         )
         minimal: list[ATMSNodeWitnessPair] = []
-        minimal_sets: list[set[str]] = []
+        minimal_sets: list[set[QueryableId]] = []
         for pair in ordered:
             queryable_set = set(pair["with"]["queryable_ids"])
             if any(existing.issubset(queryable_set) for existing in minimal_sets):
@@ -1715,7 +1737,7 @@ class ATMSEngine:
 
     def _concept_relevance_from_states(
         self,
-        states: dict[tuple[str, ...], ATMSConceptRelevanceState],
+        states: dict[tuple[QueryableId, ...], ATMSConceptRelevanceState],
         current_status: str,
     ) -> tuple[list[str], list[str], dict[str, list[ATMSConceptWitnessPair]]]:
         known_queryables = sorted({
@@ -1744,16 +1766,16 @@ class ATMSEngine:
                     "queryable_id": queryable_id,
                     "queryable_cel": queryable_cel,
                     "without": {
-                        "queryable_ids": list(without_state["queryable_ids"]),
+                        "queryable_ids": _queryable_id_list(without_state["queryable_ids"]),
                         "queryable_cels": list(without_state["queryable_cels"]),
-                        "environment": list(without_state["environment"]),
+                        "environment": _assumption_id_list(without_state["environment"]),
                         "consistent": without_state["consistent"],
                         "status": without_state["status"],
                     },
                     "with": {
-                        "queryable_ids": list(with_state["queryable_ids"]),
+                        "queryable_ids": _queryable_id_list(with_state["queryable_ids"]),
                         "queryable_cels": list(with_state["queryable_cels"]),
-                        "environment": list(with_state["environment"]),
+                        "environment": _assumption_id_list(with_state["environment"]),
                         "consistent": with_state["consistent"],
                         "status": with_state["status"],
                     },
@@ -1784,7 +1806,7 @@ class ATMSEngine:
             ),
         )
         minimal: list[ATMSConceptWitnessPair] = []
-        minimal_sets: list[set[str]] = []
+        minimal_sets: list[set[QueryableId]] = []
         for pair in ordered:
             queryable_set = set(pair["with"]["queryable_ids"])
             if any(existing.issubset(queryable_set) for existing in minimal_sets):
@@ -1865,7 +1887,7 @@ class ATMSEngine:
         max_suggestions: int | None,
     ) -> list[ATMSNextQuerySuggestion]:
         grouped: dict[
-            tuple[str, str],
+            tuple[QueryableId, str],
             list[ATMSNodeInterventionPlan | ATMSConceptInterventionPlan],
         ] = defaultdict(list)
         for plan in plans:
@@ -1876,8 +1898,9 @@ class ATMSEngine:
             ):
                 grouped[(queryable_id, queryable_cel)].append(plan)
 
-        suggestions: list[ATMSNextQuerySuggestion] = [
-            {
+        suggestions: list[ATMSNextQuerySuggestion] = []
+        for (queryable_id, queryable_cel), containing_plans in grouped.items():
+            suggestions.append({
                 "queryable_id": queryable_id,
                 "queryable_cel": queryable_cel,
                 "plan_count": len(containing_plans),
@@ -1890,9 +1913,7 @@ class ATMSEngine:
                     for plan in containing_plans
                 ],
                 "example_plans": containing_plans[:2],
-            }
-            for (queryable_id, queryable_cel), containing_plans in grouped.items()
-        ]
+            })
         suggestions.sort(
             key=lambda suggestion: (
                 suggestion["smallest_plan_size"],
@@ -1931,11 +1952,11 @@ class ATMSEngine:
 
     @staticmethod
     def _coerce_environment_key(
-        environment: EnvironmentKey | tuple[str, ...] | list[str],
+        environment: EnvironmentKey | tuple[AssumptionId, ...] | list[AssumptionId] | tuple[str, ...] | list[str],
     ) -> EnvironmentKey:
         if isinstance(environment, EnvironmentKey):
             return environment
-        return EnvironmentKey(tuple(environment))
+        return EnvironmentKey(to_assumption_ids(environment))
 
     def _explain_justification(
         self,

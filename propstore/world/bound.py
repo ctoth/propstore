@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.activation import is_claim_mapping_active
 from propstore.core.environment import ArtifactStore
+from propstore.core.id_types import to_context_id
 from propstore.core.row_types import coerce_conflict_row, coerce_parameterization_row
 from propstore.world.labelled import (
     AssumptionRef,
@@ -159,7 +160,10 @@ class BoundWorld(BeliefSpace):
     ) -> None:
         self._store = world
         if environment is None:
-            environment = Environment(bindings=bindings or {}, context_id=context_id)
+            environment = Environment(
+                bindings=bindings or {},
+                context_id=(None if context_id is None else to_context_id(context_id)),
+            )
         self._environment = environment
         self._policy = policy
         self._active_graph = active_graph

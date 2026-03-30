@@ -10,12 +10,14 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
+from propstore.core.id_types import AssumptionId, to_assumption_ids
+
 
 @dataclass(frozen=True, order=True)
 class AssumptionRef:
     """Compiled assumption with stable identity for in-memory label use."""
 
-    assumption_id: str
+    assumption_id: AssumptionId
     kind: str
     source: str
     cel: str
@@ -25,10 +27,10 @@ class AssumptionRef:
 class EnvironmentKey:
     """Immutable set of supporting assumption IDs."""
 
-    assumption_ids: tuple[str, ...] = ()
+    assumption_ids: tuple[AssumptionId, ...] = ()
 
     def __post_init__(self) -> None:
-        normalized = tuple(sorted(dict.fromkeys(self.assumption_ids)))
+        normalized = tuple(sorted(dict.fromkeys(to_assumption_ids(self.assumption_ids))))
         object.__setattr__(self, "assumption_ids", normalized)
 
     def union(self, other: EnvironmentKey) -> EnvironmentKey:

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, 
 
 from propstore.core.environment import ArtifactStore, Environment  # noqa: F401
 from propstore.core.id_types import (
+    AssumptionId,
     ClaimId,
     ConceptId,
     QueryableId,
@@ -119,33 +120,33 @@ class ATMSInspection:
 
 
 class ATMSFutureEnvironmentReport(TypedDict):
-    queryable_ids: list[str]
+    queryable_ids: list[QueryableId]
     queryable_cels: list[str]
-    environment: list[str]
+    environment: list[AssumptionId]
     consistent: bool
-    supported_claim_ids: list[str]
-    nogoods: list[list[str]]
+    supported_claim_ids: list[ClaimId]
+    nogoods: list[list[AssumptionId]]
 
 
 class ATMSNodeFutureStatusEntry(TypedDict):
-    queryable_ids: list[str]
+    queryable_ids: list[QueryableId]
     queryable_cels: list[str]
-    environment: list[str]
+    environment: list[AssumptionId]
     consistent: bool
     status: ATMSNodeStatus
     out_kind: ATMSOutKind | None
     reason: str
     support_quality: SupportQuality
-    essential_support: list[str]
+    essential_support: list[AssumptionId]
 
 
 class ATMSConceptFutureStatusEntry(TypedDict):
-    queryable_ids: list[str]
+    queryable_ids: list[QueryableId]
     queryable_cels: list[str]
-    environment: list[str]
+    environment: list[AssumptionId]
     consistent: bool
     status: str
-    supported_claim_ids: list[str]
+    supported_claim_ids: list[ClaimId]
 
 
 class ATMSFutureStatusReport(TypedDict):
@@ -192,17 +193,17 @@ class ATMSConceptStabilityReport(TypedDict):
 
 
 class ATMSNodeRelevanceState(TypedDict):
-    queryable_ids: list[str]
+    queryable_ids: list[QueryableId]
     queryable_cels: list[str]
-    environment: list[str]
+    environment: list[AssumptionId]
     consistent: bool
     status: ATMSNodeStatus
 
 
 class ATMSConceptRelevanceState(TypedDict):
-    queryable_ids: list[str]
+    queryable_ids: list[QueryableId]
     queryable_cels: list[str]
-    environment: list[str]
+    environment: list[AssumptionId]
     consistent: bool
     status: str
 
@@ -210,7 +211,7 @@ class ATMSConceptRelevanceState(TypedDict):
 ATMSNodeWitnessPair = TypedDict(
     "ATMSNodeWitnessPair",
     {
-        "queryable_id": str,
+        "queryable_id": QueryableId,
         "queryable_cel": str,
         "without": ATMSNodeRelevanceState,
         "with": ATMSNodeRelevanceState,
@@ -220,7 +221,7 @@ ATMSNodeWitnessPair = TypedDict(
 ATMSConceptWitnessPair = TypedDict(
     "ATMSConceptWitnessPair",
     {
-        "queryable_id": str,
+        "queryable_id": QueryableId,
         "queryable_cel": str,
         "without": ATMSConceptRelevanceState,
         "with": ATMSConceptRelevanceState,
@@ -252,9 +253,9 @@ class ATMSNodeInterventionPlan(TypedDict):
     claim_id: str | None
     current_status: ATMSNodeStatus
     target_status: ATMSNodeStatus
-    queryable_ids: list[str]
+    queryable_ids: list[QueryableId]
     queryable_cels: list[str]
-    environment: list[str]
+    environment: list[AssumptionId]
     consistent: bool
     result_status: ATMSNodeStatus
     result_out_kind: ATMSOutKind | None
@@ -266,16 +267,16 @@ class ATMSConceptInterventionPlan(TypedDict):
     concept_id: str
     current_status: str
     target_status: str
-    queryable_ids: list[str]
+    queryable_ids: list[QueryableId]
     queryable_cels: list[str]
-    environment: list[str]
+    environment: list[AssumptionId]
     consistent: bool
     result_status: str
     minimality_basis: str
 
 
 class ATMSNextQuerySuggestion(TypedDict):
-    queryable_id: str
+    queryable_id: QueryableId
     queryable_cel: str
     plan_count: int
     smallest_plan_size: int

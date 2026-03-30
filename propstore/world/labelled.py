@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from propstore.core.id_types import AssumptionId, ContextId, to_assumption_id, to_context_id
 # Canonical definitions live in core/labels.py; re-exported here
 # for backward compatibility within the world layer.
 from propstore.core.labels import (  # noqa: F401
@@ -85,7 +86,7 @@ def compile_environment_assumptions(
     *,
     bindings: Mapping[str, Any],
     effective_assumptions: Sequence[str] = (),
-    context_id: str | None = None,
+    context_id: ContextId | str | None = None,
 ) -> tuple[AssumptionRef, ...]:
     """Compile bindings and inherited context assumptions into stable refs."""
     compiled: list[AssumptionRef] = []
@@ -102,14 +103,15 @@ def compile_environment_assumptions(
             )
         )
 
-    context_source = context_id or "<context>"
+    normalized_context_id = None if context_id is None else to_context_id(context_id)
+    context_source = normalized_context_id or "<context>"
     for cel in sorted(dict.fromkeys(effective_assumptions)):
         compiled.append(
             AssumptionRef(
-                assumption_id=_stable_id("context", context_source, cel),
+                assumption_id=_stable_id("context", str(context_source), str(cel)),
                 kind="context",
-                source=context_source,
-                cel=cel,
+                source=str(context_source),
+                cel=str(cel),
             )
         )
 
@@ -150,6 +152,6 @@ def merge_labels(
     return Label(tuple(normalize_environments(environments, nogoods=nogoods)))
 
 
-def _stable_id(kind: str, source: str, body: str) -> str:
+def _stable_id(kind: str, source: str, body: str) -> AssumptionId:
     digest = hashlib.sha1(f"{kind}\0{source}\0{body}".encode("utf-8")).hexdigest()[:12]
-    return f"{kind}:{source}:{digest}"
+    return to_assumption_id(f"{kind}:{source}:{digest}")

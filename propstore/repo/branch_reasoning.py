@@ -1,6 +1,7 @@
 """Branch-aware reasoning over the formal repository merge object."""
 from __future__ import annotations
 
+from propstore.core.id_types import to_assumption_id
 from propstore.core.labels import AssumptionRef, EnvironmentKey, NogoodSet
 from propstore.repo.merge_classifier import RepoMergeFramework
 
@@ -8,7 +9,7 @@ from propstore.repo.merge_classifier import RepoMergeFramework
 def make_branch_assumption(branch_name: str) -> AssumptionRef:
     safe_id = branch_name.replace("/", "_").replace("-", "_")
     return AssumptionRef(
-        assumption_id=f"branch:{safe_id}",
+        assumption_id=to_assumption_id(f"branch:{safe_id}"),
         kind="branch",
         source=branch_name,
         cel=f"branch == '{branch_name}'",

@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
+from propstore.core.id_types import ContextId, to_assumption_id, to_context_id
 from propstore.core.labels import AssumptionRef
 from propstore.core.row_types import (
     ConflictRowInput,
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class Environment:
     bindings: Mapping[str, Any] = field(default_factory=dict)
-    context_id: str | None = None
+    context_id: ContextId | None = None
     effective_assumptions: tuple[str, ...] = field(default_factory=tuple)
     assumptions: tuple[AssumptionRef, ...] = field(default_factory=tuple)
 
@@ -35,7 +36,7 @@ class Environment:
         object.__setattr__(
             self,
             "effective_assumptions",
-            tuple(self.effective_assumptions),
+            tuple(str(item) for item in self.effective_assumptions),
         )
         object.__setattr__(self, "assumptions", tuple(self.assumptions))
 
@@ -53,7 +54,7 @@ class Environment:
             if isinstance(entry, Mapping):
                 assumptions.append(
                     AssumptionRef(
-                        assumption_id=str(entry["assumption_id"]),
+                        assumption_id=to_assumption_id(entry["assumption_id"]),
                         kind=str(entry["kind"]),
                         source=str(entry["source"]),
                         cel=str(entry["cel"]),
@@ -62,8 +63,12 @@ class Environment:
 
         return cls(
             bindings=dict(data.get("bindings") or {}),
-            context_id=data.get("context_id"),
-            effective_assumptions=tuple(data.get("effective_assumptions") or ()),
+            context_id=(
+                None
+                if data.get("context_id") is None
+                else to_context_id(data["context_id"])
+            ),
+            effective_assumptions=tuple(str(item) for item in data.get("effective_assumptions") or ()),
             assumptions=tuple(assumptions),
         )
 
