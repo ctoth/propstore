@@ -25,23 +25,19 @@ import yaml
 from propstore.parameterization_groups import build_groups
 from propstore.form_utils import (
     FormDefinition,
-    forms_with_dimensions,
     kind_value_from_form_name,
-    load_all_forms,
-    load_form,
+    load_all_forms_from_reader,
     normalize_to_si,
-    required_dimensions,
     verify_form_algebra_dimensions,
 )
 from propstore.stances import VALID_STANCE_TYPES
-from propstore.validate import LoadedConcept
-from propstore.validate_claims import LoadedClaimFile
+from propstore.validate import LoadedConcept, load_concepts
+from propstore.validate_claims import LoadedClaimFile, load_claim_files
 from ast_equiv import canonical_dump
 
 from propstore.tree_reader import TreeReader
 
 if TYPE_CHECKING:
-    from propstore.cli.repository import Repository
     from propstore.validate_contexts import ContextHierarchy, LoadedContext
 
 _SEMANTIC_INPUT_VERSION = "semantic-input-v1"
@@ -97,52 +93,18 @@ def _optional_int(value: object) -> int | None:
 
 
 
-def _content_hash(
-    concepts: list[LoadedConcept],
-    claim_files: Sequence[LoadedClaimFile] | None = None,
-    *,
-    repo: Repository | None = None,
-    context_files: Sequence[LoadedContext] | None = None,
-) -> str:
-    """Hash all semantic inputs that define the compiled sidecar."""
+def _content_hash(reader: TreeReader) -> str:
+    """Hash all semantic inputs that define the compiled sidecar.
+
+    Reads all knowledge subdirs through the reader and hashes raw bytes.
+    Schema files (package code) are hashed separately from the filesystem.
+    """
     h = hashlib.sha256()
     h.update(_SEMANTIC_INPUT_VERSION.encode())
-    for c in sorted(concepts, key=lambda x: x.filename):
-        h.update(c.filename.encode())
-        h.update(json.dumps(c.data, sort_keys=True, default=str).encode())
-    if claim_files:
-        for cf in sorted(claim_files, key=lambda x: x.filename):
-            h.update(cf.filename.encode())
-            h.update(json.dumps(cf.data, sort_keys=True, default=str).encode())
-    if context_files:
-        for ctx in sorted(context_files, key=lambda x: x.filename):
-            h.update(ctx.filename.encode())
-            filepath = ctx.filepath
-            if filepath is not None and Path(filepath).exists():
-                h.update(Path(filepath).read_bytes())
-            else:
-                h.update(json.dumps(ctx.data, sort_keys=True, default=str).encode())
-
-    forms_dirs: set[Path] = set()
-    if repo is not None:
-        forms_dirs.add(repo.forms_dir)
-    else:
-        for concept in concepts:
-            if concept.filepath is not None:
-                forms_dirs.add(concept.filepath.parent.parent / "forms")
-    for forms_dir in sorted(forms_dirs):
-        if not forms_dir.exists():
-            continue
-        for form_path in sorted(forms_dir.glob("*.yaml")):
-            h.update(str(form_path.name).encode())
-            h.update(form_path.read_bytes())
-
-    if repo is not None and claim_files is not None:
-        stances_dir = repo.stances_dir
-        if stances_dir.exists():
-            for stance_path in sorted(stances_dir.glob("*.yaml")):
-                h.update(str(stance_path.name).encode())
-                h.update(stance_path.read_bytes())
+    for subdir in ("concepts", "claims", "contexts", "forms", "stances"):
+        for stem, raw_bytes in reader.list_yaml(subdir):
+            h.update(stem.encode())
+            h.update(raw_bytes)
 
     schema_dir = Path(__file__).parent.parent / "schema" / "generated"
     if schema_dir.exists():
@@ -201,28 +163,13 @@ def _claim_content_hash(claim: dict, source_paper: str) -> str:
 
 def _populate_stances_from_files(
     conn: sqlite3.Connection,
-    stances_dir: Path,
-    *,
-    reader: TreeReader | None = None,
+    reader: TreeReader,
 ) -> int:
-    """Read stance YAML files and insert into normalized relation storage.
-
-    When *reader* is provided, reads stance files from the TreeReader
-    (git or filesystem abstraction). Otherwise falls back to filesystem glob.
-    """
-    # Load stance entries from reader or filesystem
-    if reader is not None:
-        stance_entries = [
-            (stem, yaml.safe_load(raw) or {})
-            for stem, raw in reader.list_yaml("stances")
-        ]
-    elif stances_dir and stances_dir.exists():
-        stance_entries = []
-        for f in sorted(stances_dir.glob("*.yaml")):
-            with open(f, encoding="utf-8") as fh:
-                stance_entries.append((f.stem, yaml.safe_load(fh) or {}))
-    else:
-        return 0
+    """Read stance YAML files via TreeReader and insert into normalized relation storage."""
+    stance_entries = [
+        (stem, yaml.safe_load(raw) or {})
+        for stem, raw in reader.list_yaml("stances")
+    ]
 
     if not stance_entries:
         return 0
@@ -294,28 +241,17 @@ def _populate_stances_from_files(
 
 
 def build_sidecar(
-    concepts: list[LoadedConcept],
+    reader: TreeReader,
     sidecar_path: Path,
     force: bool = False,
-    claim_files: Sequence[LoadedClaimFile] | None = None,
-    concept_registry: dict | None = None,
     *,
-    repo: Repository | None = None,
-    context_files: Sequence[LoadedContext] | None = None,
     commit_hash: str | None = None,
-    reader: TreeReader | None = None,
 ) -> bool:
-    """Build the SQLite sidecar from concept data.
+    """Build the SQLite sidecar from a knowledge tree.
 
-    When claim_files is provided, also creates normalized claim/relation/conflict
-    tables plus claim_fts. concept_registry is required for conflict detection
-    when claim_files is provided.
-
-    When *commit_hash* is provided (git-backed repo), it is used as the
-    rebuild key instead of computing ``_content_hash()``.
-
-    When *reader* is provided, stance files are loaded via the TreeReader
-    instead of filesystem glob.
+    All data is loaded through *reader*. When *commit_hash* is provided
+    (git-backed repo), it is used as the rebuild key instead of computing
+    a content hash from the reader.
 
     Returns True if the sidecar was rebuilt, False if skipped.
     """
@@ -325,18 +261,43 @@ def build_sidecar(
     if commit_hash is not None:
         content_hash = commit_hash
     else:
-        content_hash = _content_hash(
-            concepts,
-            claim_files,
-            repo=repo,
-            context_files=context_files,
-        )
+        content_hash = _content_hash(reader)
     hash_path = sidecar_path.with_suffix(".hash")
 
     if not force and sidecar_path.exists() and hash_path.exists():
         existing_hash = hash_path.read_text().strip()
         if existing_hash == content_hash:
             return False
+
+    # Load all data through the reader
+    form_registry = load_all_forms_from_reader(reader)
+    concepts = load_concepts(None, reader=reader)
+    claim_files = load_claim_files(None, reader=reader) if reader.exists("claims") else None
+    from propstore.validate_contexts import load_contexts, ContextHierarchy
+    context_files = load_contexts(None, reader=reader) if reader.exists("contexts") else None
+
+    # Build concept registry for claim processing
+    concept_registry: dict[str, dict] = {}
+    for c in concepts:
+        cid = c.data.get("id")
+        if cid:
+            enriched = dict(c.data)
+            form_name = enriched.get("form")
+            if isinstance(form_name, str):
+                fd = form_registry.get(form_name)
+                if fd is not None:
+                    enriched["_form_definition"] = fd
+                    if fd.allowed_units:
+                        enriched["_allowed_units"] = sorted(fd.allowed_units)
+            concept_registry[cid] = enriched
+            # Also register by canonical_name and aliases
+            cname = enriched.get("canonical_name")
+            if cname:
+                concept_registry[cname] = enriched
+            for alias in enriched.get("aliases", []) or []:
+                aname = alias.get("name")
+                if aname:
+                    concept_registry[aname] = enriched
 
     # Snapshot embeddings before rebuild
     _embedding_snapshot = None
@@ -356,9 +317,6 @@ def build_sidecar(
         except ImportError:
             pass  # sqlite-vec not installed
         except Exception as exc:
-            # Intentionally broad: embedding snapshot is optional graceful degradation.
-            # Any failure here (sqlite-vec issues, corrupt DB, etc.) should not block
-            # the sidecar rebuild — embeddings will simply be re-generated.
             logging.warning("Embedding snapshot failed: %s", exc)
         finally:
             if _snap_conn is not None:
@@ -375,13 +333,13 @@ def build_sidecar(
 
         _create_tables(conn)
         _create_context_tables(conn)
-        _populate_forms(conn, repo=repo, concepts=concepts)
-        _populate_concepts(conn, concepts, repo=repo)
+        _populate_forms(conn, form_registry)
+        _populate_concepts(conn, concepts, form_registry)
         _populate_aliases(conn, concepts)
         _populate_relationships(conn, concepts)
         _populate_parameterizations(conn, concepts)
         _populate_parameterization_groups(conn, concepts)
-        _populate_form_algebra(conn, concepts, repo=repo)
+        _populate_form_algebra(conn, concepts, form_registry)
         _build_fts_index(conn, concepts)
 
         if context_files:
@@ -389,19 +347,7 @@ def build_sidecar(
 
         if claim_files is not None:
             _create_claim_tables(conn)
-            if concept_registry is None:
-                concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-            # Resolve forms directory for SI normalization
-            _forms_dir: Path | None = None
-            if repo is not None:
-                _forms_dir = repo.forms_dir
-            elif concepts and concepts[0].filepath is not None:
-                _forms_dir = concepts[0].filepath.parent.parent / "forms"
-            _form_registry: dict[str, FormDefinition] = {}
-            if _forms_dir is not None and _forms_dir.exists():
-                _form_registry = load_all_forms(_forms_dir)
-            _populate_claims(conn, claim_files, concept_registry, form_registry=_form_registry)
-            from propstore.validate_contexts import ContextHierarchy
+            _populate_claims(conn, claim_files, concept_registry, form_registry=form_registry)
 
             context_hierarchy = ContextHierarchy(list(context_files)) if context_files else None
             _populate_conflicts(
@@ -418,20 +364,17 @@ def build_sidecar(
                 from propstore.embed import restore_embeddings, _load_vec_extension
                 conn.row_factory = sqlite3.Row
                 _load_vec_extension(conn)
-                _restore_report = restore_embeddings(conn, _embedding_snapshot)
+                restore_embeddings(conn, _embedding_snapshot)
                 conn.row_factory = None
             except (ImportError, Exception) as exc:
                 import sys
                 print(f"Warning: embedding restore failed: {exc}", file=sys.stderr)
                 conn.row_factory = None
 
-        # Populate stances from stance files (in addition to inline stances from claims)
-        if repo is not None and claim_files is not None:
-            _populate_stances_from_files(conn, repo.stances_dir, reader=reader)
-
+        # Populate stances from stance files
         if claim_files is not None:
+            _populate_stances_from_files(conn, reader)
             _populate_justifications(conn)
-
 
         conn.commit()
     except BaseException:
@@ -564,8 +507,7 @@ def _create_tables(conn: sqlite3.Connection):
 def _populate_form_algebra(
     conn: sqlite3.Connection,
     concepts: list[LoadedConcept],
-    *,
-    repo: Repository | None = None,
+    form_registry: dict[str, FormDefinition],
 ) -> None:
     """Derive form algebra from concept parameterizations and populate the table.
 
@@ -573,6 +515,9 @@ def _populate_form_algebra(
     (e.g. force = mass * acceleration) by substituting concept IDs with form
     names in the sympy expression. Deduplicates and validates with bridgman.
     """
+    if not form_registry:
+        return
+
     # Build concept_id → (form_name, concept data) lookup
     id_to_form: dict[str, str] = {}
     for c in concepts:
@@ -580,15 +525,6 @@ def _populate_form_algebra(
         form_name = c.data.get("form")
         if cid and form_name:
             id_to_form[cid] = form_name
-
-    # Determine forms directory for dimension lookup
-    forms_dir: Path | None = None
-    if repo is not None:
-        forms_dir = repo.forms_dir
-    elif concepts and concepts[0].filepath is not None:
-        forms_dir = concepts[0].filepath.parent.parent / "forms"
-    if forms_dir is None or not forms_dir.exists():
-        return
 
     # Track seen entries for deduplication
     seen: set[tuple] = set()
@@ -640,8 +576,8 @@ def _populate_form_algebra(
             # Validate dimensions with bridgman (only when sympy expression exists)
             dim_verified = 1
             if sympy_str and operation:
-                output_fd = load_form(forms_dir, output_form)
-                input_fd_list = [load_form(forms_dir, f) for f in input_forms]
+                output_fd = form_registry.get(output_form)
+                input_fd_list = [form_registry.get(f) for f in input_forms]
                 if output_fd is not None and all(f is not None for f in input_fd_list):
                     if not verify_form_algebra_dimensions(
                         output_fd, input_fd_list, operation  # type: ignore[arg-type]
@@ -672,22 +608,10 @@ def _populate_form_algebra(
 
 def _populate_forms(
     conn: sqlite3.Connection,
-    *,
-    repo: Repository | None = None,
-    concepts: list[LoadedConcept] | None = None,
+    form_registry: dict[str, FormDefinition],
 ) -> None:
-    """Populate the form table from form YAML files."""
-    # Determine forms directory
-    forms_dir: Path | None = None
-    if repo is not None:
-        forms_dir = repo.forms_dir
-    elif concepts and concepts[0].filepath is not None:
-        forms_dir = concepts[0].filepath.parent.parent / "forms"
-    if forms_dir is None or not forms_dir.exists():
-        return
-
-    registry = load_all_forms(forms_dir)
-    for fd in registry.values():
+    """Populate the form table from a pre-loaded form registry."""
+    for fd in form_registry.values():
         dims_json = json.dumps(fd.dimensions) if fd.dimensions is not None else None
         conn.execute(
             "INSERT INTO form (name, kind, unit_symbol, is_dimensionless, dimensions) "
@@ -700,8 +624,7 @@ def _populate_forms(
 def _populate_concepts(
     conn: sqlite3.Connection,
     concepts: list[LoadedConcept],
-    *,
-    repo: Repository | None = None,
+    form_registry: dict[str, FormDefinition],
 ):
     for seq, c in enumerate(concepts, 1):
         d = c.data
@@ -726,14 +649,9 @@ def _populate_concepts(
 
         content_hash = _concept_content_hash(d)
 
-        # Load form definition for is_dimensionless and unit_symbol
-        if repo is not None:
-            forms_dir = repo.forms_dir
-        elif c.filepath is not None:
-            forms_dir = c.filepath.parent.parent / "forms"
-        else:
-            forms_dir = None
-        form_def = load_form(forms_dir, d.get("form")) if forms_dir is not None else None
+        # Look up form definition from registry
+        form_name = d.get("form")
+        form_def = form_registry.get(form_name) if isinstance(form_name, str) else None
         is_dimensionless = 1 if (form_def is not None and form_def.is_dimensionless) else 0
         unit_symbol = form_def.unit_symbol if form_def is not None else None
 
