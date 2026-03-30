@@ -3,7 +3,7 @@
 **Date:** 2026-03-29
 **Depends on:** `plans/multi-source-structured-merge-checklist.md`, `reports/multi-source-merge-operator-query-gap-audit-2026-03-29.md`
 **Scope:** exact RED/GREEN plan for operator and query hardening
-**Status:** Draft
+**Status:** Implemented on 2026-03-29
 
 ---
 
@@ -29,6 +29,18 @@ The default expectation is:
 
 - tests first
 - minimal or zero production changes unless a new exact regression exposes a real bug
+
+Actual outcome:
+
+- the stronger exact regressions landed in:
+  - `tests/test_paf_merge.py`
+  - `tests/test_paf_queries.py`
+- no production-code changes were required
+- the targeted combined regression over:
+  - `tests/test_paf_core.py`
+  - `tests/test_paf_merge.py`
+  - `tests/test_paf_queries.py`
+  passed cleanly
 
 ---
 
@@ -136,3 +148,8 @@ Reason:
 
 - the operator family still has the biggest semantic distinction gap
 - exact tiny-profile regressions will either validate the current implementation cleanly or expose the first real bug
+
+Post-implementation note:
+
+- that expectation was correct
+- the added tests validated the existing implementation rather than forcing kernel rewrites

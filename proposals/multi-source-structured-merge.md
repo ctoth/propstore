@@ -31,6 +31,7 @@ This is a strong start, but it is not yet a clean, consolidated account of multi
 2. **The structured/abstract boundary is only partially landed.** The repo has a first branch-local structured-summary slice, but not yet the full execution-grade structured merge path the architecture calls for.
 3. **The draft proposal understates what is already implemented and overstates what remains greenfield.** The control surface needs to distinguish completion work from invention work.
 4. **Source-aware preference aggregation is still ad hoc.** The repo can apply preferences inside ASPIC+, but it does not yet define a principled path from branch/source metadata to post-merge defeat behavior.
+   - Current default: keep this downstream of the merge kernel and formalize it later as policy/governance work.
 
 The missing work is not "generic incompleteness" in argumentation. The local literature already covers that fairly well. The missing work is **multi-source structured merge semantics**.
 
@@ -120,6 +121,14 @@ Therefore the next work is **not** “invent the merge kernel.” It is:
 1. finish the remaining formal boundary work
 2. remove semantic bridges where the formal path should now be authoritative
 3. tighten the structured boundary and policy story
+
+Current closeout state:
+
+- operator/query hardening is implemented and should now be treated as a landed Phase 6.2 slice
+- inspect/commit/report surfaces are implemented and should now be treated as a landed Phase 6.4 slice
+- the remaining substantive merge closeout work is:
+  - explicit structured-summary lossiness/identity boundary
+  - policy-readiness scoping and future insertion points
 
 ---
 

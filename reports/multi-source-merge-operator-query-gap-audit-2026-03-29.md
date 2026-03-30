@@ -7,7 +7,13 @@
 
 ## Verdict
 
-The operator/query layer is already meaningfully tested, but it is not yet fully pinned to the Phase 6.2 checklist.
+This audit started as a pre-coding gap memo. After the Phase 6.2 slice landed, the main operator/query hardening work is now implemented.
+
+Current state:
+
+- the operator/query layer is tightly pinned by exact tests
+- the Phase 6.2 control surface should now be read as implemented rather than pending
+- any remaining work here is documentation/status reconciliation, not missing kernel semantics
 
 What is already covered well:
 
@@ -19,13 +25,20 @@ What is already covered well:
 - basic skeptical/credulous completion-query behavior
 - one monotonicity property when ignorance is fixed
 
-What is still missing or too weak:
+What was missing or too weak at audit time:
 
 - explicit completion-soundness phrasing at the query layer beyond grounded examples
 - concordance-collapse tests across more than one operator
 - sharper distinctions among `sum`, `max`, and `leximax` on tiny exact profiles
-- explicit “query helpers only accept canonical kernel semantics” coverage
 - broader literature-style exact-profile regressions instead of only generic properties
+
+What is now covered after the slice:
+
+- concordant unique results across `sum`, `max`, and `leximax`
+- exact tiny regressions distinguishing `sum`, `max`, and `leximax`
+- non-grounded helper checks
+- brute-force equivalence checks for skeptical/credulous helpers
+- two-way ignorance fixation checks
 
 ---
 
@@ -61,8 +74,8 @@ Covered:
 
 Assessment:
 
-- enough to trust the implementation direction
-- not enough yet to say the operator family is fully pinned down by tests
+- operator-family behavior is now meaningfully pinned by exact regressions
+- future changes here should be judged against the landed exact cases, not by reopening the basic kernel story
 
 ### `tests/test_paf_queries.py`
 
@@ -74,16 +87,16 @@ Covered:
 
 Assessment:
 
-- good first slice
-- still too grounded-centric and too example-centric for the full checklist
+- helper semantics are now explicit enough for the current merge phase
+- future additions here should be new operator families or policy overlays, not re-deriving the current helper contract
 
 ---
 
-## Missing Assertions Relative To The Checklist
+## Assertions That The Checklist Required And Are Now Landed
 
 ### Operator layer
 
-Still worth adding:
+Landed:
 
 1. concordant profiles yield a unique merge result across:
    - `sum`
@@ -96,7 +109,7 @@ Still worth adding:
 
 ### Query layer
 
-Still worth adding:
+Landed:
 
 1. skeptical/credulous checks under at least one non-grounded semantics case
 2. explicit equivalence between brute-force completion evaluation and helper output on tiny profiles
@@ -106,14 +119,14 @@ Still worth adding:
 
 ### Integration discipline
 
-Still worth adding:
+Still worth considering later:
 
-1. tests that the query helpers operate on `PartialArgumentationFramework`, not accidental bridge objects
-2. exact-profile regressions that can serve as future operator-policy comparison anchors
+1. exact-profile regressions that serve as future operator-policy comparison anchors beyond the current operator family
+2. additional tests only if a new merge-policy layer widens the query surface
 
 ---
 
-## Recommended Next RED Targets
+## Historical RED Targets
 
 1. `tests/test_paf_merge.py`
    - add tiny exact profiles distinguishing `sum`, `max`, `leximax`
@@ -126,9 +139,9 @@ Still worth adding:
 
 ## Recommendation
 
-Treat Phase 6.2 as a test-hardening and exact-regression phase first, not an implementation-invention phase.
+Treat this memo as satisfied by the landed Phase 6.2 slice.
 
-The likely best outcome is:
+The main follow-up is:
 
-- more RED tests than code changes
-- maybe no kernel code changes at all if the current implementation already satisfies the stronger exact regressions
+- reconcile status/control docs
+- do not reopen the kernel/operator/query layer unless a new operator family or policy layer requires it

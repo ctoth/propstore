@@ -3,7 +3,7 @@
 **Date:** 2026-03-29
 **Depends on:** `proposals/multi-source-structured-merge.md`
 **Scope:** remaining preparation and implementation control surface for formal multi-source merge completion
-**Status:** Draft
+**Status:** In progress
 
 ---
 
@@ -26,6 +26,17 @@ So the job is no longer “invent merge semantics.” The job is:
 2. identify and eliminate remaining bridge/legacy production paths
 3. tighten structured projection
 4. prepare later policy/governance layers to sit on top of the merge object
+
+---
+
+## Phase Status Snapshot
+
+- `6.0`: complete as control-surface preparation
+- `6.1`: complete for the current canonical consumer set
+- `6.2`: implemented in tests; control docs reconciled
+- `6.3`: partially implemented in code/tests, but still open at the contract/lossiness boundary
+- `6.4`: implemented for the current inspect/commit/report surfaces
+- `6.5`: planning/scoping complete; future policy objects remain Phase 8 work
 
 ---
 
@@ -221,6 +232,7 @@ Primary files:
 
 - merge proposal/checklist
 - future policy proposal files
+- `reports/multi-source-merge-policy-readiness-2026-03-30.md`
 
 Tasks:
 
@@ -273,16 +285,18 @@ If any of these disagree, coding should wait until they are reconciled.
 
 ## Next Coding Slice
 
-After the active inspect/commit and reporting surface work, the next slice should be Phase 6.5 policy readiness scoping.
+After the policy-readiness scoping memo, the next remaining Phase 6 closeout work is the explicit structured-summary contract/lossiness boundary from Phase 6.3.
 
 Recommended targets:
 
 - `proposals/multi-source-structured-merge.md`
 - `plans/multi-source-structured-merge-checklist.md`
-- a new policy-readiness memo under `reports/`
+- `reports/structured-merge-contract-gaps-2026-03-29.md`
+- `propstore/repo/structured_merge.py`
+- `tests/test_structured_merge_projection.py`
 
 Why:
 
-- the public merge/query surfaces now speak honestly in terms of the canonical merge object
-- the next architectural risk is accidental policy leakage into the structural merge kernel
-- Phase 8 governance work needs a clean insertion point before more merge features accrete
+- the remaining substantive merge gap is no longer operator/query or inspect/commit surface work
+- the current structured-summary slice still needs a fully explicit lossiness and relation-semantics contract
+- Phase 8 policy work should build on an honest structured-summary boundary, not an accidental one
