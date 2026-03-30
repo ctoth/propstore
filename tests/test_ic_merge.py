@@ -1182,6 +1182,6 @@ class TestPublicApiHonesty:
         scalar_problem_doc = ic_merge_module.scalar_profile_problem.__doc__ or ""
 
         assert "solve_ic_merge" in module_doc
-        assert "legacy" in module_doc.lower()
-        assert "legacy" in adapter_doc.lower()
+        assert "primary production entrypoint" in module_doc.lower()
+        assert "one-concept adapter" in adapter_doc.lower()
         assert "adapter" in scalar_problem_doc.lower()

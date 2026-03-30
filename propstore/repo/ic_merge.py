@@ -1,11 +1,11 @@
-"""Assignment-level IC-merge for propstore, plus retained scalar adapters.
+"""Assignment-level IC-merge for propstore, plus scalar helper kernels.
 
 The primary production entrypoint is ``solve_ic_merge(problem)``, which solves
 one assignment-level merge problem over a declared concept domain subject to an
 integrity constraint ``mu``. Production resolution now routes through that
 global solver.
 
-This module also retains scalar helpers for legacy one-concept callers:
+This module also exposes scalar helpers for one-concept kernels:
 
 - ``sigma_merge``: sum-distance kernel
 - ``max_merge``: worst-case-distance kernel
@@ -68,7 +68,7 @@ def claim_distance(a: Any, b: Any) -> float:
 
 
 def sigma_merge(profile: dict[str, Any]) -> Any:
-    """Legacy one-concept Sigma kernel over a scalar profile.
+    """One-concept Sigma kernel over a scalar profile.
 
     Per Konieczny 2002 claim13-15: d_Sigma(I, Psi) = sum d(I, phi).
 
@@ -454,7 +454,7 @@ def scalar_profile_problem(
 
 
 def max_merge(profile: dict[str, Any]) -> Any:
-    """Legacy one-concept Max kernel over a scalar profile.
+    """One-concept Max kernel over a scalar profile.
 
     Per Konieczny 2002 claim17-18: d_Max(I, Psi) = max d(I, phi).
 
@@ -480,7 +480,7 @@ def max_merge(profile: dict[str, Any]) -> Any:
 
 
 def gmax_merge(profile: dict[str, Any]) -> Any:
-    """Legacy one-concept GMax kernel over a scalar profile.
+    """One-concept GMax kernel over a scalar profile.
 
     Per Konieczny 2002 claim19-20: GMax refines Max.
 
@@ -512,7 +512,7 @@ def gmax_merge(profile: dict[str, Any]) -> Any:
 
 
 def ic_merge(profile: dict[str, Any], *, operator: str = "sigma") -> Any:
-    """Legacy one-concept adapter that dispatches to the scalar kernels.
+    """One-concept adapter that dispatches to the scalar kernels.
 
     Default is the Sigma aggregation kernel (Konieczny 2002 claim15).
     """

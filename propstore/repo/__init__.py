@@ -2,7 +2,7 @@
 
 Re-exports the canonical git-backed storage surface plus merge primitives.
 For IC-merge, the assignment-level ``solve_ic_merge`` path is the primary API;
-the scalar helpers remain available only as degenerate legacy adapters.
+the scalar helpers remain available only as degenerate one-concept adapters.
 """
 from propstore.repo.git_backend import KnowledgeRepo
 from propstore.repo.merge_classifier import (
