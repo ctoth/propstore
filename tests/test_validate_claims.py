@@ -15,8 +15,8 @@ Tests the compiler contract checks that JSON Schema can't express:
 import pytest
 import yaml
 
+from propstore.loaded import LoadedEntry
 from propstore.validate_claims import (
-    LoadedClaimFile,
     load_claim_files,
     parse_claim_id,
     validate_claims,
@@ -629,7 +629,7 @@ class TestStanceGraphIntegrity:
 
 class TestDraftArtifactBoundary:
     def test_draft_claim_file_rejected_from_final_validation(self, tmp_path):
-        draft_file = LoadedClaimFile(
+        draft_file = LoadedEntry(
             filename="draft_claims",
             filepath=tmp_path / "draft_claims.yaml",
             data={

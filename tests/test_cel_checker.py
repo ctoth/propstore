@@ -22,7 +22,7 @@ from propstore.cel_checker import (
     parse_cel,
     tokenize,
 )
-from propstore.validate import LoadedConcept
+from propstore.loaded import LoadedEntry
 
 
 # ── Fixtures: concept registries ─────────────────────────────────────
@@ -498,7 +498,7 @@ class TestBuildCelRegistry:
         from pathlib import Path
 
         concepts = [
-            LoadedConcept(
+            LoadedEntry(
                 filename="temperature",
                 filepath=Path("fake/temperature.yaml"),
                 data={
@@ -507,7 +507,7 @@ class TestBuildCelRegistry:
                     "form": "quantity",
                 },
             ),
-            LoadedConcept(
+            LoadedEntry(
                 filename="color",
                 filepath=Path("fake/color.yaml"),
                 data={
@@ -531,7 +531,7 @@ class TestBuildCelRegistry:
         from pathlib import Path
 
         concepts = [
-            LoadedConcept(
+            LoadedEntry(
                 filename="mystery",
                 filepath=Path("fake/mystery.yaml"),
                 data={

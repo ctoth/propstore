@@ -7,7 +7,7 @@ import warnings
 from propstore.conflict_detector.models import ConflictClass
 from propstore.form_utils import FormDefinition, UnitConversion
 from propstore.param_conflicts import _detect_param_conflicts, detect_transitive_conflicts
-from propstore.validate_claims import LoadedClaimFile
+from propstore.loaded import LoadedEntry
 
 from propstore.cel_checker import KindType
 
@@ -29,8 +29,8 @@ def _frequency_form() -> FormDefinition:
     )
 
 
-def _stub_claim_file() -> LoadedClaimFile:
-    return LoadedClaimFile(
+def _stub_claim_file() -> LoadedEntry:
+    return LoadedEntry(
         filename="test",
         filepath=Path("test.yaml"),
         data={"source": {"paper": "test"}, "claims": []},
@@ -60,7 +60,7 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
             ],
         },
     }
-    claim_file = LoadedClaimFile(
+    claim_file = LoadedEntry(
         filename="test",
         filepath=Path("test.yaml"),
         data={"source": {"paper": "test"}, "claims": []},
@@ -202,7 +202,7 @@ def test_transitive_propagation_normalizes_units():
             {"id": "claim_c_direct", "concept": "concept_c", "value": 300.0},
         ],
     }
-    claim_file = LoadedClaimFile(
+    claim_file = LoadedEntry(
         filename="test",
         filepath=Path("test.yaml"),
         data=claim_data,

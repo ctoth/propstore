@@ -18,7 +18,7 @@ from propstore.conflict_detector import (
     detect_conflicts,
 )
 from propstore.cel_checker import ConceptInfo, KindType
-from propstore.validate_claims import LoadedClaimFile
+from propstore.loaded import LoadedEntry
 from tests.conftest import make_concept_registry
 
 
@@ -39,9 +39,9 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", conditions=None):
 
 
 def make_claim_file(claims, filename="test_paper"):
-    """Wrap claims in a LoadedClaimFile."""
+    """Wrap claims in a LoadedEntry."""
     from pathlib import Path
-    return LoadedClaimFile(
+    return LoadedEntry(
         filename=filename,
         filepath=Path(f"/fake/{filename}.yaml"),
         data={"source": {"paper": filename}, "claims": claims},
@@ -827,7 +827,7 @@ class TestTransitiveContextSemantics:
         revealing the actual PARAM_CONFLICT.
         """
         from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.validate_contexts import ContextHierarchy, LoadedContext
+        from propstore.validate_contexts import ContextHierarchy
 
         registry = {
             "concept_out": {
@@ -882,8 +882,8 @@ class TestTransitiveContextSemantics:
         ]
         cf = make_claim_file(claims)
         hierarchy = ContextHierarchy([
-            LoadedContext("root", None, {"id": "ctx_root", "name": "Root"}),
-            LoadedContext("other", None, {"id": "ctx_other", "name": "Other"}),
+            LoadedEntry("root", None, {"id": "ctx_root", "name": "Root"}),
+            LoadedEntry("other", None, {"id": "ctx_other", "name": "Other"}),
         ])
 
         records = detect_transitive_conflicts(
@@ -902,7 +902,7 @@ class TestTransitiveContextSemantics:
         Two contexts with no hierarchy relationship (not excluded, not visible)
         should let condition analysis decide, not silently classify as phi-node.
         """
-        from propstore.validate_contexts import ContextHierarchy, LoadedContext
+        from propstore.validate_contexts import ContextHierarchy
 
         claims = [
             make_parameter_claim(
@@ -916,8 +916,8 @@ class TestTransitiveContextSemantics:
         ]
         cf = make_claim_file(claims)
         hierarchy = ContextHierarchy([
-            LoadedContext("alpha", None, {"id": "ctx_alpha", "name": "Alpha"}),
-            LoadedContext("beta", None, {"id": "ctx_beta", "name": "Beta"}),
+            LoadedEntry("alpha", None, {"id": "ctx_alpha", "name": "Alpha"}),
+            LoadedEntry("beta", None, {"id": "ctx_beta", "name": "Beta"}),
         ])
 
         records = detect_conflicts(

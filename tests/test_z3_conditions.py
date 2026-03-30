@@ -15,7 +15,7 @@ from propstore.conflict_detector import (
     ConflictClass,
     detect_conflicts,
 )
-from propstore.validate_claims import LoadedClaimFile
+from propstore.loaded import LoadedEntry
 from tests.conftest import make_concept_registry
 
 
@@ -36,7 +36,7 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", conditions=None):
 
 def make_claim_file(claims, filename="test_paper"):
     from pathlib import Path
-    return LoadedClaimFile(
+    return LoadedEntry(
         filename=filename,
         filepath=Path(f"/fake/{filename}.yaml"),
         data={"source": {"paper": filename}, "claims": claims},

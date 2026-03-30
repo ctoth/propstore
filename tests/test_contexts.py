@@ -9,9 +9,9 @@ import yaml
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
+from propstore.loaded import LoadedEntry
 from propstore.validate_contexts import (
     ContextHierarchy,
-    LoadedContext,
     load_contexts,
     validate_contexts,
 )
@@ -89,12 +89,12 @@ _ASSUMPTION_POOL = [
 
 class TestLoadContexts:
     def test_load_context_files(self, tmp_path):
-        """Load context YAML files from a directory, returns list of LoadedContext."""
+        """Load context YAML files from a directory, returns list of LoadedEntry."""
         write_context(tmp_path, "ctx_foo", make_context("ctx_foo", "Foo"))
         write_context(tmp_path, "ctx_bar", make_context("ctx_bar", "Bar"))
         contexts = load_contexts(tmp_path)
         assert len(contexts) == 2
-        assert all(isinstance(c, LoadedContext) for c in contexts)
+        assert all(isinstance(c, LoadedEntry) for c in contexts)
         ids = {c.data["id"] for c in contexts}
         assert ids == {"ctx_foo", "ctx_bar"}
 
@@ -117,14 +117,14 @@ class TestLoadContexts:
 class TestValidateContexts:
     def test_valid_context_passes(self, tmp_path):
         """A well-formed context validates clean."""
-        contexts = [LoadedContext("ctx_foo", tmp_path / "ctx_foo.yaml",
+        contexts = [LoadedEntry("ctx_foo", tmp_path / "ctx_foo.yaml",
                                  make_context("ctx_foo", "Foo", "A test context"))]
         result = validate_contexts(contexts)
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_missing_id_errors(self, tmp_path):
         """Context without id is an error."""
-        contexts = [LoadedContext("ctx_bad", tmp_path / "ctx_bad.yaml",
+        contexts = [LoadedEntry("ctx_bad", tmp_path / "ctx_bad.yaml",
                                  {"name": "Bad"})]
         result = validate_contexts(contexts)
         assert not result.ok
@@ -132,7 +132,7 @@ class TestValidateContexts:
 
     def test_missing_name_errors(self, tmp_path):
         """Context without name is an error."""
-        contexts = [LoadedContext("ctx_bad", tmp_path / "ctx_bad.yaml",
+        contexts = [LoadedEntry("ctx_bad", tmp_path / "ctx_bad.yaml",
                                  {"id": "ctx_bad"})]
         result = validate_contexts(contexts)
         assert not result.ok
@@ -140,7 +140,7 @@ class TestValidateContexts:
 
     def test_inherits_must_exist(self, tmp_path):
         """Validation error if inherits references nonexistent context."""
-        contexts = [LoadedContext("ctx_child", tmp_path / "ctx_child.yaml",
+        contexts = [LoadedEntry("ctx_child", tmp_path / "ctx_child.yaml",
                                  make_context("ctx_child", "Child", inherits="ctx_nonexistent"))]
         result = validate_contexts(contexts)
         assert not result.ok
@@ -149,9 +149,9 @@ class TestValidateContexts:
     def test_inherits_valid_reference(self, tmp_path):
         """No error when inherits references an existing context."""
         contexts = [
-            LoadedContext("ctx_parent", tmp_path / "a.yaml",
+            LoadedEntry("ctx_parent", tmp_path / "a.yaml",
                          make_context("ctx_parent", "Parent")),
-            LoadedContext("ctx_child", tmp_path / "b.yaml",
+            LoadedEntry("ctx_child", tmp_path / "b.yaml",
                          make_context("ctx_child", "Child", inherits="ctx_parent")),
         ]
         result = validate_contexts(contexts)
@@ -159,7 +159,7 @@ class TestValidateContexts:
 
     def test_excludes_must_exist(self, tmp_path):
         """Validation error if excludes references nonexistent context."""
-        contexts = [LoadedContext("ctx_a", tmp_path / "a.yaml",
+        contexts = [LoadedEntry("ctx_a", tmp_path / "a.yaml",
                                  make_context("ctx_a", "A", excludes=["ctx_nonexistent"]))]
         result = validate_contexts(contexts)
         assert not result.ok
@@ -168,9 +168,9 @@ class TestValidateContexts:
     def test_excludes_valid_reference(self, tmp_path):
         """No error when excludes references an existing context."""
         contexts = [
-            LoadedContext("ctx_a", tmp_path / "a.yaml",
+            LoadedEntry("ctx_a", tmp_path / "a.yaml",
                          make_context("ctx_a", "A", excludes=["ctx_b"])),
-            LoadedContext("ctx_b", tmp_path / "b.yaml",
+            LoadedEntry("ctx_b", tmp_path / "b.yaml",
                          make_context("ctx_b", "B")),
         ]
         result = validate_contexts(contexts)
@@ -179,9 +179,9 @@ class TestValidateContexts:
     def test_no_inheritance_cycles(self, tmp_path):
         """Validation error if inheritance forms A->B->A cycle."""
         contexts = [
-            LoadedContext("ctx_a", tmp_path / "a.yaml",
+            LoadedEntry("ctx_a", tmp_path / "a.yaml",
                          make_context("ctx_a", "A", inherits="ctx_b")),
-            LoadedContext("ctx_b", tmp_path / "b.yaml",
+            LoadedEntry("ctx_b", tmp_path / "b.yaml",
                          make_context("ctx_b", "B", inherits="ctx_a")),
         ]
         result = validate_contexts(contexts)
@@ -191,11 +191,11 @@ class TestValidateContexts:
     def test_deep_inheritance_ok(self, tmp_path):
         """A->B->C inheritance chain is valid."""
         contexts = [
-            LoadedContext("ctx_a", tmp_path / "a.yaml",
+            LoadedEntry("ctx_a", tmp_path / "a.yaml",
                          make_context("ctx_a", "A")),
-            LoadedContext("ctx_b", tmp_path / "b.yaml",
+            LoadedEntry("ctx_b", tmp_path / "b.yaml",
                          make_context("ctx_b", "B", inherits="ctx_a")),
-            LoadedContext("ctx_c", tmp_path / "c.yaml",
+            LoadedEntry("ctx_c", tmp_path / "c.yaml",
                          make_context("ctx_c", "C", inherits="ctx_b")),
         ]
         result = validate_contexts(contexts)
@@ -204,9 +204,9 @@ class TestValidateContexts:
     def test_duplicate_context_id_errors(self, tmp_path):
         """Two context files with same id is an error."""
         contexts = [
-            LoadedContext("file1", tmp_path / "file1.yaml",
+            LoadedEntry("file1", tmp_path / "file1.yaml",
                          make_context("ctx_dup", "Dup 1")),
-            LoadedContext("file2", tmp_path / "file2.yaml",
+            LoadedEntry("file2", tmp_path / "file2.yaml",
                          make_context("ctx_dup", "Dup 2")),
         ]
         result = validate_contexts(contexts)
@@ -221,10 +221,10 @@ class TestContextHierarchy:
     def _make_hierarchy(self):
         """Build a test hierarchy: root -> mid -> leaf, plus unrelated."""
         contexts = [
-            LoadedContext("root", None, make_context("ctx_root", "Root")),
-            LoadedContext("mid", None, make_context("ctx_mid", "Mid", inherits="ctx_root")),
-            LoadedContext("leaf", None, make_context("ctx_leaf", "Leaf", inherits="ctx_mid")),
-            LoadedContext("other", None, make_context("ctx_other", "Other", excludes=["ctx_root"])),
+            LoadedEntry("root", None, make_context("ctx_root", "Root")),
+            LoadedEntry("mid", None, make_context("ctx_mid", "Mid", inherits="ctx_root")),
+            LoadedEntry("leaf", None, make_context("ctx_leaf", "Leaf", inherits="ctx_mid")),
+            LoadedEntry("other", None, make_context("ctx_other", "Other", excludes=["ctx_root"])),
         ]
         return ContextHierarchy(contexts)
 
@@ -243,9 +243,9 @@ class TestContextHierarchy:
     def test_effective_assumptions(self):
         """Child context's effective assumptions include parent's."""
         contexts = [
-            LoadedContext("root", None, make_context("ctx_root", "Root",
+            LoadedEntry("root", None, make_context("ctx_root", "Root",
                                                      assumptions=["framework == 'general'"])),
-            LoadedContext("child", None, make_context("ctx_child", "Child",
+            LoadedEntry("child", None, make_context("ctx_child", "Child",
                                                       inherits="ctx_root",
                                                       assumptions=["variant == 'specific'"])),
         ]
@@ -286,12 +286,12 @@ class TestContextProperties:
         child_assumptions,
     ):
         hierarchy = ContextHierarchy([
-            LoadedContext(
+            LoadedEntry(
                 "root",
                 None,
                 make_context("ctx_root", "Root", assumptions=parent_assumptions),
             ),
-            LoadedContext(
+            LoadedEntry(
                 "child",
                 None,
                 make_context(
@@ -354,8 +354,8 @@ class TestContextProperties:
             })
 
         hierarchy = ContextHierarchy([
-            LoadedContext("a", None, make_context("ctx_a", "A")),
-            LoadedContext("b", None, make_context("ctx_b", "B")),
+            LoadedEntry("a", None, make_context("ctx_a", "A")),
+            LoadedEntry("b", None, make_context("ctx_b", "B")),
         ])
         store = _Store(claims)
 
@@ -408,12 +408,12 @@ class TestContextSidecar:
         assert "context_exclusion" in tables
 
     def test_populate_contexts(self):
-        """Contexts from LoadedContext list appear in context table."""
+        """Contexts from LoadedEntry list appear in context table."""
         conn = self._make_conn()
         _create_context_tables(conn)
         contexts = [
-            LoadedContext("a", None, make_context("ctx_a", "A", "Desc A")),
-            LoadedContext("b", None, make_context("ctx_b", "B", "Desc B")),
+            LoadedEntry("a", None, make_context("ctx_a", "A", "Desc A")),
+            LoadedEntry("b", None, make_context("ctx_b", "B", "Desc B")),
         ]
         _populate_contexts(conn, contexts)
         rows = conn.execute("SELECT * FROM context").fetchall()
@@ -426,7 +426,7 @@ class TestContextSidecar:
         conn = self._make_conn()
         _create_context_tables(conn)
         contexts = [
-            LoadedContext("a", None, make_context("ctx_a", "A",
+            LoadedEntry("a", None, make_context("ctx_a", "A",
                          assumptions=["x == 1", "y == 2"])),
         ]
         _populate_contexts(conn, contexts)
@@ -442,8 +442,8 @@ class TestContextSidecar:
         conn = self._make_conn()
         _create_context_tables(conn)
         contexts = [
-            LoadedContext("a", None, make_context("ctx_a", "A", excludes=["ctx_b"])),
-            LoadedContext("b", None, make_context("ctx_b", "B")),
+            LoadedEntry("a", None, make_context("ctx_a", "A", excludes=["ctx_b"])),
+            LoadedEntry("b", None, make_context("ctx_b", "B")),
         ]
         _populate_contexts(conn, contexts)
         rows = conn.execute("SELECT * FROM context_exclusion").fetchall()
@@ -456,8 +456,8 @@ class TestContextSidecar:
         conn = self._make_conn()
         _create_context_tables(conn)
         contexts = [
-            LoadedContext("p", None, make_context("ctx_parent", "Parent")),
-            LoadedContext("c", None, make_context("ctx_child", "Child", inherits="ctx_parent")),
+            LoadedEntry("p", None, make_context("ctx_parent", "Parent")),
+            LoadedEntry("c", None, make_context("ctx_child", "Child", inherits="ctx_parent")),
         ]
         _populate_contexts(conn, contexts)
         row = conn.execute("SELECT inherits FROM context WHERE id='ctx_child'").fetchone()
@@ -477,9 +477,9 @@ class TestContextSidecar:
 class TestClaimContextId:
     def test_claim_context_must_exist(self, tmp_path):
         """Validation error if claim references nonexistent context."""
-        from propstore.validate_claims import LoadedClaimFile, validate_claims
+        from propstore.validate_claims import validate_claims
 
-        claim_file = LoadedClaimFile("test", tmp_path / "test.yaml", {
+        claim_file = LoadedEntry("test", tmp_path / "test.yaml", {
             "source": {"paper": "test"},
             "claims": [{
                 "id": "claim1",
@@ -502,9 +502,9 @@ class TestClaimContextId:
 
     def test_claim_context_valid_reference(self, tmp_path):
         """No error when claim references an existing context."""
-        from propstore.validate_claims import LoadedClaimFile, validate_claims
+        from propstore.validate_claims import validate_claims
 
-        claim_file = LoadedClaimFile("test", tmp_path / "test.yaml", {
+        claim_file = LoadedEntry("test", tmp_path / "test.yaml", {
             "source": {"paper": "test"},
             "claims": [{
                 "id": "claim1",
@@ -527,9 +527,9 @@ class TestClaimContextId:
 
     def test_claim_without_context_ok(self, tmp_path):
         """A claim without context field validates fine."""
-        from propstore.validate_claims import LoadedClaimFile, validate_claims
+        from propstore.validate_claims import validate_claims
 
-        claim_file = LoadedClaimFile("test", tmp_path / "test.yaml", {
+        claim_file = LoadedEntry("test", tmp_path / "test.yaml", {
             "source": {"paper": "test"},
             "claims": [{
                 "id": "claim1",
@@ -626,9 +626,9 @@ class TestBoundWorldContext:
         conn.commit()
 
         hierarchy = ContextHierarchy([
-            LoadedContext("root", None, make_context("ctx_root", "Root")),
-            LoadedContext("child", None, make_context("ctx_child", "Child", inherits="ctx_root")),
-            LoadedContext("other", None, make_context("ctx_other", "Other", excludes=["ctx_root"])),
+            LoadedEntry("root", None, make_context("ctx_root", "Root")),
+            LoadedEntry("child", None, make_context("ctx_child", "Child", inherits="ctx_root")),
+            LoadedEntry("other", None, make_context("ctx_other", "Other", excludes=["ctx_root"])),
         ])
 
         return conn, hierarchy
@@ -1037,8 +1037,8 @@ class TestContextAwareConflicts:
         result = _classify_pair_context(
             context_a="ctx_atms", context_b="ctx_jtms",
             hierarchy=ContextHierarchy([
-                LoadedContext("a", None, make_context("ctx_atms", "ATMS")),
-                LoadedContext("b", None, make_context("ctx_jtms", "JTMS")),
+                LoadedEntry("a", None, make_context("ctx_atms", "ATMS")),
+                LoadedEntry("b", None, make_context("ctx_jtms", "JTMS")),
             ]),
         )
         assert result is None
@@ -1048,7 +1048,7 @@ class TestContextAwareConflicts:
         result = _classify_pair_context(
             context_a="ctx_atms", context_b="ctx_atms",
             hierarchy=ContextHierarchy([
-                LoadedContext("a", None, make_context("ctx_atms", "ATMS")),
+                LoadedEntry("a", None, make_context("ctx_atms", "ATMS")),
             ]),
         )
         assert result is None
@@ -1056,8 +1056,8 @@ class TestContextAwareConflicts:
     def test_ancestor_descendant_returns_none(self):
         """Parent/child contexts → None (both visible, normal classification)."""
         h = ContextHierarchy([
-            LoadedContext("p", None, make_context("ctx_parent", "Parent")),
-            LoadedContext("c", None, make_context("ctx_child", "Child", inherits="ctx_parent")),
+            LoadedEntry("p", None, make_context("ctx_parent", "Parent")),
+            LoadedEntry("c", None, make_context("ctx_child", "Child", inherits="ctx_parent")),
         ])
         result = _classify_pair_context(
             context_a="ctx_parent", context_b="ctx_child", hierarchy=h,
@@ -1067,8 +1067,8 @@ class TestContextAwareConflicts:
     def test_excluded_contexts_return_context_phi_node(self):
         """Mutually excluded contexts classify as CONTEXT_PHI_NODE."""
         h = ContextHierarchy([
-            LoadedContext("root", None, make_context("ctx_root", "Root")),
-            LoadedContext(
+            LoadedEntry("root", None, make_context("ctx_root", "Root")),
+            LoadedEntry(
                 "other",
                 None,
                 make_context("ctx_other", "Other", excludes=["ctx_root"]),
@@ -1084,7 +1084,7 @@ class TestContextAwareConflicts:
     def test_no_context_returns_none(self):
         """One or both claims with no context → None (universal, normal classification)."""
         h = ContextHierarchy([
-            LoadedContext("a", None, make_context("ctx_atms", "ATMS")),
+            LoadedEntry("a", None, make_context("ctx_atms", "ATMS")),
         ])
         assert _classify_pair_context("ctx_atms", None, h) is None
         assert _classify_pair_context(None, "ctx_atms", h) is None
@@ -1097,9 +1097,8 @@ class TestContextAwareConflicts:
     def test_detect_conflicts_unrelated_contexts_not_suppressed(self):
         """Unrelated-context claims go through normal condition analysis, not CONTEXT_PHI_NODE."""
         from propstore.conflict_detector import detect_conflicts
-        from propstore.validate_claims import LoadedClaimFile
-
-        cf = LoadedClaimFile(
+        
+        cf = LoadedEntry(
             filename="test",
             filepath=Path("test.yaml"),
             data={"claims": [
@@ -1124,8 +1123,8 @@ class TestContextAwareConflicts:
             ]},
         )
         hierarchy = ContextHierarchy([
-            LoadedContext("root", None, make_context("ctx_root", "Root")),
-            LoadedContext("other", None, make_context("ctx_other", "Other")),
+            LoadedEntry("root", None, make_context("ctx_root", "Root")),
+            LoadedEntry("other", None, make_context("ctx_other", "Other")),
         ])
         registry = {
             "concept1": {
@@ -1153,11 +1152,10 @@ class TestContextAwareConflicts:
     ):
         """Unrelated contexts let condition analysis decide — never CONTEXT_PHI_NODE."""
         from propstore.conflict_detector import detect_conflicts
-        from propstore.validate_claims import LoadedClaimFile
-
+        
         assume(abs(value_a - value_b) > DEFAULT_TOLERANCE)
 
-        cf = LoadedClaimFile(
+        cf = LoadedEntry(
             filename="test",
             filepath=Path("test.yaml"),
             data={"claims": [
@@ -1182,8 +1180,8 @@ class TestContextAwareConflicts:
             ]},
         )
         hierarchy = ContextHierarchy([
-            LoadedContext("root", None, make_context("ctx_root", "Root")),
-            LoadedContext("other", None, make_context("ctx_other", "Other")),
+            LoadedEntry("root", None, make_context("ctx_root", "Root")),
+            LoadedEntry("other", None, make_context("ctx_other", "Other")),
         ])
         registry = {
             "concept1": {

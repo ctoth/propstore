@@ -161,7 +161,7 @@ class TestParamConflictsSympy:
     def test_runtime_error_propagates_through_param_conflicts(self):
         """RuntimeError from SymPy should propagate through param conflict detection."""
         from propstore.param_conflicts import _detect_param_conflicts
-        from propstore.validate_claims import LoadedClaimFile
+        from propstore.loaded import LoadedEntry
         from pathlib import Path
 
         input_claim_a = {
@@ -186,7 +186,7 @@ class TestParamConflictsSympy:
             "conditions": [],
         }
 
-        claim_file = LoadedClaimFile(
+        claim_file = LoadedEntry(
             filename="test",
             filepath=Path("test.yaml"),
             data={"source_paper": "test", "claims": [input_claim_a, input_claim_b, derived_claim]},

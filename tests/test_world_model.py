@@ -1695,7 +1695,7 @@ class TestTransitiveConsistency:
         """If claim11's value matches derived (e.g. 0.2), no conflict emitted."""
         from propstore.conflict_detector import detect_transitive_conflicts
         from propstore.validate import load_concepts
-        from propstore.validate_claims import LoadedClaimFile
+        from propstore.loaded import LoadedEntry
 
         concepts = load_concepts(concept_dir)
         concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
@@ -1714,7 +1714,7 @@ class TestTransitiveConsistency:
                 else:
                     new_claims.append(claim)
             new_data["claims"] = new_claims
-            modified_files.append(LoadedClaimFile(filename=cf.filename, filepath=cf.filepath, data=new_data))
+            modified_files.append(LoadedEntry(filename=cf.filename, filepath=cf.filepath, data=new_data))
 
         records = detect_transitive_conflicts(modified_files, concept_registry)
         # With compatible value, no transitive conflict for concept5
