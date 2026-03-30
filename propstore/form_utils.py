@@ -6,6 +6,7 @@ import json
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
+from collections.abc import Sequence
 from typing import Any
 
 import jsonschema
@@ -65,34 +66,25 @@ def clear_form_cache() -> None:
     _form_schema_cache = None
 
 
-def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
-    """Load a single form definition and return a FormDefinition, or None.
+_KIND_MAP = {
+    "quantity": KindType.QUANTITY,
+    "category": KindType.CATEGORY,
+    "boolean": KindType.BOOLEAN,
+    "structural": KindType.STRUCTURAL,
+}
 
-    Results are cached by (forms_dir, form_name) to avoid redundant disk reads.
+
+def parse_form(form_name: str, data: object) -> FormDefinition | None:
+    """Parse a form definition dict into a FormDefinition.
+
+    Pure function — no filesystem access. Returns None if *data* is not a dict.
     """
-    if not isinstance(form_name, str) or not form_name:
-        return None
-    cache_key = (str(forms_dir), form_name)
-    if cache_key in _form_cache:
-        return _form_cache[cache_key]
-    form_path = forms_dir / f"{form_name}.yaml"
-    if not form_path.exists():
-        _form_cache[cache_key] = None
-        return None
-    with open(form_path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
     if not isinstance(data, dict):
         return None
 
     # Prefer explicit kind from YAML; fall back to name-based heuristic
     raw_kind = data.get("kind")
     if isinstance(raw_kind, str):
-        _KIND_MAP = {
-            "quantity": KindType.QUANTITY,
-            "category": KindType.CATEGORY,
-            "boolean": KindType.BOOLEAN,
-            "structural": KindType.STRUCTURAL,
-        }
         kind = _KIND_MAP.get(raw_kind, KindType.QUANTITY)
     else:
         kind = kind_type_from_form_name(form_name)
@@ -155,7 +147,7 @@ def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
             reference=float(alt.get("reference", 1.0)),
         )
 
-    result = FormDefinition(
+    return FormDefinition(
         name=form_name,
         kind=kind,
         unit_symbol=unit_symbol,
@@ -166,6 +158,25 @@ def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
         extra_units=extra_units,
         conversions=conversions,
     )
+
+
+def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
+    """Load a single form definition and return a FormDefinition, or None.
+
+    Results are cached by (forms_dir, form_name) to avoid redundant disk reads.
+    """
+    if not isinstance(form_name, str) or not form_name:
+        return None
+    cache_key = (str(forms_dir), form_name)
+    if cache_key in _form_cache:
+        return _form_cache[cache_key]
+    form_path = forms_dir / f"{form_name}.yaml"
+    if not form_path.exists():
+        _form_cache[cache_key] = None
+        return None
+    with open(form_path, encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    result = parse_form(form_name, data)
     _form_cache[cache_key] = result
     return result
 
@@ -227,6 +238,75 @@ def load_all_forms(forms_dir: Path) -> dict[str, FormDefinition]:
             if fd is not None:
                 registry[fd.name] = fd
     return registry
+
+
+def load_all_forms_from_reader(reader: object) -> dict[str, FormDefinition]:
+    """Load all form definitions via a TreeReader.
+
+    *reader* must implement ``list_yaml(subdir) -> list[(stem, bytes)]``.
+    """
+    registry: dict[str, FormDefinition] = {}
+    for stem, raw_bytes in reader.list_yaml("forms"):  # type: ignore[attr-defined]
+        data = yaml.safe_load(raw_bytes)
+        fd = parse_form(stem, data) if isinstance(data, dict) else None
+        if fd is not None:
+            registry[fd.name] = fd
+    return registry
+
+
+# ── Pure form utilities ─────────────────────────────────────────────
+
+
+def forms_with_dimensions(
+    forms: Sequence[FormDefinition | None],
+) -> list[FormDefinition] | None:
+    """Filter a form list, returning None if any form lacks dimensions."""
+    concrete: list[FormDefinition] = []
+    for form_def in forms:
+        if form_def is None or form_def.dimensions is None:
+            return None
+        concrete.append(form_def)
+    return concrete
+
+
+def required_dimensions(form_def: FormDefinition) -> dict[str, int]:
+    """Return dimensions dict, raising ValueError if None."""
+    dimensions = form_def.dimensions
+    if dimensions is None:
+        raise ValueError(f"form '{form_def.name}' has no dimensions")
+    return dimensions
+
+
+def verify_form_algebra_dimensions(
+    output: FormDefinition,
+    inputs: list[FormDefinition],
+    operation: str,
+) -> bool:
+    """Check dimensional consistency of a form algebra expression.
+
+    Returns True if the operation is dimensionally valid, False otherwise.
+    Requires bridgman and sympy.
+    """
+    if output.dimensions is None:
+        return False
+    concrete_inputs = forms_with_dimensions(inputs)
+    if concrete_inputs is None:
+        return False
+    try:
+        import sympy as sp
+        from bridgman import verify_expr
+
+        dim_map: dict[str, dict[str, int]] = {}
+        dim_map[output.name] = dict(required_dimensions(output))
+        for inp_fd in concrete_inputs:
+            dim_map[inp_fd.name] = dict(required_dimensions(inp_fd))
+
+        form_parsed = sp.sympify(operation)
+        if not isinstance(form_parsed, sp.Eq):
+            return False
+        return bool(verify_expr(form_parsed, dim_map))
+    except (KeyError, ValueError, ImportError):
+        return False
 
 
 def dims_signature(dimensions: dict[str, int] | None) -> str | None:

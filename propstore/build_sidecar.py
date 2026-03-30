@@ -23,7 +23,16 @@ from typing import TYPE_CHECKING, Sequence
 import yaml
 
 from propstore.parameterization_groups import build_groups
-from propstore.form_utils import kind_value_from_form_name, load_all_forms, load_form, normalize_to_si, FormDefinition
+from propstore.form_utils import (
+    FormDefinition,
+    forms_with_dimensions,
+    kind_value_from_form_name,
+    load_all_forms,
+    load_form,
+    normalize_to_si,
+    required_dimensions,
+    verify_form_algebra_dimensions,
+)
 from propstore.stances import VALID_STANCE_TYPES
 from propstore.validate import LoadedConcept
 from propstore.validate_claims import LoadedClaimFile
@@ -86,22 +95,6 @@ def _optional_int(value: object) -> int | None:
     return None
 
 
-def _forms_with_dimensions(
-    forms: list[FormDefinition | None],
-) -> list[FormDefinition] | None:
-    concrete: list[FormDefinition] = []
-    for form_def in forms:
-        if form_def is None or form_def.dimensions is None:
-            return None
-        concrete.append(form_def)
-    return concrete
-
-
-def _required_dimensions(form_def: FormDefinition) -> dict[str, int]:
-    dimensions = form_def.dimensions
-    if dimensions is None:
-        raise ValueError(f"form '{form_def.name}' has no dimensions")
-    return dimensions
 
 
 def _content_hash(
@@ -644,37 +637,18 @@ def _populate_form_algebra(
             if not operation:
                 operation = param.get("formula", "")
 
-            # Validate dimensions with bridgman
+            # Validate dimensions with bridgman (only when sympy expression exists)
             dim_verified = 1
-            try:
+            if sympy_str and operation:
                 output_fd = load_form(forms_dir, output_form)
-                if output_fd is None or output_fd.dimensions is None:
-                    dim_verified = 0
-                else:
-                    input_fds = _forms_with_dimensions(
-                        [load_form(forms_dir, f) for f in input_forms]
-                    )
-                    if input_fds is None:
+                input_fd_list = [load_form(forms_dir, f) for f in input_forms]
+                if output_fd is not None and all(f is not None for f in input_fd_list):
+                    if not verify_form_algebra_dimensions(
+                        output_fd, input_fd_list, operation  # type: ignore[arg-type]
+                    ):
                         dim_verified = 0
-                    else:
-                        # Build dim_map and verify
-                        dim_map: dict[str, dict[str, int]] = {}
-                        dim_map[output_form] = dict(_required_dimensions(output_fd))
-                        for inp_form, inp_fd in zip(input_forms, input_fds):
-                            dim_map[inp_form] = dict(_required_dimensions(inp_fd))
-
-                        if sympy_str and operation:
-                            import sympy as sp
-                            from bridgman import verify_expr
-                            form_parsed = sp.sympify(operation)
-                            if not isinstance(form_parsed, sp.Eq):
-                                dim_verified = 0  # Not an equation — skip verification
-                            elif not verify_expr(form_parsed, dim_map):
-                                dim_verified = 0  # Dimensionally invalid
-            except (KeyError, ValueError):
-                dim_verified = 0
-            except ImportError:
-                dim_verified = 0
+                else:
+                    dim_verified = 0
 
             # Dedup key: (output_form, sorted input forms, canonical operation)
             try:
