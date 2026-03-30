@@ -138,7 +138,6 @@ def show_cmd(ctx, commit):
 def checkout_cmd(ctx, commit):
     """Build sidecar from a historical commit (non-destructive)."""
     from propstore.build_sidecar import build_sidecar
-    from propstore.validate import load_concepts
     from propstore.tree_reader import GitTreeReader
 
     repo = ctx.obj["repo"]
@@ -154,41 +153,17 @@ def checkout_cmd(ctx, commit):
         return
 
     reader = GitTreeReader(repo.git, commit=commit)
-    concepts = load_concepts(None, reader=reader)
-    if not concepts:
+    if not reader.exists("concepts"):
         click.echo("No concepts found at that commit.")
         return
 
-    # Load optional claim files
-    from propstore.validate_claims import load_claim_files, build_concept_registry
-    from propstore.validate_contexts import load_contexts
-
-    claim_files = None
-    concept_registry = None
-    if reader.exists("claims"):
-        files = load_claim_files(None, reader=reader)
-        if files:
-            concept_registry = build_concept_registry(repo)
-            claim_files = files
-
-    context_files = None
-    if reader.exists("contexts"):
-        ctx_list = load_contexts(None, reader=reader)
-        if ctx_list:
-            context_files = ctx_list
-
     rebuilt = build_sidecar(
-        concepts, repo.sidecar_path, force=True,
-        claim_files=claim_files,
-        concept_registry=concept_registry,
-        repo=repo,
-        context_files=context_files,
+        reader, repo.sidecar_path, force=True,
         commit_hash=commit,
-        reader=reader,
     )
 
     if rebuilt:
-        click.echo(f"Sidecar built from commit {commit[:8]} ({len(concepts)} concepts).")
+        click.echo(f"Sidecar built from commit {commit[:8]}.")
     else:
         click.echo(f"Sidecar already at commit {commit[:8]}.")
 

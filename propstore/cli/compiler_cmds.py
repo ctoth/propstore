@@ -240,13 +240,8 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     # Step 3: Build sidecar
     sidecar_path = Path(output) if output else repo.sidecar_path
     rebuilt = build_sidecar(
-        concepts, sidecar_path, force=force,
-        claim_files=claim_files,
-        concept_registry=concept_registry,
-        repo=repo,
-        context_files=context_files,
+        reader, sidecar_path, force=force,
         commit_hash=hash_key,
-        reader=reader,
     )
 
     # Step 4: Summary via WorldModel (proves the roundtrip)
