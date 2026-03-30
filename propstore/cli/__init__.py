@@ -206,29 +206,36 @@ def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
     if not yes:
         click.confirm("Promote these files?", abort=True)
 
-    target_stances.mkdir(parents=True, exist_ok=True)
-    moved = 0
-    for src in sources:
-        if not src.exists():
-            click.echo(f"  SKIP (not found): {src}", err=True)
-            continue
-        dest = target_stances / src.name
-        src.rename(dest)
-        click.echo(f"  Promoted: {src.name}")
-        moved += 1
-
     git = repo.git
-    if git and moved > 0:
+    moved = 0
+    if git:
         adds = {}
         deletes = []
         for src in sources:
+            if not src.exists():
+                click.echo(f"  SKIP (not found): {src}", err=True)
+                continue
             dest = target_stances / src.name
-            if dest.exists():
-                rel = dest.relative_to(repo.root).as_posix()
-                adds[rel] = dest.read_bytes()
-            if not src.exists() and src.is_relative_to(repo.root):
+            rel = dest.relative_to(repo.root).as_posix()
+            adds[rel] = src.read_bytes()
+            if src.is_relative_to(repo.root):
                 deletes.append(src.relative_to(repo.root).as_posix())
-        git.commit_batch(adds=adds, deletes=deletes, message=f"Promote {moved} stance file(s)")
-        git.sync_worktree()
+        moved = len(adds)
+        if moved > 0:
+            for src in sources:
+                if src.exists():
+                    click.echo(f"  Promoted: {src.name}")
+            git.commit_batch(adds=adds, deletes=deletes, message=f"Promote {moved} stance file(s)")
+            git.sync_worktree()
+    else:
+        target_stances.mkdir(parents=True, exist_ok=True)
+        for src in sources:
+            if not src.exists():
+                click.echo(f"  SKIP (not found): {src}", err=True)
+                continue
+            dest = target_stances / src.name
+            src.rename(dest)
+            click.echo(f"  Promoted: {src.name}")
+            moved += 1
 
     click.echo(f"\n{moved} file(s) promoted.")

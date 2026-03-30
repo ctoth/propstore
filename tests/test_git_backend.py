@@ -1107,6 +1107,34 @@ def test_promote_commits(tmp_path):
     assert "test_stance.yaml" in git.list_dir("stances")
 
 
+def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkeypatch):
+    """Promotion must not mutate files before the git commit succeeds."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+
+    proposals_dir = root / "proposals" / "stances"
+    proposals_dir.mkdir(parents=True)
+    proposal_path = proposals_dir / "test_stance.yaml"
+    proposal_path.write_text(
+        yaml.dump({"id": "stance1", "type": "support"}, default_flow_style=False)
+    )
+
+    def _boom(self, adds, deletes, message):
+        raise RuntimeError("commit failed")
+
+    monkeypatch.setattr(type(repo.git), "commit_batch", _boom)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "promote", "-y"])
+    assert result.exit_code != 0
+    assert proposal_path.exists()
+    assert not (root / "stances" / "test_stance.yaml").exists()
+
+
 def test_init_creates_git_repo(tmp_path):
     """pks init creates a git-backed repo with initial commits."""
     from click.testing import CliRunner
@@ -1123,6 +1151,30 @@ def test_init_creates_git_repo(tmp_path):
     kr = KnowledgeRepo.open(root)
     history = kr.log(max_count=10)
     assert len(history) >= 2  # .gitignore init + forms seed
+
+
+def test_init_does_not_materialize_seed_forms_before_git_commit_succeeds(tmp_path, monkeypatch):
+    """Seed forms should not appear on disk if the git seed commit fails."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.repo import KnowledgeRepo
+
+    original_commit_files = KnowledgeRepo.commit_files
+
+    def _boom(self, files, message, branch="master"):
+        if message == "Seed default forms":
+            raise RuntimeError("seed commit failed")
+        return original_commit_files(self, files, message, branch=branch)
+
+    monkeypatch.setattr(KnowledgeRepo, "commit_files", _boom)
+
+    root = tmp_path / "knowledge"
+    runner = CliRunner()
+    result = runner.invoke(cli, ["init", str(root)])
+    assert result.exit_code != 0
+
+    forms_dir = root / "forms"
+    assert not list(forms_dir.glob("*.yaml"))
 
 
 def test_log_output(tmp_path):

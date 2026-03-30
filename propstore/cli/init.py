@@ -1,7 +1,6 @@
 """pks init — bootstrap a new propstore project."""
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import click
@@ -20,17 +19,28 @@ _FALLBACK_FORMS = (
 )
 
 
-def _seed_forms(forms_dir: Path) -> None:
-    """Populate forms/ for a freshly initialized project."""
+def _seed_form_files() -> dict[str, bytes]:
+    """Return default form files keyed by repo-relative path."""
+    form_files: dict[str, bytes] = {}
     package_forms_dir = Path(__file__).resolve().parent.parent / "_resources" / "forms"
     if package_forms_dir.is_dir():
         for form_path in sorted(package_forms_dir.glob("*.yaml")):
-            shutil.copy2(form_path, forms_dir / form_path.name)
-        return
+            form_files[f"forms/{form_path.name}"] = form_path.read_bytes()
+        return form_files
 
     for form_name in _FALLBACK_FORMS:
         stub = f"name: {form_name}\nkind: {form_name}\ndimensionless: false\n"
-        (forms_dir / f"{form_name}.yaml").write_text(stub)
+        form_files[f"forms/{form_name}.yaml"] = stub.encode("utf-8")
+    return form_files
+
+
+def _materialize_seed_forms(forms_dir: Path, form_files: dict[str, bytes]) -> None:
+    """Write default form files to disk for non-git repos."""
+    forms_dir.mkdir(parents=True, exist_ok=True)
+    for rel_path, content in sorted(form_files.items()):
+        if not rel_path.startswith("forms/"):
+            continue
+        (forms_dir / rel_path.removeprefix("forms/")).write_bytes(content)
 
 
 @click.command()
@@ -56,19 +66,16 @@ def init(obj: dict, directory: str) -> None:
 
     repo = Repository.init(root)
 
-    _seed_forms(repo.forms_dir)
+    form_files = _seed_form_files()
 
     # Commit seeded forms to git
     git = repo.git
     if git is not None:
-        form_files = {}
-        if repo.forms_dir.is_dir():
-            for f in sorted(repo.forms_dir.glob("*.yaml")):
-                rel = f.relative_to(repo.root).as_posix()
-                form_files[rel] = f.read_bytes()
         if form_files:
             git.commit_files(form_files, "Seed default forms")
             git.sync_worktree()
+    else:
+        _materialize_seed_forms(repo.forms_dir, form_files)
 
     click.echo(f"Initialized propstore project at {root}/")
     click.echo(f"  {root / 'concepts/'}")
