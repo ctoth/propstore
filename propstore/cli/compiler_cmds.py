@@ -107,7 +107,7 @@ def validate(obj: dict) -> None:
 
     concept_result = validate_concepts(
         concepts,
-        claims_dir=repo.claims_dir if repo.claims_dir.exists() else None,
+        claims_dir=repo.collection("claims"),
         repo=repo,
     )
 
@@ -191,7 +191,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     # Step 1: Validate concepts
     concept_result = validate_concepts(
         concepts,
-        claims_dir=repo.claims_dir if repo.claims_dir.exists() else None,
+        claims_dir=repo.collection("claims"),
         repo=repo,
     )
     if not concept_result.ok:
@@ -204,7 +204,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     from propstore.validate_contexts import load_contexts, validate_contexts
     context_files = None
     context_ids: set[str] = set()
-    if repo.contexts_dir.exists() or reader.exists("contexts"):
+    if repo.collection("contexts") or reader.exists("contexts"):
         ctx_list = load_contexts(repo.contexts_dir, reader=reader)
         if ctx_list:
             ctx_result = validate_contexts(ctx_list)

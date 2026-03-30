@@ -149,8 +149,9 @@ def add(
         definition = click.prompt("Definition")
     if form_name is None:
         # List available forms
-        if repo.forms_dir.exists():
-            available = sorted(f.stem for f in repo.forms_dir.iterdir() if f.suffix == ".yaml")
+        forms = repo.collection("forms")
+        if forms:
+            available = sorted(f.stem for f in forms.iterdir() if f.suffix == ".yaml")
             click.echo(f"Available forms: {', '.join(available)}")
         form_name = click.prompt("Form")
 
@@ -339,7 +340,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
 
     concept_validation = validate_concepts(
         updated_concepts,
-        claims_dir=repo.claims_dir if repo.claims_dir.exists() else None,
+        claims_dir=repo.collection("claims"),
         repo=repo,
     )
     if not concept_validation.ok:
@@ -348,7 +349,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         click.echo("Rename validation failed. No changes written.", err=True)
         sys.exit(EXIT_VALIDATION)
 
-    claim_files = load_claim_files(repo.claims_dir) if repo.claims_dir.exists() else []
+    claim_files = load_claim_files(repo.collection("claims")) if repo.collection("claims") else []
     updated_claim_files = []
     changed_claim_paths: set[Path] = set()
     if claim_files:
@@ -553,7 +554,7 @@ def link(
         )
     validation = validate_concepts(
         updated_concepts,
-        claims_dir=repo.claims_dir if repo.claims_dir.exists() else None,
+        claims_dir=repo.collection("claims"),
         repo=repo,
     )
     if not validation.ok:

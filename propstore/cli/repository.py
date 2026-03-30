@@ -59,6 +59,11 @@ class Repository:
     def counters_dir(self) -> Path:
         return self._root / "concepts" / ".counters"
 
+    def collection(self, name: str) -> Path | None:
+        """Return the path to a knowledge subdirectory, or None if it doesn't exist."""
+        p = self._root / name
+        return p if p.is_dir() else None
+
     @cached_property
     def git(self):
         """Return the KnowledgeRepo if this directory is git-backed, else None."""
