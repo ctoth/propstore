@@ -102,6 +102,10 @@ class _BaseKnowledgePath(ABC):
 
 
 class FilesystemKnowledgePath(_BaseKnowledgePath):
+    @classmethod
+    def from_filesystem_path(cls, path: Path) -> FilesystemKnowledgePath:
+        return cls(path.parent, PurePosixPath(path.name))
+
     def __init__(
         self,
         root: Path,
@@ -118,6 +122,9 @@ class FilesystemKnowledgePath(_BaseKnowledgePath):
         if self._relative_path.parts:
             path /= Path(*self._relative_path.parts)
         return path
+
+    def concrete_path(self) -> Path:
+        return self._absolute_path()
 
     def exists(self) -> bool:
         return self._absolute_path().exists()
@@ -180,3 +187,9 @@ class GitKnowledgePath(_BaseKnowledgePath):
 
     def read_bytes(self) -> bytes:
         return self._repo.read_file(self.as_posix(), commit=self._commit)
+
+
+def coerce_knowledge_path(path: KnowledgePath | Path) -> KnowledgePath:
+    if isinstance(path, Path):
+        return FilesystemKnowledgePath.from_filesystem_path(path)
+    return path

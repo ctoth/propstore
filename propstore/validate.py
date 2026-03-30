@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass, field
 from itertools import product
 from pathlib import Path
+from typing import TYPE_CHECKING, Callable, cast
 
 import yaml
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
@@ -24,15 +25,13 @@ from propstore.cel_checker import (
     build_cel_registry_from_loaded,
     check_cel_expression,
 )
-from propstore.form_utils import kind_type_from_form_name, load_form
-
-from typing import TYPE_CHECKING
+from propstore.form_utils import kind_type_from_form_name, load_form_path
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
-    from propstore.tree_reader import TreeReader
+    from propstore.knowledge_path import KnowledgePath
 
-
+from propstore.knowledge_path import coerce_knowledge_path
 from propstore.loaded import LoadedEntry
 
 
@@ -61,41 +60,46 @@ def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict]]:
     return results
 
 
-def load_yaml_entries(reader: TreeReader, subdir: str) -> list[tuple[str, None, dict]]:
-    """Load all YAML from a subdir via a TreeReader.
+def load_yaml_entries(root: KnowledgePath | Path | None) -> list[LoadedEntry]:
+    """Load all YAML entries from a knowledge-tree subtree."""
+    if root is None:
+        return []
+    subtree = coerce_knowledge_path(root)
+    if not subtree.is_dir():
+        return []
+    results: list[LoadedEntry] = []
+    for entry in subtree.iterdir():
+        if entry.is_file() and entry.suffix == ".yaml":
+            data = yaml.safe_load(entry.read_bytes())
+            results.append(
+                LoadedEntry(filename=entry.stem, source_path=entry, data=data if data else {})
+            )
+    return results
 
-    Returns (stem, None, data) tuples — filepath is None because
-    the data may come from git, not the filesystem.
-    """
-    results: list[tuple[str, None, dict]] = []
-    for stem, raw in reader.list_yaml(subdir):
-        data = yaml.safe_load(raw)
-        results.append((stem, None, data if data else {}))
+
+def _load_yaml_entries_from_reader(reader: object, subdir: str) -> list[LoadedEntry]:
+    list_yaml_obj = getattr(reader, "list_yaml", None)
+    if not callable(list_yaml_obj):
+        raise TypeError("reader must define list_yaml(subdir)")
+    list_yaml = cast(Callable[[str], list[tuple[str, bytes]]], list_yaml_obj)
+    results: list[LoadedEntry] = []
+    for stem, raw_bytes in list_yaml(subdir):
+        data = yaml.safe_load(raw_bytes)
+        results.append(
+            LoadedEntry(filename=stem, source_path=None, data=data if data else {})
+        )
     return results
 
 
 def load_concepts(
-    concept_dir: Path | None,
+    concepts_root: KnowledgePath | Path | None,
     *,
-    reader: TreeReader | None = None,
+    reader: object | None = None,
 ) -> list[LoadedEntry]:
-    """Load all .yaml files from the concept directory (excluding .counters).
-
-    When *reader* is provided, loads from the TreeReader (git or filesystem
-    abstraction) using the ``concepts`` subdir. Otherwise falls back to
-    ``load_yaml_dir(concept_dir)`` for full backward compatibility.
-    """
+    """Load all concept YAML files from a concept subtree."""
     if reader is not None:
-        return [
-            LoadedEntry(filename=stem, filepath=path, data=data)
-            for stem, path, data in load_yaml_entries(reader, "concepts")
-        ]
-    if concept_dir is None:
-        return []
-    return [
-        LoadedEntry(filename=stem, filepath=path, data=data)
-        for stem, path, data in load_yaml_dir(concept_dir)
-    ]
+        return _load_yaml_entries_from_reader(reader, "concepts")
+    return load_yaml_entries(concepts_root)
 
 
 _CONCEPT_ID_RE = re.compile(r'^concept\d+$')
@@ -109,12 +113,11 @@ VALID_RELATIONSHIP_TYPES = frozenset([
 ])
 
 
-def _load_all_claim_ids(claims_dir: Path) -> set[str]:
+def _load_all_claim_ids(claims_dir: KnowledgePath | Path | None) -> set[str]:
     """Load all claim IDs from claim YAML files in the given directory."""
     claim_ids: set[str] = set()
-    if not claims_dir.exists():
-        return claim_ids
-    for _stem, _path, data in load_yaml_dir(claims_dir):
+    for claim_file in load_yaml_entries(claims_dir):
+        data = claim_file.data
         if isinstance(data.get("claims"), list):
             for claim in data["claims"]:
                 cid = claim.get("id")
@@ -125,7 +128,7 @@ def _load_all_claim_ids(claims_dir: Path) -> set[str]:
 
 def validate_concepts(
     concepts: list[LoadedEntry],
-    claims_dir: Path | None = None,
+    claims_dir: KnowledgePath | Path | None = None,
     *,
     repo: Repository | None = None,
 ) -> ValidationResult:
@@ -143,14 +146,14 @@ def validate_concepts(
     id_to_concept: dict[str, LoadedEntry] = {}
     cel_registry = build_cel_registry_from_loaded(concepts)
 
-    def _forms_dir(c: LoadedEntry) -> Path:
+    def _forms_dir(c: LoadedEntry) -> KnowledgePath:
         if repo is not None:
-            return repo.forms_dir
-        if c.filepath is None:
+            return repo.tree() / "forms"
+        if c.source_path is None:
             raise TypeError(
-                "validate_concepts requires concrete concept file paths when repo is not provided"
+                "validate_concepts requires source paths when repo is not provided"
             )
-        return c.filepath.parent.parent / "forms"
+        return c.source_path.parent.parent / "forms"
 
     def _effective_dims(form_def) -> dict[str, int] | None:
         if form_def.dimensions is not None:
@@ -201,7 +204,7 @@ def validate_concepts(
         # ── Form-aware parameter validation ──────────────────────
         if isinstance(form, str) and form:
             forms_dir = _forms_dir(c)
-            form_def = load_form(forms_dir, form)
+            form_def = load_form_path(forms_dir, form)
             if form_def is not None:
                 # Category concepts must have values in form_parameters
                 if form == "category":
@@ -328,13 +331,13 @@ def validate_concepts(
 
             # ── Dimensional compatibility (bridgman) ─────────────
             forms_dir = _forms_dir(c)
-            output_form_def = load_form(forms_dir, data.get("form"))
+            output_form_def = load_form_path(forms_dir, data.get("form"))
             if output_form_def is not None and len(inputs) >= 2:
                 input_form_defs = []
                 for inp_id in inputs:
                     inp_c = id_to_concept.get(inp_id)
                     if inp_c is not None:
-                        inp_fd = load_form(forms_dir, inp_c.data.get("form"))
+                        inp_fd = load_form_path(forms_dir, inp_c.data.get("form"))
                         if inp_fd is not None:
                             input_form_defs.append(inp_fd)
                 if len(input_form_defs) == len(inputs) and input_form_defs:
@@ -473,4 +476,3 @@ def validate_concepts(
             current_id = current_concept.data.get("replaced_by")
 
     return result
-

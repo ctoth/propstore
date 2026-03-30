@@ -11,37 +11,26 @@ from pathlib import Path
 
 from typing import TYPE_CHECKING
 
-from propstore.validate import ValidationResult, load_yaml_dir
+from propstore.validate import ValidationResult, load_yaml_entries
 
 if TYPE_CHECKING:
-    from propstore.tree_reader import TreeReader
+    from propstore.knowledge_path import KnowledgePath
 
 
 from propstore.loaded import LoadedEntry
 
 
 def load_contexts(
-    contexts_dir: Path | None,
+    contexts_dir: KnowledgePath | Path | None,
     *,
-    reader: TreeReader | None = None,
+    reader: object | None = None,
 ) -> list[LoadedEntry]:
-    """Load all .yaml files from contexts directory.
-
-    When *reader* is provided, loads from the TreeReader using the
-    ``contexts`` subdir. Otherwise falls back to ``load_yaml_dir(contexts_dir)``.
-    """
+    """Load all context YAML files from a contexts subtree."""
     if reader is not None:
-        from propstore.validate import load_yaml_entries
-        return [
-            LoadedEntry(filename=stem, filepath=path, data=data)
-            for stem, path, data in load_yaml_entries(reader, "contexts")
-        ]
-    if contexts_dir is None or not contexts_dir.exists():
-        return []
-    return [
-        LoadedEntry(filename=stem, filepath=path, data=data)
-        for stem, path, data in load_yaml_dir(contexts_dir)
-    ]
+        from propstore.validate import _load_yaml_entries_from_reader
+
+        return _load_yaml_entries_from_reader(reader, "contexts")
+    return load_yaml_entries(contexts_dir)
 
 
 def validate_contexts(contexts: list[LoadedEntry]) -> ValidationResult:

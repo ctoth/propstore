@@ -17,14 +17,14 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
-    from propstore.tree_reader import TreeReader
+    from propstore.knowledge_path import KnowledgePath
 
 import jsonschema
 import yaml
 import bridgman
 
 from propstore.resources import load_resource_json
-from propstore.validate import ValidationResult, load_yaml_dir
+from propstore.validate import ValidationResult, load_yaml_dir, load_yaml_entries
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
@@ -93,27 +93,16 @@ from propstore.loaded import LoadedEntry
 
 
 def load_claim_files(
-    claims_dir: Path | None,
+    claims_dir: KnowledgePath | Path | None,
     *,
-    reader: TreeReader | None = None,
+    reader: object | None = None,
 ) -> list[LoadedEntry]:
-    """Load all .yaml files from claims directory (excluding .counters).
-
-    When *reader* is provided, loads from the TreeReader using the
-    ``claims`` subdir. Otherwise falls back to ``load_yaml_dir(claims_dir)``.
-    """
+    """Load all claim YAML files from a claims subtree."""
     if reader is not None:
-        from propstore.validate import load_yaml_entries
-        return [
-            LoadedEntry(filename=stem, filepath=path, data=data)
-            for stem, path, data in load_yaml_entries(reader, "claims")
-        ]
-    if claims_dir is None:
-        return []
-    return [
-        LoadedEntry(filename=stem, filepath=path, data=data)
-        for stem, path, data in load_yaml_dir(claims_dir)
-    ]
+        from propstore.validate import _load_yaml_entries_from_reader
+
+        return _load_yaml_entries_from_reader(reader, "claims")
+    return load_yaml_entries(claims_dir)
 
 
 

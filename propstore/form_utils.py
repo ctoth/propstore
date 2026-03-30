@@ -14,6 +14,7 @@ import pint
 import yaml
 
 from propstore.cel_checker import KindType
+from propstore.knowledge_path import KnowledgePath
 from propstore.resources import load_resource_json
 
 # Module-level unit registry for pint conversions
@@ -176,6 +177,23 @@ def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
         return None
     with open(form_path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
+    result = parse_form(form_name, data)
+    _form_cache[cache_key] = result
+    return result
+
+
+def load_form_path(forms_dir: KnowledgePath, form_name: str | None) -> FormDefinition | None:
+    """Load a single form definition from a knowledge-tree path."""
+    if not isinstance(form_name, str) or not form_name:
+        return None
+    cache_key = (forms_dir.as_posix(), form_name)
+    if cache_key in _form_cache:
+        return _form_cache[cache_key]
+    form_path = forms_dir / f"{form_name}.yaml"
+    if not form_path.exists():
+        _form_cache[cache_key] = None
+        return None
+    data = yaml.safe_load(form_path.read_bytes())
     result = parse_form(form_name, data)
     _form_cache[cache_key] = result
     return result
