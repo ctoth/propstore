@@ -1166,18 +1166,10 @@ def _format_assumption_ids(assumption_ids: Sequence[str]) -> str:
 
 def _parse_queryables(
     queryables: tuple[str, ...],
-) -> list[QueryableAssumption | str]:
-    parsed: list[QueryableAssumption | str] = []
-    for queryable in queryables:
-        if any(operator in queryable for operator in ("==", "!=", ">=", "<=", ">", "<")):
-            parsed.append(queryable)
-            continue
-        if "=" in queryable:
-            key, _, value = queryable.partition("=")
-            parsed.append(f"{key} == '{value}'")
-            continue
-        parsed.append(queryable)
-    return parsed
+) -> list[QueryableAssumption]:
+    from propstore.world.types import coerce_queryable_assumptions
+
+    return list(coerce_queryable_assumptions(queryables))
 
 
 def _contract_target_arg(targets: tuple[str, ...]) -> str | tuple[str, ...]:

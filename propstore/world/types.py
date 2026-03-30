@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, runtime_checkable
@@ -110,6 +110,35 @@ class QueryableAssumption:
             cel=cel,
             source=source,
         )
+
+
+QueryableInput: TypeAlias = QueryableAssumption | str
+
+
+def normalize_queryable_cel(queryable: str) -> str:
+    if any(operator in queryable for operator in ("==", "!=", ">=", "<=", ">", "<")):
+        return queryable
+    if "=" in queryable:
+        key, _, value = queryable.partition("=")
+        return f"{key} == '{value}'"
+    return queryable
+
+
+def coerce_queryable_assumptions(
+    queryables: Iterable[QueryableInput],
+) -> tuple[QueryableAssumption, ...]:
+    normalized: dict[tuple[str, QueryableId], QueryableAssumption] = {}
+    for queryable in queryables:
+        candidate = (
+            queryable
+            if isinstance(queryable, QueryableAssumption)
+            else QueryableAssumption.from_cel(normalize_queryable_cel(str(queryable)))
+        )
+        normalized[(candidate.cel, candidate.assumption_id)] = candidate
+    return tuple(
+        normalized[key]
+        for key in sorted(normalized)
+    )
 
 
 @dataclass(frozen=True)
@@ -1021,7 +1050,7 @@ class ATMSEngineView(Protocol):
     def argumentation_state(
         self,
         *,
-        queryables: tuple[str, ...] | list[str],
+        queryables: Sequence[QueryableAssumption],
         future_limit: int,
     ) -> dict[str, Any]: ...
 

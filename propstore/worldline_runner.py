@@ -42,6 +42,7 @@ from propstore.world.types import (
     HasATMSEngine,
     RenderPolicy,
     ValueResult,
+    coerce_queryable_assumptions,
     validate_backend_semantics,
 )
 
@@ -319,7 +320,9 @@ def run_worldline(
             elif reasoning_backend == ReasoningBackend.ATMS:
                 if isinstance(bound, HasATMSEngine):
                     argumentation_state = bound.atms_engine().argumentation_state(
-                        queryables=definition.policy.future_queryables,
+                        queryables=coerce_queryable_assumptions(
+                            definition.policy.future_queryables
+                        ),
                         future_limit=definition.policy.future_limit or 8,
                     )
             elif (

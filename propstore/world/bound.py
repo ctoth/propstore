@@ -36,6 +36,7 @@ from propstore.world.types import (
     ATMSNodeRelevanceReport,
     ATMSNodeStabilityReport,
     BeliefSpace,
+    QueryableInput,
     DerivedResult,
     Environment,
     QueryableAssumption,
@@ -43,6 +44,7 @@ from propstore.world.types import (
     ResolutionStrategy,
     ResolvedResult,
     ValueResult,
+    coerce_queryable_assumptions,
 )
 
 if TYPE_CHECKING:
@@ -486,25 +488,30 @@ class BoundWorld(BeliefSpace):
     def claim_future_statuses(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         limit: int = 8,
     ) -> ATMSFutureStatusReport:
         """Return bounded future-environment status changes for one claim."""
         self._require_atms_backend()
-        return self.atms_engine().claim_future_statuses(claim_id, queryables, limit=limit)
+        return self.atms_engine().claim_future_statuses(
+            claim_id,
+            coerce_queryable_assumptions(queryables),
+            limit=limit,
+        )
 
     def concept_future_statuses(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         limit: int = 8,
     ) -> dict[str, ATMSFutureStatusReport]:
         """Return bounded future-environment status changes for active claims of a concept."""
         self._require_atms_backend()
+        normalized_queryables = coerce_queryable_assumptions(queryables)
         return {
             claim["id"]: self.atms_engine().claim_future_statuses(
                 claim["id"],
-                queryables,
+                normalized_queryables,
                 limit=limit,
             )
             for claim in sorted(self.active_claims(concept_id), key=lambda row: row["id"])
@@ -514,87 +521,119 @@ class BoundWorld(BeliefSpace):
     def claim_stability(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         limit: int = 8,
     ) -> ATMSNodeStabilityReport:
         """Return bounded ATMS stability for one claim over replayed future worlds."""
         self._require_atms_backend()
-        return self.atms_engine().claim_stability(claim_id, queryables, limit=limit)
+        return self.atms_engine().claim_stability(
+            claim_id,
+            coerce_queryable_assumptions(queryables),
+            limit=limit,
+        )
 
     def claim_is_stable(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         limit: int = 8,
     ) -> bool:
         """Whether a claim keeps the same ATMS status in all bounded consistent futures."""
         self._require_atms_backend()
-        return self.atms_engine().claim_is_stable(claim_id, queryables, limit=limit)
+        return self.atms_engine().claim_is_stable(
+            claim_id,
+            coerce_queryable_assumptions(queryables),
+            limit=limit,
+        )
 
     def concept_stability(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         limit: int = 8,
     ) -> ATMSConceptStabilityReport:
         """Return bounded value-status stability for one concept over replayed future worlds."""
         self._require_atms_backend()
-        return self.atms_engine().concept_stability(concept_id, queryables, limit=limit)
+        return self.atms_engine().concept_stability(
+            concept_id,
+            coerce_queryable_assumptions(queryables),
+            limit=limit,
+        )
 
     def concept_is_stable(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         limit: int = 8,
     ) -> bool:
         """Whether a concept keeps the same value status in all bounded consistent futures."""
         self._require_atms_backend()
-        return self.atms_engine().concept_is_stable(concept_id, queryables, limit=limit)
+        return self.atms_engine().concept_is_stable(
+            concept_id,
+            coerce_queryable_assumptions(queryables),
+            limit=limit,
+        )
 
     def claim_relevance(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         limit: int = 8,
     ) -> ATMSNodeRelevanceReport:
         """Return which bounded queryables can flip a claim's ATMS status."""
         self._require_atms_backend()
-        return self.atms_engine().claim_relevance(claim_id, queryables, limit=limit)
+        return self.atms_engine().claim_relevance(
+            claim_id,
+            coerce_queryable_assumptions(queryables),
+            limit=limit,
+        )
 
     def claim_relevant_queryables(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         limit: int = 8,
     ) -> list[str]:
         """Return the bounded queryables that matter to a claim's ATMS status."""
         self._require_atms_backend()
-        return self.atms_engine().claim_relevant_queryables(claim_id, queryables, limit=limit)
+        return self.atms_engine().claim_relevant_queryables(
+            claim_id,
+            coerce_queryable_assumptions(queryables),
+            limit=limit,
+        )
 
     def concept_relevance(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         limit: int = 8,
     ) -> ATMSConceptRelevanceReport:
         """Return which bounded queryables can flip a concept's value status."""
         self._require_atms_backend()
-        return self.atms_engine().concept_relevance(concept_id, queryables, limit=limit)
+        return self.atms_engine().concept_relevance(
+            concept_id,
+            coerce_queryable_assumptions(queryables),
+            limit=limit,
+        )
 
     def concept_relevant_queryables(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         limit: int = 8,
     ) -> list[str]:
         """Return the bounded queryables that matter to a concept's value status."""
         self._require_atms_backend()
-        return self.atms_engine().concept_relevant_queryables(concept_id, queryables, limit=limit)
+        return self.atms_engine().concept_relevant_queryables(
+            concept_id,
+            coerce_queryable_assumptions(queryables),
+            limit=limit,
+        )
 
     def claim_interventions(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         target_status: str,
         limit: int = 8,
         max_plans: int | None = None,
@@ -603,7 +642,7 @@ class BoundWorld(BeliefSpace):
         self._require_atms_backend()
         return self.atms_engine().claim_interventions(
             claim_id,
-            queryables,
+            coerce_queryable_assumptions(queryables),
             target_status,
             limit=limit,
             max_plans=max_plans,
@@ -612,7 +651,7 @@ class BoundWorld(BeliefSpace):
     def concept_interventions(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         target_value_status: str,
         limit: int = 8,
         max_plans: int | None = None,
@@ -621,7 +660,7 @@ class BoundWorld(BeliefSpace):
         self._require_atms_backend()
         return self.atms_engine().concept_interventions(
             concept_id,
-            queryables,
+            coerce_queryable_assumptions(queryables),
             target_value_status,
             limit=limit,
             max_plans=max_plans,
@@ -630,7 +669,7 @@ class BoundWorld(BeliefSpace):
     def claim_next_queryables(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         target_status: str,
         limit: int = 8,
         max_suggestions: int | None = None,
@@ -639,7 +678,7 @@ class BoundWorld(BeliefSpace):
         self._require_atms_backend()
         return self.atms_engine().next_queryables_for_claim(
             claim_id,
-            queryables,
+            coerce_queryable_assumptions(queryables),
             target_status,
             limit=limit,
             max_suggestions=max_suggestions,
@@ -648,7 +687,7 @@ class BoundWorld(BeliefSpace):
     def concept_next_queryables(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableInput],
         target_value_status: str,
         limit: int = 8,
         max_suggestions: int | None = None,
@@ -657,7 +696,7 @@ class BoundWorld(BeliefSpace):
         self._require_atms_backend()
         return self.atms_engine().next_queryables_for_concept(
             concept_id,
-            queryables,
+            coerce_queryable_assumptions(queryables),
             target_value_status,
             limit=limit,
             max_suggestions=max_suggestions,
@@ -692,16 +731,21 @@ class BoundWorld(BeliefSpace):
     def why_concept_out(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...] | None = None,
+        queryables: Sequence[QueryableInput] | None = None,
         limit: int = 8,
     ) -> dict[str, Any]:
         """Explain why a concept currently lacks exact ATMS support."""
         self._require_atms_backend()
+        normalized_queryables = (
+            None
+            if queryables is None
+            else coerce_queryable_assumptions(queryables)
+        )
         supported_ids = self.atms_engine().supported_claim_ids(concept_id)
         claim_reasons = {
             claim["id"]: self.atms_engine().why_out(
                 f"claim:{claim['id']}",
-                queryables=queryables,
+                queryables=normalized_queryables,
                 limit=limit,
             )
             for claim in sorted(self.active_claims(concept_id), key=lambda row: row["id"])

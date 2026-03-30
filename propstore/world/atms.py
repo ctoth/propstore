@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from dataclasses import dataclass, field, replace
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from itertools import combinations, product
 from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, runtime_checkable
 
@@ -415,7 +415,7 @@ class ATMSEngine:
 
     def future_environments(
         self,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> list[ATMSFutureEnvironmentReport]:
         futures: list[ATMSFutureEnvironmentReport] = []
@@ -437,7 +437,7 @@ class ATMSEngine:
     def node_future_statuses(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> ATMSFutureStatusReport:
         current = self.node_status(node_id)
@@ -478,7 +478,7 @@ class ATMSEngine:
     def claim_future_statuses(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> ATMSFutureStatusReport:
         node_id = self._claim_node_ids.get(claim_id)
@@ -489,7 +489,7 @@ class ATMSEngine:
     def why_out(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...] | None = None,
+        queryables: Sequence[QueryableAssumption] | None = None,
         limit: int = 8,
     ) -> ATMSWhyOutReport:
         inspection = self.node_status(node_id)
@@ -511,7 +511,7 @@ class ATMSEngine:
     def could_become_in(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> list[ATMSNodeFutureStatusEntry]:
         report = self.node_future_statuses(node_id, queryables, limit=limit)
@@ -524,7 +524,7 @@ class ATMSEngine:
     def could_become_out(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> list[ATMSNodeFutureStatusEntry]:
         report = self.node_future_statuses(node_id, queryables, limit=limit)
@@ -538,7 +538,7 @@ class ATMSEngine:
     def status_flip_witnesses(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> list[ATMSNodeFutureStatusEntry]:
         """Return minimal bounded consistent futures whose ATMS status flips."""
@@ -554,7 +554,7 @@ class ATMSEngine:
     def is_stable(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> bool:
         """Whether the node keeps its current ATMS status in all bounded consistent futures."""
@@ -563,7 +563,7 @@ class ATMSEngine:
     def claim_is_stable(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> bool:
         node_id = self._claim_node_ids.get(claim_id)
@@ -574,7 +574,7 @@ class ATMSEngine:
     def concept_is_stable(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> bool:
         return self.concept_stability(concept_id, queryables, limit=limit)["stable"]
@@ -582,7 +582,7 @@ class ATMSEngine:
     def node_stability(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> ATMSNodeStabilityReport:
         """Summarize bounded ATMS stability over the implemented replay substrate."""
@@ -608,7 +608,7 @@ class ATMSEngine:
     def claim_stability(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> ATMSNodeStabilityReport:
         node_id = self._claim_node_ids.get(claim_id)
@@ -619,7 +619,7 @@ class ATMSEngine:
     def concept_stability(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> ATMSConceptStabilityReport:
         """Summarize bounded concept stability using the current BoundWorld value status."""
@@ -645,7 +645,7 @@ class ATMSEngine:
     def relevant_queryables(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> list[str]:
         """Return queryables whose inclusion changes the bounded ATMS status somewhere."""
@@ -654,7 +654,7 @@ class ATMSEngine:
     def claim_relevant_queryables(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> list[str]:
         node_id = self._claim_node_ids.get(claim_id)
@@ -665,7 +665,7 @@ class ATMSEngine:
     def concept_relevant_queryables(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> list[str]:
         return self.concept_relevance(concept_id, queryables, limit=limit)["relevant_queryables"]
@@ -673,7 +673,7 @@ class ATMSEngine:
     def node_relevance(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> ATMSNodeRelevanceReport:
         """Summarize which queryables can flip a node's bounded ATMS status."""
@@ -696,7 +696,7 @@ class ATMSEngine:
     def claim_relevance(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> ATMSNodeRelevanceReport:
         node_id = self._claim_node_ids.get(claim_id)
@@ -707,7 +707,7 @@ class ATMSEngine:
     def concept_relevance(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int = 8,
     ) -> ATMSConceptRelevanceReport:
         """Summarize which queryables can flip a concept's bounded value status."""
@@ -728,7 +728,7 @@ class ATMSEngine:
     def node_interventions(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         target_status: ATMSNodeStatus | str,
         *,
         limit: int = 8,
@@ -758,7 +758,7 @@ class ATMSEngine:
     def claim_interventions(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         target_status: ATMSNodeStatus | str,
         *,
         limit: int = 8,
@@ -778,7 +778,7 @@ class ATMSEngine:
     def concept_interventions(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         target_value_status: str,
         *,
         limit: int = 8,
@@ -807,7 +807,7 @@ class ATMSEngine:
     def next_queryables_for_node(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         target_status: ATMSNodeStatus | str,
         *,
         limit: int = 8,
@@ -824,7 +824,7 @@ class ATMSEngine:
     def next_queryables_for_claim(
         self,
         claim_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         target_status: ATMSNodeStatus | str,
         *,
         limit: int = 8,
@@ -844,7 +844,7 @@ class ATMSEngine:
     def next_queryables_for_concept(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         target_value_status: str,
         *,
         limit: int = 8,
@@ -971,7 +971,7 @@ class ATMSEngine:
     def argumentation_state(
         self,
         *,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...] | None = None,
+        queryables: Sequence[QueryableAssumption] | None = None,
         future_limit: int = 8,
     ) -> dict[str, Any]:
         claim_inspections = {
@@ -1499,7 +1499,7 @@ class ATMSEngine:
 
     def _coerce_queryables(
         self,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
     ) -> tuple[QueryableAssumption, ...]:
         current_ids = {
             str(assumption.assumption_id)
@@ -1511,11 +1511,7 @@ class ATMSEngine:
         }
         normalized: dict[tuple[str, QueryableId], QueryableAssumption] = {}
         for queryable in queryables:
-            candidate = (
-                queryable
-                if isinstance(queryable, QueryableAssumption)
-                else QueryableAssumption.from_cel(str(queryable))
-            )
+            candidate = queryable
             if str(candidate.assumption_id) in current_ids or candidate.cel in current_cels:
                 continue
             normalized[(candidate.cel, candidate.assumption_id)] = candidate
@@ -1526,7 +1522,7 @@ class ATMSEngine:
 
     def _iter_future_queryable_sets(
         self,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int,
     ):
         if limit <= 0:
@@ -1548,7 +1544,7 @@ class ATMSEngine:
 
     def _future_entries(
         self,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int,
     ) -> list[_FutureReplay]:
         entries: list[_FutureReplay] = []
@@ -1567,7 +1563,7 @@ class ATMSEngine:
     def _concept_future_entries(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int,
     ) -> list[ATMSConceptFutureStatusEntry]:
         futures: list[ATMSConceptFutureStatusEntry] = []
@@ -1605,7 +1601,7 @@ class ATMSEngine:
     def _node_relevance_states(
         self,
         node_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int,
     ) -> dict[tuple[QueryableId, ...], ATMSNodeRelevanceState]:
         current = self.node_status(node_id)
@@ -1632,7 +1628,7 @@ class ATMSEngine:
     def _concept_relevance_states(
         self,
         concept_id: str,
-        queryables: list[QueryableAssumption | str] | tuple[QueryableAssumption | str, ...],
+        queryables: Sequence[QueryableAssumption],
         limit: int,
     ) -> dict[tuple[QueryableId, ...], ATMSConceptRelevanceState]:
         states: dict[tuple[QueryableId, ...], ATMSConceptRelevanceState] = {
