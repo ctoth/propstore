@@ -37,6 +37,8 @@ So the job is no longer “invent merge semantics.” The job is:
 4. Bridge code is allowed only when explicitly marked transitional.
 5. Storage merge commits remain provenance objects, not the merge operator itself.
 6. Structured consumers may project from the merge kernel, but may not silently redefine merge semantics.
+7. Phase 6 is merge completion work, not a generic incomplete-information phase.
+8. Source preference defaults downstream of merge unless later work proves a principled kernel-level alternative.
 
 ---
 
@@ -231,6 +233,11 @@ Tasks:
 2. list the current hard-coded or implicit defaults that must become policy later
 3. define the minimum metadata the merge path must preserve for future policy objects
 
+Current literature-backed default:
+
+- keep source preference out of the merge kernel
+- treat it as post-merge defeat policy or explanation policy unless a later design pass justifies something stronger
+
 Acceptance:
 
 - later policy/governance work has a clean insertion point
@@ -268,20 +275,23 @@ If any of these disagree, coding should wait until they are reconciled.
 
 ## Next Coding Slice
 
-The first coding slice after this preparation pass should be:
+After the literature refresh and completion of the first coding slice plus Phase 6.2 hardening, the next coding slice should be:
 
-1. audit-driven tests identifying every live production consumer of merge outputs
-2. tighten the highest-value canonical path if the audit shows it is still underspecified
-3. only then narrow or remove bridge helpers that are not authoritative
+1. write RED tests around the active canonical inspect/commit path
+2. tighten the highest-value public merge surface if the tests expose drift
+3. verify the public path stays on `RepoMergeFramework` / `PartialArgumentationFramework`
+4. only then return to bridge narrowing if a live consumer still depends on it
 
-Recommended first targets:
+Recommended targets:
 
-- `propstore/repo/merge_report.py`
-- `propstore/repo/structured_merge.py`
-- `propstore/repo/branch_reasoning.py` only after the consumer inventory confirms what still depends on it
+- `propstore/repo/merge_commit.py`
+- `propstore/cli/merge_cmds.py`
+- `tests/test_merge_classifier.py`
+- `tests/test_merge_cli.py`
+- `propstore/repo/branch_reasoning.py` only after the consumer inventory confirms a live dependency
 
 Why:
 
-- `merge_report.py` and the CLI/report path are active canonical surfaces
-- `structured_merge.py` is the largest still-under-specified semantic boundary
-- `branch_reasoning.py` is still important bridge code, but current inspection shows it is not the primary live production dependency
+- the active public path is still inspect + commit over the canonical merge object
+- `branch_reasoning.py` is still bridge code, but current inspection shows it is not the primary live production dependency
+- the literature refresh says not to widen this phase into structured incomplete-information inquiry

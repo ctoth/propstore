@@ -70,6 +70,20 @@ It does **not** require settling every open theoretical question up front. The p
 
 The key point: we do **not** need more literature before we can define the architecture and first formal object boundary.
 
+### Literature refresh verdict
+
+The 2026-03-29 re-check against the local notes sharpens the boundary instead of changing the architecture:
+
+- **Konieczny 2002** and **Coste-Marquis 2007** still justify a structural merge kernel over `attack / non-attack / ignorance`.
+- **Prakken 2010** and **Modgil 2018** still place defeat and preference downstream of attack.
+- **Odekerken 2023/2025** is relevant to later structured inquiry under incomplete information, but it is **not** a reason to widen Phase 6 merge completion.
+
+So the merge roadmap should stay narrow:
+
+1. consolidate the structural merge kernel
+2. keep source preference out of the kernel by default
+3. leave `j`-stability / `j`-relevance to later world/query and investigation work
+
 ---
 
 ## Current Repo Baseline
@@ -184,6 +198,8 @@ The branch-local summaries are merged into a shared partial framework:
 
 Queries and render-time reasoning operate over this merged object and explain results back in terms of claims, justifications, and sources.
 
+This merged object remains structural. It is not the place to encode source-trust defeat policy, and it is not the place to import structured future-information machinery from the incomplete-information literature.
+
 The final target architecture is therefore:
 
 1. stored entities
@@ -199,6 +215,7 @@ The following design choices are settled for the first implementation:
 1. **Merge over attacks, not defeats.**
    - Attack is the source-facing structural relation.
    - Defeat remains downstream and may still depend on preference policy.
+   - The literature refresh keeps this as a hard boundary for Phase 6.
 
 2. **Keep the existing semantic identity layer for v1.**
    - This proposal does not fold content-addressed identity redesign into merge semantics work.
@@ -216,6 +233,10 @@ The following design choices are settled for the first implementation:
 5. **Treat full structured merge as the target architecture, but not the first code chunk.**
    - The first implementation lands the abstract merge backbone that branch-local structured theories compile into.
    - Structured projection is still part of this proposal and remains on the milestone path.
+
+6. **Do not widen Phase 6 into structured incomplete-information inquiry.**
+   - `j`-stability, `j`-relevance, and future-theory search belong to later inquiry layers.
+   - They are not prerequisites for completing the merge kernel or its public surfaces.
 
 ---
 
@@ -686,6 +707,8 @@ Required tests:
 
 This milestone is the first one that touches the structured/abstract boundary directly.
 
+It is still not a license to collapse the merge roadmap into the Odekerken-style inquiry roadmap. The boundary work here is about projection into the merge kernel, not about future-information reasoning over incomplete ASPIC+ theories.
+
 ---
 
 ## Atomic Commit Plan
@@ -794,6 +817,7 @@ This keeps ownership clear and makes integration reviewable.
 
 1. How rich must the branch-local argumentation summary be to avoid semantic drift at the structured boundary?
 2. Should source trust influence merge itself, or only post-merge defeat/preference?
+   - Current default: post-merge defeat/preference or explanation only, not kernel merge.
 3. Do we want completions enumerated explicitly, symbolically, or probabilistically?
 4. Where should explanation edges live: in the structured layer only, or also on merged abstract objects?
 
