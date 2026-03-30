@@ -18,7 +18,6 @@ from hypothesis import strategies as st
 
 from propstore.build_sidecar import build_sidecar
 from propstore.cli.worldline_cmds import _parse_kv_args
-from propstore.tree_reader import FilesystemReader
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
@@ -210,11 +209,10 @@ def physics_world(physics_knowledge):
     """Build sidecar and create WorldModel for physics knowledge."""
     from propstore.cli.repository import Repository
 
-    reader = FilesystemReader(physics_knowledge)
     repo = Repository(physics_knowledge)
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
-    build_sidecar(reader, repo.sidecar_path)
+    build_sidecar(physics_knowledge, repo.sidecar_path)
     return WorldModel(repo)
 
 
@@ -298,10 +296,9 @@ def chained_physics_world(chained_physics_knowledge):
     from propstore.cli.repository import Repository
 
     repo = Repository(chained_physics_knowledge)
-    reader = FilesystemReader(chained_physics_knowledge)
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
-    build_sidecar(reader, repo.sidecar_path)
+    build_sidecar(chained_physics_knowledge, repo.sidecar_path)
     return WorldModel(repo)
 
 

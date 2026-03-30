@@ -34,6 +34,7 @@ class KnowledgePath(Protocol):
     def read_text(self, encoding: str = "utf-8") -> str: ...
     def open(self, mode: str = "r", encoding: str = "utf-8") -> TextIO | BinaryIO: ...
     def as_posix(self) -> str: ...
+    def cache_key(self) -> str: ...
 
 
 class _BaseKnowledgePath(ABC):
@@ -83,6 +84,9 @@ class _BaseKnowledgePath(ABC):
         return self._relative_path.as_posix()
 
     @abstractmethod
+    def cache_key(self) -> str: ...
+
+    @abstractmethod
     def _with_relative_path(self, path: PurePosixPath) -> Self: ...
 
     @abstractmethod
@@ -125,6 +129,9 @@ class FilesystemKnowledgePath(_BaseKnowledgePath):
 
     def concrete_path(self) -> Path:
         return self._absolute_path()
+
+    def cache_key(self) -> str:
+        return f"fs:{self._absolute_path().resolve().as_posix()}"
 
     def exists(self) -> bool:
         return self._absolute_path().exists()
@@ -187,6 +194,11 @@ class GitKnowledgePath(_BaseKnowledgePath):
 
     def read_bytes(self) -> bytes:
         return self._repo.read_file(self.as_posix(), commit=self._commit)
+
+    def cache_key(self) -> str:
+        commit = self._commit or "WORKTREE"
+        repo_root = self._repo.root.resolve().as_posix()
+        return f"git:{repo_root}:{commit}:{self.as_posix()}"
 
 
 def coerce_knowledge_path(path: KnowledgePath | Path) -> KnowledgePath:

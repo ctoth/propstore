@@ -18,7 +18,6 @@ import yaml
 
 from propstore.build_sidecar import build_sidecar
 from propstore.form_utils import dims_signature
-from propstore.tree_reader import FilesystemReader
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -129,8 +128,7 @@ def sidecar_path(physics_project):
     knowledge = physics_project / "knowledge"
     sidecar = knowledge / "sidecar" / "propstore.sqlite"
     sidecar.parent.mkdir(parents=True, exist_ok=True)
-    reader = FilesystemReader(knowledge)
-    build_sidecar(reader, sidecar, force=True)
+    build_sidecar(knowledge, sidecar, force=True)
     return sidecar
 
 
@@ -182,8 +180,7 @@ def bad_dims_sidecar(bad_dims_project):
     knowledge = bad_dims_project / "knowledge"
     sidecar = knowledge / "sidecar" / "propstore.sqlite"
     sidecar.parent.mkdir(parents=True, exist_ok=True)
-    reader = FilesystemReader(knowledge)
-    build_sidecar(reader, sidecar, force=True)
+    build_sidecar(knowledge, sidecar, force=True)
     return sidecar
 
 
@@ -377,8 +374,7 @@ class TestFormAlgebra:
 
         sidecar = knowledge / "sidecar" / "propstore.sqlite"
         sidecar.parent.mkdir(parents=True, exist_ok=True)
-        reader = FilesystemReader(knowledge)
-        build_sidecar(reader, sidecar, force=True)
+        build_sidecar(knowledge, sidecar, force=True)
 
         conn = sqlite3.connect(sidecar)
         count = conn.execute(
@@ -397,8 +393,7 @@ def world_model(physics_project):
     from propstore.world import WorldModel
     knowledge = physics_project / "knowledge"
     repo = Repository(knowledge)
-    reader = FilesystemReader(knowledge)
-    build_sidecar(reader, repo.sidecar_path, force=True)
+    build_sidecar(knowledge, repo.sidecar_path, force=True)
     return WorldModel(repo)
 
 

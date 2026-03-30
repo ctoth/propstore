@@ -7,7 +7,6 @@ import pytest
 import yaml
 
 from propstore.build_sidecar import build_sidecar
-from propstore.tree_reader import FilesystemReader
 from propstore.world import WorldModel
 
 
@@ -144,9 +143,8 @@ def graph_build_world(tmp_path):
 
     from propstore.cli.repository import Repository
 
-    reader = FilesystemReader(knowledge)
     repo = Repository(knowledge)
-    build_sidecar(reader, repo.sidecar_path)
+    build_sidecar(knowledge, repo.sidecar_path)
     return WorldModel(repo)
 
 

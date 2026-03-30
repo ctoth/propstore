@@ -7,7 +7,6 @@ import yaml
 
 from propstore.build_sidecar import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
-from propstore.tree_reader import FilesystemReader
 from propstore.world import WorldModel
 
 
@@ -288,8 +287,7 @@ def claim_files(concept_dir):
 @pytest.fixture
 def world(concept_dir, repo, claim_files):
     """Build sidecar and return a WorldModel."""
-    reader = FilesystemReader(concept_dir.parent)
-    build_sidecar(reader, repo.sidecar_path)
+    build_sidecar(concept_dir.parent, repo.sidecar_path)
     return WorldModel(repo)
 
 

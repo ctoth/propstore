@@ -5,7 +5,6 @@ import yaml
 
 from propstore.build_sidecar import build_sidecar
 from propstore.sensitivity import SensitivityEntry, SensitivityResult, analyze_sensitivity
-from propstore.tree_reader import FilesystemReader
 from propstore.world import WorldModel
 
 
@@ -288,8 +287,7 @@ def claim_files(concept_dir):
 def world(concept_dir, repo, claim_files):
     """Build sidecar and return a WorldModel."""
     knowledge = concept_dir.parent
-    reader = FilesystemReader(knowledge)
-    build_sidecar(reader, repo.sidecar_path)
+    build_sidecar(knowledge, repo.sidecar_path)
     return WorldModel(repo)
 
 
@@ -387,8 +385,7 @@ def nonlinear_world(tmp_path):
     from propstore.cli.repository import Repository
 
     repo = Repository(knowledge)
-    reader = FilesystemReader(knowledge)
-    build_sidecar(reader, repo.sidecar_path)
+    build_sidecar(knowledge, repo.sidecar_path)
     return WorldModel(repo)
 
 

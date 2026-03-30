@@ -67,6 +67,12 @@ def clear_form_cache() -> None:
     _form_schema_cache = None
 
 
+def _path_cache_key(forms_dir: Path | KnowledgePath) -> str:
+    if isinstance(forms_dir, Path):
+        return str(forms_dir.resolve())
+    return forms_dir.cache_key()
+
+
 _KIND_MAP = {
     "quantity": KindType.QUANTITY,
     "category": KindType.CATEGORY,
@@ -168,7 +174,7 @@ def load_form(forms_dir: Path, form_name: str | None) -> FormDefinition | None:
     """
     if not isinstance(form_name, str) or not form_name:
         return None
-    cache_key = (str(forms_dir), form_name)
+    cache_key = (_path_cache_key(forms_dir), form_name)
     if cache_key in _form_cache:
         return _form_cache[cache_key]
     form_path = forms_dir / f"{form_name}.yaml"
@@ -186,7 +192,7 @@ def load_form_path(forms_dir: KnowledgePath, form_name: str | None) -> FormDefin
     """Load a single form definition from a knowledge-tree path."""
     if not isinstance(form_name, str) or not form_name:
         return None
-    cache_key = (forms_dir.as_posix(), form_name)
+    cache_key = (_path_cache_key(forms_dir), form_name)
     if cache_key in _form_cache:
         return _form_cache[cache_key]
     form_path = forms_dir / f"{form_name}.yaml"
@@ -253,6 +259,19 @@ def load_all_forms(forms_dir: Path) -> dict[str, FormDefinition]:
     for entry in sorted(forms_dir.iterdir()):
         if entry.is_file() and entry.suffix == ".yaml":
             fd = load_form(forms_dir, entry.stem)
+            if fd is not None:
+                registry[fd.name] = fd
+    return registry
+
+
+def load_all_forms_path(forms_dir: KnowledgePath) -> dict[str, FormDefinition]:
+    """Load all form YAML files from a knowledge-tree forms directory."""
+    registry: dict[str, FormDefinition] = {}
+    if not forms_dir.exists():
+        return registry
+    for entry in forms_dir.iterdir():
+        if entry.is_file() and entry.suffix == ".yaml":
+            fd = load_form_path(forms_dir, entry.stem)
             if fd is not None:
                 registry[fd.name] = fd
     return registry

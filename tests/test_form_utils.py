@@ -19,10 +19,12 @@ from propstore.form_utils import (
     UnitConversion,
     clear_form_cache,
     load_form,
+    load_form_path,
     normalize_to_si,
     from_si,
     _form_cache,
 )
+from propstore.knowledge_path import FilesystemKnowledgePath
 
 
 @pytest.fixture
@@ -294,3 +296,23 @@ class TestFormCacheClearing:
 
         clear_form_cache()
         assert len(_form_cache) == 0
+
+    def test_load_form_path_cache_distinguishes_knowledge_roots(self, tmp_path):
+        """Different knowledge roots must not alias in the path-based form cache."""
+        clear_form_cache()
+
+        forms_a = tmp_path / "repo_a" / "forms"
+        forms_b = tmp_path / "repo_b" / "forms"
+        forms_a.mkdir(parents=True)
+        forms_b.mkdir(parents=True)
+
+        (forms_a / "frequency.yaml").write_text(yaml.dump({"name": "frequency", "unit_symbol": "Hz"}))
+        (forms_b / "frequency.yaml").write_text(yaml.dump({"name": "frequency", "unit_symbol": "kHz"}))
+
+        fd_a = load_form_path(FilesystemKnowledgePath(forms_a), "frequency")
+        fd_b = load_form_path(FilesystemKnowledgePath(forms_b), "frequency")
+
+        assert fd_a is not None
+        assert fd_b is not None
+        assert fd_a.unit_symbol == "Hz"
+        assert fd_b.unit_symbol == "kHz"

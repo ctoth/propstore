@@ -12,7 +12,6 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.build_sidecar import _content_hash, build_sidecar
-from propstore.tree_reader import FilesystemReader
 
 
 _CLAIM_SELECT_SQL = """
@@ -208,8 +207,8 @@ def concept_dir(tmp_path):
 
 @pytest.fixture
 def knowledge_reader(concept_dir):
-    """Return a FilesystemReader rooted at the knowledge/ directory."""
-    return FilesystemReader(concept_dir.parent)
+    """Return the knowledge/ root path."""
+    return concept_dir.parent
 
 
 @pytest.fixture
@@ -551,13 +550,13 @@ class TestRebuildSkipping:
             {"id": "ctx_root", "name": "Root", "assumptions": [assumption_a]},
             default_flow_style=False,
         ))
-        hash_a = _content_hash(FilesystemReader(concept_dir.parent))
+        hash_a = _content_hash(concept_dir.parent)
 
         (contexts_dir / "ctx_root.yaml").write_text(yaml.dump(
             {"id": "ctx_root", "name": "Root", "assumptions": [assumption_b]},
             default_flow_style=False,
         ))
-        hash_b = _content_hash(FilesystemReader(concept_dir.parent))
+        hash_b = _content_hash(concept_dir.parent)
 
         assert hash_a != hash_b
 
@@ -737,6 +736,23 @@ class TestClaimTable:
         row = _fetch_claim(conn, "claim1")
         assert row["auto_summary"] is not None
         assert "fundamental_frequency" in row["auto_summary"]
+        conn.close()
+
+    def test_missing_stances_dir_is_treated_as_no_stance_files(
+        self,
+        knowledge_reader,
+        sidecar_path,
+        claim_files,
+    ):
+        """Claim builds without a stances/ subtree should still succeed."""
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        claim_count = conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
+        stance_count = conn.execute(
+            "SELECT COUNT(*) FROM relation_edge WHERE source_kind='claim' AND target_kind='claim'"
+        ).fetchone()[0]
+        assert claim_count == 9
+        assert stance_count == 1
         conn.close()
 
     def test_claim_description_from_yaml(self, sidecar_with_claims):
@@ -1053,7 +1069,7 @@ class TestClaimStanceTable:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        knowledge_reader = FilesystemReader(concept_dir.parent)
+        knowledge_reader = concept_dir.parent
         build_sidecar(knowledge_reader, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
@@ -1641,7 +1657,7 @@ class TestClaimValueSI:
         (claims_dir / "si_test_paper.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
-        knowledge_reader = FilesystemReader(concept_dir.parent)
+        knowledge_reader = concept_dir.parent
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         return sidecar_path
 

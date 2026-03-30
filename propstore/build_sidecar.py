@@ -26,17 +26,16 @@ from propstore.parameterization_groups import build_groups
 from propstore.form_utils import (
     FormDefinition,
     kind_value_from_form_name,
-    load_all_forms_from_reader,
+    load_all_forms_path,
     normalize_to_si,
     verify_form_algebra_dimensions,
 )
+from propstore.knowledge_path import FilesystemKnowledgePath, KnowledgePath
 from propstore.stances import VALID_STANCE_TYPES
 from propstore.loaded import LoadedEntry
 from propstore.validate import load_concepts
 from propstore.validate_claims import load_claim_files
 from ast_equiv import canonical_dump
-
-from propstore.tree_reader import TreeReader
 
 if TYPE_CHECKING:
     from propstore.validate_contexts import ContextHierarchy
@@ -94,18 +93,30 @@ def _optional_int(value: object) -> int | None:
 
 
 
-def _content_hash(reader: TreeReader) -> str:
+def _knowledge_root(root: KnowledgePath | Path) -> KnowledgePath:
+    if isinstance(root, Path):
+        return FilesystemKnowledgePath(root)
+    return root
+
+
+def _content_hash(knowledge_root: KnowledgePath | Path) -> str:
     """Hash all semantic inputs that define the compiled sidecar.
 
-    Reads all knowledge subdirs through the reader and hashes raw bytes.
+    Reads all knowledge subdirs through the knowledge tree path.
     Schema files (package code) are hashed separately from the filesystem.
     """
+    root = _knowledge_root(knowledge_root)
     h = hashlib.sha256()
     h.update(_SEMANTIC_INPUT_VERSION.encode())
     for subdir in ("concepts", "claims", "contexts", "forms", "stances"):
-        for stem, raw_bytes in reader.list_yaml(subdir):
-            h.update(stem.encode())
-            h.update(raw_bytes)
+        subtree = root / subdir
+        if not subtree.exists():
+            continue
+        for entry in subtree.iterdir():
+            if not entry.is_file() or entry.suffix != ".yaml":
+                continue
+            h.update(entry.stem.encode())
+            h.update(entry.read_bytes())
 
     schema_dir = Path(__file__).parent.parent / "schema" / "generated"
     if schema_dir.exists():
@@ -164,12 +175,16 @@ def _claim_content_hash(claim: dict, source_paper: str) -> str:
 
 def _populate_stances_from_files(
     conn: sqlite3.Connection,
-    reader: TreeReader,
+    stances_root: KnowledgePath | Path,
 ) -> int:
-    """Read stance YAML files via TreeReader and insert into normalized relation storage."""
+    """Read stance YAML files and insert into normalized relation storage."""
+    root = _knowledge_root(stances_root)
+    if not root.exists():
+        return 0
     stance_entries = [
-        (stem, yaml.safe_load(raw) or {})
-        for stem, raw in reader.list_yaml("stances")
+        (entry.stem, yaml.safe_load(entry.read_bytes()) or {})
+        for entry in root.iterdir()
+        if entry.is_file() and entry.suffix == ".yaml"
     ]
 
     if not stance_entries:
@@ -242,7 +257,7 @@ def _populate_stances_from_files(
 
 
 def build_sidecar(
-    reader: TreeReader,
+    knowledge_root: KnowledgePath | Path,
     sidecar_path: Path,
     force: bool = False,
     *,
@@ -250,19 +265,20 @@ def build_sidecar(
 ) -> bool:
     """Build the SQLite sidecar from a knowledge tree.
 
-    All data is loaded through *reader*. When *commit_hash* is provided
+    All semantic inputs are read through *knowledge_root*. When *commit_hash* is provided
     (git-backed repo), it is used as the rebuild key instead of computing
-    a content hash from the reader.
+    a content hash from the knowledge tree.
 
     Returns True if the sidecar was rebuilt, False if skipped.
     """
+    root = _knowledge_root(knowledge_root)
     sidecar_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Check if rebuild is needed
     if commit_hash is not None:
         content_hash = commit_hash
     else:
-        content_hash = _content_hash(reader)
+        content_hash = _content_hash(root)
     hash_path = sidecar_path.with_suffix(".hash")
 
     if not force and sidecar_path.exists() and hash_path.exists():
@@ -270,12 +286,12 @@ def build_sidecar(
         if existing_hash == content_hash:
             return False
 
-    # Load all data through the reader
-    form_registry = load_all_forms_from_reader(reader)
-    concepts = load_concepts(None, reader=reader)
-    claim_files = load_claim_files(None, reader=reader) if reader.exists("claims") else None
+    # Load all data through the knowledge tree
+    form_registry = load_all_forms_path(root / "forms")
+    concepts = load_concepts(root / "concepts")
+    claim_files = load_claim_files(root / "claims") if (root / "claims").exists() else None
     from propstore.validate_contexts import load_contexts, ContextHierarchy
-    context_files = load_contexts(None, reader=reader) if reader.exists("contexts") else None
+    context_files = load_contexts(root / "contexts") if (root / "contexts").exists() else None
 
     # Build concept registry for claim processing
     concept_registry: dict[str, dict] = {}
@@ -374,7 +390,7 @@ def build_sidecar(
 
         # Populate stances from stance files
         if claim_files is not None:
-            _populate_stances_from_files(conn, reader)
+            _populate_stances_from_files(conn, root / "stances")
             _populate_justifications(conn)
 
         conn.commit()

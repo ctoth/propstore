@@ -14,7 +14,6 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from propstore.build_sidecar import build_sidecar
-from propstore.tree_reader import FilesystemReader
 from propstore.validate_claims import load_claim_files, validate_claims
 from propstore.world import WorldModel
 from tests.conftest import make_parameter_claim, make_concept_registry
@@ -177,8 +176,7 @@ class TestClaimNotesSidecar:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        reader = FilesystemReader(knowledge)
-        build_sidecar(reader, sidecar_path, force=True)
+        build_sidecar(knowledge, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
@@ -221,8 +219,7 @@ class TestClaimNotesSidecar:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        reader = FilesystemReader(knowledge)
-        build_sidecar(reader, sidecar_path, force=True)
+        build_sidecar(knowledge, sidecar_path, force=True)
 
         # WorldModel expects a repo-like object with .sidecar_path
         class _FakeRepo:
@@ -309,8 +306,7 @@ class TestClaimNotesProperties:
             )
 
             sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
-            reader = FilesystemReader(knowledge)
-            build_sidecar(reader, sidecar_path, force=True)
+            build_sidecar(knowledge, sidecar_path, force=True)
 
             conn = sqlite3.connect(sidecar_path)
             try:

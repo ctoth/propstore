@@ -473,13 +473,12 @@ def test_build_from_git(tmp_path):
     """pks build produces sidecar from git tree, keyed to commit hash."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
     from propstore.build_sidecar import build_sidecar
-    from propstore.tree_reader import GitTreeReader
 
-    reader = GitTreeReader(kr)
     hash_key = kr.head_sha()
+    tree = repo.tree(commit=hash_key)
 
     rebuilt = build_sidecar(
-        reader, repo.sidecar_path, force=False,
+        tree, repo.sidecar_path, force=False,
         commit_hash=hash_key,
     )
     assert rebuilt is True
@@ -505,21 +504,20 @@ def test_build_skips_when_unchanged(tmp_path):
     """Second build with same HEAD skips rebuild."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
     from propstore.build_sidecar import build_sidecar
-    from propstore.tree_reader import GitTreeReader
 
-    reader = GitTreeReader(kr)
     hash_key = kr.head_sha()
+    tree = repo.tree(commit=hash_key)
 
     # First build
     rebuilt1 = build_sidecar(
-        reader, repo.sidecar_path, force=False,
+        tree, repo.sidecar_path, force=False,
         commit_hash=hash_key,
     )
     assert rebuilt1 is True
 
     # Second build with same HEAD ��� should skip
     rebuilt2 = build_sidecar(
-        reader, repo.sidecar_path, force=False,
+        tree, repo.sidecar_path, force=False,
         commit_hash=hash_key,
     )
     assert rebuilt2 is False
@@ -529,14 +527,13 @@ def test_build_rebuilds_on_new_commit(tmp_path):
     """New commit triggers sidecar rebuild."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
     from propstore.build_sidecar import build_sidecar
-    from propstore.tree_reader import GitTreeReader
 
-    reader = GitTreeReader(kr)
     hash_key1 = kr.head_sha()
+    tree1 = repo.tree(commit=hash_key1)
 
     # First build
     rebuilt1 = build_sidecar(
-        reader, repo.sidecar_path, force=False,
+        tree1, repo.sidecar_path, force=False,
         commit_hash=hash_key1,
     )
     assert rebuilt1 is True
@@ -554,14 +551,13 @@ def test_build_rebuilds_on_new_commit(tmp_path):
         "concepts/test_boolean.yaml": yaml.dump(concept2_data).encode(),
     }, "add second concept")
 
-    # Re-read with new reader and new hash
-    reader2 = GitTreeReader(kr)
     hash_key2 = kr.head_sha()
+    tree2 = repo.tree(commit=hash_key2)
     assert hash_key2 != hash_key1
 
     # Build with new commit hash — should rebuild
     rebuilt2 = build_sidecar(
-        reader2, repo.sidecar_path, force=False,
+        tree2, repo.sidecar_path, force=False,
         commit_hash=hash_key2,
     )
     assert rebuilt2 is True

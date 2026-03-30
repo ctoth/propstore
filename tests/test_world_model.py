@@ -16,7 +16,6 @@ import pytest
 import yaml
 
 from propstore.build_sidecar import build_sidecar
-from propstore.tree_reader import FilesystemReader
 from propstore.world import (
     ArtifactStore,
     BeliefSpace,
@@ -397,8 +396,7 @@ def claim_files(concept_dir):
 def world(concept_dir, repo, claim_files):
     """Build sidecar and return a WorldModel."""
     knowledge = concept_dir.parent
-    reader = FilesystemReader(knowledge)
-    build_sidecar(reader, repo.sidecar_path)
+    build_sidecar(knowledge, repo.sidecar_path)
     return WorldModel(repo)
 
 
@@ -495,8 +493,7 @@ class TestUnboundQueries:
         from propstore.cli.repository import Repository
 
         repo = Repository(knowledge)
-        reader = FilesystemReader(knowledge)
-        build_sidecar(reader, repo.sidecar_path)
+        build_sidecar(knowledge, repo.sidecar_path)
 
         wm = WorldModel(repo)
         try:
@@ -545,8 +542,7 @@ class TestUnboundQueries:
         from propstore.cli.repository import Repository
 
         repo = Repository(knowledge)
-        reader = FilesystemReader(knowledge)
-        build_sidecar(reader, repo.sidecar_path)
+        build_sidecar(knowledge, repo.sidecar_path)
 
         wm = WorldModel(repo)
         try:
@@ -1998,8 +1994,7 @@ def algo_claim_files(algo_concept_dir):
 def algo_world(algo_concept_dir, algo_repo, algo_claim_files):
     """Build sidecar and return a WorldModel with algorithm claims."""
     knowledge = algo_concept_dir.parent
-    reader = FilesystemReader(knowledge)
-    build_sidecar(reader, algo_repo.sidecar_path)
+    build_sidecar(knowledge, algo_repo.sidecar_path)
     return WorldModel(algo_repo)
 
 

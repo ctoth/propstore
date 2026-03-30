@@ -138,7 +138,6 @@ def show_cmd(ctx, commit):
 def checkout_cmd(ctx, commit):
     """Build sidecar from a historical commit (non-destructive)."""
     from propstore.build_sidecar import build_sidecar
-    from propstore.tree_reader import GitTreeReader
 
     repo = ctx.obj["repo"]
     if repo.git is None:
@@ -152,13 +151,13 @@ def checkout_cmd(ctx, commit):
         click.echo(f"Commit not found: {commit}")
         return
 
-    reader = GitTreeReader(repo.git, commit=commit)
-    if not reader.exists("concepts"):
+    tree = repo.tree(commit=commit)
+    if not (tree / "concepts").exists():
         click.echo("No concepts found at that commit.")
         return
 
     rebuilt = build_sidecar(
-        reader, repo.sidecar_path, force=True,
+        tree, repo.sidecar_path, force=True,
         commit_hash=commit,
     )
 

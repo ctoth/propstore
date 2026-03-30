@@ -16,7 +16,6 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.build_sidecar import build_sidecar
-from propstore.tree_reader import FilesystemReader
 from propstore.world import HypotheticalWorld, WorldModel
 from propstore.worldline import WorldlineDefinition
 from propstore.worldline_runner import run_worldline
@@ -138,10 +137,9 @@ def property_kb(tmp_path_factory):
 @pytest.fixture(scope="module")
 def property_world(property_kb):
     from propstore.cli.repository import Repository
-    reader = FilesystemReader(property_kb)
     repo = Repository(property_kb)
     repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-    build_sidecar(reader, repo.sidecar_path)
+    build_sidecar(property_kb, repo.sidecar_path)
     return WorldModel(repo)
 
 
