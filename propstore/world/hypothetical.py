@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from collections.abc import Sequence
 from typing import Any, Mapping
 
-from propstore.core.environment import ArtifactStore, CompiledGraphStore, StanceStore
+from propstore.core.environment import (
+    ArtifactStore,
+    CompiledGraphStore,
+    ParameterizationLookupStore,
+    StanceStore,
+)
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.id_types import ConceptId, to_claim_id, to_claim_ids, to_concept_id
@@ -16,7 +22,11 @@ from propstore.core.graph_types import (
     ConflictWitness,
     GraphDelta,
 )
-from propstore.core.row_types import coerce_conflict_row, coerce_stance_row
+from propstore.core.row_types import (
+    coerce_conflict_row,
+    coerce_parameterization_row,
+    coerce_stance_row,
+)
 from propstore.world.bound import BoundWorld, _recomputed_conflicts
 from propstore.world.types import (
     BeliefSpace,
@@ -54,7 +64,57 @@ def _compiled_graph_for_bound(base: BoundWorld) -> CompiledWorldGraph:
         return base._active_graph.compiled
     if isinstance(base._store, CompiledGraphStore):
         return base._store.compiled_graph()
+    if isinstance(base._store, ParameterizationLookupStore) and isinstance(
+        base._store, StanceStore
+    ):
+        return build_compiled_world_graph(
+            _ParameterizationCatalogAdapter(base._store)
+        )
     return build_compiled_world_graph(base._store)
+
+
+@dataclass(frozen=True)
+class _ParameterizationCatalogAdapter:
+    base: ArtifactStore
+
+    def all_concepts(self) -> list[dict]:
+        return [dict(concept) for concept in self.base.all_concepts()]
+
+    def claims_for(self, concept_id: str | None) -> list[dict]:
+        return [dict(claim) for claim in self.base.claims_for(concept_id)]
+
+    def conflicts(self) -> list[dict]:
+        return [dict(conflict) for conflict in self.base.conflicts()]
+
+    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+        return [
+            dict(stance)
+            for stance in self.base.stances_between(claim_ids)
+        ]
+
+    def all_parameterizations(self) -> list[dict[str, Any]]:
+        seen: set[tuple[object, ...]] = set()
+        rows: list[dict[str, Any]] = []
+        for concept in self.base.all_concepts():
+            concept_id = concept.get("id")
+            if not isinstance(concept_id, str):
+                continue
+            for row_input in self.base.parameterizations_for(concept_id):
+                row = coerce_parameterization_row(row_input)
+                row_key = (
+                    row.output_concept_id,
+                    row.concept_ids,
+                    row.formula,
+                    row.sympy,
+                    row.exactness,
+                    row.conditions_cel,
+                    tuple(sorted(row.attributes.items())),
+                )
+                if row_key in seen:
+                    continue
+                seen.add(row_key)
+                rows.append(row.to_dict())
+        return rows
 
 
 def _claim_node_for_synthetic(
