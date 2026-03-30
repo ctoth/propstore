@@ -126,9 +126,9 @@ def _classify_pair(
 ) -> _DiffKind:
     """Classify disagreement between two concrete claim alternatives."""
     from propstore.conflict_detector import ConflictClass, detect_conflicts
-    from propstore.validate_claims import LoadedClaimFile
+    from propstore.loaded import LoadedEntry
 
-    left_file = LoadedClaimFile(
+    left_file = LoadedEntry(
         filename="_left",
         filepath=None,
         data={
@@ -140,7 +140,7 @@ def _classify_pair(
             "claims": [left_claim],
         },
     )
-    right_file = LoadedClaimFile(
+    right_file = LoadedEntry(
         filename="_right",
         filepath=None,
         data={

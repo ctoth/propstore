@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from propstore.tree_reader import TreeReader
 
 
-from propstore.loaded import LoadedEntry as LoadedConcept
+from propstore.loaded import LoadedEntry
 
 
 @dataclass
@@ -78,7 +78,7 @@ def load_concepts(
     concept_dir: Path | None,
     *,
     reader: TreeReader | None = None,
-) -> list[LoadedConcept]:
+) -> list[LoadedEntry]:
     """Load all .yaml files from the concept directory (excluding .counters).
 
     When *reader* is provided, loads from the TreeReader (git or filesystem
@@ -87,13 +87,13 @@ def load_concepts(
     """
     if reader is not None:
         return [
-            LoadedConcept(filename=stem, filepath=path, data=data)
+            LoadedEntry(filename=stem, filepath=path, data=data)
             for stem, path, data in load_yaml_entries(reader, "concepts")
         ]
     if concept_dir is None:
         return []
     return [
-        LoadedConcept(filename=stem, filepath=path, data=data)
+        LoadedEntry(filename=stem, filepath=path, data=data)
         for stem, path, data in load_yaml_dir(concept_dir)
     ]
 
@@ -124,7 +124,7 @@ def _load_all_claim_ids(claims_dir: Path) -> set[str]:
 
 
 def validate_concepts(
-    concepts: list[LoadedConcept],
+    concepts: list[LoadedEntry],
     claims_dir: Path | None = None,
     *,
     repo: Repository | None = None,
@@ -140,10 +140,10 @@ def validate_concepts(
             from repo instead of inferred from concept file paths.
     """
     result = ValidationResult()
-    id_to_concept: dict[str, LoadedConcept] = {}
+    id_to_concept: dict[str, LoadedEntry] = {}
     cel_registry = build_cel_registry_from_loaded(concepts)
 
-    def _forms_dir(c: LoadedConcept) -> Path:
+    def _forms_dir(c: LoadedEntry) -> Path:
         if repo is not None:
             return repo.forms_dir
         if c.filepath is None:

@@ -17,14 +17,14 @@ if TYPE_CHECKING:
     from propstore.tree_reader import TreeReader
 
 
-from propstore.loaded import LoadedEntry as LoadedContext
+from propstore.loaded import LoadedEntry
 
 
 def load_contexts(
     contexts_dir: Path | None,
     *,
     reader: TreeReader | None = None,
-) -> list[LoadedContext]:
+) -> list[LoadedEntry]:
     """Load all .yaml files from contexts directory.
 
     When *reader* is provided, loads from the TreeReader using the
@@ -33,18 +33,18 @@ def load_contexts(
     if reader is not None:
         from propstore.validate import load_yaml_entries
         return [
-            LoadedContext(filename=stem, filepath=path, data=data)
+            LoadedEntry(filename=stem, filepath=path, data=data)
             for stem, path, data in load_yaml_entries(reader, "contexts")
         ]
     if contexts_dir is None or not contexts_dir.exists():
         return []
     return [
-        LoadedContext(filename=stem, filepath=path, data=data)
+        LoadedEntry(filename=stem, filepath=path, data=data)
         for stem, path, data in load_yaml_dir(contexts_dir)
     ]
 
 
-def validate_contexts(contexts: list[LoadedContext]) -> ValidationResult:
+def validate_contexts(contexts: list[LoadedEntry]) -> ValidationResult:
     """Validate context files for required fields, references, and cycles."""
     result = ValidationResult()
     seen_ids: dict[str, str] = {}  # id -> filename
@@ -115,7 +115,7 @@ def validate_contexts(contexts: list[LoadedContext]) -> ValidationResult:
 class ContextHierarchy:
     """Query interface over a set of validated contexts."""
 
-    def __init__(self, contexts: list[LoadedContext]) -> None:
+    def __init__(self, contexts: list[LoadedEntry]) -> None:
         self._contexts: dict[str, dict] = {}
         self._parent: dict[str, str | None] = {}
         self._exclusions: set[frozenset[str]] = set()

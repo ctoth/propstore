@@ -6,11 +6,11 @@ from collections import defaultdict
 from collections.abc import Sequence
 
 from propstore.equation_comparison import equation_signature
-from propstore.validate_claims import LoadedClaimFile
+from propstore.loaded import LoadedEntry
 
 
 def _collect_measurement_claims(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[LoadedEntry],
 ) -> dict[tuple[str, str], list[dict]]:
     by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for cf in claim_files:
@@ -26,7 +26,7 @@ def _collect_measurement_claims(
 
 
 def _collect_parameter_claims(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[LoadedEntry],
 ) -> dict[str, list[dict]]:
     by_concept: dict[str, list[dict]] = defaultdict(list)
     for cf in claim_files:
@@ -37,7 +37,7 @@ def _collect_parameter_claims(
 
 
 def _collect_equation_claims(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[LoadedEntry],
 ) -> dict[tuple[str, tuple[str, ...]], list[dict]]:
     by_signature: dict[tuple[str, tuple[str, ...]], list[dict]] = defaultdict(list)
     for cf in claim_files:
@@ -52,7 +52,7 @@ def _collect_equation_claims(
 
 
 def _collect_algorithm_claims(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[LoadedEntry],
 ) -> dict[str, list[dict]]:
     by_concept: dict[str, list[dict]] = defaultdict(list)
     for cf in claim_files:

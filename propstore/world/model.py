@@ -141,7 +141,8 @@ class WorldModel(ArtifactStore):
             self._context_hierarchy = None
             return None
 
-        from propstore.validate_contexts import ContextHierarchy, LoadedContext
+        from propstore.loaded import LoadedEntry
+        from propstore.validate_contexts import ContextHierarchy
 
         rows = self._conn.execute(
             "SELECT id, name, description, inherits FROM context ORDER BY id"
@@ -184,7 +185,7 @@ class WorldModel(ArtifactStore):
                 context["excludes"].append(exclusion)
 
         loaded_contexts = [
-            LoadedContext(filename=context_id, filepath=None, data=data)
+            LoadedEntry(filename=context_id, filepath=None, data=data)
             for context_id, data in contexts_by_id.items()
         ]
         self._context_hierarchy = ContextHierarchy(loaded_contexts)

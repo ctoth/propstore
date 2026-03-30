@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from ast_equiv import compare as ast_compare
 from propstore.condition_classifier import classify_conditions as _classify_conditions
-from propstore.validate_claims import LoadedClaimFile
+from propstore.loaded import LoadedEntry
 
 from .collectors import _collect_algorithm_claims
 from .context import _append_context_classified_record, _claim_context
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 def detect_algorithm_conflicts(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[LoadedEntry],
     cel_registry: dict[str, ConceptInfo],
     *,
     context_hierarchy: ContextHierarchy | None = None,

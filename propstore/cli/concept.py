@@ -20,7 +20,8 @@ from propstore.cli.helpers import (
     write_yaml_file,
 )
 from propstore.cli.repository import Repository
-from propstore.validate import LoadedConcept, load_concepts, validate_concepts
+from propstore.loaded import LoadedEntry
+from propstore.validate import load_concepts, validate_concepts
 from propstore.validate_claims import load_claim_files, validate_claims
 
 RELATIONSHIP_TYPES = (
@@ -201,7 +202,7 @@ def add(
 
         repo.concepts_dir.mkdir(parents=True, exist_ok=True)
         concepts = load_concepts(repo.concepts_dir)
-        concepts.append(LoadedConcept(filename=name, filepath=filepath, data=data))
+        concepts.append(LoadedEntry(filename=name, filepath=filepath, data=data))
 
         result = validate_concepts(concepts, repo=repo)
         if not result.ok:
@@ -544,7 +545,7 @@ def link(
     updated_concepts = []
     for concept_record in concepts:
         updated_concepts.append(
-            LoadedConcept(
+            LoadedEntry(
                 filename=concept_record.filename,
                 filepath=concept_record.filepath,
                 data=data if concept_record.filepath == filepath else concept_record.data,

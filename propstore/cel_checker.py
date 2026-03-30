@@ -16,7 +16,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from propstore.validate import LoadedConcept
+    from propstore.loaded import LoadedEntry
 
 
 class KindType(Enum):
@@ -43,7 +43,7 @@ def build_cel_registry(concept_registry: dict[str, dict]) -> dict[str, ConceptIn
     Accepts a dict mapping concept_id -> concept data dict.
     Returns a dict mapping canonical_name -> ConceptInfo.
 
-    For the LoadedConcept list input shape, use
+    For the LoadedEntry list input shape, use
     ``build_cel_registry_from_loaded()``.
     """
     from propstore.form_utils import kind_type_from_form_name
@@ -74,10 +74,10 @@ def build_cel_registry(concept_registry: dict[str, dict]) -> dict[str, ConceptIn
     return registry
 
 
-def build_cel_registry_from_loaded(concepts: list[LoadedConcept]) -> dict[str, ConceptInfo]:
-    """Build a CEL registry from a list of LoadedConcept objects.
+def build_cel_registry_from_loaded(concepts: list[LoadedEntry]) -> dict[str, ConceptInfo]:
+    """Build a CEL registry from a list of LoadedEntry objects.
 
-    Thin wrapper that converts LoadedConcept list into the dict shape
+    Thin wrapper that converts LoadedEntry list into the dict shape
     expected by ``build_cel_registry()``.
     """
     concept_registry: dict[str, dict] = {}

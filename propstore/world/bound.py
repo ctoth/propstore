@@ -109,12 +109,12 @@ def _claim_row_to_source_claim(claim: dict) -> dict:
 
 def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
     from propstore.conflict_detector import detect_conflicts
-    from propstore.validate_claims import LoadedClaimFile
+    from propstore.loaded import LoadedEntry
 
     if len(claims) < 2:
         return []
 
-    synthetic = LoadedClaimFile(
+    synthetic = LoadedEntry(
         filename="<render>",
         filepath=Path("<render>"),
         data={"claims": [_claim_row_to_source_claim(claim) for claim in claims]},

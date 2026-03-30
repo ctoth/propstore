@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from propstore.cel_checker import build_cel_registry
-from propstore.validate_claims import LoadedClaimFile
+from propstore.loaded import LoadedEntry
 
 from .algorithms import detect_algorithm_conflicts
 from .equations import detect_equation_conflicts
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 def detect_conflicts(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[LoadedEntry],
     concept_registry: dict[str, dict],
     context_hierarchy: ContextHierarchy | None = None,
 ) -> list[ConflictRecord]:

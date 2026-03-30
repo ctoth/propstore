@@ -31,14 +31,15 @@ from propstore.form_utils import (
     verify_form_algebra_dimensions,
 )
 from propstore.stances import VALID_STANCE_TYPES
-from propstore.validate import LoadedConcept, load_concepts
-from propstore.validate_claims import LoadedClaimFile, load_claim_files
+from propstore.loaded import LoadedEntry
+from propstore.validate import load_concepts
+from propstore.validate_claims import load_claim_files
 from ast_equiv import canonical_dump
 
 from propstore.tree_reader import TreeReader
 
 if TYPE_CHECKING:
-    from propstore.validate_contexts import ContextHierarchy, LoadedContext
+    from propstore.validate_contexts import ContextHierarchy
 
 _SEMANTIC_INPUT_VERSION = "semantic-input-v1"
 
@@ -506,7 +507,7 @@ def _create_tables(conn: sqlite3.Connection):
 
 def _populate_form_algebra(
     conn: sqlite3.Connection,
-    concepts: list[LoadedConcept],
+    concepts: list[LoadedEntry],
     form_registry: dict[str, FormDefinition],
 ) -> None:
     """Derive form algebra from concept parameterizations and populate the table.
@@ -623,7 +624,7 @@ def _populate_forms(
 
 def _populate_concepts(
     conn: sqlite3.Connection,
-    concepts: list[LoadedConcept],
+    concepts: list[LoadedEntry],
     form_registry: dict[str, FormDefinition],
 ):
     for seq, c in enumerate(concepts, 1):
@@ -670,7 +671,7 @@ def _populate_concepts(
         )
 
 
-def _populate_aliases(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
+def _populate_aliases(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
     for c in concepts:
         d = c.data
         cid = d.get("id")
@@ -681,7 +682,7 @@ def _populate_aliases(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
             )
 
 
-def _populate_relationships(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
+def _populate_relationships(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
     for c in concepts:
         d = c.data
         source_id = d.get("id")
@@ -700,7 +701,7 @@ def _populate_relationships(conn: sqlite3.Connection, concepts: list[LoadedConce
             )
 
 
-def _populate_parameterizations(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
+def _populate_parameterizations(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
     for c in concepts:
         d = c.data
         for param in d.get("parameterization_relationships", []) or []:
@@ -834,7 +835,7 @@ def _insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> Non
     )
 
 
-def _populate_parameterization_groups(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
+def _populate_parameterization_groups(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
     """Build connected-component groups and write to parameterization_group table."""
     concept_dicts = [c.data for c in concepts]
     groups = build_groups(concept_dicts)
@@ -878,7 +879,7 @@ def _create_context_tables(conn: sqlite3.Connection):
 
 def _populate_contexts(
     conn: sqlite3.Connection,
-    contexts: Sequence[LoadedContext],
+    contexts: Sequence[LoadedEntry],
 ) -> None:
     """Populate context, context_assumption, and context_exclusion tables."""
 
@@ -912,7 +913,7 @@ def _populate_contexts(
         )
 
 
-def _build_fts_index(conn: sqlite3.Connection, concepts: list[LoadedConcept]):
+def _build_fts_index(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
     """Build FTS5 index over concept names, aliases, definitions, and condition strings."""
     conn.execute("""
         CREATE VIRTUAL TABLE concept_fts USING fts5(
@@ -1059,7 +1060,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
 
 def _populate_claims(
     conn: sqlite3.Connection,
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[LoadedEntry],
     concept_registry: dict | None = None,
     *,
     form_registry: dict[str, FormDefinition] | None = None,
@@ -1086,7 +1087,7 @@ def _populate_claims(
         _insert_claim_stance_row(conn, stance_row)
 
 
-def _collect_valid_claim_ids(claim_files: Sequence[LoadedClaimFile]) -> set[str]:
+def _collect_valid_claim_ids(claim_files: Sequence[LoadedEntry]) -> set[str]:
     valid_claim_ids: set[str] = set()
     for cf in claim_files:
         claims = cf.data.get("claims", [])
@@ -1435,7 +1436,7 @@ def _extract_deferred_stance_rows(
 
 def _populate_conflicts(
     conn: sqlite3.Connection,
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[LoadedEntry],
     concept_registry: dict,
     context_hierarchy: ContextHierarchy | None = None,
 ):
@@ -1523,7 +1524,7 @@ def _populate_justifications(conn: sqlite3.Connection) -> None:
         )
 
 
-def _build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[LoadedClaimFile]):
+def _build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[LoadedEntry]):
     """Build FTS5 index over claim statements, conditions, and expressions."""
     for cf in claim_files:
         for claim in cf.data.get("claims", []):

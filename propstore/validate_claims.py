@@ -88,7 +88,7 @@ def _maybe_schema_float(value: object) -> object:
         return value
 
 
-from propstore.loaded import LoadedEntry as LoadedClaimFile
+from propstore.loaded import LoadedEntry
 
 
 
@@ -96,7 +96,7 @@ def load_claim_files(
     claims_dir: Path | None,
     *,
     reader: TreeReader | None = None,
-) -> list[LoadedClaimFile]:
+) -> list[LoadedEntry]:
     """Load all .yaml files from claims directory (excluding .counters).
 
     When *reader* is provided, loads from the TreeReader using the
@@ -105,13 +105,13 @@ def load_claim_files(
     if reader is not None:
         from propstore.validate import load_yaml_entries
         return [
-            LoadedClaimFile(filename=stem, filepath=path, data=data)
+            LoadedEntry(filename=stem, filepath=path, data=data)
             for stem, path, data in load_yaml_entries(reader, "claims")
         ]
     if claims_dir is None:
         return []
     return [
-        LoadedClaimFile(filename=stem, filepath=path, data=data)
+        LoadedEntry(filename=stem, filepath=path, data=data)
         for stem, path, data in load_yaml_dir(claims_dir)
     ]
 
@@ -143,12 +143,12 @@ def validate_single_claim_file(
 ) -> ValidationResult:
     """Validate a single claims YAML file.
 
-    Loads the file, wraps it in a LoadedClaimFile, and runs
+    Loads the file, wraps it in a LoadedEntry, and runs
     validate_claims on just that one file.
     """
     with open(filepath, encoding="utf-8") as f:
         data = yaml.safe_load(f)
-    loaded = LoadedClaimFile(
+    loaded = LoadedEntry(
         filename=filepath.stem,
         filepath=filepath,
         data=data if data else {},
@@ -157,7 +157,7 @@ def validate_single_claim_file(
 
 
 def validate_claims(
-    claim_files: list[LoadedClaimFile],
+    claim_files: list[LoadedEntry],
     concept_registry: dict[str, dict],
     context_ids: set[str] | None = None,
 ) -> ValidationResult:
