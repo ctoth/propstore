@@ -2160,7 +2160,7 @@ class TestSemanticCorePhase4Activation:
 
 
 class TestFloatEqualityBugs:
-    """Tests exposing float comparison bugs in resolution and conflict detection.
+    """Regression tests for float comparison handling in resolution and conflict detection.
 
     F5.3 (audit-error-handling): resolution.py:248 uses ``p == best_prob``
     on MC-sampled acceptance probabilities. Two claims with acceptance probs
@@ -2173,13 +2173,7 @@ class TestFloatEqualityBugs:
     """
 
     def test_praf_resolution_float_tie_detection(self, world):
-        """Two claims with acceptance probs differing by ~1e-12 should tie.
-
-        Bug: resolution.py:248 uses ``p == best_prob`` which will NOT detect
-        these as tied because 0.7 != 0.7 + 1e-12 in IEEE 754.
-
-        This test SHOULD FAIL because the code uses exact float equality.
-        """
+        """Two claims with acceptance probs differing by ~1e-12 should tie."""
         from unittest.mock import patch, MagicMock
 
         from propstore.praf import PrAFResult
@@ -2213,23 +2207,14 @@ class TestFloatEqualityBugs:
                 semantics="grounded", comparison="elitist",
             )
 
-        # With tolerance-based comparison, both should tie (winner_id=None).
-        # With exact ==, claim_y wins as sole "best" because 0.7+1e-12 > 0.7.
-        # This assertion tests the CORRECT behavior (tolerance-based tie).
         assert winner_id is None, (
             f"Expected tie (winner_id=None) for probs differing by 1e-12, "
             f"but got winner '{winner_id}'. "
-            f"Bug: resolution.py uses exact float == instead of tolerance-based comparison."
+            f"Regression: tolerance-based tie handling was lost."
         )
 
     def test_hypothetical_recompute_fp_noise_not_conflict(self, world):
-        """Two claims with values differing by FP noise should NOT conflict.
-
-        Bug: hypothetical.py:142 uses ``val_a != val_b`` which treats
-        9.8 and 9.8 + 1e-15 as different values, flagging a false conflict.
-
-        This test SHOULD FAIL because != treats FP-close values as different.
-        """
+        """Two claims with values differing by FP noise should NOT conflict."""
         bound = world.bind(task="speech")
 
         # Two synthetic claims for the same concept with values

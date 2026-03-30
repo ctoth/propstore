@@ -2076,6 +2076,36 @@ class TestWorldlineCLIFlags:
             f"Flag not accepted: {result.output}"
         )
 
+    def test_run_rejects_internal_praf_strategy_names(self, tmp_path):
+        """worldline run must reject internal-only PrAF strategy names."""
+        import click
+        from click.testing import CliRunner
+
+        from propstore.cli.worldline_cmds import worldline_run
+
+        wl_dir = tmp_path / "worldlines"
+        wl_dir.mkdir()
+
+        @click.group()
+        @click.pass_context
+        def fake_cli(ctx):
+            ctx.ensure_object(dict)
+            ctx.obj["repo"] = _FakeWorldlineRepo(wl_dir)
+
+        fake_cli.add_command(worldline_run, "run")
+
+        runner = CliRunner()
+        result = runner.invoke(fake_cli, [
+            "run", "test-wl",
+            "--target", "concept1",
+            "--strategy", "argumentation",
+            "--reasoning-backend", "praf",
+            "--praf-strategy", "exact_dp",
+        ])
+
+        assert result.exit_code != 0
+        assert "Invalid value for '--praf-strategy'" in result.output
+
     def test_worldline_definition_roundtrip_preserves_link(self):
         from propstore.worldline import WorldlineDefinition
 

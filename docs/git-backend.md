@@ -146,7 +146,7 @@ Builds a `RepoMergeFramework` from two branch tips. Its public payload is:
 
 - `arguments` — branch-local argument summaries with provenance back to claims
 - `framework` — a partial argumentation framework over those arguments
-- `branch_a`, `branch_b`, `merge_base` — branch provenance and common ancestor
+- `branch_a`, `branch_b` — branch provenance for the compared tips
 
 The partial framework records `attack`, `ignorance`, and `non-attack` over the merged argument universe. This is the canonical merge object for downstream inspection, exact operators, and reporting.
 
@@ -276,6 +276,6 @@ Options:
 
 - **Darwiche, A. & Pearl, J. (1997).** "On the Logic of Iterated Belief Revision." — C1-C4 postulates for iterated revision. Each branch is an independent epistemic state.
 
-- **Konieczny, S. & Pino Perez, R. (2002).** "Merging Information under Constraints: A Logical Framework." — IC merging. `merge_base` identifies the common knowledge base between two branches.
+- **Konieczny, S. & Pino Perez, R. (2002).** "Merging Information under Constraints: A Logical Framework." — IC merging. The separate `merge_base()` helper identifies the common knowledge base between two branches.
 
 - **Alchouron, C., Gardenfors, P. & Makinson, D. (1985).** "On the Logic of Theory Change." — AGM postulates. Master branch cannot be deleted: the knowledge base must always exist.

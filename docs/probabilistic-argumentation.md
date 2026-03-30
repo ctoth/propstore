@@ -97,7 +97,7 @@ Per Popescu & Wallner (2024). Exact computation via tree decomposition dynamic p
 
 Currently **gated off** in auto dispatch (`_public_exact_dp_enabled` returns False). The current implementation tracks full edge sets, giving O(2^|defeats| * 2^|args|) complexity -- no asymptotic improvement over brute force. Effective only for treewidth <= ~15. Only supports credulous argument acceptance over defeat-only frameworks.
 
-The auto dispatch checks treewidth but will not select this strategy unless explicitly requested. Available via `--praf-strategy exact_dp` but not recommended for production use.
+The auto dispatch checks treewidth but will not select this strategy unless explicitly requested. The lower-level Python API still accepts `strategy="exact_dp"` for experimental use, but the public CLI does not expose it.
 
 ## COH constraint
 
@@ -140,9 +140,6 @@ pks world extensions domain=example --backend praf --praf-strategy exact
 # DF-QuAD gradual semantics (neutral base scores)
 pks world extensions domain=example --backend praf --praf-strategy dfquad_baf
 
-# Tree decomposition DP (not recommended for production)
-pks world extensions domain=example --backend praf --praf-strategy exact_dp
-
 # Reproducible MC with fixed seed
 pks world extensions domain=example --backend praf \
   --praf-strategy mc --praf-seed 42
@@ -177,7 +174,8 @@ pks worldline query my-scenario
 pks worldline compare scenario-a scenario-b
 ```
 
-Available `--praf-strategy` choices: `auto`, `mc`, `exact_enum`, `exact_dp`, `deterministic`, `dfquad_quad`, `dfquad_baf`.
+Available public `--praf-strategy` choices: `auto`, `mc`, `exact`, `dfquad_quad`, `dfquad_baf`.
+Lower-level `compute_praf_acceptance()` also accepts `exact_enum`, `exact_dp`, and `deterministic`.
 
 ## Known limitations
 

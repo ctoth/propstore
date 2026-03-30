@@ -1,15 +1,8 @@
-"""Red tests: PRAF worldline argumentation state capture.
+"""Tests for PRAF worldline argumentation state capture.
 
-Phase 6: worldline_runner.py captures argumentation state for claim_graph,
-structured_projection, and atms backends but has NO branch for praf.
-When reasoning_backend="praf", the argumentation_state is None.
-
-These tests assert that when a worldline uses reasoning_backend="praf"
-with strategy="argumentation", the result's argumentation field contains
-acceptance probabilities per Li et al. (2011, Def 2, Eq 2).
-
-Both tests should FAIL until the praf branch is implemented in
-worldline_runner.py (around lines 250-257).
+When reasoning_backend="praf" and strategy="argumentation", the
+result's argumentation field must contain acceptance probabilities
+per Li et al. (2011, Def 2, Eq 2).
 """
 
 from __future__ import annotations
@@ -117,8 +110,7 @@ class TestPrafWorldlineStateCapture:
     worldline result's argumentation field must contain structured
     PRAF output — not None.
 
-    Currently FAILS because worldline_runner.py has branches for
-    claim_graph, structured_projection, and atms but not praf.
+    This is a regression test for the dedicated PRAF capture path.
     """
 
     def test_praf_argumentation_state_captured(self):
@@ -128,7 +120,7 @@ class TestPrafWorldlineStateCapture:
         The worldline should capture at minimum:
         - backend: "praf"
         - acceptance_probs: dict mapping claim IDs to floats
-        - strategy_used: string (e.g. "mc", "exact", "dfquad_quad", "dfquad_baf")
+        - strategy_used: string (e.g. "mc", "exact_enum", "dfquad_quad", "dfquad_baf")
         - semantics: string (e.g. "grounded")
         """
         wl = WorldlineDefinition.from_dict({
@@ -144,11 +136,8 @@ class TestPrafWorldlineStateCapture:
         world = FakeWorld()
         result = run_worldline(wl, world)
 
-        # The argumentation field must not be None — this is the core assertion
-        # that fails because worldline_runner.py has no praf branch.
         assert result.argumentation is not None, (
-            "PRAF backend produced no argumentation state; "
-            "worldline_runner.py needs a branch for reasoning_backend='praf'"
+            "PRAF backend produced no argumentation state"
         )
         assert result.argumentation.get("backend") == "praf", (
             f"Expected backend='praf', got {result.argumentation.get('backend')!r}"
@@ -160,7 +149,7 @@ class TestPrafWorldlineStateCapture:
         assert isinstance(result.argumentation["acceptance_probs"], dict)
         assert "strategy_used" in result.argumentation, (
             "PRAF argumentation state must report which strategy was used "
-            "(mc, exact, dfquad_quad, or dfquad_baf)"
+            "(mc, exact_enum, dfquad_quad, or dfquad_baf)"
         )
         assert isinstance(result.argumentation["strategy_used"], str)
         assert "semantics" in result.argumentation, (
