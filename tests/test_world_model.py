@@ -16,7 +16,7 @@ import pytest
 import yaml
 
 from propstore.build_sidecar import build_sidecar
-from propstore.validate import load_concepts
+from propstore.tree_reader import FilesystemReader
 from propstore.world import (
     ArtifactStore,
     BeliefSpace,
@@ -176,7 +176,8 @@ def repo(concept_dir):
 @pytest.fixture
 def claim_files(concept_dir):
     """Create claim files with known conditions for binding tests."""
-    claims_dir = concept_dir / "claims_data"
+    knowledge = concept_dir.parent
+    claims_dir = knowledge / "claims"
     claims_dir.mkdir(exist_ok=True)
 
     alpha = {
@@ -395,10 +396,9 @@ def claim_files(concept_dir):
 @pytest.fixture
 def world(concept_dir, repo, claim_files):
     """Build sidecar and return a WorldModel."""
-    concepts = load_concepts(concept_dir)
-    concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-    build_sidecar(concepts, repo.sidecar_path, claim_files=claim_files,
-                  concept_registry=concept_registry, repo=repo)
+    knowledge = concept_dir.parent
+    reader = FilesystemReader(knowledge)
+    build_sidecar(reader, repo.sidecar_path)
     return WorldModel(repo)
 
 
@@ -493,19 +493,10 @@ class TestUnboundQueries:
         }, default_flow_style=False))
 
         from propstore.cli.repository import Repository
-        from propstore.validate_claims import load_claim_files
 
         repo = Repository(knowledge)
-        concepts = load_concepts(repo.concepts_dir)
-        claim_files = load_claim_files(repo.claims_dir)
-        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-        build_sidecar(
-            concepts,
-            repo.sidecar_path,
-            claim_files=claim_files,
-            concept_registry=concept_registry,
-            repo=repo,
-        )
+        reader = FilesystemReader(knowledge)
+        build_sidecar(reader, repo.sidecar_path)
 
         wm = WorldModel(repo)
         try:
@@ -552,19 +543,10 @@ class TestUnboundQueries:
         }, default_flow_style=False))
 
         from propstore.cli.repository import Repository
-        from propstore.validate_claims import load_claim_files
 
         repo = Repository(knowledge)
-        concepts = load_concepts(repo.concepts_dir)
-        claim_files = load_claim_files(repo.claims_dir)
-        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-        build_sidecar(
-            concepts,
-            repo.sidecar_path,
-            claim_files=claim_files,
-            concept_registry=concept_registry,
-            repo=repo,
-        )
+        reader = FilesystemReader(knowledge)
+        build_sidecar(reader, repo.sidecar_path)
 
         wm = WorldModel(repo)
         try:
@@ -1910,7 +1892,8 @@ def algo_repo(algo_concept_dir):
 @pytest.fixture
 def algo_claim_files(algo_concept_dir):
     """Create claim files with algorithm claims for testing."""
-    claims_dir = algo_concept_dir / "claims_data"
+    knowledge = algo_concept_dir.parent
+    claims_dir = knowledge / "claims"
     claims_dir.mkdir(exist_ok=True)
 
     algo_body_a = (
@@ -2014,10 +1997,9 @@ def algo_claim_files(algo_concept_dir):
 @pytest.fixture
 def algo_world(algo_concept_dir, algo_repo, algo_claim_files):
     """Build sidecar and return a WorldModel with algorithm claims."""
-    concepts = load_concepts(algo_concept_dir)
-    concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-    build_sidecar(concepts, algo_repo.sidecar_path, claim_files=algo_claim_files,
-                  concept_registry=concept_registry, repo=algo_repo)
+    knowledge = algo_concept_dir.parent
+    reader = FilesystemReader(knowledge)
+    build_sidecar(reader, algo_repo.sidecar_path)
     return WorldModel(algo_repo)
 
 

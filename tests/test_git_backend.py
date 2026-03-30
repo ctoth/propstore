@@ -473,20 +473,14 @@ def test_build_from_git(tmp_path):
     """pks build produces sidecar from git tree, keyed to commit hash."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
     from propstore.build_sidecar import build_sidecar
-    from propstore.validate import load_concepts
     from propstore.tree_reader import GitTreeReader
 
     reader = GitTreeReader(kr)
     hash_key = kr.head_sha()
 
-    concepts = load_concepts(None, reader=reader)
-    assert len(concepts) == 1
-
     rebuilt = build_sidecar(
-        concepts, repo.sidecar_path, force=False,
-        repo=repo,
+        reader, repo.sidecar_path, force=False,
         commit_hash=hash_key,
-        reader=reader,
     )
     assert rebuilt is True
 
@@ -511,28 +505,22 @@ def test_build_skips_when_unchanged(tmp_path):
     """Second build with same HEAD skips rebuild."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
     from propstore.build_sidecar import build_sidecar
-    from propstore.validate import load_concepts
     from propstore.tree_reader import GitTreeReader
 
     reader = GitTreeReader(kr)
     hash_key = kr.head_sha()
-    concepts = load_concepts(None, reader=reader)
 
     # First build
     rebuilt1 = build_sidecar(
-        concepts, repo.sidecar_path, force=False,
-        repo=repo,
+        reader, repo.sidecar_path, force=False,
         commit_hash=hash_key,
-        reader=reader,
     )
     assert rebuilt1 is True
 
-    # Second build with same HEAD — should skip
+    # Second build with same HEAD ��� should skip
     rebuilt2 = build_sidecar(
-        concepts, repo.sidecar_path, force=False,
-        repo=repo,
+        reader, repo.sidecar_path, force=False,
         commit_hash=hash_key,
-        reader=reader,
     )
     assert rebuilt2 is False
 
@@ -541,19 +529,15 @@ def test_build_rebuilds_on_new_commit(tmp_path):
     """New commit triggers sidecar rebuild."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
     from propstore.build_sidecar import build_sidecar
-    from propstore.validate import load_concepts
     from propstore.tree_reader import GitTreeReader
 
     reader = GitTreeReader(kr)
     hash_key1 = kr.head_sha()
-    concepts = load_concepts(None, reader=reader)
 
     # First build
     rebuilt1 = build_sidecar(
-        concepts, repo.sidecar_path, force=False,
-        repo=repo,
+        reader, repo.sidecar_path, force=False,
         commit_hash=hash_key1,
-        reader=reader,
     )
     assert rebuilt1 is True
 
@@ -575,15 +559,10 @@ def test_build_rebuilds_on_new_commit(tmp_path):
     hash_key2 = kr.head_sha()
     assert hash_key2 != hash_key1
 
-    concepts2 = load_concepts(None, reader=reader2)
-    assert len(concepts2) == 2
-
     # Build with new commit hash — should rebuild
     rebuilt2 = build_sidecar(
-        concepts2, repo.sidecar_path, force=False,
-        repo=repo,
+        reader2, repo.sidecar_path, force=False,
         commit_hash=hash_key2,
-        reader=reader2,
     )
     assert rebuilt2 is True
 

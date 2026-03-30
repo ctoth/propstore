@@ -5,7 +5,7 @@ import yaml
 
 from propstore.build_sidecar import build_sidecar
 from propstore.sensitivity import SensitivityEntry, SensitivityResult, analyze_sensitivity
-from propstore.validate import load_concepts
+from propstore.tree_reader import FilesystemReader
 from propstore.world import WorldModel
 
 
@@ -148,7 +148,8 @@ def repo(concept_dir):
 @pytest.fixture
 def claim_files(concept_dir):
     """Create claim files with known conditions for binding tests."""
-    claims_dir = concept_dir / "claims_data"
+    knowledge = concept_dir.parent
+    claims_dir = knowledge / "claims"
     claims_dir.mkdir(exist_ok=True)
 
     alpha = {
@@ -286,10 +287,9 @@ def claim_files(concept_dir):
 @pytest.fixture
 def world(concept_dir, repo, claim_files):
     """Build sidecar and return a WorldModel."""
-    concepts = load_concepts(concept_dir)
-    concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-    build_sidecar(concepts, repo.sidecar_path, claim_files=claim_files,
-                  concept_registry=concept_registry, repo=repo)
+    knowledge = concept_dir.parent
+    reader = FilesystemReader(knowledge)
+    build_sidecar(reader, repo.sidecar_path)
     return WorldModel(repo)
 
 
@@ -359,7 +359,7 @@ def nonlinear_world(tmp_path):
         "form_parameters": {"values": ["run"], "extensible": True},
     })
 
-    claims_dir = concepts_path / "claims_data"
+    claims_dir = knowledge / "claims"
     claims_dir.mkdir()
     claims = {
         "source": {"paper": "nl_test"},
@@ -385,14 +385,10 @@ def nonlinear_world(tmp_path):
     (claims_dir / "nl_test.yaml").write_text(yaml.dump(claims, default_flow_style=False))
 
     from propstore.cli.repository import Repository
-    from propstore.validate_claims import load_claim_files
 
     repo = Repository(knowledge)
-    cf = load_claim_files(claims_dir)
-    concepts = load_concepts(concepts_path)
-    concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-    build_sidecar(concepts, repo.sidecar_path, claim_files=cf,
-                  concept_registry=concept_registry, repo=repo)
+    reader = FilesystemReader(knowledge)
+    build_sidecar(reader, repo.sidecar_path)
     return WorldModel(repo)
 
 

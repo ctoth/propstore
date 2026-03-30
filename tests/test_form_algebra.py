@@ -18,7 +18,7 @@ import yaml
 
 from propstore.build_sidecar import build_sidecar
 from propstore.form_utils import dims_signature
-from propstore.validate import load_concepts
+from propstore.tree_reader import FilesystemReader
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -126,11 +126,11 @@ def physics_project(tmp_path):
 @pytest.fixture
 def sidecar_path(physics_project):
     """Build sidecar from physics_project and return the db path."""
-    concepts_dir = physics_project / "knowledge" / "concepts"
-    sidecar = physics_project / "knowledge" / "sidecar" / "propstore.sqlite"
+    knowledge = physics_project / "knowledge"
+    sidecar = knowledge / "sidecar" / "propstore.sqlite"
     sidecar.parent.mkdir(parents=True, exist_ok=True)
-    concepts = load_concepts(concepts_dir)
-    build_sidecar(concepts, sidecar, force=True)
+    reader = FilesystemReader(knowledge)
+    build_sidecar(reader, sidecar, force=True)
     return sidecar
 
 
@@ -179,11 +179,11 @@ def bad_dims_project(tmp_path):
 @pytest.fixture
 def bad_dims_sidecar(bad_dims_project):
     """Build sidecar from bad_dims_project and return the db path."""
-    concepts_dir = bad_dims_project / "knowledge" / "concepts"
-    sidecar = bad_dims_project / "knowledge" / "sidecar" / "propstore.sqlite"
+    knowledge = bad_dims_project / "knowledge"
+    sidecar = knowledge / "sidecar" / "propstore.sqlite"
     sidecar.parent.mkdir(parents=True, exist_ok=True)
-    concepts = load_concepts(concepts_dir)
-    build_sidecar(concepts, sidecar, force=True)
+    reader = FilesystemReader(knowledge)
+    build_sidecar(reader, sidecar, force=True)
     return sidecar
 
 
@@ -377,8 +377,8 @@ class TestFormAlgebra:
 
         sidecar = knowledge / "sidecar" / "propstore.sqlite"
         sidecar.parent.mkdir(parents=True, exist_ok=True)
-        concepts = load_concepts(concepts_dir)
-        build_sidecar(concepts, sidecar, force=True)
+        reader = FilesystemReader(knowledge)
+        build_sidecar(reader, sidecar, force=True)
 
         conn = sqlite3.connect(sidecar)
         count = conn.execute(
@@ -395,9 +395,10 @@ def world_model(physics_project):
     """Build sidecar and return a WorldModel."""
     from propstore.cli.repository import Repository
     from propstore.world import WorldModel
-    repo = Repository(physics_project / "knowledge")
-    concepts = load_concepts(repo.concepts_dir)
-    build_sidecar(concepts, repo.sidecar_path, force=True, repo=repo)
+    knowledge = physics_project / "knowledge"
+    repo = Repository(knowledge)
+    reader = FilesystemReader(knowledge)
+    build_sidecar(reader, repo.sidecar_path, force=True)
     return WorldModel(repo)
 
 

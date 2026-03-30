@@ -14,7 +14,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from propstore.build_sidecar import build_sidecar
-from propstore.validate import load_concepts
+from propstore.tree_reader import FilesystemReader
 from propstore.validate_claims import load_claim_files, validate_claims
 from propstore.world import WorldModel
 from tests.conftest import make_parameter_claim, make_concept_registry
@@ -156,7 +156,8 @@ class TestClaimNotesSidecar:
         self, concept_dir, sidecar_path
     ):
         """Build sidecar with a claim that has notes, verify notes column exists."""
-        claims_dir = concept_dir / "claims_notes"
+        knowledge = concept_dir.parent
+        claims_dir = knowledge / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
             "source": {"paper": "notes_paper"},
@@ -176,15 +177,8 @@ class TestClaimNotesSidecar:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        claim_files = load_claim_files(claims_dir)
-        concepts = load_concepts(concept_dir)
-        concept_registry = {
-            c.data["id"]: c.data for c in concepts if c.data.get("id")
-        }
-        build_sidecar(
-            concepts, sidecar_path, force=True,
-            claim_files=claim_files, concept_registry=concept_registry,
-        )
+        reader = FilesystemReader(knowledge)
+        build_sidecar(reader, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
@@ -206,7 +200,8 @@ class TestClaimNotesSidecar:
         self, concept_dir, sidecar_path
     ):
         """After building sidecar, WorldModel.get_claim returns notes field."""
-        claims_dir = concept_dir / "claims_wm_notes"
+        knowledge = concept_dir.parent
+        claims_dir = knowledge / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
             "source": {"paper": "wm_notes_paper"},
@@ -226,15 +221,8 @@ class TestClaimNotesSidecar:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        claim_files = load_claim_files(claims_dir)
-        concepts = load_concepts(concept_dir)
-        concept_registry = {
-            c.data["id"]: c.data for c in concepts if c.data.get("id")
-        }
-        build_sidecar(
-            concepts, sidecar_path, force=True,
-            claim_files=claim_files, concept_registry=concept_registry,
-        )
+        reader = FilesystemReader(knowledge)
+        build_sidecar(reader, sidecar_path, force=True)
 
         # WorldModel expects a repo-like object with .sidecar_path
         class _FakeRepo:
@@ -300,7 +288,7 @@ class TestClaimNotesProperties:
                     "form": "frequency",
                 }, default_flow_style=False))
 
-            claims_dir = concepts_path / "claims_rt"
+            claims_dir = knowledge / "claims"
             claims_dir.mkdir(exist_ok=True)
             claim_data = {
                 "source": {"paper": "rt_paper"},
@@ -320,17 +308,9 @@ class TestClaimNotesProperties:
                 yaml.dump(claim_data, default_flow_style=False)
             )
 
-            claim_files = load_claim_files(claims_dir)
-            concepts = load_concepts(concepts_path)
-            concept_registry = {
-                c.data["id"]: c.data for c in concepts if c.data.get("id")
-            }
-
             sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
-            build_sidecar(
-                concepts, sidecar_path, force=True,
-                claim_files=claim_files, concept_registry=concept_registry,
-            )
+            reader = FilesystemReader(knowledge)
+            build_sidecar(reader, sidecar_path, force=True)
 
             conn = sqlite3.connect(sidecar_path)
             try:
