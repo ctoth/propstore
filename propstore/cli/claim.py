@@ -426,10 +426,14 @@ def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool
 @click.pass_obj
 def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concurrency, second_pass_threshold):
     """Classify epistemic relationships between similar claims via LLM."""
-    from propstore.relate import relate_claim, relate_all as relate_all_fn, write_stance_file
+    from propstore.proposals import STANCE_PROPOSAL_BRANCH, commit_stance_proposals
+    from propstore.relate import relate_claim, relate_all as relate_all_fn
     from propstore.embed import _load_vec_extension
 
     repo = obj["repo"]
+    if repo.git is None:
+        click.echo("Error: claim relate requires a git-backed repository.", err=True)
+        raise SystemExit(1)
     sidecar = repo.sidecar_path
     if not sidecar.exists():
         click.echo("Error: sidecar not found. Run 'pks build' first.", err=True)
@@ -442,18 +446,23 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
         conn.row_factory = sqlite3.Row
         _load_vec_extension(conn)
 
-        stances_dir = repo.stances_dir
-
         if claim_id and not relate_all_flag:
             # Single claim
             stances = relate_claim(conn, claim_id, model, embedding_model, top_k,
                                    second_pass_threshold=second_pass_threshold)
 
             if stances:
-                write_stance_file(stances_dir, claim_id, stances, model)
+                commit_sha, relpaths = commit_stance_proposals(
+                    repo.git,
+                    {claim_id: stances},
+                    model,
+                )
                 for s in stances:
                     click.echo(f"  {s['type']:12s} {s.get('strength', ''):8s} -> {s['target']}  {s.get('note', '')}")
-                click.echo(f"\n{len(stances)} stances written to {stances_dir / f'{claim_id}.yaml'}")
+                click.echo(
+                    f"\nCommitted {len(relpaths)} proposal file(s) to "
+                    f"{STANCE_PROPOSAL_BRANCH} at {commit_sha[:8]}"
+                )
             else:
                 click.echo("No epistemic relationships found.")
 
@@ -465,9 +474,17 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
             result = relate_all_fn(conn, model, embedding_model, top_k, concurrency=concurrency,
                                    on_progress=progress, second_pass_threshold=second_pass_threshold)
 
-            # Write stance files
-            for cid, stances in result.get("stances_by_claim", {}).items():
-                write_stance_file(stances_dir, cid, stances, model)
+            stances_by_claim = result.get("stances_by_claim", {})
+            if stances_by_claim:
+                commit_sha, relpaths = commit_stance_proposals(
+                    repo.git,
+                    stances_by_claim,
+                    model,
+                )
+                click.echo(
+                    f"Proposal commit: {commit_sha[:8]} on {STANCE_PROPOSAL_BRANCH} "
+                    f"({len(relpaths)} file(s))"
+                )
 
             click.echo(f"\nProcessed: {result['claims_processed']}, Stances found: {result['stances_found']}, No relation: {result['no_relation']}")
         else:

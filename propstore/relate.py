@@ -7,13 +7,8 @@ import json
 import logging
 import sqlite3
 from collections.abc import Callable
-from datetime import date
-from pathlib import Path
-
-import yaml
 
 from propstore.calibrate import categorical_to_opinion
-from propstore.data_utils import write_yaml_file
 from propstore.stances import VALID_STANCE_TYPES
 
 
@@ -515,33 +510,3 @@ def relate_all(
         _relate_all_async(conn, model_name, embedding_model, top_k, concurrency, on_progress,
                           second_pass_threshold=second_pass_threshold)
     )
-
-
-def write_stance_file(
-    stances_dir: Path,
-    source_claim_id: str,
-    stances: list[dict],
-    model_name: str,
-) -> Path:
-    """Write stances to knowledge/proposals/stances/<claim_id>.yaml
-
-    Heuristic output is written to proposals/, never directly to
-    source-of-truth storage (F17).
-    """
-    # Route output through proposals/ subdirectory of the parent
-    proposals_dir = stances_dir.parent / "proposals" / stances_dir.name
-    proposals_dir.mkdir(parents=True, exist_ok=True)
-
-    data = {
-        "source_claim": source_claim_id,
-        "classification_model": model_name,
-        "classification_date": str(date.today()),
-        "stances": stances,
-    }
-
-    # Replace colons with double-underscores for Windows path compatibility
-    safe_name = source_claim_id.replace(":", "__")
-    path = proposals_dir / f"{safe_name}.yaml"
-    write_yaml_file(path, data)
-
-    return path

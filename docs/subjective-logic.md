@@ -142,7 +142,7 @@ Resolution dict: confidence = Opinion.expectation()
                   opinion_b, opinion_d, opinion_u, opinion_a
     |
     v
-Stance YAML file (proposals/stances/)
+Stance proposal YAML file (branch `proposal/stances`, path `stances/*.yaml`)
     |
     v
 Sidecar build: relation_edge table (opinion columns)

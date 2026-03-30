@@ -239,13 +239,13 @@ This creates a `GitTreeReader` at the target commit and builds the sidecar using
 
 ### pks promote
 
-Moves proposal stances into the main stance collection.
+Promotes committed proposal-branch stances into the main stance collection.
 
 ```bash
 pks promote
 ```
 
-Moves files from `proposals/stances/` to `stances/`, commits the batch atomically, and syncs the working tree.
+Reads committed `stances/*.yaml` blobs from the `proposal/stances` branch, copies them into `master`'s `stances/` tree in one atomic commit, and syncs the working tree.
 
 ### pks merge inspect
 

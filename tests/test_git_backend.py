@@ -1074,25 +1074,30 @@ def test_concept_rename_atomic(tmp_path):
 
 
 def test_promote_commits(tmp_path):
-    """Promoting stance files creates a git commit."""
+    """Promoting proposal-branch stance files creates a master commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.cli.repository import Repository
+    from propstore.proposals import commit_stance_proposals
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
 
-    # Create a proposal stance file (proposals/ is outside git-tracked dirs)
-    proposals_dir = root / "proposals" / "stances"
-    proposals_dir.mkdir(parents=True)
-    stance_data = {"id": "stance1", "type": "support"}
-    (proposals_dir / "test_stance.yaml").write_text(
-        yaml.dump(stance_data, default_flow_style=False)
-    )
-    # Ensure stances dir exists
-    repo.stances_dir.mkdir(parents=True, exist_ok=True)
-
     git = repo.git
+    commit_stance_proposals(
+        git,
+        {
+            "claim_a": [{
+                "target": "claim_b",
+                "type": "supports",
+                "strength": "strong",
+                "note": "test promotion",
+                "conditions_differ": None,
+                "resolution": {"method": "nli_first_pass", "model": "test-model", "confidence": 0.7},
+            }],
+        },
+        "test-model",
+    )
     commits_before = len(git.log(max_count=100))
 
     runner = CliRunner()
@@ -1103,36 +1108,96 @@ def test_promote_commits(tmp_path):
     commits_after = len(git.log(max_count=100))
     assert commits_after == commits_before + 1
 
-    # Stance file is in git
-    assert "test_stance.yaml" in git.list_dir("stances")
+    # Stance file is now in master git state
+    assert "claim_a.yaml" in git.list_dir("stances")
 
 
 def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkeypatch):
-    """Promotion must not mutate files before the git commit succeeds."""
+    """Promotion must not change master if the promote commit fails."""
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.cli.repository import Repository
+    from propstore.proposals import STANCE_PROPOSAL_BRANCH, commit_stance_proposals
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
 
-    proposals_dir = root / "proposals" / "stances"
-    proposals_dir.mkdir(parents=True)
-    proposal_path = proposals_dir / "test_stance.yaml"
-    proposal_path.write_text(
-        yaml.dump({"id": "stance1", "type": "support"}, default_flow_style=False)
+    git = repo.git
+    commit_stance_proposals(
+        git,
+        {
+            "claim_a": [{
+                "target": "claim_b",
+                "type": "supports",
+                "strength": "strong",
+                "note": "test promotion",
+                "conditions_differ": None,
+                "resolution": {"method": "nli_first_pass", "model": "test-model", "confidence": 0.7},
+            }],
+        },
+        "test-model",
     )
+    proposal_sha = git.branch_sha(STANCE_PROPOSAL_BRANCH)
+    assert proposal_sha is not None
 
-    def _boom(self, adds, deletes, message):
+    def _boom(self, adds, deletes, message, branch="master"):
         raise RuntimeError("commit failed")
 
-    monkeypatch.setattr(type(repo.git), "commit_batch", _boom)
+    monkeypatch.setattr(type(git), "commit_batch", _boom)
 
     runner = CliRunner()
     result = runner.invoke(cli, ["-C", str(root), "promote", "-y"])
     assert result.exit_code != 0
-    assert proposal_path.exists()
-    assert not (root / "stances" / "test_stance.yaml").exists()
+    assert git.branch_sha("master") is not None
+    assert git.read_file("stances/claim_a.yaml", commit=proposal_sha) is not None
+    with pytest.raises(FileNotFoundError):
+        git.read_file("stances/claim_a.yaml")
+
+
+def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
+    """claim relate must commit proposal artifacts to proposal/stances, not master."""
+    import sqlite3
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+    from propstore.proposals import STANCE_PROPOSAL_BRANCH
+    import propstore.embed as embed_mod
+    import propstore.relate as relate_mod
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    sqlite3.connect(repo.sidecar_path).close()
+
+    monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn: None)
+    monkeypatch.setattr(
+        relate_mod,
+        "relate_claim",
+        lambda conn, claim_id, model_name, embedding_model, top_k, second_pass_threshold=0.75: [{
+            "target": "claim_b",
+            "type": "supports",
+            "strength": "strong",
+            "note": "synthetic stance",
+            "conditions_differ": None,
+            "resolution": {"method": "nli_first_pass", "model": model_name, "confidence": 0.7},
+        }],
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["-C", str(root), "claim", "relate", "claim_a", "--model", "test-model"],
+    )
+    assert result.exit_code == 0, result.output
+    assert STANCE_PROPOSAL_BRANCH in result.output
+
+    proposal_sha = repo.git.branch_sha(STANCE_PROPOSAL_BRANCH)
+    assert proposal_sha is not None
+    data = yaml.safe_load(repo.git.read_file("stances/claim_a.yaml", commit=proposal_sha))
+    assert data["source_claim"] == "claim_a"
+    assert data["classification_model"] == "test-model"
+    assert data["stances"][0]["target"] == "claim_b"
+    with pytest.raises(FileNotFoundError):
+        repo.git.read_file("stances/claim_a.yaml")
 
 
 def test_init_creates_git_repo(tmp_path):

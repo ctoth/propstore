@@ -136,7 +136,7 @@ uv run pks diff abc1234
 
 ### `pks promote [PATH]`
 
-Move proposal artifacts from `proposals/` into source-of-truth storage. Moves stance files from `knowledge/proposals/stances/` to `knowledge/stances/`. If PATH is given, promotes only that file; otherwise promotes all files in `knowledge/proposals/stances/`.
+Promote committed stance proposals from the `proposal/stances` branch into source-of-truth storage on `master`. If PATH is given, promotes only that stance file or claim-id-derived filename; otherwise promotes all committed stance proposal files on the proposal branch.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -144,7 +144,7 @@ Move proposal artifacts from `proposals/` into source-of-truth storage. Moves st
 
 ```bash
 uv run pks promote
-uv run pks promote knowledge/proposals/stances/some-stance.yaml -y
+uv run pks promote some-stance.yaml -y
 ```
 
 ### `pks import-papers`
@@ -387,7 +387,7 @@ uv run pks claim embed --all --model text-embedding-3-small
 
 ### `pks claim relate [CLAIM_ID]`
 
-Classify epistemic relationships between similar claims via LLM.
+Classify epistemic relationships between similar claims via LLM. The resulting stance proposal snapshots are committed to the `proposal/stances` branch rather than written into source-of-truth state.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

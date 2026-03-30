@@ -36,9 +36,9 @@ This is automated — no human review required. The `proposed -> accepted -> dep
 
 ## Promote workflow
 
-The heuristic analysis layer (Layer 3) produces proposals — stance classifications, concept merges, relationship annotations. These live in `knowledge/proposals/` and are not source-of-truth until promoted.
+The heuristic analysis layer (Layer 3) produces proposals — stance classifications, concept merges, relationship annotations. Stance proposals are committed on the `proposal/stances` branch and are not source-of-truth until promoted.
 
-`pks promote` moves proposal artifacts from `knowledge/proposals/stances/` into `knowledge/stances/`. This is the gate between heuristic output and source-of-truth storage. The move is atomic: a single git commit records both the addition and deletion.
+`pks promote` copies committed stance proposal blobs from `proposal/stances` into `master`'s `knowledge/stances/`. This is the gate between heuristic output and source-of-truth storage. The promotion is atomic: a single git commit records the accepted stance state on `master`.
 
 ```bash
 # Preview what would be promoted
@@ -47,8 +47,8 @@ pks promote
 # Promote all pending stances
 pks promote -y
 
-# Promote a single file
-pks promote knowledge/proposals/stances/specific-stance.yaml
+# Promote a single committed proposal file
+pks promote specific-stance.yaml
 ```
 
 Currently, only stance proposals are supported. Concept and claim proposals must be manually reviewed and moved.
@@ -90,7 +90,7 @@ Embeddings are stored in the sidecar SQLite database (one vector table per model
 
 Optional: requires `propstore[embeddings]`.
 
-`pks claim relate` uses an LLM to classify epistemic relationships between similar claims. It finds embedding-similar claim pairs, then prompts the model to classify each pair into one of the stance types (rebuts, undercuts, undermines, supports, explains, supersedes, or none). Results are written back as stances in the claim YAML files.
+`pks claim relate` uses an LLM to classify epistemic relationships between similar claims. It finds embedding-similar claim pairs, then prompts the model to classify each pair into one of the stance types (rebuts, undercuts, undermines, supports, explains, supersedes, or none). Results are committed as stance proposal snapshots on the `proposal/stances` branch.
 
 ```bash
 # Classify relationships for a single claim against its nearest neighbors

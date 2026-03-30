@@ -176,66 +176,60 @@ def checkout_cmd(ctx, commit):
 @click.option("-y", "--yes", is_flag=True, help="Skip confirmation prompt.")
 @click.pass_context
 def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
-    """Move proposal artifacts from proposals/ into source-of-truth storage.
+    """Promote committed stance proposals into source-of-truth storage."""
+    from propstore.proposals import STANCE_PROPOSAL_BRANCH, stance_proposal_filename
 
-    Moves stance files from knowledge/proposals/stances/ to knowledge/stances/.
-    If PATH is given, promotes only that file; otherwise promotes all files
-    in knowledge/proposals/stances/.
-    """
     repo: "Repository" = ctx.obj["repo"]
-    proposals_stances = repo.root / "proposals" / "stances"
     target_stances = repo.stances_dir
+    git = repo.git
+    if git is None:
+        click.echo("Not a git-tracked knowledge repository.", err=True)
+        raise SystemExit(1)
 
+    proposal_tip = git.branch_sha(STANCE_PROPOSAL_BRANCH)
+    if proposal_tip is None:
+        click.echo(f"No {STANCE_PROPOSAL_BRANCH} branch found. Nothing to promote.")
+        return
+
+    available_names = git.list_dir("stances", commit=proposal_tip)
     if path is not None:
-        sources = [Path(path)]
+        requested_name = Path(path).name
+        if not requested_name.endswith(".yaml"):
+            requested_name = stance_proposal_filename(requested_name)
+        sources = [requested_name]
     else:
-        if not proposals_stances.exists():
-            click.echo("No proposals/stances/ directory found. Nothing to promote.")
-            return
-        sources = sorted(proposals_stances.glob("*.yaml"))
+        sources = sorted(name for name in available_names if name.endswith(".yaml"))
 
     if not sources:
-        click.echo("No proposal files found to promote.")
+        click.echo(f"No stance proposal files found on {STANCE_PROPOSAL_BRANCH}.")
         return
 
     # Show what will be moved
-    for src in sources:
-        dest = target_stances / src.name
-        click.echo(f"  {src} -> {dest}")
+    existing_names = set(available_names)
+    selected_names = [name for name in sources if name in existing_names]
+    if not selected_names:
+        click.echo("No matching proposal files found to promote.")
+        return
+    for name in selected_names:
+        click.echo(f"  {STANCE_PROPOSAL_BRANCH}:stances/{name} -> {target_stances / name}")
 
     if not yes:
         click.confirm("Promote these files?", abort=True)
 
-    git = repo.git
     moved = 0
-    if git:
-        adds = {}
-        deletes = []
-        for src in sources:
-            if not src.exists():
-                click.echo(f"  SKIP (not found): {src}", err=True)
-                continue
-            dest = target_stances / src.name
-            rel = dest.relative_to(repo.root).as_posix()
-            adds[rel] = src.read_bytes()
-            if src.is_relative_to(repo.root):
-                deletes.append(src.relative_to(repo.root).as_posix())
-        moved = len(adds)
-        if moved > 0:
-            for src in sources:
-                if src.exists():
-                    click.echo(f"  Promoted: {src.name}")
-            git.commit_batch(adds=adds, deletes=deletes, message=f"Promote {moved} stance file(s)")
-            git.sync_worktree()
-    else:
-        target_stances.mkdir(parents=True, exist_ok=True)
-        for src in sources:
-            if not src.exists():
-                click.echo(f"  SKIP (not found): {src}", err=True)
-                continue
-            dest = target_stances / src.name
-            src.rename(dest)
-            click.echo(f"  Promoted: {src.name}")
-            moved += 1
+    adds = {}
+    for name in selected_names:
+        rel = f"stances/{name}"
+        adds[rel] = git.read_file(rel, commit=proposal_tip)
+    moved = len(adds)
+    if moved > 0:
+        for name in selected_names:
+            click.echo(f"  Promoted: {name}")
+        git.commit_batch(
+            adds=adds,
+            deletes=[],
+            message=f"Promote {moved} stance proposal file(s) from {STANCE_PROPOSAL_BRANCH}",
+        )
+        git.sync_worktree()
 
     click.echo(f"\n{moved} file(s) promoted.")
