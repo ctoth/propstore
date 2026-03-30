@@ -18,7 +18,8 @@ from hypothesis import strategies as st
 
 from propstore.build_sidecar import build_sidecar
 from propstore.cli.worldline_cmds import _parse_kv_args
-from propstore.knowledge_path import FilesystemKnowledgePath
+from propstore.knowledge_path import GitKnowledgePath
+from propstore.repo import KnowledgeRepo
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
@@ -29,12 +30,22 @@ from propstore.world import WorldModel
 
 class _FakeWorldlineRepo:
     def __init__(self, worldlines_dir: Path):
-        self.worldlines_dir = worldlines_dir
-        self.git = None
         self._root = worldlines_dir.parent
+        existing_worldlines = {
+            f"worldlines/{path.name}": path.read_bytes()
+            for path in sorted(worldlines_dir.glob("*.yaml"))
+        }
+        self.git = KnowledgeRepo.init(self._root)
+        if existing_worldlines:
+            self.git.commit_files(existing_worldlines, "Seed fake worldlines")
+            self.git.sync_worktree()
+
+    @property
+    def worldlines_dir(self) -> Path:
+        return self._root / "worldlines"
 
     def tree(self):
-        return FilesystemKnowledgePath(self._root)
+        return GitKnowledgePath(self.git)
 
 
 @pytest.fixture

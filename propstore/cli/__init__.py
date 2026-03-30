@@ -5,6 +5,7 @@ Single entry point. Subcommand groups registered from sibling modules.
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import click
 
@@ -28,6 +29,8 @@ def cli(ctx: click.Context, directory: str | None) -> None:
     """Propositional Knowledge Store CLI."""
     ctx.ensure_object(dict)
     start = Path(directory) if directory else None
+    if ctx.resilient_parsing or any(arg in {"--help", "-h"} for arg in sys.argv[1:]):
+        return
     if ctx.invoked_subcommand == "init":
         # init bypasses Repository lookup — store the start dir for init to use
         ctx.obj["start"] = start
@@ -62,10 +65,10 @@ cli.add_command(import_repo_cmd)
 def log_cmd(ctx, count):
     """Show knowledge repository history."""
     repo = ctx.obj["repo"]
-    if repo.git is None:
-        click.echo("Not a git-tracked knowledge repository.")
-        return
-    entries = repo.git.log(max_count=count)
+    git = repo.git
+    if git is None:
+        raise click.ClickException("log requires a git-backed repository")
+    entries = git.log(max_count=count)
     if not entries:
         click.echo("No history yet.")
         return
@@ -84,10 +87,10 @@ def log_cmd(ctx, count):
 def diff_cmd(ctx, commit):
     """Show files changed between HEAD and COMMIT (or HEAD vs parent)."""
     repo = ctx.obj["repo"]
-    if repo.git is None:
-        click.echo("Not a git-tracked knowledge repository.")
-        return
-    result = repo.git.diff_commits(commit1=commit)
+    git = repo.git
+    if git is None:
+        raise click.ClickException("diff requires a git-backed repository")
+    result = git.diff_commits(commit1=commit)
     any_changes = False
     for path in result.get("added", []):
         click.echo(f"  Added: {path}")
@@ -110,11 +113,11 @@ def diff_cmd(ctx, commit):
 def show_cmd(ctx, commit):
     """Show details of a specific commit."""
     repo = ctx.obj["repo"]
-    if repo.git is None:
-        click.echo("Not a git-tracked knowledge repository.")
-        return
+    git = repo.git
+    if git is None:
+        raise click.ClickException("show requires a git-backed repository")
     try:
-        info = repo.git.show_commit(commit)
+        info = git.show_commit(commit)
     except KeyError:
         click.echo(f"Commit not found: {commit}")
         return
@@ -142,13 +145,13 @@ def checkout_cmd(ctx, commit):
     from propstore.build_sidecar import build_sidecar
 
     repo = ctx.obj["repo"]
-    if repo.git is None:
-        click.echo("Not a git-tracked knowledge repository.")
-        return
+    git = repo.git
+    if git is None:
+        raise click.ClickException("checkout requires a git-backed repository")
 
     # Verify commit exists
     try:
-        repo.git.show_commit(commit)
+        git.show_commit(commit)
     except KeyError:
         click.echo(f"Commit not found: {commit}")
         return
@@ -183,8 +186,7 @@ def promote(ctx: click.Context, path: str | None, yes: bool) -> None:
     target_stances = repo.stances_dir
     git = repo.git
     if git is None:
-        click.echo("Not a git-tracked knowledge repository.", err=True)
-        raise SystemExit(1)
+        raise click.ClickException("promote requires a git-backed repository")
 
     proposal_tip = git.branch_sha(STANCE_PROPOSAL_BRANCH)
     if proposal_tip is None:

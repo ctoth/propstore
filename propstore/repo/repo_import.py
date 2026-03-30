@@ -80,12 +80,15 @@ def plan_repo_import(
     target_branch: str | None = None,
 ) -> RepoImportPlan:
     """Plan a committed-snapshot import from a source repo into a destination repo."""
-    from propstore.cli.repository import Repository
+    from propstore.cli.repository import Repository, RepositoryNotFound
 
     if destination_repo.git is None:
         raise ValueError("Destination repository must be git-backed")
 
-    source_repo = Repository.find(source_repo_path.resolve())
+    try:
+        source_repo = Repository.find(source_repo_path.resolve())
+    except RepositoryNotFound as exc:
+        raise ValueError("Source repository must be git-backed") from exc
     if source_repo.git is None:
         raise ValueError("Source repository must be git-backed")
 

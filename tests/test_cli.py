@@ -1264,15 +1264,23 @@ class TestConceptCategories:
         """Returns cleanly when no category concepts exist."""
         monkeypatch.chdir(tmp_path)
         knowledge = tmp_path / "knowledge"
+        repo = Repository.init(knowledge)
         concepts = knowledge / "concepts"
-        concepts.mkdir(parents=True)
         forms = knowledge / "forms"
-        forms.mkdir()
         (forms / "structural.yaml").write_text("name: structural\n")
 
         _write_concept(concepts, "only_struct", _make_concept(
             "only_struct", "concept1", "test", form="structural"))
         _write_counter(concepts, "test", 2)
+        repo.git.commit_files(
+            {
+                "forms/structural.yaml": (forms / "structural.yaml").read_bytes(),
+                "concepts/only_struct.yaml": (concepts / "only_struct.yaml").read_bytes(),
+                "concepts/.counters/global.next": (concepts / ".counters" / "global.next").read_bytes(),
+            },
+            "Seed non-category-only workspace",
+        )
+        repo.git.sync_worktree()
 
         runner = CliRunner()
         result = runner.invoke(cli, ["concept", "categories"])
@@ -1394,9 +1402,8 @@ class TestConnectionClosedOnError:
     def _make_repo_with_sidecar(tmp_path: Path) -> Path:
         """Create minimal repo structure with a sidecar file."""
         knowledge = tmp_path / "knowledge"
-        (knowledge / "concepts").mkdir(parents=True)
+        Repository.init(knowledge)
         sidecar_dir = knowledge / "sidecar"
-        sidecar_dir.mkdir()
         sidecar = sidecar_dir / "propstore.sqlite"
         sidecar.touch()
         return tmp_path
@@ -1602,10 +1609,11 @@ class TestPromoteCommandExists:
             "A promote command is needed to move proposals into source-of-truth storage."
         )
 
-    def test_promote_help_exits_cleanly(self):
-        """'pks promote --help' must exit 0 (command exists and has help text)."""
+    def test_promote_help_exits_cleanly(self, tmp_path: Path):
+        """'pks promote --help' must exit 0 from an initialized git-backed repo."""
+        Repository.init(tmp_path / "knowledge")
         runner = CliRunner()
-        result = runner.invoke(cli, ["promote", "--help"])
+        result = runner.invoke(cli, ["-C", str(tmp_path / "knowledge"), "promote", "--help"])
         assert result.exit_code == 0, (
             f"'pks promote --help' exited {result.exit_code}: {result.output}"
         )

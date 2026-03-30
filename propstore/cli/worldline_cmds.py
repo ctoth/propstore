@@ -255,6 +255,9 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
     from propstore.worldline import WorldlineDefinition
 
     repo: Repository = obj["repo"]
+    git = repo.git
+    if git is None:
+        raise click.ClickException("worldline mutations require a git-backed repository")
     wl_dir = repo.worldlines_dir
     path = wl_dir / f"{name}.yaml"
     semantic_path = _worldlines_tree(repo) / f"{name}.yaml"
@@ -307,16 +310,11 @@ def worldline_create(obj: dict, name: str, bindings: tuple[str, ...],
 
     wl = WorldlineDefinition.from_dict(definition)
 
-    git = repo.git
-    if git is not None:
-        git.commit_files(
-            {_worldline_relpath(name): _dump_worldline_yaml_bytes(wl)},
-            f"Create worldline: {name}",
-        )
-        git.sync_worktree()
-    else:
-        wl_dir.mkdir(parents=True, exist_ok=True)
-        wl.to_file(path)
+    git.commit_files(
+        {_worldline_relpath(name): _dump_worldline_yaml_bytes(wl)},
+        f"Create worldline: {name}",
+    )
+    git.sync_worktree()
 
     click.echo(f"Created worldline '{name}' at {path}")
 
@@ -347,6 +345,9 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
     from propstore.worldline_runner import run_worldline
 
     repo: Repository = obj["repo"]
+    git = repo.git
+    if git is None:
+        raise click.ClickException("worldline mutations require a git-backed repository")
     wl_dir = repo.worldlines_dir
     path = wl_dir / f"{name}.yaml"
     semantic_path = _worldlines_tree(repo) / f"{name}.yaml"
@@ -414,16 +415,11 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
     wl.results = result
     wm.close()
 
-    git = repo.git
-    if git is not None:
-        git.commit_files(
-            {_worldline_relpath(name): _dump_worldline_yaml_bytes(wl)},
-            f"Materialize worldline: {name}",
-        )
-        git.sync_worktree()
-    else:
-        wl_dir.mkdir(parents=True, exist_ok=True)
-        wl.to_file(path)
+    git.commit_files(
+        {_worldline_relpath(name): _dump_worldline_yaml_bytes(wl)},
+        f"Materialize worldline: {name}",
+    )
+    git.sync_worktree()
 
     click.echo(f"Worldline '{name}' materialized ({len(result.values)} targets)")
     for target, val in result.values.items():
@@ -678,15 +674,14 @@ def worldline_refresh(obj: dict, name: str) -> None:
 def worldline_delete(obj: dict, name: str) -> None:
     """Delete a worldline."""
     repo: Repository = obj["repo"]
+    git = repo.git
+    if git is None:
+        raise click.ClickException("worldline mutations require a git-backed repository")
     path = repo.worldlines_dir / f"{name}.yaml"
     semantic_path = _worldlines_tree(repo) / f"{name}.yaml"
     if not semantic_path.exists():
         click.echo(f"ERROR: Worldline '{name}' not found", err=True)
         sys.exit(1)
-    git = repo.git
-    if git is not None:
-        git.commit_deletes([_worldline_relpath(name)], f"Delete worldline: {name}")
-        git.sync_worktree()
-    else:
-        path.unlink()
+    git.commit_deletes([_worldline_relpath(name)], f"Delete worldline: {name}")
+    git.sync_worktree()
     click.echo(f"Deleted worldline '{name}'")

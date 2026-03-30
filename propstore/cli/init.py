@@ -32,17 +32,6 @@ def _seed_form_files() -> dict[str, bytes]:
         stub = f"name: {form_name}\nkind: {form_name}\ndimensionless: false\n"
         form_files[f"forms/{form_name}.yaml"] = stub.encode("utf-8")
     return form_files
-
-
-def _materialize_seed_forms(forms_dir: Path, form_files: dict[str, bytes]) -> None:
-    """Write default form files to disk for non-git repos."""
-    forms_dir.mkdir(parents=True, exist_ok=True)
-    for rel_path, content in sorted(form_files.items()):
-        if not rel_path.startswith("forms/"):
-            continue
-        (forms_dir / rel_path.removeprefix("forms/")).write_bytes(content)
-
-
 @click.command()
 @click.argument("directory", default="knowledge")
 @click.pass_obj
@@ -68,14 +57,12 @@ def init(obj: dict, directory: str) -> None:
 
     form_files = _seed_form_files()
 
-    # Commit seeded forms to git
     git = repo.git
-    if git is not None:
-        if form_files:
-            git.commit_files(form_files, "Seed default forms")
-            git.sync_worktree()
-    else:
-        _materialize_seed_forms(repo.forms_dir, form_files)
+    if git is None:
+        raise click.ClickException("init requires a git-backed repository")
+    if form_files:
+        git.commit_files(form_files, "Seed default forms")
+        git.sync_worktree()
 
     click.echo(f"Initialized propstore project at {root}/")
     click.echo(f"  {root / 'concepts/'}")

@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 import yaml
 
-from propstore.cli.helpers import EXIT_ERROR, write_yaml_file
+from propstore.cli.helpers import EXIT_ERROR
 from propstore.cli.repository import Repository
 from propstore.validate_contexts import load_contexts
 
@@ -34,10 +34,11 @@ def add(
 ) -> None:
     """Add a new context to the registry."""
     repo: Repository = obj["repo"]
+    git = repo.git
+    if git is None:
+        raise click.ClickException("context mutations require a git-backed repository")
     contexts_dir = repo.contexts_dir
     contexts_tree = repo.tree() / "contexts"
-    if repo.git is None:
-        contexts_dir.mkdir(parents=True, exist_ok=True)
 
     filepath = contexts_dir / f"{name}.yaml"
     if (contexts_tree / f"{name}.yaml").exists():
@@ -66,14 +67,10 @@ def add(
         click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
         return
 
-    git = repo.git
-    if git is not None:
-        yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
-        rel_path = filepath.relative_to(repo.root).as_posix()
-        git.commit_files({rel_path: yaml_bytes}, f"Add context: {name}")
-        git.sync_worktree()
-    else:
-        write_yaml_file(filepath, data)
+    yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
+    rel_path = filepath.relative_to(repo.root).as_posix()
+    git.commit_files({rel_path: yaml_bytes}, f"Add context: {name}")
+    git.sync_worktree()
 
     click.echo(f"Created {filepath}")
 

@@ -27,8 +27,7 @@ def merge_inspect(ctx: click.Context, branch_a: str, branch_b: str, semantics: s
 
     repo = ctx.obj["repo"]
     if repo.git is None:
-        click.echo("Not a git-tracked knowledge repository.")
-        return
+        raise click.ClickException("merge inspect requires a git-backed repository")
 
     merge_framework = build_merge_framework(repo.git, branch_a, branch_b)
     summary = summarize_merge_framework(merge_framework, semantics=semantics)
@@ -53,8 +52,7 @@ def merge_commit_cmd(
 
     repo = ctx.obj["repo"]
     if repo.git is None:
-        click.echo("Not a git-tracked knowledge repository.")
-        return
+        raise click.ClickException("merge commit requires a git-backed repository")
 
     commit_sha = create_merge_commit(
         repo.git,

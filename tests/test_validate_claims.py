@@ -1048,10 +1048,13 @@ class TestFormAwareUnitValidation:
 
     def _make_registry_with_forms(self, tmp_path):
         """Build a concept registry with form definitions available on disk."""
+        from propstore.cli.repository import Repository
+        from propstore.validate_claims import build_concept_registry
+
         knowledge = tmp_path / "knowledge"
+        repo = Repository.init(knowledge)
         # Create forms directory with real form definitions
         forms_dir = knowledge / "forms"
-        forms_dir.mkdir(parents=True, exist_ok=True)
 
         import yaml as _yaml
         _yaml.dump({"name": "frequency", "unit_symbol": "Hz",
@@ -1074,7 +1077,6 @@ class TestFormAwareUnitValidation:
 
         # Create concepts directory
         concepts_dir = knowledge / "concepts"
-        concepts_dir.mkdir(exist_ok=True)
 
         # Write concept files
         for cdata in [
@@ -1093,9 +1095,18 @@ class TestFormAwareUnitValidation:
             (concepts_dir / f"{cdata['canonical_name']}.yaml").write_text(
                 _yaml.dump(cdata, default_flow_style=False))
 
-        from propstore.cli.repository import Repository
-        from propstore.validate_claims import build_concept_registry
-        repo = Repository(knowledge)
+        adds = {
+            relpath.relative_to(knowledge).as_posix(): relpath.read_bytes()
+            for relpath in sorted(forms_dir.glob("*.yaml"))
+        }
+        adds.update(
+            {
+                relpath.relative_to(knowledge).as_posix(): relpath.read_bytes()
+                for relpath in sorted(concepts_dir.glob("*.yaml"))
+            }
+        )
+        repo.git.commit_files(adds, "Seed form-aware validation fixture")
+        repo.git.sync_worktree()
         return build_concept_registry(repo)
 
     def test_parameter_claim_hz_on_frequency_concept_validates(self, claims_dir, tmp_path):

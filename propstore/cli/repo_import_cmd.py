@@ -24,8 +24,7 @@ def import_repo_cmd(
     """Import a source repo's committed semantic tree onto a destination branch."""
     repo = ctx.obj["repo"]
     if repo.git is None:
-        click.echo("Not a git-tracked knowledge repository.")
-        return
+        raise click.ClickException("import-repo requires a git-backed repository")
 
     plan = plan_repo_import(repo, source_repo, target_branch=target_branch)
     result = commit_repo_import(repo, plan, message=message)

@@ -1282,40 +1282,15 @@ def test_log_output(tmp_path):
     assert "Seed forms" in result.output
 
 
-def test_ensure_git_migrates(tmp_path):
-    """ensure_git() on a plain dir commits existing YAML files."""
-    from propstore.cli.repository import Repository
+def test_repository_find_rejects_non_git_knowledge_dir(tmp_path):
+    """Repository.find() rejects plain knowledge directories after the git-only cutover."""
+    from propstore.cli.repository import Repository, RepositoryNotFound
 
     root = tmp_path / "knowledge"
-    # Create dirs manually without git
-    for d in ["concepts", "claims", "forms"]:
-        (root / d).mkdir(parents=True)
-    (root / "concepts" / "foo.yaml").write_bytes(
-        yaml.dump({"id": "concept1", "canonical_name": "foo"}).encode()
-    )
+    (root / "concepts").mkdir(parents=True)
 
-    repo = Repository(root)
-    assert repo.git is None  # No git yet
-
-    git = repo.ensure_git()
-    assert git is not None
-
-    # Existing file was committed
-    content = git.read_file("concepts/foo.yaml")
-    data = yaml.safe_load(content)
-    assert data["canonical_name"] == "foo"
-
-
-def test_repo_no_git(tmp_path):
-    """Repository over a plain dir has git == None."""
-    from propstore.cli.repository import Repository
-
-    root = tmp_path / "knowledge"
-    root.mkdir(parents=True)
-    (root / "concepts").mkdir()
-
-    repo = Repository(root)
-    assert repo.git is None
+    with pytest.raises(RepositoryNotFound, match="git-backed knowledge/ directory"):
+        Repository.find(root)
 
 
 # ── Phase 7: History commands ──────────────────────────────────────

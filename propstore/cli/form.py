@@ -7,7 +7,7 @@ import sys
 import click
 import yaml
 
-from propstore.cli.helpers import EXIT_ERROR, write_yaml_file
+from propstore.cli.helpers import EXIT_ERROR
 from propstore.cli.repository import Repository
 from propstore.form_utils import load_all_forms_path, load_form_path
 from propstore.validate import load_concepts
@@ -173,9 +173,12 @@ def add(
 ) -> None:
     """Add a new form definition."""
     repo: Repository = obj["repo"]
+    git = repo.git
+    if git is None:
+        raise click.ClickException("form mutations require a git-backed repository")
     fdir = repo.forms_dir
     path = fdir / f"{name}.yaml"
-    if path.exists():
+    if (repo.tree() / "forms" / f"{name}.yaml").exists():
         click.echo(f"ERROR: Form '{name}' already exists", err=True)
         sys.exit(EXIT_ERROR)
 
@@ -222,16 +225,11 @@ def add(
         click.echo(yaml.dump(data, default_flow_style=False, sort_keys=False))
         return
 
-    git = getattr(repo, "git", None)
-    if git is not None:
-        yaml_bytes = yaml.dump(
-            data, default_flow_style=False, sort_keys=False, allow_unicode=True
-        ).encode("utf-8")
-        git.commit_files({f"forms/{name}.yaml": yaml_bytes}, f"Add form: {name}")
-        git.sync_worktree()
-    else:
-        fdir.mkdir(parents=True, exist_ok=True)
-        write_yaml_file(path, data)
+    yaml_bytes = yaml.dump(
+        data, default_flow_style=False, sort_keys=False, allow_unicode=True
+    ).encode("utf-8")
+    git.commit_files({f"forms/{name}.yaml": yaml_bytes}, f"Add form: {name}")
+    git.sync_worktree()
     click.echo(f"Created {path}")
 
 
@@ -245,6 +243,9 @@ def add(
 def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
     """Remove a form definition."""
     repo: Repository = obj["repo"]
+    git = repo.git
+    if git is None:
+        raise click.ClickException("form mutations require a git-backed repository")
     forms_tree = repo.tree() / "forms"
     path = repo.forms_dir / f"{name}.yaml"
     semantic_path = forms_tree / f"{name}.yaml"
@@ -272,12 +273,8 @@ def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
             click.echo(f"  ({len(referencing)} concept(s) still reference this form)")
         return
 
-    git = repo.git
-    if git is not None:
-        git.commit_deletes([f"forms/{name}.yaml"], f"Remove form: {name}")
-        git.sync_worktree()
-    else:
-        path.unlink()
+    git.commit_deletes([f"forms/{name}.yaml"], f"Remove form: {name}")
+    git.sync_worktree()
     click.echo(f"Removed {path}")
     if referencing:
         click.echo(f"  WARNING: {len(referencing)} concept(s) still reference this form")
