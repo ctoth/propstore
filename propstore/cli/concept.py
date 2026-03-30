@@ -123,6 +123,24 @@ def _require_local_source_path(source_path: KnowledgePath | None, *, label: str)
     return source_path.concrete_path()
 
 
+def _require_repo_relative_source_path(source_path: KnowledgePath | None, *, label: str) -> str:
+    if source_path is None:
+        raise click.ClickException(f"{label} does not have a source path")
+    relative_path = source_path.as_posix()
+    if not relative_path:
+        raise click.ClickException(f"{label} does not have a file path")
+    return relative_path
+
+
+def _require_repo_tree_path(
+    source_path: KnowledgePath | None,
+    repo: Repository,
+    *,
+    label: str,
+) -> Path:
+    return repo.root / Path(_require_repo_relative_source_path(source_path, label=label))
+
+
 # ── concept add ──────────────────────────────────────────────────────
 
 @concept.command()
@@ -320,8 +338,9 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     updated_concepts = []
     changed_concept_paths: set[Path] = set()
     for concept_record in loaded_concepts:
-        concept_path = _require_local_source_path(
+        concept_path = _require_repo_tree_path(
             concept_record.source_path,
+            repo,
             label=f"concept '{concept_record.filename}'",
         )
         concept_data = deepcopy(concept_record.data)
@@ -331,10 +350,13 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             changed_concept_paths.add(concept_path)
         if _rewrite_concept_conditions(concept_data, old_name, name):
             changed_concept_paths.add(concept_path)
+        source_path = concept_record.source_path
+        if source_path is None:
+            raise click.ClickException(f"concept '{concept_record.filename}' does not have a source path")
         updated_concepts.append(
             type(concept_record)(
                 filename=name if concept_path == filepath else concept_record.filename,
-                source_path=new_path if concept_path == filepath else concept_path,
+                source_path=(source_path.parent / f"{name}.yaml") if concept_path == filepath else source_path,
                 data=concept_data,
             )
         )
@@ -355,16 +377,20 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     changed_claim_paths: set[Path] = set()
     if claim_files:
         for claim_file in claim_files:
-            claim_path = _require_local_source_path(
+            claim_path = _require_repo_tree_path(
                 claim_file.source_path,
+                repo,
                 label=f"claim file '{claim_file.filename}'",
             )
             claim_data = deepcopy(claim_file.data)
             if _rewrite_claim_conditions(claim_data, old_name, name):
                 changed_claim_paths.add(claim_path)
+            source_path = claim_file.source_path
+            if source_path is None:
+                raise click.ClickException(f"claim file '{claim_file.filename}' does not have a source path")
             updated_claim_files.append(type(claim_file)(
                 filename=claim_file.filename,
-                source_path=claim_path,
+                source_path=source_path,
                 data=claim_data,
             ))
         concept_registry = {
@@ -384,30 +410,30 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         # Collect all changed files for atomic commit
         adds: dict[str | Path, bytes] = {}
         for concept_record in updated_concepts:
-            target_path = _require_local_source_path(
+            target_rel = _require_repo_relative_source_path(
                 concept_record.source_path,
                 label=f"concept '{concept_record.filename}'",
             )
+            target_path = repo.root / Path(target_rel)
             if target_path == new_path or target_path in changed_concept_paths:
                 yaml_bytes = yaml.dump(
                     concept_record.data, default_flow_style=False,
                     sort_keys=False, allow_unicode=True,
                 ).encode("utf-8")
-                rel = target_path.relative_to(repo.root).as_posix()
-                adds[rel] = yaml_bytes
+                adds[target_rel] = yaml_bytes
 
         for claim_file in updated_claim_files:
-            claim_path = _require_local_source_path(
+            claim_rel = _require_repo_relative_source_path(
                 claim_file.source_path,
                 label=f"claim file '{claim_file.filename}'",
             )
+            claim_path = repo.root / Path(claim_rel)
             if claim_path in changed_claim_paths:
                 yaml_bytes = yaml.dump(
                     claim_file.data, default_flow_style=False,
                     sort_keys=False, allow_unicode=True,
                 ).encode("utf-8")
-                rel = claim_path.relative_to(repo.root).as_posix()
-                adds[rel] = yaml_bytes
+                adds[claim_rel] = yaml_bytes
 
         old_rel = filepath.relative_to(repo.root).as_posix()
         git.commit_batch(
@@ -419,8 +445,9 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
     else:
         # Write the renamed concept to the new path first, then remove old
         for concept_record in updated_concepts:
-            target_path = _require_local_source_path(
+            target_path = _require_repo_tree_path(
                 concept_record.source_path,
+                repo,
                 label=f"concept '{concept_record.filename}'",
             )
             if target_path == new_path:
@@ -429,8 +456,9 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 write_concept_file(target_path, concept_record.data)
 
         for claim_file in updated_claim_files:
-            claim_path = _require_local_source_path(
+            claim_path = _require_repo_tree_path(
                 claim_file.source_path,
+                repo,
                 label=f"claim file '{claim_file.filename}'",
             )
             if claim_path in changed_claim_paths:

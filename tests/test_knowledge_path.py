@@ -81,7 +81,7 @@ def test_knowledge_path_parity_between_git_and_filesystem(tmp_path: Path) -> Non
     assert git_entries == fs_entries
 
 
-def test_repository_tree_uses_filesystem_or_git_snapshot(tmp_path: Path) -> None:
+def test_repository_tree_uses_git_head_for_git_backed_repos(tmp_path: Path) -> None:
     root = tmp_path / "knowledge"
     repo = KnowledgeRepo.init(root)
     repository = Repository(root)
@@ -95,10 +95,25 @@ def test_repository_tree_uses_filesystem_or_git_snapshot(tmp_path: Path) -> None
     live_tree = repository.tree()
     old_tree = repository.tree(commit=sha1)
 
-    assert isinstance(live_tree, FilesystemKnowledgePath)
+    assert isinstance(live_tree, GitKnowledgePath)
     assert isinstance(old_tree, GitKnowledgePath)
     assert (live_tree / "concepts" / "alpha.yaml").read_text() == "id: concept2\n"
     assert (old_tree / "concepts" / "alpha.yaml").read_text() == "id: concept1\n"
+
+
+def test_repository_tree_ignores_uncommitted_worktree_edits_for_git_backed_repos(tmp_path: Path) -> None:
+    root = tmp_path / "knowledge"
+    repo = KnowledgeRepo.init(root)
+    repository = Repository(root)
+
+    repo.commit_files({"concepts/alpha.yaml": b"id: concept1\n"}, "v1")
+    repo.sync_worktree()
+    (root / "concepts" / "alpha.yaml").write_text("id: concept999\n", encoding="utf-8")
+
+    live_tree = repository.tree()
+
+    assert isinstance(live_tree, GitKnowledgePath)
+    assert (live_tree / "concepts" / "alpha.yaml").read_text() == "id: concept1\n"
 
 
 def test_coerced_filesystem_path_preserves_parent_ancestry(tmp_path: Path) -> None:

@@ -68,11 +68,11 @@ class Repository:
 
     def tree(self, commit: str | None = None) -> KnowledgePath:
         """Return a read-only semantic tree rooted at this repository."""
-        if commit is None:
-            return FilesystemKnowledgePath(self._root)
-        if self.git is None:
+        if self.git is not None:
+            return GitKnowledgePath(self.git, commit=commit)
+        if commit is not None:
             raise ValueError("Repository.tree(commit=...) requires a git-backed repository")
-        return GitKnowledgePath(self.git, commit=commit)
+        return FilesystemKnowledgePath(self._root)
 
     @cached_property
     def git(self):
