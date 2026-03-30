@@ -736,9 +736,8 @@ class RenderPolicy:
     # Default False preserves legacy suppression behavior; True is the principled
     # non-commitment choice (render-time policy, not build-time filter).
     include_conflict_stances: bool = False
-    # IC merge fields (Konieczny & Pino Pérez 2002)
-    # merge_operator selects distance aggregation: sigma (majority), max
-    # (worst-case), or gmax (leximax refinement).
+    # IC merge fields for the assignment-level Konieczny-style adaptation.
+    # merge_operator selects the aggregation family used by the global solver.
     merge_operator: MergeOperator = MergeOperator.SIGMA
     # branch_filter restricts which branches are included as sources.
     branch_filter: tuple[str, ...] | None = None

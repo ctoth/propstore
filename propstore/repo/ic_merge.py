@@ -1,27 +1,22 @@
-"""Scalar adaptations of Konieczny 2002 aggregation operators.
+"""Assignment-level IC-merge for propstore, plus retained scalar adapters.
 
-Implements render-time aggregation kernels inspired by Konieczny & Pino Pérez
-2002. Each operator takes a profile mapping source IDs to scalar claim values
-and returns the winning value that minimizes aggregated distance.
+The primary production entrypoint is ``solve_ic_merge(problem)``, which solves
+one assignment-level merge problem over a declared concept domain subject to an
+integrity constraint ``mu``. Production resolution now routes through that
+global solver.
 
-- Sigma: minimizes sum of distances
-- Max: minimizes maximum distance
-- GMax: lexicographically compares sorted distance vectors
+This module also retains scalar helpers for legacy one-concept callers:
+
+- ``sigma_merge``: sum-distance kernel
+- ``max_merge``: worst-case-distance kernel
+- ``gmax_merge``: leximax refinement
+- ``scalar_profile_problem`` / ``ic_merge``: degenerate adapters into the
+  assignment-level surface
 
 Konieczny 2002 defines merging over propositional belief bases with
 min-over-models distance and an integrity constraint ``mu`` over models. This
 module preserves the aggregation families (sum/max/leximax) but adapts them to
-a scalar-value domain: numeric claims use absolute difference and categorical
-claims use Hamming distance (0/1).
-
-This module now provides:
-
-- scalar aggregation kernels for legacy one-concept callers
-- an assignment-level constrained solver for the adapted `mu` path
-
-The implementation still does not provide full propositional IC merging in the
-paper's sense. The current `mu` enforcement is an assignment-level adaptation
-over observed concept values, not a model-theoretic operator over belief bases.
+observed concept values rather than full belief-base model semantics.
 """
 from __future__ import annotations
 
@@ -73,7 +68,7 @@ def claim_distance(a: Any, b: Any) -> float:
 
 
 def sigma_merge(profile: dict[str, Any]) -> Any:
-    """Select the value minimizing sum distance to all profile values.
+    """Legacy one-concept Sigma kernel over a scalar profile.
 
     Per Konieczny 2002 claim13-15: d_Sigma(I, Psi) = sum d(I, phi).
 
@@ -397,7 +392,7 @@ def _score_assignment(
 
 
 def solve_ic_merge(problem: ICMergeProblem) -> ICMergeResult:
-    """Solve the constrained assignment-selection problem for one IC-merge instance."""
+    """Solve one assignment-level IC-merge problem over the declared concept domain."""
     candidates = enumerate_candidate_assignments(problem)
     admissible = tuple(
         candidate
@@ -443,7 +438,7 @@ def scalar_profile_problem(
     constraints: tuple[IntegrityConstraint, ...] = tuple(),
     concept_id: str = _SCALAR_CONCEPT_ID,
 ) -> ICMergeProblem:
-    """Lift a scalar profile into the assignment-level IC-merge abstraction."""
+    """Build the degenerate one-concept adapter problem for scalar callers."""
     return ICMergeProblem(
         concept_ids=(concept_id,),
         sources=tuple(
@@ -459,7 +454,7 @@ def scalar_profile_problem(
 
 
 def max_merge(profile: dict[str, Any]) -> Any:
-    """Select the value minimizing maximum distance to the profile values.
+    """Legacy one-concept Max kernel over a scalar profile.
 
     Per Konieczny 2002 claim17-18: d_Max(I, Psi) = max d(I, phi).
 
@@ -485,7 +480,7 @@ def max_merge(profile: dict[str, Any]) -> Any:
 
 
 def gmax_merge(profile: dict[str, Any]) -> Any:
-    """Lexicographically compare sorted distance vectors over profile values.
+    """Legacy one-concept GMax kernel over a scalar profile.
 
     Per Konieczny 2002 claim19-20: GMax refines Max.
 
@@ -517,13 +512,10 @@ def gmax_merge(profile: dict[str, Any]) -> Any:
 
 
 def ic_merge(profile: dict[str, Any], *, operator: str = "sigma") -> Any:
-    """Dispatch to the appropriate merge operator.
+    """Legacy one-concept adapter that dispatches to the scalar kernels.
 
     Default is the Sigma aggregation kernel (Konieczny 2002 claim15).
     """
-    # TODO: branch_weights from RenderPolicy not yet consumed.
-    # When implemented, weighted_sigma would use w_i * d(I, phi_i)
-    # per Konieczny 2002 weighted profile extension.
     dispatch = {
         "sigma": sigma_merge,
         "max": max_merge,

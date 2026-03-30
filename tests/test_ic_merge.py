@@ -1,9 +1,8 @@
-"""Tests for scalar IC-merge adaptation kernels and future integration points.
+"""Tests for global IC-merge and the retained scalar adapter kernels.
 
-These tests cover the scalar-distance kernels inspired by Konieczny & Pino Perez
-2002, their dispatcher, and RenderPolicy integration. They verify properties the
-current scalar adaptation really has, not the full model-theoretic IC0-IC8
-postulates from the paper.
+These tests treat assignment-level ``solve_ic_merge`` as the main production
+surface. The scalar-distance kernels remain only as degenerate one-concept
+adapters whose properties are still worth locking down.
 """
 from __future__ import annotations
 
@@ -15,6 +14,7 @@ from hypothesis import given, settings, assume, HealthCheck
 from hypothesis import strategies as st
 
 from propstore.cel_checker import ConceptInfo, KindType
+import propstore.repo as repo_api
 from propstore.repo.ic_merge import (
     MergeOperator,
     _eval_cel_constraint_bruteforce,
@@ -1169,3 +1169,19 @@ class TestRenderPolicyIntegration:
         restored = RenderPolicy.from_dict(policy.to_dict())
 
         assert restored.merge_operator == MergeOperator.GMAX
+
+
+class TestPublicApiHonesty:
+    def test_repo_public_api_exports_global_ic_merge_entrypoints(self):
+        assert repo_api.solve_ic_merge is solve_ic_merge
+        assert repo_api.scalar_profile_problem is scalar_profile_problem
+
+    def test_ic_merge_module_docs_point_to_global_solver(self):
+        module_doc = ic_merge_module.__doc__ or ""
+        adapter_doc = ic_merge_module.ic_merge.__doc__ or ""
+        scalar_problem_doc = ic_merge_module.scalar_profile_problem.__doc__ or ""
+
+        assert "solve_ic_merge" in module_doc
+        assert "legacy" in module_doc.lower()
+        assert "legacy" in adapter_doc.lower()
+        assert "adapter" in scalar_problem_doc.lower()
