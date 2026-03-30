@@ -653,7 +653,9 @@ def compute_attacks(
         Frozenset of all Attack instances.
     """
     cfn = system.contrariness
-    attacks: set[Attack] = set()
+    argument_list = tuple(arguments)
+    argument_index = {arg: idx for idx, arg in enumerate(argument_list)}
+    attack_keys: set[tuple[int, int, int, str]] = set()
 
     # Pre-compute sub-arguments and conclusion index so we can reason from
     # potentially attackable target literals to candidate attackers, instead
@@ -709,14 +711,24 @@ def compute_attacks(
 
     for kind, target, target_sub, target_lit in attack_points:
         for attacker in candidate_attackers.get(target_lit, frozenset()):
-            attacks.add(Attack(
-                attacker=attacker,
-                target=target,
-                target_sub=target_sub,
-                kind=kind,
-            ))
+            attack_keys.add(
+                (
+                    argument_index[attacker],
+                    argument_index[target],
+                    argument_index[target_sub],
+                    kind,
+                )
+            )
 
-    return frozenset(attacks)
+    return frozenset(
+        Attack(
+            attacker=argument_list[attacker_idx],
+            target=argument_list[target_idx],
+            target_sub=argument_list[target_sub_idx],
+            kind=kind,
+        )
+        for attacker_idx, target_idx, target_sub_idx, kind in attack_keys
+    )
 
 
 # ── Defeat determination ──────────────────────────────────────────
