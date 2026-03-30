@@ -105,6 +105,11 @@ Assessment:
 - this is the highest-signal bridge path to target first
 - it should either shrink or become explicitly transitional in docs/tests
 
+Code-check correction:
+
+- current repo inspection shows `inject_branch_stances(...)` is referenced by tests, not by obvious production callers
+- that makes it an important bridge seam, but not the highest-risk live dependency
+
 ### Structured summary contract
 
 - [structured_merge.py](C:/Users/Q/code/propstore/propstore/repo/structured_merge.py)
@@ -182,22 +187,35 @@ Assessment:
 
 ## Recommended Next Coding Target
 
-Target:
+Primary targets:
 
-- [branch_reasoning.py](C:/Users/Q/code/propstore/propstore/repo/branch_reasoning.py)
+- [merge_report.py](C:/Users/Q/code/propstore/propstore/repo/merge_report.py)
+- [structured_merge.py](C:/Users/Q/code/propstore/propstore/repo/structured_merge.py)
 
 Reason:
 
-- it is the clearest remaining bridge from formal merge semantics back into older contradiction-based consumers
-- it is small enough to tackle in a test-first slice
-- replacing or narrowing it will prove whether the merge object is truly authoritative in production paths
+- these are the clearest active canonical surfaces and still need tightening
+- `merge_report.py` proves what users actually see from the formal merge object
+- `structured_merge.py` is the largest still-under-specified semantic boundary
+
+Secondary target:
+
+- [branch_reasoning.py](C:/Users/Q/code/propstore/propstore/repo/branch_reasoning.py)
+
+Why second:
+
+- it is still bridge code
+- but current inspection suggests it is not the main live production dependency
+- it should be narrowed after the live consumer inventory confirms where stance-export is still needed
 
 Recommended RED tests first:
 
-1. consumers that still need stance export are explicitly identified
+1. active canonical merge query/report paths are explicitly identified
 2. no canonical merge query path depends on `inject_branch_stances(...)`
-3. ignorance remains non-nogood and non-stance-generating
-4. mutual attacks remain the only branch-nogood source
+3. structured-summary contract gaps are exposed by tests, especially provenance and identity stability
+4. bridge-specific invariants remain true:
+   - ignorance remains non-nogood and non-stance-generating
+   - mutual attacks remain the only branch-nogood source
 
 ---
 

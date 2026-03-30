@@ -95,13 +95,14 @@ Tasks:
    - bridge but acceptable temporarily
    - must be replaced
 3. remove or replace remaining legacy merge-bucket dependencies
-4. reduce `inject_branch_stances()`-style bridge behavior to the minimum necessary surface
+4. reduce `inject_branch_stances()`-style bridge behavior to the minimum necessary surface once canonical-consumer inventory proves where it is still needed
 5. add explicit tests proving canonical consumers operate on `RepoMergeFramework` / `PartialArgumentationFramework`
 
 Acceptance:
 
 - no user-facing merge semantics depend on claim-bucket public APIs
 - any remaining bridge path is documented as transitional
+- bridge cleanup is sequenced by actual production usage, not by aesthetics
 - merge kernel tests and direct-consumer tests are green
 
 ---
@@ -262,15 +263,18 @@ If any of the three disagree, coding should wait until they are reconciled.
 
 The first coding slice after this preparation pass should be:
 
-1. audit-driven tests for remaining bridge/legacy merge consumers
-2. then the smallest replacement/removal of the highest-risk bridge path
+1. audit-driven tests identifying every live production consumer of merge outputs
+2. tighten the highest-value canonical path if the audit shows it is still underspecified
+3. only then narrow or remove bridge helpers that are not authoritative
 
-Recommended first target:
+Recommended first targets:
 
-- `propstore/repo/branch_reasoning.py`
+- `propstore/repo/merge_report.py`
+- `propstore/repo/structured_merge.py`
+- `propstore/repo/branch_reasoning.py` only after the consumer inventory confirms what still depends on it
 
 Why:
 
-- it is explicitly bridge code
-- it still translates merge semantics back into synthetic contradiction stances
-- it is the clearest place to prove the canonical merge object is actually authoritative
+- `merge_report.py` and the CLI/report path are active canonical surfaces
+- `structured_merge.py` is the largest still-under-specified semantic boundary
+- `branch_reasoning.py` is still important bridge code, but current inspection shows it is not the primary live production dependency
