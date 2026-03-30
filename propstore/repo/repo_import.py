@@ -3,9 +3,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from propstore.cli.repository import Repository
 from propstore.repo.branch import branch_head, create_branch
+
+if TYPE_CHECKING:
+    from propstore.cli.repository import Repository
 
 
 SEMANTIC_ROOT_DIRS = (
@@ -77,6 +80,7 @@ def plan_repo_import(
     target_branch: str | None = None,
 ) -> RepoImportPlan:
     """Plan a committed-snapshot import from a source repo into a destination repo."""
+    from propstore.cli.repository import Repository
 
     if destination_repo.git is None:
         raise ValueError("Destination repository must be git-backed")

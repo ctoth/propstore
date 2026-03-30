@@ -256,3 +256,11 @@ def test_import_repo_cli_can_target_master_and_sync_worktree(tmp_path):
     assert (destination.root / "claims" / "source.yaml").read_bytes() == (
         b"claims:\n- id: imported\n"
     )
+
+
+def test_import_repo_does_not_break_top_level_propstore_repo_import():
+    from propstore import repo as repo_module
+
+    assert repo_module is not None
+    assert hasattr(repo_module, "plan_repo_import")
+    assert hasattr(repo_module, "commit_repo_import")
