@@ -1,8 +1,8 @@
-"""Tests for global IC-merge and the retained scalar adapter kernels.
+"""Tests for global IC-merge and test-local one-concept oracle kernels.
 
 These tests treat assignment-level ``solve_ic_merge`` as the main production
-surface. The scalar-distance kernels remain only as degenerate one-concept
-adapters whose properties are still worth locking down.
+surface. The one-concept scalar kernels live in this test module only as
+oracles for degenerate reductions and operator properties.
 """
 from __future__ import annotations
 
@@ -19,11 +19,6 @@ from propstore.repo.ic_merge import (
     MergeOperator,
     _eval_cel_constraint_bruteforce,
     _eval_cel_constraint_z3,
-    _gmax_merge,
-    _max_merge,
-    _scalar_ic_merge,
-    _scalar_profile_problem,
-    _sigma_merge,
     assignment_satisfies_mu,
     enumerate_candidate_assignments,
     claim_distance,
@@ -79,6 +74,107 @@ def _numeric_cel_registry(*concept_ids: str) -> dict[str, ConceptInfo]:
         )
         for concept_id in concept_ids
     }
+
+
+def _unique_values(profile: dict[str, object]) -> list[object]:
+    result: list[object] = []
+    for value in profile.values():
+        if not any(existing == value for existing in result):
+            result.append(value)
+    return result
+
+
+def _sigma_merge(profile: dict[str, object]) -> object:
+    candidates = list(profile.values())
+    best_value = None
+    best_score = float("inf")
+    for candidate in candidates:
+        score = sum(claim_distance(candidate, value) for value in candidates)
+        if score < best_score:
+            best_score = score
+            best_value = candidate
+        elif score == best_score and best_value is not None:
+            try:
+                if float(candidate) < float(best_value):
+                    best_value = candidate
+            except (ValueError, TypeError):
+                if str(candidate) < str(best_value):
+                    best_value = candidate
+    return best_value
+
+
+def _max_merge(profile: dict[str, object]) -> object:
+    unique = _unique_values(profile)
+    best_value = None
+    best_score = float("inf")
+    for candidate in unique:
+        score = max(claim_distance(candidate, value) for value in unique)
+        if score < best_score:
+            best_score = score
+            best_value = candidate
+        elif score == best_score and best_value is not None:
+            try:
+                if float(candidate) < float(best_value):
+                    best_value = candidate
+            except (ValueError, TypeError):
+                if str(candidate) < str(best_value):
+                    best_value = candidate
+    return best_value
+
+
+def _gmax_merge(profile: dict[str, object]) -> object:
+    unique = _unique_values(profile)
+    best_value = None
+    best_vector: list[float] | None = None
+    for candidate in unique:
+        distances = sorted(
+            [claim_distance(candidate, value) for value in unique],
+            reverse=True,
+        )
+        if best_vector is None or distances < best_vector:
+            best_vector = distances
+            best_value = candidate
+        elif distances == best_vector and best_value is not None:
+            try:
+                if float(candidate) < float(best_value):
+                    best_value = candidate
+            except (ValueError, TypeError):
+                if str(candidate) < str(best_value):
+                    best_value = candidate
+    return best_value
+
+
+def _scalar_ic_merge(profile: dict[str, object], *, operator: str = "sigma") -> object:
+    dispatch = {
+        "sigma": _sigma_merge,
+        "max": _max_merge,
+        "gmax": _gmax_merge,
+    }
+    fn = dispatch.get(operator)
+    if fn is None:
+        raise ValueError(f"Unknown merge operator: {operator}")
+    return fn(profile)
+
+
+def _scalar_profile_problem(
+    profile: dict[str, object],
+    *,
+    operator: MergeOperator | str = MergeOperator.SIGMA,
+    constraints: tuple[IntegrityConstraint, ...] = tuple(),
+    concept_id: str = "__value__",
+) -> ICMergeProblem:
+    return ICMergeProblem(
+        concept_ids=(concept_id,),
+        sources=tuple(
+            MergeSource(
+                source_id=str(source_id),
+                assignment=MergeAssignment(values={concept_id: value}),
+            )
+            for source_id, value in profile.items()
+        ),
+        constraints=constraints,
+        operator=operator,
+    )
 
 # ── Group 1: MergeOperator Enum and Distance Function ──────────────
 
@@ -1182,10 +1278,9 @@ class TestPublicApiHonesty:
 
     def test_ic_merge_module_docs_point_to_global_solver(self):
         module_doc = ic_merge_module.__doc__ or ""
-        adapter_doc = ic_merge_module._scalar_ic_merge.__doc__ or ""
-        scalar_problem_doc = ic_merge_module._scalar_profile_problem.__doc__ or ""
 
         assert "solve_ic_merge" in module_doc
-        assert "primary production entrypoint" in module_doc.lower()
-        assert "one-concept adapter" in adapter_doc.lower()
-        assert "adapter" in scalar_problem_doc.lower()
+        assert "assignment-level" in module_doc.lower()
+        assert "scalar helper" not in module_doc.lower()
+        assert not hasattr(ic_merge_module, "_scalar_ic_merge")
+        assert not hasattr(ic_merge_module, "_scalar_profile_problem")

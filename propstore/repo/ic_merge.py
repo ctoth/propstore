@@ -1,17 +1,9 @@
-"""Assignment-level IC-merge for propstore, plus scalar helper kernels.
+"""Assignment-level IC-merge for propstore.
 
 The primary production entrypoint is ``solve_ic_merge(problem)``, which solves
 one assignment-level merge problem over a declared concept domain subject to an
-integrity constraint ``mu``. Production resolution now routes through that
+integrity constraint ``mu``. Production resolution routes through that
 global solver.
-
-This module also keeps internal scalar helpers for one-concept kernels:
-
-- ``_sigma_merge``: sum-distance kernel
-- ``_max_merge``: worst-case-distance kernel
-- ``_gmax_merge``: leximax refinement
-- ``_scalar_profile_problem`` / ``_scalar_ic_merge``: degenerate adapters into the
-  assignment-level surface
 
 Konieczny 2002 defines merging over propositional belief bases with
 min-over-models distance and an integrity constraint ``mu`` over models. This
@@ -49,9 +41,6 @@ from propstore.world.types import (
 )
 
 
-_SCALAR_CONCEPT_ID = "__value__"
-
-
 def claim_distance(a: Any, b: Any) -> float:
     """Distance between two claim values.
 
@@ -65,49 +54,6 @@ def claim_distance(a: Any, b: Any) -> float:
         return abs(float(a) - float(b))
     except (ValueError, TypeError):
         return 0.0 if a == b else 1.0
-
-
-def _sigma_merge(profile: dict[str, Any]) -> Any:
-    """One-concept Sigma kernel over a scalar profile.
-
-    Per Konieczny 2002 claim13-15: d_Sigma(I, Psi) = sum d(I, phi).
-
-    Candidates are drawn from the profile values themselves (discrete selection,
-    no interpolation). The majority value wins because it has the lowest total
-    distance when counted with multiplicity.
-    """
-    candidates = list(profile.values())
-    best_value = None
-    best_score = float("inf")
-    for candidate in candidates:
-        score = sum(claim_distance(candidate, v) for v in candidates)
-        if score < best_score:
-            best_score = score
-            best_value = candidate
-        elif score == best_score and best_value is not None:
-            # Stable tie-breaking: pick the smaller value for IC3 syntax independence.
-            # Ensures result depends only on the multi-set of values, not key order.
-            try:
-                if float(candidate) < float(best_value):
-                    best_value = candidate
-            except (ValueError, TypeError):
-                if str(candidate) < str(best_value):
-                    best_value = candidate
-    return best_value
-
-
-def _unique_values(profile: dict[str, Any]) -> list[Any]:
-    """Deduplicate profile values, preserving order of first occurrence.
-
-    Max and GMax satisfy the Arb property (Konieczny 2002 claim18-19):
-    duplicating a source must not change the result. This requires computing
-    distances against unique values only, so multiplicity is ignored.
-    """
-    result: list[Any] = []
-    for v in profile.values():
-        if not any(existing == v for existing in result):
-            result.append(v)
-    return result
 
 
 def _unique_sources(sources: tuple[MergeSource, ...]) -> tuple[MergeSource, ...]:
@@ -429,99 +375,3 @@ def solve_ic_merge(problem: ICMergeProblem) -> ICMergeResult:
         admissible_count=len(admissible),
         total_candidate_count=len(candidates),
     )
-
-
-def _scalar_profile_problem(
-    profile: Mapping[str, Any],
-    *,
-    operator: MergeOperator | str = MergeOperator.SIGMA,
-    constraints: tuple[IntegrityConstraint, ...] = tuple(),
-    concept_id: str = _SCALAR_CONCEPT_ID,
-) -> ICMergeProblem:
-    """Build the degenerate one-concept adapter problem for scalar callers."""
-    return ICMergeProblem(
-        concept_ids=(concept_id,),
-        sources=tuple(
-            MergeSource(
-                source_id=str(source_id),
-                assignment=MergeAssignment(values={concept_id: value}),
-            )
-            for source_id, value in profile.items()
-        ),
-        constraints=constraints,
-        operator=normalize_merge_operator(operator),
-    )
-
-
-def _max_merge(profile: dict[str, Any]) -> Any:
-    """One-concept Max kernel over a scalar profile.
-
-    Per Konieczny 2002 claim17-18: d_Max(I, Psi) = max d(I, phi).
-
-    Uses deduplicated values for both candidates and distance targets,
-    ensuring the Arb property (insensitivity to source multiplicity).
-    """
-    unique = _unique_values(profile)
-    best_value = None
-    best_score = float("inf")
-    for candidate in unique:
-        score = max(claim_distance(candidate, v) for v in unique)
-        if score < best_score:
-            best_score = score
-            best_value = candidate
-        elif score == best_score and best_value is not None:
-            try:
-                if float(candidate) < float(best_value):
-                    best_value = candidate
-            except (ValueError, TypeError):
-                if str(candidate) < str(best_value):
-                    best_value = candidate
-    return best_value
-
-
-def _gmax_merge(profile: dict[str, Any]) -> Any:
-    """One-concept GMax kernel over a scalar profile.
-
-    Per Konieczny 2002 claim19-20: GMax refines Max.
-
-    Uses deduplicated values for both candidates and distance targets,
-    ensuring the Arb property (insensitivity to source multiplicity).
-    For each candidate, compute its distance to every unique value, sort
-    descending, then pick the candidate with the lexicographically smallest
-    sorted vector.
-    """
-    unique = _unique_values(profile)
-    best_value = None
-    best_vector: list[float] | None = None
-    for candidate in unique:
-        distances = sorted(
-            [claim_distance(candidate, v) for v in unique],
-            reverse=True,
-        )
-        if best_vector is None or distances < best_vector:
-            best_vector = distances
-            best_value = candidate
-        elif distances == best_vector and best_value is not None:
-            try:
-                if float(candidate) < float(best_value):
-                    best_value = candidate
-            except (ValueError, TypeError):
-                if str(candidate) < str(best_value):
-                    best_value = candidate
-    return best_value
-
-
-def _scalar_ic_merge(profile: dict[str, Any], *, operator: str = "sigma") -> Any:
-    """One-concept adapter that dispatches to the scalar kernels.
-
-    Default is the Sigma aggregation kernel (Konieczny 2002 claim15).
-    """
-    dispatch = {
-        "sigma": _sigma_merge,
-        "max": _max_merge,
-        "gmax": _gmax_merge,
-    }
-    fn = dispatch.get(operator)
-    if fn is None:
-        raise ValueError(f"Unknown merge operator: {operator}")
-    return fn(profile)
