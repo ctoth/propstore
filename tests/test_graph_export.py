@@ -7,7 +7,7 @@ import yaml
 
 from propstore.build_sidecar import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
-from propstore.validate import load_concepts
+from propstore.tree_reader import FilesystemReader
 from propstore.world import WorldModel
 
 
@@ -150,7 +150,7 @@ def repo(concept_dir):
 @pytest.fixture
 def claim_files(concept_dir):
     """Create claim files with known conditions for binding tests."""
-    claims_dir = concept_dir / "claims_data"
+    claims_dir = concept_dir.parent / "claims"
     claims_dir.mkdir(exist_ok=True)
 
     alpha = {
@@ -288,10 +288,8 @@ def claim_files(concept_dir):
 @pytest.fixture
 def world(concept_dir, repo, claim_files):
     """Build sidecar and return a WorldModel."""
-    concepts = load_concepts(concept_dir)
-    concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
-    build_sidecar(concepts, repo.sidecar_path, claim_files=claim_files,
-                  concept_registry=concept_registry, repo=repo)
+    reader = FilesystemReader(concept_dir.parent)
+    build_sidecar(reader, repo.sidecar_path)
     return WorldModel(repo)
 
 

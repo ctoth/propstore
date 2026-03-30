@@ -5,9 +5,7 @@ import yaml
 
 from propstore.argumentation import compute_claim_graph_justified_claims
 from propstore.build_sidecar import build_sidecar
-from propstore.cli.repository import Repository
-from propstore.validate import load_concepts
-from propstore.validate_claims import load_claim_files
+from propstore.tree_reader import FilesystemReader
 from propstore.world import ResolutionStrategy, WorldModel, resolve
 from propstore.world.value_resolver import ActiveClaimResolver
 
@@ -41,21 +39,11 @@ def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> Worl
             yaml.dump(claim_doc, default_flow_style=False)
         )
 
+    from propstore.cli.repository import Repository
+
+    reader = FilesystemReader(root)
     repo = Repository(root)
-    loaded_concepts = load_concepts(repo.concepts_dir)
-    loaded_claims = load_claim_files(repo.claims_dir)
-    concept_registry = {
-        concept.data["id"]: concept.data
-        for concept in loaded_concepts
-        if concept.data.get("id")
-    }
-    build_sidecar(
-        loaded_concepts,
-        repo.sidecar_path,
-        claim_files=loaded_claims,
-        concept_registry=concept_registry,
-        repo=repo,
-    )
+    build_sidecar(reader, repo.sidecar_path)
     return WorldModel(repo)
 
 

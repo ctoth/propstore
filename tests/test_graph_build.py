@@ -7,8 +7,7 @@ import pytest
 import yaml
 
 from propstore.build_sidecar import build_sidecar
-from propstore.validate import load_concepts
-from propstore.validate_claims import load_claim_files
+from propstore.tree_reader import FilesystemReader
 from propstore.world import WorldModel
 
 
@@ -145,10 +144,9 @@ def graph_build_world(tmp_path):
 
     from propstore.cli.repository import Repository
 
+    reader = FilesystemReader(knowledge)
     repo = Repository(knowledge)
-    concepts = load_concepts(repo.concepts_dir)
-    claim_files = load_claim_files(repo.claims_dir)
-    build_sidecar(concepts, repo.sidecar_path, claim_files=claim_files, repo=repo)
+    build_sidecar(reader, repo.sidecar_path)
     return WorldModel(repo)
 
 
