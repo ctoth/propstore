@@ -45,18 +45,25 @@ def commit_source_concept_proposal(
     definition: str,
     form: str,
 ) -> str:
+    from propstore.source_ops import _master_concept_match
+
     branch = f"source/{source_name}"
     existing = _load_yaml(repo, branch, "concepts.yaml") or {"concepts": []}
     concepts = list(existing.get("concepts", []))
     concepts = [entry for entry in concepts if not (isinstance(entry, dict) and entry.get("local_name") == local_name)]
+    registry_match = _master_concept_match(repo, local_name)
+    concept_entry = {
+        "local_name": local_name,
+        "proposed_name": local_name,
+        "definition": definition,
+        "form": form,
+        "aliases": [],
+        "status": "linked" if registry_match is not None else "proposed",
+    }
+    if registry_match is not None:
+        concept_entry["registry_match"] = registry_match
     concepts.append(
-        {
-            "local_name": local_name,
-            "proposed_name": local_name,
-            "definition": definition,
-            "form": form,
-            "aliases": [],
-        }
+        concept_entry
     )
     doc = {"concepts": concepts}
     return repo.git.commit_batch(

@@ -12,7 +12,12 @@ from typing import Any
 import yaml
 
 from propstore.cli.repository import Repository
-from propstore.identity import compute_claim_version_id, derive_claim_artifact_id, normalize_logical_value
+from propstore.identity import (
+    compute_claim_version_id,
+    derive_claim_artifact_id,
+    format_logical_id,
+    normalize_logical_value,
+)
 from propstore.repo.branch import branch_head, create_branch
 
 
@@ -72,6 +77,63 @@ def initial_source_document(
 def _write_yaml(repo: Repository, *, branch: str, relpath: str, data: dict[str, Any], message: str) -> str:
     payload = yaml.safe_dump(data, sort_keys=False, allow_unicode=True).encode("utf-8")
     return repo.git.commit_batch(adds={relpath: payload}, deletes=[], message=message, branch=branch)
+
+
+def _load_yaml_from_branch(repo: Repository, branch: str, relpath: str) -> dict[str, Any] | None:
+    tip = branch_head(repo.git, branch)
+    if tip is None:
+        return None
+    try:
+        return yaml.safe_load(repo.git.read_file(relpath, commit=tip)) or {}
+    except FileNotFoundError:
+        return None
+
+
+def _load_master_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
+    from propstore.validate import load_concepts
+
+    master_tip = branch_head(repo.git, "master")
+    if master_tip is None:
+        return {}, {}
+
+    tree = repo.tree(commit=master_tip)
+    concepts_root = tree / "concepts"
+    if not concepts_root.exists():
+        return {}, {}
+
+    concepts_by_artifact: dict[str, dict[str, Any]] = {}
+    handle_to_artifact: dict[str, str] = {}
+    for entry in load_concepts(concepts_root):
+        concept = dict(entry.data)
+        artifact_id = concept.get("artifact_id")
+        if not isinstance(artifact_id, str) or not artifact_id:
+            continue
+        concepts_by_artifact[artifact_id] = concept
+        canonical_name = concept.get("canonical_name")
+        if isinstance(canonical_name, str) and canonical_name:
+            handle_to_artifact[canonical_name] = artifact_id
+        for alias in concept.get("aliases") or []:
+            if not isinstance(alias, dict):
+                continue
+            alias_name = alias.get("name")
+            if isinstance(alias_name, str) and alias_name:
+                handle_to_artifact.setdefault(alias_name, artifact_id)
+    return concepts_by_artifact, handle_to_artifact
+
+
+def _master_concept_match(repo: Repository, handle: str) -> dict[str, str] | None:
+    concepts_by_artifact, handle_to_artifact = _load_master_concepts(repo)
+    artifact_id = handle_to_artifact.get(handle)
+    if artifact_id is None:
+        return None
+    concept = concepts_by_artifact[artifact_id]
+    canonical_name = concept.get("canonical_name")
+    if not isinstance(canonical_name, str) or not canonical_name:
+        return None
+    return {
+        "artifact_id": artifact_id,
+        "canonical_name": canonical_name,
+    }
 
 
 def init_source_branch(
@@ -166,6 +228,61 @@ def _stable_claim_logical_value(claim: dict[str, Any], *, source_uri: str) -> st
     return f"claim_{digest}"
 
 
+def _source_concept_handles(repo: Repository, name: str) -> set[str]:
+    concepts_doc = _load_yaml_from_branch(repo, source_branch_name(name), "concepts.yaml") or {}
+    handles: set[str] = set()
+    for entry in concepts_doc.get("concepts", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        for key in ("local_name", "proposed_name"):
+            value = entry.get(key)
+            if isinstance(value, str) and value:
+                handles.add(value)
+    return handles
+
+
+def _iter_claim_concept_refs(claim: dict[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for field in ("concept", "target_concept"):
+        value = claim.get(field)
+        if isinstance(value, str):
+            refs.append(value)
+    concepts = claim.get("concepts")
+    if isinstance(concepts, list):
+        refs.extend(value for value in concepts if isinstance(value, str))
+    variables = claim.get("variables")
+    if isinstance(variables, list):
+        for entry in variables:
+            if isinstance(entry, dict):
+                value = entry.get("concept")
+                if isinstance(value, str):
+                    refs.append(value)
+    parameters = claim.get("parameters")
+    if isinstance(parameters, list):
+        for entry in parameters:
+            if isinstance(entry, dict):
+                value = entry.get("concept")
+                if isinstance(value, str):
+                    refs.append(value)
+    return refs
+
+
+def _validate_source_claim_concepts(repo: Repository, name: str, data: dict[str, Any]) -> None:
+    known_handles = _source_concept_handles(repo, name)
+    unknown: set[str] = set()
+    for claim in data.get("claims", []) or []:
+        if not isinstance(claim, dict):
+            continue
+        for concept_ref in _iter_claim_concept_refs(claim):
+            if concept_ref.startswith("ps:concept:") or concept_ref.startswith("tag:"):
+                continue
+            if concept_ref not in known_handles:
+                unknown.add(concept_ref)
+    if unknown:
+        formatted = ", ".join(sorted(unknown))
+        raise ValueError(f"unknown concept reference(s): {formatted}")
+
+
 def normalize_source_claims_payload(
     data: dict[str, Any],
     *,
@@ -185,10 +302,14 @@ def normalize_source_claims_payload(
         raw_id = normalized.get("id")
         stable_value = _stable_claim_logical_value(normalized, source_uri=source_uri)
         normalized["id"] = stable_value
+        logical_ids = [{"namespace": namespace, "value": stable_value}]
         if isinstance(raw_id, str) and raw_id:
             normalized["source_local_id"] = raw_id
             local_to_canonical[raw_id] = stable_value
-        normalized["logical_ids"] = [{"namespace": namespace, "value": stable_value}]
+            local_value = normalize_logical_value(raw_id)
+            if local_value != stable_value:
+                logical_ids.append({"namespace": namespace, "value": local_value})
+        normalized["logical_ids"] = logical_ids
         normalized["artifact_id"] = derive_claim_artifact_id(namespace, stable_value)
         normalized["version_id"] = compute_claim_version_id(normalized)
         normalized_claims.append(normalized)
@@ -197,10 +318,67 @@ def normalize_source_claims_payload(
     return normalized_data, local_to_canonical
 
 
+def _load_source_claim_index(repo: Repository, name: str) -> tuple[dict[str, str], dict[str, str], set[str]]:
+    claims_doc = _load_yaml_from_branch(repo, source_branch_name(name), "claims.yaml") or {}
+    local_to_artifact: dict[str, str] = {}
+    logical_to_artifact: dict[str, str] = {}
+    artifact_ids: set[str] = set()
+    for claim in claims_doc.get("claims", []) or []:
+        if not isinstance(claim, dict):
+            continue
+        artifact_id = claim.get("artifact_id")
+        if not isinstance(artifact_id, str) or not artifact_id:
+            continue
+        artifact_ids.add(artifact_id)
+        local_id = claim.get("source_local_id")
+        if isinstance(local_id, str) and local_id:
+            local_to_artifact[local_id] = artifact_id
+        for logical_id in claim.get("logical_ids") or []:
+            if not isinstance(logical_id, dict):
+                continue
+            formatted = format_logical_id(logical_id)
+            if formatted:
+                logical_to_artifact[formatted] = artifact_id
+    return local_to_artifact, logical_to_artifact, artifact_ids
+
+
+def _load_master_claim_index(repo: Repository) -> tuple[dict[str, str], set[str]]:
+    from propstore.validate_claims import load_claim_files
+
+    master_tip = branch_head(repo.git, "master")
+    if master_tip is None:
+        return {}, set()
+
+    tree = repo.tree(commit=master_tip)
+    claims_root = tree / "claims"
+    if not claims_root.exists():
+        return {}, set()
+
+    logical_to_artifact: dict[str, str] = {}
+    artifact_ids: set[str] = set()
+    for claim_file in load_claim_files(claims_root):
+        for claim in claim_file.data.get("claims", []) or []:
+            if not isinstance(claim, dict):
+                continue
+            artifact_id = claim.get("artifact_id")
+            if not isinstance(artifact_id, str) or not artifact_id:
+                continue
+            artifact_ids.add(artifact_id)
+            for logical_id in claim.get("logical_ids") or []:
+                if not isinstance(logical_id, dict):
+                    continue
+                formatted = format_logical_id(logical_id)
+                if formatted:
+                    logical_to_artifact[formatted] = artifact_id
+    return logical_to_artifact, artifact_ids
+
+
 def commit_source_claims_batch(repo: Repository, name: str, claims_file: Path) -> str:
     source_doc = load_source_document(repo, name)
+    raw = yaml.safe_load(claims_file.read_text(encoding="utf-8")) or {}
+    _validate_source_claim_concepts(repo, name, raw)
     normalized, _ = normalize_source_claims_payload(
-        yaml.safe_load(claims_file.read_text(encoding="utf-8")) or {},
+        raw,
         source_uri=str(source_doc.get("id") or source_tag_uri(name)),
         source_namespace=_normalize_slug(name),
     )
@@ -213,20 +391,121 @@ def commit_source_claims_batch(repo: Repository, name: str, claims_file: Path) -
     )
 
 
+def _resolve_local_claim_reference(reference: object, local_to_artifact: dict[str, str]) -> str:
+    if not isinstance(reference, str) or not reference:
+        raise ValueError("claim reference must be a non-empty string")
+    if reference.startswith("ps:claim:"):
+        return reference
+    artifact_id = local_to_artifact.get(reference)
+    if artifact_id is None:
+        raise ValueError(f"unresolved local claim reference: {reference}")
+    return artifact_id
+
+
+def normalize_source_justifications_payload(
+    data: dict[str, Any],
+    *,
+    local_to_artifact: dict[str, str],
+) -> dict[str, Any]:
+    normalized_data = dict(data)
+    normalized_justifications: list[Any] = []
+    for justification in data.get("justifications", []) or []:
+        if not isinstance(justification, dict):
+            normalized_justifications.append(justification)
+            continue
+        normalized = copy.deepcopy(justification)
+        normalized["conclusion"] = _resolve_local_claim_reference(
+            normalized.get("conclusion"),
+            local_to_artifact,
+        )
+        premises = normalized.get("premises") or []
+        if not isinstance(premises, list):
+            raise ValueError("justification premises must be a list")
+        normalized["premises"] = [
+            _resolve_local_claim_reference(premise, local_to_artifact)
+            for premise in premises
+        ]
+        attack_target = normalized.get("attack_target")
+        if isinstance(attack_target, dict) and isinstance(attack_target.get("target_claim"), str):
+            updated_target = dict(attack_target)
+            updated_target["target_claim"] = _resolve_local_claim_reference(
+                updated_target["target_claim"],
+                local_to_artifact,
+            )
+            normalized["attack_target"] = updated_target
+        normalized_justifications.append(normalized)
+    normalized_data["justifications"] = normalized_justifications
+    return normalized_data
+
+
+def commit_source_justifications_batch(repo: Repository, name: str, justifications_file: Path) -> str:
+    local_to_artifact, _logical_to_artifact, _artifact_ids = _load_source_claim_index(repo, name)
+    normalized = normalize_source_justifications_payload(
+        yaml.safe_load(justifications_file.read_text(encoding="utf-8")) or {},
+        local_to_artifact=local_to_artifact,
+    )
+    return commit_source_file(
+        repo,
+        name,
+        relpath="justifications.yaml",
+        content=yaml.safe_dump(normalized, sort_keys=False, allow_unicode=True).encode("utf-8"),
+        message=f"Write justifications for {_normalize_slug(name)}",
+    )
+
+
+def normalize_source_stances_payload(
+    data: dict[str, Any],
+    *,
+    local_to_artifact: dict[str, str],
+) -> dict[str, Any]:
+    normalized_data = dict(data)
+    normalized_stances: list[Any] = []
+    for stance in data.get("stances", []) or []:
+        if not isinstance(stance, dict):
+            normalized_stances.append(stance)
+            continue
+        normalized = copy.deepcopy(stance)
+        normalized["source_claim"] = _resolve_local_claim_reference(
+            normalized.get("source_claim"),
+            local_to_artifact,
+        )
+        target = normalized.get("target")
+        if isinstance(target, str) and target in local_to_artifact:
+            normalized["target"] = local_to_artifact[target]
+        normalized_stances.append(normalized)
+    normalized_data["stances"] = normalized_stances
+    return normalized_data
+
+
+def commit_source_stances_batch(repo: Repository, name: str, stances_file: Path) -> str:
+    local_to_artifact, _logical_to_artifact, _artifact_ids = _load_source_claim_index(repo, name)
+    normalized = normalize_source_stances_payload(
+        yaml.safe_load(stances_file.read_text(encoding="utf-8")) or {},
+        local_to_artifact=local_to_artifact,
+    )
+    return commit_source_file(
+        repo,
+        name,
+        relpath="stances.yaml",
+        content=yaml.safe_dump(normalized, sort_keys=False, allow_unicode=True).encode("utf-8"),
+        message=f"Write stances for {_normalize_slug(name)}",
+    )
+
+
 def _load_branch_yaml(repo: Repository, name: str, relpath: str) -> dict[str, Any] | None:
-    branch = source_branch_name(name)
-    tip = branch_head(repo.git, branch)
-    if tip is None:
-        raise ValueError(f"Source branch {branch!r} does not exist")
-    try:
-        return yaml.safe_load(repo.git.read_file(relpath, commit=tip)) or {}
-    except FileNotFoundError:
-        return None
+    return _load_yaml_from_branch(repo, source_branch_name(name), relpath)
 
 
 def finalize_source_branch(repo: Repository, name: str) -> str:
     source_doc = load_source_document(repo, name)
     claims_doc = _load_branch_yaml(repo, name, "claims.yaml") or {}
+    justifications_doc = _load_branch_yaml(repo, name, "justifications.yaml") or {}
+    stances_doc = _load_branch_yaml(repo, name, "stances.yaml") or {}
+    concepts_doc = _load_branch_yaml(repo, name, "concepts.yaml") or {}
+
+    local_to_artifact, logical_to_artifact, local_artifact_ids = _load_source_claim_index(repo, name)
+    master_logical_to_artifact, master_artifact_ids = _load_master_claim_index(repo)
+
     claims = claims_doc.get("claims", []) if isinstance(claims_doc, dict) else []
     claim_errors: list[str] = []
     for claim in claims:
@@ -234,19 +513,64 @@ def finalize_source_branch(repo: Repository, name: str) -> str:
             continue
         if not isinstance(claim.get("artifact_id"), str):
             claim_errors.append(str(claim.get("id") or "?"))
+
+    justification_errors: list[str] = []
+    for justification in justifications_doc.get("justifications", []) or []:
+        if not isinstance(justification, dict):
+            continue
+        conclusion = justification.get("conclusion")
+        if not isinstance(conclusion, str) or conclusion not in local_artifact_ids:
+            justification_errors.append(str(conclusion))
+        for premise in justification.get("premises") or []:
+            if not isinstance(premise, str) or premise not in local_artifact_ids:
+                justification_errors.append(str(premise))
+
+    stance_errors: list[str] = []
+    for stance in stances_doc.get("stances", []) or []:
+        if not isinstance(stance, dict):
+            continue
+        source_claim = stance.get("source_claim")
+        if not isinstance(source_claim, str) or source_claim not in local_artifact_ids:
+            stance_errors.append(str(source_claim))
+        target = stance.get("target")
+        if not isinstance(target, str) or not target:
+            stance_errors.append(str(target))
+            continue
+        if target in local_artifact_ids or target in master_artifact_ids:
+            continue
+        if target in logical_to_artifact or target in master_logical_to_artifact:
+            continue
+        stance_errors.append(target)
+
+    concept_alignment_candidates = sorted(
+        {
+            f"align:{_normalize_slug(str(entry.get('proposed_name') or entry.get('local_name') or 'concept'))}"
+            for entry in concepts_doc.get("concepts", []) or []
+            if isinstance(entry, dict) and not isinstance(entry.get("registry_match"), dict)
+        }
+    )
+
+    trust = source_doc.get("trust") if isinstance(source_doc.get("trust"), dict) else {}
+    derived_from = trust.get("derived_from") if isinstance(trust.get("derived_from"), list) else []
+    covered = bool(derived_from)
     report = {
         "kind": "source_finalize_report",
         "source": str(source_doc.get("id") or source_tag_uri(name)),
-        "status": "ready" if not claim_errors else "blocked",
-        "claim_reference_errors": claim_errors,
-        "stance_reference_errors": [],
-        "concept_alignment_candidates": [],
+        "status": (
+            "ready"
+            if not claim_errors and not justification_errors and not stance_errors
+            else "blocked"
+        ),
+        "claim_reference_errors": sorted(claim_errors),
+        "justification_reference_errors": sorted(justification_errors),
+        "stance_reference_errors": sorted(stance_errors),
+        "concept_alignment_candidates": concept_alignment_candidates,
         "parameterization_group_merges": [],
         "artifact_code_status": "complete" if not claim_errors else "incomplete",
         "calibration": {
-            "prior_base_rate_status": "fallback",
+            "prior_base_rate_status": "covered" if covered else "fallback",
             "source_quality_status": "vacuous",
-            "fallback_to_default_base_rate": True,
+            "fallback_to_default_base_rate": not covered,
         },
     }
     return commit_source_file(
@@ -256,3 +580,152 @@ def finalize_source_branch(repo: Repository, name: str) -> str:
         content=yaml.safe_dump(report, sort_keys=False, allow_unicode=True).encode("utf-8"),
         message=f"Finalize {_normalize_slug(name)}",
     )
+
+
+def _rewrite_claim_concept_refs(claim: dict[str, Any], concept_map: dict[str, str], *, unresolved: set[str]) -> dict[str, Any]:
+    normalized = copy.deepcopy(claim)
+
+    def _resolve(value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        if value.startswith("ps:concept:") or value.startswith("tag:"):
+            return value
+        resolved = concept_map.get(value)
+        if resolved is None:
+            unresolved.add(value)
+            return value
+        return resolved
+
+    for field in ("concept", "target_concept"):
+        if field in normalized:
+            normalized[field] = _resolve(normalized.get(field))
+    if isinstance(normalized.get("concepts"), list):
+        normalized["concepts"] = [_resolve(value) for value in normalized["concepts"]]
+    if isinstance(normalized.get("variables"), list):
+        for variable in normalized["variables"]:
+            if isinstance(variable, dict):
+                variable["concept"] = _resolve(variable.get("concept"))
+    if isinstance(normalized.get("parameters"), list):
+        for parameter in normalized["parameters"]:
+            if isinstance(parameter, dict):
+                parameter["concept"] = _resolve(parameter.get("concept"))
+    normalized["version_id"] = compute_claim_version_id(normalized)
+    return normalized
+
+
+def _resolve_source_concept_promotions(repo: Repository, name: str) -> dict[str, str]:
+    concepts_doc = _load_branch_yaml(repo, name, "concepts.yaml") or {}
+    _concepts_by_artifact, handle_to_artifact = _load_master_concepts(repo)
+    mapping: dict[str, str] = {}
+    for entry in concepts_doc.get("concepts", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        registry_match = entry.get("registry_match")
+        if isinstance(registry_match, dict):
+            artifact_id = registry_match.get("artifact_id")
+            if isinstance(artifact_id, str) and artifact_id:
+                for key in ("local_name", "proposed_name"):
+                    handle = entry.get(key)
+                    if isinstance(handle, str) and handle:
+                        mapping[handle] = artifact_id
+                continue
+        for key in ("local_name", "proposed_name"):
+            handle = entry.get(key)
+            if isinstance(handle, str) and handle in handle_to_artifact:
+                mapping[handle] = handle_to_artifact[handle]
+    return mapping
+
+
+def _load_finalize_report(repo: Repository, name: str) -> dict[str, Any] | None:
+    return _load_branch_yaml(repo, name, f"merge/finalize/{_normalize_slug(name)}.yaml")
+
+
+def promote_source_branch(repo: Repository, name: str) -> str:
+    report = _load_finalize_report(repo, name)
+    if not isinstance(report, dict) or report.get("status") != "ready":
+        raise ValueError(f"Source {name!r} must be finalized successfully before promotion")
+
+    slug = _normalize_slug(name)
+    source_doc = load_source_document(repo, name)
+    claims_doc = _load_branch_yaml(repo, name, "claims.yaml") or {}
+    justifications_doc = _load_branch_yaml(repo, name, "justifications.yaml") or {}
+    stances_doc = _load_branch_yaml(repo, name, "stances.yaml") or {}
+    concept_map = _resolve_source_concept_promotions(repo, name)
+    unresolved_concepts: set[str] = set()
+
+    promoted_claims = [
+        _rewrite_claim_concept_refs(claim, concept_map, unresolved=unresolved_concepts)
+        if isinstance(claim, dict)
+        else claim
+        for claim in claims_doc.get("claims", []) or []
+    ]
+    if unresolved_concepts:
+        formatted = ", ".join(sorted(unresolved_concepts))
+        raise ValueError(f"Cannot promote source {name!r}; unresolved concept mappings: {formatted}")
+
+    local_to_artifact, logical_to_artifact, _local_artifact_ids = _load_source_claim_index(repo, name)
+    master_logical_to_artifact, master_artifact_ids = _load_master_claim_index(repo)
+
+    promoted_stance_files: dict[str, bytes] = {}
+    stances_by_source: dict[str, list[dict[str, Any]]] = {}
+    for stance in stances_doc.get("stances", []) or []:
+        if not isinstance(stance, dict):
+            continue
+        source_claim = stance.get("source_claim")
+        if not isinstance(source_claim, str) or not source_claim:
+            raise ValueError("stance source_claim must be normalized before promotion")
+        target = stance.get("target")
+        if not isinstance(target, str) or not target:
+            raise ValueError("stance target must be a non-empty string")
+        if target in local_to_artifact:
+            target = local_to_artifact[target]
+        elif target in logical_to_artifact:
+            target = logical_to_artifact[target]
+        elif target in master_logical_to_artifact:
+            target = master_logical_to_artifact[target]
+        elif target not in master_artifact_ids and not target.startswith("ps:claim:"):
+            raise ValueError(f"Unresolved promoted stance target: {target}")
+        normalized = copy.deepcopy(stance)
+        normalized["target"] = target
+        stances_by_source.setdefault(source_claim, []).append(normalized)
+
+    for source_claim, entries in stances_by_source.items():
+        file_name = source_claim.replace(":", "__") + ".yaml"
+        payload = {
+            "source_claim": source_claim,
+            "stances": entries,
+        }
+        promoted_stance_files[f"stances/{file_name}"] = yaml.safe_dump(
+            payload,
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8")
+
+    adds = {
+        f"sources/{slug}.yaml": yaml.safe_dump(source_doc, sort_keys=False, allow_unicode=True).encode("utf-8"),
+        f"claims/{slug}.yaml": yaml.safe_dump(
+            {
+                "source": claims_doc.get("source") or {"paper": slug},
+                "claims": promoted_claims,
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8"),
+    }
+
+    if justifications_doc.get("justifications"):
+        adds[f"justifications/{slug}.yaml"] = yaml.safe_dump(
+            justifications_doc,
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8")
+    adds.update(promoted_stance_files)
+
+    sha = repo.git.commit_batch(
+        adds=adds,
+        deletes=[],
+        message=f"Promote source {slug}",
+        branch="master",
+    )
+    repo.git.sync_worktree()
+    return sha

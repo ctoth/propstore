@@ -10,10 +10,13 @@ from propstore.cli.repository import Repository
 from propstore.concept_alignment import commit_source_concept_proposal
 from propstore.source_ops import (
     commit_source_claims_batch,
+    commit_source_justifications_batch,
     commit_source_metadata,
     commit_source_notes,
+    commit_source_stances_batch,
     finalize_source_branch,
     init_source_branch,
+    promote_source_branch,
     source_branch_name,
 )
 
@@ -97,8 +100,37 @@ def propose_concept(
 @click.pass_obj
 def add_claim(obj: dict, name: str, batch_file: Path) -> None:
     repo: Repository = obj["repo"]
-    commit_source_claims_batch(repo, name, batch_file)
+    try:
+        commit_source_claims_batch(repo, name, batch_file)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
     click.echo(f"Wrote claims to {source_branch_name(name)}")
+
+
+@source.command("add-justification")
+@click.argument("name")
+@click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.pass_obj
+def add_justification(obj: dict, name: str, batch_file: Path) -> None:
+    repo: Repository = obj["repo"]
+    try:
+        commit_source_justifications_batch(repo, name, batch_file)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"Wrote justifications to {source_branch_name(name)}")
+
+
+@source.command("add-stance")
+@click.argument("name")
+@click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.pass_obj
+def add_stance(obj: dict, name: str, batch_file: Path) -> None:
+    repo: Repository = obj["repo"]
+    try:
+        commit_source_stances_batch(repo, name, batch_file)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"Wrote stances to {source_branch_name(name)}")
 
 
 @source.command("finalize")
@@ -106,5 +138,20 @@ def add_claim(obj: dict, name: str, batch_file: Path) -> None:
 @click.pass_obj
 def finalize(obj: dict, name: str) -> None:
     repo: Repository = obj["repo"]
-    finalize_source_branch(repo, name)
+    try:
+        finalize_source_branch(repo, name)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
     click.echo(f"Finalized {source_branch_name(name)}")
+
+
+@source.command("promote")
+@click.argument("name")
+@click.pass_obj
+def promote(obj: dict, name: str) -> None:
+    repo: Repository = obj["repo"]
+    try:
+        promote_source_branch(repo, name)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"Promoted {source_branch_name(name)} to master")

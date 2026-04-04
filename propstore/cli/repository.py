@@ -54,6 +54,14 @@ class Repository:
         return self._root / "stances"
 
     @property
+    def justifications_dir(self) -> Path:
+        return self._root / "justifications"
+
+    @property
+    def sources_dir(self) -> Path:
+        return self._root / "sources"
+
+    @property
     def worldlines_dir(self) -> Path:
         return self._root / "worldlines"
 
@@ -123,7 +131,9 @@ class Repository:
             root / "claims",
             root / "contexts",
             root / "forms",
+            root / "justifications",
             root / "sidecar",
+            root / "sources",
             root / "stances",
             root / "worldlines",
         ]

@@ -1,0 +1,733 @@
+from __future__ import annotations
+
+import hashlib
+import shutil
+from pathlib import Path
+
+import sqlite3
+
+import pytest
+import yaml
+from click.testing import CliRunner
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
+
+from propstore.build_sidecar import build_sidecar
+from propstore.cli import cli
+from propstore.cli.repository import Repository
+from tests.conftest import normalize_concept_payloads
+
+
+def _init_source(runner: CliRunner, repo: Repository, name: str) -> None:
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            name,
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            name,
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+
+def _seed_master_concept(repo: Repository, *, name: str, form: str = "structural") -> str:
+    concept = normalize_concept_payloads(
+        [
+            {
+                "id": name,
+                "canonical_name": name,
+                "status": "accepted",
+                "definition": f"{name} definition",
+                "domain": "source",
+                "form": form,
+            }
+        ],
+        default_domain="source",
+    )[0]
+    repo.git.commit_batch(
+        adds={
+            f"concepts/{name}.yaml": yaml.safe_dump(
+                concept,
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
+        deletes=[],
+        message=f"Seed concept {name}",
+        branch="master",
+    )
+    return str(concept["artifact_id"])
+
+
+def test_source_add_claim_rejects_unknown_concept_reference(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _init_source(runner, repo, "demo")
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "claims_identical",
+                        "value": 1.0,
+                        "unit": "probability",
+                        "provenance": {"page": 1},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "unknown concept reference" in result.output
+
+
+def test_source_add_justification_batch_rewrites_local_claim_ids(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_master_concept(repo, name="claims_identical")
+    _init_source(runner, repo, "demo")
+
+    propose = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "claims_identical",
+            "--definition",
+            "A weak identity relation.",
+            "--form",
+            "structural",
+        ],
+    )
+    assert propose.exit_code == 0, propose.output
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "statement": "A first claim.",
+                        "concepts": ["claims_identical"],
+                        "provenance": {"page": 1},
+                    },
+                    {
+                        "id": "claim2",
+                        "type": "observation",
+                        "statement": "A second claim.",
+                        "concepts": ["claims_identical"],
+                        "provenance": {"page": 2},
+                    },
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    add_claims = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+    assert add_claims.exit_code == 0, add_claims.output
+
+    justifications_file = tmp_path / "justifications.yaml"
+    justifications_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "justifications": [
+                    {
+                        "id": "just1",
+                        "conclusion": "claim2",
+                        "premises": ["claim1"],
+                        "rule_kind": "empirical_support",
+                        "provenance": {"page": 3},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-justification",
+            "demo",
+            "--batch",
+            str(justifications_file),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    stored_claims = yaml.safe_load(repo.git.read_file("claims.yaml", commit=branch_tip))
+    stored_justifications = yaml.safe_load(repo.git.read_file("justifications.yaml", commit=branch_tip))
+    claim_ids = {claim["source_local_id"]: claim["artifact_id"] for claim in stored_claims["claims"]}
+    justification = stored_justifications["justifications"][0]
+    assert justification["conclusion"] == claim_ids["claim2"]
+    assert justification["premises"] == [claim_ids["claim1"]]
+
+
+def test_source_add_stance_batch_rewrites_local_targets_and_preserves_cross_source_refs(
+    tmp_path: Path,
+) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_master_concept(repo, name="claims_identical")
+    _init_source(runner, repo, "demo")
+
+    propose = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "claims_identical",
+            "--definition",
+            "A weak identity relation.",
+            "--form",
+            "structural",
+        ],
+    )
+    assert propose.exit_code == 0, propose.output
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "statement": "A first claim.",
+                        "concepts": ["claims_identical"],
+                        "provenance": {"page": 1},
+                    },
+                    {
+                        "id": "claim2",
+                        "type": "observation",
+                        "statement": "A second claim.",
+                        "concepts": ["claims_identical"],
+                        "provenance": {"page": 2},
+                    },
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    add_claims = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+    assert add_claims.exit_code == 0, add_claims.output
+
+    stances_file = tmp_path / "stances.yaml"
+    stances_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "stances": [
+                    {
+                        "source_claim": "claim1",
+                        "type": "supports",
+                        "target": "claim2",
+                        "note": "Local support edge.",
+                    },
+                    {
+                        "source_claim": "claim2",
+                        "type": "rebuts",
+                        "target": "other_source:claim9",
+                        "note": "Cross-source disagreement.",
+                    },
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-stance",
+            "demo",
+            "--batch",
+            str(stances_file),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    stored_claims = yaml.safe_load(repo.git.read_file("claims.yaml", commit=branch_tip))
+    stored_stances = yaml.safe_load(repo.git.read_file("stances.yaml", commit=branch_tip))
+    claim_ids = {claim["source_local_id"]: claim["artifact_id"] for claim in stored_claims["claims"]}
+    first, second = stored_stances["stances"]
+    assert first["source_claim"] == claim_ids["claim1"]
+    assert first["target"] == claim_ids["claim2"]
+    assert second["source_claim"] == claim_ids["claim2"]
+    assert second["target"] == "other_source:claim9"
+
+
+def test_source_finalize_blocks_on_unresolved_cross_source_stance_target(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_master_concept(repo, name="claims_identical")
+    _init_source(runner, repo, "demo")
+
+    runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "claims_identical",
+            "--definition",
+            "A weak identity relation.",
+            "--form",
+            "structural",
+        ],
+    )
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "statement": "A first claim.",
+                        "concepts": ["claims_identical"],
+                        "provenance": {"page": 1},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+
+    stances_file = tmp_path / "stances.yaml"
+    stances_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "stances": [
+                    {
+                        "source_claim": "claim1",
+                        "type": "rebuts",
+                        "target": "missing_source:claim404",
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-stance",
+            "demo",
+            "--batch",
+            str(stances_file),
+        ],
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "finalize",
+            "demo",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
+    assert report["status"] == "blocked"
+    assert report["stance_reference_errors"] == ["missing_source:claim404"]
+
+
+@given(
+    source_local_ids=st.lists(
+        st.text(
+            alphabet="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+            min_size=1,
+            max_size=8,
+        ),
+        min_size=2,
+        max_size=4,
+        unique=True,
+    )
+)
+@settings(
+    max_examples=20,
+    deadline=None,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
+def test_source_add_justification_rewrites_all_local_references(source_local_ids: list[str], tmp_path: Path) -> None:
+    case_key = hashlib.sha1("|".join(source_local_ids).encode("utf-8")).hexdigest()[:12]
+    repo_root = tmp_path / case_key / "knowledge"
+    if repo_root.exists():
+        shutil.rmtree(repo_root)
+    repo = Repository.init(repo_root)
+    runner = CliRunner()
+    _seed_master_concept(repo, name="claims_identical")
+    _init_source(runner, repo, "demo")
+    propose = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "claims_identical",
+            "--definition",
+            "A weak identity relation.",
+            "--form",
+            "structural",
+        ],
+    )
+    assert propose.exit_code == 0, propose.output
+
+    claims_file = tmp_path / "claims.yaml"
+    claims = [
+        {
+            "id": local_id,
+            "type": "observation",
+            "statement": f"claim {index}",
+            "concepts": ["claims_identical"],
+            "provenance": {"page": index + 1},
+        }
+        for index, local_id in enumerate(source_local_ids)
+    ]
+    claims_file.write_text(
+        yaml.safe_dump({"source": {"paper": "demo"}, "claims": claims}, sort_keys=False),
+        encoding="utf-8",
+    )
+    add_claims = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+    assert add_claims.exit_code == 0, add_claims.output
+
+    justifications_file = tmp_path / "justifications.yaml"
+    justifications_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "justifications": [
+                    {
+                        "id": "just1",
+                        "conclusion": source_local_ids[-1],
+                        "premises": source_local_ids[:-1],
+                        "rule_kind": "empirical_support",
+                        "provenance": {"page": 9},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-justification",
+            "demo",
+            "--batch",
+            str(justifications_file),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    stored = yaml.safe_load(repo.git.read_file("justifications.yaml", commit=branch_tip))
+    refs = [stored["justifications"][0]["conclusion"], *stored["justifications"][0]["premises"]]
+    assert all(ref not in source_local_ids for ref in refs)
+    assert all(ref.startswith("ps:claim:") for ref in refs)
+
+
+def test_source_promote_writes_master_claims_stances_sources_and_justifications(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    canonical_concept_id = _seed_master_concept(repo, name="claims_identical")
+    _init_source(runner, repo, "demo")
+
+    propose = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "claims_identical",
+            "--definition",
+            "A weak identity relation.",
+            "--form",
+            "structural",
+        ],
+    )
+    assert propose.exit_code == 0, propose.output
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "claims_identical",
+                        "value": 1.0,
+                        "unit": "probability",
+                        "provenance": {"page": 1},
+                    },
+                    {
+                        "id": "claim2",
+                        "type": "observation",
+                        "statement": "A second claim.",
+                        "concepts": ["claims_identical"],
+                        "provenance": {"page": 2},
+                    },
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    add_claims = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+    assert add_claims.exit_code == 0, add_claims.output
+
+    justifications_file = tmp_path / "justifications.yaml"
+    justifications_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "justifications": [
+                    {
+                        "id": "just1",
+                        "conclusion": "claim2",
+                        "premises": ["claim1"],
+                        "rule_kind": "empirical_support",
+                        "provenance": {"page": 3},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    add_justifications = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-justification",
+            "demo",
+            "--batch",
+            str(justifications_file),
+        ],
+    )
+    assert add_justifications.exit_code == 0, add_justifications.output
+
+    stances_file = tmp_path / "stances.yaml"
+    stances_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "stances": [
+                    {
+                        "source_claim": "claim1",
+                        "type": "supports",
+                        "target": "claim2",
+                        "note": "Local support edge.",
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    add_stances = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-stance",
+            "demo",
+            "--batch",
+            str(stances_file),
+        ],
+    )
+    assert add_stances.exit_code == 0, add_stances.output
+
+    finalize = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "finalize",
+            "demo",
+        ],
+    )
+    assert finalize.exit_code == 0, finalize.output
+
+    promote = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "promote",
+            "demo",
+        ],
+    )
+    assert promote.exit_code == 0, promote.output
+
+    claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
+    promoted_claims = claims_doc["claims"]
+    parameter_claim = next(claim for claim in promoted_claims if claim["type"] == "parameter")
+    observation_claim = next(claim for claim in promoted_claims if claim["type"] == "observation")
+    assert parameter_claim["concept"] == canonical_concept_id
+    assert observation_claim["concepts"] == [canonical_concept_id]
+
+    source_claim_id = parameter_claim["artifact_id"]
+    stance_file_name = source_claim_id.replace(":", "__") + ".yaml"
+    stance_doc = yaml.safe_load(repo.git.read_file(f"stances/{stance_file_name}"))
+    assert stance_doc["source_claim"] == source_claim_id
+    assert stance_doc["stances"][0]["target"] == observation_claim["artifact_id"]
+
+    justification_doc = yaml.safe_load(repo.git.read_file("justifications/demo.yaml"))
+    assert justification_doc["justifications"][0]["conclusion"] == observation_claim["artifact_id"]
+    assert justification_doc["justifications"][0]["premises"] == [parameter_claim["artifact_id"]]
+
+    source_doc = yaml.safe_load(repo.git.read_file("sources/demo.yaml"))
+    assert source_doc["id"].startswith("tag:")
+
+    build_sidecar(repo.tree(), repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    conn = sqlite3.connect(repo.sidecar_path)
+    try:
+        justification_ids = {
+            row[0]
+            for row in conn.execute("SELECT id FROM justification").fetchall()
+        }
+    finally:
+        conn.close()
+    assert "just1" in justification_ids

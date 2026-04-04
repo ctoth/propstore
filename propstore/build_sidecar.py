@@ -35,6 +35,7 @@ from propstore.stances import VALID_STANCE_TYPES
 from propstore.loaded import LoadedEntry
 from propstore.validate import load_concepts
 from propstore.validate_claims import load_claim_files
+from propstore.identity import format_logical_id, primary_logical_id
 from ast_equiv import canonical_dump
 
 if TYPE_CHECKING:
@@ -101,7 +102,7 @@ def _content_hash(knowledge_root: KnowledgePath) -> str:
     """
     h = hashlib.sha256()
     h.update(_SEMANTIC_INPUT_VERSION.encode())
-    for subdir in ("concepts", "claims", "contexts", "forms", "stances"):
+    for subdir in ("concepts", "claims", "contexts", "forms", "justifications", "stances"):
         subtree = knowledge_root / subdir
         if not subtree.exists():
             continue
@@ -124,6 +125,9 @@ def _concept_content_hash(data: dict) -> str:
 
     Identity fields: canonical_name, domain, definition.
     """
+    version_id = data.get("version_id")
+    if isinstance(version_id, str) and version_id:
+        return version_id.removeprefix("sha256:")[:16]
     h = hashlib.sha256()
     h.update((data.get("canonical_name", "")).encode())
     h.update((data.get("domain", "")).encode())
@@ -131,39 +135,30 @@ def _concept_content_hash(data: dict) -> str:
     return h.hexdigest()[:16]
 
 
-def _claim_content_hash(claim: dict, source_paper: str) -> str:
-    """Compute a deterministic content hash for a claim.
+def _concept_artifact_id(concept: dict) -> str | None:
+    artifact_id = concept.get("artifact_id")
+    if isinstance(artifact_id, str) and artifact_id:
+        return artifact_id
+    return None
 
-    Identity fields: type, concept/target_concept, value, conditions (sorted),
-    source paper, expression (for equations), statement (for observations).
-    """
-    h = hashlib.sha256()
-    h.update((claim.get("type", "")).encode())
-    concept_ref = claim.get("concept") or claim.get("target_concept") or ""
-    h.update(str(concept_ref).encode())
 
-    # Value — normalize to string
-    value = claim.get("value")
-    if value is not None:
-        h.update(str(value).encode())
-    for bound_field in ("lower_bound", "upper_bound"):
-        bv = claim.get(bound_field)
-        if bv is not None:
-            h.update(f"{bound_field}:{bv}".encode())
+def _concept_primary_logical_id(concept: dict) -> str | None:
+    return primary_logical_id(concept)
 
-    # Conditions — sorted for determinism
-    conditions = claim.get("conditions") or []
-    for c in sorted(conditions):
-        h.update(c.encode())
 
-    # Type-specific identity fields
-    h.update((claim.get("expression", "")).encode())
-    h.update((claim.get("statement", "")).encode())
-    h.update((claim.get("name", "")).encode())
-    h.update((claim.get("measure", "")).encode())
-    h.update(source_paper.encode())
+def _concept_version_id(concept: dict) -> str | None:
+    version_id = concept.get("version_id")
+    if isinstance(version_id, str) and version_id:
+        return version_id
+    return None
 
-    return h.hexdigest()[:16]
+
+def _claim_version_id(claim: dict) -> str | None:
+    """Return the claim version ID from canonical claim storage data."""
+    version_id = claim.get("version_id")
+    if isinstance(version_id, str) and version_id:
+        return version_id
+    return None
 
 
 def _populate_stances_from_files(
@@ -247,6 +242,76 @@ def _populate_stances_from_files(
     return count
 
 
+def _populate_authored_justifications_from_files(
+    conn: sqlite3.Connection,
+    justifications_root: KnowledgePath,
+) -> int:
+    """Read authored justification YAML files and insert them into the sidecar."""
+    if not justifications_root.exists():
+        return 0
+
+    justification_entries = [
+        (entry.stem, yaml.safe_load(entry.read_bytes()) or {})
+        for entry in justifications_root.iterdir()
+        if entry.is_file() and entry.suffix == ".yaml"
+    ]
+    if not justification_entries:
+        return 0
+
+    valid_claims = {row[0] for row in conn.execute("SELECT id FROM claim_core").fetchall()}
+    count = 0
+    for fname, data in justification_entries:
+        justifications = data.get("justifications", [])
+        if not isinstance(justifications, list):
+            raise ValueError(f"justification file {fname} has non-list 'justifications'")
+
+        for index, justification in enumerate(justifications, start=1):
+            if not isinstance(justification, dict):
+                raise ValueError(f"justification file {fname} entry #{index} must be a mapping")
+            justification_id = justification.get("id")
+            conclusion = justification.get("conclusion")
+            premises = justification.get("premises") or []
+            if not isinstance(justification_id, str) or not justification_id:
+                raise ValueError(f"justification file {fname} entry #{index} missing id")
+            if not isinstance(conclusion, str) or conclusion not in valid_claims:
+                raise sqlite3.IntegrityError(
+                    f"justification file {fname} entry #{index} references nonexistent conclusion '{conclusion}'"
+                )
+            if not isinstance(premises, list):
+                raise ValueError(f"justification file {fname} entry #{index} premises must be a list")
+            if any(not isinstance(premise, str) or premise not in valid_claims for premise in premises):
+                raise sqlite3.IntegrityError(
+                    f"justification file {fname} entry #{index} references nonexistent premise"
+                )
+
+            provenance = justification.get("provenance")
+            attack_target = justification.get("attack_target")
+            provenance_payload: dict[str, object] = {}
+            if isinstance(provenance, dict):
+                provenance_payload.update(provenance)
+            if isinstance(attack_target, dict):
+                provenance_payload["attack_target"] = attack_target
+
+            conn.execute(
+                "INSERT OR IGNORE INTO justification "
+                "(id, justification_kind, conclusion_claim_id, premise_claim_ids, "
+                "source_relation_type, source_claim_id, provenance_json, rule_strength) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    justification_id,
+                    str(justification.get("rule_kind") or "reported_claim"),
+                    conclusion,
+                    json.dumps(premises),
+                    None,
+                    None,
+                    json.dumps(provenance_payload) if provenance_payload else None,
+                    str(justification.get("rule_strength") or "defeasible"),
+                ),
+            )
+            count += 1
+    return count
+
+
 
 def build_sidecar(
     knowledge_root: KnowledgePath,
@@ -295,7 +360,7 @@ def build_sidecar(
     # Build concept registry for claim processing
     concept_registry: dict[str, dict] = {}
     for c in concepts:
-        cid = c.data.get("id")
+        cid = _concept_artifact_id(c.data)
         if cid:
             enriched = dict(c.data)
             form_name = enriched.get("form")
@@ -310,6 +375,12 @@ def build_sidecar(
             cname = enriched.get("canonical_name")
             if cname:
                 concept_registry[cname] = enriched
+            for logical_id in enriched.get("logical_ids", []) or []:
+                if not isinstance(logical_id, dict):
+                    continue
+                formatted = format_logical_id(logical_id)
+                if formatted:
+                    concept_registry[formatted] = enriched
             for alias in enriched.get("aliases", []) or []:
                 aname = alias.get("name")
                 if aname:
@@ -352,8 +423,8 @@ def build_sidecar(
         _populate_forms(conn, form_registry)
         _populate_concepts(conn, concepts, form_registry)
         _populate_aliases(conn, concepts)
-        _populate_relationships(conn, concepts)
-        _populate_parameterizations(conn, concepts)
+        _populate_relationships(conn, concepts, concept_registry)
+        _populate_parameterizations(conn, concepts, concept_registry)
         _populate_parameterization_groups(conn, concepts)
         _populate_form_algebra(conn, concepts, form_registry)
         _build_fts_index(conn, concepts)
@@ -390,6 +461,7 @@ def build_sidecar(
         # Populate stances from stance files
         if claim_files is not None:
             _populate_stances_from_files(conn, knowledge_root / "stances")
+            _populate_authored_justifications_from_files(conn, knowledge_root / "justifications")
             _populate_justifications(conn)
 
         conn.commit()
@@ -410,6 +482,9 @@ def _create_tables(conn: sqlite3.Connection):
     conn.executescript("""
         CREATE TABLE concept (
             id TEXT PRIMARY KEY,
+            primary_logical_id TEXT NOT NULL,
+            logical_ids_json TEXT NOT NULL,
+            version_id TEXT NOT NULL,
             content_hash TEXT NOT NULL,
             seq INTEGER NOT NULL,
             canonical_name TEXT NOT NULL,
@@ -510,6 +585,7 @@ def _create_tables(conn: sqlite3.Connection):
 
         CREATE INDEX idx_alias_name ON alias(alias_name);
         CREATE INDEX idx_alias_concept ON alias(concept_id);
+        CREATE INDEX idx_concept_primary_logical_id ON concept(primary_logical_id);
         CREATE INDEX idx_rel_source ON relationship(source_id);
         CREATE INDEX idx_rel_target ON relationship(target_id);
         CREATE INDEX idx_relation_edge_source ON relation_edge(source_kind, source_id);
@@ -534,10 +610,10 @@ def _populate_form_algebra(
     if not form_registry:
         return
 
-    # Build concept_id → (form_name, concept data) lookup
+    # Build concept artifact_id → form_name lookup
     id_to_form: dict[str, str] = {}
     for c in concepts:
-        cid = c.data.get("id")
+        cid = _concept_artifact_id(c.data)
         form_name = c.data.get("form")
         if cid and form_name:
             id_to_form[cid] = form_name
@@ -546,7 +622,7 @@ def _populate_form_algebra(
     seen: set[tuple] = set()
 
     for c in concepts:
-        cid = c.data.get("id")
+        cid = _concept_artifact_id(c.data)
         if not cid:
             continue
         output_form = id_to_form.get(cid)
@@ -672,12 +748,14 @@ def _populate_concepts(
         unit_symbol = form_def.unit_symbol if form_def is not None else None
 
         conn.execute(
-            "INSERT INTO concept (id, content_hash, seq, canonical_name, status, domain, definition, "
+            "INSERT INTO concept (id, primary_logical_id, logical_ids_json, version_id, content_hash, seq, canonical_name, status, domain, definition, "
             "kind_type, form, form_parameters, range_min, range_max, "
             "is_dimensionless, unit_symbol, "
             "created_date, last_modified) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (d.get("id"), content_hash, seq, d.get("canonical_name"), d.get("status"),
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (_concept_artifact_id(d), _concept_primary_logical_id(d),
+             json.dumps(d.get("logical_ids") or []), _concept_version_id(d),
+             content_hash, seq, d.get("canonical_name"), d.get("status"),
              d.get("domain"), d.get("definition"),
              form_def.kind.value if form_def is not None else kind_value_from_form_name(d.get("form")),
              d.get("form", ""), form_params_json, range_min, range_max,
@@ -689,7 +767,7 @@ def _populate_concepts(
 def _populate_aliases(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
     for c in concepts:
         d = c.data
-        cid = d.get("id")
+        cid = _concept_artifact_id(d)
         for alias in d.get("aliases", []) or []:
             conn.execute(
                 "INSERT INTO alias (concept_id, alias_name, source) VALUES (?, ?, ?)",
@@ -697,35 +775,50 @@ def _populate_aliases(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
             )
 
 
-def _populate_relationships(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
+def _populate_relationships(
+    conn: sqlite3.Connection,
+    concepts: list[LoadedEntry],
+    concept_registry: dict[str, dict],
+):
     for c in concepts:
         d = c.data
-        source_id = d.get("id")
+        source_id = _concept_artifact_id(d)
         for rel in d.get("relationships", []) or []:
             conditions = rel.get("conditions", []) or []
             conditions_json = json.dumps(conditions) if conditions else None
+            target_id = _resolve_concept_reference(rel.get("target"), concept_registry)
             conn.execute(
                 "INSERT INTO relationship (source_id, type, target_id, conditions_cel, note) VALUES (?, ?, ?, ?, ?)",
-                (source_id, rel.get("type"), rel.get("target"),
+                (source_id, rel.get("type"), target_id,
                  conditions_json, rel.get("note")),
             )
             conn.execute(
                 "INSERT INTO relation_edge (source_kind, source_id, relation_type, target_kind, target_id, conditions_cel, note) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                ("concept", source_id, rel.get("type"), "concept", rel.get("target"), conditions_json, rel.get("note")),
+                ("concept", source_id, rel.get("type"), "concept", target_id, conditions_json, rel.get("note")),
             )
 
 
-def _populate_parameterizations(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
+def _populate_parameterizations(
+    conn: sqlite3.Connection,
+    concepts: list[LoadedEntry],
+    concept_registry: dict[str, dict],
+):
     for c in concepts:
         d = c.data
         for param in d.get("parameterization_relationships", []) or []:
-            inputs = param.get("inputs", [])
+            raw_inputs = param.get("inputs", [])
+            inputs = [
+                _resolve_concept_reference(input_id, concept_registry)
+                if isinstance(input_id, str)
+                else input_id
+                for input_id in raw_inputs
+            ]
             conditions = param.get("conditions", []) or []
             conn.execute(
                 "INSERT INTO parameterization (output_concept_id, concept_ids, formula, sympy, exactness, conditions_cel) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
-                (d["id"], json.dumps(inputs), param.get("formula"), param.get("sympy"),
+                (_concept_artifact_id(d), json.dumps(inputs), param.get("formula"), param.get("sympy"),
                  param.get("exactness"),
                  json.dumps(conditions) if conditions else None),
             )
@@ -733,11 +826,13 @@ def _populate_parameterizations(conn: sqlite3.Connection, concepts: list[LoadedE
 
 def _insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
     conn.execute(
-        "INSERT INTO claim_core (id, content_hash, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id, branch) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id, branch) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             row["id"],
-            row["content_hash"],
+            row["primary_logical_id"],
+            row["logical_ids_json"],
+            row["version_id"],
             row["seq"],
             row["type"],
             row["concept_id"],
@@ -942,7 +1037,7 @@ def _build_fts_index(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
 
     for c in concepts:
         d = c.data
-        cid = d.get("id", "")
+        cid = _concept_artifact_id(d) or ""
         name = d.get("canonical_name", "")
         definition = d.get("definition", "")
 
@@ -971,7 +1066,9 @@ def _create_claim_tables(conn: sqlite3.Connection):
     conn.executescript("""
         CREATE TABLE claim_core (
             id TEXT PRIMARY KEY,
-            content_hash TEXT NOT NULL,
+            primary_logical_id TEXT NOT NULL,
+            logical_ids_json TEXT NOT NULL,
+            version_id TEXT NOT NULL,
             seq INTEGER NOT NULL,
             type TEXT NOT NULL,
             concept_id TEXT,
@@ -1068,6 +1165,7 @@ def _create_claim_tables(conn: sqlite3.Connection):
         CREATE INDEX idx_claim_core_concept ON claim_core(concept_id);
         CREATE INDEX idx_claim_core_target ON claim_core(target_concept);
         CREATE INDEX idx_claim_core_type ON claim_core(type);
+        CREATE INDEX idx_claim_core_primary_logical_id ON claim_core(primary_logical_id);
         CREATE INDEX idx_claim_algorithm_stage ON claim_algorithm_payload(stage);
         CREATE INDEX idx_conflict_witness_concept ON conflict_witness(concept_id);
     """)
@@ -1111,7 +1209,7 @@ def _collect_valid_claim_ids(claim_files: Sequence[LoadedEntry]) -> set[str]:
         for claim in claims:
             if not isinstance(claim, dict):
                 continue
-            claim_id = claim.get("id")
+            claim_id = claim.get("artifact_id")
             if isinstance(claim_id, str) and claim_id:
                 valid_claim_ids.add(claim_id)
     return valid_claim_ids
@@ -1175,8 +1273,10 @@ def _prepare_claim_insert_row(
             upper_bound_si = typed_fields.upper_bound
 
     return {
-        "id": normalized_claim.get("id"),
-        "content_hash": _claim_content_hash(normalized_claim, source_paper),
+        "id": normalized_claim.get("artifact_id"),
+        "primary_logical_id": primary_logical_id(normalized_claim),
+        "logical_ids_json": json.dumps(normalized_claim.get("logical_ids") or []),
+        "version_id": _claim_version_id(normalized_claim),
         "seq": claim_seq,
         "type": ctype,
         "concept_id": typed_fields.concept_id,
@@ -1215,17 +1315,43 @@ def _prepare_claim_insert_row(
     }
 
 
+def _concept_reference_candidates(concept: dict) -> set[str]:
+    candidates: set[str] = set()
+    artifact_id = concept.get("artifact_id")
+    if isinstance(artifact_id, str) and artifact_id:
+        candidates.add(artifact_id)
+    canonical_name = concept.get("canonical_name")
+    if isinstance(canonical_name, str) and canonical_name:
+        candidates.add(canonical_name)
+    for logical_id in concept.get("logical_ids", []) or []:
+        if not isinstance(logical_id, dict):
+            continue
+        formatted = format_logical_id(logical_id)
+        if formatted:
+            candidates.add(formatted)
+        value = logical_id.get("value")
+        if isinstance(value, str) and value:
+            candidates.add(value)
+    for alias in concept.get("aliases", []) or []:
+        if not isinstance(alias, dict):
+            continue
+        alias_name = alias.get("name")
+        if isinstance(alias_name, str) and alias_name:
+            candidates.add(alias_name)
+    return candidates
+
+
 def _resolve_concept_reference(
     concept_ref: str | None,
     concept_registry: dict,
 ) -> str | None:
-    """Resolve an ID/canonical name/alias to the canonical concept ID."""
+    """Resolve an ID/canonical name/logical handle/alias to the canonical concept ID."""
     if not concept_ref:
         return concept_ref
 
     direct = concept_registry.get(concept_ref)
     if isinstance(direct, dict):
-        resolved = direct.get("id")
+        resolved = direct.get("artifact_id")
         if resolved:
             return resolved
 
@@ -1233,15 +1359,12 @@ def _resolve_concept_reference(
     for concept in concept_registry.values():
         if not isinstance(concept, dict):
             continue
-        concept_id = concept.get("id")
+        concept_id = concept.get("artifact_id")
         if not concept_id or concept_id in seen_ids:
             continue
         seen_ids.add(concept_id)
-        if concept.get("canonical_name") == concept_ref:
+        if concept_ref in _concept_reference_candidates(concept):
             return concept_id
-        for alias in concept.get("aliases", []) or []:
-            if isinstance(alias, dict) and alias.get("name") == concept_ref:
-                return concept_id
 
     return concept_ref
 
@@ -1249,6 +1372,9 @@ def _resolve_concept_reference(
 def _canonicalize_claim_for_storage(claim: dict, concept_registry: dict) -> dict:
     """Normalize concept references so compiled artifacts consistently use IDs."""
     normalized = dict(claim)
+    artifact_id = normalized.get("artifact_id")
+    if isinstance(artifact_id, str) and artifact_id:
+        normalized["id"] = artifact_id
 
     normalized["concept"] = _resolve_concept_reference(
         normalized.get("concept"),
@@ -1406,7 +1532,7 @@ def _extract_deferred_stance_rows(
     claim: dict,
     valid_claim_ids: set[str],
 ) -> list[tuple]:
-    cid = claim.get("id")
+    cid = claim.get("artifact_id")
     rows: list[tuple] = []
     for stance in claim.get("stances", []) or []:
         if not isinstance(stance, dict):
@@ -1543,7 +1669,9 @@ def _build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[Loade
     """Build FTS5 index over claim statements, conditions, and expressions."""
     for cf in claim_files:
         for claim in cf.data.get("claims", []):
-            cid = claim.get("id", "")
+            cid = claim.get("artifact_id")
+            if not isinstance(cid, str) or not cid:
+                continue
             statement = claim.get("statement", "") or ""
             expression = claim.get("expression", "") or ""
             conditions = claim.get("conditions", []) or []
