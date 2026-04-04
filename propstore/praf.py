@@ -57,7 +57,7 @@ from propstore.dung import (
     preferred_extensions,
     stable_extensions,
 )
-from propstore.opinion import Opinion, W, from_probability
+from propstore.opinion import Opinion, W, discount, from_probability
 from propstore.probabilistic_relations import (
     ProbabilisticRelation,
     relation_from_row,
@@ -127,11 +127,65 @@ class PrAFResult:
 def p_arg_from_claim(claim: dict) -> Opinion:
     """Hook: derive P_A from a claim dict.
 
-    Default: Opinion.dogmatic_true() — all active claims exist with certainty.
-    Per Li et al. (2012, p.2): P_A(a) = probability that argument a exists.
-    For active claims (already condition-filtered), existence is certain.
+    Legacy fallback: Opinion.dogmatic_true() when no structured calibration
+    fields are present.
+
+    When calibration fields exist, compose:
+    1. source prior base rate -> Opinion.vacuous(a=prior)
+    2. claim evidence -> from_probability(p, n, a=prior) when present
+    3. source-quality discount -> discount(trust, claim_opinion) when present
     """
-    return Opinion.dogmatic_true()
+    if not isinstance(claim, dict):
+        return Opinion.dogmatic_true()
+
+    source = claim.get("source")
+    source_trust = source.get("trust") if isinstance(source, dict) else None
+    prior_base_rate = claim.get("source_prior_base_rate")
+    if prior_base_rate is None and isinstance(source_trust, dict):
+        prior_base_rate = source_trust.get("prior_base_rate")
+
+    claim_probability = claim.get("claim_probability")
+    effective_sample_size = claim.get("effective_sample_size")
+    if claim_probability is None and claim.get("confidence") is not None:
+        claim_probability = claim.get("confidence")
+    if effective_sample_size is None and claim.get("sample_size") is not None:
+        effective_sample_size = claim.get("sample_size")
+
+    quality_payload = claim.get("source_quality_opinion")
+    if quality_payload is None and isinstance(source_trust, dict):
+        quality_payload = source_trust.get("quality")
+
+    has_structured_fields = (
+        prior_base_rate is not None
+        or claim_probability is not None
+        or effective_sample_size is not None
+        or quality_payload is not None
+    )
+    if not has_structured_fields:
+        return Opinion.dogmatic_true()
+
+    prior = 0.5 if prior_base_rate is None else float(prior_base_rate)
+    omega_prior = Opinion.vacuous(a=prior)
+
+    if claim_probability is not None and effective_sample_size is not None:
+        omega_claim = from_probability(float(claim_probability), float(effective_sample_size), prior)
+    else:
+        omega_claim = omega_prior
+
+    if quality_payload is None:
+        return omega_claim
+    if not isinstance(quality_payload, dict):
+        raise ValueError("source_quality_opinion must be a mapping with b/d/u/a")
+    required = {"b", "d", "u", "a"}
+    if not required.issubset(quality_payload):
+        raise ValueError("source_quality_opinion must contain b, d, u, and a")
+    omega_source_quality = Opinion(
+        float(quality_payload["b"]),
+        float(quality_payload["d"]),
+        float(quality_payload["u"]),
+        float(quality_payload["a"]),
+    )
+    return discount(omega_source_quality, omega_claim)
 
 
 def p_relation_from_stance(stance: dict) -> Opinion:
