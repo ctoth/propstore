@@ -108,7 +108,7 @@ def _content_hash(knowledge_root: KnowledgePath) -> str:
     """
     h = hashlib.sha256()
     h.update(_SEMANTIC_INPUT_VERSION.encode())
-    for subdir in ("concepts", "claims", "contexts", "forms", "justifications", "stances"):
+    for subdir in ("concepts", "claims", "contexts", "forms", "justifications", "sources", "stances"):
         subtree = knowledge_root / subdir
         if not subtree.exists():
             continue
@@ -461,6 +461,7 @@ def build_sidecar(
 
         _create_tables(conn)
         _create_context_tables(conn)
+        _populate_sources(conn, knowledge_root)
         _populate_forms(conn, form_registry)
         _populate_concepts(conn, concepts, form_registry)
         _populate_aliases(conn, concepts)
@@ -521,6 +522,20 @@ def build_sidecar(
 
 def _create_tables(conn: sqlite3.Connection):
     conn.executescript("""
+        CREATE TABLE source (
+            slug TEXT PRIMARY KEY,
+            source_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            origin_type TEXT,
+            origin_value TEXT,
+            origin_retrieved TEXT,
+            origin_content_ref TEXT,
+            prior_base_rate REAL,
+            quality_json TEXT,
+            derived_from_json TEXT,
+            artifact_code TEXT
+        );
+
         CREATE TABLE concept (
             id TEXT PRIMARY KEY,
             primary_logical_id TEXT NOT NULL DEFAULT '',
@@ -626,6 +641,7 @@ def _create_tables(conn: sqlite3.Connection):
 
         CREATE INDEX idx_alias_name ON alias(alias_name);
         CREATE INDEX idx_alias_concept ON alias(concept_id);
+        CREATE INDEX idx_source_source_id ON source(source_id);
         CREATE INDEX idx_concept_primary_logical_id ON concept(primary_logical_id);
         CREATE INDEX idx_rel_source ON relationship(source_id);
         CREATE INDEX idx_rel_target ON relationship(target_id);
@@ -751,6 +767,38 @@ def _populate_forms(
             "VALUES (?, ?, ?, ?, ?)",
             (fd.name, fd.kind.value if hasattr(fd.kind, 'value') else str(fd.kind),
              fd.unit_symbol, 1 if fd.is_dimensionless else 0, dims_json),
+        )
+
+
+def _populate_sources(conn: sqlite3.Connection, knowledge_root: KnowledgePath) -> None:
+    sources_root = knowledge_root / "sources"
+    if not sources_root.exists():
+        return
+    for entry in sources_root.iterdir():
+        if not entry.is_file() or entry.suffix != ".yaml":
+            continue
+        source_doc = yaml.safe_load(entry.read_text(encoding="utf-8")) or {}
+        if not isinstance(source_doc, dict):
+            continue
+        origin = source_doc.get("origin") if isinstance(source_doc.get("origin"), dict) else {}
+        trust = source_doc.get("trust") if isinstance(source_doc.get("trust"), dict) else {}
+        conn.execute(
+            "INSERT INTO source (slug, source_id, kind, origin_type, origin_value, origin_retrieved, "
+            "origin_content_ref, prior_base_rate, quality_json, derived_from_json, artifact_code) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                entry.stem,
+                str(source_doc.get("id") or entry.stem),
+                str(source_doc.get("kind") or "source"),
+                origin.get("type"),
+                origin.get("value"),
+                origin.get("retrieved"),
+                origin.get("content_ref"),
+                trust.get("prior_base_rate"),
+                json.dumps(trust.get("quality")) if trust.get("quality") is not None else None,
+                json.dumps(trust.get("derived_from")) if trust.get("derived_from") is not None else None,
+                source_doc.get("artifact_code"),
+            ),
         )
 
 

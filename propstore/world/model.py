@@ -215,6 +215,57 @@ class WorldModel(ArtifactStore):
             if self._has_column("claim_core", "version_id")
             else "NULL AS version_id"
         )
+        has_source_table = self._has_table("source")
+        source_id_sql = (
+            "src.source_id AS source_id"
+            if has_source_table and self._has_column("source", "source_id")
+            else "NULL AS source_id"
+        )
+        source_kind_sql = (
+            "src.kind AS source_kind"
+            if has_source_table and self._has_column("source", "kind")
+            else "NULL AS source_kind"
+        )
+        origin_type_sql = (
+            "src.origin_type AS source_origin_type"
+            if has_source_table and self._has_column("source", "origin_type")
+            else "NULL AS source_origin_type"
+        )
+        origin_value_sql = (
+            "src.origin_value AS source_origin_value"
+            if has_source_table and self._has_column("source", "origin_value")
+            else "NULL AS source_origin_value"
+        )
+        origin_retrieved_sql = (
+            "src.origin_retrieved AS source_origin_retrieved"
+            if has_source_table and self._has_column("source", "origin_retrieved")
+            else "NULL AS source_origin_retrieved"
+        )
+        origin_content_ref_sql = (
+            "src.origin_content_ref AS source_origin_content_ref"
+            if has_source_table and self._has_column("source", "origin_content_ref")
+            else "NULL AS source_origin_content_ref"
+        )
+        prior_base_rate_sql = (
+            "src.prior_base_rate AS source_prior_base_rate"
+            if has_source_table and self._has_column("source", "prior_base_rate")
+            else "NULL AS source_prior_base_rate"
+        )
+        quality_json_sql = (
+            "src.quality_json AS source_quality_json"
+            if has_source_table and self._has_column("source", "quality_json")
+            else "NULL AS source_quality_json"
+        )
+        derived_from_json_sql = (
+            "src.derived_from_json AS source_derived_from_json"
+            if has_source_table and self._has_column("source", "derived_from_json")
+            else "NULL AS source_derived_from_json"
+        )
+        source_join = (
+            "LEFT JOIN source AS src ON src.slug = core.source_paper"
+            if has_source_table
+            else ""
+        )
         return f"""
             SELECT
                 core.id,
@@ -250,6 +301,15 @@ class WorldModel(ArtifactStore):
                 alg.variables_json,
                 alg.stage,
                 core.source_paper,
+                {source_id_sql},
+                {source_kind_sql},
+                {origin_type_sql},
+                {origin_value_sql},
+                {origin_retrieved_sql},
+                {origin_content_ref_sql},
+                {prior_base_rate_sql},
+                {quality_json_sql},
+                {derived_from_json_sql},
                 core.provenance_page,
                 core.provenance_json,
                 num.value_si,
@@ -260,6 +320,7 @@ class WorldModel(ArtifactStore):
             LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
             LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
             LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
+            {source_join}
         """
 
     def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[dict]:
@@ -281,6 +342,59 @@ class WorldModel(ArtifactStore):
             else:
                 data["logical_ids"] = []
             data["logical_id"] = data.get("primary_logical_id")
+            source_id = data.get("source_id")
+            source_kind = data.get("source_kind")
+            source_origin_type = data.get("source_origin_type")
+            source_origin_value = data.get("source_origin_value")
+            source_origin_retrieved = data.get("source_origin_retrieved")
+            source_origin_content_ref = data.get("source_origin_content_ref")
+            source_prior_base_rate = data.get("source_prior_base_rate")
+            source_quality_json = data.get("source_quality_json")
+            source_derived_from_json = data.get("source_derived_from_json")
+            if any(
+                value is not None
+                for value in (
+                    source_id,
+                    source_kind,
+                    source_origin_type,
+                    source_origin_value,
+                    source_origin_retrieved,
+                    source_origin_content_ref,
+                    source_prior_base_rate,
+                    source_quality_json,
+                    source_derived_from_json,
+                )
+            ):
+                quality = None
+                if isinstance(source_quality_json, str) and source_quality_json:
+                    try:
+                        quality = json.loads(source_quality_json)
+                    except json.JSONDecodeError:
+                        quality = None
+                derived_from = []
+                if isinstance(source_derived_from_json, str) and source_derived_from_json:
+                    try:
+                        parsed = json.loads(source_derived_from_json)
+                        if isinstance(parsed, list):
+                            derived_from = parsed
+                    except json.JSONDecodeError:
+                        derived_from = []
+                data["source"] = {
+                    "id": source_id,
+                    "kind": source_kind,
+                    "origin": {
+                        "type": source_origin_type,
+                        "value": source_origin_value,
+                        "retrieved": source_origin_retrieved,
+                        "content_ref": source_origin_content_ref,
+                    },
+                    "trust": {
+                        "prior_base_rate": source_prior_base_rate,
+                        "quality": quality,
+                        "derived_from": derived_from,
+                    },
+                }
+                data["source_prior_base_rate"] = source_prior_base_rate
             normalized_rows.append(data)
         return normalized_rows
 

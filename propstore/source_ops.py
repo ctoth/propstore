@@ -20,6 +20,7 @@ from propstore.identity import (
     normalize_logical_value,
 )
 from propstore.repo.branch import branch_head, create_branch
+from propstore.source_calibration import derive_source_trust
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
 
@@ -501,7 +502,7 @@ def _load_branch_yaml(repo: Repository, name: str, relpath: str) -> dict[str, An
 
 
 def finalize_source_branch(repo: Repository, name: str) -> str:
-    source_doc = load_source_document(repo, name)
+    source_doc = derive_source_trust(repo, load_source_document(repo, name))
     claims_doc = _load_branch_yaml(repo, name, "claims.yaml") or {}
     justifications_doc = _load_branch_yaml(repo, name, "justifications.yaml") or {}
     stances_doc = _load_branch_yaml(repo, name, "stances.yaml") or {}

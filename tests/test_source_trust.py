@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
+import yaml
+from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.opinion import Opinion, discount, from_probability
 from propstore.praf import p_arg_from_claim
+from propstore.build_sidecar import build_sidecar
+from propstore.cli import cli
+from propstore.cli.repository import Repository
+from propstore.world import WorldModel
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
 
 def test_p_arg_from_claim_uses_prior_base_rate_when_no_claim_evidence() -> None:
@@ -70,3 +79,198 @@ def test_p_arg_from_claim_rejects_invalid_source_quality_shape() -> None:
                 "source_quality_opinion": {"b": 0.7},
             }
         )
+
+
+def _seed_ratio_form(repo: Repository) -> None:
+    repo.forms_dir.mkdir(parents=True, exist_ok=True)
+    (repo.forms_dir / "ratio.yaml").write_text(
+        yaml.safe_dump({"name": "ratio", "dimensionless": True}, sort_keys=False),
+        encoding="utf-8",
+    )
+
+
+def _seed_calibration_claim(repo: Repository) -> None:
+    _seed_ratio_form(repo)
+    concept = normalize_concept_payloads(
+        [
+            {
+                "id": "base_replication_rate",
+                "canonical_name": "base_replication_rate",
+                "status": "accepted",
+                "definition": "Field-specific replication prior.",
+                "domain": "meta",
+                "form": "ratio",
+            }
+        ],
+        default_domain="meta",
+    )[0]
+    repo.git.commit_batch(
+        adds={
+            "concepts/base_replication_rate.yaml": yaml.safe_dump(
+                concept,
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
+        deletes=[],
+        message="Seed calibration concept",
+        branch="master",
+    )
+
+    claims = normalize_claims_payload(
+        {
+            "source": {"paper": "calibration"},
+            "claims": [
+                {
+                    "id": "replication_rate_psychology",
+                    "type": "parameter",
+                    "concept": concept["artifact_id"],
+                    "value": 0.36,
+                    "unit": "probability",
+                    "conditions": ["domain == 'psychology'"],
+                    "provenance": {"page": 1},
+                }
+            ],
+        },
+        default_namespace="calibration",
+    )
+    repo.git.commit_batch(
+        adds={
+            "claims/calibration.yaml": yaml.safe_dump(
+                claims,
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
+        deletes=[],
+        message="Seed calibration claims",
+        branch="master",
+    )
+    build_sidecar(repo.tree(), repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+
+
+def test_source_finalize_derives_prior_base_rate_from_calibration_claims(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    _seed_calibration_claim(repo)
+    runner = CliRunner()
+    metadata_file = tmp_path / "metadata.json"
+    metadata_file.write_text('{"domain":"psychology"}', encoding="utf-8")
+
+    init_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            "demo",
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            "demo",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.output
+
+    metadata_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "write-metadata", "demo", "--file", str(metadata_file)],
+    )
+    assert metadata_result.exit_code == 0, metadata_result.output
+
+    finalize_result = runner.invoke(cli, ["-C", str(repo.root), "source", "finalize", "demo"])
+    assert finalize_result.exit_code == 0, finalize_result.output
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    source_doc = yaml.safe_load(repo.git.read_file("source.yaml", commit=branch_tip))
+    assert source_doc["trust"]["prior_base_rate"] == pytest.approx(0.36)
+    assert source_doc["trust"]["derived_from"]
+
+
+def test_world_model_claim_rows_include_calibrated_source_prior(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    _seed_calibration_claim(repo)
+    runner = CliRunner()
+    metadata_file = tmp_path / "metadata.json"
+    metadata_file.write_text('{"domain":"psychology"}', encoding="utf-8")
+
+    init_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            "demo",
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            "demo",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.output
+    assert runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "write-metadata", "demo", "--file", str(metadata_file)],
+    ).exit_code == 0
+
+    assert runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "base_replication_rate",
+            "--definition",
+            "Field-specific replication prior.",
+            "--form",
+            "ratio",
+        ],
+    ).exit_code == 0
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "parameter",
+                        "concept": "base_replication_rate",
+                        "value": 0.4,
+                        "unit": "probability",
+                        "provenance": {"page": 1},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    assert runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "add-claim", "demo", "--batch", str(claims_file)],
+    ).exit_code == 0
+    assert runner.invoke(cli, ["-C", str(repo.root), "source", "finalize", "demo"]).exit_code == 0
+    assert runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"]).exit_code == 0
+
+    build_sidecar(repo.tree(), repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
+    claim_id = claims_doc["claims"][0]["artifact_id"]
+    wm = WorldModel(repo)
+    try:
+        claim = wm.get_claim(claim_id)
+    finally:
+        wm.close()
+
+    assert claim is not None
+    assert claim["source"]["trust"]["prior_base_rate"] == pytest.approx(0.36)
+    assert p_arg_from_claim(claim) == Opinion.vacuous(a=0.36)
