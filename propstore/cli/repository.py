@@ -4,7 +4,7 @@ from __future__ import annotations
 from functools import cached_property
 from pathlib import Path
 
-from propstore.knowledge_path import GitKnowledgePath, KnowledgePath
+from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath, KnowledgePath
 
 
 class RepositoryNotFound(Exception):
@@ -72,7 +72,9 @@ class Repository:
     def tree(self, commit: str | None = None) -> KnowledgePath:
         """Return a read-only semantic tree rooted at this repository."""
         if self.git is None:
-            raise ValueError("Repository.tree() requires a git-backed repository")
+            if commit is not None:
+                raise ValueError("Repository.tree(commit=...) requires a git-backed repository")
+            return FilesystemKnowledgePath.from_filesystem_path(self._root)
         return GitKnowledgePath(self.git, commit=commit)
 
     @cached_property

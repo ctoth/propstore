@@ -35,7 +35,13 @@ from propstore.stances import VALID_STANCE_TYPES
 from propstore.loaded import LoadedEntry
 from propstore.validate import load_concepts
 from propstore.validate_claims import load_claim_files
-from propstore.identity import format_logical_id, primary_logical_id
+from propstore.identity import (
+    compute_concept_version_id,
+    derive_concept_artifact_id,
+    format_logical_id,
+    normalize_logical_value,
+    primary_logical_id,
+)
 from ast_equiv import canonical_dump
 
 if TYPE_CHECKING:
@@ -139,18 +145,53 @@ def _concept_artifact_id(concept: dict) -> str | None:
     artifact_id = concept.get("artifact_id")
     if isinstance(artifact_id, str) and artifact_id:
         return artifact_id
+    legacy_id = concept.get("id")
+    if isinstance(legacy_id, str) and legacy_id:
+        return legacy_id
+    primary = _concept_primary_logical_id(concept)
+    if isinstance(primary, str) and ":" in primary:
+        namespace, value = primary.split(":", 1)
+        return derive_concept_artifact_id(namespace, value)
     return None
 
 
+def _concept_logical_ids(concept: dict) -> list[dict[str, str]]:
+    logical_ids = concept.get("logical_ids")
+    if isinstance(logical_ids, list):
+        normalized: list[dict[str, str]] = []
+        for entry in logical_ids:
+            if not isinstance(entry, dict):
+                continue
+            namespace = entry.get("namespace")
+            value = entry.get("value")
+            if isinstance(namespace, str) and namespace and isinstance(value, str) and value:
+                normalized.append({"namespace": namespace, "value": value})
+        if normalized:
+            return normalized
+
+    legacy_value = concept.get("id")
+    if not isinstance(legacy_value, str) or not legacy_value:
+        legacy_value = concept.get("canonical_name")
+    if not isinstance(legacy_value, str) or not legacy_value:
+        legacy_value = "concept"
+    return [{"namespace": "legacy", "value": normalize_logical_value(legacy_value)}]
+
+
 def _concept_primary_logical_id(concept: dict) -> str | None:
-    return primary_logical_id(concept)
+    primary = primary_logical_id(concept)
+    if isinstance(primary, str) and primary:
+        return primary
+    return format_logical_id(_concept_logical_ids(concept)[0])
 
 
 def _concept_version_id(concept: dict) -> str | None:
     version_id = concept.get("version_id")
     if isinstance(version_id, str) and version_id:
         return version_id
-    return None
+    canonical = dict(concept)
+    canonical["artifact_id"] = _concept_artifact_id(concept)
+    canonical["logical_ids"] = _concept_logical_ids(concept)
+    return compute_concept_version_id(canonical)
 
 
 def _claim_version_id(claim: dict) -> str | None:
@@ -482,9 +523,9 @@ def _create_tables(conn: sqlite3.Connection):
     conn.executescript("""
         CREATE TABLE concept (
             id TEXT PRIMARY KEY,
-            primary_logical_id TEXT NOT NULL,
-            logical_ids_json TEXT NOT NULL,
-            version_id TEXT NOT NULL,
+            primary_logical_id TEXT NOT NULL DEFAULT '',
+            logical_ids_json TEXT NOT NULL DEFAULT '[]',
+            version_id TEXT NOT NULL DEFAULT '',
             content_hash TEXT NOT NULL,
             seq INTEGER NOT NULL,
             canonical_name TEXT NOT NULL,
@@ -720,6 +761,7 @@ def _populate_concepts(
 ):
     for seq, c in enumerate(concepts, 1):
         d = c.data
+        logical_ids = _concept_logical_ids(d)
         created = d.get("created_date")
         if created and not isinstance(created, str):
             created = str(created)
@@ -754,7 +796,7 @@ def _populate_concepts(
             "created_date, last_modified) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (_concept_artifact_id(d), _concept_primary_logical_id(d),
-             json.dumps(d.get("logical_ids") or []), _concept_version_id(d),
+             json.dumps(logical_ids), _concept_version_id(d),
              content_hash, seq, d.get("canonical_name"), d.get("status"),
              d.get("domain"), d.get("definition"),
              form_def.kind.value if form_def is not None else kind_value_from_form_name(d.get("form")),
@@ -1066,9 +1108,10 @@ def _create_claim_tables(conn: sqlite3.Connection):
     conn.executescript("""
         CREATE TABLE claim_core (
             id TEXT PRIMARY KEY,
-            primary_logical_id TEXT NOT NULL,
-            logical_ids_json TEXT NOT NULL,
-            version_id TEXT NOT NULL,
+            primary_logical_id TEXT NOT NULL DEFAULT '',
+            logical_ids_json TEXT NOT NULL DEFAULT '[]',
+            version_id TEXT NOT NULL DEFAULT '',
+            content_hash TEXT NOT NULL DEFAULT '',
             seq INTEGER NOT NULL,
             type TEXT NOT NULL,
             concept_id TEXT,

@@ -104,8 +104,14 @@ class WorldModel(ArtifactStore):
         if not self._has_table("concept"):
             self._registry = registry
             return registry
+        logical_ids_sql = (
+            "logical_ids_json"
+            if self._has_column("concept", "logical_ids_json")
+            else "NULL AS logical_ids_json"
+        )
         rows = self._conn.execute(
-            "SELECT id, canonical_name, kind_type, form, form_parameters FROM concept"
+            "SELECT id, canonical_name, kind_type, form, form_parameters, "
+            f"{logical_ids_sql} FROM concept"
         ).fetchall()
         for row in rows:
             canonical = row["canonical_name"]
@@ -193,64 +199,111 @@ class WorldModel(ArtifactStore):
 
     # ── Unbound queries ──────────────────────────────────────────────
 
-    _CLAIM_SELECT_SQL = """
-        SELECT
-            core.id,
-            core.content_hash,
-            core.seq,
-            core.type,
-            core.concept_id,
-            num.value,
-            num.lower_bound,
-            num.upper_bound,
-            num.uncertainty,
-            num.uncertainty_type,
-            num.sample_size,
-            num.unit,
-            txt.conditions_cel,
-            txt.statement,
-            txt.expression,
-            txt.sympy_generated,
-            txt.sympy_error,
-            txt.name,
-            core.target_concept,
-            txt.measure,
-            txt.listener_population,
-            txt.methodology,
-            txt.notes,
-            txt.description,
-            txt.auto_summary,
-            alg.body,
-            alg.canonical_ast,
-            alg.variables_json,
-            alg.stage,
-            core.source_paper,
-            core.provenance_page,
-            core.provenance_json,
-            num.value_si,
-            num.lower_bound_si,
-            num.upper_bound_si,
-            core.context_id
-        FROM claim_core AS core
-        LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
-        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-        LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
-    """
+    def _claim_select_sql(self) -> str:
+        primary_logical_sql = (
+            "core.primary_logical_id"
+            if self._has_column("claim_core", "primary_logical_id")
+            else "NULL AS primary_logical_id"
+        )
+        logical_ids_sql = (
+            "core.logical_ids_json"
+            if self._has_column("claim_core", "logical_ids_json")
+            else "NULL AS logical_ids_json"
+        )
+        version_sql = (
+            "core.version_id"
+            if self._has_column("claim_core", "version_id")
+            else "NULL AS version_id"
+        )
+        return f"""
+            SELECT
+                core.id,
+                core.id AS artifact_id,
+                {primary_logical_sql},
+                {logical_ids_sql},
+                {version_sql},
+                core.seq,
+                core.type,
+                core.concept_id,
+                num.value,
+                num.lower_bound,
+                num.upper_bound,
+                num.uncertainty,
+                num.uncertainty_type,
+                num.sample_size,
+                num.unit,
+                txt.conditions_cel,
+                txt.statement,
+                txt.expression,
+                txt.sympy_generated,
+                txt.sympy_error,
+                txt.name,
+                core.target_concept,
+                txt.measure,
+                txt.listener_population,
+                txt.methodology,
+                txt.notes,
+                txt.description,
+                txt.auto_summary,
+                alg.body,
+                alg.canonical_ast,
+                alg.variables_json,
+                alg.stage,
+                core.source_paper,
+                core.provenance_page,
+                core.provenance_json,
+                num.value_si,
+                num.lower_bound_si,
+                num.upper_bound_si,
+                core.context_id
+            FROM claim_core AS core
+            LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+            LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
+        """
 
     def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[dict]:
         if not self._has_table("claim_core"):
             return []
         rows = self._conn.execute(
-            f"{self._CLAIM_SELECT_SQL} {where_sql}",
+            f"{self._claim_select_sql()} {where_sql}",
             params,
         ).fetchall()
-        return [dict(row) for row in rows]
+        normalized_rows: list[dict] = []
+        for row in rows:
+            data = dict(row)
+            logical_ids_json = data.get("logical_ids_json")
+            if isinstance(logical_ids_json, str) and logical_ids_json:
+                try:
+                    data["logical_ids"] = json.loads(logical_ids_json)
+                except json.JSONDecodeError:
+                    data["logical_ids"] = []
+            else:
+                data["logical_ids"] = []
+            data["logical_id"] = data.get("primary_logical_id")
+            normalized_rows.append(data)
+        return normalized_rows
 
     def get_concept(self, concept_id: str) -> dict | None:
-        row = self._conn.execute(
-            "SELECT * FROM concept WHERE id = ?", (concept_id,)
-        ).fetchone()
-        return dict(row) if row else None
+        row = self._conn.execute("SELECT * FROM concept WHERE id = ?", (concept_id,)).fetchone()
+        if row is None:
+            resolved = self.resolve_concept(concept_id)
+            if resolved is None or resolved == concept_id:
+                return None
+            row = self._conn.execute("SELECT * FROM concept WHERE id = ?", (resolved,)).fetchone()
+        if row is None:
+            return None
+        data = dict(row)
+        logical_ids_json = data.get("logical_ids_json")
+        if isinstance(logical_ids_json, str) and logical_ids_json:
+            try:
+                data["logical_ids"] = json.loads(logical_ids_json)
+            except json.JSONDecodeError:
+                data["logical_ids"] = []
+        else:
+            data["logical_ids"] = []
+        data["logical_id"] = data.get("primary_logical_id")
+        return data
 
     def concept_name(self, concept_id: str) -> str | None:
         """Return the canonical name for a concept, or None if not found."""
@@ -264,24 +317,108 @@ class WorldModel(ArtifactStore):
     def get_claim(self, claim_id: str) -> dict | None:
         if not self._has_table("claim_core"):
             return None
-        rows = self._claim_rows("WHERE core.id = ?", (claim_id,))
+        resolved_claim_id = self.resolve_claim(claim_id) or claim_id
+        rows = self._claim_rows("WHERE core.id = ?", (resolved_claim_id,))
         return rows[0] if rows else None
 
+    def resolve_claim(self, name: str) -> str | None:
+        """Resolve a claim by artifact ID or logical ID."""
+        if not self._has_table("claim_core"):
+            return None
+
+        row = self._conn.execute(
+            "SELECT id FROM claim_core WHERE id = ?",
+            (name,),
+        ).fetchone()
+        if row is not None:
+            return row["id"]
+
+        if self._has_column("claim_core", "primary_logical_id"):
+            row = self._conn.execute(
+                "SELECT id FROM claim_core WHERE primary_logical_id = ?",
+                (name,),
+            ).fetchone()
+            if row is not None:
+                return row["id"]
+
+        if self._has_column("claim_core", "logical_ids_json"):
+            rows = self._conn.execute(
+                "SELECT id, logical_ids_json FROM claim_core"
+            ).fetchall()
+            for row in rows:
+                logical_ids_json = row["logical_ids_json"]
+                if not isinstance(logical_ids_json, str) or not logical_ids_json:
+                    continue
+                try:
+                    logical_ids = json.loads(logical_ids_json)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(logical_ids, list):
+                    continue
+                for entry in logical_ids:
+                    if not isinstance(entry, dict):
+                        continue
+                    namespace = entry.get("namespace")
+                    value = entry.get("value")
+                    if isinstance(namespace, str) and isinstance(value, str):
+                        if f"{namespace}:{value}" == name or value == name:
+                            return row["id"]
+        return None
+
     def resolve_alias(self, alias: str) -> str | None:
+        if not self._has_table("alias"):
+            return None
         row = self._conn.execute(
             "SELECT concept_id FROM alias WHERE alias_name = ?", (alias,)
         ).fetchone()
         return row["concept_id"] if row else None
 
     def resolve_concept(self, name: str) -> str | None:
-        """Resolve a concept by alias, ID, or canonical name."""
+        """Resolve a concept by alias, artifact ID, logical ID, or canonical name."""
         resolved = self.resolve_alias(name)
         if resolved:
             return resolved
 
-        concept = self.get_concept(name)
-        if concept:
-            return name
+        if not self._has_table("concept"):
+            return None
+
+        row = self._conn.execute(
+            "SELECT id FROM concept WHERE id = ?",
+            (name,),
+        ).fetchone()
+        if row is not None:
+            return row["id"]
+
+        if self._has_column("concept", "primary_logical_id"):
+            row = self._conn.execute(
+                "SELECT id FROM concept WHERE primary_logical_id = ?",
+                (name,),
+            ).fetchone()
+            if row is not None:
+                return row["id"]
+
+        if self._has_column("concept", "logical_ids_json"):
+            rows = self._conn.execute(
+                "SELECT id, logical_ids_json FROM concept"
+            ).fetchall()
+            for row in rows:
+                logical_ids_json = row["logical_ids_json"]
+                if not isinstance(logical_ids_json, str) or not logical_ids_json:
+                    continue
+                try:
+                    logical_ids = json.loads(logical_ids_json)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(logical_ids, list):
+                    continue
+                for entry in logical_ids:
+                    if not isinstance(entry, dict):
+                        continue
+                    namespace = entry.get("namespace")
+                    value = entry.get("value")
+                    if isinstance(namespace, str) and isinstance(value, str):
+                        if f"{namespace}:{value}" == name or value == name:
+                            return row["id"]
 
         row = self._conn.execute(
             "SELECT id FROM concept WHERE canonical_name = ?",
@@ -294,9 +431,10 @@ class WorldModel(ArtifactStore):
             return []
         if concept_id is None:
             return self._claim_rows("ORDER BY core.id")
+        resolved_concept_id = self.resolve_concept(concept_id) or concept_id
         return self._claim_rows(
             "WHERE core.concept_id = ? OR core.target_concept = ? ORDER BY core.id",
-            (concept_id, concept_id),
+            (resolved_concept_id, resolved_concept_id),
         )
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
@@ -553,9 +691,10 @@ class WorldModel(ArtifactStore):
         """Get parameterization rows where output_concept_id matches."""
         if not self._has_table("parameterization"):
             return []
+        resolved_concept_id = self.resolve_concept(concept_id) or concept_id
         rows = self._conn.execute(
             "SELECT * FROM parameterization WHERE output_concept_id = ?",
-            (concept_id,),
+            (resolved_concept_id,),
         ).fetchall()
         return [dict(r) for r in rows]
 
@@ -596,9 +735,10 @@ class WorldModel(ArtifactStore):
         """Get all concept_ids in the same parameterization group."""
         if not self._has_table("parameterization_group"):
             return []
+        resolved_concept_id = self.resolve_concept(concept_id) or concept_id
         row = self._conn.execute(
             "SELECT group_id FROM parameterization_group WHERE concept_id = ?",
-            (concept_id,),
+            (resolved_concept_id,),
         ).fetchone()
         if row is None:
             return []
