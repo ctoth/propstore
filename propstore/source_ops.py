@@ -11,6 +11,7 @@ from typing import Any
 
 import yaml
 
+from propstore.artifact_codes import attach_source_artifact_codes
 from propstore.cli.repository import Repository
 from propstore.identity import (
     compute_claim_version_id,
@@ -556,6 +557,40 @@ def finalize_source_branch(repo: Repository, name: str) -> str:
     trust = source_doc.get("trust") if isinstance(source_doc.get("trust"), dict) else {}
     derived_from = trust.get("derived_from") if isinstance(trust.get("derived_from"), list) else []
     covered = bool(derived_from)
+    artifact_code_status = "incomplete"
+    adds: dict[str, bytes] = {}
+    if not claim_errors and not justification_errors and not stance_errors:
+        source_doc, claims_doc, justifications_doc, stances_doc = attach_source_artifact_codes(
+            source_doc,
+            claims_doc,
+            justifications_doc,
+            stances_doc,
+        )
+        adds["source.yaml"] = yaml.safe_dump(
+            source_doc,
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8")
+        if claims_doc.get("claims"):
+            adds["claims.yaml"] = yaml.safe_dump(
+                claims_doc,
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        if justifications_doc.get("justifications"):
+            adds["justifications.yaml"] = yaml.safe_dump(
+                justifications_doc,
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        if stances_doc.get("stances"):
+            adds["stances.yaml"] = yaml.safe_dump(
+                stances_doc,
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        artifact_code_status = "complete"
+
     report = {
         "kind": "source_finalize_report",
         "source": str(source_doc.get("id") or source_tag_uri(repo, name)),
@@ -569,19 +604,23 @@ def finalize_source_branch(repo: Repository, name: str) -> str:
         "stance_reference_errors": sorted(stance_errors),
         "concept_alignment_candidates": concept_alignment_candidates,
         "parameterization_group_merges": [],
-        "artifact_code_status": "complete" if not claim_errors else "incomplete",
+        "artifact_code_status": artifact_code_status,
         "calibration": {
             "prior_base_rate_status": "covered" if covered else "fallback",
             "source_quality_status": "vacuous",
             "fallback_to_default_base_rate": not covered,
         },
     }
-    return commit_source_file(
-        repo,
-        name,
-        relpath=f"merge/finalize/{_normalize_slug(name)}.yaml",
-        content=yaml.safe_dump(report, sort_keys=False, allow_unicode=True).encode("utf-8"),
+    adds[f"merge/finalize/{_normalize_slug(name)}.yaml"] = yaml.safe_dump(
+        report,
+        sort_keys=False,
+        allow_unicode=True,
+    ).encode("utf-8")
+    return repo.git.commit_batch(
+        adds=adds,
+        deletes=[],
         message=f"Finalize {_normalize_slug(name)}",
+        branch=source_branch_name(name),
     )
 
 
@@ -671,6 +710,7 @@ def promote_source_branch(repo: Repository, name: str) -> str:
 
     promoted_stance_files: dict[str, bytes] = {}
     stances_by_source: dict[str, list[dict[str, Any]]] = {}
+    promoted_stances: list[dict[str, Any]] = []
     for stance in stances_doc.get("stances", []) or []:
         if not isinstance(stance, dict):
             continue
@@ -690,7 +730,28 @@ def promote_source_branch(repo: Repository, name: str) -> str:
             raise ValueError(f"Unresolved promoted stance target: {target}")
         normalized = copy.deepcopy(stance)
         normalized["target"] = target
+        promoted_stances.append(normalized)
         stances_by_source.setdefault(source_claim, []).append(normalized)
+
+    promoted_claims_doc = {
+        "source": claims_doc.get("source") or {"paper": slug},
+        "claims": promoted_claims,
+    }
+    source_doc, promoted_claims_doc, justifications_doc, promoted_stances_doc = attach_source_artifact_codes(
+        source_doc,
+        promoted_claims_doc,
+        justifications_doc,
+        {"stances": promoted_stances},
+    )
+    promoted_claims = promoted_claims_doc.get("claims", []) or []
+
+    stances_by_source = {}
+    for stance in promoted_stances_doc.get("stances", []) or []:
+        if not isinstance(stance, dict):
+            continue
+        source_claim = stance.get("source_claim")
+        if isinstance(source_claim, str) and source_claim:
+            stances_by_source.setdefault(source_claim, []).append(stance)
 
     for source_claim, entries in stances_by_source.items():
         file_name = source_claim.replace(":", "__") + ".yaml"
@@ -706,14 +767,7 @@ def promote_source_branch(repo: Repository, name: str) -> str:
 
     adds = {
         f"sources/{slug}.yaml": yaml.safe_dump(source_doc, sort_keys=False, allow_unicode=True).encode("utf-8"),
-        f"claims/{slug}.yaml": yaml.safe_dump(
-            {
-                "source": claims_doc.get("source") or {"paper": slug},
-                "claims": promoted_claims,
-            },
-            sort_keys=False,
-            allow_unicode=True,
-        ).encode("utf-8"),
+        f"claims/{slug}.yaml": yaml.safe_dump(promoted_claims_doc, sort_keys=False, allow_unicode=True).encode("utf-8"),
     }
 
     if justifications_doc.get("justifications"):
