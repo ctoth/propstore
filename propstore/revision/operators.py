@@ -10,6 +10,47 @@ from propstore.revision.entrenchment import EntrenchmentReport
 from propstore.revision.state import BeliefAtom, BeliefBase, RevisionResult
 
 
+def _claim_input_candidates(atom: BeliefAtom) -> tuple[str, ...]:
+    candidates: list[str] = []
+
+    payload_id = atom.payload.get("id")
+    if payload_id:
+        candidates.append(str(payload_id))
+    artifact_id = atom.payload.get("artifact_id")
+    if artifact_id:
+        candidates.append(str(artifact_id))
+
+    logical_id = atom.payload.get("logical_id") or atom.payload.get("primary_logical_id")
+    if isinstance(logical_id, str) and logical_id:
+        candidates.append(logical_id)
+        if ":" in logical_id:
+            candidates.append(logical_id.split(":", 1)[1])
+
+    logical_ids = atom.payload.get("logical_ids")
+    if isinstance(logical_ids, Sequence):
+        for entry in logical_ids:
+            if not isinstance(entry, Mapping):
+                continue
+            namespace = entry.get("namespace")
+            value = entry.get("value")
+            if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+                candidates.append(f"{namespace}:{value}")
+                candidates.append(value)
+
+    if atom.atom_id.startswith("claim:"):
+        candidates.append(atom.atom_id)
+        candidates.append(atom.atom_id.split(":", 1)[1])
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        ordered.append(candidate)
+    return tuple(ordered)
+
+
 def normalize_revision_input(
     base: BeliefBase,
     revision_input: BeliefAtom | str | Mapping[str, Any],
@@ -193,7 +234,7 @@ def _find_existing_atom(base: BeliefBase, revision_input: str) -> BeliefAtom | N
     for atom in base.atoms:
         if atom.atom_id == revision_input:
             return atom
-        if atom.kind == "claim" and atom.payload.get("id") == revision_input:
+        if atom.kind == "claim" and revision_input in _claim_input_candidates(atom):
             return atom
         if atom.kind == "assumption" and atom.payload.get("assumption_id") == revision_input:
             return atom

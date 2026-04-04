@@ -125,20 +125,18 @@ class Repository:
         a ``concepts/`` subdirectory (e.g. ``pks -C path/to/knowledge``
         or when cwd is already inside the knowledge tree).
         """
-        from propstore.repo import KnowledgeRepo
-
         current = (start or Path.cwd()).resolve()
         # If start itself has the knowledge structure (e.g. -C pointed at it,
         # or cwd is already the knowledge dir)
-        if (current / "concepts").is_dir() and KnowledgeRepo.is_repo(current):
+        if (current / "concepts").is_dir():
             return cls(current)
         # Walk up looking for knowledge/
         for ancestor in [current, *current.parents]:
             candidate = ancestor / "knowledge"
-            if candidate.is_dir() and (candidate / "concepts").is_dir() and KnowledgeRepo.is_repo(candidate):
+            if candidate.is_dir() and (candidate / "concepts").is_dir():
                 return cls(candidate)
         raise RepositoryNotFound(
-            f"No git-backed knowledge/ directory found (searched from {current}). "
+            f"No knowledge/ directory found (searched from {current}). "
             f"Run 'pks init' to create one."
         )
 

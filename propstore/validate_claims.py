@@ -9,6 +9,7 @@ Exits nonzero on any error.
 
 from __future__ import annotations
 
+import copy
 import json
 import re
 from dataclasses import dataclass
@@ -24,6 +25,15 @@ import yaml
 import bridgman
 
 from propstore.resources import load_resource_json
+from propstore.identity import (
+    CLAIM_ARTIFACT_ID_RE,
+    CLAIM_VERSION_ID_RE,
+    LOGICAL_NAMESPACE_RE,
+    LOGICAL_VALUE_RE,
+    compute_claim_version_id,
+    format_logical_id,
+    normalize_claim_file_payload,
+)
 from propstore.knowledge_path import coerce_knowledge_path
 from propstore.validate import ValidationResult, load_yaml_dir, load_yaml_entries
 
@@ -100,23 +110,79 @@ def load_claim_files(claims_dir: KnowledgePath | None) -> list[LoadedEntry]:
 
 
 
-# Claim ID format: optional <source>: prefix, then local ID
-# Local ID: claim<N> (numeric) or descriptive (alphanumeric + underscores)
-# Source can contain letters, digits, underscores, hyphens, apostrophes
-# Examples: claim1, Dung_1995:claim1, Prakken_2012_AppreciationJohnPollock'sWork:claim1
-_CLAIM_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_'\-]*:)?[A-Za-z][A-Za-z0-9_]*$")
+# Logical claim IDs are always namespaced ``namespace:value`` handles.
+_LOGICAL_CLAIM_ID_RE = re.compile(
+    r"^(?P<namespace>[A-Za-z0-9][A-Za-z0-9._-]*):(?P<value>[A-Za-z0-9][A-Za-z0-9._/-]*)$"
+)
 
 
 def parse_claim_id(cid: str) -> tuple[str | None, str]:
-    """Split a claim ID into (source, local_id).
+    """Split a logical claim ID into ``(namespace, local_id)``."""
+    match = _LOGICAL_CLAIM_ID_RE.match(cid)
+    if match is None:
+        return None, cid
+    return match.group("namespace"), match.group("value")
 
-    'Dung_1995:claim1' -> ('Dung_1995', 'claim1')
-    'claim1' -> (None, 'claim1')
-    """
-    if ':' in cid:
-        source, local = cid.split(':', 1)
-        return source, local
-    return None, cid
+
+def _validate_logical_ids(
+    logical_ids: object,
+    *,
+    filename: str,
+    artifact_id: str,
+    seen_logical_ids: dict[str, str],
+    result: ValidationResult,
+) -> set[str]:
+    formatted_ids: set[str] = set()
+    if not isinstance(logical_ids, list) or not logical_ids:
+        result.errors.append(
+            f"{filename}: claim '{artifact_id}' must define a non-empty logical_ids list"
+        )
+        return formatted_ids
+
+    for index, entry in enumerate(logical_ids, start=1):
+        if not isinstance(entry, dict):
+            result.errors.append(
+                f"{filename}: claim '{artifact_id}' logical_ids entry #{index} must be a mapping"
+            )
+            continue
+
+        namespace = entry.get("namespace")
+        value = entry.get("value")
+        if not isinstance(namespace, str) or not LOGICAL_NAMESPACE_RE.match(namespace):
+            result.errors.append(
+                f"{filename}: claim '{artifact_id}' logical_ids entry #{index} "
+                f"uses invalid namespace {namespace!r}"
+            )
+            continue
+        if not isinstance(value, str) or not LOGICAL_VALUE_RE.match(value):
+            result.errors.append(
+                f"{filename}: claim '{artifact_id}' logical_ids entry #{index} "
+                f"uses invalid value {value!r}"
+            )
+            continue
+
+        formatted = format_logical_id(entry)
+        if formatted is None:
+            result.errors.append(
+                f"{filename}: claim '{artifact_id}' logical_ids entry #{index} "
+                "must serialize as namespace:value"
+            )
+            continue
+        if formatted in formatted_ids:
+            result.errors.append(
+                f"{filename}: claim '{artifact_id}' duplicates logical ID '{formatted}'"
+            )
+            continue
+        if formatted in seen_logical_ids:
+            result.errors.append(
+                f"{filename}: duplicate logical ID '{formatted}' "
+                f"(also in {seen_logical_ids[formatted]})"
+            )
+            continue
+        formatted_ids.add(formatted)
+        seen_logical_ids[formatted] = filename
+
+    return formatted_ids
 
 
 def validate_single_claim_file(
@@ -156,8 +222,39 @@ def validate_claims(
     # JSON Schema validation
     json_schema = _load_claim_schema()
 
-    seen_ids: dict[str, str] = {}  # claim_id -> filename
-    all_claim_ids: set[str] = set()
+    normalized_claim_files: list[LoadedEntry] = []
+    for claim_file in claim_files:
+        data = claim_file.data
+        claims = data.get("claims")
+        needs_legacy_normalization = isinstance(claims, list) and any(
+            isinstance(claim, dict)
+            and not claim.get("artifact_id")
+            and isinstance(claim.get("id"), str)
+            and claim.get("id")
+            for claim in claims
+        )
+        if not needs_legacy_normalization:
+            normalized_claim_files.append(claim_file)
+            continue
+        source = data.get("source") if isinstance(data.get("source"), dict) else {}
+        default_namespace = str(source.get("paper") or claim_file.filename or "legacy")
+        normalized_data, _ = normalize_claim_file_payload(
+            copy.deepcopy(data),
+            default_namespace=default_namespace,
+        )
+        normalized_claim_files.append(
+            LoadedEntry(
+                claim_file.filename,
+                claim_file.source_path,
+                normalized_data,
+                claim_file.knowledge_root,
+            )
+        )
+    claim_files = normalized_claim_files
+
+    seen_artifact_ids: dict[str, str] = {}
+    seen_logical_ids: dict[str, str] = {}
+    all_artifact_ids: set[str] = set()
 
     for cf in claim_files:
         claims = cf.data.get("claims")
@@ -166,9 +263,9 @@ def validate_claims(
         for claim in claims:
             if not isinstance(claim, dict):
                 continue
-            claim_id = claim.get("id")
-            if isinstance(claim_id, str) and claim_id:
-                all_claim_ids.add(claim_id)
+            artifact_id = claim.get("artifact_id")
+            if isinstance(artifact_id, str) and artifact_id:
+                all_artifact_ids.add(artifact_id)
 
     for cf in claim_files:
         data = cf.data
@@ -200,26 +297,54 @@ def validate_claims(
                 result.errors.append(f"{cf.filename}: claim must be a dict")
                 continue
 
-            cid = claim.get("id")
+            cid = claim.get("artifact_id")
             ctype = claim.get("type")
 
             if not cid:
-                result.errors.append(f"{cf.filename}: claim missing 'id'")
+                result.errors.append(f"{cf.filename}: claim missing 'artifact_id'")
                 continue
 
-            # ── Claim ID format ──────────────────────────────
-            if not _CLAIM_ID_RE.match(cid):
+            if "id" in claim:
                 result.errors.append(
-                    f"{cf.filename}: claim ID '{cid}' does not match required format "
-                    f"[source:]claimN (e.g. claim1, Dung_1995:claim42)")
+                    f"{cf.filename}: claim '{cid}' uses obsolete raw 'id'; use artifact_id and logical_ids"
+                )
 
-            # ── Claim ID uniqueness ──────────────────────────
-            if cid in seen_ids:
+            # ── Claim artifact ID format ─────────────────────
+            if not CLAIM_ARTIFACT_ID_RE.match(cid):
                 result.errors.append(
-                    f"{cf.filename}: duplicate claim ID '{cid}' "
-                    f"(also in {seen_ids[cid]})")
+                    f"{cf.filename}: claim artifact_id '{cid}' does not match required format "
+                    "ps:claim:<opaque-token>"
+                )
+
+            # ── Claim artifact ID uniqueness ─────────────────
+            if cid in seen_artifact_ids:
+                result.errors.append(
+                    f"{cf.filename}: duplicate claim artifact_id '{cid}' "
+                    f"(also in {seen_artifact_ids[cid]})")
             else:
-                seen_ids[cid] = cf.filename
+                seen_artifact_ids[cid] = cf.filename
+
+            logical_ids = claim.get("logical_ids")
+            _validate_logical_ids(
+                logical_ids,
+                filename=cf.filename,
+                artifact_id=cid,
+                seen_logical_ids=seen_logical_ids,
+                result=result,
+            )
+
+            version_id = claim.get("version_id")
+            if not isinstance(version_id, str) or not CLAIM_VERSION_ID_RE.match(version_id):
+                result.errors.append(
+                    f"{cf.filename}: claim '{cid}' version_id must match sha256:<64 hex chars>"
+                )
+            else:
+                expected_version_id = compute_claim_version_id(claim)
+                if version_id != expected_version_id:
+                    result.errors.append(
+                        f"{cf.filename}: claim '{cid}' version_id mismatch "
+                        f"(expected {expected_version_id})"
+                    )
 
             # ── Provenance ───────────────────────────────────
             prov = claim.get("provenance")
@@ -274,7 +399,7 @@ def validate_claims(
                 result.errors.append(
                     f"{cf.filename}: claim '{cid}' has unrecognized type '{ctype}'")
 
-            _validate_stances(claim, cid, cf.filename, all_claim_ids, result)
+            _validate_stances(claim, cid, cf.filename, all_artifact_ids, result)
 
     return result
 
@@ -315,8 +440,6 @@ def _validate_stances(
             result.errors.append(
                 f"{filename}: claim '{cid}' stance #{index} missing target"
             )
-        elif ":" in target_claim_id:
-            pass  # Cross-paper reference — resolved at import time
         elif target_claim_id not in extant_claim_ids:
             result.errors.append(
                 f"{filename}: claim '{cid}' stance #{index} references "
@@ -433,7 +556,7 @@ def _validate_parameter(
         result.errors.append(
             f"{filename}: parameter claim '{cid}' references nonexistent concept '{concept}'")
     else:
-        concept_data = concept_registry[concept]
+        concept_data = concept_registry.get(concept) if concept_registry else None
 
     _validate_value_fields(claim, cid, filename, "parameter", result)
 
@@ -707,16 +830,16 @@ def build_concept_registry_from_paths(
     Claims can reference concepts by any of these keys.
     All keys point to the same enriched concept data dict.
     """
-    from propstore.validate import load_concepts
+    from propstore.validate import load_concepts, _normalize_legacy_concept_record
     concepts_root = coerce_knowledge_path(concepts_dir)
     forms_root = coerce_knowledge_path(forms_dir)
     concepts = load_concepts(concepts_root)
     registry: dict[str, dict] = {}
     for concept in concepts:
-        cid = concept.data.get("id")
+        enriched = _normalize_legacy_concept_record(dict(concept.data))
+        cid = enriched.get("artifact_id")
         if not cid:
             continue
-        enriched = dict(concept.data)
         # Load structured form definition
         form_def = load_form_path(forms_root, enriched.get("form"))
         if form_def is not None:
@@ -731,10 +854,17 @@ def build_concept_registry_from_paths(
                 enriched["_allowed_units"] = allowed_units
         # Index by concept ID
         registry[cid] = enriched
+        raw_id = concept.data.get("id")
+        if isinstance(raw_id, str) and raw_id and raw_id not in registry:
+            registry[raw_id] = enriched
         # Index by canonical_name (claims can reference concepts by name)
         canonical = enriched.get("canonical_name")
         if canonical and canonical not in registry:
             registry[canonical] = enriched
+        for logical_id in enriched.get("logical_ids", []) or []:
+            formatted = format_logical_id(logical_id) if isinstance(logical_id, dict) else None
+            if formatted and formatted not in registry:
+                registry[formatted] = enriched
         # Index by aliases
         for alias in enriched.get("aliases", []) or []:
             alias_name = alias.get("name") if isinstance(alias, dict) else None

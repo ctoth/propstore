@@ -894,6 +894,22 @@ def _format_revision_payload(payload: dict) -> str:
     return " ".join(parts)
 
 
+def _revision_atom_display_id(atom_id: str, *, payload: Mapping[str, object] | None = None) -> str:
+    if payload is not None:
+        logical_id = payload.get("logical_id") or payload.get("primary_logical_id")
+        if isinstance(logical_id, str) and logical_id:
+            return f"claim:{logical_id.split(':', 1)[1] if ':' in logical_id else logical_id}"
+        logical_ids = payload.get("logical_ids")
+        if isinstance(logical_ids, list):
+            for entry in logical_ids:
+                if not isinstance(entry, Mapping):
+                    continue
+                value = entry.get("value")
+                if isinstance(value, str) and value:
+                    return f"claim:{value}"
+    return atom_id
+
+
 def _format_revision_assumption(assumption) -> str:
     return (
         f"{assumption.assumption_id}: kind={assumption.kind} "
@@ -999,10 +1015,11 @@ def world_revision_base(obj: dict, args: tuple[str, ...]) -> None:
         for atom in base.atoms:
             payload = dict(atom.payload)
             details = _format_revision_payload(payload)
+            atom_display_id = _revision_atom_display_id(atom.atom_id, payload=payload)
             if details:
-                click.echo(f"  {atom.atom_id}: {details}")
+                click.echo(f"  {atom_display_id}: {details}")
             else:
-                click.echo(f"  {atom.atom_id}")
+                click.echo(f"  {atom_display_id}")
 
         if base.assumptions:
             click.echo("Assumptions:")

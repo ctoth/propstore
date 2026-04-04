@@ -84,6 +84,27 @@ class _WorldlineStore(ArtifactStore, Protocol):
     ) -> _WorldlineBoundView: ...
 
 
+def _display_claim_id(world: ArtifactStore, claim_id: str | None) -> str | None:
+    if claim_id is None:
+        return None
+    getter = getattr(world, "get_claim", None)
+    if callable(getter):
+        claim = getter(claim_id)
+        if isinstance(claim, Mapping):
+            logical_id = claim.get("logical_id") or claim.get("primary_logical_id")
+            if isinstance(logical_id, str) and logical_id:
+                return logical_id.split(":", 1)[1] if ":" in logical_id else logical_id
+            logical_ids = claim.get("logical_ids")
+            if isinstance(logical_ids, list):
+                for entry in logical_ids:
+                    if not isinstance(entry, Mapping):
+                        continue
+                    value = entry.get("value")
+                    if isinstance(value, str) and value:
+                        return value
+    return claim_id
+
+
 def run_worldline(
     definition: WorldlineDefinition,
     world: _WorldlineStore,
@@ -430,7 +451,10 @@ def run_worldline(
     # ── 7. Compute dependency hash ─────────────────────────────────
     context_dependencies = _context_dependencies(bound, context_id)
     dependencies = {
-        "claims": sorted(str(claim_id) for claim_id in dependency_claims),
+        "claims": sorted(
+            _display_claim_id(world, str(claim_id)) or str(claim_id)
+            for claim_id in dependency_claims
+        ),
         "stances": stance_dependencies,
         "contexts": context_dependencies,
     }
@@ -657,12 +681,12 @@ def _resolve_target(
         step = {"concept": target_name, "source": "claim"}
         step.update(claim_payload)
         if claim_id:
-            step["claim_id"] = claim_id
+            step["claim_id"] = _display_claim_id(world, claim_id) or claim_id
         all_steps.append(step)
         result = {
             "status": "determined",
             "source": "claim",
-            "claim_id": claim_id,
+            "claim_id": _display_claim_id(world, claim_id) if claim_id else None,
         }
         result.update(claim_payload)
         return result
@@ -686,7 +710,11 @@ def _resolve_target(
                 "status": "resolved",
                 "value": rr.value,
                 "source": "resolved",
-                "winning_claim_id": rr.winning_claim_id,
+                "winning_claim_id": (
+                    _display_claim_id(world, rr.winning_claim_id)
+                    if rr.winning_claim_id
+                    else None
+                ),
                 "strategy": rr.strategy,
                 "reason": rr.reason,
             }
@@ -930,7 +958,7 @@ def _trace_input_source(
                 "source": "claim",
             }
             if claim_id:
-                result["claim_id"] = claim_id
+                result["claim_id"] = _display_claim_id(world, claim_id) or claim_id
             return result
 
         if vr.status == "conflicted" and policy.strategy is not None:
@@ -946,7 +974,10 @@ def _trace_input_source(
                     "strategy": rr.strategy,
                 }
                 if rr.winning_claim_id:
-                    result["claim_id"] = rr.winning_claim_id
+                    result["claim_id"] = (
+                        _display_claim_id(world, rr.winning_claim_id)
+                        or rr.winning_claim_id
+                    )
                 if rr.reason:
                     result["reason"] = rr.reason
                 return result

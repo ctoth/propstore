@@ -236,6 +236,14 @@ class BoundWorld(BeliefSpace):
             normalized.add(resolved or str(claim_id))
         return normalized
 
+    def _resolve_claim_lookup_id(self, claim_id: str) -> str:
+        resolver = getattr(self._store, "resolve_claim", None)
+        if callable(resolver):
+            resolved = resolver(claim_id)
+            if isinstance(resolved, str) and resolved:
+                return resolved
+        return claim_id
+
     @staticmethod
     def _bindings_to_cel(bindings: dict[str, Any]) -> list[str]:
         """Convert keyword bindings to CEL condition strings."""
@@ -556,7 +564,7 @@ class BoundWorld(BeliefSpace):
 
     def claim_status(self, claim_id: str) -> ATMSInspection:
         """Return the ATMS-native status and support-quality metadata for a claim."""
-        return self.atms_engine().claim_status(claim_id)
+        return self.atms_engine().claim_status(self._resolve_claim_lookup_id(claim_id))
 
     def claim_essential_support(self, claim_id: str) -> EnvironmentKey | None:
         """Return Dixon-style essential support for a claim under this bound world."""
@@ -571,7 +579,7 @@ class BoundWorld(BeliefSpace):
         """Return bounded future-environment status changes for one claim."""
         self._require_atms_backend()
         return self.atms_engine().claim_future_statuses(
-            claim_id,
+            self._resolve_claim_lookup_id(claim_id),
             coerce_queryable_assumptions(queryables),
             limit=limit,
         )

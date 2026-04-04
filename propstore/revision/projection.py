@@ -6,6 +6,33 @@ from propstore.world.labelled import SupportQuality
 from propstore.revision.state import BeliefAtom, BeliefBase, RevisionScope
 
 
+def _claim_atom_id(claim: dict) -> str | None:
+    logical_id = claim.get("logical_id") or claim.get("primary_logical_id")
+    if isinstance(logical_id, str) and logical_id:
+        return f"claim:{logical_id.split(':', 1)[1] if ':' in logical_id else logical_id}"
+
+    logical_ids = claim.get("logical_ids")
+    if isinstance(logical_ids, list):
+        for entry in logical_ids:
+            if not isinstance(entry, dict):
+                continue
+            value = entry.get("value")
+            if isinstance(value, str) and value:
+                return f"claim:{value}"
+
+    claim_id = claim.get("id")
+    if not claim_id:
+        return None
+    return f"claim:{to_claim_id(claim_id)}"
+
+
+def _claim_support_lookup_id(claim: dict) -> str | None:
+    claim_id = claim.get("id")
+    if claim_id:
+        return to_claim_id(claim_id)
+    return None
+
+
 def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBase:
     """Project a scoped BoundWorld into a minimal revision-facing belief base.
 
@@ -19,11 +46,12 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
         claim_id = claim.get("id")
         if not claim_id:
             continue
-        normalized_claim_id = to_claim_id(claim_id)
         label, quality = bound.claim_support(claim)
         if quality is not SupportQuality.EXACT:
             continue
-        atom_id = f"claim:{normalized_claim_id}"
+        atom_id = _claim_atom_id(claim)
+        if atom_id is None:
+            continue
         if label is not None:
             for environment in label.environments:
                 supporting_assumption_ids.update(environment.assumption_ids)
@@ -33,7 +61,10 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
             )
         else:
             support_sets[atom_id] = ()
-        essential = bound.claim_essential_support(normalized_claim_id)
+        support_lookup_id = _claim_support_lookup_id(claim)
+        if support_lookup_id is None:
+            continue
+        essential = bound.claim_essential_support(support_lookup_id)
         essential_support[atom_id] = (
             essential.assumption_ids
             if essential is not None
