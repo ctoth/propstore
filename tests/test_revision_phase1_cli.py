@@ -7,6 +7,7 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.cli.repository import Repository
 
 
 def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
@@ -49,11 +50,12 @@ def revision_cli_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
     monkeypatch.chdir(tmp_path)
 
     knowledge = tmp_path / "knowledge"
+    repo = Repository.init(knowledge)
     concepts = knowledge / "concepts"
-    concepts.mkdir(parents=True)
+    concepts.mkdir(parents=True, exist_ok=True)
 
     forms_dir = knowledge / "forms"
-    forms_dir.mkdir()
+    forms_dir.mkdir(exist_ok=True)
     for form_name in ("frequency", "category", "boolean", "structural"):
         form_data: dict = {"name": form_name, "dimensionless": False}
         if form_name == "category":
@@ -93,6 +95,14 @@ def revision_cli_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
             }
         ],
     })
+
+    adds = {
+        path.relative_to(knowledge).as_posix(): path.read_bytes()
+        for path in knowledge.rglob("*")
+        if path.is_file() and ".git" not in path.parts
+    }
+    repo.git.commit_files(adds, "Seed revision CLI workspace")
+    repo.git.sync_worktree()
 
     runner = CliRunner()
     sidecar = knowledge / "sidecar" / "propstore.sqlite"
