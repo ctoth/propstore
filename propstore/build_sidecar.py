@@ -1058,17 +1058,8 @@ def _claim_reference_map_from_conn(conn: sqlite3.Connection) -> dict[str, str]:
         "SELECT name FROM sqlite_master WHERE type='table'"
     ).fetchall()):
         return {}
-    columns = {
-        str(row[1])
-        for row in conn.execute("PRAGMA table_info(claim_core)").fetchall()
-    }
-    select_columns = ["id"]
-    has_primary_logical_id = "primary_logical_id" in columns
-    has_logical_ids_json = "logical_ids_json" in columns
-    select_columns.append("primary_logical_id" if has_primary_logical_id else "NULL")
-    select_columns.append("logical_ids_json" if has_logical_ids_json else "NULL")
     rows = conn.execute(
-        f"SELECT {', '.join(select_columns)} FROM claim_core"
+        "SELECT id, primary_logical_id, logical_ids_json FROM claim_core"
     ).fetchall()
     reference_map: dict[str, str] = {}
     for row in rows:

@@ -141,9 +141,10 @@ class Repository:
         for ancestor in [current, *current.parents]:
             candidate = ancestor / "knowledge"
             if candidate.is_dir() and (candidate / "concepts").is_dir():
-                return cls(candidate)
+                if KnowledgeRepo.is_repo(candidate):
+                    return cls(candidate)
         raise RepositoryNotFound(
-            f"No knowledge/ directory found (searched from {current}). "
+            f"No git-backed knowledge/ directory found (searched from {current}). "
             f"Run 'pks init' to create one."
         )
 

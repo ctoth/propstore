@@ -231,6 +231,9 @@ class TestSidecarPopulatesOpinionColumns:
         conn.executescript("""
             CREATE TABLE claim_core (
                 id TEXT PRIMARY KEY,
+                primary_logical_id TEXT,
+                logical_ids_json TEXT,
+                version_id TEXT,
                 content_hash TEXT,
                 seq INTEGER,
                 type TEXT,
@@ -263,8 +266,14 @@ class TestSidecarPopulatesOpinionColumns:
                 opinion_base_rate REAL DEFAULT 0.5
             );
         """)
-        conn.execute("INSERT INTO claim_core VALUES ('c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)")
-        conn.execute("INSERT INTO claim_core VALUES ('c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)")
+        conn.execute(
+            "INSERT INTO claim_core VALUES ('c1', 'test:c1', '[{\"namespace\": \"test\", \"value\": \"c1\"}]', "
+            "'sha256:c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_core VALUES ('c2', 'test:c2', '[{\"namespace\": \"test\", \"value\": \"c2\"}]', "
+            "'sha256:c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)"
+        )
 
         stances_dir = tmp_path / "stances"
         stances_dir.mkdir()
@@ -315,6 +324,9 @@ class TestSidecarHandlesOldFormatYaml:
         conn.executescript("""
             CREATE TABLE claim_core (
                 id TEXT PRIMARY KEY,
+                primary_logical_id TEXT,
+                logical_ids_json TEXT,
+                version_id TEXT,
                 content_hash TEXT,
                 seq INTEGER,
                 type TEXT,
@@ -347,8 +359,14 @@ class TestSidecarHandlesOldFormatYaml:
                 opinion_base_rate REAL DEFAULT 0.5
             );
         """)
-        conn.execute("INSERT INTO claim_core VALUES ('c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)")
-        conn.execute("INSERT INTO claim_core VALUES ('c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)")
+        conn.execute(
+            "INSERT INTO claim_core VALUES ('c1', 'test:c1', '[{\"namespace\": \"test\", \"value\": \"c1\"}]', "
+            "'sha256:c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)"
+        )
+        conn.execute(
+            "INSERT INTO claim_core VALUES ('c2', 'test:c2', '[{\"namespace\": \"test\", \"value\": \"c2\"}]', "
+            "'sha256:c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)"
+        )
 
         stances_dir = tmp_path / "stances"
         stances_dir.mkdir()
