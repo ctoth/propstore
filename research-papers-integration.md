@@ -6,64 +6,74 @@ This document defines the mechanical handoff between `propstore` and
 ## What propstore owns
 
 - the claim schema
-- validation of imported claim files
+- validation of source-local claim files
 - sidecar compilation
 - conflict detection
-- the import CLI: `pks import-papers --papers-root ../research-papers-plugin/papers`
+- the source lifecycle CLI: `pks source ...`
 
 ## What the plugin must produce
 
 For each paper directory in `../research-papers-plugin/papers/`, the plugin
-must write:
+must write source-local artifacts such as:
 
 ```text
+papers/<PaperDir>/concepts.yaml
 papers/<PaperDir>/claims.yaml
+papers/<PaperDir>/justifications.yaml
+papers/<PaperDir>/stances.yaml
 ```
 
-That file should already conform to propstore's claim schema. In practice,
+Those files should already conform to propstore's source-local schemas. In practice,
 that means:
 
-- top-level `source` mapping
-- top-level `claims` list
-- claim IDs in `claimN` format
-- concept references using propstore `conceptN` IDs
-- CEL conditions using propstore canonical names
+- top-level `source` mapping naming the source branch
+- top-level typed lists (`concepts`, `claims`, `justifications`, `stances`)
+- source-local IDs that are stable within the source branch
+- concept references that resolve through the source branch concept inventory
+- CEL conditions using propstore canonical names when appropriate
 
-## Import behavior
+## Source-branch behavior
 
-`pks import-papers` scans immediate subdirectories of the given `papers/`
-directory. For every `papers/<PaperDir>/claims.yaml` it finds, it writes:
+Propstore no longer scans a `papers/` directory and bulk-imports it. The plugin
+or orchestrator should call the source CLI explicitly:
 
 ```text
-claims/<PaperDir>.yaml
+pks source init <PaperDir> ...
+pks source add-concepts <PaperDir> --batch papers/<PaperDir>/concepts.yaml
+pks source add-claim <PaperDir> --batch papers/<PaperDir>/claims.yaml
+pks source add-justification <PaperDir> --batch papers/<PaperDir>/justifications.yaml
+pks source add-stance <PaperDir> --batch papers/<PaperDir>/stances.yaml
+pks source finalize <PaperDir>
+pks source promote <PaperDir>
 ```
 
-During import, `source.paper` is normalized to `<PaperDir>` so the imported
-claim file and the paper directory use the same paper identity.
+During source ingestion, local IDs are rewritten to canonical artifact IDs and
+preserved as source-local logical IDs on the source branch.
 
 ## Recommended workflow
 
 From `../research-papers-plugin`:
 
 1. Run the paper extraction flow and produce `claims.yaml` alongside
-   `notes.md`, `description.md`, `abstract.md`, and `citations.md`.
-2. Keep markdown as the human-facing view, but treat `claims.yaml` as the
-   machine-readable artifact.
+   `concepts.yaml`, `justifications.yaml`, `stances.yaml`, `notes.md`,
+   `description.md`, `abstract.md`, and `citations.md`.
+2. Keep markdown as the human-facing view, but treat the YAML artifacts as the
+   machine-readable source package.
 
 From `propstore`:
 
-1. Run `pks import-papers --papers-root ../research-papers-plugin/papers`
+1. Run the `pks source ...` sequence for each source package
 2. Run `pks validate`
 3. Run `pks build`
 4. Query the sidecar with `pks query ...`
 
 ## Current state
 
-The import path is now mechanical on the `propstore` side.
+The import bridge is gone on the `propstore` side. The remaining integration
+work is to have the plugin orchestrate `pks source` directly and emit the full
+source package consistently:
 
-The plugin repository does not yet emit `papers/*/claims.yaml`, so the remaining
-integration work is in `../research-papers-plugin`:
-
-- paper-reader must write `claims.yaml`
-- reconcile should read and write claim-level stance information rather than
-  only annotating markdown
+- paper-reader must write or stage source-local artifacts
+- register-concepts must populate `concepts.yaml`
+- extract-claims, extract-justifications, and extract-stances must target the
+  source package files that `pks source` consumes

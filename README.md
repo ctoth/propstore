@@ -190,9 +190,9 @@ uv run pks -C knowledge worldline refresh my_query
 
 ## Typical Workflow
 
-1. Use `research-papers-plugin` to retrieve papers, read them, and produce structured `claims.yaml` files.
+1. Use `research-papers-plugin` to retrieve papers, read them, and produce structured source artifacts.
 2. Initialize a propstore knowledge repo.
-3. Import paper-local claims into the knowledge repo.
+3. Create a source branch and write source-local concepts, claims, justifications, and stances through `pks source`.
 4. Build the sidecar.
 5. Query, compare, export, and run reasoning passes over the compiled result.
 
@@ -200,8 +200,14 @@ uv run pks -C knowledge worldline refresh my_query
 # 1. Create a fresh knowledge repo
 uv run pks init knowledge
 
-# 2. Import claims extracted elsewhere
-uv run pks -C knowledge import-papers --papers-root ../your-paper-project/papers
+# 2. Create and populate a source branch
+uv run pks -C knowledge source init Demo_2026 --kind academic_paper --origin-type file --origin-value Demo_2026.pdf
+uv run pks -C knowledge source add-concepts Demo_2026 --batch ../your-paper-project/papers/Demo_2026/concepts.yaml
+uv run pks -C knowledge source add-claim Demo_2026 --batch ../your-paper-project/papers/Demo_2026/claims.yaml
+uv run pks -C knowledge source add-justification Demo_2026 --batch ../your-paper-project/papers/Demo_2026/justifications.yaml
+uv run pks -C knowledge source add-stance Demo_2026 --batch ../your-paper-project/papers/Demo_2026/stances.yaml
+uv run pks -C knowledge source finalize Demo_2026
+uv run pks -C knowledge source promote Demo_2026
 
 # 3. Validate and compile
 uv run pks -C knowledge build

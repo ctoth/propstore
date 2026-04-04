@@ -147,19 +147,26 @@ uv run pks promote
 uv run pks promote some-stance.yaml -y
 ```
 
-### `pks import-papers`
+### `pks source`
 
-Import paper-local `claims.yaml` files from a `papers/` corpus.
+Manage source branches and source-local artifacts. The source workflow replaces
+the old paper-import bridge.
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--papers-root` | DIRECTORY | -- | Path to research-papers-plugin `papers/` directory (required) |
-| `--output-dir` | DIRECTORY | -- | Directory to write imported claim files into |
-| `--dry-run` | FLAG | false | Report what would be imported without writing |
-| `--strict` | FLAG | false | Abort import if any dimensional check fails |
+Key subcommands:
+
+- `pks source init <name> --kind <kind> --origin-type <type> --origin-value <value>`
+- `pks source add-concepts <name> --batch concepts.yaml`
+- `pks source add-claim <name> --batch claims.yaml`
+- `pks source add-justification <name> --batch justifications.yaml`
+- `pks source add-stance <name> --batch stances.yaml`
+- `pks source finalize <name>`
+- `pks source promote <name>`
 
 ```bash
-uv run pks import-papers --papers-root ../research/papers --dry-run
+uv run pks source init Demo_2026 --kind academic_paper --origin-type file --origin-value Demo_2026.pdf
+uv run pks source add-claim Demo_2026 --batch ../research/papers/Demo_2026/claims.yaml
+uv run pks source finalize Demo_2026
+uv run pks source promote Demo_2026
 ```
 
 ### `pks export-aliases`
@@ -1097,7 +1104,7 @@ Used by: `concept embed`, `concept similar`, `claim embed`, `claim similar`.
 
 ### Dry-run
 
-Used by: `concept add`, `concept add-value`, `concept alias`, `concept deprecate`, `concept link`, `concept rename`, `context add`, `form add`, `form remove`, `import-papers`.
+Used by: `concept add`, `concept add-value`, `concept alias`, `concept deprecate`, `concept link`, `concept rename`, `context add`, `form add`, `form remove`.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

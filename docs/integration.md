@@ -5,23 +5,27 @@
 propstore consumes claims extracted by the [research-papers-plugin](https://github.com/ctoth/research-papers-plugin). The concept-first workflow:
 
 1. **Read papers** — `paper-reader` skill extracts structured notes from PDFs
-2. **Extract claims** — `extract-claims` skill reads the concept registry, creates missing concepts via `pks concept add`, then produces `claims.yaml` referencing only registered concepts
-3. **Import** — `pks import-papers --papers-root ../papers/` copies claim files into the knowledge repository. The `--strict` flag enforces dimensional consistency on equation claims via bridgman. If any equation's SymPy expression fails dimensional verification against its variable forms, the entire import is aborted. Without `--strict`, dimensional mismatches are warnings only.
+2. **Register source-local concepts** — `register-concepts` or `pks source add-concepts` writes the source inventory onto the source branch
+3. **Write source-local artifacts** — `pks source add-claim`, `pks source add-justification`, and `pks source add-stance` commit normalized YAML onto the source branch
+4. **Finalize** — `pks source finalize` computes artifact codes, validates cross-source references, and previews parameterization-group effects before promotion
+5. **Promote** — `pks source promote` writes accepted source artifacts into the canonical repository on `master`
 
 ```bash
-# Import with dimensional pre-check
-pks import-papers --papers-root ../papers --strict
-
-# Dry run to preview
-pks import-papers --papers-root ../papers --dry-run
+pks source init Halpin_2010 --kind academic_paper --origin-type doi --origin-value 10.1016/j.websem.2010.01.001
+pks source add-concepts Halpin_2010 --batch ../papers/Halpin_2010/concepts.yaml
+pks source add-claim Halpin_2010 --batch ../papers/Halpin_2010/claims.yaml
+pks source add-justification Halpin_2010 --batch ../papers/Halpin_2010/justifications.yaml
+pks source add-stance Halpin_2010 --batch ../papers/Halpin_2010/stances.yaml
+pks source finalize Halpin_2010
+pks source promote Halpin_2010
 ```
-4. **Build** — `pks build` validates, detects conflicts, compiles the sidecar
-5. **Embed** — `pks claim embed --all --model <model>` generates embeddings for cross-paper search
-6. **Query** — `pks claim similar`, `pks world query`, `pks world bind`, etc.
+6. **Build** — `pks build` validates, detects conflicts, compiles the sidecar
+7. **Embed** — `pks claim embed --all --model <model>` generates embeddings for cross-paper search
+8. **Query** — `pks claim similar`, `pks world query`, `pks world bind`, etc.
 
 The concept registry grows organically as papers are processed. Each extraction agent sees the full registry and reuses existing concepts where possible. Path dependence (which paper is processed first) is acceptable — reconciliation via embedding similarity merges duplicate concepts after the fact.
 
-Without propstore installed, `extract-claims` still works — it uses descriptive concept names without registry validation. propstore adds structured validation, conflict detection, and cross-paper reasoning on top.
+Without propstore installed, `extract-claims` still works — it uses descriptive concept names without registry validation. propstore adds structured validation, git-backed source lifecycle, conflict detection, and cross-source reasoning on top.
 
 ## Reconciliation workflow
 
