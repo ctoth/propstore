@@ -968,7 +968,7 @@ def resolve(
     return ResolvedResult(
         concept_id=typed_concept_id, status=ValueStatus.RESOLVED,
         value=value, claims=active,
-        winning_claim_id=to_claim_id(_display_claim_id(world or view, winner_id) or winner_id),
+        winning_claim_id=to_claim_id(winner_id),
         strategy=strategy.value, reason=reason,
         acceptance_probs=_acceptance_probs,
     )
