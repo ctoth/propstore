@@ -454,6 +454,9 @@ class BoundWorld(BeliefSpace):
             policy=effective_policy,
             world=self._store,
         )
+        if result.status == "resolved" and result.winning_claim_id and hasattr(self._store, "resolve_claim"):
+            resolved_winner_id = self._store.resolve_claim(result.winning_claim_id) or result.winning_claim_id
+            result = replace(result, winning_claim_id=resolved_winner_id)
         if self._reasoning_backend() == "atms":
             return self._attach_atms_resolved_label(concept_id, result)
         return self._attach_resolved_label(concept_id, result)
