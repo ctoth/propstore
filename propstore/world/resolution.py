@@ -111,6 +111,29 @@ def _resolution_claim_view(claim: Mapping[str, object]) -> _ResolutionClaimView:
     )
 
 
+def _display_claim_id(store: ArtifactStore | None, claim_id: str | None) -> str | None:
+    if claim_id is None:
+        return None
+    if store is None:
+        return claim_id
+    getter = getattr(store, "get_claim", None)
+    if callable(getter):
+        claim = getter(claim_id)
+        if isinstance(claim, Mapping):
+            logical_id = claim.get("logical_id") or claim.get("primary_logical_id")
+            if isinstance(logical_id, str) and logical_id:
+                return logical_id.split(":", 1)[1] if ":" in logical_id else logical_id
+            logical_ids = claim.get("logical_ids")
+            if isinstance(logical_ids, list):
+                for entry in logical_ids:
+                    if not isinstance(entry, Mapping):
+                        continue
+                    value = entry.get("value")
+                    if isinstance(value, str) and value:
+                        return value
+    return claim_id
+
+
 def _coerce_resolution_claim(
     claim: _ResolutionClaimView | Mapping[str, object],
 ) -> _ResolutionClaimView:
@@ -945,7 +968,7 @@ def resolve(
     return ResolvedResult(
         concept_id=typed_concept_id, status=ValueStatus.RESOLVED,
         value=value, claims=active,
-        winning_claim_id=to_claim_id(winner_id),
+        winning_claim_id=to_claim_id(_display_claim_id(world or view, winner_id) or winner_id),
         strategy=strategy.value, reason=reason,
         acceptance_probs=_acceptance_probs,
     )

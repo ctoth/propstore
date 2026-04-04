@@ -12,12 +12,78 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.build_sidecar import _content_hash, build_sidecar
+from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
+from tests.conftest import (
+    make_claim_identity,
+    normalize_claims_payload,
+    normalize_concept_payloads,
+)
+
+
+def _concept_artifact(local_id: str) -> str:
+    return derive_concept_artifact_id("propstore", local_id)
+
+
+CONCEPT1_ID = _concept_artifact("concept1")
+CONCEPT2_ID = _concept_artifact("concept2")
+CONCEPT3_ID = _concept_artifact("concept3")
+CONCEPT4_ID = _concept_artifact("concept4")
+CONCEPT5_ID = _concept_artifact("concept5")
+CONCEPT6_ID = _concept_artifact("concept6")
+
+
+def _normalize_claim_concept_refs(payload: dict) -> dict:
+    normalized = normalize_claims_payload(payload)
+    claims = normalized.get("claims")
+    if not isinstance(claims, list):
+        return normalized
+
+    for claim in claims:
+        if not isinstance(claim, dict):
+            continue
+        concept = claim.get("concept")
+        if isinstance(concept, str) and concept.startswith("concept"):
+            claim["concept"] = _concept_artifact(concept)
+        target_concept = claim.get("target_concept")
+        if isinstance(target_concept, str) and target_concept.startswith("concept"):
+            claim["target_concept"] = _concept_artifact(target_concept)
+
+        concepts = claim.get("concepts")
+        if isinstance(concepts, list):
+            claim["concepts"] = [
+                _concept_artifact(value) if isinstance(value, str) and value.startswith("concept") else value
+                for value in concepts
+            ]
+
+        variables = claim.get("variables")
+        if isinstance(variables, list):
+            for variable in variables:
+                if not isinstance(variable, dict):
+                    continue
+                value = variable.get("concept")
+                if isinstance(value, str) and value.startswith("concept"):
+                    variable["concept"] = _concept_artifact(value)
+
+        parameters = claim.get("parameters")
+        if isinstance(parameters, list):
+            for parameter in parameters:
+                if not isinstance(parameter, dict):
+                    continue
+                value = parameter.get("concept")
+                if isinstance(value, str) and value.startswith("concept"):
+                    parameter["concept"] = _concept_artifact(value)
+        claim["version_id"] = compute_claim_version_id(claim)
+
+    return normalized
 
 
 _CLAIM_SELECT_SQL = """
     SELECT
         core.id,
-        core.content_hash,
+        core.id AS artifact_id,
+        core.primary_logical_id,
+        core.logical_ids_json,
+        core.version_id,
         core.seq,
         core.type,
         core.concept_id,
@@ -61,7 +127,15 @@ _CLAIM_SELECT_SQL = """
 
 def _fetch_claim(conn: sqlite3.Connection, claim_id: str) -> sqlite3.Row | None:
     conn.row_factory = sqlite3.Row
-    return conn.execute(f"{_CLAIM_SELECT_SQL} WHERE core.id = ?", (claim_id,)).fetchone()
+    if ":" not in claim_id and not claim_id.startswith("ps:claim:"):
+        return conn.execute(
+            f"{_CLAIM_SELECT_SQL} WHERE core.primary_logical_id LIKE ?",
+            (f"%:{claim_id}",),
+        ).fetchone()
+    return conn.execute(
+        f"{_CLAIM_SELECT_SQL} WHERE core.id = ? OR core.primary_logical_id = ?",
+        (claim_id, claim_id),
+    ).fetchone()
 
 
 def _fetch_claim_rows(
@@ -125,7 +199,11 @@ def concept_dir(tmp_path):
             yaml.dump({"name": form_name}, default_flow_style=False))
 
     def write(name, data):
-        (concepts_path / f"{name}.yaml").write_text(yaml.dump(data, default_flow_style=False))
+        normalized = normalize_concept_payloads(
+            [data],
+            default_domain=str(data.get("domain") or "propstore"),
+        )[0]
+        (concepts_path / f"{name}.yaml").write_text(yaml.dump(normalized, default_flow_style=False))
 
     write("fundamental_frequency", {
         "id": "concept1",
@@ -273,7 +351,7 @@ class TestConceptTable:
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM concept WHERE id='concept1'").fetchone()
+        row = conn.execute("SELECT * FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
         assert row["canonical_name"] == "fundamental_frequency"
         assert row["status"] == "accepted"
         assert row["domain"] == "speech"
@@ -284,7 +362,7 @@ class TestConceptTable:
     def test_proposed_concept_included(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT status FROM concept WHERE id='concept5'").fetchone()
+        row = conn.execute("SELECT status FROM concept WHERE id=?", (CONCEPT5_ID,)).fetchone()
         assert row[0] == "proposed"
         conn.close()
 
@@ -293,7 +371,7 @@ class TestConceptTable:
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT content_hash FROM concept WHERE id='concept1'").fetchone()
+        row = conn.execute("SELECT content_hash FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
         assert row["content_hash"] is not None
         assert len(row["content_hash"]) == 16
         conn.close()
@@ -310,12 +388,12 @@ class TestConceptTable:
         """Same content produces same hash across builds."""
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        hash1 = conn.execute("SELECT content_hash FROM concept WHERE id='concept1'").fetchone()[0]
+        hash1 = conn.execute("SELECT content_hash FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()[0]
         conn.close()
 
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        hash2 = conn.execute("SELECT content_hash FROM concept WHERE id='concept1'").fetchone()[0]
+        hash2 = conn.execute("SELECT content_hash FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()[0]
         conn.close()
         assert hash1 == hash2
 
@@ -337,7 +415,7 @@ class TestAliasTable:
         row = conn.execute(
             "SELECT concept_id FROM alias WHERE alias_name='F0'"
         ).fetchone()
-        assert row[0] == "concept1"
+        assert row[0] == CONCEPT1_ID
         conn.close()
 
     def test_alias_source(self, knowledge_reader, sidecar_path):
@@ -367,10 +445,11 @@ class TestRelationshipTable:
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT * FROM relationship WHERE source_id='concept1'"
+            "SELECT * FROM relationship WHERE source_id=?",
+            (CONCEPT1_ID,),
         ).fetchone()
         assert row["type"] == "broader"
-        assert row["target_id"] == "concept4"
+        assert row["target_id"] == CONCEPT4_ID
         conn.close()
 
 
@@ -389,7 +468,7 @@ class TestParameterizationTable:
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT * FROM parameterization").fetchone()
-        assert "concept5" in row["concept_ids"]
+        assert CONCEPT5_ID in row["concept_ids"]
         assert row["formula"] == "ra = ta / T0"
         assert row["exactness"] == "exact"
         conn.close()
@@ -399,7 +478,7 @@ class TestParameterizationTable:
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT * FROM parameterization").fetchone()
-        assert row["output_concept_id"] == "concept5"
+        assert row["output_concept_id"] == CONCEPT5_ID
         conn.close()
 
 
@@ -413,7 +492,7 @@ class TestFTS:
             "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH 'frequency'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        assert "concept1" in ids
+        assert CONCEPT1_ID in ids
         conn.close()
 
     def test_fts_search_by_alias(self, knowledge_reader, sidecar_path):
@@ -423,7 +502,7 @@ class TestFTS:
             "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH 'pitch'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        assert "concept1" in ids
+        assert CONCEPT1_ID in ids
         conn.close()
 
     def test_fts_search_by_definition(self, knowledge_reader, sidecar_path):
@@ -433,7 +512,7 @@ class TestFTS:
             "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH 'glottis'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        assert "concept2" in ids
+        assert CONCEPT2_ID in ids
         conn.close()
 
     def test_fts_search_by_condition(self, knowledge_reader, sidecar_path):
@@ -444,7 +523,7 @@ class TestFTS:
         ).fetchall()
         ids = [r[0] for r in rows]
         # return_phase_ratio has condition "task == 'speech'"
-        assert "concept5" in ids
+        assert CONCEPT5_ID in ids
         conn.close()
 
 
@@ -510,9 +589,11 @@ class TestRebuildSkipping:
 
         stances_dir = concept_dir.parent / "stances"
         stances_dir.mkdir(parents=True, exist_ok=True)
+        claim1_id = make_claim_identity("claim1", namespace="test_paper_alpha")["artifact_id"]
+        claim5_id = make_claim_identity("claim5", namespace="test_paper_alpha")["artifact_id"]
         (stances_dir / "claim1.yaml").write_text(yaml.dump({
-            "source_claim": "claim1",
-            "stances": [{"type": "supports", "target": "claim5", "note": "new stance file"}],
+            "source_claim": claim1_id,
+            "stances": [{"type": "supports", "target": claim5_id, "note": "new stance file"}],
         }, default_flow_style=False))
 
         assert build_sidecar(knowledge_reader, sidecar_path) is True
@@ -672,6 +753,9 @@ def claim_files(concept_dir):
         ],
     }
 
+    alpha = _normalize_claim_concept_refs(alpha)
+    beta = _normalize_claim_concept_refs(beta)
+
     (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
 
@@ -709,18 +793,18 @@ class TestClaimTable:
         conn = sqlite3.connect(sidecar_with_claims)
         row = _fetch_claim(conn, "claim1")
         assert row["type"] == "parameter"
-        assert row["concept_id"] == "concept1"
+        assert row["concept_id"] == CONCEPT1_ID
         assert row["unit"] == "Hz"
         assert row["source_paper"] == "test_paper_alpha"
         assert row["provenance_page"] == 5
         conn.close()
 
-    def test_claim_has_content_hash(self, sidecar_with_claims):
-        """Claims have non-empty content_hash."""
+    def test_claim_has_version_id(self, sidecar_with_claims):
+        """Claims have non-empty immutable version IDs."""
         conn = sqlite3.connect(sidecar_with_claims)
         row = _fetch_claim(conn, "claim1")
-        assert row["content_hash"] is not None
-        assert len(row["content_hash"]) == 16
+        assert row["version_id"] is not None
+        assert str(row["version_id"]).startswith("sha256:")
         conn.close()
 
     def test_claim_has_seq(self, sidecar_with_claims):
@@ -805,6 +889,7 @@ class TestClaimTable:
                 },
             ],
         }
+        claim_data = _normalize_claim_concept_refs(claim_data)
         (claims_dir / "equation_error_paper.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
@@ -834,6 +919,7 @@ class TestClaimTable:
                 },
             ],
         }
+        claim_data = _normalize_claim_concept_refs(claim_data)
         (claims_dir / "range_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
 
         with pytest.raises(TypeError):
@@ -857,6 +943,7 @@ class TestClaimTable:
                 },
             ],
         }
+        claim_data = _normalize_claim_concept_refs(claim_data)
         (claims_dir / "bounds_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
 
         build_sidecar(knowledge_reader, sidecar_path, force=True)
@@ -908,12 +995,60 @@ class TestClaimStanceTable:
 
     def test_claim_stance_rows_persisted(self, sidecar_with_claims):
         conn = sqlite3.connect(sidecar_with_claims)
-        row = _fetch_relation_edge_rows(conn, "AND source_id='claim2'")[0]
-        assert row["claim_id"] == "claim2"
-        assert row["target_claim_id"] == "claim1"
+        claim1_id = make_claim_identity("claim1", namespace="test_paper_alpha")["artifact_id"]
+        claim2_id = make_claim_identity("claim2", namespace="test_paper_alpha")["artifact_id"]
+        row = _fetch_relation_edge_rows(conn, "AND source_id=?", (claim2_id,))[0]
+        assert row["claim_id"] == claim2_id
+        assert row["target_claim_id"] == claim1_id
         assert row["stance_type"] == "rebuts"
         assert row["strength"] == "strong"
         assert "conflicting value" in row["note"]
+        conn.close()
+
+    def test_raw_inline_stance_targets_resolve_to_canonical_claim_ids(
+        self,
+        concept_dir,
+        knowledge_reader,
+        sidecar_path,
+    ):
+        claims_dir = concept_dir.parent / "claims"
+        claims_dir.mkdir(exist_ok=True)
+        (claims_dir / "raw_handles.yaml").write_text(
+            yaml.dump(
+                {
+                    "source": {"paper": "raw_handles"},
+                    "claims": [
+                        {
+                            "id": "claim1",
+                            "type": "parameter",
+                            "concept": CONCEPT1_ID,
+                            "value": 200.0,
+                            "unit": "Hz",
+                            "provenance": {"paper": "raw_handles", "page": 1},
+                        },
+                        {
+                            "id": "claim2",
+                            "type": "parameter",
+                            "concept": CONCEPT1_ID,
+                            "value": 220.0,
+                            "unit": "Hz",
+                            "stances": [{"type": "rebuts", "target": "claim1"}],
+                            "provenance": {"paper": "raw_handles", "page": 2},
+                        },
+                    ],
+                },
+                default_flow_style=False,
+            )
+        )
+
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
+
+        conn = sqlite3.connect(sidecar_path)
+        source_id = make_claim_identity("claim2", namespace="raw_handles")["artifact_id"]
+        target_id = make_claim_identity("claim1", namespace="raw_handles")["artifact_id"]
+        row = _fetch_relation_edge_rows(conn, "AND source_id=?", (source_id,))[0]
+        assert row["claim_id"] == source_id
+        assert row["target_claim_id"] == target_id
         conn.close()
 
     def test_invalid_inline_stance_target_raises(self, concept_dir, knowledge_reader, sidecar_path):
@@ -941,6 +1076,7 @@ class TestClaimStanceTable:
                 },
             ],
         }
+        claim_data = _normalize_claim_concept_refs(claim_data)
         (claims_dir / "invalid_stance_target.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
@@ -973,6 +1109,7 @@ class TestClaimStanceTable:
                 },
             ],
         }
+        claim_data = _normalize_claim_concept_refs(claim_data)
         (claims_dir / "invalid_stance_type.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
@@ -1014,6 +1151,7 @@ class TestClaimStanceTable:
                 },
             ],
         }
+        claim_data = _normalize_claim_concept_refs(claim_data)
         (claims_dir / "invalid_stance_resolution.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
@@ -1065,6 +1203,7 @@ class TestClaimStanceTable:
             if claim["id"] in stances_by_source:
                 claim["stances"] = stances_by_source[claim["id"]]
         claim_data = {"source": {"paper": "stance_property"}, "claims": claims}
+        claim_data = _normalize_claim_concept_refs(claim_data)
         (claims_dir / "stance_property.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
@@ -1102,7 +1241,8 @@ class TestClaimStanceTable:
         """Can query normalized conflict witness rows by concept."""
         conn = sqlite3.connect(sidecar_with_claims)
         rows = conn.execute(
-            "SELECT * FROM conflict_witness WHERE concept_id = 'concept1'"
+            "SELECT * FROM conflict_witness WHERE concept_id = ?",
+            (CONCEPT1_ID,),
         ).fetchall()
         # concept1 has claims with different values under same/different conditions
         assert len(rows) >= 1
@@ -1128,7 +1268,8 @@ class TestClaimFTS:
             "SELECT claim_id FROM claim_fts WHERE claim_fts MATCH 'logarithmic'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        assert "claim5" in ids
+        expected_id = make_claim_identity("claim5", namespace="test_paper_alpha")["artifact_id"]
+        assert expected_id in ids
         conn.close()
 
     def test_claim_fts_search_expression(self, sidecar_with_claims):
@@ -1138,7 +1279,8 @@ class TestClaimFTS:
             "SELECT claim_id FROM claim_fts WHERE claim_fts MATCH 'log'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        assert "claim8" in ids
+        expected_id = make_claim_identity("claim8", namespace="test_paper_beta")["artifact_id"]
+        assert expected_id in ids
         conn.close()
 
     def test_claim_fts_search_conditions(self, sidecar_with_claims):
@@ -1148,7 +1290,8 @@ class TestClaimFTS:
             "SELECT claim_id FROM claim_fts WHERE claim_fts MATCH 'singing'"
         ).fetchall()
         ids = [r[0] for r in rows]
-        assert "claim3" in ids
+        expected_id = make_claim_identity("claim3", namespace="test_paper_alpha")["artifact_id"]
+        assert expected_id in ids
         conn.close()
 
 
@@ -1181,7 +1324,7 @@ class TestParameterizationGroupTable:
         # So concept1 and concept5 should be in the same group
         found = False
         for gid, members in by_group.items():
-            if "concept1" in members and "concept5" in members:
+            if CONCEPT1_ID in members and CONCEPT5_ID in members:
                 found = True
                 break
         assert found, f"concept1 and concept5 should be in the same parameterization group. Groups: {by_group}"
@@ -1214,7 +1357,7 @@ class TestConceptFormMetadata:
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM concept WHERE id='concept1'").fetchone()
+        row = conn.execute("SELECT * FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
         assert "is_dimensionless" in row.keys()
         conn.close()
 
@@ -1222,7 +1365,7 @@ class TestConceptFormMetadata:
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT is_dimensionless FROM concept WHERE id='concept1'").fetchone()
+        row = conn.execute("SELECT is_dimensionless FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
         assert row[0] == 0
         conn.close()
 
@@ -1230,7 +1373,7 @@ class TestConceptFormMetadata:
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT is_dimensionless FROM concept WHERE id='concept5'").fetchone()
+        row = conn.execute("SELECT is_dimensionless FROM concept WHERE id=?", (CONCEPT5_ID,)).fetchone()
         assert row[0] == 1
         conn.close()
 
@@ -1239,7 +1382,7 @@ class TestConceptFormMetadata:
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM concept WHERE id='concept1'").fetchone()
+        row = conn.execute("SELECT * FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
         assert "unit_symbol" in row.keys()
         conn.close()
 
@@ -1247,7 +1390,7 @@ class TestConceptFormMetadata:
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT unit_symbol FROM concept WHERE id='concept1'").fetchone()
+        row = conn.execute("SELECT unit_symbol FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
         assert row[0] == "Hz"
         conn.close()
 
@@ -1255,7 +1398,7 @@ class TestConceptFormMetadata:
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        row = conn.execute("SELECT unit_symbol FROM concept WHERE id='concept5'").fetchone()
+        row = conn.execute("SELECT unit_symbol FROM concept WHERE id=?", (CONCEPT5_ID,)).fetchone()
         assert row[0] is None
         conn.close()
 
@@ -1281,6 +1424,7 @@ def algorithm_claim_files(concept_dir):
             },
         ],
     }
+    algo_paper = _normalize_claim_concept_refs(algo_paper)
     (claims_dir / "algo_test_paper.yaml").write_text(
         yaml.dump(algo_paper, default_flow_style=False)
     )
@@ -1354,6 +1498,7 @@ class TestAlgorithmBindings:
                 },
             ],
         }
+        algo_paper = _normalize_claim_concept_refs(algo_paper)
         (claims_dir / "algo_bindings_paper.yaml").write_text(
             yaml.dump(algo_paper, default_flow_style=False)
         )
@@ -1367,9 +1512,9 @@ class TestAlgorithmBindings:
         assert row is not None, "algorithm claim must be stored"
         ast_text = row["canonical_ast"]
         assert ast_text is not None, "canonical_ast must not be None"
-        # With correct bindings, 'x' should be replaced by 'concept1'
-        assert "concept1" in ast_text, (
-            f"canonical_ast should contain concept binding 'concept1' "
+        # With correct bindings, 'x' should be replaced by the durable concept artifact ID.
+        assert CONCEPT1_ID in ast_text, (
+            f"canonical_ast should contain concept binding '{CONCEPT1_ID}' "
             f"but got: {ast_text}"
         )
 
@@ -1586,7 +1731,7 @@ class TestFormAlgebraDimVerified:
         # Add a concept with a parameterization that has NO sympy field,
         # so dimensional verification succeeds purely on dimension presence
         concepts_path = concept_dir
-        (concepts_path / "period.yaml").write_text(yaml.dump({
+        period_payload = normalize_concept_payloads([{
             "id": "concept6",
             "canonical_name": "period",
             "status": "accepted",
@@ -1599,14 +1744,16 @@ class TestFormAlgebraDimVerified:
                 "exactness": "exact",
                 "source": "definition",
             }],
-        }, default_flow_style=False))
+        }], default_domain="speech")[0]
+        (concepts_path / "period.yaml").write_text(yaml.dump(period_payload, default_flow_style=False))
 
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             "SELECT * FROM form_algebra WHERE output_form='duration_ratio' "
-            "AND source_concept_id='concept6'"
+            "AND source_concept_id=?",
+            (_concept_artifact("concept6"),)
         ).fetchall()
         conn.close()
         assert len(rows) >= 1, "form_algebra must contain entries for dimensioned forms"
@@ -1654,6 +1801,7 @@ class TestClaimValueSI:
             "source": {"paper": "si_test_paper"},
             "claims": claims_list,
         }
+        claim_data = _normalize_claim_concept_refs(claim_data)
         (claims_dir / "si_test_paper.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )

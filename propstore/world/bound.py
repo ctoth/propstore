@@ -92,6 +92,12 @@ def _concept_registry_for_store(world) -> dict[str, dict]:
 
 def _claim_row_to_source_claim(claim: dict) -> dict:
     source = dict(claim)
+    if claim.get("artifact_id"):
+        source["artifact_id"] = claim["artifact_id"]
+    if claim.get("version_id"):
+        source["version_id"] = claim["version_id"]
+    if "logical_ids" in claim:
+        source["logical_ids"] = claim["logical_ids"]
     if claim.get("conditions_cel"):
         source["conditions"] = json.loads(claim["conditions_cel"])
     else:
@@ -174,10 +180,14 @@ class BoundWorld(BeliefSpace):
         self._policy = policy
         self._active_graph = active_graph
         self._active_claim_id_set = (
-            set(active_graph.active_claim_ids) if active_graph is not None else None
+            self._normalize_claim_id_set(active_graph.active_claim_ids)
+            if active_graph is not None
+            else None
         )
         self._inactive_claim_id_set = (
-            set(active_graph.inactive_claim_ids) if active_graph is not None else None
+            self._normalize_claim_id_set(active_graph.inactive_claim_ids)
+            if active_graph is not None
+            else None
         )
         self._atms_engine: ATMSEngine | None = None
         self._bindings = dict(environment.bindings)
@@ -211,7 +221,20 @@ class BoundWorld(BeliefSpace):
             extract_variable_concepts=self.extract_variable_concepts,
             collect_known_values=self.collect_known_values,
             extract_bindings=self.extract_bindings,
+            concept_symbol_candidates=self._concept_symbol_candidates,
         )
+
+    def _normalize_claim_id_set(self, claim_ids: Sequence[str]) -> set[str]:
+        resolver = getattr(self._store, "resolve_claim", None)
+        normalized: set[str] = set()
+        for claim_id in claim_ids:
+            resolved = (
+                resolver(str(claim_id))
+                if callable(resolver)
+                else None
+            )
+            normalized.add(resolved or str(claim_id))
+        return normalized
 
     @staticmethod
     def _bindings_to_cel(bindings: dict[str, Any]) -> list[str]:
@@ -290,6 +313,35 @@ class BoundWorld(BeliefSpace):
         active = self.active_claims(concept_id)
         return [c for c in active if c.get("type") == "algorithm"]
 
+    def _concept_symbol_candidates(self, concept_id: ConceptId | str) -> list[str]:
+        candidates: list[str] = []
+        concept = self._store.get_concept(str(concept_id))
+        if concept is None:
+            return candidates
+
+        seen: set[str] = set()
+
+        def add(candidate: object) -> None:
+            if not isinstance(candidate, str) or not candidate:
+                return
+            if candidate in seen:
+                return
+            seen.add(candidate)
+            candidates.append(candidate)
+
+        add(concept.get("canonical_name"))
+        logical_ids = concept.get("logical_ids")
+        if isinstance(logical_ids, list):
+            for entry in logical_ids:
+                if not isinstance(entry, dict):
+                    continue
+                add(entry.get("value"))
+                namespace = entry.get("namespace")
+                value = entry.get("value")
+                if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+                    add(f"{namespace}:{value}")
+        return candidates
+
     def collect_known_values(
         self,
         variable_concepts: Sequence[ConceptId | str],
@@ -352,13 +404,14 @@ class BoundWorld(BeliefSpace):
         override_values: Mapping[str, float | str | None] | None = None,
     ) -> DerivedResult:
         """Derive a value for concept_id via parameterization relationships."""
+        normalized_override_values = self._normalize_override_values(override_values)
         result = self._resolver.derived_value(
             concept_id,
-            override_values=override_values,
+            override_values=normalized_override_values,
         )
         if self._reasoning_backend() == "atms":
             return self._attach_atms_derived_label(result)
-        return self._attach_derived_label(result, override_values=override_values)
+        return self._attach_derived_label(result, override_values=normalized_override_values)
 
     def resolved_value(
         self,
@@ -802,9 +855,14 @@ class BoundWorld(BeliefSpace):
 
     def conflicts(self, concept_id: str | None = None) -> list[dict]:
         """Return active conflicts, revalidated against the current belief space."""
-        if concept_id in self._conflicts_cache:
-            return self._conflicts_cache[concept_id]
-        active_claims = self.active_claims(concept_id)
+        resolved_concept_id = (
+            self._store.resolve_concept(concept_id) or concept_id
+            if concept_id is not None and hasattr(self._store, "resolve_concept")
+            else concept_id
+        )
+        if resolved_concept_id in self._conflicts_cache:
+            return self._conflicts_cache[resolved_concept_id]
+        active_claims = self.active_claims(resolved_concept_id)
         active_ids = {c["id"] for c in active_claims}
 
         result: list[dict] = []
@@ -814,7 +872,7 @@ class BoundWorld(BeliefSpace):
         ]
         for conflict in all_conflicts:
             if conflict.claim_a_id in active_ids and conflict.claim_b_id in active_ids:
-                if concept_id is None or conflict.concept_id == concept_id:
+                if resolved_concept_id is None or conflict.concept_id == resolved_concept_id:
                     result.append(conflict.to_dict())
         seen = {(c["claim_a_id"], c["claim_b_id"], c.get("concept_id")) for c in result}
         for conflict in _recomputed_conflicts(self._store, active_claims):
@@ -823,16 +881,21 @@ class BoundWorld(BeliefSpace):
             if key not in seen and reverse_key not in seen:
                 result.append(conflict)
                 seen.add(key)
-        self._conflicts_cache[concept_id] = result
+        self._conflicts_cache[resolved_concept_id] = result
         return result
 
     def explain(self, claim_id: str) -> list[dict]:
         """Stance walk filtered to active claims."""
-        claim = self._store.get_claim(claim_id)
+        resolved_claim_id = (
+            self._store.resolve_claim(claim_id) or claim_id
+            if hasattr(self._store, "resolve_claim")
+            else claim_id
+        )
+        claim = self._store.get_claim(resolved_claim_id)
         if claim is None or not self.is_active(claim):
             return []
 
-        full_chain = self._store.explain(claim_id)
+        full_chain = self._store.explain(resolved_claim_id)
         result = []
         for s in full_chain:
             target = self._store.get_claim(s["target_claim_id"])
@@ -851,6 +914,21 @@ class BoundWorld(BeliefSpace):
                 return result
             claim_labels.append(claim_label)
         return replace(result, label=merge_labels(claim_labels))
+
+    def _normalize_override_values(
+        self,
+        override_values: Mapping[str, float | str | None] | None,
+    ) -> Mapping[str, float | str | None] | None:
+        if override_values is None:
+            return None
+        if not hasattr(self._store, "resolve_concept"):
+            return dict(override_values)
+
+        normalized: dict[str, float | str | None] = {}
+        for key, value in override_values.items():
+            resolved_key = self._store.resolve_concept(key) or key
+            normalized[resolved_key] = value
+        return normalized
 
     def _attach_atms_value_label(self, result: ValueResult) -> ValueResult:
         if result.status != "determined" or not result.claims:
@@ -909,8 +987,13 @@ class BoundWorld(BeliefSpace):
         if result.status != "resolved" or not result.winning_claim_id:
             return result
 
+        resolved_winner_id = (
+            self._store.resolve_claim(result.winning_claim_id) or result.winning_claim_id
+            if hasattr(self._store, "resolve_claim")
+            else result.winning_claim_id
+        )
         winning_claim = next(
-            (claim for claim in result.claims if claim.get("id") == result.winning_claim_id),
+            (claim for claim in result.claims if claim.get("id") == resolved_winner_id),
             None,
         )
         if winning_claim is None:
@@ -932,7 +1015,12 @@ class BoundWorld(BeliefSpace):
         if result.status != "resolved" or not result.winning_claim_id:
             return result
 
-        label = self.atms_engine().claim_label(result.winning_claim_id)
+        resolved_winner_id = (
+            self._store.resolve_claim(result.winning_claim_id) or result.winning_claim_id
+            if hasattr(self._store, "resolve_claim")
+            else result.winning_claim_id
+        )
+        label = self.atms_engine().claim_label(resolved_winner_id)
         if label is None:
             return result
         return replace(result, label=label)

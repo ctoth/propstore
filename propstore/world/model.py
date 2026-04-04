@@ -554,17 +554,25 @@ class WorldModel(ArtifactStore):
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
         if not claim_ids or not self._has_table("claim_core"):
             return {}
-        placeholders = ",".join("?" for _ in claim_ids)
+        resolved_ids = {
+            self.resolve_claim(claim_id) or claim_id
+            for claim_id in claim_ids
+        }
+        placeholders = ",".join("?" for _ in resolved_ids)
         rows = self._claim_rows(
             f"WHERE core.id IN ({placeholders})",  # noqa: S608
-            tuple(claim_ids),
+            tuple(resolved_ids),
         )
         return {row["id"]: row for row in rows}
 
     def stances_between(self, claim_ids: set[str]) -> list[dict]:
         if not claim_ids or not self._has_table("relation_edge"):
             return []
-        placeholders = ",".join("?" for _ in claim_ids)
+        resolved_ids = {
+            self.resolve_claim(claim_id) or claim_id
+            for claim_id in claim_ids
+        }
+        placeholders = ",".join("?" for _ in resolved_ids)
         target_justification_sql = self._claim_stance_target_justification_sql()
         rows = self._conn.execute(
             f"""
@@ -592,7 +600,7 @@ class WorldModel(ArtifactStore):
               AND source_id IN ({placeholders})
               AND target_id IN ({placeholders})
             """,  # noqa: S608
-            list(claim_ids) + list(claim_ids),
+            list(resolved_ids) + list(resolved_ids),
         ).fetchall()
         return [dict(row) for row in rows]
 
@@ -821,7 +829,10 @@ class WorldModel(ArtifactStore):
         from propstore.core.graph_build import build_compiled_world_graph
 
         if self._compiled_graph_cache is None:
-            self._compiled_graph_cache = build_compiled_world_graph(self)
+            self._compiled_graph_cache = build_compiled_world_graph(
+                self,
+                prefer_logical_claim_ids=False,
+            )
         return CompiledWorldGraph.from_dict(self._compiled_graph_cache.to_dict())
 
     def active_graph(

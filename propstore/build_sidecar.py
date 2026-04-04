@@ -36,9 +36,12 @@ from propstore.loaded import LoadedEntry
 from propstore.validate import load_concepts
 from propstore.validate_claims import load_claim_files
 from propstore.identity import (
+    compute_claim_version_id,
     compute_concept_version_id,
+    derive_claim_artifact_id,
     derive_concept_artifact_id,
     format_logical_id,
+    normalize_identity_namespace,
     normalize_logical_value,
     primary_logical_id,
 )
@@ -221,11 +224,15 @@ def _populate_stances_from_files(
     count = 0
 
     # Build set of valid claim IDs for validation
-    valid_claims = {r[0] for r in conn.execute("SELECT id FROM claim_core").fetchall()}
+    claim_reference_map = _claim_reference_map_from_conn(conn)
+    valid_claims = set(claim_reference_map.values())
 
     for fname, data in stance_entries:
 
-        source_claim = data.get("source_claim", "")
+        source_claim = _resolve_claim_reference(
+            data.get("source_claim", ""),
+            claim_reference_map,
+        ) or ""
         if source_claim not in valid_claims:
             raise sqlite3.IntegrityError(
                 f"stance file {fname} references nonexistent source claim '{source_claim}'"
@@ -238,7 +245,10 @@ def _populate_stances_from_files(
         for index, s in enumerate(stances, start=1):
             if not isinstance(s, dict):
                 raise ValueError(f"stance file {fname} stance #{index} must be a mapping")
-            target = s.get("target", "")
+            target = _resolve_claim_reference(
+                s.get("target", ""),
+                claim_reference_map,
+            ) or ""
             stype = s.get("type", "")
             if target not in valid_claims:
                 raise sqlite3.IntegrityError(
@@ -299,7 +309,8 @@ def _populate_authored_justifications_from_files(
     if not justification_entries:
         return 0
 
-    valid_claims = {row[0] for row in conn.execute("SELECT id FROM claim_core").fetchall()}
+    claim_reference_map = _claim_reference_map_from_conn(conn)
+    valid_claims = set(claim_reference_map.values())
     count = 0
     for fname, data in justification_entries:
         justifications = data.get("justifications", [])
@@ -310,7 +321,10 @@ def _populate_authored_justifications_from_files(
             if not isinstance(justification, dict):
                 raise ValueError(f"justification file {fname} entry #{index} must be a mapping")
             justification_id = justification.get("id")
-            conclusion = justification.get("conclusion")
+            conclusion = _resolve_claim_reference(
+                justification.get("conclusion"),
+                claim_reference_map,
+            )
             premises = justification.get("premises") or []
             if not isinstance(justification_id, str) or not justification_id:
                 raise ValueError(f"justification file {fname} entry #{index} missing id")
@@ -320,7 +334,11 @@ def _populate_authored_justifications_from_files(
                 )
             if not isinstance(premises, list):
                 raise ValueError(f"justification file {fname} entry #{index} premises must be a list")
-            if any(not isinstance(premise, str) or premise not in valid_claims for premise in premises):
+            resolved_premises = [
+                _resolve_claim_reference(premise, claim_reference_map)
+                for premise in premises
+            ]
+            if any(not isinstance(premise, str) or premise not in valid_claims for premise in resolved_premises):
                 raise sqlite3.IntegrityError(
                     f"justification file {fname} entry #{index} references nonexistent premise"
                 )
@@ -342,7 +360,7 @@ def _populate_authored_justifications_from_files(
                     justification_id,
                     str(justification.get("rule_kind") or "reported_claim"),
                     conclusion,
-                    json.dumps(premises),
+                    json.dumps(resolved_premises),
                     None,
                     None,
                     json.dumps(provenance_payload) if provenance_payload else None,
@@ -1035,9 +1053,55 @@ def _insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> Non
     )
 
 
+def _claim_reference_map_from_conn(conn: sqlite3.Connection) -> dict[str, str]:
+    if not any(row[0] == "claim_core" for row in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'"
+    ).fetchall()):
+        return {}
+    rows = conn.execute(
+        "SELECT id, primary_logical_id, logical_ids_json FROM claim_core"
+    ).fetchall()
+    reference_map: dict[str, str] = {}
+    for row in rows:
+        claim_id = row[0]
+        if not isinstance(claim_id, str) or not claim_id:
+            continue
+        reference_map[claim_id] = claim_id
+        primary_logical_id = row[1]
+        if isinstance(primary_logical_id, str) and primary_logical_id:
+            reference_map[primary_logical_id] = claim_id
+            if ":" in primary_logical_id:
+                reference_map[primary_logical_id.split(":", 1)[1]] = claim_id
+        logical_ids_json = row[2]
+        if not isinstance(logical_ids_json, str) or not logical_ids_json:
+            continue
+        try:
+            logical_ids = json.loads(logical_ids_json)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(logical_ids, list):
+            continue
+        for logical_id in logical_ids:
+            if not isinstance(logical_id, dict):
+                continue
+            formatted = format_logical_id(logical_id)
+            if formatted:
+                reference_map[formatted] = claim_id
+            value = logical_id.get("value")
+            if isinstance(value, str) and value:
+                reference_map[value] = claim_id
+    return reference_map
+
+
 def _populate_parameterization_groups(conn: sqlite3.Connection, concepts: list[LoadedEntry]):
     """Build connected-component groups and write to parameterization_group table."""
-    concept_dicts = [c.data for c in concepts]
+    concept_dicts: list[dict] = []
+    for concept in concepts:
+        data = dict(concept.data)
+        stored_id = data.get("id")
+        if isinstance(stored_id, str) and stored_id:
+            data["artifact_id"] = stored_id
+        concept_dicts.append(data)
     groups = build_groups(concept_dicts)
     for group_id, group_members in enumerate(sorted(groups, key=lambda g: min(g))):
         for concept_id in sorted(group_members):
@@ -1271,7 +1335,7 @@ def _populate_claims(
 ):
     claim_seq = 0
     deferred_stances: list[tuple] = []
-    valid_claim_ids = _collect_valid_claim_ids(claim_files)
+    claim_reference_map = _collect_claim_reference_map(claim_files)
     for cf in claim_files:
         source_paper = cf.data.get("source", {}).get("paper", cf.filename)
         for claim in cf.data.get("claims", []):
@@ -1284,16 +1348,23 @@ def _populate_claims(
                 form_registry=form_registry,
             )
             _insert_claim_row(conn, row)
-            deferred_stances.extend(_extract_deferred_stance_rows(claim, valid_claim_ids))
+            deferred_stances.extend(
+                _extract_deferred_stance_rows(
+                    claim,
+                    claim_reference_map,
+                    source_paper=source_paper,
+                )
+            )
 
     # Insert stances after all claims are in, so target_claim_id FKs resolve
     for stance_row in deferred_stances:
         _insert_claim_stance_row(conn, stance_row)
 
 
-def _collect_valid_claim_ids(claim_files: Sequence[LoadedEntry]) -> set[str]:
-    valid_claim_ids: set[str] = set()
+def _collect_claim_reference_map(claim_files: Sequence[LoadedEntry]) -> dict[str, str]:
+    claim_reference_map: dict[str, str] = {}
     for cf in claim_files:
+        source_paper = cf.data.get("source", {}).get("paper", cf.filename)
         claims = cf.data.get("claims", [])
         if not isinstance(claims, list):
             continue
@@ -1301,9 +1372,64 @@ def _collect_valid_claim_ids(claim_files: Sequence[LoadedEntry]) -> set[str]:
             if not isinstance(claim, dict):
                 continue
             claim_id = claim.get("artifact_id")
+            if not isinstance(claim_id, str) or not claim_id:
+                raw_id = claim.get("id")
+                if isinstance(raw_id, str) and raw_id:
+                    claim_id = derive_claim_artifact_id(
+                        str(source_paper),
+                        normalize_logical_value(raw_id),
+                    )
             if isinstance(claim_id, str) and claim_id:
-                valid_claim_ids.add(claim_id)
-    return valid_claim_ids
+                claim_reference_map[claim_id] = claim_id
+
+            raw_id = claim.get("id")
+            if isinstance(raw_id, str) and raw_id and isinstance(claim_id, str) and claim_id:
+                claim_reference_map[raw_id] = claim_id
+                claim_reference_map[
+                    f"{normalize_identity_namespace(str(source_paper))}:{normalize_logical_value(raw_id)}"
+                ] = claim_id
+
+            logical_ids = claim.get("logical_ids")
+            if not isinstance(logical_ids, list):
+                logical_ids = []
+            for logical_id in logical_ids:
+                if not isinstance(logical_id, dict):
+                    continue
+                namespace = logical_id.get("namespace")
+                value = logical_id.get("value")
+                if (
+                    isinstance(namespace, str)
+                    and namespace
+                    and isinstance(value, str)
+                    and value
+                    and isinstance(claim_id, str)
+                    and claim_id
+                ):
+                    formatted = format_logical_id(logical_id)
+                    if formatted:
+                        claim_reference_map[formatted] = claim_id
+                    claim_reference_map[value] = claim_id
+    return claim_reference_map
+
+
+def _resolve_claim_reference(
+    claim_ref: object,
+    claim_reference_map: dict[str, str],
+    *,
+    source_paper: str | None = None,
+) -> str | None:
+    if not isinstance(claim_ref, str) or not claim_ref:
+        return None
+    resolved = claim_reference_map.get(claim_ref)
+    if isinstance(resolved, str) and resolved:
+        return resolved
+    if source_paper:
+        derived = claim_reference_map.get(
+            f"{normalize_identity_namespace(str(source_paper))}:{normalize_logical_value(claim_ref)}"
+        )
+        if isinstance(derived, str) and derived:
+            return derived
+    return claim_ref
 
 
 def _prepare_claim_insert_row(
@@ -1319,6 +1445,7 @@ def _prepare_claim_insert_row(
     normalized_claim = _canonicalize_claim_for_storage(
         claim,
         concept_registry or {},
+        source_paper=source_paper,
     )
     ctype = normalized_claim.get("type")
     prov = normalized_claim.get("provenance", {})
@@ -1460,10 +1587,37 @@ def _resolve_concept_reference(
     return concept_ref
 
 
-def _canonicalize_claim_for_storage(claim: dict, concept_registry: dict) -> dict:
+def _canonicalize_claim_for_storage(
+    claim: dict,
+    concept_registry: dict,
+    *,
+    source_paper: str,
+) -> dict:
     """Normalize concept references so compiled artifacts consistently use IDs."""
     normalized = dict(claim)
     artifact_id = normalized.get("artifact_id")
+    if not isinstance(artifact_id, str) or not artifact_id:
+        raw_id = normalized.get("id")
+        if isinstance(raw_id, str) and raw_id:
+            logical_ids = normalized.get("logical_ids")
+            if not isinstance(logical_ids, list) or not logical_ids:
+                logical_ids = [
+                    {
+                        "namespace": str(source_paper),
+                        "value": normalize_logical_value(raw_id),
+                    }
+                ]
+                normalized["logical_ids"] = logical_ids
+            primary = primary_logical_id(normalized)
+            if isinstance(primary, str) and ":" in primary:
+                namespace, value = primary.split(":", 1)
+            else:
+                namespace, value = str(source_paper), normalize_logical_value(raw_id)
+            artifact_id = derive_claim_artifact_id(namespace, value)
+            normalized["artifact_id"] = artifact_id
+            if not isinstance(normalized.get("version_id"), str) or not normalized.get("version_id"):
+                normalized["version_id"] = compute_claim_version_id(normalized)
+
     if isinstance(artifact_id, str) and artifact_id:
         normalized["id"] = artifact_id
 
@@ -1621,14 +1775,24 @@ def _resolve_algorithm_storage(
 
 def _extract_deferred_stance_rows(
     claim: dict,
-    valid_claim_ids: set[str],
+    claim_reference_map: dict[str, str],
+    *,
+    source_paper: str,
 ) -> list[tuple]:
-    cid = claim.get("artifact_id")
+    cid = _resolve_claim_reference(
+        claim.get("artifact_id") or claim.get("id"),
+        claim_reference_map,
+        source_paper=source_paper,
+    )
     rows: list[tuple] = []
     for stance in claim.get("stances", []) or []:
         if not isinstance(stance, dict):
             continue
-        target_claim_id = stance.get("target")
+        target_claim_id = _resolve_claim_reference(
+            stance.get("target"),
+            claim_reference_map,
+            source_paper=source_paper,
+        )
         stance_type = stance.get("type")
         if not target_claim_id or not stance_type:
             continue
@@ -1636,7 +1800,7 @@ def _extract_deferred_stance_rows(
             raise ValueError(
                 f"claim '{cid}' uses unrecognized stance type '{stance_type}'"
             )
-        if target_claim_id not in valid_claim_ids:
+        if target_claim_id not in claim_reference_map.values():
             raise sqlite3.IntegrityError(
                 f"claim '{cid}' references nonexistent target claim '{target_claim_id}'"
             )

@@ -80,6 +80,7 @@ def _concept_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
 def _claim_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
     known = {
         "id",
+        "artifact_id",
         "type",
         "concept_id",
         "target_concept",
@@ -87,12 +88,58 @@ def _claim_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
         "source_paper",
         "provenance_page",
         "provenance_json",
+        "content_hash",
+        "logical_id",
+        "logical_ids",
+        "logical_ids_json",
+        "primary_logical_id",
+        "version_id",
     }
     return tuple(
         (str(key), value)
         for key, value in row.items()
         if key not in known and value is not None
     )
+
+
+def _display_claim_id_from_row(row: Mapping[str, Any]) -> str:
+    logical_id = row.get("logical_id") or row.get("primary_logical_id")
+    if isinstance(logical_id, str) and logical_id:
+        return logical_id.split(":", 1)[1] if ":" in logical_id else logical_id
+
+    logical_ids = row.get("logical_ids")
+    if isinstance(logical_ids, list):
+        for entry in logical_ids:
+            if not isinstance(entry, Mapping):
+                continue
+            value = entry.get("value")
+            if isinstance(value, str) and value:
+                return value
+
+    logical_ids_json = row.get("logical_ids_json")
+    if isinstance(logical_ids_json, str) and logical_ids_json:
+        try:
+            loaded = json.loads(logical_ids_json)
+        except json.JSONDecodeError:
+            loaded = []
+        if isinstance(loaded, list):
+            for entry in loaded:
+                if not isinstance(entry, Mapping):
+                    continue
+                value = entry.get("value")
+                if isinstance(value, str) and value:
+                    return value
+
+    return str(row["id"])
+
+
+def _display_claim_id(store, claim_id: str) -> str:
+    getter = getattr(store, "get_claim", None)
+    if callable(getter):
+        row = getter(claim_id)
+        if isinstance(row, Mapping):
+            return _display_claim_id_from_row(row)
+    return str(claim_id)
 
 
 def _relation_attributes(
@@ -122,7 +169,7 @@ def _parse_json_concept_ids(value: Any) -> tuple[ConceptId, ...]:
     return to_concept_ids(_parse_json_list(value))
 
 
-def build_compiled_world_graph(store) -> CompiledWorldGraph:
+def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) -> CompiledWorldGraph:
     if not isinstance(store, ConceptCatalogStore):
         raise TypeError("build_compiled_world_graph requires all_concepts()")
     if not isinstance(store, ClaimCatalogStore):
@@ -180,94 +227,159 @@ def build_compiled_world_graph(store) -> CompiledWorldGraph:
         for row in concept_rows
     )
 
-    claims = tuple(
-        ClaimNode(
-            claim_id=to_claim_id(row["id"]),
-            concept_id=to_concept_id(row.get("concept_id") or row.get("target_concept") or ""),
-            claim_type=str(row.get("type") or "unknown"),
-            scalar_value=row.get("value"),
-            provenance=_row_provenance(row, source_table="claim", source_id=str(row["id"])),
-            attributes=_claim_attributes(row),
+    claim_display_ids = {
+        str(row["id"]): (
+            _display_claim_id_from_row(row)
+            if prefer_logical_claim_ids
+            else str(row["id"])
         )
         for row in claim_rows
+        if row.get("id") is not None
+    }
+
+    claims = tuple(
+        sorted(
+            (
+                ClaimNode(
+                    claim_id=to_claim_id(claim_display_ids[str(row["id"])]),
+                    concept_id=to_concept_id(row.get("concept_id") or row.get("target_concept") or ""),
+                    claim_type=str(row.get("type") or "unknown"),
+                    scalar_value=row.get("value"),
+                    provenance=_row_provenance(
+                        row,
+                        source_table="claim",
+                        source_id=claim_display_ids[str(row["id"])],
+                    ),
+                    attributes=_claim_attributes(row),
+                )
+                for row in claim_rows
+            )
+        )
     )
 
     concept_relationships = tuple(
-        RelationEdge(
-            source_id=str(row["source_id"]),
-            target_id=str(row["target_id"]),
-            relation_type=str(row["type"]),
-            provenance=_row_provenance(
-                row,
-                source_table="relationship",
-                source_id=f"{row['source_id']}->{row['target_id']}:{row['type']}",
-            ),
-            attributes=_relation_attributes(row, known={"source_id", "target_id", "type"}),
+        sorted(
+            (
+                RelationEdge(
+                    source_id=str(row["source_id"]),
+                    target_id=str(row["target_id"]),
+                    relation_type=str(row["type"]),
+                    provenance=_row_provenance(
+                        row,
+                        source_table="relationship",
+                        source_id=f"{row['source_id']}->{row['target_id']}:{row['type']}",
+                    ),
+                    attributes=_relation_attributes(row, known={"source_id", "target_id", "type"}),
+                )
+                for row in relationship_rows
+            )
         )
-        for row in relationship_rows
     )
     claim_stances = tuple(
-        RelationEdge(
-            source_id=stance.claim_id,
-            target_id=stance.target_claim_id,
-            relation_type=stance.stance_type,
-            provenance=_row_provenance(
-                stance.to_dict(),
-                source_table="relation_edge",
-                source_id=f"{stance.claim_id}->{stance.target_claim_id}:{stance.stance_type}",
-            ),
-            attributes=tuple(stance.attributes.items()),
+        sorted(
+            (
+                RelationEdge(
+                    source_id=claim_display_ids.get(
+                        stance.claim_id,
+                        (
+                            _display_claim_id(store, stance.claim_id)
+                            if prefer_logical_claim_ids
+                            else stance.claim_id
+                        ),
+                    ),
+                    target_id=claim_display_ids.get(
+                        stance.target_claim_id,
+                        (
+                            _display_claim_id(store, stance.target_claim_id)
+                            if prefer_logical_claim_ids
+                            else stance.target_claim_id
+                        ),
+                    ),
+                    relation_type=stance.stance_type,
+                    provenance=_row_provenance(
+                        stance.to_dict(),
+                        source_table="relation_edge",
+                        source_id=(
+                            f"{claim_display_ids.get(stance.claim_id, (_display_claim_id(store, stance.claim_id) if prefer_logical_claim_ids else stance.claim_id))}->"
+                            f"{claim_display_ids.get(stance.target_claim_id, (_display_claim_id(store, stance.target_claim_id) if prefer_logical_claim_ids else stance.target_claim_id))}:{stance.stance_type}"
+                        ),
+                    ),
+                    attributes=tuple(stance.attributes.items()),
+                )
+                for stance in claim_stance_rows
+            )
         )
-        for stance in claim_stance_rows
     )
 
     parameterizations = tuple(
-        ParameterizationEdge(
-            output_concept_id=parameterization.output_concept_id,
-            input_concept_ids=_parse_json_concept_ids(parameterization.concept_ids),
-            formula=parameterization.formula,
-            sympy=parameterization.sympy,
-            exactness=parameterization.exactness,
-            conditions=_parse_json_list(parameterization.conditions_cel),
-            provenance=_row_provenance(
-                {
-                    **parameterization.attributes,
-                    "output_concept_id": parameterization.output_concept_id,
-                    "concept_ids": parameterization.concept_ids,
-                    "formula": parameterization.formula,
-                    "sympy": parameterization.sympy,
-                    "exactness": parameterization.exactness,
-                    "conditions_cel": parameterization.conditions_cel,
-                },
-                source_table="parameterization",
-                source_id=(
-                    f"{parameterization.output_concept_id}:"
-                    f"{parameterization.formula or parameterization.sympy or 'parameterization'}"
-                ),
-            ),
+        sorted(
+            (
+                ParameterizationEdge(
+                    output_concept_id=parameterization.output_concept_id,
+                    input_concept_ids=_parse_json_concept_ids(parameterization.concept_ids),
+                    formula=parameterization.formula,
+                    sympy=parameterization.sympy,
+                    exactness=parameterization.exactness,
+                    conditions=_parse_json_list(parameterization.conditions_cel),
+                    provenance=_row_provenance(
+                        {
+                            **parameterization.attributes,
+                            "output_concept_id": parameterization.output_concept_id,
+                            "concept_ids": parameterization.concept_ids,
+                            "formula": parameterization.formula,
+                            "sympy": parameterization.sympy,
+                            "exactness": parameterization.exactness,
+                            "conditions_cel": parameterization.conditions_cel,
+                        },
+                        source_table="parameterization",
+                        source_id=(
+                            f"{parameterization.output_concept_id}:"
+                            f"{parameterization.formula or parameterization.sympy or 'parameterization'}"
+                        ),
+                    ),
+                )
+                for parameterization in parameterization_rows
+            )
         )
-        for parameterization in parameterization_rows
     )
 
     conflicts = tuple(
-        ConflictWitness(
-            left_claim_id=conflict.claim_a_id,
-            right_claim_id=conflict.claim_b_id,
-            kind=str(conflict.warning_class or conflict.conflict_class or "conflict"),
-            details=tuple(
-                entry
-                for entry in (
-                    (
-                        ("concept_id", conflict.concept_id)
-                        if conflict.concept_id is not None
-                        else None
+        sorted(
+            (
+                ConflictWitness(
+                    left_claim_id=claim_display_ids.get(
+                        conflict.claim_a_id,
+                        (
+                            _display_claim_id(store, conflict.claim_a_id)
+                            if prefer_logical_claim_ids
+                            else conflict.claim_a_id
+                        ),
                     ),
-                    *tuple(conflict.attributes.items()),
+                    right_claim_id=claim_display_ids.get(
+                        conflict.claim_b_id,
+                        (
+                            _display_claim_id(store, conflict.claim_b_id)
+                            if prefer_logical_claim_ids
+                            else conflict.claim_b_id
+                        ),
+                    ),
+                    kind=str(conflict.warning_class or conflict.conflict_class or "conflict"),
+                    details=tuple(
+                        entry
+                        for entry in (
+                            (
+                                ("concept_id", conflict.concept_id)
+                                if conflict.concept_id is not None
+                                else None
+                            ),
+                            *tuple(conflict.attributes.items()),
+                        )
+                        if entry is not None
+                    ),
                 )
-                if entry is not None
-            ),
+                for conflict in conflict_rows
+            )
         )
-        for conflict in conflict_rows
     )
 
     return CompiledWorldGraph(

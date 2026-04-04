@@ -17,6 +17,33 @@ def _claim_concept_id(claim: dict[str, Any]) -> Any:
     return claim.get("concept_id") or claim.get("target_concept")
 
 
+def _display_claim_id(claim: dict[str, Any]) -> str:
+    logical_id = claim.get("logical_id") or claim.get("primary_logical_id")
+    if isinstance(logical_id, str) and logical_id:
+        return logical_id.split(":", 1)[1] if ":" in logical_id else logical_id
+
+    logical_ids = claim.get("logical_ids")
+    if isinstance(logical_ids, list):
+        for entry in logical_ids:
+            if not isinstance(entry, dict):
+                continue
+            value = entry.get("value")
+            if isinstance(value, str) and value:
+                return value
+
+    claim_id = claim.get("id")
+    return str(claim_id) if claim_id is not None else ""
+
+
+def _display_claim_id_from_store(world: ArtifactStore, claim_id: str) -> str:
+    getter = getattr(world, "get_claim", None)
+    if callable(getter):
+        claim = getter(claim_id)
+        if isinstance(claim, dict):
+            return _display_claim_id(claim)
+    return claim_id
+
+
 @dataclass
 class GraphNode:
     id: str
@@ -157,12 +184,13 @@ def build_knowledge_graph(
             concept_statuses[cid] = vr.status
 
     for claim in claims:
-        claim_id = claim["id"]
+        claim_id = _display_claim_id(claim)
         concept_id = _claim_concept_id(claim)
         meta: dict[str, Any] = {
             "type": claim.get("type"),
             "value": claim.get("value"),
             "concept_id": concept_id,
+            "artifact_id": claim.get("artifact_id") or claim.get("id"),
             "target_concept": claim.get("target_concept"),
         }
         if bound is not None and concept_id and concept_id in concept_statuses:
@@ -214,8 +242,8 @@ def build_knowledge_graph(
 
     # ---- 5. Stance edges ----
     for row in world.all_claim_stances():
-        cid = row["claim_id"]
-        tid = row["target_claim_id"]
+        cid = _display_claim_id_from_store(world, row["claim_id"])
+        tid = _display_claim_id_from_store(world, row["target_claim_id"])
         if cid not in node_ids or tid not in node_ids:
             continue
         graph.edges.append(GraphEdge(

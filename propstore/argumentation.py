@@ -103,15 +103,36 @@ def compute_claim_graph_justified_claims(
         ReasoningBackend.CLAIM_GRAPH,
         semantics,
     )
+    resolver = getattr(store, "resolve_claim", None)
+    canonical_active_ids = {
+        (resolver(claim_id) or claim_id)
+        if callable(resolver)
+        else claim_id
+        for claim_id in active_claim_ids
+    }
+    display_ids_by_canonical = {
+        (
+            (resolver(claim_id) or claim_id)
+            if callable(resolver)
+            else claim_id
+        ): claim_id
+        for claim_id in active_claim_ids
+    }
     result = analyze_claim_graph(
         shared_analyzer_input_from_store(
             store,
-            active_claim_ids,
+            canonical_active_ids,
             comparison=comparison,
         ),
         semantics=normalized_semantics,
     )
-    accepted = [frozenset(extension.accepted_claim_ids) for extension in result.extensions]
+    accepted = [
+        frozenset(
+            display_ids_by_canonical.get(claim_id, claim_id)
+            for claim_id in extension.accepted_claim_ids
+        )
+        for extension in result.extensions
+    ]
     if normalized_semantics in {
         ArgumentationSemantics.GROUNDED,
         ArgumentationSemantics.LEGACY_GROUNDED,
