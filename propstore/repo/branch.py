@@ -29,12 +29,12 @@ class BranchInfo:
     Attributes:
         name: Branch name (e.g. "paper/foo", "master").
         tip_sha: Hex SHA of the branch tip commit.
-        kind: Inferred from name prefix — "paper", "agent",
+        kind: Inferred from name prefix — "paper", "source", "agent",
               "hypothesis", or "workspace".
     """
     name: str
     tip_sha: str
-    kind: str  # "paper", "agent", "hypothesis", "workspace"
+    kind: str  # "paper", "source", "agent", "hypothesis", "workspace"
     parent_branch: str = ""
     created_at: int = 0
 
@@ -42,10 +42,10 @@ class BranchInfo:
 def _detect_kind(name: str) -> str:
     """Infer branch kind from naming convention prefix.
 
-    Propstore spec: paper/{slug}, agent/{run_id}, hypothesis/{name}.
+    Propstore spec: paper/{slug}, source/{slug}, agent/{run_id}, hypothesis/{name}.
     Anything else is "workspace".
     """
-    for prefix in ("paper/", "agent/", "hypothesis/"):
+    for prefix in ("paper/", "source/", "agent/", "hypothesis/"):
         if name.startswith(prefix):
             return prefix.rstrip("/")
     return "workspace"

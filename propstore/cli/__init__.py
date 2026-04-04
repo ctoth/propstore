@@ -13,6 +13,7 @@ from propstore.cli.concept import concept
 from propstore.cli.context import context
 from propstore.cli.claim import claim
 from propstore.cli.compiler_cmds import validate, build, query, export_aliases, import_papers, world
+from propstore.cli.source import source
 from propstore.cli.worldline_cmds import worldline
 from propstore.cli.form import form
 from propstore.cli.init import init
@@ -45,6 +46,7 @@ cli.add_command(concept)
 cli.add_command(context)
 cli.add_command(claim)
 cli.add_command(form)
+cli.add_command(source)
 cli.add_command(validate)
 cli.add_command(build)
 cli.add_command(query)
