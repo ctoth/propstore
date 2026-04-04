@@ -15,6 +15,7 @@ from hypothesis import strategies as st
 from propstore.build_sidecar import build_sidecar
 from propstore.cli import cli
 from propstore.cli.repository import Repository
+from propstore.source_ops import _parameterization_group_merge_preview
 from tests.conftest import normalize_concept_payloads
 
 
@@ -65,6 +66,25 @@ def _seed_master_concept(repo: Repository, *, name: str, form: str = "structural
         branch="master",
     )
     return str(concept["artifact_id"])
+
+
+def _seed_master_concepts(repo: Repository, concepts: list[dict]) -> list[dict]:
+    normalized = normalize_concept_payloads(concepts, default_domain="source")
+    adds = {
+        f"concepts/{concept['canonical_name']}.yaml": yaml.safe_dump(
+            concept,
+            sort_keys=False,
+            allow_unicode=True,
+        ).encode("utf-8")
+        for concept in normalized
+    }
+    repo.git.commit_batch(
+        adds=adds,
+        deletes=[],
+        message="Seed concepts",
+        branch="master",
+    )
+    return normalized
 
 
 def test_source_add_claim_rejects_unknown_concept_reference(tmp_path: Path) -> None:
@@ -432,6 +452,192 @@ def test_source_finalize_blocks_on_unresolved_cross_source_stance_target(tmp_pat
     report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
     assert report["status"] == "blocked"
     assert report["stance_reference_errors"] == ["missing_source:claim404"]
+
+
+def test_source_finalize_reports_parameterization_group_merges(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    seeded = _seed_master_concepts(
+        repo,
+        [
+            {
+                "id": "input_a",
+                "canonical_name": "input_a",
+                "status": "accepted",
+                "definition": "Input A.",
+                "domain": "source",
+                "form": "scalar",
+            },
+            {
+                "id": "derived_a",
+                "canonical_name": "derived_a",
+                "status": "accepted",
+                "definition": "Derived from input A.",
+                "domain": "source",
+                "form": "scalar",
+                "parameterization_relationships": [
+                    {"inputs": ["input_a"], "formula": "f(input_a)"}
+                ],
+            },
+            {
+                "id": "input_b",
+                "canonical_name": "input_b",
+                "status": "accepted",
+                "definition": "Input B.",
+                "domain": "source",
+                "form": "scalar",
+            },
+            {
+                "id": "derived_b",
+                "canonical_name": "derived_b",
+                "status": "accepted",
+                "definition": "Derived from input B.",
+                "domain": "source",
+                "form": "scalar",
+                "parameterization_relationships": [
+                    {"inputs": ["input_b"], "formula": "g(input_b)"}
+                ],
+            },
+        ],
+    )
+    artifacts = {concept["canonical_name"]: concept["artifact_id"] for concept in seeded}
+    _init_source(runner, repo, "demo")
+    repo.git.commit_batch(
+        adds={
+            "concepts.yaml": yaml.safe_dump(
+                {
+                    "concepts": [
+                        {
+                            "local_name": "bridge",
+                            "proposed_name": "bridge",
+                            "definition": "Connects the two parameter spaces.",
+                            "form": "scalar",
+                            "status": "proposed",
+                            "parameterization_relationships": [
+                                {
+                                    "inputs": ["derived_a", "derived_b"],
+                                    "formula": "h(derived_a, derived_b)",
+                                }
+                            ],
+                        }
+                    ]
+                },
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
+        deletes=[],
+        message="Write source concepts",
+        branch="source/demo",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "finalize",
+            "demo",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
+    assert report["status"] == "ready"
+    assert len(report["parameterization_group_merges"]) == 1
+    merge = report["parameterization_group_merges"][0]
+    assert merge["previous_groups"] == [
+        sorted([artifacts["derived_a"], artifacts["input_a"]]),
+        sorted([artifacts["derived_b"], artifacts["input_b"]]),
+    ]
+    assert len(merge["introduced_by"]) == 1
+
+
+@given(master_order=st.permutations([0, 1, 2, 3]), projected_order=st.permutations([0, 1]))
+@settings(max_examples=12, deadline=None)
+def test_parameterization_group_merge_preview_is_order_invariant(
+    master_order: tuple[int, ...],
+    projected_order: tuple[int, ...],
+) -> None:
+    master_concepts = normalize_concept_payloads(
+        [
+            {
+                "id": "input_a",
+                "canonical_name": "input_a",
+                "status": "accepted",
+                "definition": "Input A.",
+                "domain": "source",
+                "form": "scalar",
+            },
+            {
+                "id": "derived_a",
+                "canonical_name": "derived_a",
+                "status": "accepted",
+                "definition": "Derived from input A.",
+                "domain": "source",
+                "form": "scalar",
+                "parameterization_relationships": [
+                    {"inputs": ["input_a"], "formula": "f(input_a)"}
+                ],
+            },
+            {
+                "id": "input_b",
+                "canonical_name": "input_b",
+                "status": "accepted",
+                "definition": "Input B.",
+                "domain": "source",
+                "form": "scalar",
+            },
+            {
+                "id": "derived_b",
+                "canonical_name": "derived_b",
+                "status": "accepted",
+                "definition": "Derived from input B.",
+                "domain": "source",
+                "form": "scalar",
+                "parameterization_relationships": [
+                    {"inputs": ["input_b"], "formula": "g(input_b)"}
+                ],
+            },
+        ],
+        default_domain="source",
+    )
+    artifacts = {concept["canonical_name"]: concept["artifact_id"] for concept in master_concepts}
+    projected_concepts = [
+        {
+            "artifact_id": "ps:concept:bridge",
+            "canonical_name": "bridge",
+            "form": "scalar",
+            "parameterization_relationships": [
+                {
+                    "inputs": [artifacts["derived_a"], artifacts["derived_b"]],
+                    "formula": "h(derived_a, derived_b)",
+                }
+            ],
+        },
+        {
+            "artifact_id": "ps:concept:spectator",
+            "canonical_name": "spectator",
+            "form": "scalar",
+            "parameterization_relationships": [],
+        },
+    ]
+    expected = _parameterization_group_merge_preview(
+        master_concepts,
+        projected_concepts,
+        parameterized_artifacts={"ps:concept:bridge"},
+    )
+
+    reordered_master = [master_concepts[index] for index in master_order]
+    reordered_projected = [projected_concepts[index] for index in projected_order]
+    actual = _parameterization_group_merge_preview(
+        reordered_master,
+        reordered_projected,
+        parameterized_artifacts={"ps:concept:bridge"},
+    )
+    assert actual == expected
 
 
 @given(

@@ -15,10 +15,12 @@ from propstore.artifact_codes import attach_source_artifact_codes
 from propstore.cli.repository import Repository
 from propstore.identity import (
     compute_claim_version_id,
+    derive_concept_artifact_id,
     derive_claim_artifact_id,
     format_logical_id,
     normalize_logical_value,
 )
+from propstore.parameterization_groups import build_groups
 from propstore.repo.branch import branch_head, create_branch
 from propstore.source_calibration import derive_source_trust
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
@@ -123,6 +125,25 @@ def _load_master_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], 
     return concepts_by_artifact, handle_to_artifact
 
 
+def _load_master_concept_docs(repo: Repository) -> list[dict[str, Any]]:
+    from propstore.validate import load_concepts
+
+    master_tip = branch_head(repo.git, "master")
+    if master_tip is None:
+        return []
+
+    tree = repo.tree(commit=master_tip)
+    concepts_root = tree / "concepts"
+    if not concepts_root.exists():
+        return []
+
+    docs: list[dict[str, Any]] = []
+    for entry in load_concepts(concepts_root):
+        if isinstance(entry.data, dict):
+            docs.append(copy.deepcopy(entry.data))
+    return docs
+
+
 def _master_concept_match(repo: Repository, handle: str) -> dict[str, str] | None:
     concepts_by_artifact, handle_to_artifact = _load_master_concepts(repo)
     artifact_id = handle_to_artifact.get(handle)
@@ -136,6 +157,152 @@ def _master_concept_match(repo: Repository, handle: str) -> dict[str, str] | Non
         "artifact_id": artifact_id,
         "canonical_name": canonical_name,
     }
+
+
+def _projected_source_concepts(
+    repo: Repository,
+    concepts_doc: dict[str, Any],
+) -> tuple[list[dict[str, Any]], set[str]]:
+    _concepts_by_artifact, master_handle_to_artifact = _load_master_concepts(repo)
+    projected: list[dict[str, Any]] = []
+    local_handle_to_artifact: dict[str, str] = {}
+    parameterized_artifacts: set[str] = set()
+
+    for entry in concepts_doc.get("concepts", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        registry_match = entry.get("registry_match")
+        artifact_id: str | None = None
+        if isinstance(registry_match, dict):
+            matched = registry_match.get("artifact_id")
+            if isinstance(matched, str) and matched:
+                artifact_id = matched
+        if artifact_id is None:
+            for key in ("local_name", "proposed_name"):
+                handle = entry.get(key)
+                if isinstance(handle, str) and handle in master_handle_to_artifact:
+                    artifact_id = master_handle_to_artifact[handle]
+                    break
+        handle_seed = str(entry.get("proposed_name") or entry.get("local_name") or "concept")
+        if artifact_id is None:
+            artifact_id = derive_concept_artifact_id("propstore", _normalize_slug(handle_seed))
+
+        projected_entry = {
+            "artifact_id": artifact_id,
+            "canonical_name": handle_seed,
+            "form": str(entry.get("form") or "structural"),
+            "parameterization_relationships": [],
+        }
+        projected.append(projected_entry)
+        for key in ("local_name", "proposed_name"):
+            handle = entry.get(key)
+            if isinstance(handle, str) and handle:
+                local_handle_to_artifact[handle] = artifact_id
+
+    for projected_entry, raw_entry in zip(projected, concepts_doc.get("concepts", []) or [], strict=False):
+        if not isinstance(raw_entry, dict):
+            continue
+        params: list[dict[str, Any]] = []
+        for param in raw_entry.get("parameterization_relationships", []) or []:
+            if not isinstance(param, dict):
+                continue
+            resolved = copy.deepcopy(param)
+            inputs: list[str] = []
+            for input_ref in resolved.get("inputs", []) or []:
+                if not isinstance(input_ref, str) or not input_ref:
+                    continue
+                if input_ref.startswith("ps:concept:") or input_ref.startswith("tag:"):
+                    inputs.append(input_ref)
+                    continue
+                artifact_id = local_handle_to_artifact.get(input_ref) or master_handle_to_artifact.get(input_ref)
+                if artifact_id is None:
+                    artifact_id = derive_concept_artifact_id("propstore", _normalize_slug(input_ref))
+                inputs.append(artifact_id)
+            resolved["inputs"] = inputs
+            params.append(resolved)
+        projected_entry["parameterization_relationships"] = params
+        if params:
+            parameterized_artifacts.add(str(projected_entry["artifact_id"]))
+
+    return projected, parameterized_artifacts
+
+
+def _parameterization_group_merge_preview(
+    master_concepts: list[dict[str, Any]],
+    projected_concepts: list[dict[str, Any]],
+    *,
+    parameterized_artifacts: set[str],
+) -> list[dict[str, Any]]:
+    master_by_artifact: dict[str, dict[str, Any]] = {}
+    master_ids: set[str] = set()
+    for concept in master_concepts:
+        if not isinstance(concept, dict):
+            continue
+        artifact_id = concept.get("artifact_id")
+        if not isinstance(artifact_id, str) or not artifact_id:
+            continue
+        master_by_artifact[artifact_id] = copy.deepcopy(concept)
+        master_ids.add(artifact_id)
+
+    preview_by_artifact = {artifact_id: copy.deepcopy(doc) for artifact_id, doc in master_by_artifact.items()}
+    for concept in projected_concepts:
+        if not isinstance(concept, dict):
+            continue
+        artifact_id = concept.get("artifact_id")
+        if not isinstance(artifact_id, str) or not artifact_id:
+            continue
+        if artifact_id in preview_by_artifact:
+            merged = copy.deepcopy(preview_by_artifact[artifact_id])
+            existing_params = list(merged.get("parameterization_relationships", []) or [])
+            for param in concept.get("parameterization_relationships", []) or []:
+                if param not in existing_params:
+                    existing_params.append(copy.deepcopy(param))
+            merged["parameterization_relationships"] = existing_params
+            preview_by_artifact[artifact_id] = merged
+        else:
+            preview_by_artifact[artifact_id] = copy.deepcopy(concept)
+
+    previous_groups = build_groups(list(master_by_artifact.values()))
+    preview_groups = build_groups(list(preview_by_artifact.values()))
+    previous_lookup: dict[str, frozenset[str]] = {}
+    for group in previous_groups:
+        frozen = frozenset(group)
+        for member in group:
+            previous_lookup[member] = frozen
+
+    merges: list[dict[str, Any]] = []
+    for group in sorted(preview_groups, key=lambda members: tuple(sorted(members))):
+        existing_members = sorted(member for member in group if member in master_ids)
+        collapsed = {
+            previous_lookup.get(member, frozenset({member}))
+            for member in existing_members
+        }
+        if len(collapsed) < 2:
+            continue
+        merges.append(
+            {
+                "merged_group": sorted(group),
+                "previous_groups": [
+                    sorted(previous_group)
+                    for previous_group in sorted(collapsed, key=lambda members: tuple(sorted(members)))
+                ],
+                "introduced_by": sorted(member for member in group if member in parameterized_artifacts),
+            }
+        )
+    return merges
+
+
+def _preview_source_parameterization_group_merges(
+    repo: Repository,
+    concepts_doc: dict[str, Any],
+) -> list[dict[str, Any]]:
+    master_concepts = _load_master_concept_docs(repo)
+    projected_concepts, parameterized_artifacts = _projected_source_concepts(repo, concepts_doc)
+    return _parameterization_group_merge_preview(
+        master_concepts,
+        projected_concepts,
+        parameterized_artifacts=parameterized_artifacts,
+    )
 
 
 def init_source_branch(
@@ -554,6 +721,7 @@ def finalize_source_branch(repo: Repository, name: str) -> str:
             if isinstance(entry, dict) and not isinstance(entry.get("registry_match"), dict)
         }
     )
+    parameterization_group_merges = _preview_source_parameterization_group_merges(repo, concepts_doc)
 
     trust = source_doc.get("trust") if isinstance(source_doc.get("trust"), dict) else {}
     derived_from = trust.get("derived_from") if isinstance(trust.get("derived_from"), list) else []
@@ -604,7 +772,7 @@ def finalize_source_branch(repo: Repository, name: str) -> str:
         "justification_reference_errors": sorted(justification_errors),
         "stance_reference_errors": sorted(stance_errors),
         "concept_alignment_candidates": concept_alignment_candidates,
-        "parameterization_group_merges": [],
+        "parameterization_group_merges": parameterization_group_merges,
         "artifact_code_status": artifact_code_status,
         "calibration": {
             "prior_base_rate_status": "covered" if covered else "fallback",
