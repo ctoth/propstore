@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from propstore.cli.repository import Repository
+from propstore.concept_alignment import commit_source_concept_proposal
 from propstore.source_ops import (
     commit_source_claims_batch,
     commit_source_metadata,
@@ -64,6 +65,30 @@ def write_metadata(obj: dict, name: str, file_path: Path) -> None:
     repo: Repository = obj["repo"]
     commit_source_metadata(repo, name, file_path)
     click.echo(f"Wrote metadata to {source_branch_name(name)}")
+
+
+@source.command("propose-concept")
+@click.argument("name")
+@click.option("--name", "concept_name", required=True)
+@click.option("--definition", required=True)
+@click.option("--form", "form_name", required=True)
+@click.pass_obj
+def propose_concept(
+    obj: dict,
+    name: str,
+    concept_name: str,
+    definition: str,
+    form_name: str,
+) -> None:
+    repo: Repository = obj["repo"]
+    commit_source_concept_proposal(
+        repo,
+        name,
+        local_name=concept_name,
+        definition=definition,
+        form=form_name,
+    )
+    click.echo(f"Proposed concept {concept_name} on {source_branch_name(name)}")
 
 
 @source.command("add-claim")

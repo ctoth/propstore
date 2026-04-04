@@ -10,9 +10,24 @@ from pathlib import Path
 import click
 import yaml
 
+from propstore.concept_alignment import (
+    align_sources,
+    decide_alignment,
+    load_alignment_artifact,
+    promote_alignment,
+)
 from propstore.cli.helpers import (
     EXIT_ERROR,
     EXIT_VALIDATION,
+)
+from propstore.identity import (
+    compute_concept_version_id,
+    derive_concept_artifact_id,
+    format_logical_id,
+    normalize_identity_namespace,
+    normalize_claim_file_payload,
+    normalize_logical_value,
+    primary_logical_id,
 )
 from propstore.knowledge_path import KnowledgePath
 from propstore.cli.repository import Repository
@@ -140,6 +155,124 @@ def _require_repo_tree_path(
     return repo.root / Path(_require_repo_relative_source_path(source_path, label=label))
 
 
+def _concept_local_handle(data: dict, *, fallback: str | None = None) -> str:
+    logical_ids = data.get("logical_ids")
+    if isinstance(logical_ids, list):
+        for entry in logical_ids:
+            if not isinstance(entry, dict):
+                continue
+            namespace = entry.get("namespace")
+            value = entry.get("value")
+            if namespace == "propstore" and isinstance(value, str) and value:
+                return normalize_logical_value(value)
+    raw_id = data.get("id")
+    if isinstance(raw_id, str) and raw_id:
+        return normalize_logical_value(raw_id)
+    return normalize_logical_value(fallback or data.get("canonical_name") or "concept")
+
+
+def _concept_logical_ids(
+    *,
+    domain: str,
+    canonical_name: str,
+    local_handle: str,
+    existing: object = None,
+) -> list[dict[str, str]]:
+    primary = {
+        "namespace": normalize_identity_namespace(domain or "propstore"),
+        "value": normalize_logical_value(canonical_name),
+    }
+    logical_ids = [primary]
+    seen = {format_logical_id(primary)}
+    if isinstance(existing, list):
+        for entry in existing:
+            if not isinstance(entry, dict):
+                continue
+            namespace = entry.get("namespace")
+            value = entry.get("value")
+            if not isinstance(namespace, str) or not isinstance(value, str):
+                continue
+            normalized = {
+                "namespace": normalize_identity_namespace(namespace),
+                "value": normalize_logical_value(value),
+            }
+            formatted = format_logical_id(normalized)
+            if formatted is None or formatted in seen:
+                continue
+            if normalized["namespace"] == primary["namespace"]:
+                continue
+            logical_ids.append(normalized)
+            seen.add(formatted)
+    propstore_entry = {"namespace": "propstore", "value": normalize_logical_value(local_handle)}
+    formatted_propstore = format_logical_id(propstore_entry)
+    if formatted_propstore is not None and formatted_propstore not in seen:
+        logical_ids.append(propstore_entry)
+    return logical_ids
+
+
+def _normalize_concept_data(
+    data: dict,
+    *,
+    canonical_name: str | None = None,
+    domain: str | None = None,
+    local_handle: str | None = None,
+) -> dict:
+    normalized = deepcopy(data)
+    raw_id = normalized.pop("id", None)
+    effective_name = canonical_name or normalized.get("canonical_name")
+    if not isinstance(effective_name, str) or not effective_name:
+        effective_name = str(raw_id or local_handle or "concept")
+    normalized["canonical_name"] = effective_name
+    effective_domain = domain or normalized.get("domain") or "propstore"
+    normalized["domain"] = effective_domain
+    propstore_handle = normalize_logical_value(
+        local_handle or _concept_local_handle(normalized, fallback=str(raw_id or effective_name))
+    )
+    artifact_id = normalized.get("artifact_id")
+    if not isinstance(artifact_id, str) or not artifact_id:
+        artifact_id = derive_concept_artifact_id("propstore", propstore_handle)
+    normalized["artifact_id"] = artifact_id
+    normalized["logical_ids"] = _concept_logical_ids(
+        domain=str(effective_domain),
+        canonical_name=str(effective_name),
+        local_handle=propstore_handle,
+        existing=normalized.get("logical_ids"),
+    )
+    normalized["version_id"] = compute_concept_version_id(normalized)
+    return normalized
+
+
+def _concept_display_handle(data: dict) -> str:
+    return primary_logical_id(data) or data.get("canonical_name") or data.get("artifact_id") or "?"
+
+
+def _build_concept_registry(concepts: list[LoadedEntry]) -> dict[str, dict]:
+    registry: dict[str, dict] = {}
+    for concept_record in concepts:
+        data = deepcopy(concept_record.data)
+        artifact_id = data.get("artifact_id")
+        if isinstance(artifact_id, str) and artifact_id:
+            registry[artifact_id] = data
+        canonical_name = data.get("canonical_name")
+        if isinstance(canonical_name, str) and canonical_name and canonical_name not in registry:
+            registry[canonical_name] = data
+        logical_ids = data.get("logical_ids")
+        if isinstance(logical_ids, list):
+            for entry in logical_ids:
+                if not isinstance(entry, dict):
+                    continue
+                formatted = format_logical_id(entry)
+                if formatted and formatted not in registry:
+                    registry[formatted] = data
+        aliases = data.get("aliases")
+        if isinstance(aliases, list):
+            for alias in aliases:
+                alias_name = alias.get("name") if isinstance(alias, dict) else None
+                if isinstance(alias_name, str) and alias_name and alias_name not in registry:
+                    registry[alias_name] = data
+    return registry
+
+
 def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedEntry | None:
     concepts = load_concepts(_concepts_tree(repo))
     direct = _concepts_tree(repo) / f"{id_or_name}.yaml"
@@ -149,9 +282,57 @@ def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedEntry | None
             if concept.source_path is not None and concept.source_path.as_posix() == direct_rel:
                 return concept
     for concept in concepts:
-        if concept.data.get("id") == id_or_name:
+        if concept.data.get("canonical_name") == id_or_name:
             return concept
+        if concept.data.get("artifact_id") == id_or_name:
+            return concept
+        logical_ids = concept.data.get("logical_ids")
+        if isinstance(logical_ids, list):
+            for entry in logical_ids:
+                if isinstance(entry, dict) and format_logical_id(entry) == id_or_name:
+                    return concept
+        aliases = concept.data.get("aliases")
+        if isinstance(aliases, list):
+            for alias in aliases:
+                if isinstance(alias, dict) and alias.get("name") == id_or_name:
+                    return concept
     return None
+
+
+def _require_concept_artifact_id(repo: Repository, handle: str, *, label: str) -> str:
+    concept_entry = _find_concept_entry(repo, handle)
+    if concept_entry is None:
+        raise click.ClickException(f"{label} '{handle}' not found")
+    artifact_id = concept_entry.data.get("artifact_id")
+    if not isinstance(artifact_id, str) or not artifact_id:
+        raise click.ClickException(f"{label} '{handle}' does not have an artifact_id")
+    return artifact_id
+
+
+def _resolve_sidecar_concept_id(conn: sqlite3.Connection, handle: str) -> str:
+    conn.row_factory = sqlite3.Row
+    direct = conn.execute("SELECT id FROM concept WHERE id = ?", (handle,)).fetchone()
+    if direct is not None:
+        return str(direct["id"])
+    primary = conn.execute(
+        "SELECT id FROM concept WHERE primary_logical_id = ?",
+        (handle,),
+    ).fetchone()
+    if primary is not None:
+        return str(primary["id"])
+    canonical = conn.execute(
+        "SELECT id FROM concept WHERE canonical_name = ?",
+        (handle,),
+    ).fetchone()
+    if canonical is not None:
+        return str(canonical["id"])
+    alias = conn.execute(
+        "SELECT concept_id FROM alias WHERE alias_name = ?",
+        (handle,),
+    ).fetchone()
+    if alias is not None:
+        return str(alias["concept_id"])
+    raise click.ClickException(f"Concept '{handle}' not found")
 
 
 # ── concept add ──────────────────────────────────────────────────────
@@ -197,7 +378,6 @@ def add(
     cid = f"concept{git.next_concept_id()}"
 
     data = {
-        "id": cid,
         "canonical_name": name,
         "status": "proposed",
         "definition": definition,
@@ -219,6 +399,8 @@ def add(
     elif values is not None:
         click.echo("ERROR: --values is only valid with --form=category", err=True)
         sys.exit(EXIT_ERROR)
+
+    data = _normalize_concept_data(data, local_handle=cid)
 
     if dry_run:
         click.echo(f"Would create {filepath}")
@@ -247,9 +429,9 @@ def add(
 
     yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
     rel_path = f"concepts/{name}.yaml"
-    git.commit_files({rel_path: yaml_bytes}, f"Add concept: {name} ({cid})")
+    git.commit_files({rel_path: yaml_bytes}, f"Add concept: {name} ({_concept_display_handle(data)})")
     git.sync_worktree()
-    click.echo(f"Created {filepath} with ID {cid}")
+    click.echo(f"Created {filepath} with logical ID {_concept_display_handle(data)}")
 
 
 # ── concept alias ────────────────────────────────────────────────────
@@ -295,16 +477,17 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
     aliases.append(new_alias)
     data["aliases"] = aliases
     data["last_modified"] = str(date.today())
+    data = _normalize_concept_data(data)
 
     yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
     rel_path = _require_repo_relative_source_path(
         concept_entry.source_path,
         label=f"concept '{concept_entry.filename}'",
     )
-    git.commit_files({rel_path: yaml_bytes}, f"Add alias '{name}' to {data.get('id')}")
+    git.commit_files({rel_path: yaml_bytes}, f"Add alias '{name}' to {_concept_display_handle(data)}")
     git.sync_worktree()
 
-    click.echo(f"Added alias '{name}' to {data.get('id')} ({filepath.stem})")
+    click.echo(f"Added alias '{name}' to {_concept_display_handle(data)} ({filepath.stem})")
 
 
 # ── concept rename ───────────────────────────────────────────────────
@@ -354,12 +537,14 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             label=f"concept '{concept_record.filename}'",
         )
         concept_data = deepcopy(concept_record.data)
+        local_handle = _concept_local_handle(concept_record.data, fallback=concept_record.filename)
         if concept_path == filepath:
             concept_data["canonical_name"] = name
             concept_data["last_modified"] = str(date.today())
             changed_concept_paths.add(concept_path)
         if _rewrite_concept_conditions(concept_data, old_name, name):
             changed_concept_paths.add(concept_path)
+        concept_data = _normalize_concept_data(concept_data, local_handle=local_handle)
         source_path = concept_record.source_path
         if source_path is None:
             raise click.ClickException(f"concept '{concept_record.filename}' does not have a source path")
@@ -396,6 +581,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             claim_data = deepcopy(claim_file.data)
             if _rewrite_claim_conditions(claim_data, old_name, name):
                 changed_claim_paths.add(claim_path)
+                claim_data, _ = normalize_claim_file_payload(claim_data)
             source_path = claim_file.source_path
             if source_path is None:
                 raise click.ClickException(f"claim file '{claim_file.filename}' does not have a source path")
@@ -404,11 +590,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 source_path=source_path,
                 data=claim_data,
             ))
-        concept_registry = {
-            concept_record.data["id"]: deepcopy(concept_record.data)
-            for concept_record in updated_concepts
-            if concept_record.data.get("id")
-        }
+        concept_registry = _build_concept_registry(updated_concepts)
         claim_validation = validate_claims(updated_claim_files, concept_registry)
         if not claim_validation.ok:
             for e in claim_validation.errors:
@@ -456,7 +638,7 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
 
     click.echo(f"{old_name} -> {name}")
     click.echo(f"  {filepath} -> {new_path}")
-    click.echo(f"  ID unchanged: {data.get('id')}")
+    click.echo(f"  Logical ID: {_concept_display_handle(updated_concepts[0].data) if updated_concepts else name}")
 
 
 # ── concept deprecate ────────────────────────────────────────────────
@@ -494,23 +676,30 @@ def deprecate(obj: dict, concept_id: str, replaced_by: str, dry_run: bool) -> No
     data = deepcopy(concept_entry.data)
 
     if dry_run:
-        click.echo(f"Would deprecate {data.get('id')} ({filepath.stem})")
-        click.echo(f"  replaced_by: {replaced_by}")
+        click.echo(f"Would deprecate {_concept_display_handle(data)} ({filepath.stem})")
+        click.echo(f"  replaced_by: {_concept_display_handle(replacement_data)}")
         return
 
     data["status"] = "deprecated"
-    data["replaced_by"] = replaced_by
+    replacement_artifact_id = replacement_data.get("artifact_id")
+    if not isinstance(replacement_artifact_id, str) or not replacement_artifact_id:
+        raise click.ClickException(f"Replacement concept '{replaced_by}' does not have an artifact_id")
+    data["replaced_by"] = replacement_artifact_id
     data["last_modified"] = str(date.today())
+    data = _normalize_concept_data(data)
 
     yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
     rel_path = _require_repo_relative_source_path(
         concept_entry.source_path,
         label=f"concept '{concept_entry.filename}'",
     )
-    git.commit_files({rel_path: yaml_bytes}, f"Deprecate {data.get('id')}, replaced by {replaced_by}")
+    git.commit_files(
+        {rel_path: yaml_bytes},
+        f"Deprecate {_concept_display_handle(data)}, replaced by {_concept_display_handle(replacement_data)}",
+    )
     git.sync_worktree()
 
-    click.echo(f"Deprecated {data.get('id')} ({filepath.stem}), replaced by {replaced_by}")
+    click.echo(f"Deprecated {_concept_display_handle(data)} ({filepath.stem}), replaced by {_concept_display_handle(replacement_data)}")
 
 
 # ── concept link ─────────────────────────────────────────────────────
@@ -547,13 +736,17 @@ def link(
         label=f"concept '{concept_entry.filename}'",
     )
 
-    if _find_concept_entry(repo, target_id) is None:
+    target_entry = _find_concept_entry(repo, target_id)
+    if target_entry is None:
         click.echo(f"ERROR: Target concept '{target_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
+    target_artifact_id = target_entry.data.get("artifact_id")
+    if not isinstance(target_artifact_id, str) or not target_artifact_id:
+        raise click.ClickException(f"Target concept '{target_id}' does not have an artifact_id")
 
     data = deepcopy(concept_entry.data)
 
-    rel: dict[str, object] = {"type": rel_type, "target": target_id}
+    rel: dict[str, object] = {"type": rel_type, "target": target_artifact_id}
     if paper_source:
         rel["source"] = paper_source
     if note:
@@ -569,6 +762,7 @@ def link(
     rels.append(rel)
     data["relationships"] = rels
     data["last_modified"] = str(date.today())
+    data = _normalize_concept_data(data)
 
     concepts = load_concepts(repo.tree() / "concepts")
     updated_concepts = []
@@ -605,10 +799,10 @@ def link(
         concept_entry.source_path,
         label=f"concept '{concept_entry.filename}'",
     )
-    git.commit_files({rel_path: yaml_bytes}, f"Link {source_id} {rel_type} {target_id}")
+    git.commit_files({rel_path: yaml_bytes}, f"Link {_concept_display_handle(data)} {rel_type} {_concept_display_handle(target_entry.data)}")
     git.sync_worktree()
 
-    click.echo(f"Added {rel_type} -> {target_id} on {data.get('id')} ({filepath.stem})")
+    click.echo(f"Added {rel_type} -> {_concept_display_handle(target_entry.data)} on {_concept_display_handle(data)} ({filepath.stem})")
 
 
 # ── concept search ───────────────────────────────────────────────────
@@ -626,14 +820,15 @@ def search(obj: dict, query: str) -> None:
         conn = sqlite3.connect(sidecar)
         with contextlib.closing(conn):
             rows = conn.execute(
-                "SELECT concept_id, canonical_name, definition "
-                "FROM concept_fts WHERE concept_fts MATCH ? LIMIT 20",
+                "SELECT concept.primary_logical_id, concept_fts.canonical_name, concept_fts.definition "
+                "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
+                "WHERE concept_fts MATCH ? LIMIT 20",
                 (query,),
             ).fetchall()
         if rows:
-            for cid, name, defn in rows:
+            for logical_id, name, defn in rows:
                 snippet = (defn or "")[:80]
-                click.echo(f"  {cid}  {name}  — {snippet}")
+                click.echo(f"  {logical_id}  {name}  — {snippet}")
         else:
             click.echo("No matches.")
         return
@@ -655,7 +850,7 @@ def search(obj: dict, query: str) -> None:
         ]).lower()
         if query_lower in searchable:
             snippet = (data.get("definition", "") or "")[:80]
-            click.echo(f"  {data.get('id')}  {data.get('canonical_name')}  — {snippet}")
+            click.echo(f"  {_concept_display_handle(data)}  {data.get('canonical_name')}  — {snippet}")
             found = True
 
     if not found:
@@ -687,7 +882,7 @@ def list_concepts(obj: dict, domain: str | None, status: str | None) -> None:
         if status and c_status != status:
             continue
 
-        click.echo(f"  {d.get('id', '?'):15s} {d.get('canonical_name', '?'):30s} [{c_status}]")
+        click.echo(f"  {_concept_display_handle(d):30s} {d.get('canonical_name', '?'):30s} [{c_status}]")
 
 
 # ── concept add-value ────────────────────────────────────────────────
@@ -735,6 +930,8 @@ def add_value(obj: dict, concept_name: str, value: str, dry_run: bool) -> None:
     values.append(value)
     fp["values"] = values
     data["form_parameters"] = fp
+    data["last_modified"] = str(date.today())
+    data = _normalize_concept_data(data)
 
     yaml_bytes = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True).encode("utf-8")
     rel_path = _require_repo_relative_source_path(
@@ -791,6 +988,21 @@ def categories(obj: dict, as_json: bool) -> None:
 def show(obj: dict, concept_id_or_name: str) -> None:
     """Show full concept YAML."""
     repo: Repository = obj["repo"]
+    if concept_id_or_name.startswith("align:"):
+        try:
+            _, artifact = load_alignment_artifact(repo, concept_id_or_name)
+        except FileNotFoundError:
+            click.echo(f"ERROR: Concept alignment '{concept_id_or_name}' not found", err=True)
+            sys.exit(EXIT_ERROR)
+        click.echo(
+            yaml.dump(
+                artifact,
+                default_flow_style=False,
+                sort_keys=False,
+                allow_unicode=True,
+            ).rstrip()
+        )
+        return
     concept_entry = _find_concept_entry(repo, concept_id_or_name)
     if concept_entry is None:
         click.echo(f"ERROR: Concept '{concept_id_or_name}' not found", err=True)
@@ -804,6 +1016,69 @@ def show(obj: dict, concept_id_or_name: str) -> None:
             allow_unicode=True,
         ).rstrip()
     )
+
+
+@concept.command("align")
+@click.option("--sources", "first_source", required=True)
+@click.argument("extra_sources", nargs=-1)
+@click.pass_obj
+def align_cmd(obj: dict, first_source: str, extra_sources: tuple[str, ...]) -> None:
+    """Build and persist a concept-alignment artifact from source branches."""
+    repo: Repository = obj["repo"]
+    artifact = align_sources(repo, [first_source, *extra_sources])
+    click.echo(f"Created {artifact['id']}")
+
+
+@concept.command("query")
+@click.argument("cluster_id")
+@click.option("--mode", type=click.Choice(["skeptical", "credulous"]), default="credulous")
+@click.option("--operator", type=click.Choice(["sum", "max", "leximax"]), default=None)
+@click.pass_obj
+def query_alignment(obj: dict, cluster_id: str, mode: str, operator: str | None) -> None:
+    """Query an alignment artifact."""
+    repo: Repository = obj["repo"]
+    try:
+        _, artifact = load_alignment_artifact(repo, cluster_id)
+    except FileNotFoundError:
+        click.echo(f"ERROR: Concept alignment '{cluster_id}' not found", err=True)
+        sys.exit(EXIT_ERROR)
+
+    queries = artifact.get("queries", {})
+    if operator is not None:
+        scores = queries.get("operator_scores", {}).get(operator, {})
+        for argument_id, score in sorted(scores.items()):
+            click.echo(f"{argument_id}\t{score}")
+        return
+
+    accepted = queries.get(f"{mode}_acceptance", [])
+    for argument_id in accepted:
+        click.echo(argument_id)
+
+
+@concept.command("decide")
+@click.argument("cluster_id")
+@click.option("--accept", "accepted", multiple=True)
+@click.option("--reject", "rejected", multiple=True)
+@click.pass_obj
+def decide_cmd(obj: dict, cluster_id: str, accepted: tuple[str, ...], rejected: tuple[str, ...]) -> None:
+    """Persist accepted and rejected alternatives for an alignment artifact."""
+    repo: Repository = obj["repo"]
+    updated = decide_alignment(repo, cluster_id, accept=list(accepted), reject=list(rejected))
+    click.echo(f"Updated {updated['id']}")
+
+
+@concept.command("promote")
+@click.argument("cluster_id")
+@click.pass_obj
+def promote_cmd(obj: dict, cluster_id: str) -> None:
+    """Promote an accepted alignment alternative into the canonical concept registry."""
+    repo: Repository = obj["repo"]
+    try:
+        updated = promote_alignment(repo, cluster_id)
+    except ValueError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        sys.exit(EXIT_ERROR)
+    click.echo(f"Promoted {updated['id']}")
 
 
 # ── concept embed ────────────────────────────────────────────────────
@@ -834,7 +1109,7 @@ def embed(obj: dict, concept_id: str | None, embed_all: bool, model: str, batch_
         conn.row_factory = sqlite3.Row
         _load_vec_extension(conn)
 
-        ids = [concept_id] if concept_id else None
+        ids = [_resolve_sidecar_concept_id(conn, concept_id)] if concept_id else None
 
         if model == "all":
             models = get_registered_models(conn)
@@ -886,9 +1161,11 @@ def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bo
 
     try:
         if agree:
-            results = find_similar_concepts_agree(conn, concept_id, top_k=top_k)
+            resolved_id = _resolve_sidecar_concept_id(conn, concept_id)
+            results = find_similar_concepts_agree(conn, resolved_id, top_k=top_k)
         elif disagree:
-            results = find_similar_concepts_disagree(conn, concept_id, top_k=top_k)
+            resolved_id = _resolve_sidecar_concept_id(conn, concept_id)
+            results = find_similar_concepts_disagree(conn, resolved_id, top_k=top_k)
         else:
             if model is None:
                 models = get_registered_models(conn)
@@ -896,7 +1173,8 @@ def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bo
                     click.echo("Error: no embeddings found. Run 'pks concept embed' first.", err=True)
                     raise SystemExit(1)
                 model = str(models[0]["model_name"])
-            results = find_similar_concepts(conn, concept_id, model, top_k=top_k)
+            resolved_id = _resolve_sidecar_concept_id(conn, concept_id)
+            results = find_similar_concepts(conn, resolved_id, model, top_k=top_k)
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         raise SystemExit(1)
@@ -909,7 +1187,7 @@ def similar(obj: dict, concept_id: str, model: str | None, top_k: int, agree: bo
 
     for r in results:
         dist = r.get("distance", 0)
-        cid = r.get("id", "?")
+        cid = r.get("primary_logical_id") or r.get("id", "?")
         name = r.get("canonical_name", "")
         defn = (r.get("definition") or "")[:80]
         click.echo(f"  {dist:.4f}  {cid}  {name}  — {defn}")
