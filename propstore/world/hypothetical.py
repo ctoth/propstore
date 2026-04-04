@@ -196,18 +196,41 @@ class _GraphOverlayStore:
         return getattr(self._base, name)
 
     def get_concept(self, concept_id: str) -> dict | None:
-        concept = self._base.get_concept(concept_id)
-        return None if concept is None else dict(concept)
+        getter = getattr(self._base, "get_concept", None)
+        if callable(getter):
+            concept = getter(concept_id)
+            return None if concept is None else dict(concept)
+        if not hasattr(self._base, "all_concepts"):
+            return None
+        for concept in self._base.all_concepts():
+            if not isinstance(concept, dict):
+                continue
+            if concept.get("id") == concept_id or concept.get("canonical_name") == concept_id:
+                return dict(concept)
+        return None
 
     def get_claim(self, claim_id: str) -> dict | None:
-        claim = self._claims_by_id.get(claim_id)
+        resolved_claim_id = self.resolve_claim(claim_id) or claim_id
+        claim = self._claims_by_id.get(resolved_claim_id)
         return None if claim is None else dict(claim)
 
+    def resolve_claim(self, name: str) -> str | None:
+        resolver = getattr(self._base, "resolve_claim", None)
+        if callable(resolver):
+            return resolver(name)
+        return None
+
     def resolve_alias(self, alias: str) -> str | None:
-        return self._base.resolve_alias(alias)
+        resolver = getattr(self._base, "resolve_alias", None)
+        if callable(resolver):
+            return resolver(alias)
+        return None
 
     def resolve_concept(self, name: str) -> str | None:
-        return self._base.resolve_concept(name)
+        resolver = getattr(self._base, "resolve_concept", None)
+        if callable(resolver):
+            return resolver(name)
+        return None
 
     def all_concepts(self) -> list[dict]:
         return [dict(concept) for concept in self._base.all_concepts()]
@@ -215,10 +238,11 @@ class _GraphOverlayStore:
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
             return [dict(claim) for claim in self._claims]
+        resolved_concept_id = self.resolve_concept(concept_id) or concept_id
         return [
             dict(claim)
             for claim in self._claims
-            if claim.get("concept_id") == concept_id or claim.get("target_concept") == concept_id
+            if claim.get("concept_id") == resolved_concept_id or claim.get("target_concept") == resolved_concept_id
         ]
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
@@ -332,8 +356,32 @@ class HypotheticalWorld(BeliefSpace):
         add: list[SyntheticClaim] | None = None,
     ) -> None:
         self._base = base
-        self._removed_ids = set(remove or [])
-        self._synthetics = list(add or [])
+        claim_resolver = getattr(base._store, "resolve_claim", None)
+        concept_resolver = getattr(base._store, "resolve_concept", None)
+        self._removed_ids = {
+            claim_resolver(claim_id) or claim_id
+            if callable(claim_resolver)
+            else claim_id
+            for claim_id in (remove or [])
+        }
+        self._synthetics = [
+            SyntheticClaim(
+                id=(
+                    claim_resolver(synthetic.id) or synthetic.id
+                    if callable(claim_resolver)
+                    else synthetic.id
+                ),
+                concept_id=(
+                    concept_resolver(synthetic.concept_id) or synthetic.concept_id
+                    if callable(concept_resolver)
+                    else synthetic.concept_id
+                ),
+                type=synthetic.type,
+                value=synthetic.value,
+                conditions=list(synthetic.conditions),
+            )
+            for synthetic in (add or [])
+        ]
 
         self._base_compiled = _compiled_graph_for_bound(base)
         if self._base_compiled is not None:

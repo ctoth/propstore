@@ -315,7 +315,24 @@ class BoundWorld(BeliefSpace):
 
     def _concept_symbol_candidates(self, concept_id: ConceptId | str) -> list[str]:
         candidates: list[str] = []
-        concept = self._store.get_concept(str(concept_id))
+        getter = getattr(self._store, "get_concept", None)
+        if callable(getter):
+            concept = getter(str(concept_id))
+        elif not hasattr(self._store, "all_concepts"):
+            concept = None
+        else:
+            concept = next(
+                (
+                    dict(entry)
+                    for entry in self._store.all_concepts()
+                    if isinstance(entry, dict)
+                    and (
+                        entry.get("id") == str(concept_id)
+                        or entry.get("canonical_name") == str(concept_id)
+                    )
+                ),
+                None,
+            )
         if concept is None:
             return candidates
 
