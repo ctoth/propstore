@@ -8,8 +8,10 @@ import click
 
 from propstore.cli.repository import Repository
 from propstore.source_ops import (
+    commit_source_claims_batch,
     commit_source_metadata,
     commit_source_notes,
+    finalize_source_branch,
     init_source_branch,
     source_branch_name,
 )
@@ -62,3 +64,22 @@ def write_metadata(obj: dict, name: str, file_path: Path) -> None:
     repo: Repository = obj["repo"]
     commit_source_metadata(repo, name, file_path)
     click.echo(f"Wrote metadata to {source_branch_name(name)}")
+
+
+@source.command("add-claim")
+@click.argument("name")
+@click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.pass_obj
+def add_claim(obj: dict, name: str, batch_file: Path) -> None:
+    repo: Repository = obj["repo"]
+    commit_source_claims_batch(repo, name, batch_file)
+    click.echo(f"Wrote claims to {source_branch_name(name)}")
+
+
+@source.command("finalize")
+@click.argument("name")
+@click.pass_obj
+def finalize(obj: dict, name: str) -> None:
+    repo: Repository = obj["repo"]
+    finalize_source_branch(repo, name)
+    click.echo(f"Finalized {source_branch_name(name)}")
