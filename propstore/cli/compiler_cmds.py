@@ -5,7 +5,6 @@ import json
 import re
 import sqlite3
 import sys
-import unicodedata
 from collections.abc import Mapping, Sequence
 from enum import Enum
 from pathlib import Path
@@ -16,6 +15,12 @@ import yaml
 
 from propstore.cli.helpers import EXIT_VALIDATION, open_world_model
 from propstore.cli.repository import Repository
+from propstore.identity import (
+    CONCEPT_ARTIFACT_ID_RE,
+    format_logical_id,
+    normalize_claim_file_payload,
+    primary_logical_id,
+)
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
@@ -333,35 +338,34 @@ def export_aliases(obj: dict, fmt: str) -> None:
 
     for c in concepts:
         d = c.data
-        cid = d.get("id", "")
+        logical_id = primary_logical_id(d) or d.get("canonical_name", "")
         name = d.get("canonical_name", "")
         for a in d.get("aliases", []) or []:
             alias_name = a.get("name", "")
             if alias_name:
-                aliases[alias_name] = {"id": cid, "name": name}
+                aliases[alias_name] = {"logical_id": logical_id, "name": name}
 
     if fmt == "json":
         click.echo(json.dumps(aliases, indent=2))
     else:
         for alias_name, info in sorted(aliases.items()):
-            click.echo(f"{alias_name} -> {info['id']} ({info['name']})")
+            click.echo(f"{alias_name} -> {info['logical_id']} ({info['name']})")
 
 
 def _resolve_concept_refs(
     claim: dict, name_to_id: dict[str, str],
 ) -> tuple[dict, int, int]:
-    """Resolve concept names to IDs within a single claim.
+    """Resolve concept names to artifact IDs within a single claim.
 
     Returns (modified_claim, resolved_count, unresolved_count).
     """
-    _CONCEPT_ID_RE = re.compile(r"^concept\d+$")
     resolved = 0
     unresolved = 0
 
     def _resolve_one(ref: str) -> str:
         nonlocal resolved, unresolved
-        if _CONCEPT_ID_RE.match(ref):
-            return ref  # already an ID
+        if CONCEPT_ARTIFACT_ID_RE.match(ref):
+            return ref
         if ref in name_to_id:
             resolved += 1
             return name_to_id[ref]
@@ -397,24 +401,6 @@ def _resolve_concept_refs(
             claim["sympy"] = sympy_str
 
     return claim, resolved, unresolved
-
-
-def _sanitize_claim_source_prefix(source_name: str) -> str:
-    """Normalize a paper/source name into a validator-safe claim ID prefix.
-
-    Claim validation currently accepts ASCII letters/digits/underscore/hyphen/
-    apostrophe in the optional ``source:`` prefix. Imported paper directory names
-    may contain Unicode punctuation, spaces, or other filesystem-safe but
-    validator-unsafe characters. Preserve the name as much as possible while
-    guaranteeing a valid prefix.
-    """
-    normalized = unicodedata.normalize("NFKC", source_name)
-    sanitized = re.sub(r"[^A-Za-z0-9_'\-]+", "_", normalized).strip("_")
-    if not sanitized:
-        return "source"
-    if not sanitized[0].isalnum():
-        sanitized = f"source_{sanitized}"
-    return sanitized
 
 
 def _normalize_import_output_dir(output_dir: Path | None, repo: Repository) -> tuple[Path, str | None]:
@@ -458,40 +444,68 @@ def _normalize_import_output_dir(output_dir: Path | None, repo: Repository) -> t
 @click.option("--strict", is_flag=True, help="Abort import if any dimensional check fails")
 @click.pass_obj
 def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run: bool, strict: bool) -> None:
-    """Import paper-local claims.yaml files from a papers/ corpus."""
+    """Legacy compatibility import for paper-local claims.yaml files."""
     from propstore.validate import load_concepts
 
     repo: Repository = obj["repo"]
+    click.echo(
+        "WARNING: import-papers is legacy compatibility mode; prefer the source-oriented "
+        "'pks source *' workflow.",
+        err=True,
+    )
     output_dir, output_dir_notice = _normalize_import_output_dir(output_dir, repo)
     if output_dir_notice:
         click.echo(output_dir_notice, err=True)
     paper_dirs = sorted(entry for entry in papers_root.iterdir() if entry.is_dir())
     imports: list[tuple[Path, Path]] = []
+    ignored_artifacts = 0
     for paper_dir in paper_dirs:
         source_path = paper_dir / "claims.yaml"
         if not source_path.exists():
             continue
+        ignored_artifacts += sum(
+            1
+            for artifact_name in ("concepts.yaml", "justifications.yaml", "stances.yaml")
+            if (paper_dir / artifact_name).exists()
+        )
         imports.append((source_path, output_dir / f"{paper_dir.name}.yaml"))
 
     if not imports:
         click.echo(f"No claims.yaml files found under {papers_root}")
         return
 
-    # Build concept name → ID lookup table
+    if ignored_artifacts:
+        click.echo(
+            "WARNING: legacy compatibility mode ignores source-local concepts, "
+            f"justifications, and stances ({ignored_artifacts} file(s) skipped).",
+            err=True,
+        )
+
+    # Build concept handle -> artifact_id lookup table
     name_to_id: dict[str, str] = {}
     concepts = load_concepts(repo.tree() / "concepts")
     id_to_concept: dict[str, dict] = {}
     for c in concepts:
-        cid = c.data.get("id", "")
+        cid = c.data.get("artifact_id", "")
         name = c.data.get("canonical_name", "")
-        if cid and name:
-            name_to_id[name] = cid
-        if cid:
+        if isinstance(cid, str) and cid:
             id_to_concept[cid] = c.data
-        # Also add aliases
+            if isinstance(name, str) and name:
+                name_to_id[name] = cid
+        logical_ids = c.data.get("logical_ids")
+        if isinstance(cid, str) and cid and isinstance(logical_ids, list):
+            for entry in logical_ids:
+                if not isinstance(entry, dict):
+                    continue
+                formatted = format_logical_id(entry)
+                value = entry.get("value")
+                if formatted:
+                    name_to_id[formatted] = cid
+                if isinstance(value, str) and value:
+                    name_to_id.setdefault(value, cid)
         for alias in c.data.get("aliases", []) or []:
             alias_name = alias.get("name", "") if isinstance(alias, dict) else ""
-            if alias_name:
+            if alias_name and isinstance(cid, str) and cid:
                 name_to_id[alias_name] = cid
 
     # Load and resolve all paper data (needed for both dry-run and real import)
@@ -509,30 +523,14 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
             source = {}
             data["source"] = source
         source_name = source_path.parent.name
-        source_prefix = _sanitize_claim_source_prefix(source_name)
         source["paper"] = source_name
-        # Prefix claim IDs with knowledge source for global uniqueness
         for claim in data.get("claims", []) or []:
             if isinstance(claim, dict):
-                if "id" in claim and ":" not in claim["id"]:
-                    claim["id"] = f"{source_prefix}:{claim['id']}"
                 total_claims += 1
-                # Prefix inline stance targets only if they reference
-                # claims within this same file (local IDs)
-                local_ids = {
-                    c.get("id", "").split(":")[-1]
-                    for c in data.get("claims", []) or []
-                    if isinstance(c, dict) and c.get("id")
-                }
-                for stance in claim.get("stances", []) or []:
-                    if isinstance(stance, dict):
-                        target = stance.get("target")
-                        if target and ":" not in target and target in local_ids:
-                            stance["target"] = f"{source_prefix}:{target}"
-                # Resolve concept names to IDs
                 _, r, u = _resolve_concept_refs(claim, name_to_id)
                 total_resolved += r
                 total_unresolved += u
+        data, _ = normalize_claim_file_payload(data, default_namespace=source_name)
         resolved_papers.append((source_path, destination_path, data))
 
     # ── Dimensional pre-check (bridgman) ─────────────────────────────
@@ -594,7 +592,7 @@ def import_papers(obj: dict, papers_root: Path, output_dir: Path | None, dry_run
                     continue
 
                 # Parse and verify
-                claim_id = claim.get("id", "<unknown>")
+                claim_id = claim.get("artifact_id", "<unknown>")
                 try:
                     parsed = sp.sympify(sympy_str)
                     # If sympy field is not an Eq, wrap it as Eq(dependent, rhs)
@@ -683,6 +681,24 @@ def _resolve_world_target(wm, target: str) -> str:
     return wm.resolve_concept(target) or target
 
 
+def _world_concept_display_id(wm, concept_id: str) -> str:
+    concept = wm.get_concept(concept_id)
+    if concept is None:
+        return concept_id
+    logical_id = concept.get("primary_logical_id")
+    if isinstance(logical_id, str) and logical_id:
+        return logical_id
+    return str(concept.get("id") or concept_id)
+
+
+def _world_claim_display_id(claim: Mapping[str, object]) -> str:
+    logical_id = claim.get("logical_id") or claim.get("primary_logical_id")
+    if isinstance(logical_id, str) and logical_id:
+        return logical_id
+    claim_id = claim.get("id")
+    return str(claim_id) if claim_id is not None else "?"
+
+
 @world.command("status")
 @click.pass_obj
 def world_status(obj: dict) -> None:
@@ -712,14 +728,14 @@ def world_query(obj: dict, concept_id: str) -> None:
             click.echo(f"Unknown concept: {concept_id}", err=True)
             sys.exit(1)
 
-        click.echo(f"{concept['canonical_name']} ({resolved})")
+        click.echo(f"{concept['canonical_name']} ({_world_concept_display_id(wm, resolved)})")
         claims = wm.claims_for(resolved)
         if not claims:
             click.echo("  (no claims)")
         for c in claims:
             conds = c.get("conditions_cel") or "[]"
             val_part = _format_value_with_si(c)
-            click.echo(f"  {c['id']}: {c['type']} {val_part} conditions={conds}")
+            click.echo(f"  {_world_claim_display_id(c)}: {c['type']} {val_part} conditions={conds}")
 
 
 @world.command("bind")
@@ -754,10 +770,10 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
         if query_concept:
             resolved = _resolve_world_target(wm, query_concept)
             result = bound.value_of(resolved)
-            click.echo(f"{resolved}: {result.status}")
+            click.echo(f"{_world_concept_display_id(wm, resolved)}: {result.status}")
             for c in result.claims:
                 val_part = _format_value_with_si(c)
-                click.echo(f"  {c['id']}: {val_part} source={c.get('source_paper')}")
+                click.echo(f"  {_world_claim_display_id(c)}: {val_part} source={c.get('source_paper')}")
         else:
             active = bound.active_claims()
             click.echo(f"Active claims: {len(active)}")
@@ -765,7 +781,7 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
                 conds = c.get("conditions_cel") or "[]"
                 val_part = _format_value_with_si(c)
                 click.echo(
-                    f"  {c['id']}: {c.get('concept_id', '?')} "
+                    f"  {_world_claim_display_id(c)}: {_world_concept_display_id(wm, str(c.get('concept_id', '?')))} "
                     f"{val_part} conditions={conds}")
 
 
@@ -783,15 +799,24 @@ def world_explain(obj: dict, claim_id: str) -> None:
             click.echo(f"Unknown claim: {claim_id}", err=True)
             sys.exit(1)
 
-    click.echo(f"{claim_id}: {claim['type']} concept={claim.get('concept_id')} value={claim.get('value')}")
-    chain = wm.explain(claim_id)
+    claim_display_id = _world_claim_display_id(claim)
+    click.echo(
+        f"{claim_display_id}: {claim['type']} "
+        f"concept={_world_concept_display_id(wm, str(claim.get('concept_id')))} "
+        f"value={claim.get('value')}"
+    )
+    chain = wm.explain(claim.get("id") or claim_id)
     if not chain:
         click.echo("  (no stances)")
     for s in chain:
         src = s['claim_id']
-        indent = "  " if src == claim_id else "    "
+        src_claim = wm.get_claim(src)
+        src_display_id = _world_claim_display_id(src_claim) if src_claim else src
+        tgt_claim = wm.get_claim(s['target_claim_id'])
+        tgt_display_id = _world_claim_display_id(tgt_claim) if tgt_claim else s['target_claim_id']
+        indent = "  " if src == claim.get("id") else "    "
         click.echo(
-            f"{indent}{src} {s['stance_type']} -> {s['target_claim_id']}"
+            f"{indent}{src_display_id} {s['stance_type']} -> {tgt_display_id}"
             f" (strength={s.get('strength')}, note={s.get('note')})")
     wm.close()
 
@@ -1760,11 +1785,13 @@ def world_resolve(obj: dict, concept_id: str, args: tuple[str, ...],
             click.echo(f"ERROR: {e}", err=True)
             sys.exit(1)
 
-        click.echo(f"{resolved}: {result.status}")
+        click.echo(f"{_world_concept_display_id(wm, resolved)}: {result.status}")
         if result.value is not None:
             click.echo(f"  value: {result.value}")
         if result.winning_claim_id:
-            click.echo(f"  winner: {result.winning_claim_id}")
+            winning_claim = wm.get_claim(result.winning_claim_id)
+            winner_id = _world_claim_display_id(winning_claim) if winning_claim else result.winning_claim_id
+            click.echo(f"  winner: {winner_id}")
         if result.strategy:
             click.echo(f"  strategy: {result.strategy}")
         if result.reason:
@@ -2047,14 +2074,15 @@ def world_hypothetical(obj: dict, args: tuple[str, ...],
                     conditions=d.get("conditions", []),
                 ))
 
-        hypo = HypotheticalWorld(bound, remove=list(remove), add=synthetics)
+        resolved_remove = [wm.resolve_claim(claim_id) or claim_id for claim_id in remove]
+        hypo = HypotheticalWorld(bound, remove=resolved_remove, add=synthetics)
         diff = hypo.diff()
 
         if not diff:
             click.echo("No changes detected.")
         else:
             for cid, (base_vr, hypo_vr) in diff.items():
-                click.echo(f"{cid}: {base_vr.status} → {hypo_vr.status}")
+                click.echo(f"{_world_concept_display_id(wm, cid)}: {base_vr.status} → {hypo_vr.status}")
 
 
 @world.command("chain")
@@ -2082,7 +2110,8 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
             """Return 'conceptN (canonical_name)' or just the id if no name."""
             c = wm.get_concept(cid)
             name = c.get("canonical_name", "") if c else ""
-            return f"{cid} ({name})" if name else cid
+            display_id = _world_concept_display_id(wm, cid)
+            return f"{display_id} ({name})" if name else display_id
 
         click.echo(f"Target: {_label(resolved)}")
         click.echo(f"Result: {result.result.status}")

@@ -14,6 +14,8 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
+from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
+from tests.conftest import make_claim_identity, normalize_claims_payload, normalize_concept_payloads
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -22,7 +24,6 @@ def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
                   form: str = "frequency", **extra: object) -> dict:
     """Build a minimal valid concept dict."""
     data: dict = {
-        "id": cid,
         "canonical_name": name,
         "status": status,
         "definition": f"Test definition for {name}.",
@@ -31,7 +32,48 @@ def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
         "form": form,
     }
     data.update(extra)
-    return data
+    return normalize_concept_payloads([{"id": cid, **data}], default_domain=domain)[0]
+
+
+def _concept_artifact(local_id: str) -> str:
+    return derive_concept_artifact_id("propstore", local_id)
+
+
+def _normalize_claim_concept_refs(data: dict) -> dict:
+    normalized = normalize_claims_payload(data)
+    for claim in normalized.get("claims", []):
+        if not isinstance(claim, dict):
+            continue
+        concept = claim.get("concept")
+        if isinstance(concept, str) and concept.startswith("concept") and ":" not in concept:
+            claim["concept"] = _concept_artifact(concept)
+        target_concept = claim.get("target_concept")
+        if isinstance(target_concept, str) and target_concept.startswith("concept") and ":" not in target_concept:
+            claim["target_concept"] = _concept_artifact(target_concept)
+        concepts = claim.get("concepts")
+        if isinstance(concepts, list):
+            claim["concepts"] = [
+                _concept_artifact(value) if isinstance(value, str) and value.startswith("concept") and ":" not in value else value
+                for value in concepts
+            ]
+        variables = claim.get("variables")
+        if isinstance(variables, list):
+            for variable in variables:
+                if not isinstance(variable, dict):
+                    continue
+                value = variable.get("concept")
+                if isinstance(value, str) and value.startswith("concept") and ":" not in value:
+                    variable["concept"] = _concept_artifact(value)
+        parameters = claim.get("parameters")
+        if isinstance(parameters, list):
+            for parameter in parameters:
+                if not isinstance(parameter, dict):
+                    continue
+                value = parameter.get("concept")
+                if isinstance(value, str) and value.startswith("concept") and ":" not in value:
+                    parameter["concept"] = _concept_artifact(value)
+        claim["version_id"] = compute_claim_version_id(claim)
+    return normalized
 
 
 def _write_concept(concepts_dir: Path, name: str, data: dict) -> Path:
@@ -162,6 +204,8 @@ def freq_workspace(workspace: Path) -> Path:
             }
         ],
     })
+    normalized_freq_claims = _normalize_claim_concept_refs(yaml.safe_load((claims_dir / "freq_paper.yaml").read_text()))
+    (claims_dir / "freq_paper.yaml").write_text(yaml.dump(normalized_freq_claims, default_flow_style=False, sort_keys=False))
     _commit_workspace_paths(
         workspace,
         ["forms/frequency.yaml", "claims/freq_paper.yaml"],
@@ -224,12 +268,15 @@ class TestConceptAdd:
         filepath = workspace / "knowledge" / "concepts" / "test_pressure.yaml"
         assert filepath.exists()
         data = yaml.safe_load(filepath.read_text())
-        assert data["id"] == "concept3"
+        assert data["artifact_id"] == _concept_artifact("concept3")
         assert data["canonical_name"] == "test_pressure"
         assert data["status"] == "proposed"
         assert data["form"] == "pressure"
+        assert data["logical_ids"][0] == {"namespace": "speech", "value": "test_pressure"}
+        assert {"namespace": "propstore", "value": "concept3"} in data["logical_ids"]
+        assert data["version_id"].startswith("sha256:")
 
-    def test_created_concept_can_be_shown_by_id(self, workspace: Path) -> None:
+    def test_created_concept_can_be_shown_by_logical_id(self, workspace: Path) -> None:
         runner = CliRunner()
         add_result = runner.invoke(cli, [
             "concept", "add",
@@ -240,9 +287,10 @@ class TestConceptAdd:
         ])
         assert add_result.exit_code == 0, add_result.output
 
-        show_result = runner.invoke(cli, ["concept", "show", "concept3"])
+        show_result = runner.invoke(cli, ["concept", "show", "speech:test_pressure"])
         assert show_result.exit_code == 0, show_result.output
         assert "canonical_name: test_pressure" in show_result.output
+        assert f"artifact_id: {_concept_artifact('concept3')}" in show_result.output
 
     def test_increments_counter(self, workspace: Path) -> None:
         runner = CliRunner()
@@ -252,7 +300,7 @@ class TestConceptAdd:
             "--definition", "d1", "--form", "boolean",
         ])
         c1_data = yaml.safe_load((workspace / "knowledge" / "concepts" / "c1.yaml").read_text())
-        assert c1_data["id"] == "concept3"
+        assert c1_data["artifact_id"] == _concept_artifact("concept3")
 
         runner.invoke(cli, [
             "concept", "add",
@@ -260,7 +308,7 @@ class TestConceptAdd:
             "--definition", "d2", "--form", "boolean",
         ])
         c2_data = yaml.safe_load((workspace / "knowledge" / "concepts" / "c2.yaml").read_text())
-        assert c2_data["id"] == "concept4"
+        assert c2_data["artifact_id"] == _concept_artifact("concept4")
 
     def test_dry_run_does_not_write(self, workspace: Path) -> None:
         runner = CliRunner()
@@ -294,7 +342,7 @@ class TestConceptAlias:
     def test_adds_alias(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "alias", "concept1",
+            "concept", "alias", "speech:fundamental_frequency",
             "--name", "f_zero", "--source", "Smith_2020",
         ])
         assert result.exit_code == 0, result.output
@@ -309,7 +357,7 @@ class TestConceptAlias:
         runner = CliRunner()
         # "task" is a canonical_name of concept2
         result = runner.invoke(cli, [
-            "concept", "alias", "concept1",
+            "concept", "alias", "speech:fundamental_frequency",
             "--name", "task", "--source", "test",
         ])
         assert result.exit_code == 0
@@ -322,7 +370,7 @@ class TestConceptRename:
     def test_renames_file_and_field(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "rename", "concept2",
+            "concept", "rename", "speech:task",
             "--name", "vocal_task",
         ])
         assert result.exit_code == 0, result.output
@@ -335,13 +383,15 @@ class TestConceptRename:
 
         data = yaml.safe_load(new_path.read_text())
         assert data["canonical_name"] == "vocal_task"
-        assert data["id"] == "concept2"  # ID unchanged
+        assert data["artifact_id"] == _concept_artifact("concept2")
+        assert data["logical_ids"][0] == {"namespace": "speech", "value": "vocal_task"}
+        assert {"namespace": "propstore", "value": "concept2"} in data["logical_ids"]
 
     def test_updates_cel_references_in_concepts_and_claims(self, workspace: Path) -> None:
         concept_path = workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml"
         concept_data = yaml.safe_load(concept_path.read_text())
         concept_data["relationships"] = [
-            {"type": "related", "target": "concept2", "conditions": ["task == 'speech'"]}
+            {"type": "related", "target": _concept_artifact("concept2"), "conditions": ["task == 'speech'"]}
         ]
         concept_path.write_text(yaml.dump(concept_data, default_flow_style=False, sort_keys=False))
         _commit_workspace_paths(workspace, ["concepts/fundamental_frequency.yaml"], "Seed concept relationship edit")
@@ -350,26 +400,26 @@ class TestConceptRename:
         _write_claim_file(
             claims_dir,
             "paper.yaml",
-            {
+            _normalize_claim_concept_refs({
                 "source": {"paper": "paper"},
                 "claims": [
                     {
                         "id": "claim1",
                         "type": "parameter",
-                        "concept": "concept1",
+                        "concept": _concept_artifact("concept1"),
                         "value": 200.0,
                         "unit": "Hz",
                         "conditions": ["task == 'speech'"],
                         "provenance": {"paper": "paper", "page": 1},
                     }
                 ],
-            },
+            }),
         )
         _commit_workspace_paths(workspace, ["claims/paper.yaml"], "Seed claim conditions edit")
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "rename", "concept2",
+            "concept", "rename", "speech:task",
             "--name", "vocal_task",
         ])
         assert result.exit_code == 0, result.output
@@ -387,8 +437,8 @@ class TestConceptDeprecate:
     def test_sets_fields(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "deprecate", "concept2",
-            "--replaced-by", "concept1",
+            "concept", "deprecate", "speech:task",
+            "--replaced-by", "speech:fundamental_frequency",
         ])
         assert result.exit_code == 0, result.output
         assert "Deprecated" in result.output
@@ -396,13 +446,13 @@ class TestConceptDeprecate:
         data = yaml.safe_load(
             (workspace / "knowledge" / "concepts" / "task.yaml").read_text())
         assert data["status"] == "deprecated"
-        assert data["replaced_by"] == "concept1"
+        assert data["replaced_by"] == _concept_artifact("concept1")
 
     def test_rejects_nonexistent_replacement(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "deprecate", "concept2",
-            "--replaced-by", "concept9999",
+            "concept", "deprecate", "speech:task",
+            "--replaced-by", "speech:missing_concept",
         ])
         assert result.exit_code != 0
         assert "not found" in result.output
@@ -412,15 +462,15 @@ class TestConceptDeprecate:
         data = yaml.safe_load(
             (workspace / "knowledge" / "concepts" / "task.yaml").read_text())
         data["status"] = "deprecated"
-        data["replaced_by"] = "concept1"
+        data["replaced_by"] = _concept_artifact("concept1")
         with open(workspace / "knowledge" / "concepts" / "task.yaml", "w") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
         _commit_workspace_paths(workspace, ["concepts/task.yaml"], "Seed deprecated replacement")
 
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "deprecate", "concept1",
-            "--replaced-by", "concept2",
+            "concept", "deprecate", "speech:fundamental_frequency",
+            "--replaced-by", "speech:task",
         ])
         assert result.exit_code != 0
         assert "deprecated" in result.output
@@ -432,7 +482,7 @@ class TestConceptLink:
     def test_adds_relationship(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "link", "concept1", "broader", "concept2",
+            "concept", "link", "speech:fundamental_frequency", "broader", "speech:task",
         ])
         assert result.exit_code == 0, result.output
         assert "Added broader" in result.output
@@ -440,12 +490,12 @@ class TestConceptLink:
         data = yaml.safe_load(
             (workspace / "knowledge" / "concepts" / "fundamental_frequency.yaml").read_text())
         rels = data.get("relationships", [])
-        assert any(r["type"] == "broader" and r["target"] == "concept2" for r in rels)
+        assert any(r["type"] == "broader" and r["target"] == _concept_artifact("concept2") for r in rels)
 
     def test_rejects_invalid_relationship_without_writing(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, [
-            "concept", "link", "concept1", "contested_definition", "concept2",
+            "concept", "link", "speech:fundamental_frequency", "contested_definition", "speech:task",
         ])
         assert result.exit_code != 0
         assert "Validation failed" in result.output
@@ -620,7 +670,7 @@ class TestClaimValidate:
         _write_claim_file(
             workspace / "knowledge" / "claims",
             "paper.yaml",
-            {
+            _normalize_claim_concept_refs({
                 "source": {"paper": "paper"},
                 "claims": [
                     {
@@ -633,7 +683,7 @@ class TestClaimValidate:
                         "provenance": {"paper": "paper", "page": 1},
                     }
                 ],
-            },
+            }),
         )
         _commit_workspace_paths(workspace, ["claims/paper.yaml"], "Seed committed claim validate override file")
 
@@ -668,7 +718,7 @@ class TestImportPapers:
                 {
                     "id": "claim1",
                     "type": "parameter",
-                    "concept": "concept1",
+                    "concept": "fundamental_frequency",
                     "value": 200.0,
                     "unit": "Hz",
                     "provenance": {"paper": "ignored_here", "page": 1},
@@ -684,7 +734,15 @@ class TestImportPapers:
         assert result.exit_code == 0, result.output
         imported = yaml.safe_load((workspace / "knowledge" / "claims" / "Smith_2024_TestPaper.yaml").read_text())
         assert imported["source"]["paper"] == "Smith_2024_TestPaper"
-        assert imported["claims"][0]["id"] == "Smith_2024_TestPaper:claim1"
+        assert imported["claims"][0]["artifact_id"] == make_claim_identity(
+            "claim1",
+            namespace="Smith_2024_TestPaper",
+        )["artifact_id"]
+        assert imported["claims"][0]["logical_ids"] == [
+            {"namespace": "Smith_2024_TestPaper", "value": "claim1"}
+        ]
+        assert imported["claims"][0]["version_id"].startswith("sha256:")
+        assert "id" not in imported["claims"][0]
 
     def test_import_papers_no_papers_dir(self, workspace: Path) -> None:
         """import-papers with nonexistent papers root should fail (Click path validation)."""
@@ -706,6 +764,7 @@ class TestImportPapers:
         ])
         assert result.exit_code == 0
         assert "No claims.yaml" in result.output
+        assert "legacy compatibility mode" in result.output
 
     def test_import_papers_correct_claim_file_content(self, workspace: Path) -> None:
         """Imported claim file should have correct source.paper and all claims preserved."""
@@ -717,7 +776,7 @@ class TestImportPapers:
                 {
                     "id": "claim1",
                     "type": "parameter",
-                    "concept": "concept1",
+                    "concept": "fundamental_frequency",
                     "value": 100.0,
                     "unit": "Hz",
                     "provenance": {"paper": "ignored", "page": 2},
@@ -726,7 +785,7 @@ class TestImportPapers:
                     "id": "claim2",
                     "type": "observation",
                     "statement": "F0 varies",
-                    "concepts": ["concept1"],
+                    "concepts": ["fundamental_frequency"],
                     "provenance": {"paper": "ignored", "page": 3},
                 },
             ]
@@ -742,8 +801,47 @@ class TestImportPapers:
         imported = yaml.safe_load((workspace / "knowledge" / "claims" / "Author_2025_Title.yaml").read_text())
         assert imported["source"]["paper"] == "Author_2025_Title"
         assert len(imported["claims"]) == 2
-        assert imported["claims"][0]["id"] == "Author_2025_Title:claim1"
-        assert imported["claims"][1]["id"] == "Author_2025_Title:claim2"
+        assert imported["claims"][0]["artifact_id"] == make_claim_identity(
+            "claim1",
+            namespace="Author_2025_Title",
+        )["artifact_id"]
+        assert imported["claims"][1]["artifact_id"] == make_claim_identity(
+            "claim2",
+            namespace="Author_2025_Title",
+        )["artifact_id"]
+        assert imported["claims"][0]["logical_ids"] == [
+            {"namespace": "Author_2025_Title", "value": "claim1"}
+        ]
+        assert imported["claims"][1]["logical_ids"] == [
+            {"namespace": "Author_2025_Title", "value": "claim2"}
+        ]
+        assert all("id" not in claim for claim in imported["claims"])
+        assert "legacy compatibility mode" in result.output
+
+    def test_import_papers_warns_when_ignoring_non_claim_artifacts(self, workspace: Path) -> None:
+        papers_root = workspace / "plugin-papers"
+        paper_dir = papers_root / "Author_2025_Title"
+        paper_dir.mkdir(parents=True)
+        (paper_dir / "claims.yaml").write_text(
+            yaml.dump({"claims": []}, default_flow_style=False, sort_keys=False)
+        )
+        (paper_dir / "concepts.yaml").write_text(
+            yaml.dump({"concepts": []}, default_flow_style=False, sort_keys=False)
+        )
+        (paper_dir / "justifications.yaml").write_text(
+            yaml.dump({"justifications": []}, default_flow_style=False, sort_keys=False)
+        )
+        (paper_dir / "stances.yaml").write_text(
+            yaml.dump({"stances": []}, default_flow_style=False, sort_keys=False)
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "import-papers",
+            "--papers-root", str(papers_root),
+        ])
+        assert result.exit_code == 0, result.output
+        assert "ignores source-local concepts, justifications, and stances" in result.output
 
     def test_import_papers_repo_root_output_dir_maps_to_claims_dir(self, workspace: Path) -> None:
         """Passing knowledge/ as --output-dir should still write to knowledge/claims."""
@@ -755,7 +853,7 @@ class TestImportPapers:
                 {
                     "id": "claim1",
                     "type": "parameter",
-                    "concept": "concept1",
+                    "concept": "fundamental_frequency",
                     "value": 100.0,
                     "unit": "Hz",
                     "provenance": {"paper": "ignored", "page": 2},
@@ -838,8 +936,8 @@ class TestBuildExtended:
 
         ids = [r[0] for r in rows]
         names = [r[1] for r in rows]
-        assert "concept1" in ids
-        assert "concept2" in ids
+        assert _concept_artifact("concept1") in ids
+        assert _concept_artifact("concept2") in ids
         assert "fundamental_frequency" in names
         assert "task" in names
 
@@ -860,7 +958,7 @@ class TestBuildExtended:
     def test_build_with_claims(self, workspace: Path) -> None:
         """Build with claim files should create claim table with data."""
         claims_dir = workspace / "knowledge" / "claims"
-        _write_claim_file(claims_dir, "paper.yaml", {
+        _write_claim_file(claims_dir, "paper.yaml", _normalize_claim_concept_refs({
             "source": {"paper": "paper"},
             "claims": [
                 {
@@ -872,7 +970,7 @@ class TestBuildExtended:
                     "provenance": {"paper": "paper", "page": 1},
                 }
             ],
-        })
+        }))
         _commit_workspace_paths(workspace, ["claims/paper.yaml"], "Seed committed claim file")
 
         runner = CliRunner()
@@ -932,7 +1030,7 @@ class TestExportAliases:
         data = _json.loads(result.output)
         assert isinstance(data, dict)
         assert "F0" in data
-        assert data["F0"]["id"] == "concept1"
+        assert data["F0"]["logical_id"] == "speech:fundamental_frequency"
         assert data["F0"]["name"] == "fundamental_frequency"
 
     def test_export_aliases_text(self, workspace: Path) -> None:
@@ -941,10 +1039,19 @@ class TestExportAliases:
         result = runner.invoke(cli, ["export-aliases"])
         assert result.exit_code == 0, result.output
         assert "F0" in result.output
-        assert "concept1" in result.output
+        assert "speech:fundamental_frequency" in result.output
 
 
 # ── concept search ──────────────────────────────────────────────────
+
+class TestConceptList:
+    def test_list_shows_logical_ids_not_artifact_ids(self, workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["concept", "list"])
+        assert result.exit_code == 0, result.output
+        assert "speech:fundamental_frequency" in result.output
+        assert _concept_artifact("concept1") not in result.output
+
 
 class TestConceptSearch:
     def test_search_by_name_yaml_fallback(self, workspace: Path) -> None:
@@ -952,7 +1059,7 @@ class TestConceptSearch:
         runner = CliRunner()
         result = runner.invoke(cli, ["concept", "search", "fundamental"])
         assert result.exit_code == 0, result.output
-        assert "concept1" in result.output
+        assert "speech:fundamental_frequency" in result.output
         assert "fundamental_frequency" in result.output
 
     def test_search_by_definition_yaml_fallback(self, workspace: Path) -> None:
@@ -961,7 +1068,7 @@ class TestConceptSearch:
         result = runner.invoke(cli, ["concept", "search", "definition"])
         assert result.exit_code == 0, result.output
         # Both concepts have "Test definition for X" in their definition
-        assert "concept1" in result.output
+        assert "speech:fundamental_frequency" in result.output
 
     def test_search_no_matches(self, workspace: Path) -> None:
         """concept search with no matches should report no matches."""
@@ -980,7 +1087,7 @@ class TestConceptSearch:
         # Search using FTS
         result = runner.invoke(cli, ["concept", "search", "fundamental"])
         assert result.exit_code == 0, result.output
-        assert "concept1" in result.output
+        assert "speech:fundamental_frequency" in result.output
         assert "fundamental_frequency" in result.output
 
 
@@ -1002,7 +1109,7 @@ class TestClaimValidateFile:
                 "provenance": {"paper": "test_paper"},  # missing page
             }],
         }
-        filepath = _write_claim_file(claims_dir, "bad.yaml", bad_claim)
+        filepath = _write_claim_file(claims_dir, "bad.yaml", _normalize_claim_concept_refs(bad_claim))
 
         runner = CliRunner()
         result = runner.invoke(cli, ["claim", "validate-file", str(filepath)])
@@ -1023,17 +1130,17 @@ class TestClaimValidateFile:
                 "provenance": {"paper": "test_paper", "page": 1},
             }],
         }
-        filepath = _write_claim_file(claims_dir, "good.yaml", good_claim)
+        filepath = _write_claim_file(claims_dir, "good.yaml", _normalize_claim_concept_refs(good_claim))
 
         runner = CliRunner()
         result = runner.invoke(cli, ["claim", "validate-file", str(filepath)])
         assert result.exit_code == 0, f"Unexpected failure: {result.output}"
 
 
-# ── Step 4: import-papers with source-prefixing ──────────────────────
+# ── Step 4: import-papers with canonical claim identity ──────────────
 
 
-class TestImportPapersSourcePrefix:
+class TestImportPapersIdentity:
     def _make_papers_dir(self, tmp_path):
         """Create a fake papers/ directory with two papers."""
         papers = tmp_path / "papers"
@@ -1069,7 +1176,7 @@ class TestImportPapersSourcePrefix:
         return papers
 
     def test_prefixes_claim_ids(self, workspace):
-        """Claims imported from PaperA/ get IDs prefixed with 'PaperA_2020_Foo:'."""
+        """Claims imported from PaperA get canonical artifact/logical identity."""
         papers = self._make_papers_dir(workspace)
         runner = CliRunner()
         result = runner.invoke(cli, ["import-papers", "--papers-root", str(papers)])
@@ -1078,10 +1185,17 @@ class TestImportPapersSourcePrefix:
         claims_dir = workspace / "knowledge" / "claims"
         with open(claims_dir / "PaperA_2020_Foo.yaml") as f:
             data = yaml.safe_load(f)
-        assert data["claims"][0]["id"] == "PaperA_2020_Foo:claim1"
+        assert data["claims"][0]["artifact_id"] == make_claim_identity(
+            "claim1",
+            namespace="PaperA_2020_Foo",
+        )["artifact_id"]
+        assert data["claims"][0]["logical_ids"] == [
+            {"namespace": "PaperA_2020_Foo", "value": "claim1"}
+        ]
+        assert "id" not in data["claims"][0]
 
     def test_no_collisions(self, workspace):
-        """Two papers both having claim1 produce distinct prefixed IDs."""
+        """Two papers both having claim1 produce distinct artifact IDs."""
         papers = self._make_papers_dir(workspace)
         runner = CliRunner()
         result = runner.invoke(cli, ["import-papers", "--papers-root", str(papers)])
@@ -1093,14 +1207,18 @@ class TestImportPapersSourcePrefix:
         with open(claims_dir / "PaperB_2021_Bar.yaml") as f:
             data_b = yaml.safe_load(f)
 
-        id_a = data_a["claims"][0]["id"]
-        id_b = data_b["claims"][0]["id"]
+        id_a = data_a["claims"][0]["artifact_id"]
+        id_b = data_b["claims"][0]["artifact_id"]
         assert id_a != id_b
-        assert id_a == "PaperA_2020_Foo:claim1"
-        assert id_b == "PaperB_2021_Bar:claim1"
+        assert data_a["claims"][0]["logical_ids"] == [
+            {"namespace": "PaperA_2020_Foo", "value": "claim1"}
+        ]
+        assert data_b["claims"][0]["logical_ids"] == [
+            {"namespace": "PaperB_2021_Bar", "value": "claim1"}
+        ]
 
     def test_prefixes_inline_stance_targets(self, workspace):
-        """Inline stance targets also get prefixed."""
+        """Inline stance targets are rewritten to imported claim artifact IDs."""
         papers = workspace / "papers"
         paper = papers / "PaperC_2022_Baz"
         paper.mkdir(parents=True)
@@ -1132,10 +1250,13 @@ class TestImportPapersSourcePrefix:
         with open(claims_dir / "PaperC_2022_Baz.yaml") as f:
             data = yaml.safe_load(f)
         stance = data["claims"][0]["stances"][0]
-        assert stance["target"] == "PaperC_2022_Baz:claim2"
+        assert stance["target"] == make_claim_identity(
+            "claim2",
+            namespace="PaperC_2022_Baz",
+        )["artifact_id"]
 
     def test_sanitizes_validator_unsafe_source_prefix(self, workspace):
-        """Unicode punctuation in paper dir names must be normalized for claim IDs."""
+        """Unicode punctuation in paper dir names is normalized for logical IDs."""
         papers = workspace / "papers"
         paper = papers / "McNeil_2018_EffectAspirinAll‐CauseMortality"
         paper.mkdir(parents=True)
@@ -1159,7 +1280,13 @@ class TestImportPapersSourcePrefix:
         claims_dir = workspace / "knowledge" / "claims"
         with open(claims_dir / "McNeil_2018_EffectAspirinAll‐CauseMortality.yaml") as f:
             data = yaml.safe_load(f)
-        assert data["claims"][0]["id"] == "McNeil_2018_EffectAspirinAll_CauseMortality:claim1"
+        assert data["claims"][0]["logical_ids"] == [
+            {"namespace": "McNeil_2018_EffectAspirinAll_CauseMortality", "value": "claim1"}
+        ]
+        assert data["claims"][0]["artifact_id"] == make_claim_identity(
+            "claim1",
+            namespace="McNeil_2018_EffectAspirinAll_CauseMortality",
+        )["artifact_id"]
 
 
 class TestConceptCategoryValues:
@@ -1440,13 +1567,13 @@ class TestConnectionClosedOnError:
 class TestClaimShow:
     def test_claim_show_exists(self, freq_workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, ["claim", "show", "freq_claim1"])
+        result = runner.invoke(cli, ["claim", "show", "freq_paper:freq_claim1"])
         assert result.exit_code == 0, result.output
-        assert "freq_claim1" in result.output
+        assert "Logical ID: freq_paper:freq_claim1" in result.output
 
     def test_claim_show_displays_si_values(self, freq_workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, ["claim", "show", "freq_claim1"])
+        result = runner.invoke(cli, ["claim", "show", "freq_paper:freq_claim1"])
         assert result.exit_code == 0, result.output
         assert "0.2" in result.output
         assert "200" in result.output
@@ -1463,7 +1590,7 @@ class TestClaimShow:
 class TestWorldQuerySIValues:
     def test_world_query_shows_si_value(self, freq_workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, ["world", "query", "concept1"])
+        result = runner.invoke(cli, ["world", "query", "speech:fundamental_frequency"])
         assert result.exit_code == 0, result.output
         assert "0.2" in result.output
         assert "kHz" in result.output
@@ -1473,11 +1600,11 @@ class TestWorldQuerySIValues:
         runner = CliRunner()
         result = runner.invoke(cli, ["world", "query", "fundamental_frequency"])
         assert result.exit_code == 0, result.output
-        assert "fundamental_frequency (concept1)" in result.output
+        assert "fundamental_frequency (speech:fundamental_frequency)" in result.output
 
     def test_world_bind_shows_si_value(self, freq_workspace: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(cli, ["world", "bind", "concept1"])
+        result = runner.invoke(cli, ["world", "bind", "speech:fundamental_frequency"])
         assert result.exit_code == 0, result.output
         assert "0.2" in result.output
         assert "200" in result.output
@@ -1486,16 +1613,16 @@ class TestWorldQuerySIValues:
         runner = CliRunner()
         result = runner.invoke(cli, ["world", "bind", "fundamental_frequency"])
         assert result.exit_code == 0, result.output
-        assert "concept1: determined" in result.output
+        assert "speech:fundamental_frequency: determined" in result.output
 
 
 class TestWorldCommandsKeepConnectionOpen:
     @pytest.mark.parametrize(
         ("args", "expected_substrings"),
         [
-            (["world", "resolve", "concept1", "--strategy", "recency"], ["concept1: determined"]),
+            (["world", "resolve", "speech:fundamental_frequency", "--strategy", "recency"], ["speech:fundamental_frequency: determined"]),
             (["world", "extensions", "--semantics", "grounded"], ["Backend: claim_graph", "Accepted (1 claims):"]),
-            (["world", "hypothetical", "--remove", "freq_claim1"], ["concept1:", "no_claims"]),
+            (["world", "hypothetical", "--remove", "freq_paper:freq_claim1"], ["speech:fundamental_frequency:", "no_claims"]),
             (["world", "export-graph", "--format", "json"], ['"nodes"', '"edges"']),
             (["world", "check-consistency"], ["No conflicts under current bindings."]),
         ],
