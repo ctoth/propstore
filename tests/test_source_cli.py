@@ -184,6 +184,101 @@ def test_source_write_metadata_commits_json_to_source_branch(tmp_path: Path) -> 
     assert loaded["authors"] == ["A"]
 
 
+def test_source_add_concepts_batch_preserves_inventory_fields(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    repo.git.commit_batch(
+        adds={
+            "concepts/existing.yaml": yaml.safe_dump(
+                {
+                    "canonical_name": "existing",
+                    "status": "accepted",
+                    "definition": "Existing concept.",
+                    "domain": "source",
+                    "form": "structural",
+                    "artifact_id": "ps:concept:existing",
+                    "logical_ids": [{"namespace": "propstore", "value": "existing"}],
+                    "version_id": "version:existing",
+                },
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
+        deletes=[],
+        message="Seed existing concept",
+        branch="master",
+    )
+
+    init_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            "demo-concepts",
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            "demo-concepts",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.output
+
+    concepts_file = tmp_path / "concepts.yaml"
+    concepts_file.write_text(
+        yaml.safe_dump(
+            {
+                "concepts": [
+                    {
+                        "local_name": "existing",
+                        "definition": "Existing concept from source.",
+                        "form": "structural",
+                        "aliases": [{"name": "existing_alias"}],
+                    },
+                    {
+                        "local_name": "bridge",
+                        "proposed_name": "bridge",
+                        "definition": "Bridges two concepts.",
+                        "form": "scalar",
+                        "parameterization_relationships": [
+                            {"inputs": ["existing"], "formula": "f(existing)"}
+                        ],
+                    },
+                ]
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-concepts",
+            "demo-concepts",
+            "--batch",
+            str(concepts_file),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    branch_tip = repo.git.branch_sha("source/demo-concepts")
+    assert branch_tip is not None
+    stored = yaml.safe_load(repo.git.read_file("concepts.yaml", commit=branch_tip))
+    assert stored["concepts"][0]["status"] == "linked"
+    assert stored["concepts"][0]["registry_match"]["artifact_id"] == "ps:concept:existing"
+    assert stored["concepts"][0]["aliases"] == [{"name": "existing_alias"}]
+    assert stored["concepts"][1]["status"] == "proposed"
+    assert stored["concepts"][1]["parameterization_relationships"][0]["inputs"] == ["existing"]
+
+
 def test_source_sync_materializes_branch_to_papers_workspace(tmp_path: Path) -> None:
     repo_root = tmp_path / "project"
     repo = Repository.init(repo_root / "knowledge")

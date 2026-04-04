@@ -46,31 +46,75 @@ def commit_source_concept_proposal(
     definition: str,
     form: str,
 ) -> str:
-    from propstore.source_ops import _master_concept_match
-
     branch = f"source/{source_name}"
     existing = _load_yaml(repo, branch, "concepts.yaml") or {"concepts": []}
     concepts = list(existing.get("concepts", []))
     concepts = [entry for entry in concepts if not (isinstance(entry, dict) and entry.get("local_name") == local_name)]
-    registry_match = _master_concept_match(repo, local_name)
-    concept_entry = {
-        "local_name": local_name,
-        "proposed_name": local_name,
-        "definition": definition,
-        "form": form,
-        "aliases": [],
-        "status": "linked" if registry_match is not None else "proposed",
-    }
-    if registry_match is not None:
-        concept_entry["registry_match"] = registry_match
     concepts.append(
-        concept_entry
+        {
+            "local_name": local_name,
+            "proposed_name": local_name,
+            "definition": definition,
+            "form": form,
+        }
     )
-    doc = {"concepts": concepts}
+    doc = normalize_source_concepts_document(repo, {"concepts": concepts})
     return repo.git.commit_batch(
         adds={"concepts.yaml": yaml.safe_dump(doc, sort_keys=False, allow_unicode=True).encode("utf-8")},
         deletes=[],
         message=f"Propose concepts for {source_name}",
+        branch=branch,
+    )
+
+
+def normalize_source_concepts_document(repo: Repository, data: dict[str, Any]) -> dict[str, Any]:
+    from propstore.source_ops import _master_concept_match
+
+    concepts = data.get("concepts", [])
+    if not isinstance(concepts, list):
+        raise ValueError("concepts.yaml must contain a 'concepts' list")
+
+    normalized_concepts: list[dict[str, Any]] = []
+    for index, entry in enumerate(concepts, start=1):
+        if not isinstance(entry, dict):
+            raise ValueError(f"concept #{index} must be a mapping")
+        local_name = entry.get("local_name") or entry.get("proposed_name")
+        proposed_name = entry.get("proposed_name") or entry.get("local_name")
+        definition = entry.get("definition")
+        form = entry.get("form")
+        if not all(isinstance(value, str) and value.strip() for value in (local_name, proposed_name, definition, form)):
+            raise ValueError(
+                f"concept #{index} is missing local_name/proposed_name/definition/form"
+            )
+        normalized = copy.deepcopy(entry)
+        normalized["local_name"] = str(local_name).strip()
+        normalized["proposed_name"] = str(proposed_name).strip()
+        normalized["definition"] = str(definition).strip()
+        normalized["form"] = str(form).strip()
+        aliases = normalized.get("aliases")
+        if aliases is None:
+            normalized["aliases"] = []
+        registry_match = _master_concept_match(repo, normalized["local_name"]) or _master_concept_match(
+            repo,
+            normalized["proposed_name"],
+        )
+        normalized["status"] = "linked" if registry_match is not None else "proposed"
+        if registry_match is not None:
+            normalized["registry_match"] = registry_match
+        else:
+            normalized.pop("registry_match", None)
+        normalized_concepts.append(normalized)
+    return {"concepts": normalized_concepts}
+
+
+def commit_source_concepts_batch(repo: Repository, source_name: str, concepts_file: Path) -> str:
+    branch = f"source/{source_name}"
+    loaded = yaml.safe_load(concepts_file.read_text(encoding="utf-8")) or {}
+    normalized = normalize_source_concepts_document(repo, loaded)
+    return repo.git.commit_batch(
+        adds={"concepts.yaml": yaml.safe_dump(normalized, sort_keys=False, allow_unicode=True).encode("utf-8")},
+        deletes=[],
+        message=f"Write concepts for {source_name}",
         branch=branch,
     )
 
