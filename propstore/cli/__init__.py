@@ -12,7 +12,7 @@ import click
 from propstore.cli.concept import concept
 from propstore.cli.context import context
 from propstore.cli.claim import claim
-from propstore.cli.compiler_cmds import validate, build, query, export_aliases, import_papers, world
+from propstore.cli.compiler_cmds import validate, build, query, export_aliases, world
 from propstore.cli.source import source
 from propstore.cli.verify import verify
 from propstore.cli.worldline_cmds import worldline
@@ -53,7 +53,6 @@ cli.add_command(validate)
 cli.add_command(build)
 cli.add_command(query)
 cli.add_command(export_aliases)
-cli.add_command(import_papers)
 cli.add_command(init)
 cli.add_command(world)
 cli.add_command(worldline)

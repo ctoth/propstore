@@ -8,6 +8,27 @@ import pytest
 
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath
 from propstore.repo import KnowledgeRepo
+from tests.conftest import make_concept_identity, normalize_concept_payloads
+
+
+def _concept_payload(
+    local_id: str,
+    canonical_name: str,
+    *,
+    domain: str,
+    form: str,
+    **extra: object,
+) -> dict:
+    payload = {
+        "id": local_id,
+        "canonical_name": canonical_name,
+        "status": "proposed",
+        "definition": f"{canonical_name} definition",
+        "domain": domain,
+        "form": form,
+    }
+    payload.update(extra)
+    return normalize_concept_payloads([payload])[0]
 
 
 # ── KnowledgeRepo lifecycle ─────────────────────────────────────────
@@ -844,14 +865,13 @@ def _setup_git_knowledge_repo(tmp_path):
         (root / d).mkdir(exist_ok=True)
     (root / "concepts" / ".counters").mkdir(exist_ok=True)
 
-    concept_data = {
-        "id": "concept1",
-        "canonical_name": "test_frequency",
-        "status": "proposed",
-        "definition": "A test frequency concept",
-        "domain": "testing",
-        "form": "frequency",
-    }
+    concept_data = _concept_payload(
+        "concept1",
+        "test_frequency",
+        domain="testing",
+        form="frequency",
+        definition="A test frequency concept",
+    )
     kr.commit_files({
         "concepts/test_frequency.yaml": yaml.dump(concept_data).encode(),
     }, "add concept")
@@ -888,7 +908,11 @@ def test_build_from_git(tmp_path):
     rows = conn.execute("SELECT id, canonical_name FROM concept").fetchall()
     conn.close()
     assert len(rows) == 1
-    assert rows[0][0] == "concept1"
+    assert rows[0][0] == make_concept_identity(
+        "concept1",
+        domain="testing",
+        canonical_name="test_frequency",
+    )["artifact_id"]
     assert rows[0][1] == "test_frequency"
 
 
@@ -931,14 +955,13 @@ def test_build_rebuilds_on_new_commit(tmp_path):
     assert rebuilt1 is True
 
     # New commit changes HEAD
-    concept2_data = {
-        "id": "concept2",
-        "canonical_name": "test_boolean",
-        "status": "proposed",
-        "definition": "A test boolean concept",
-        "domain": "testing",
-        "form": "boolean",
-    }
+    concept2_data = _concept_payload(
+        "concept2",
+        "test_boolean",
+        domain="testing",
+        form="boolean",
+        definition="A test boolean concept",
+    )
     kr.commit_files({
         "concepts/test_boolean.yaml": yaml.dump(concept2_data).encode(),
     }, "add second concept")
@@ -963,7 +986,10 @@ def test_build_rebuilds_on_new_commit(tmp_path):
     conn = sqlite3.connect(repo.sidecar_path)
     rows = conn.execute("SELECT id FROM concept ORDER BY id").fetchall()
     conn.close()
-    assert [r[0] for r in rows] == ["concept1", "concept2"]
+    assert [r[0] for r in rows] == sorted([
+        make_concept_identity("concept1", domain="testing", canonical_name="test_frequency")["artifact_id"],
+        make_concept_identity("concept2", domain="testing", canonical_name="test_boolean")["artifact_id"],
+    ])
 
 
 # ── Phase 4-6: Mutations through git, pks log, Repository integration ─
@@ -1012,7 +1038,11 @@ def test_concept_add_creates_commit(tmp_path):
     content = git.read_file("concepts/test_freq.yaml")
     data = yaml.safe_load(content)
     assert data["canonical_name"] == "test_freq"
-    assert data["id"].startswith("concept")
+    assert data["artifact_id"] == make_concept_identity(
+        "concept1",
+        domain="testing",
+        canonical_name="test_freq",
+    )["artifact_id"]
 
 
 def test_concept_rename_atomic(tmp_path):
@@ -1055,7 +1085,7 @@ def test_concept_rename_atomic(tmp_path):
     # Rename it
     # Find the concept ID first
     data = yaml.safe_load(git.read_file("concepts/old_name.yaml"))
-    cid = data["id"]
+    cid = f"{data['logical_ids'][0]['namespace']}:{data['logical_ids'][0]['value']}"
 
     result = runner.invoke(cli, [
         "-C", str(root),
@@ -1401,26 +1431,28 @@ def test_checkout_builds_from_historical(tmp_path):
     git.commit_files(form_files, "Seed forms")
 
     # v1: one concept
-    v1_concept = yaml.dump({
-        "id": "concept1",
-        "canonical_name": "test_freq_v1",
-        "status": "proposed",
-        "definition": "A v1 concept",
-        "domain": "testing",
-        "form": "frequency",
-    }).encode()
+    v1_concept = yaml.dump(
+        _concept_payload(
+            "concept1",
+            "test_freq_v1",
+            domain="testing",
+            form="frequency",
+            definition="A v1 concept",
+        )
+    ).encode()
     git.commit_files({"concepts/test_freq_v1.yaml": v1_concept}, "v1 concept")
     v1_sha = git.head_sha()
 
     # v2: add another concept
-    v2_concept = yaml.dump({
-        "id": "concept2",
-        "canonical_name": "test_bool_v2",
-        "status": "proposed",
-        "definition": "A v2 concept",
-        "domain": "testing",
-        "form": "boolean",
-    }).encode()
+    v2_concept = yaml.dump(
+        _concept_payload(
+            "concept2",
+            "test_bool_v2",
+            domain="testing",
+            form="boolean",
+            definition="A v2 concept",
+        )
+    ).encode()
     git.commit_files({"concepts/test_bool_v2.yaml": v2_concept}, "v2 concept")
     git.sync_worktree()
 
@@ -1439,7 +1471,11 @@ def test_checkout_builds_from_historical(tmp_path):
     rows = conn.execute("SELECT id, canonical_name FROM concept").fetchall()
     conn.close()
     assert len(rows) == 1
-    assert rows[0][0] == "concept1"
+    assert rows[0][0] == make_concept_identity(
+        "concept1",
+        domain="testing",
+        canonical_name="test_freq_v1",
+    )["artifact_id"]
     assert rows[0][1] == "test_freq_v1"
 
 
@@ -1466,14 +1502,14 @@ def test_validate_reads_git_head_not_worktree(tmp_path):
                 sort_keys=False,
             ).encode("utf-8"),
             "concepts/fundamental_frequency.yaml": yaml.dump(
-                {
-                    "id": "concept1",
-                    "canonical_name": "fundamental_frequency",
-                    "status": "accepted",
-                    "definition": "F0",
-                    "domain": "speech",
-                    "form": "frequency",
-                },
+                _concept_payload(
+                    "concept1",
+                    "fundamental_frequency",
+                    domain="speech",
+                    form="frequency",
+                    status="accepted",
+                    definition="F0",
+                ),
                 default_flow_style=False,
                 sort_keys=False,
             ).encode("utf-8"),
@@ -1527,14 +1563,14 @@ def test_build_reads_git_head_not_worktree(tmp_path):
                 sort_keys=False,
             ).encode("utf-8"),
             "concepts/fundamental_frequency.yaml": yaml.dump(
-                {
-                    "id": "concept1",
-                    "canonical_name": "fundamental_frequency",
-                    "status": "accepted",
-                    "definition": "F0",
-                    "domain": "speech",
-                    "form": "frequency",
-                },
+                _concept_payload(
+                    "concept1",
+                    "fundamental_frequency",
+                    domain="speech",
+                    form="frequency",
+                    status="accepted",
+                    definition="F0",
+                ),
                 default_flow_style=False,
                 sort_keys=False,
             ).encode("utf-8"),
@@ -1585,15 +1621,15 @@ def test_export_aliases_reads_git_head_not_worktree(tmp_path):
                 sort_keys=False,
             ).encode("utf-8"),
             "concepts/fundamental_frequency.yaml": yaml.dump(
-                {
-                    "id": "concept1",
-                    "canonical_name": "fundamental_frequency",
-                    "status": "accepted",
-                    "definition": "F0",
-                    "domain": "speech",
-                    "form": "frequency",
-                    "aliases": [{"name": "pitch", "source": "common"}],
-                },
+                _concept_payload(
+                    "concept1",
+                    "fundamental_frequency",
+                    domain="speech",
+                    form="frequency",
+                    status="accepted",
+                    definition="F0",
+                    aliases=[{"name": "pitch", "source": "common"}],
+                ),
                 default_flow_style=False,
                 sort_keys=False,
             ).encode("utf-8"),
@@ -1623,12 +1659,12 @@ def test_export_aliases_reads_git_head_not_worktree(tmp_path):
     result = runner.invoke(cli, ["-C", str(root), "export-aliases", "--format", "json"])
     assert result.exit_code == 0, result.output
     aliases = json.loads(result.output)
-    assert aliases["pitch"]["id"] == "concept1"
+    assert aliases["pitch"]["logical_id"] == "speech:fundamental_frequency"
     assert "bad_alias" not in aliases
 
 
-def test_import_papers_creates_commit(tmp_path):
-    """import-papers must persist imported claims through a git commit."""
+def test_source_add_claim_creates_source_branch_commit(tmp_path):
+    """source add-claim must persist source-local claims through a source-branch commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.cli.repository import Repository
@@ -1644,14 +1680,14 @@ def test_import_papers_creates_commit(tmp_path):
                 sort_keys=False,
             ).encode("utf-8"),
             "concepts/fundamental_frequency.yaml": yaml.dump(
-                {
+                normalize_concept_payloads([{
                     "id": "concept1",
                     "canonical_name": "fundamental_frequency",
                     "status": "accepted",
                     "definition": "F0",
                     "domain": "speech",
                     "form": "frequency",
-                },
+                }])[0],
                 default_flow_style=False,
                 sort_keys=False,
             ).encode("utf-8"),
@@ -1660,17 +1696,53 @@ def test_import_papers_creates_commit(tmp_path):
     )
     git.sync_worktree()
 
-    papers_root = tmp_path / "plugin-papers"
-    paper_dir = papers_root / "Smith_2024_TestPaper"
-    paper_dir.mkdir(parents=True)
-    (paper_dir / "claims.yaml").write_text(
+    runner = CliRunner()
+    init_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "source",
+            "init",
+            "Smith_2024_TestPaper",
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            "Smith_2024_TestPaper",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.output
+
+    propose_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(root),
+            "source",
+            "propose-concept",
+            "Smith_2024_TestPaper",
+            "--name",
+            "fundamental_frequency",
+            "--definition",
+            "F0",
+            "--form",
+            "frequency",
+        ],
+    )
+    assert propose_result.exit_code == 0, propose_result.output
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
         yaml.dump(
             {
+                "source": {"paper": "Smith_2024_TestPaper"},
                 "claims": [
                     {
                         "id": "claim1",
                         "type": "parameter",
-                        "concept": "concept1",
+                        "concept": "fundamental_frequency",
                         "value": 200.0,
                         "unit": "Hz",
                         "provenance": {"paper": "ignored_here", "page": 1},
@@ -1683,16 +1755,29 @@ def test_import_papers_creates_commit(tmp_path):
         encoding="utf-8",
     )
 
-    commits_before = len(git.log(max_count=100))
-    runner = CliRunner()
+    commits_before = len(git.log(max_count=100, branch="source/Smith_2024_TestPaper"))
     result = runner.invoke(
         cli,
-        ["-C", str(root), "import-papers", "--papers-root", str(papers_root)],
+        [
+            "-C",
+            str(root),
+            "source",
+            "add-claim",
+            "Smith_2024_TestPaper",
+            "--batch",
+            str(claims_file),
+        ],
     )
     assert result.exit_code == 0, result.output
 
-    commits_after = len(git.log(max_count=100))
+    commits_after = len(git.log(max_count=100, branch="source/Smith_2024_TestPaper"))
     assert commits_after == commits_before + 1
-    imported = yaml.safe_load(git.read_file("claims/Smith_2024_TestPaper.yaml"))
-    assert imported["source"]["paper"] == "Smith_2024_TestPaper"
-    assert imported["claims"][0]["id"] == "Smith_2024_TestPaper:claim1"
+
+    branch_tip = git.branch_sha("source/Smith_2024_TestPaper")
+    assert branch_tip is not None
+    stored = yaml.safe_load(git.read_file("claims.yaml", commit=branch_tip))
+    assert stored["source"]["paper"] == "Smith_2024_TestPaper"
+    assert stored["claims"][0]["artifact_id"].startswith("ps:claim:")
+    assert {"namespace": "Smith_2024_TestPaper", "value": "claim1"} in stored["claims"][0]["logical_ids"]
+    assert stored["claims"][0]["source_local_id"] == "claim1"
+    assert str(stored["claims"][0]["id"]).startswith("claim_")
