@@ -52,6 +52,40 @@ def test_source_init_creates_source_branch_and_source_yaml(tmp_path: Path) -> No
     assert source_doc["id"].startswith("tag:")
 
 
+def test_source_init_uses_repo_uri_authority_and_content_file(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    repo.config_path.write_text("uri_authority: example.com,2026\n", encoding="utf-8")
+    runner = CliRunner()
+    content_file = tmp_path / "paper.pdf"
+    content_file.write_bytes(b"%PDF-demo\n")
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            "demo",
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "file",
+            "--origin-value",
+            "paper.pdf",
+            "--content-file",
+            str(content_file),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    branch_tip = repo.git.branch_sha("source/demo")
+    assert branch_tip is not None
+    source_doc = yaml.safe_load(repo.git.read_file("source.yaml", commit=branch_tip))
+    assert source_doc["id"] == "tag:example.com,2026:source/demo"
+    assert source_doc["origin"]["content_ref"].startswith("ni:///sha-256;")
+
+
 def test_source_write_notes_commits_only_to_source_branch(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
@@ -148,3 +182,59 @@ def test_source_write_metadata_commits_json_to_source_branch(tmp_path: Path) -> 
     loaded = json.loads(repo.git.read_file("metadata.json", commit=branch_tip))
     assert loaded["title"] == "Demo"
     assert loaded["authors"] == ["A"]
+
+
+def test_source_sync_materializes_branch_to_papers_workspace(tmp_path: Path) -> None:
+    repo_root = tmp_path / "project"
+    repo = Repository.init(repo_root / "knowledge")
+    runner = CliRunner()
+    notes_file = tmp_path / "notes.md"
+    notes_file.write_text("# Notes\n", encoding="utf-8")
+
+    init_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            "demo-sync",
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            "demo-sync",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.output
+
+    write_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "write-notes",
+            "demo-sync",
+            "--file",
+            str(notes_file),
+        ],
+    )
+    assert write_result.exit_code == 0, write_result.output
+
+    sync_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "sync",
+            "demo-sync",
+        ],
+    )
+    assert sync_result.exit_code == 0, sync_result.output
+
+    synced_notes = repo.root.parent / "papers" / "demo-sync" / "notes.md"
+    assert synced_notes.exists()
+    assert synced_notes.read_text(encoding="utf-8") == "# Notes\n"

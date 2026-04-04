@@ -19,9 +19,7 @@ from propstore.identity import (
     normalize_logical_value,
 )
 from propstore.repo.branch import branch_head, create_branch
-
-
-_DEFAULT_URI_AUTHORITY = "local@propstore,2026"
+from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
 
 def _utc_now() -> str:
@@ -38,25 +36,27 @@ def source_branch_name(name: str) -> str:
     return f"source/{_normalize_slug(name)}"
 
 
-def source_tag_uri(name: str, *, authority: str = _DEFAULT_URI_AUTHORITY) -> str:
-    return f"tag:{authority}:source/{_normalize_slug(name)}"
+def source_tag_uri(repo: Repository, name: str) -> str:
+    return mint_source_tag_uri(name, authority=repo.uri_authority)
 
 
 def initial_source_document(
+    repo: Repository,
     name: str,
     *,
     kind: str,
     origin_type: str,
     origin_value: str,
+    content_file: Path | None = None,
 ) -> dict[str, Any]:
     return {
-        "id": source_tag_uri(name),
+        "id": source_tag_uri(repo, name),
         "kind": kind,
         "origin": {
             "type": origin_type,
             "value": origin_value,
             "retrieved": _utc_now(),
-            "content_ref": None,
+            "content_ref": ni_uri_for_file(content_file) if content_file is not None else None,
         },
         "trust": {
             "prior_base_rate": 0.5,
@@ -143,6 +143,7 @@ def init_source_branch(
     kind: str,
     origin_type: str,
     origin_value: str,
+    content_file: Path | None = None,
 ) -> str:
     if repo.git is None:
         raise ValueError("source operations require a git-backed repository")
@@ -150,10 +151,12 @@ def init_source_branch(
     if branch_head(repo.git, branch) is None:
         create_branch(repo.git, branch)
     source_doc = initial_source_document(
+        repo,
         name,
         kind=kind,
         origin_type=origin_type,
         origin_value=origin_value,
+        content_file=content_file,
     )
     _write_yaml(
         repo,
@@ -379,7 +382,7 @@ def commit_source_claims_batch(repo: Repository, name: str, claims_file: Path) -
     _validate_source_claim_concepts(repo, name, raw)
     normalized, _ = normalize_source_claims_payload(
         raw,
-        source_uri=str(source_doc.get("id") or source_tag_uri(name)),
+        source_uri=str(source_doc.get("id") or source_tag_uri(repo, name)),
         source_namespace=_normalize_slug(name),
     )
     return commit_source_file(
@@ -555,7 +558,7 @@ def finalize_source_branch(repo: Repository, name: str) -> str:
     covered = bool(derived_from)
     report = {
         "kind": "source_finalize_report",
-        "source": str(source_doc.get("id") or source_tag_uri(name)),
+        "source": str(source_doc.get("id") or source_tag_uri(repo, name)),
         "status": (
             "ready"
             if not claim_errors and not justification_errors and not stance_errors
@@ -729,3 +732,35 @@ def promote_source_branch(repo: Repository, name: str) -> str:
     )
     repo.git.sync_worktree()
     return sha
+
+
+def sync_source_branch(
+    repo: Repository,
+    name: str,
+    *,
+    output_dir: Path | None = None,
+) -> Path:
+    branch = source_branch_name(name)
+    tip = branch_head(repo.git, branch)
+    if tip is None:
+        raise ValueError(f"Source branch {branch!r} does not exist")
+
+    destination = output_dir
+    if destination is None:
+        papers_root = repo.root.parent / "papers"
+        destination = papers_root / _normalize_slug(name)
+    destination.mkdir(parents=True, exist_ok=True)
+
+    def _copy_tree(relpath: str = "") -> None:
+        for child_name, is_dir in repo.git.list_dir_entries(relpath, commit=tip):
+            child_relpath = f"{relpath}/{child_name}" if relpath else child_name
+            target = destination / Path(*child_relpath.split("/"))
+            if is_dir:
+                target.mkdir(parents=True, exist_ok=True)
+                _copy_tree(child_relpath)
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(repo.git.read_file(child_relpath, commit=tip))
+
+    _copy_tree("")
+    return destination

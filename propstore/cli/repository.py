@@ -4,7 +4,10 @@ from __future__ import annotations
 from functools import cached_property
 from pathlib import Path
 
+import yaml
+
 from propstore.knowledge_path import FilesystemKnowledgePath, GitKnowledgePath, KnowledgePath
+from propstore.uri import DEFAULT_URI_AUTHORITY
 
 
 class RepositoryNotFound(Exception):
@@ -64,6 +67,24 @@ class Repository:
     @property
     def worldlines_dir(self) -> Path:
         return self._root / "worldlines"
+
+    @property
+    def config_path(self) -> Path:
+        return self._root / "propstore.yaml"
+
+    @cached_property
+    def config(self) -> dict:
+        if not self.config_path.exists():
+            return {}
+        loaded = yaml.safe_load(self.config_path.read_text(encoding="utf-8"))
+        return loaded if isinstance(loaded, dict) else {}
+
+    @property
+    def uri_authority(self) -> str:
+        authority = self.config.get("uri_authority")
+        if isinstance(authority, str) and authority:
+            return authority
+        return DEFAULT_URI_AUTHORITY
 
     @property
     def counters_dir(self) -> Path:

@@ -16,6 +16,7 @@ from propstore.identity import compute_concept_version_id, derive_concept_artifa
 from propstore.repo.branch import branch_head, create_branch
 from propstore.repo.merge_framework import PartialArgumentationFramework
 from propstore.repo.paf_queries import credulously_accepted_arguments, skeptically_accepted_arguments
+from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 
 
 CONCEPT_PROPOSAL_BRANCH = "proposal/concepts"
@@ -92,7 +93,11 @@ def _classify_relation(left: dict[str, Any], right: dict[str, Any]) -> str:
     return "non_attack"
 
 
-def build_alignment_artifact(proposals: list[dict[str, Any]]) -> dict[str, Any]:
+def build_alignment_artifact(
+    proposals: list[dict[str, Any]],
+    *,
+    authority: str = DEFAULT_URI_AUTHORITY,
+) -> dict[str, Any]:
     enriched: list[dict[str, Any]] = []
     id_counts: Counter[str] = Counter()
     for proposal in proposals:
@@ -106,7 +111,10 @@ def build_alignment_artifact(proposals: list[dict[str, Any]]) -> dict[str, Any]:
                 "source": proposal["source"],
                 "local_handle": local_handle,
                 "proposed_name": proposal["proposed_name"],
-                "proposed_uri": f"tag:local@propstore,2026:concept/{_slug(proposal['proposed_name'])}",
+                "proposed_uri": concept_tag_uri(
+                    proposal["proposed_name"],
+                    authority=authority,
+                ),
                 "definition": proposal["definition"],
                 "form": proposal["form"],
             }
@@ -177,7 +185,8 @@ def align_sources(repo: Repository, source_branches: list[str]) -> dict[str, Any
     for branch in source_branches:
         concepts_doc = _load_yaml(repo, branch, "concepts.yaml") or {}
         source_doc = _load_yaml(repo, branch, "source.yaml") or {}
-        source_uri = str(source_doc.get("id") or f"tag:local@propstore,2026:{branch}")
+        branch_source_name = branch.split("/", 1)[1] if "/" in branch else branch
+        source_uri = str(source_doc.get("id") or source_tag_uri(branch_source_name, authority=repo.uri_authority))
         for entry in concepts_doc.get("concepts", []) or []:
             if not isinstance(entry, dict):
                 continue
@@ -190,7 +199,7 @@ def align_sources(repo: Repository, source_branches: list[str]) -> dict[str, Any
                     "form": str(entry.get("form") or "structural"),
                 }
             )
-    artifact = build_alignment_artifact(proposals)
+    artifact = build_alignment_artifact(proposals, authority=repo.uri_authority)
     if branch_head(repo.git, CONCEPT_PROPOSAL_BRANCH) is None:
         create_branch(repo.git, CONCEPT_PROPOSAL_BRANCH)
     slug = artifact["id"].split(":", 1)[1]
@@ -273,7 +282,10 @@ def promote_alignment(repo: Repository, cluster_id: str) -> dict[str, Any]:
     )
     repo.git.sync_worktree()
     updated = copy.deepcopy(artifact)
-    updated["decision"]["promoted_concept"] = f"tag:local@propstore,2026:concept/{local_handle}"
+    updated["decision"]["promoted_concept"] = concept_tag_uri(
+        local_handle,
+        authority=repo.uri_authority,
+    )
     updated["decision"]["status"] = "promoted"
     save_alignment_artifact(repo, slug, updated, message=f"Record concept promotion {cluster_id}")
     return updated

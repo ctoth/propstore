@@ -17,6 +17,7 @@ from propstore.source_ops import (
     finalize_source_branch,
     init_source_branch,
     promote_source_branch,
+    sync_source_branch,
     source_branch_name,
 )
 
@@ -31,6 +32,7 @@ def source() -> None:
 @click.option("--kind", "kind_name", required=True)
 @click.option("--origin-type", required=True)
 @click.option("--origin-value", required=True)
+@click.option("--content-file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.pass_obj
 def source_init(
     obj: dict,
@@ -38,6 +40,7 @@ def source_init(
     kind_name: str,
     origin_type: str,
     origin_value: str,
+    content_file: Path | None,
 ) -> None:
     repo: Repository = obj["repo"]
     branch = init_source_branch(
@@ -46,6 +49,7 @@ def source_init(
         kind=kind_name,
         origin_type=origin_type,
         origin_value=origin_value,
+        content_file=content_file,
     )
     click.echo(f"Initialized {branch}")
 
@@ -155,3 +159,16 @@ def promote(obj: dict, name: str) -> None:
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(f"Promoted {source_branch_name(name)} to master")
+
+
+@source.command("sync")
+@click.argument("name")
+@click.option("--output-dir", type=click.Path(file_okay=False, path_type=Path))
+@click.pass_obj
+def sync(obj: dict, name: str, output_dir: Path | None) -> None:
+    repo: Repository = obj["repo"]
+    try:
+        destination = sync_source_branch(repo, name, output_dir=output_dir)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"Synchronized {source_branch_name(name)} to {destination}")
