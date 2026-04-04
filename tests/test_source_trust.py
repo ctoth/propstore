@@ -50,6 +50,11 @@ def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
     assert p_arg_from_claim(claim) == expected
 
 
+def test_p_arg_from_claim_ignores_sample_size_without_calibration_payload() -> None:
+    opinion = p_arg_from_claim({"sample_size": 50})
+    assert opinion == Opinion.dogmatic_true()
+
+
 @given(
     prior=st.floats(min_value=0.01, max_value=0.99, allow_nan=False, allow_infinity=False),
     probability=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),

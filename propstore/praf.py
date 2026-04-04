@@ -158,7 +158,6 @@ def p_arg_from_claim(claim: dict) -> Opinion:
     has_structured_fields = (
         prior_base_rate is not None
         or claim_probability is not None
-        or effective_sample_size is not None
         or quality_payload is not None
     )
     if not has_structured_fields:
