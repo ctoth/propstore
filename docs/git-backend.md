@@ -189,17 +189,34 @@ Each commit SHA produces at most one sidecar build. Re-running `pks checkout` wi
 
 ### pks log
 
-Displays recent commit history.
+Displays recent branch-scoped commit history with operation labels inferred from
+commit type and message.
 
 ```bash
 # Show last 20 commits (default)
 pks log
 
+# Show branch-local history for an epistemic branch
+pks log --branch agent/paper-a
+
+# Include file-level A/M/D paths
+pks log --show-files
+
+# Emit structured YAML
+pks log --format yaml
+
 # Show last 5 commits
 pks log -n 5
 ```
 
-Output format: `{sha[:8]}  {time}  {first_line_of_message}`
+Text output format:
+
+`{sha[:8]}  {time}  [{branch}]  {operation}  {first_line_of_message}`
+
+When `--show-files` is set, each entry is followed by indented `A/M/D` file
+lines. YAML output includes `sha`, `time`, `branch`, `operation`, `message`,
+`parents`, optional merge metadata from `merge/manifest.yaml`, and optionally
+`added` / `modified` / `deleted`.
 
 ### pks diff
 

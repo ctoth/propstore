@@ -106,14 +106,20 @@ uv run pks -C repo-a import-repo ../repo-b --target-branch master
 
 ### `pks log`
 
-Show knowledge repository history.
+Show branch-scoped knowledge repository history with operation labels.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-n`, `--count` | INTEGER | 20 | Number of entries to show |
+| `--branch` | TEXT | `master` | Branch history to inspect |
+| `--show-files` | FLAG | `false` | Include per-commit added/modified/deleted paths |
+| `--format` | `text\|yaml` | `text` | Render as text or structured YAML |
 
 ```bash
 uv run pks log
+uv run pks log --branch agent/paper-a
+uv run pks log --show-files
+uv run pks log --format yaml
 uv run pks log -n 50
 ```
 

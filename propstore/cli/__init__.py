@@ -5,9 +5,11 @@ Single entry point. Subcommand groups registered from sibling modules.
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import sys
 
 import click
+import yaml
 
 from propstore.cli.concept import concept
 from propstore.cli.context import context
@@ -62,24 +64,156 @@ cli.add_command(import_repo_cmd)
 
 # ── log command ─────────────────────────────────────────────────────
 
+_LOG_OPERATION_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"^Initialize knowledge repository$"), "init.repo"),
+    (re.compile(r"^Seed default forms$"), "init.forms"),
+    (re.compile(r"^Add concept:"), "concept.add"),
+    (re.compile(r"^Add alias "), "concept.alias_add"),
+    (re.compile(r"^Rename concept:"), "concept.rename"),
+    (re.compile(r"^Link "), "concept.link"),
+    (re.compile(r"^Add value "), "concept.value_add"),
+    (re.compile(r"^Add context:"), "context.add"),
+    (re.compile(r"^Add form:"), "form.add"),
+    (re.compile(r"^Remove form:"), "form.remove"),
+    (re.compile(r"^Import \d+ paper claim file\(s\)$"), "papers.import"),
+    (re.compile(r"^Create worldline:"), "worldline.create"),
+    (re.compile(r"^Materialize worldline:"), "worldline.materialize"),
+    (re.compile(r"^Delete worldline:"), "worldline.delete"),
+    (re.compile(r"^Promote \d+ stance proposal file\(s\) from "), "stances.promote"),
+    (re.compile(r"^Import .+ at [0-9a-f]{12}$"), "repo.import"),
+)
+
+
+def _classify_log_operation(message: str, parents: list[str]) -> str:
+    """Map a commit message to a stable operation label for `pks log`."""
+    if len(parents) > 1:
+        return "merge.commit"
+    for pattern, label in _LOG_OPERATION_PATTERNS:
+        if pattern.search(message):
+            return label
+    return "commit"
+
+
+def _load_merge_summary(git, sha: str) -> dict[str, object] | None:
+    try:
+        raw = git.read_file("merge/manifest.yaml", commit=sha)
+    except FileNotFoundError:
+        return None
+    manifest = yaml.safe_load(raw)
+    if not isinstance(manifest, dict):
+        return None
+    merge = manifest.get("merge")
+    if not isinstance(merge, dict):
+        return None
+    arguments = merge.get("arguments", [])
+    semantic_candidates = merge.get("semantic_candidate_details", [])
+    argument_rows = [row for row in arguments if isinstance(row, dict)]
+    materialized_count = sum(1 for row in argument_rows if row.get("materialized") is True)
+    return {
+        "branch_a": str(merge.get("branch_a", "?")),
+        "branch_b": str(merge.get("branch_b", "?")),
+        "argument_count": len(argument_rows),
+        "materialized_argument_count": materialized_count,
+        "semantic_candidate_count": len(semantic_candidates) if isinstance(semantic_candidates, list) else 0,
+    }
+
+
+def _build_log_record(git, entry: dict[str, object], *, branch: str, show_files: bool) -> dict[str, object]:
+    message = str(entry["message"])
+    parents = [str(parent) for parent in entry.get("parents", [])]
+    operation = _classify_log_operation(message, parents)
+    record: dict[str, object] = {
+        "sha": str(entry["sha"]),
+        "time": str(entry["time"]),
+        "branch": branch,
+        "operation": operation,
+        "message": message,
+        "parents": parents,
+    }
+    if operation == "merge.commit":
+        merge_summary = _load_merge_summary(git, record["sha"])
+        if merge_summary is not None:
+            record["merge"] = merge_summary
+    if show_files:
+        info = git.show_commit(record["sha"])
+        record["added"] = list(info.get("added", []))
+        record["modified"] = list(info.get("modified", []))
+        record["deleted"] = list(info.get("deleted", []))
+    return record
+
+
+def _render_text_log(records: list[dict[str, object]], *, show_files: bool) -> None:
+    for record in records:
+        sha_short = str(record["sha"])[:8]
+        time_str = str(record["time"])
+        branch = str(record["branch"])
+        operation = str(record["operation"])
+        msg_first_line = str(record["message"]).split("\n")[0]
+        click.echo(f"  {sha_short}  {time_str}  [{branch}]  {operation:<22}  {msg_first_line}")
+        parents = [str(parent) for parent in record.get("parents", [])]
+        if len(parents) > 1:
+            parent_list = ", ".join(parent[:8] for parent in parents)
+            click.echo(f"    parents: {parent_list}")
+        merge_summary = record.get("merge")
+        if isinstance(merge_summary, dict):
+            branch_a = str(merge_summary.get("branch_a", "?"))
+            branch_b = str(merge_summary.get("branch_b", "?"))
+            argument_count = int(merge_summary.get("argument_count", 0))
+            materialized_count = int(merge_summary.get("materialized_argument_count", 0))
+            semantic_candidate_count = int(merge_summary.get("semantic_candidate_count", 0))
+            click.echo(
+                "    merge: "
+                f"{branch_a} + {branch_b}; "
+                f"materialized={materialized_count}/{argument_count}; "
+                f"semantic_candidates={semantic_candidate_count}"
+            )
+        if not show_files:
+            continue
+        for path in record.get("added", []):
+            click.echo(f"    A {path}")
+        for path in record.get("modified", []):
+            click.echo(f"    M {path}")
+        for path in record.get("deleted", []):
+            click.echo(f"    D {path}")
+
+
 @cli.command("log")
-@click.option("-n", "--count", default=20, help="Number of entries to show")
+@click.option("-n", "--count", default=20, show_default=True, help="Number of entries to show")
+@click.option("--branch", "branch_name", default="master", show_default=True, help="Branch history to inspect.")
+@click.option("--show-files", is_flag=True, help="Show per-commit file changes.")
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "yaml"]),
+    default="text",
+    show_default=True,
+    help="Render as human-readable text or structured YAML.",
+)
 @click.pass_context
-def log_cmd(ctx, count):
+def log_cmd(ctx, count, branch_name, show_files, output_format):
     """Show knowledge repository history."""
     repo = ctx.obj["repo"]
     git = repo.git
     if git is None:
         raise click.ClickException("log requires a git-backed repository")
-    entries = git.log(max_count=count)
+    if git.branch_sha(branch_name) is None:
+        raise click.ClickException(f"Branch not found: {branch_name}")
+    entries = git.log(max_count=count, branch=branch_name)
     if not entries:
         click.echo("No history yet.")
         return
-    for entry in entries:
-        sha_short = entry["sha"][:8]
-        time_str = entry["time"]
-        msg_first_line = entry["message"].split("\n")[0]
-        click.echo(f"  {sha_short}  {time_str}  {msg_first_line}")
+    records = [
+        _build_log_record(git, entry, branch=branch_name, show_files=show_files)
+        for entry in entries
+    ]
+    if output_format == "yaml":
+        payload = {
+            "branch": branch_name,
+            "entries": records,
+        }
+        click.echo(yaml.safe_dump(payload, sort_keys=False).rstrip())
+        return
+    _render_text_log(records, show_files=show_files)
 
 
 # ── diff command ─────────────────────────────────────────────────────

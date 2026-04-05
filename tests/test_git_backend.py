@@ -1308,8 +1308,154 @@ def test_log_output(tmp_path):
 
     result = runner.invoke(cli, ["-C", str(root), "log"])
     assert result.exit_code == 0, result.output
+    assert "[master]" in result.output
+    assert "concept.add" in result.output
     assert "log_test" in result.output
     assert "Seed forms" in result.output
+
+
+def test_log_branch_output(tmp_path):
+    """pks log --branch scopes history to the requested branch."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+    from propstore.repo.branch import create_branch
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    assert git is not None
+
+    create_branch(git, "agent/demo")
+    git.commit_files(
+        {"concepts/agent_demo.yaml": b"canonical_name: agent_demo\n"},
+        "Add concept: agent_demo (testing:agent_demo)",
+        branch="agent/demo",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "log", "--branch", "agent/demo", "-n", "1"])
+    assert result.exit_code == 0, result.output
+    assert "[agent/demo]" in result.output
+    assert "concept.add" in result.output
+    assert "agent_demo" in result.output
+
+
+def test_log_show_files_output(tmp_path):
+    """pks log --show-files includes per-commit file changes."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    assert git is not None
+
+    git.commit_files({"concepts/a.yaml": b"v: 1\n"}, "add a")
+    git.commit_files(
+        {
+            "concepts/a.yaml": b"v: 2\n",
+            "concepts/b.yaml": b"v: 1\n",
+        },
+        "update files",
+    )
+    git.commit_deletes(["concepts/a.yaml"], "delete a")
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "log", "-n", "2", "--show-files"])
+    assert result.exit_code == 0, result.output
+    assert "D concepts/a.yaml" in result.output
+    assert "A concepts/b.yaml" in result.output
+    assert "M concepts/a.yaml" in result.output
+
+
+def test_log_yaml_output(tmp_path):
+    """pks log --format yaml returns structured branch-aware records."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    assert git is not None
+
+    git.commit_files(
+        {"concepts/log_yaml.yaml": b"canonical_name: log_yaml\n"},
+        "Add concept: log_yaml (testing:log_yaml)",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "log", "-n", "1", "--format", "yaml", "--show-files"])
+    assert result.exit_code == 0, result.output
+
+    payload = yaml.safe_load(result.output)
+    assert payload["branch"] == "master"
+    assert len(payload["entries"]) == 1
+    entry = payload["entries"][0]
+    assert entry["branch"] == "master"
+    assert entry["operation"] == "concept.add"
+    assert entry["message"] == "Add concept: log_yaml (testing:log_yaml)"
+    assert "concepts/log_yaml.yaml" in entry["added"]
+    assert entry["parents"]
+
+
+def test_log_merge_summary_output(tmp_path):
+    """pks log reports merge manifest summaries for storage merge commits."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+    from propstore.repo.branch import create_branch
+    from propstore.repo.merge_commit import create_merge_commit
+
+    root = tmp_path / "knowledge"
+    repo = Repository.init(root)
+    git = repo.git
+    assert git is not None
+
+    base_sha = git.commit_files({"concepts/base.yaml": b"canonical_name: base\n"}, "seed")
+    create_branch(git, "agent/demo", source_commit=base_sha)
+    git.commit_files(
+        {"concepts/agent_demo.yaml": b"canonical_name: agent_demo\n"},
+        "branch update",
+        branch="agent/demo",
+    )
+
+    merge_sha = create_merge_commit(git, "master", "agent/demo")
+    assert merge_sha
+
+    runner = CliRunner()
+    text_result = runner.invoke(cli, ["-C", str(root), "log", "-n", "1"])
+    assert text_result.exit_code == 0, text_result.output
+    assert "merge.commit" in text_result.output
+    assert "merge: master + agent/demo;" in text_result.output
+    assert "semantic_candidates=0" in text_result.output
+
+    yaml_result = runner.invoke(cli, ["-C", str(root), "log", "-n", "1", "--format", "yaml"])
+    assert yaml_result.exit_code == 0, yaml_result.output
+    payload = yaml.safe_load(yaml_result.output)
+    entry = payload["entries"][0]
+    assert entry["operation"] == "merge.commit"
+    assert entry["merge"]["branch_a"] == "master"
+    assert entry["merge"]["branch_b"] == "agent/demo"
+    assert entry["merge"]["semantic_candidate_count"] == 0
+    assert entry["merge"]["materialized_argument_count"] == 0
+
+
+def test_log_missing_branch_errors(tmp_path):
+    """pks log --branch rejects unknown branch names."""
+    from click.testing import CliRunner
+    from propstore.cli import cli
+    from propstore.cli.repository import Repository
+
+    root = tmp_path / "knowledge"
+    Repository.init(root)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["-C", str(root), "log", "--branch", "agent/missing"])
+    assert result.exit_code != 0
+    assert "Branch not found: agent/missing" in result.output
 
 
 def test_repository_find_rejects_non_git_knowledge_dir(tmp_path):
