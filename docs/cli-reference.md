@@ -1043,11 +1043,12 @@ Used by: `world extensions`, `world resolve`, `worldline create`, `worldline run
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--reasoning-backend` | `claim_graph\|aspic\|atms\|praf` | claim_graph | Argumentation backend |
-| `--semantics` | `grounded\|preferred\|stable` | grounded | Argumentation semantics |
+| `--semantics` | backend-dependent | grounded | Argumentation semantics. `worldline create/run` accepts `grounded`, `legacy_grounded`, `hybrid-grounded`, `bipolar-grounded`, `preferred`, `stable`, `d-preferred`, `s-preferred`, `c-preferred`, `bipolar-stable`, and `complete`; backend support is validated separately. |
 | `--set-comparison` | `elitist\|democratic` | elitist | Set comparison for preference ordering |
 | `--context` | TEXT | -- | Context to scope the argumentation |
 
 Note: `world extensions` uses `--backend` instead of `--reasoning-backend`.
+Note: `world resolve` and `world extensions` currently accept only `grounded`, `preferred`, and `stable` for `--semantics`.
 `structured_projection` remains accepted only as a legacy alias in parsed policy inputs, not as a CLI option value.
 
 ### PrAF Options
