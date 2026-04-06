@@ -952,7 +952,7 @@ Create a worldline definition (question only, no results yet). Supports [Argumen
 |--------|------|---------|-------------|
 | `--bind` | TEXT | -- | Condition binding (key=value) |
 | `--with` | TEXT | -- | Value override (concept=value) |
-| `--target` | TEXT | -- | Target concept to derive/resolve (required) |
+| `--target` | TEXT | -- | Target concept to derive/resolve (repeatable, required) |
 | `--strategy` | `recency\|sample_size\|argumentation\|override` | -- | Resolution strategy |
 | `--context` | TEXT | -- | Context to scope the query |
 | `--revision-operation` | `expand\|contract\|revise\|iterated_revise` | -- | Optional revision operation to attach |
@@ -973,7 +973,7 @@ Run (materialize) a worldline. Creates it first if it doesn't exist. Supports [A
 |--------|------|---------|-------------|
 | `--bind` | TEXT | -- | Condition binding (key=value) |
 | `--with` | TEXT | -- | Value override (concept=value) |
-| `--target` | TEXT | -- | Target concept |
+| `--target` | TEXT | -- | Target concept (repeatable; required only when creating a new worldline) |
 | `--strategy` | `recency\|sample_size\|argumentation\|override` | -- | Resolution strategy |
 | `--context` | TEXT | -- | Context scope |
 | `--revision-operation` | `expand\|contract\|revise\|iterated_revise` | -- | Optional revision operation to attach |
