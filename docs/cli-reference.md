@@ -160,7 +160,7 @@ the old paper-import bridge.
 
 Key subcommands:
 
-- `pks source init <name> --kind <kind> --origin-type <type> --origin-value <value>`
+- `pks source init <name> --kind <kind> --origin-type <type> --origin-value <value> [--content-file FILE]`
 - `pks source write-notes <name> --file notes.md`
 - `pks source write-metadata <name> --file metadata.json`
 - `pks source propose-concept <name> --name <concept> --definition <text> --form <form>`
