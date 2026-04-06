@@ -45,7 +45,7 @@ This is automated — no human review required. The `proposed -> accepted -> dep
 
 The heuristic analysis layer (Layer 3) produces proposals — stance classifications, concept merges, relationship annotations. Stance proposals are committed on the `proposal/stances` branch and are not source-of-truth until promoted.
 
-`pks promote` copies committed stance proposal blobs from `proposal/stances` into `master`'s `knowledge/stances/`. This is the gate between heuristic output and source-of-truth storage. The promotion is atomic: a single git commit records the accepted stance state on `master`.
+`pks promote` copies committed stance proposal blobs from `proposal/stances` into `master`'s `stances/` tree. This is the gate between heuristic output and source-of-truth storage. The promotion is atomic: a single git commit records the accepted stance state on `master`.
 
 ```bash
 # Preview what would be promoted
