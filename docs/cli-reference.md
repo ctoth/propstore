@@ -161,18 +161,26 @@ the old paper-import bridge.
 Key subcommands:
 
 - `pks source init <name> --kind <kind> --origin-type <type> --origin-value <value>`
+- `pks source write-notes <name> --file notes.md`
+- `pks source write-metadata <name> --file metadata.json`
+- `pks source propose-concept <name> --name <concept> --definition <text> --form <form>`
 - `pks source add-concepts <name> --batch concepts.yaml`
 - `pks source add-claim <name> --batch claims.yaml`
 - `pks source add-justification <name> --batch justifications.yaml`
 - `pks source add-stance <name> --batch stances.yaml`
 - `pks source finalize <name>`
 - `pks source promote <name>`
+- `pks source sync <name> [--output-dir DIR]`
 
 ```bash
 uv run pks source init Demo_2026 --kind academic_paper --origin-type file --origin-value Demo_2026.pdf
+uv run pks source write-notes Demo_2026 --file ../research/papers/Demo_2026/notes.md
+uv run pks source write-metadata Demo_2026 --file ../research/papers/Demo_2026/metadata.json
+uv run pks source propose-concept Demo_2026 --name pitch --definition "Fundamental frequency of voiced speech" --form frequency
 uv run pks source add-claim Demo_2026 --batch ../research/papers/Demo_2026/claims.yaml
 uv run pks source finalize Demo_2026
 uv run pks source promote Demo_2026
+uv run pks source sync Demo_2026
 ```
 
 ### `pks export-aliases`
