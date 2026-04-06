@@ -1810,7 +1810,7 @@ def test_export_aliases_reads_git_head_not_worktree(tmp_path):
 
 
 def test_source_add_claim_creates_source_branch_commit(tmp_path):
-    """source add-claim must persist source-local claims through a source-branch commit."""
+    """source add-claim must persist claims and auto-finalize on the source branch."""
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.cli.repository import Repository
@@ -1915,9 +1915,10 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
         ],
     )
     assert result.exit_code == 0, result.output
+    assert "Auto-finalized source/Smith_2024_TestPaper" in result.output
 
     commits_after = len(git.log(max_count=100, branch="source/Smith_2024_TestPaper"))
-    assert commits_after == commits_before + 1
+    assert commits_after == commits_before + 2
 
     branch_tip = git.branch_sha("source/Smith_2024_TestPaper")
     assert branch_tip is not None
@@ -1927,3 +1928,9 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
     assert {"namespace": "Smith_2024_TestPaper", "value": "claim1"} in stored["claims"][0]["logical_ids"]
     assert stored["claims"][0]["source_local_id"] == "claim1"
     assert str(stored["claims"][0]["id"]).startswith("claim_")
+
+    finalize_report = yaml.safe_load(
+        git.read_file("merge/finalize/Smith_2024_TestPaper.yaml", commit=branch_tip)
+    )
+    assert finalize_report["status"] == "ready"
+    assert finalize_report["artifact_code_status"] == "complete"
