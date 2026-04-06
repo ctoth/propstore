@@ -1033,3 +1033,176 @@ def test_source_promote_writes_master_claims_stances_sources_and_justifications(
     finally:
         conn.close()
     assert "just1" in justification_ids
+
+
+def test_source_promote_materializes_unique_proposed_concepts(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _init_source(runner, repo, "demo")
+
+    propose = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "novel_concept",
+            "--definition",
+            "A source-local concept that is not yet on master.",
+            "--form",
+            "structural",
+        ],
+    )
+    assert propose.exit_code == 0, propose.output
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "statement": "A first claim.",
+                        "concepts": ["novel_concept"],
+                        "provenance": {"page": 1},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    add_claims = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+    assert add_claims.exit_code == 0, add_claims.output
+
+    finalize = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "finalize",
+            "demo",
+        ],
+    )
+    assert finalize.exit_code == 0, finalize.output
+
+    promote = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "promote",
+            "demo",
+        ],
+    )
+    assert promote.exit_code == 0, promote.output
+
+    concept_doc = yaml.safe_load(repo.git.read_file("concepts/novel_concept.yaml"))
+    assert concept_doc["canonical_name"] == "novel_concept"
+    assert concept_doc["artifact_id"].startswith("ps:concept:")
+    assert concept_doc["version_id"].startswith("sha256:")
+
+    claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
+    promoted_claim = claims_doc["claims"][0]
+    assert promoted_claim["concepts"] == [concept_doc["artifact_id"]]
+
+
+def test_source_promote_blocks_on_ambiguous_new_concept_slug_collision(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_master_concept(repo, name="novel_concept")
+    _init_source(runner, repo, "demo")
+
+    propose = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "novel concept",
+            "--definition",
+            "Looks new by handle, but collides after slug normalization.",
+            "--form",
+            "structural",
+        ],
+    )
+    assert propose.exit_code == 0, propose.output
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "statement": "A first claim.",
+                        "concepts": ["novel concept"],
+                        "provenance": {"page": 1},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    add_claims = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+    assert add_claims.exit_code == 0, add_claims.output
+
+    finalize = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "finalize",
+            "demo",
+        ],
+    )
+    assert finalize.exit_code == 0, finalize.output
+
+    promote = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "promote",
+            "demo",
+        ],
+    )
+    assert promote.exit_code != 0
+    assert "novel concept" in promote.output
