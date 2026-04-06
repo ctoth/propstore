@@ -297,15 +297,24 @@ A frozen dataclass controlling how the render layer resolves values. Passed to `
 |-------|------|---------|-------------|
 | `reasoning_backend` | `ReasoningBackend` | `CLAIM_GRAPH` | Which reasoning engine to use. |
 | `strategy` | `ResolutionStrategy \| None` | `None` | Default resolution strategy. |
-| `semantics` | `str` | `"grounded"` | Argumentation semantics (grounded, preferred, stable, complete). |
+| `semantics` | `str` | `"grounded"` | Argumentation semantics. The enum includes `grounded`, `legacy_grounded`, `hybrid-grounded`, `bipolar-grounded`, `preferred`, `stable`, `d-preferred`, `s-preferred`, `c-preferred`, `bipolar-stable`, and `complete`; backend support is validated separately. |
 | `comparison` | `str` | `"elitist"` | Preference comparison mode. |
 | `link` | `str` | `"last"` | ASPIC+ preference link type (last-link or weakest-link). |
 | `decision_criterion` | `str` | `"pignistic"` | Decision criterion for belief functions (Denoeux 2019). |
 | `pessimism_index` | `float` | `0.5` | Hurwicz pessimism index. |
 | `show_uncertainty_interval` | `bool` | `False` | Include uncertainty intervals in output. |
 | `praf_strategy` | `str` | `"auto"` | PrAF computation strategy. |
+| `praf_mc_epsilon` | `float` | `0.01` | PrAF Monte Carlo error tolerance. |
+| `praf_mc_confidence` | `float` | `0.95` | PrAF Monte Carlo confidence level. |
+| `praf_treewidth_cutoff` | `int` | `12` | Treewidth cutoff for exact PrAF DP routing. |
+| `praf_mc_seed` | `int \| None` | `None` | PrAF Monte Carlo RNG seed. |
 | `include_conflict_stances` | `bool` | `False` | Include conflict stances in argumentation. |
+| `merge_operator` | `MergeOperator` | `SIGMA` | IC-merge aggregation family for multi-branch resolution. |
+| `branch_filter` | `tuple[str, ...] \| None` | `None` | Restrict IC-merge sources to specific branches. |
+| `branch_weights` | `Mapping[str, float] \| None` | `None` | Per-branch weighting for IC merge. |
+| `integrity_constraints` | `tuple[IntegrityConstraint, ...]` | `()` | Explicit integrity constraints for IC merge. |
 | `future_queryables` | `tuple[str, ...]` | `()` | Future queryable assumptions for ATMS. |
+| `future_limit` | `int \| None` | `None` | Bound on ATMS future-environment exploration. |
 | `overrides` | `Mapping[str, str]` | `{}` | Per-concept value overrides. |
 | `concept_strategies` | `Mapping[str, ResolutionStrategy]` | `{}` | Per-concept resolution strategy overrides. |
 
