@@ -167,11 +167,12 @@ pks worldline create my-scenario \
   --strategy argumentation --reasoning-backend praf \
   --praf-strategy auto
 
-# Query it
-pks worldline query my-scenario
+# Materialize and inspect it
+pks worldline run my-scenario
+pks worldline show my-scenario
 
 # Compare two worldlines
-pks worldline compare scenario-a scenario-b
+pks worldline diff scenario-a scenario-b
 ```
 
 Available public `--praf-strategy` choices: `auto`, `mc`, `exact`, `dfquad_quad`, `dfquad_baf`.
