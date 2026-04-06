@@ -18,7 +18,7 @@ uv run pks <command> [options]
 
 ### `pks init [DIRECTORY]`
 
-Initialize a new propstore project directory. Creates the standard directory structure (`concepts/`, `claims/`, `sidecar/`). If no DIRECTORY argument is given, creates a `knowledge/` directory in the current working directory.
+Initialize a new propstore project directory. Creates the standard directory structure (`concepts/`, `claims/`, `contexts/`, `forms/`, `justifications/`, `sidecar/`, `sources/`, `stances/`, `worldlines/`). If no DIRECTORY argument is given, it creates `knowledge/` in the current working directory.
 
 ```bash
 uv run pks init
