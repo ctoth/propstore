@@ -521,6 +521,6 @@ bound = world.bind(task="speech", policy=policy)
 
 report = bound.fragility(top_k=5)
 for target in report.targets:
-    print(f"{target.concept_id}: fragility={target.score:.2f}, "
-          f"cost={target.cost_tier}, roi={target.roi:.2f}")
+    print(f"{target.target_id}: fragility={target.fragility:.2f}, "
+          f"cost={target.cost_tier}, roi={target.epistemic_roi:.2f}")
 ```
