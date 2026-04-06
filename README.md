@@ -173,7 +173,7 @@ Create and run worldlines:
 
 ```bash
 # Create a worldline targeting specific concepts with a reasoning backend
-uv run pks -C knowledge worldline create my_query domain=speech --reasoning-backend praf --praf-strategy mc
+uv run pks -C knowledge worldline create my_query --target speech.pitch --bind domain=speech --reasoning-backend praf --praf-strategy mc
 
 # Materialize results
 uv run pks -C knowledge worldline run my_query
