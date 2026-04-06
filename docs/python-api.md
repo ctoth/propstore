@@ -366,6 +366,7 @@ How to pick a winner when multiple active claims disagree.
 | `SAMPLE_SIZE` | Claim backed by the largest sample size wins. |
 | `ARGUMENTATION` | Compute Dung extensions and pick the accepted claim. |
 | `OVERRIDE` | Use the value from `RenderPolicy.overrides`. |
+| `IC_MERGE` | Run integrity-constraint merge across branch-scoped sources. |
 
 ### ReasoningBackend
 
