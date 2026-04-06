@@ -6,13 +6,16 @@ propstore consumes claims extracted by the [research-papers-plugin](https://gith
 
 1. **Read papers** — `paper-reader` skill extracts structured notes from PDFs
 2. **Register source-local concepts** — `register-concepts` or `pks source add-concepts` writes the source inventory onto the source branch
-3. **Write source-local artifacts** — `pks source add-claim`, `pks source add-justification`, and `pks source add-stance` commit normalized YAML onto the source branch
-4. **Finalize** — `pks source finalize` computes artifact codes, validates cross-source references, and previews parameterization-group effects before promotion
-5. **Promote** — `pks source promote` writes accepted source artifacts into the canonical repository on `master`
+3. **Write source-local notes and metadata** — `pks source write-notes` and `pks source write-metadata` commit paper-local notes and metadata onto the source branch
+4. **Write source-local artifacts** — `pks source add-claim`, `pks source add-justification`, and `pks source add-stance` commit normalized YAML onto the source branch
+5. **Finalize** — `pks source finalize` computes artifact codes, validates cross-source references, and previews parameterization-group effects before promotion
+6. **Promote** — `pks source promote` writes accepted source artifacts into the canonical repository on `master`
 
 ```bash
 pks source init Halpin_2010 --kind academic_paper --origin-type doi --origin-value 10.1016/j.websem.2010.01.001
 pks source add-concepts Halpin_2010 --batch ../papers/Halpin_2010/concepts.yaml
+pks source write-notes Halpin_2010 --file ../papers/Halpin_2010/notes.md
+pks source write-metadata Halpin_2010 --file ../papers/Halpin_2010/metadata.json
 pks source add-claim Halpin_2010 --batch ../papers/Halpin_2010/claims.yaml
 pks source add-justification Halpin_2010 --batch ../papers/Halpin_2010/justifications.yaml
 pks source add-stance Halpin_2010 --batch ../papers/Halpin_2010/stances.yaml
