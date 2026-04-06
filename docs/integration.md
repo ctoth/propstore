@@ -62,7 +62,7 @@ Currently, only stance proposals are supported. Concept and claim proposals must
 
 ## Embeddings and similarity search
 
-Optional: requires `pip install 'propstore[embeddings]'` (adds litellm and sqlite-vec).
+Optional: requires `uv pip install "propstore[embeddings]"` (adds litellm and sqlite-vec).
 
 Generate vector embeddings for claims using any LLM provider via litellm:
 
