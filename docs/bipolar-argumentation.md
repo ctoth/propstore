@@ -100,22 +100,22 @@ See [Probabilistic Argumentation](probabilistic-argumentation.md) for full PrAF 
 
 The claim-graph bridge (`propstore/core/analyzers.py`) routes `supports` and `explains` stance types into the bipolar support relation. All other stance types flow into the defeat relation as before. Derived defeats are computed via `cayrol_derived_defeats` and added to the defeat set before framework construction.
 
-The bipolar semantics `d-preferred`, `s-preferred`, `c-preferred`, and `bipolar-stable` are selectable through `analyze_claim_graph` and exposed at the CLI level.
+The bipolar semantics `d-preferred`, `s-preferred`, `c-preferred`, and `bipolar-stable` are selectable through `analyze_claim_graph` and through the worldline / Python policy surfaces. The current `pks world extensions` CLI only accepts `grounded`, `preferred`, and `stable`.
 
 ## CLI usage
 
 ```bash
-# d-preferred extensions (weakest bipolar admissibility)
-pks world extensions --semantics d-preferred
+# d-preferred via a worldline
+pks worldline create bipolar_d --target concept1 --strategy argumentation --semantics d-preferred
 
-# s-preferred extensions (safe + self-defending)
-pks world extensions --semantics s-preferred
+# s-preferred via a worldline
+pks worldline create bipolar_s --target concept1 --strategy argumentation --semantics s-preferred
 
-# c-preferred extensions (strongest — support-closed)
-pks world extensions --semantics c-preferred
+# c-preferred via a worldline
+pks worldline create bipolar_c --target concept1 --strategy argumentation --semantics c-preferred
 
-# Bipolar-stable extensions
-pks world extensions --semantics bipolar-stable
+# Bipolar-stable via a worldline
+pks worldline create bipolar_stable --target concept1 --strategy argumentation --semantics bipolar-stable
 ```
 
 ## Known limitations
