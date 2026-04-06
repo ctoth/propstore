@@ -125,6 +125,67 @@ def test_source_add_claim_batch_normalizes_claims(tmp_path: Path) -> None:
     assert claim["version_id"].startswith("sha256:")
 
 
+def test_source_add_claim_auto_finalizes(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "statement": "A claim",
+                        "provenance": {"page": 1},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    init_result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "init",
+            "demo",
+            "--kind",
+            "academic_paper",
+            "--origin-type",
+            "manual",
+            "--origin-value",
+            "demo",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    assert branch_tip is not None
+    report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
+    assert report["kind"] == "source_finalize_report"
+    assert report["status"] == "ready"
+
+
 def test_source_finalize_writes_report(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()

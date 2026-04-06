@@ -454,6 +454,102 @@ def test_source_finalize_blocks_on_unresolved_cross_source_stance_target(tmp_pat
     assert report["stance_reference_errors"] == ["missing_source:claim404"]
 
 
+def test_source_add_stance_auto_finalize_is_advisory_on_validation_issues(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    _seed_master_concept(repo, name="claims_identical")
+    _init_source(runner, repo, "demo")
+
+    propose = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "propose-concept",
+            "demo",
+            "--name",
+            "claims_identical",
+            "--definition",
+            "A weak identity relation.",
+            "--form",
+            "structural",
+        ],
+    )
+    assert propose.exit_code == 0, propose.output
+
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "statement": "A first claim.",
+                        "concepts": ["claims_identical"],
+                        "provenance": {"page": 1},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    add_claims = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-claim",
+            "demo",
+            "--batch",
+            str(claims_file),
+        ],
+    )
+    assert add_claims.exit_code == 0, add_claims.output
+
+    stances_file = tmp_path / "stances.yaml"
+    stances_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "stances": [
+                    {
+                        "source_claim": "claim1",
+                        "type": "rebuts",
+                        "target": "missing_source:claim404",
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C",
+            str(repo.root),
+            "source",
+            "add-stance",
+            "demo",
+            "--batch",
+            str(stances_file),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    assert branch_tip is not None
+    report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
+    assert report["status"] == "blocked"
+    assert report["stance_reference_errors"] == ["missing_source:claim404"]
+
+
 def test_source_finalize_reports_parameterization_group_merges(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()

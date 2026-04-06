@@ -27,6 +27,15 @@ def source() -> None:
     """Manage source branches and source-local artifacts."""
 
 
+def _auto_finalize_source_branch(repo: Repository, name: str) -> None:
+    try:
+        finalize_source_branch(repo, name)
+    except Exception as exc:
+        click.echo(f"Finalize note: {exc}", err=True)
+        return
+    click.echo(f"Auto-finalized {source_branch_name(name)}")
+
+
 @source.command("init")
 @click.argument("name")
 @click.option("--kind", "kind_name", required=True)
@@ -109,6 +118,7 @@ def add_concepts(obj: dict, name: str, batch_file: Path) -> None:
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(f"Wrote concepts to {source_branch_name(name)}")
+    _auto_finalize_source_branch(repo, name)
 
 
 @source.command("add-claim")
@@ -122,6 +132,7 @@ def add_claim(obj: dict, name: str, batch_file: Path) -> None:
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(f"Wrote claims to {source_branch_name(name)}")
+    _auto_finalize_source_branch(repo, name)
 
 
 @source.command("add-justification")
@@ -135,6 +146,7 @@ def add_justification(obj: dict, name: str, batch_file: Path) -> None:
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(f"Wrote justifications to {source_branch_name(name)}")
+    _auto_finalize_source_branch(repo, name)
 
 
 @source.command("add-stance")
@@ -148,6 +160,7 @@ def add_stance(obj: dict, name: str, batch_file: Path) -> None:
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(f"Wrote stances to {source_branch_name(name)}")
+    _auto_finalize_source_branch(repo, name)
 
 
 @source.command("finalize")
