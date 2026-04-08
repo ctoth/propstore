@@ -226,3 +226,82 @@ def test_source_finalize_writes_report(tmp_path: Path) -> None:
     assert report["kind"] == "source_finalize_report"
     assert report["status"] == "ready"
     assert report["calibration"]["fallback_to_default_base_rate"] is True
+
+
+# Fields that exist on source branches but must be stripped before promotion to master.
+# The claim JSON schema uses additionalProperties: false, so any field not in the
+# schema definition causes a validation error at build time.
+_SOURCE_ONLY_FIELDS = {"id", "source_local_id", "artifact_code"}
+
+
+def test_promoted_claims_conform_to_master_schema(tmp_path: Path) -> None:
+    """Property: claims promoted to master must not carry source-branch-only fields.
+
+    The source branch stores extra bookkeeping fields (id, source_local_id,
+    artifact_code) that are not in the claim JSON schema. The promote path
+    must strip these before writing to master, otherwise ``pks build``
+    rejects the promoted claims with 'Additional properties are not allowed'.
+    """
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+    claims_file = tmp_path / "claims.yaml"
+    claims_file.write_text(
+        yaml.safe_dump(
+            {
+                "source": {"paper": "demo"},
+                "claims": [
+                    {
+                        "id": "claim1",
+                        "type": "observation",
+                        "statement": "A testable claim",
+                        "concepts": ["test_concept"],
+                        "provenance": {"paper": "demo", "page": 1},
+                    }
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    # init source, add concept, add claim, finalize, promote
+    assert runner.invoke(cli, [
+        "-C", str(repo.root),
+        "source", "init", "demo",
+        "--kind", "academic_paper",
+        "--origin-type", "manual", "--origin-value", "demo",
+    ]).exit_code == 0
+
+    assert runner.invoke(cli, [
+        "-C", str(repo.root),
+        "source", "propose-concept", "demo",
+        "--name", "test_concept",
+        "--definition", "A test concept",
+        "--form", "category",
+    ]).exit_code == 0
+
+    assert runner.invoke(cli, [
+        "-C", str(repo.root),
+        "source", "add-claim", "demo",
+        "--batch", str(claims_file),
+    ]).exit_code == 0
+
+    result = runner.invoke(cli, [
+        "-C", str(repo.root),
+        "source", "promote", "demo",
+    ])
+    assert result.exit_code == 0, result.output
+
+    # Read the promoted claims from master
+    master_tip = repo.git.branch_sha("master")
+    assert master_tip is not None
+    promoted = yaml.safe_load(repo.git.read_file("claims/demo.yaml", commit=master_tip))
+    assert promoted is not None
+    assert "claims" in promoted
+
+    for claim in promoted["claims"]:
+        source_only_present = _SOURCE_ONLY_FIELDS & set(claim.keys())
+        assert not source_only_present, (
+            f"Promoted claim carries source-branch-only fields: {source_only_present}. "
+            f"These must be stripped during promotion to conform to the claim JSON schema."
+        )
