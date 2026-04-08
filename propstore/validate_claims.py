@@ -603,6 +603,18 @@ def _validate_unit_against_form(
     # common_alternatives, and extra_units. If none declared, skip.
     if form_def.allowed_units:
         if unit not in form_def.allowed_units:
+            # Before rejecting, try pint dimensional compatibility.
+            # This lets units like "years" pass for a time form even though
+            # they aren't in the explicit whitelist — normalize_to_si()
+            # handles the actual conversion at build time.
+            try:
+                from propstore.form_utils import ureg, _pint_unit
+                src = ureg.Quantity(1, _pint_unit(unit))
+                src.to(_pint_unit(form_def.unit_symbol))
+                # Dimensionally compatible — accept it
+                return
+            except Exception:
+                pass
             result.errors.append(
                 f"{filename}: parameter claim '{cid}' unit '{unit}' does not match "
                 f"concept '{concept}' allowed units {sorted(form_def.allowed_units)}")
