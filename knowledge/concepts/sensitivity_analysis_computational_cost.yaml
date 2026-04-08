@@ -1,8 +1,0 @@
-id: concept110
-canonical_name: sensitivity_analysis_computational_cost
-status: proposed
-definition: The number of network evaluations required to perform sensitivity analysis
-  on a Bayesian belief network
-domain: probability
-created_date: '2026-03-28'
-form: structural

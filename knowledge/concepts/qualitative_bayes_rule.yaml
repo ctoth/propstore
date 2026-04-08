@@ -1,7 +1,0 @@
-id: concept161
-canonical_name: qualitative_bayes_rule
-status: proposed
-definition: Property of branching-time belief revision frames stating that if prior beliefs intersect new information, posterior beliefs equal that intersection, serving as the qualitative analog of Bayesian conditioning.
-domain: belief-revision
-created_date: '2026-03-28'
-form: structural

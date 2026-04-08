@@ -1,8 +1,0 @@
-id: concept87
-canonical_name: partial_observable_update
-status: proposed
-definition: SL belief update from evidence statistically related to hidden state via
-  likelihood
-domain: sl
-created_date: '2026-03-28'
-form: structural

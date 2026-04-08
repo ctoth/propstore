@@ -1,8 +1,0 @@
-id: concept53
-canonical_name: binomial_opinion_belief
-status: proposed
-definition: Belief component b_x of a binomial subjective opinion (Josang 2001), representing
-  degree of belief a proposition is true. Range [0,1], part of (b,d,u,a) where b+d+u=1.
-domain: subjective-logic
-created_date: '2026-03-28'
-form: structural

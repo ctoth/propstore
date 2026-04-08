@@ -1,7 +1,0 @@
-id: concept154
-canonical_name: dynamic_doxastic_logic
-status: proposed
-definition: A modal logic approach to belief revision using infinitely many revision operators [phi] (one per formula), where [phi]psi means after revising by phi the agent believes psi.
-domain: belief-revision
-created_date: '2026-03-28'
-form: structural

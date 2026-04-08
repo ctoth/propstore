@@ -1,7 +1,0 @@
-id: concept67
-canonical_name: peer_review_uncertainty_penalty
-status: proposed
-definition: Fixed uncertainty penalty added when a finding has not been peer reviewed.
-domain: statistics
-created_date: '2026-03-28'
-form: structural

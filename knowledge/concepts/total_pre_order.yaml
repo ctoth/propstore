@@ -1,7 +1,0 @@
-id: concept164
-canonical_name: total_pre_order
-status: proposed
-definition: A binary relation R on a set that is complete (for all x,y either xRy or yRx) and transitive, used to represent plausibility rankings of states in belief revision.
-domain: belief-revision
-created_date: '2026-03-28'
-form: structural

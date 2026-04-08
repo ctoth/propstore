@@ -1,7 +1,0 @@
-id: concept91
-canonical_name: updated_marginal_mean_k
-status: proposed
-definition: Updated marginal mean for the k-th attribute after a single partial observation
-domain: sl
-created_date: '2026-03-28'
-form: structural

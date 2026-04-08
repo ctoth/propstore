@@ -1,8 +1,0 @@
-id: concept111
-canonical_name: sensitivity_analysis_monotonicity
-status: proposed
-definition: The property that the sensitivity function (ax+b)/(cx+d) is monotonic
-  on [0,1], having no local extrema
-domain: probability
-created_date: '2026-03-28'
-form: structural

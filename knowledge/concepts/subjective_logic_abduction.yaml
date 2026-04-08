@@ -1,7 +1,0 @@
-id: concept96
-canonical_name: subjective_logic_abduction
-status: proposed
-definition: SL operation inferring antecedent from consequent via conditional likelihoods
-domain: sl
-created_date: '2026-03-28'
-form: structural

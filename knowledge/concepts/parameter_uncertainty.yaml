@@ -1,8 +1,0 @@
-id: concept144
-canonical_name: parameter_uncertainty
-status: proposed
-definition: Uncertainty in the values of parameters defining a model, particularly
-  conditional probability table entries in Bayesian networks
-domain: uncertainty
-created_date: '2026-03-28'
-form: structural

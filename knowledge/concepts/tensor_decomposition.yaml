@@ -1,8 +1,0 @@
-id: concept145
-canonical_name: tensor_decomposition
-status: proposed
-definition: Low-rank factorization of high-dimensional tensors into networks of smaller
-  tensors, particularly tensor train (TT) decomposition
-domain: uncertainty
-created_date: '2026-03-28'
-form: structural

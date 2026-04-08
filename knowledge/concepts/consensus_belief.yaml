@@ -1,8 +1,0 @@
-id: concept76
-canonical_name: consensus_belief
-status: proposed
-definition: The minimum belief per value across all sources in the consensus phase
-  of CC fusion
-domain: subjective-logic
-created_date: '2026-03-28'
-form: structural

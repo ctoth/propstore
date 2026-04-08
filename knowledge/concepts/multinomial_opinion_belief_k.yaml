@@ -1,7 +1,0 @@
-id: concept77
-canonical_name: multinomial_opinion_belief_k
-status: proposed
-definition: Belief mass b_k for the k-th attribute state in a multinomial SL opinion
-domain: sl
-created_date: '2026-03-28'
-form: structural

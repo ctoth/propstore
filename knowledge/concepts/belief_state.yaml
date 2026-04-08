@@ -1,7 +1,0 @@
-id: concept152
-canonical_name: belief_state
-status: proposed
-definition: A triple (h, K, b) comprising informational history h, current belief set K, and one-step revision function b, representing the full epistemic state of an agent including disposition to revise.
-domain: belief-revision
-created_date: '2026-03-28'
-form: structural

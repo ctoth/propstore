@@ -1,7 +1,0 @@
-id: concept61
-canonical_name: probability_value
-status: proposed
-definition: A probability value in [0,1] representing the likelihood of an event.
-domain: statistics
-created_date: '2026-03-28'
-form: structural

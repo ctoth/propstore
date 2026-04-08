@@ -1,8 +1,0 @@
-id: concept79
-canonical_name: expectation_probability_k
-status: proposed
-definition: Expected probability p_hat_k for the k-th attribute, equals b_k plus u
-  times a_k
-domain: sl
-created_date: '2026-03-28'
-form: structural

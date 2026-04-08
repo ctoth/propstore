@@ -1,8 +1,0 @@
-id: concept52
-canonical_name: weighted_belief_fusion
-status: proposed
-definition: Weighted Belief Fusion (WBF) operator that fuses multiple subjective opinions
-  by weighting each by its certainty (1-u). More certain opinions dominate.
-domain: subjective-logic
-created_date: '2026-03-28'
-form: structural

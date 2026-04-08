@@ -1,8 +1,0 @@
-id: concept75
-canonical_name: dirichlet_strength
-status: proposed
-definition: Sum S of all Dirichlet parameters alpha_k, inversely proportional to opinion
-  uncertainty
-domain: sl
-created_date: '2026-03-28'
-form: structural

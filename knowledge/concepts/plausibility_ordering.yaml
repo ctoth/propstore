@@ -1,7 +1,0 @@
-id: concept160
-canonical_name: plausibility_ordering
-status: proposed
-definition: A total pre-order R on the set of states Omega ranking states by plausibility, where beliefs at a state-instant pair are the most plausible states compatible with received information.
-domain: belief-revision
-created_date: '2026-03-28'
-form: structural

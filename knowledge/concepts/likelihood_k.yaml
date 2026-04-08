@@ -1,7 +1,0 @@
-id: concept92
-canonical_name: likelihood_k
-status: proposed
-definition: Likelihood value l_k for the k-th attribute in a single observation
-domain: sl
-created_date: '2026-03-28'
-form: structural
