@@ -22,9 +22,11 @@ def create_merge_commit(
     branch_b: str,
     message: str = "",
     *,
-    target_branch: str = "master",
+    target_branch: str | None = None,
 ) -> str:
     """Create a two-parent merge commit from the formal merge object."""
+    if target_branch is None:
+        target_branch = kr.primary_branch_name()
     merge = build_merge_framework(kr, branch_a, branch_b)
 
     left_sha = branch_head(kr, branch_a)

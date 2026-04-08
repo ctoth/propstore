@@ -367,7 +367,7 @@ def promote_alignment(repo: Repository, cluster_id: str) -> dict[str, Any]:
         },
         deletes=[],
         message=f"Promote concept alignment {cluster_id}",
-        branch="master",
+        branch=repo.git.primary_branch_name(),
     )
     repo.git.sync_worktree()
     updated = copy.deepcopy(artifact)

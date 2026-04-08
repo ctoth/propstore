@@ -85,6 +85,7 @@ def plan_repo_import(
     if destination_repo.git is None:
         raise ValueError("Destination repository must be git-backed")
 
+    primary_branch = destination_repo.git.primary_branch_name()
     try:
         source_repo = Repository.find(source_repo_path.resolve())
     except RepositoryNotFound as exc:
@@ -108,7 +109,7 @@ def plan_repo_import(
         repo_name=repo_name,
         writes=writes,
         touched_paths=touched_paths,
-        sync_worktree_default=(selected_branch == "master"),
+        sync_worktree_default=(selected_branch == primary_branch),
     )
 
 
@@ -128,7 +129,8 @@ def commit_repo_import(
     if sync_worktree not in {"auto", "always", "never"}:
         raise ValueError("sync_worktree must be one of: auto, always, never")
 
-    if branch_head(git, plan.target_branch) is None and plan.target_branch != "master":
+    primary_branch = git.primary_branch_name()
+    if branch_head(git, plan.target_branch) is None and plan.target_branch != primary_branch:
         create_branch(git, plan.target_branch)
 
     commit_sha = git.commit_files(
@@ -139,8 +141,10 @@ def commit_repo_import(
 
     should_sync = False
     if sync_worktree == "always":
-        if plan.target_branch != "master":
-            raise ValueError("Explicit worktree sync is only supported for target_branch='master'")
+        if plan.target_branch != primary_branch:
+            raise ValueError(
+                "Explicit worktree sync is only supported for the primary branch"
+            )
         should_sync = True
     elif sync_worktree == "auto":
         should_sync = plan.sync_worktree_default

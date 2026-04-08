@@ -97,7 +97,7 @@ def _load_yaml_from_branch(repo: Repository, branch: str, relpath: str) -> dict[
 def _load_master_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
     from propstore.validate import load_concepts
 
-    master_tip = branch_head(repo.git, "master")
+    master_tip = branch_head(repo.git, repo.git.primary_branch_name())
     if master_tip is None:
         return {}, {}
 
@@ -129,7 +129,7 @@ def _load_master_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], 
 def _load_master_concept_docs(repo: Repository) -> list[dict[str, Any]]:
     from propstore.validate import load_concepts
 
-    master_tip = branch_head(repo.git, "master")
+    master_tip = branch_head(repo.git, repo.git.primary_branch_name())
     if master_tip is None:
         return []
 
@@ -518,7 +518,7 @@ def _load_source_claim_index(repo: Repository, name: str) -> tuple[dict[str, str
 def _load_master_claim_index(repo: Repository) -> tuple[dict[str, str], set[str]]:
     from propstore.validate_claims import load_claim_files
 
-    master_tip = branch_head(repo.git, "master")
+    master_tip = branch_head(repo.git, repo.git.primary_branch_name())
     if master_tip is None:
         return {}, set()
 
@@ -1215,7 +1215,7 @@ def promote_source_branch(repo: Repository, name: str) -> str:
         adds=adds,
         deletes=[],
         message=f"Promote source {slug}",
-        branch="master",
+        branch=repo.git.primary_branch_name(),
     )
     repo.git.sync_worktree()
     return sha
