@@ -12,7 +12,7 @@ import pytest
 from propstore.dung import ArgumentationFramework
 from propstore.opinion import Opinion
 from propstore.praf import ProbabilisticAF, PrAFResult, compute_praf_acceptance
-from propstore.praf_dfquad import (
+from propstore.praf.dfquad import (
     compute_dfquad_baf_strengths,
     compute_dfquad_quad_strengths,
     dfquad_aggregate,

@@ -385,7 +385,7 @@ def run_worldline(
                 else:
                     # Li et al. (2012): PrAF = (A, P_A, D, P_D).
                     # Build probabilistic AF and compute acceptance probabilities.
-                    from propstore.praf_projection import build_praf
+                    from propstore.praf import build_praf
                     from propstore.praf import compute_praf_acceptance
 
                     praf = build_praf(

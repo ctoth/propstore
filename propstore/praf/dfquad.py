@@ -15,7 +15,7 @@ import math
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from propstore.praf import ProbabilisticAF
+    from .engine import ProbabilisticAF
 
 
 def dfquad_aggregate(base_score: float, combined_influence: float) -> float:

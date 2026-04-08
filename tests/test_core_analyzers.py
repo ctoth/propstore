@@ -5,7 +5,7 @@ import sqlite3
 import pytest
 
 from propstore.claim_graph import compute_claim_graph_justified_claims
-from propstore.praf_projection import build_praf
+from propstore.praf import build_praf
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph, RelationEdge
 from propstore.praf import compute_praf_acceptance
 from tests.conftest import create_argumentation_schema, insert_claim, insert_conflict, insert_stance

@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING
 from propstore.dung import ArgumentationFramework
 
 if TYPE_CHECKING:
-    from propstore.praf import ProbabilisticAF
+    from .engine import ProbabilisticAF
 
 
 def supports_exact_dp(
@@ -555,8 +555,8 @@ def _compute_grounded_dp(praf: ProbabilisticAF) -> dict[str, float]:
 
     # Decompose into connected components.
     # Per Hunter & Thimm (2017, Prop 18): components are independent.
-    from propstore.praf import _connected_components
-    components = _connected_components(praf)
+    from .components import connected_components
+    components = connected_components(praf)
 
     acceptance: dict[str, float] = {}
     for comp_args in components:

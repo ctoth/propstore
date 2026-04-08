@@ -12,7 +12,7 @@ A probabilistic argumentation framework PrAF = (A, P_A, D, P_D) extends a Dung A
 - **P_D** maps each defeat relation to an existence probability, also as opinions. Derived from stance confidence, opinion columns, or defaulting to dogmatic true.
 - **Sampling probability** uses the opinion expectation E(w) = b + a*u (Josang 2001, Def 6). This bridges the four-valued opinion algebra to a single probability for MC sampling.
 
-The `ProbabilisticAF` dataclass (`propstore/praf.py:44`) also carries support edges, primitive attack probabilities (when attacks and defeats differ due to preference filtering), base defeats before Cayrol closure, and provenance-bearing relation records.
+The `ProbabilisticAF` dataclass (`propstore/praf/engine.py`) also carries support edges, primitive attack probabilities (when attacks and defeats differ due to preference filtering), base defeats before Cayrol closure, and provenance-bearing relation records.
 
 A PrAF induces a distribution over deterministic sub-frameworks (DAFs). Each DAF is a standard Dung AF obtained by sampling which arguments and defeats exist. Acceptance probability for an argument is the weighted sum of its acceptance across all induced DAFs.
 
@@ -20,7 +20,7 @@ A PrAF induces a distribution over deterministic sub-frameworks (DAFs). Each DAF
 
 ### Auto dispatch
 
-The default strategy `"auto"` selects the best computation method based on framework characteristics (`propstore/praf.py:595`):
+The default strategy `"auto"` selects the best computation method based on framework characteristics (`propstore/praf/engine.py`):
 
 ```
 All probabilities ~= 1.0?  -->  deterministic fallback
@@ -52,7 +52,7 @@ Complexity is O(2^(|A|+|D|)). The 13-argument threshold follows Li et al. (2012,
 
 For larger frameworks, MC sampling estimates acceptance probabilities (Li et al. 2012, Algorithm 1, p.5):
 
-1. **Sample a subgraph** (`propstore/praf.py:869`): for each argument, include with probability E(P_A). For each edge where both endpoints survived, include with probability E(P_D). Apply Cayrol derived defeats from sampled supports and direct defeats.
+1. **Sample a subgraph** (`propstore/praf/engine.py`): for each argument, include with probability E(P_A). For each edge where both endpoints survived, include with probability E(P_D). Apply Cayrol derived defeats from sampled supports and direct defeats.
 2. **Compute extensions** on the sampled Dung AF.
 3. **Record acceptance** for each argument in the extension.
 4. **Repeat** until convergence.
@@ -65,21 +65,21 @@ For larger frameworks, MC sampling estimates acceptance probabilities (Li et al.
 
 Convergence requires ci_half <= epsilon for every argument in the component. Minimum 30 samples before checking. Safety cap at 100,000 samples. Z-scores: 0.90 -> 1.645, 0.95 -> 1.960, 0.99 -> 2.576.
 
-**Connected component decomposition** (Hunter & Thimm 2017, Prop 18): acceptance probability separates over connected components of the attack/support graph. Each component gets independent MC sampling (`propstore/praf.py:834`). Components where all probabilities are deterministic are short-circuited to exact Dung evaluation, avoiding unnecessary sampling.
+**Connected component decomposition** (Hunter & Thimm 2017, Prop 18): acceptance probability separates over connected components of the attack/support graph. Each component gets independent MC sampling (`propstore/praf/components.py` and `propstore/praf/engine.py`). Components where all probabilities are deterministic are short-circuited to exact Dung evaluation, avoiding unnecessary sampling.
 
 ### DF-QuAD gradual semantics
 
-DF-QuAD (Freedman et al. 2025, p.3) computes continuous argument strengths in [0,1] rather than binary acceptance. Implemented in `propstore/praf_dfquad.py`.
+DF-QuAD (Freedman et al. 2025, p.3) computes continuous argument strengths in [0,1] rather than binary acceptance. Implemented in `propstore/praf/dfquad.py`.
 
 The evaluation formula: sigma(a) = f_agg(tau(a), f_comb(v_a+, v_a-))
 
-**Combination function** (`propstore/praf_dfquad.py:39`): aggregates influence from supporters and attackers using noisy-OR:
+**Combination function** (`propstore/praf/dfquad.py:39`): aggregates influence from supporters and attackers using noisy-OR:
 
 - support = 1 - product(1 - s for s in supporter_strengths)
 - attack = 1 - product(1 - a for a in attacker_strengths)
 - combined = support - attack
 
-**Aggregation function** (`propstore/praf_dfquad.py:21`): combines base score with combined influence:
+**Aggregation function** (`propstore/praf/dfquad.py:21`): combines base score with combined influence:
 
 - If combined >= 0: base + combined * (1 - base) (push toward 1)
 - If combined < 0: base + combined * base (push toward 0)
@@ -93,7 +93,7 @@ The evaluation formula: sigma(a) = f_agg(tau(a), f_comb(v_a+, v_a-))
 
 ### Tree decomposition DP
 
-Per Popescu & Wallner (2024). Exact computation via tree decomposition dynamic programming. Delegates to `propstore/praf_treedecomp.py`.
+Per Popescu & Wallner (2024). Exact computation via tree decomposition dynamic programming. Delegates to `propstore/praf/treedecomp.py`.
 
 Currently **gated off** in auto dispatch (`_public_exact_dp_enabled` returns False). The current implementation tracks full edge sets, giving O(2^|defeats| * 2^|args|) complexity -- no asymptotic improvement over brute force. Effective only for treewidth <= ~15. Only supports credulous argument acceptance over defeat-only frameworks.
 
@@ -103,7 +103,7 @@ The auto dispatch checks treewidth but will not select this strategy unless expl
 
 The COH rationality constraint (Hunter & Thimm 2017, p.9) requires that for every attack (A, B), the existence probabilities satisfy P(A) + P(B) <= 1. Self-attacks imply P(A) <= 0.5. This prevents paradoxical situations where two mutually attacking arguments both exist with high probability.
 
-`enforce_coh()` (`propstore/praf.py:150`) applies iterative proportional scaling (up to 100 iterations): when a pair violates the constraint, both expectations are scaled proportionally so their sum equals 1.0. Opinions are rebuilt from adjusted expectations preserving evidence counts.
+`enforce_coh()` (`propstore/praf/engine.py`) applies iterative proportional scaling (up to 100 iterations): when a pair violates the constraint, both expectations are scaled proportionally so their sum equals 1.0. Opinions are rebuilt from adjusted expectations preserving evidence counts.
 
 COH is opt-in. Apply it when your domain requires that mutual attackers cannot coexist with high probability. Skip it when argument existence is independently justified and you want the MC sampler to see the full probability space.
 
@@ -111,14 +111,14 @@ COH is opt-in. Apply it when your domain requires that mutual attackers cannot c
 
 Opinions flow into PrAF from the stance and calibration layer:
 
-1. **P_A (argument existence):** `p_arg_from_claim()` (`propstore/praf.py:104`) returns `Opinion.dogmatic_true()` for all active claims. Per Li et al. (2012, p.2), arguments in the knowledge base exist with certainty.
+1. **P_A (argument existence):** `p_arg_from_claim()` (`propstore/praf/engine.py`) returns `Opinion.dogmatic_true()` for all active claims. Per Li et al. (2012, p.2), arguments in the knowledge base exist with certainty.
 
-2. **P_D (edge existence):** `p_relation_from_stance()` (`propstore/praf.py:114`) extracts opinions from stance data through a fallback chain:
+2. **P_D (edge existence):** `p_relation_from_stance()` (`propstore/praf/engine.py`) extracts opinions from stance data through a fallback chain:
    - Full opinion columns (b, d, u, a) -> direct Opinion construction
    - Confidence float -> `from_probability(confidence, 1)` (moderate uncertainty)
    - No data -> `Opinion.dogmatic_true()` (backward compatibility)
 
-3. **Construction from store:** `build_praf()` in `propstore/praf_projection.py` is the store-facing entrypoint. It delegates to `build_praf_from_shared_input()` in `propstore/core/analyzers.py` to assemble the full `ProbabilisticAF` from relation maps and claim data.
+3. **Construction from store:** `build_praf()` in `propstore/praf/projection.py` is the store-facing entrypoint. It is re-exported from `propstore.praf` and delegates to `build_praf_from_shared_input()` in `propstore/core/analyzers.py` to assemble the full `ProbabilisticAF` from relation maps and claim data.
 
 The calibration layer (temperature scaling per Guo et al. 2017, evidence-to-opinion mapping per Sensoy et al. 2018) feeds into opinion construction upstream of PrAF. See `docs/argumentation.md` for details on the opinion algebra and calibration.
 
@@ -180,7 +180,7 @@ Lower-level `compute_praf_acceptance()` also accepts `exact_enum`, `exact_dp`, a
 
 ## Known limitations
 
-- **P_A conflated with tau in DF-QuAD mode.** Li et al. (2012) define P_A as argument existence probability; Rago (2016) and Freedman et al. (2025) define tau as intrinsic argument strength. These are conceptually distinct but currently share the same value (`propstore/praf.py:1325`). This means DF-QuAD base scores are driven by existence probability rather than independent intrinsic strength.
+- **P_A conflated with tau in DF-QuAD mode.** Li et al. (2012) define P_A as argument existence probability; Rago (2016) and Freedman et al. (2025) define tau as intrinsic argument strength. These are conceptually distinct but currently share the same value (`propstore/praf/engine.py`). This means DF-QuAD base scores are driven by existence probability rather than independent intrinsic strength.
 - **Tree decomposition gated off.** The Popescu & Wallner (2024) DP backend exists but provides no asymptotic improvement in its current form. It remains disabled in auto dispatch.
 - **Extension probability query limited to grounded semantics.** The MC extension probability loop computes P(grounded extension = queried set) but does not generalize to preferred or stable semantics.
 - **P_A always dogmatic.** `p_arg_from_claim()` currently returns `Opinion.dogmatic_true()` for all claims. Variable argument existence would require evidence-count integration at the claim level.

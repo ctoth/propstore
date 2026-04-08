@@ -11,7 +11,7 @@ from propstore.core.analyzers import (
 from propstore.world.types import ArtifactStore
 
 if TYPE_CHECKING:
-    from propstore.praf import ProbabilisticAF
+    from .engine import ProbabilisticAF
 
 
 def build_praf(

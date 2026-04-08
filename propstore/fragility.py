@@ -627,7 +627,7 @@ def imps_rev(
     from propstore.dung import ArgumentationFramework as AF
     from propstore.opinion import Opinion
     from propstore.praf import ProbabilisticAF
-    from propstore.praf_dfquad import compute_dfquad_strengths
+    from propstore.praf.dfquad import compute_dfquad_strengths
 
     if attack not in framework.defeats:
         return 0.0
