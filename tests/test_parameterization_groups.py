@@ -7,11 +7,15 @@ are grouped into the correct connected components.
 import pytest
 
 from propstore.parameterization_groups import build_groups
+from tests.conftest import make_concept_identity
 
 
 def _concept(cid, param_inputs=None):
     """Build a minimal concept dict with optional parameterization inputs."""
-    c = {"id": cid, "canonical_name": f"concept_{cid}"}
+    c = {
+        **make_concept_identity(cid, domain="test", canonical_name=f"concept_{cid}"),
+        "canonical_name": f"concept_{cid}",
+    }
     if param_inputs is not None:
         c["parameterization_relationships"] = [
             {"formula": "x = y", "inputs": param_inputs, "exactness": "exact",
@@ -24,49 +28,62 @@ class TestBuildGroups:
     def test_five_connected_concepts_one_group(self):
         """5 concepts all connected via parameterizations form 1 group."""
         # Chain: a->b->c, a->d->e (all connected through a)
+        concept1 = make_concept_identity("concept1", domain="test", canonical_name="concept_concept1")["artifact_id"]
+        concept2 = make_concept_identity("concept2", domain="test", canonical_name="concept_concept2")["artifact_id"]
+        concept3 = make_concept_identity("concept3", domain="test", canonical_name="concept_concept3")["artifact_id"]
+        concept4 = make_concept_identity("concept4", domain="test", canonical_name="concept_concept4")["artifact_id"]
+        concept5 = make_concept_identity("concept5", domain="test", canonical_name="concept_concept5")["artifact_id"]
         concepts = [
             _concept("concept1"),
-            _concept("concept2", param_inputs=["concept1"]),
-            _concept("concept3", param_inputs=["concept2"]),
-            _concept("concept4", param_inputs=["concept1"]),
-            _concept("concept5", param_inputs=["concept4"]),
+            _concept("concept2", param_inputs=[concept1]),
+            _concept("concept3", param_inputs=[concept2]),
+            _concept("concept4", param_inputs=[concept1]),
+            _concept("concept5", param_inputs=[concept4]),
         ]
         groups = build_groups(concepts)
         assert len(groups) == 1
-        assert groups[0] == {"concept1", "concept2", "concept3", "concept4", "concept5"}
+        assert groups[0] == {concept1, concept2, concept3, concept4, concept5}
 
     def test_two_disconnected_clusters(self):
         """Two disconnected clusters produce 2 groups."""
+        concept1 = make_concept_identity("concept1", domain="test", canonical_name="concept_concept1")["artifact_id"]
+        concept2 = make_concept_identity("concept2", domain="test", canonical_name="concept_concept2")["artifact_id"]
+        concept3 = make_concept_identity("concept3", domain="test", canonical_name="concept_concept3")["artifact_id"]
+        concept4 = make_concept_identity("concept4", domain="test", canonical_name="concept_concept4")["artifact_id"]
         concepts = [
             _concept("concept1"),
-            _concept("concept2", param_inputs=["concept1"]),
+            _concept("concept2", param_inputs=[concept1]),
             # Disconnected cluster
             _concept("concept3"),
-            _concept("concept4", param_inputs=["concept3"]),
+            _concept("concept4", param_inputs=[concept3]),
         ]
         groups = build_groups(concepts)
         assert len(groups) == 2
         group_sets = [frozenset(g) for g in groups]
-        assert frozenset({"concept1", "concept2"}) in group_sets
-        assert frozenset({"concept3", "concept4"}) in group_sets
+        assert frozenset({concept1, concept2}) in group_sets
+        assert frozenset({concept3, concept4}) in group_sets
 
     def test_single_concept_no_parameterizations(self):
         """A single concept with no parameterizations is a group of 1."""
+        concept1 = make_concept_identity("concept1", domain="test", canonical_name="concept_concept1")["artifact_id"]
         concepts = [_concept("concept1")]
         groups = build_groups(concepts)
         assert len(groups) == 1
-        assert groups[0] == {"concept1"}
+        assert groups[0] == {concept1}
 
     def test_linear_chain(self):
         """Linear chain A->B->C forms 1 group containing all three."""
+        concept1 = make_concept_identity("concept1", domain="test", canonical_name="concept_concept1")["artifact_id"]
+        concept2 = make_concept_identity("concept2", domain="test", canonical_name="concept_concept2")["artifact_id"]
+        concept3 = make_concept_identity("concept3", domain="test", canonical_name="concept_concept3")["artifact_id"]
         concepts = [
             _concept("concept1"),
-            _concept("concept2", param_inputs=["concept1"]),
-            _concept("concept3", param_inputs=["concept2"]),
+            _concept("concept2", param_inputs=[concept1]),
+            _concept("concept3", param_inputs=[concept2]),
         ]
         groups = build_groups(concepts)
         assert len(groups) == 1
-        assert groups[0] == {"concept1", "concept2", "concept3"}
+        assert groups[0] == {concept1, concept2, concept3}
 
     def test_empty_input(self):
         """No concepts produces no groups."""
@@ -75,11 +92,14 @@ class TestBuildGroups:
 
     def test_multiple_inputs_per_parameterization(self):
         """A concept with multiple inputs connects all of them."""
+        concept1 = make_concept_identity("concept1", domain="test", canonical_name="concept_concept1")["artifact_id"]
+        concept2 = make_concept_identity("concept2", domain="test", canonical_name="concept_concept2")["artifact_id"]
+        concept3 = make_concept_identity("concept3", domain="test", canonical_name="concept_concept3")["artifact_id"]
         concepts = [
             _concept("concept1"),
             _concept("concept2"),
-            _concept("concept3", param_inputs=["concept1", "concept2"]),
+            _concept("concept3", param_inputs=[concept1, concept2]),
         ]
         groups = build_groups(concepts)
         assert len(groups) == 1
-        assert groups[0] == {"concept1", "concept2", "concept3"}
+        assert groups[0] == {concept1, concept2, concept3}
