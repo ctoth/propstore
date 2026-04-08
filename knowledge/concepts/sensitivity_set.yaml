@@ -1,8 +1,0 @@
-id: concept102
-canonical_name: sensitivity_set
-status: proposed
-definition: The subset of BN nodes whose conditional probabilities can affect a given
-  probability of interest, computed via d-separation in an auxiliary digraph
-domain: probability
-created_date: '2026-03-28'
-form: structural

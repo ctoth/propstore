@@ -1,8 +1,0 @@
-id: concept148
-canonical_name: sensitivity_function
-status: proposed
-definition: Function f_O(theta) = P(Y_O = y_O) expressing an output probability of
-  interest as a function of the model parameters
-domain: sensitivity
-created_date: '2026-03-28'
-form: structural

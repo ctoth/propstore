@@ -1,8 +1,0 @@
-id: concept56
-canonical_name: binomial_opinion_base_rate
-status: proposed
-definition: Base rate a_x of a binomial subjective opinion, the prior probability
-  of truth in absence of evidence. Range [0,1].
-domain: subjective-logic
-created_date: '2026-03-28'
-form: structural

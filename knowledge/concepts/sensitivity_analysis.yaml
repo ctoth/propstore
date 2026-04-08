@@ -1,8 +1,0 @@
-id: concept124
-canonical_name: sensitivity_analysis
-status: proposed
-definition: Analysis of how output quantities change in response to input parameter
-  perturbations
-domain: probability
-created_date: '2026-03-28'
-form: structural

@@ -1,7 +1,0 @@
-id: concept81
-canonical_name: likelihood_k_t
-status: proposed
-definition: Likelihood value l_k for the k-th attribute at observation t
-domain: sl
-created_date: '2026-03-28'
-form: structural

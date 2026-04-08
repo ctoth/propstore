@@ -1,8 +1,0 @@
-id: concept129
-canonical_name: proportional_covariation
-status: proposed
-definition: Scheme for adjusting CPT parameters proportionally when one parameter
-  changes, minimizing CD-distance
-domain: probability
-created_date: '2026-03-28'
-form: structural

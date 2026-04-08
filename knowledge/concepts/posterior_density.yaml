@@ -1,7 +1,0 @@
-id: concept80
-canonical_name: posterior_density
-status: proposed
-definition: Posterior probability density over the probability simplex after evidence
-domain: sl
-created_date: '2026-03-28'
-form: structural

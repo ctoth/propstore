@@ -1,7 +1,0 @@
-id: concept1
-canonical_name: preference_based_argumentation
-status: proposed
-definition: Argumentation framework that combines defeat with explicit preferences over arguments.
-domain: argumentation
-created_date: '2026-03-28'
-form: structural

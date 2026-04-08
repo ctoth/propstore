@@ -1,8 +1,0 @@
-id: concept127
-canonical_name: jeffreys_rule
-status: proposed
-definition: 'Jeffrey''s rule for probability revision: Pr''(w) = Pr(w) * q_i/p_i for
-  w in gamma_i'
-domain: probability
-created_date: '2026-03-28'
-form: structural

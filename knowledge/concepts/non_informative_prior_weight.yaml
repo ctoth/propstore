@@ -1,8 +1,0 @@
-id: concept58
-canonical_name: non_informative_prior_weight
-status: proposed
-definition: Non-informative prior weight W in subjective logic opinion-to-beta mapping.
-  W=2 yields uniform Beta(1,1) for vacuous opinion.
-domain: subjective-logic
-created_date: '2026-03-28'
-form: structural

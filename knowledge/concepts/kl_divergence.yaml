@@ -1,8 +1,0 @@
-id: concept120
-canonical_name: kl_divergence
-status: proposed
-definition: Kullback-Leibler divergence between two distributions, an asymmetric measure
-  of information difference
-domain: probability
-created_date: '2026-03-28'
-form: structural

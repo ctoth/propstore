@@ -1,8 +1,0 @@
-id: concept98
-canonical_name: multinomial_opinion_uncertainty
-status: proposed
-definition: Uncertainty component u of a multinomial subjective opinion, equals W/S
-  where S is Dirichlet strength
-domain: sl
-created_date: '2026-03-28'
-form: structural

@@ -1,7 +1,0 @@
-id: concept100
-canonical_name: posterior_probability
-status: proposed
-definition: The probability of a hypothesis given observed evidence, Pr(H|E)
-domain: probability
-created_date: '2026-03-28'
-form: structural

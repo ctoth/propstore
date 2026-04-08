@@ -1,8 +1,0 @@
-id: concept103
-canonical_name: linear_fractional_function
-status: proposed
-definition: A function of the form f(x) = (ax+b)/(cx+d), also called a Moebius transformation;
-  the functional form of BN sensitivity
-domain: probability
-created_date: '2026-03-28'
-form: structural

@@ -1,8 +1,0 @@
-id: concept147
-canonical_name: sobol_total_index
-status: proposed
-definition: Total Sobol index S_i^T measuring the fraction of output variance attributable
-  to a parameter including all interaction terms with other parameters
-domain: sensitivity
-created_date: '2026-03-28'
-form: structural

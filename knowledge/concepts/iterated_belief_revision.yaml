@@ -1,7 +1,0 @@
-id: concept158
-canonical_name: iterated_belief_revision
-status: proposed
-definition: Belief revision applied sequentially in response to a series of informational inputs, requiring tracking of epistemic states (not just belief sets) across revision steps.
-domain: belief-revision
-created_date: '2026-03-28'
-form: structural

@@ -1,8 +1,0 @@
-id: concept122
-canonical_name: bayes_factor
-status: proposed
-definition: 'Ratio of posterior to prior odds, measuring evidential strength: F(alpha:beta)
-  = (Pr''(alpha)/Pr''(beta))/(Pr(alpha)/Pr(beta))'
-domain: probability
-created_date: '2026-03-28'
-form: structural

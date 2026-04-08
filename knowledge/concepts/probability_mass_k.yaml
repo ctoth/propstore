@@ -1,7 +1,0 @@
-id: concept82
-canonical_name: probability_mass_k
-status: proposed
-definition: Probability mass p_k for the k-th attribute state in the underlying PMF
-domain: sl
-created_date: '2026-03-28'
-form: structural

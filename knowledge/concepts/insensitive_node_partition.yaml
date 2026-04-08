@@ -1,9 +1,0 @@
-id: concept112
-canonical_name: insensitive_node_partition
-status: proposed
-definition: 'Three-way partition of nodes outside the sensitivity set: Insen_1 (d-separated),
-  Insen_2 (non-ancestors with observed descendants), Insen_3 (ancestors screened by
-  observations)'
-domain: probability
-created_date: '2026-03-28'
-form: structural

@@ -1,8 +1,0 @@
-id: concept57
-canonical_name: projected_probability
-status: proposed
-definition: Projected probability P(x) = b + a*u, the expectation of a subjective
-  opinion mapping uncertainty to a point probability via the base rate.
-domain: subjective-logic
-created_date: '2026-03-28'
-form: structural

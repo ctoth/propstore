@@ -1,8 +1,0 @@
-id: concept28
-canonical_name: false_positives
-status: proposed
-definition: Statistically significant findings where the null hypothesis is actually
-  true
-domain: meta_science
-created_date: '2026-03-28'
-form: structural

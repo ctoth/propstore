@@ -1,7 +1,0 @@
-id: concept150
-canonical_name: bayesian_updating
-status: proposed
-definition: The process of revising probability assignments in light of new evidence using Bayes' rule, where posterior beliefs are proportional to prior beliefs times likelihood.
-domain: belief-revision
-created_date: '2026-03-28'
-form: structural

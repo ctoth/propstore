@@ -1,8 +1,0 @@
-id: concept68
-canonical_name: multinomial_opinion
-status: proposed
-definition: A subjective logic opinion over a multinomial frame, consisting of belief
-  mass distribution b, uncertainty u, and base rate a
-domain: subjective-logic
-created_date: '2026-03-28'
-form: structural

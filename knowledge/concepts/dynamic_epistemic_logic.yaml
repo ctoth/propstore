@@ -1,7 +1,0 @@
-id: concept155
-canonical_name: dynamic_epistemic_logic
-status: proposed
-definition: A logic based on modal operators describing operations (updates) on Kripke models representing events that reveal information to agents, where time does not play an explicit role.
-domain: belief-revision
-created_date: '2026-03-28'
-form: structural

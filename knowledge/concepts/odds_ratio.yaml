@@ -1,8 +1,0 @@
-id: concept116
-canonical_name: odds_ratio
-status: proposed
-definition: The ratio Pr(alpha|beta)/Pr(not-alpha|beta), expressing the odds of an
-  event given a condition
-domain: probability
-created_date: '2026-03-28'
-form: structural
