@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.cel_checker import build_cel_registry
+from propstore.cel_checker import ConceptInfo, KindType, build_cel_registry
 from propstore.loaded import LoadedEntry
 
 from .algorithms import detect_algorithm_conflicts
@@ -26,6 +26,19 @@ def detect_conflicts(
     """Detect conflicts between claims binding to the same concept."""
     records: list[ConflictRecord] = []
     cel_registry = build_cel_registry(concept_registry)
+    # Inject a synthetic 'source' category so Z3 treats source conditions
+    # as enum comparisons and recognizes different papers as disjoint.
+    source_names = sorted({
+        (cf.data.get("source") or {}).get("paper") or cf.filename
+        for cf in claim_files
+    })
+    cel_registry["source"] = ConceptInfo(
+        id="ps:concept:__source__",
+        canonical_name="source",
+        kind=KindType.CATEGORY,
+        category_values=source_names,
+        category_extensible=False,
+    )
     condition_solver = _build_condition_solver(cel_registry)
 
     parameter_records, by_concept = detect_parameter_conflicts(
