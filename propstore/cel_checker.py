@@ -82,9 +82,9 @@ def build_cel_registry_from_loaded(concepts: list[LoadedEntry]) -> dict[str, Con
     """
     concept_registry: dict[str, dict] = {}
     for c in concepts:
-        cid = c.data.get("id", "")
+        cid = c.data.get("artifact_id") or c.data.get("id", "")
         if cid:
-            concept_registry[cid] = c.data
+            concept_registry[str(cid)] = c.data
     return build_cel_registry(concept_registry)
 
 
