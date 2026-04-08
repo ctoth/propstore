@@ -422,8 +422,8 @@ class TestRecordFields:
         assert r.claim_a_id == "claim1"
         assert r.claim_b_id == "claim2"
         assert r.warning_class == ConflictClass.CONFLICT
-        assert r.conditions_a == ["task == 'speech'"]
-        assert r.conditions_b == ["task == 'speech'"]
+        assert r.conditions_a == ["source == 'test_paper'", "task == 'speech'"]
+        assert r.conditions_b == ["source == 'test_paper'", "task == 'speech'"]
         assert r.derivation_chain is None
 
     def test_cross_file_conflicts(self):
