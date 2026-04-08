@@ -427,7 +427,7 @@ class TestRecordFields:
         assert r.derivation_chain is None
 
     def test_cross_file_conflicts(self):
-        """Conflicts detected across different claim files."""
+        """Different source papers are source-conditioned and surface as PHI_NODE."""
         cf1 = make_claim_file(
             [make_parameter_claim("claim1", "concept1", 200.0)],
             filename="paper_a",
@@ -438,7 +438,7 @@ class TestRecordFields:
         )
         records = detect_conflicts([cf1, cf2], make_concept_registry())
         assert len(records) == 1
-        assert records[0].warning_class == ConflictClass.CONFLICT
+        assert records[0].warning_class == ConflictClass.PHI_NODE
 
 
 # ── Named value field conflict detection ─────────────────────────────
