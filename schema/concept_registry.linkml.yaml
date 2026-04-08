@@ -71,17 +71,48 @@ enums:
 
 classes:
 
+  LogicalId:
+    description: >
+      Human-facing namespaced handle for a first-class object.
+      Serialized as namespace:value.
+    attributes:
+      namespace:
+        range: string
+        required: true
+      value:
+        range: string
+        required: true
+
   Concept:
     description: >
       A true-named quantity, phenomenon, or structural category.
       One YAML file per concept. Filename matches canonical_name.
+      Concepts have an artifact_id, one or more logical_ids, and a
+      version_id; raw local IDs are not storage identity.
     tree_root: true
     attributes:
 
-      id:
+      artifact_id:
         description: >
-          Stable identifier. Format: concept + sequential integer.
-          Examples: concept12, concept101.
+          Durable opaque storage identity for this concept.
+          Format: ps:concept:<opaque-token>.
+        range: string
+        required: true
+
+      logical_ids:
+        description: >
+          Human-facing namespaced handles for this concept.
+          Old source-local IDs survive only here, never as the storage key.
+          The first entry is the primary display handle.
+        range: LogicalId
+        multivalued: true
+        inlined_as_list: true
+        required: true
+
+      version_id:
+        description: >
+          Immutable content-derived version identifier for this serialized
+          concept state. Format: sha256:<64 hex chars>.
         range: string
         required: true
 
@@ -109,7 +140,7 @@ classes:
 
       domain:
         description: >
-          Short domain tag. Derived from the prefix of the concept ID.
+          Short domain tag for conceptual grouping and logical-id minting.
         range: string
 
       created_date:
@@ -122,7 +153,7 @@ classes:
 
       replaced_by:
         description: >
-          Concept ID of the successor. REQUIRED when status=deprecated.
+          Artifact ID of the successor. REQUIRED when status=deprecated.
         range: string
 
       aliases:
@@ -238,7 +269,7 @@ classes:
         range: RelationshipType
         required: true
       target:
-        description: "Concept ID of the related concept"
+        description: "Artifact ID of the related concept"
         range: string
         required: true
       source:
@@ -262,7 +293,7 @@ classes:
       sympy:
         range: string
       inputs:
-        description: Concept IDs of all quantities appearing in the formula.
+        description: Artifact IDs of all quantities appearing in the formula.
         range: string
         multivalued: true
         required: true
