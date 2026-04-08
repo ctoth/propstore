@@ -153,18 +153,34 @@ classes:
   Claim:
     description: >
       A single propositional claim extracted from a paper. All claims
-      have an id, type, provenance, and optional conditions and stances.
+      have an artifact_id, one or more logical_ids, a version_id, type,
+      provenance, and optional conditions and stances.
       Type-specific fields (concept/value/unit for parameter, expression/sympy
       for equation, etc.) are all present on this class; the validator
       enforces which are required per claim type.
     attributes:
 
-      id:
+      artifact_id:
         description: >
-          Stable identifier. Format: [source:]claim + sequential integer.
-          Paper-local files use bare IDs (claim1, claim42).
-          After import, IDs are prefixed with the knowledge source
-          (e.g., Dung_1995_AcceptabilityArguments:claim1).
+          Durable opaque storage identity for this claim.
+          Format: ps:claim:<opaque-token>.
+        range: string
+        required: true
+
+      logical_ids:
+        description: >
+          Human-facing namespaced handles for this claim.
+          Old source-local IDs survive only here, never as the storage key.
+          The first entry is the primary display handle.
+        range: LogicalId
+        multivalued: true
+        inlined_as_list: true
+        required: true
+
+      version_id:
+        description: >
+          Immutable content-derived version identifier for this serialized
+          claim state. Format: sha256:<64 hex chars>.
         range: string
         required: true
 
@@ -392,7 +408,7 @@ classes:
         range: StanceType
         required: true
       target:
-        description: "Claim ID of the related claim."
+        description: "Artifact ID of the related claim."
         range: string
         required: true
       strength:
@@ -427,6 +443,20 @@ classes:
       embedding_distance:
         description: "Cosine distance between source and target claim embeddings."
         range: float
+
+
+  LogicalId:
+    description: >
+      A namespaced logical handle for a first-class object.
+    attributes:
+      namespace:
+        description: "Namespace for the logical handle (e.g., Aarts_2015)."
+        range: string
+        required: true
+      value:
+        description: "Local handle value inside the namespace (e.g., claim1)."
+        range: string
+        required: true
       pass_number:
         description: "Which NLI pass found this relationship (1 or 2)."
         range: integer
