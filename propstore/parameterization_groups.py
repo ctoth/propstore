@@ -19,7 +19,7 @@ def build_groups(concepts: list[dict]) -> list[set[str]]:
     Concepts with no parameterization links appear as singleton groups.
 
     Args:
-        concepts: List of concept data dicts (must have 'id' field).
+        concepts: List of concept data dicts (must have 'artifact_id' field).
 
     Returns:
         List of sets of concept IDs, one per connected component.
@@ -27,12 +27,39 @@ def build_groups(concepts: list[dict]) -> list[set[str]]:
     if not concepts:
         return []
 
+    def concept_candidates(concept: dict) -> set[str]:
+        candidates: set[str] = set()
+        artifact_id = concept.get("artifact_id")
+        if isinstance(artifact_id, str) and artifact_id:
+            candidates.add(artifact_id)
+        canonical_name = concept.get("canonical_name")
+        if isinstance(canonical_name, str) and canonical_name:
+            candidates.add(canonical_name)
+        for logical_id in concept.get("logical_ids", []) or []:
+            if not isinstance(logical_id, dict):
+                continue
+            namespace = logical_id.get("namespace")
+            value = logical_id.get("value")
+            if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+                candidates.add(f"{namespace}:{value}")
+                candidates.add(value)
+        for alias in concept.get("aliases", []) or []:
+            if not isinstance(alias, dict):
+                continue
+            alias_name = alias.get("name")
+            if isinstance(alias_name, str) and alias_name:
+                candidates.add(alias_name)
+        return candidates
+
     # Collect all concept IDs
     all_ids: set[str] = set()
+    alias_to_id: dict[str, str] = {}
     for c in concepts:
-        cid = c.get("id")
-        if cid:
+        cid = c.get("artifact_id")
+        if isinstance(cid, str) and cid:
             all_ids.add(cid)
+            for candidate in concept_candidates(c):
+                alias_to_id.setdefault(candidate, cid)
 
     # Union-Find data structure
     parent: dict[str, str] = {cid: cid for cid in all_ids}
@@ -57,13 +84,14 @@ def build_groups(concepts: list[dict]) -> list[set[str]]:
 
     # Build edges from parameterization relationships
     for c in concepts:
-        cid = c.get("id")
-        if not cid:
+        cid = c.get("artifact_id")
+        if not isinstance(cid, str) or not cid:
             continue
         for param in c.get("parameterization_relationships", []) or []:
             for input_id in param.get("inputs", []) or []:
-                if input_id in all_ids:
-                    union(cid, input_id)
+                resolved_input_id = alias_to_id.get(str(input_id), str(input_id))
+                if resolved_input_id in all_ids:
+                    union(cid, resolved_input_id)
 
     # Collect connected components
     components: dict[str, set[str]] = {}
