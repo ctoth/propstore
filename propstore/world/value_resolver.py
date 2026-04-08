@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -62,6 +63,9 @@ def _parameterization_concept_ids(param: ParameterizationRow) -> tuple[ConceptId
     return tuple(to_concept_id(item) for item in decoded if isinstance(item, str))
 
 
+_SAFE_SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
 def collect_known_values(
     variable_concepts: Sequence[ConceptId | str],
     value_of: Callable[[ConceptId | str], ValueResult],
@@ -96,6 +100,7 @@ class ActiveClaimResolver:
         extract_variable_concepts: Callable[[dict], list[str]],
         collect_known_values: Callable[[Sequence[ConceptId | str]], dict[ConceptId, Any]],
         extract_bindings: Callable[[dict], dict[str, str]],
+        concept_symbol_candidates: Callable[[ConceptId | str], Sequence[str]] | None = None,
     ) -> None:
         self._parameterizations_for = parameterizations_for
         self._is_param_compatible = is_param_compatible
@@ -103,6 +108,7 @@ class ActiveClaimResolver:
         self._extract_variable_concepts = extract_variable_concepts
         self._collect_known_values = collect_known_values
         self._extract_bindings = extract_bindings
+        self._concept_symbol_candidates = concept_symbol_candidates or (lambda _concept_id: ())
 
     def derived_value(
         self,
@@ -280,10 +286,10 @@ class ActiveClaimResolver:
                 return DerivedResult(concept_id=concept_id, status=ValueStatus.CONFLICTED)
             return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
 
-        result = evaluate_parameterization(
-            sympy_expr,
-            {str(input_id): value for input_id, value in input_values.items()},
-            concept_id,
+        result = self._evaluate_parameterization(
+            param,
+            input_values=input_values,
+            output_concept_id=concept_id,
         )
         if result is None:
             return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
@@ -296,6 +302,79 @@ class ActiveClaimResolver:
             input_values=input_values,
             exactness=param.exactness,
         )
+
+    def _evaluate_parameterization(
+        self,
+        param: ParameterizationRow,
+        *,
+        input_values: Mapping[ConceptId, float],
+        output_concept_id: ConceptId,
+    ) -> float | None:
+        from propstore.propagation import evaluate_parameterization
+
+        sympy_expr = param.sympy
+        if not sympy_expr:
+            return None
+
+        output_key = "__out__"
+        alias_map = self._parameterization_symbol_aliases(param, output_concept_id=output_concept_id)
+        if not alias_map:
+            return evaluate_parameterization(
+                sympy_expr,
+                {str(input_id): value for input_id, value in input_values.items()},
+                str(output_concept_id),
+            )
+
+        rewritten = sympy_expr
+        replacement_candidates: list[tuple[str, str]] = []
+        input_index = 0
+        for concept_id, aliases in alias_map.items():
+            if concept_id == output_concept_id:
+                target_symbol = output_key
+            else:
+                target_symbol = f"__in_{input_index}__"
+                input_index += 1
+            replacement_candidates.append((str(concept_id), target_symbol))
+            for alias in aliases:
+                rewritten = re.sub(
+                    rf"(?<![A-Za-z0-9_]){re.escape(alias)}(?![A-Za-z0-9_])",
+                    target_symbol,
+                    rewritten,
+                )
+
+        if rewritten == sympy_expr:
+            return evaluate_parameterization(
+                sympy_expr,
+                {str(input_id): value for input_id, value in input_values.items()},
+                str(output_concept_id),
+            )
+
+        safe_values: dict[str, float] = {}
+        for concept_id, target_symbol in replacement_candidates:
+            if concept_id == str(output_concept_id):
+                continue
+            value = input_values.get(to_concept_id(concept_id))
+            if value is not None:
+                safe_values[target_symbol] = value
+        return evaluate_parameterization(rewritten, safe_values, output_key)
+
+    def _parameterization_symbol_aliases(
+        self,
+        param: ParameterizationRow,
+        *,
+        output_concept_id: ConceptId,
+    ) -> dict[ConceptId, tuple[str, ...]]:
+        concept_ids = (output_concept_id, *_parameterization_concept_ids(param))
+        aliases: dict[ConceptId, tuple[str, ...]] = {}
+        for concept_id in concept_ids:
+            candidates = [
+                candidate
+                for candidate in self._concept_symbol_candidates(concept_id)
+                if _SAFE_SYMBOL_RE.match(candidate)
+            ]
+            if candidates:
+                aliases[concept_id] = tuple(dict.fromkeys(candidates))
+        return aliases
 
     @staticmethod
     def _coerce_override_value(
