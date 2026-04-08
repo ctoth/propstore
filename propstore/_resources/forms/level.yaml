@@ -1,1 +1,3 @@
 name: level
+kind: quantity
+dimensionless: true
