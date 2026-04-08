@@ -36,7 +36,15 @@ def show(obj: dict, claim_id: str) -> None:
             click.echo(f"Claim '{claim_id}' not found.", err=True)
             sys.exit(EXIT_ERROR)
 
-        click.echo(f"Claim: {claim_data['id']}")
+        logical_id = claim_data.get("logical_id") or claim_data.get("primary_logical_id")
+        artifact_id = claim_data.get("artifact_id")
+
+        if logical_id:
+            click.echo(f"Logical ID: {logical_id}")
+        click.echo(f"Artifact ID: {artifact_id}")
+        version_id = claim_data.get("version_id")
+        if version_id:
+            click.echo(f"Version ID: {version_id}")
 
         concept_id = claim_data.get("concept_id")
         if concept_id:
