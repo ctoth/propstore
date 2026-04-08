@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import time
+from collections import Counter
 from typing import TYPE_CHECKING
 
 import yaml
@@ -11,6 +12,7 @@ from dulwich.objects import Blob, Commit
 from propstore.repo.branch import branch_head
 from propstore.repo.git_backend import _DEFAULT_AUTHOR, _ref_set
 from propstore.repo.merge_classifier import build_merge_framework
+from propstore.repo.merge_report import semantic_candidate_details
 
 if TYPE_CHECKING:
     from propstore.repo.git_backend import KnowledgeRepo
@@ -55,9 +57,11 @@ def create_merge_commit(
             merged_entries[path] = sha
 
     sorted_arguments = sorted(merge.arguments, key=lambda argument: argument.claim_id)
+    artifact_counts = Counter(argument.artifact_id for argument in sorted_arguments)
     merged_claims = [
         copy.deepcopy(argument.claim)
         for argument in sorted_arguments
+        if artifact_counts[argument.artifact_id] == 1
     ]
 
     if merged_claims:
@@ -89,10 +93,15 @@ def create_merge_commit(
                 {
                     "claim_id": argument.claim_id,
                     "canonical_claim_id": argument.canonical_claim_id,
+                    "artifact_id": argument.artifact_id,
+                    "logical_id": argument.logical_id,
                     "branch_origins": list(argument.branch_origins),
+                    "materialized": artifact_counts[argument.artifact_id] == 1,
                 }
                 for argument in sorted_arguments
             ],
+            "semantic_candidates": [list(group) for group in merge.semantic_candidates],
+            "semantic_candidate_details": semantic_candidate_details(merge),
         }
     }
     manifest_content = yaml.dump(manifest, sort_keys=False).encode("utf-8")
