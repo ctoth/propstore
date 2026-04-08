@@ -55,7 +55,7 @@ def _normalize_for_signature(value: Any) -> Any:
 
 
 def _claim_view(claim: dict[str, Any]) -> _StructuredMergeClaimView | None:
-    claim_id = _optional_string(claim.get("id"))
+    claim_id = _optional_string(claim.get("artifact_id"))
     if claim_id is None:
         return None
     raw_stances = claim.get("stances")
@@ -159,7 +159,9 @@ def _summary_content_signature(
         claims_payload.append(
             _normalize_for_signature(claim_view.raw)
         )
-    claims_payload.sort(key=lambda payload: str(payload.get("id", "")))
+    claims_payload.sort(
+        key=lambda payload: str(payload.get("artifact_id", ""))
+    )
 
     stances_payload = [
         {
@@ -240,7 +242,15 @@ def _load_branch_claims(claims_root: KnowledgePath) -> list[dict[str, Any]]:
 
     active_claims: list[dict[str, Any]] = []
     for claim_file in load_claim_files(claims_root):
-        active_claims.extend(claim_file.data.get("claims", []))
+        for claim in claim_file.data.get("claims", []):
+            if not isinstance(claim, dict):
+                active_claims.append(claim)
+                continue
+            normalized = dict(claim)
+            artifact_id = _optional_string(normalized.get("artifact_id"))
+            if artifact_id is not None and "id" not in normalized:
+                normalized["id"] = artifact_id
+            active_claims.append(normalized)
     return active_claims
 
 
