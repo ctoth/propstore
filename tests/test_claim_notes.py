@@ -16,14 +16,31 @@ from hypothesis import strategies as st
 from propstore.build_sidecar import build_sidecar
 from propstore.validate_claims import load_claim_files, validate_claims
 from propstore.world import WorldModel
-from tests.conftest import make_parameter_claim, make_concept_registry
+from tests.conftest import (
+    attach_claim_version_id,
+    make_claim_identity,
+    make_parameter_claim,
+    make_concept_registry,
+    normalize_claims_payload,
+)
 
 
 def make_claim_file_data(claims, paper="test_paper"):
     """Wrap claims in a ClaimFile structure."""
+    normalized_claims = []
+    for index, claim in enumerate(claims, start=1):
+        if not isinstance(claim, dict):
+            normalized_claims.append(claim)
+            continue
+        normalized = dict(claim)
+        if "artifact_id" not in normalized:
+            raw_id = normalized.pop("id", f"claim{index}")
+            normalized.update(make_claim_identity(str(raw_id), namespace=paper))
+        normalized["version_id"] = attach_claim_version_id(normalized)["version_id"]
+        normalized_claims.append(normalized)
     return {
         "source": {"paper": paper},
-        "claims": claims,
+        "claims": normalized_claims,
     }
 
 
@@ -172,9 +189,11 @@ class TestClaimNotesSidecar:
                 },
             ],
         }
+        claim_data = normalize_claims_payload(claim_data)
         (claims_dir / "notes_paper.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
+        claim1_id = make_claim_identity("claim1", namespace="notes_paper")["artifact_id"]
 
         build_sidecar(knowledge, sidecar_path, force=True)
 
@@ -187,9 +206,9 @@ class TestClaimNotesSidecar:
             LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
             LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
             LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
-            WHERE core.id='claim1'
+            WHERE core.id=?
             """
-        ).fetchone()
+        , (claim1_id,)).fetchone()
         assert "notes" in row.keys(), "notes column missing from normalized claim storage"
         assert row["notes"] == "This is a test note"
         conn.close()
@@ -215,6 +234,7 @@ class TestClaimNotesSidecar:
                 },
             ],
         }
+        claim_data = normalize_claims_payload(claim_data)
         (claims_dir / "wm_notes_paper.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False)
         )
@@ -227,7 +247,7 @@ class TestClaimNotesSidecar:
                 self.sidecar_path = path
 
         wm = WorldModel(_FakeRepo(sidecar_path))
-        claim = wm.get_claim("claim1")
+        claim = wm.get_claim(make_claim_identity("claim1", namespace="wm_notes_paper")["artifact_id"])
         assert claim is not None
         assert "notes" in claim, f"notes not in claim dict, keys: {list(claim.keys())}"
         assert claim["notes"] == "WorldModel test note"
@@ -303,9 +323,11 @@ class TestClaimNotesProperties:
                     },
                 ],
             }
+            claim_data = normalize_claims_payload(claim_data)
             (claims_dir / "rt_paper.yaml").write_text(
                 yaml.dump(claim_data, default_flow_style=False)
             )
+            claim1_id = make_claim_identity("claim1", namespace="rt_paper")["artifact_id"]
 
             sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
             build_sidecar(knowledge, sidecar_path, force=True)
@@ -314,9 +336,10 @@ class TestClaimNotesProperties:
             try:
                 conn.row_factory = sqlite3.Row
                 row = conn.execute(
-                    "SELECT notes FROM claim_text_payload WHERE claim_id='claim1'"
+                    "SELECT notes FROM claim_text_payload WHERE claim_id=?",
+                    (claim1_id,),
                 ).fetchone()
-                assert row is not None, "claim1 not found in sidecar"
+                assert row is not None, "claim artifact not found in sidecar"
                 assert row["notes"] == notes_text, (
                     f"Notes roundtrip failed: wrote {notes_text!r}, got {row['notes']!r}"
                 )
