@@ -1146,7 +1146,7 @@ class TestSemanticCorePhase7Worldlines:
                 "policy": {
                     "strategy": "argumentation",
                     "reasoning_backend": "claim_graph",
-                    "semantics": "legacy_grounded",
+                    "semantics": "grounded",
                 },
             }),
             world,
@@ -1371,7 +1371,7 @@ class TestSemanticCorePhase7Worldlines:
         assert calls[0]["comparison"] == comparison
         assert calls[0]["link"] == link
 
-    def test_worldline_grounded_does_not_alias_hybrid_grounded(
+    def test_worldline_grounded_has_single_canonical_meaning(
         self,
         monkeypatch,
     ):
@@ -1454,20 +1454,8 @@ class TestSemanticCorePhase7Worldlines:
                 "targets": ["target"],
                 "policy": {
                     "strategy": "argumentation",
-                    "reasoning_backend": "structured_projection",
+                    "reasoning_backend": "aspic",
                     "semantics": "grounded",
-                },
-            }),
-            _World(),
-        )
-        hybrid = run_worldline(
-            WorldlineDefinition.from_dict({
-                "id": "phase7_structured_hybrid_grounded",
-                "targets": ["target"],
-                "policy": {
-                    "strategy": "argumentation",
-                    "reasoning_backend": "structured_projection",
-                    "semantics": "hybrid-grounded",
                 },
             }),
             _World(),
@@ -1476,9 +1464,6 @@ class TestSemanticCorePhase7Worldlines:
         assert grounded.argumentation is not None
         assert grounded.argumentation["backend"] == "aspic"
         assert grounded.argumentation["justified"] == ["claim_a", "claim_b"]
-        assert hybrid.argumentation is not None
-        assert hybrid.argumentation["backend"] == "aspic"
-        assert hybrid.argumentation["justified"] == []
 
     def test_graph_backed_worldline_materialization_is_stable_under_repeated_execution(
         self,
@@ -1524,7 +1509,7 @@ class TestSemanticCorePhase7Worldlines:
             "policy": {
                 "strategy": "argumentation",
                 "reasoning_backend": "claim_graph",
-                "semantics": "legacy_grounded",
+                "semantics": "grounded",
             },
         })
 
@@ -1855,7 +1840,7 @@ class TestWorldlineCLIFlags:
         assert written["policy"]["semantics"] == "preferred"
 
     def test_create_claim_graph_specific_semantics_flag(self, tmp_path):
-        """Claim-graph-specific semantics like legacy_grounded must be CLI-selectable."""
+        """Claim-graph-specific semantics like d-preferred must be CLI-selectable."""
         import click
         from click.testing import CliRunner
 
@@ -1878,12 +1863,12 @@ class TestWorldlineCLIFlags:
             "--target", "concept1",
             "--strategy", "argumentation",
             "--reasoning-backend", "claim_graph",
-            "--semantics", "legacy_grounded",
+            "--semantics", "d-preferred",
         ])
         assert result.exit_code == 0, result.output
 
         written = yaml.safe_load((wl_dir / "test-wl.yaml").read_text())
-        assert written["policy"]["semantics"] == "legacy_grounded"
+        assert written["policy"]["semantics"] == "d-preferred"
 
     def test_create_rejects_unsupported_backend_semantics_pair(self, tmp_path):
         """Structured projection must reject claim-graph-only semantics at CLI time."""

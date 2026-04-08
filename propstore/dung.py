@@ -24,9 +24,8 @@ class ArgumentationFramework:
     (attacks surviving preference filter). Attacks is the full
     set of attacks before preference filtering.
 
-    Pure Dung semantics use ``defeats`` only. Hybrid consumers may
-    still consult ``attacks`` explicitly for attack-based
-    conflict-freeness.
+    Pure Dung semantics use ``defeats`` only. Consumers that need the
+    full pre-preference attack layer can consult ``attacks`` explicitly.
 
     References:
         Dung 1995: AF = (Args, Defeats)
@@ -164,12 +163,6 @@ def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
     References:
         Dung 1995, Definition 20 + Theorem 25 (least fixed point).
     """
-    if framework.attacks is not None and framework.attacks != framework.defeats:
-        raise ValueError(
-            "grounded_extension() is only defined for pure Dung AFs; "
-            "use hybrid_grounded_extension() for hybrid attack/defeat frameworks."
-        )
-
     s: frozenset[str] = frozenset()
     attackers_index = _attackers_index(framework.defeats)
     while True:
@@ -184,27 +177,6 @@ def grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
         s = next_s
 
     return s
-
-
-def hybrid_grounded_extension(framework: ArgumentationFramework) -> frozenset[str]:
-    """Explicit attack-aware grounded fallback for hybrid frameworks.
-
-    This preserves the old attack-sensitive behavior for callers that
-    intentionally want it. It is not Dung grounded semantics.
-    """
-    cf_relation = framework.attacks if framework.attacks is not None else framework.defeats
-    if cf_relation == framework.defeats:
-        return grounded_extension(framework)
-
-    completes = complete_extensions(framework)
-    if not completes:
-        return frozenset()
-    least = [
-        ext for ext in completes
-        if all(ext <= other for other in completes)
-    ]
-    return least[0] if len(least) == 1 else frozenset()
-
 
 def _resolve_backend(
     framework: ArgumentationFramework,

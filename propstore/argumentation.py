@@ -135,9 +135,6 @@ def compute_claim_graph_justified_claims(
     ]
     if normalized_semantics in {
         ArgumentationSemantics.GROUNDED,
-        ArgumentationSemantics.LEGACY_GROUNDED,
-        ArgumentationSemantics.HYBRID_GROUNDED,
-        ArgumentationSemantics.BIPOLAR_GROUNDED,
     }:
         return accepted[0] if accepted else frozenset()
     return accepted

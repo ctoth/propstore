@@ -36,7 +36,6 @@ from propstore.dung import (
     conflict_free,
     complete_extensions,
     grounded_extension,
-    hybrid_grounded_extension,
     stable_extensions,
 )
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
@@ -381,26 +380,15 @@ class TestAttackBasedConflictFree:
         # No stable extensions: no CF set can defeat all outsiders (no defeats)
         assert frozenset({"A", "B"}) not in exts
 
-    def test_hybrid_grounded_extension_respects_attacks(self):
-        """Attack-aware grounded semantics are now explicit and opt-in."""
+    def test_grounded_extension_ignores_attack_metadata(self):
+        """Grounded semantics always uses defeats, not the raw attack layer."""
         fw = ArgumentationFramework(
             arguments=frozenset({"A", "B"}),
             defeats=frozenset(),
             attacks=frozenset({("A", "B")}),
         )
-        ext = hybrid_grounded_extension(fw)
-        assert ext == frozenset()
-
-    def test_grounded_name_not_used_for_hybrid_attack_defeat_fallback_without_opt_in(self):
-        """Plain grounded must reject hybrid attack metadata without opt-in."""
-        fw = ArgumentationFramework(
-            arguments=frozenset({"A", "B"}),
-            defeats=frozenset(),
-            attacks=frozenset({("A", "B")}),
-        )
-        with pytest.raises(ValueError, match="hybrid_grounded_extension"):
-            grounded_extension(fw)
-        assert hybrid_grounded_extension(fw) == frozenset()
+        ext = grounded_extension(fw)
+        assert ext == frozenset({"A", "B"})
 
 
 # ── Extension-level tests with bipolar examples ──────────────────────
@@ -420,13 +408,8 @@ class TestBipolarExtensions:
         _insert_stance(conn, "B", "C", "rebuts")
         conn.commit()
 
-        with pytest.raises(ValueError, match="legacy_grounded"):
-            compute_claim_graph_justified_claims(
-                SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="grounded"
-            )
-
         result = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="legacy_grounded"
+            SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="grounded"
         )
         assert "A" in result
         assert "B" in result
@@ -442,7 +425,7 @@ class TestBipolarExtensions:
         conn.commit()
 
         result = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="legacy_grounded"
+            SQLiteArgumentationStore(conn), {"A", "B", "C"}, semantics="grounded"
         )
         assert "A" in result
         assert "B" not in result
@@ -478,7 +461,7 @@ class TestBipolarExtensions:
 
         # Grounded should still work
         result = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(conn), {"claim_a", "claim_b", "claim_c"}, semantics="legacy_grounded"
+            SQLiteArgumentationStore(conn), {"claim_a", "claim_b", "claim_c"}, semantics="grounded"
         )
         assert "claim_a" in result
         assert "claim_b" not in result

@@ -2521,7 +2521,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
             RenderPolicy(
                 strategy=ResolutionStrategy.ARGUMENTATION,
                 reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
-                semantics="hybrid-grounded",
+                semantics="grounded",
             )
         )
         hypo = HypotheticalWorld(
@@ -2541,14 +2541,14 @@ class TestSemanticCorePhase6HypotheticalDeltas:
 
         assert result.status == ValueStatus.RESOLVED
         assert result.winning_claim_id == "claim_a"
-        assert result.reason == "sole survivor in hybrid-grounded extension"
+        assert result.reason == "sole survivor in grounded extension"
 
     def test_praf_overlay_uses_delta_backed_conflicts(self):
         bound = _phase6_bound_world(
             RenderPolicy(
                 strategy=ResolutionStrategy.ARGUMENTATION,
                 reasoning_backend=ReasoningBackend.PRAF,
-                semantics="hybrid-grounded",
+                semantics="grounded",
                 praf_strategy="exact_enum",
             )
         )

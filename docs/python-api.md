@@ -304,7 +304,7 @@ A frozen dataclass controlling how the render layer resolves values. Passed to `
 |-------|------|---------|-------------|
 | `reasoning_backend` | `ReasoningBackend` | `CLAIM_GRAPH` | Which reasoning engine to use. |
 | `strategy` | `ResolutionStrategy \| None` | `None` | Default resolution strategy. |
-| `semantics` | `str` | `"grounded"` | Argumentation semantics. The enum includes `grounded`, `legacy_grounded`, `hybrid-grounded`, `bipolar-grounded`, `preferred`, `stable`, `d-preferred`, `s-preferred`, `c-preferred`, `bipolar-stable`, and `complete`; backend support is validated separately. |
+| `semantics` | `str` | `"grounded"` | Argumentation semantics. The enum includes `grounded`, `preferred`, `stable`, `d-preferred`, `s-preferred`, `c-preferred`, `bipolar-stable`, and `complete`; backend support is validated separately. |
 | `comparison` | `str` | `"elitist"` | Preference comparison mode. |
 | `link` | `str` | `"last"` | ASPIC+ preference link type (last-link or weakest-link). |
 | `decision_criterion` | `str` | `"pignistic"` | Decision criterion for belief functions (Denoeux 2019). |
@@ -382,7 +382,6 @@ Which reasoning engine computes the argumentation graph.
 | Value | Description |
 |-------|-------------|
 | `CLAIM_GRAPH` | Default claim graph with Dung AF. |
-| `STRUCTURED_PROJECTION` | Legacy alias of `ASPIC` for parsed/stored inputs. |
 | `ASPIC` | ASPIC+ recursive argument construction. Canonical structured backend. |
 | `ATMS` | Assumption-based truth maintenance. |
 | `PRAF` | Probabilistic argumentation framework. |

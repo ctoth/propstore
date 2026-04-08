@@ -409,12 +409,10 @@ class ReasoningBackend(StrEnum):
     which argumentation backend to call. The active belief space is computed
     by BoundWorld (Z3 condition solving), not by this enum. `aspic` is the
     canonical structured backend and routes through the ASPIC+ bridge.
-    `structured_projection` remains accepted as a legacy alias on input only.
     """
 
     CLAIM_GRAPH = "claim_graph"
     ASPIC = "aspic"
-    STRUCTURED_PROJECTION = "aspic"
     ATMS = "atms"
     PRAF = "praf"
 
@@ -423,9 +421,6 @@ class ArgumentationSemantics(StrEnum):
     """Canonical semantics names exposed by argumentation-capable backends."""
 
     GROUNDED = "grounded"
-    LEGACY_GROUNDED = "legacy_grounded"
-    HYBRID_GROUNDED = "hybrid-grounded"
-    BIPOLAR_GROUNDED = "bipolar-grounded"
     PREFERRED = "preferred"
     STABLE = "stable"
     D_PREFERRED = "d-preferred"
@@ -437,10 +432,6 @@ class ArgumentationSemantics(StrEnum):
 
 _ARGUMENTATION_SEMANTICS_ALIASES: dict[str, ArgumentationSemantics] = {
     ArgumentationSemantics.GROUNDED.value: ArgumentationSemantics.GROUNDED,
-    ArgumentationSemantics.LEGACY_GROUNDED.value: ArgumentationSemantics.LEGACY_GROUNDED,
-    "hybrid_grounded": ArgumentationSemantics.HYBRID_GROUNDED,
-    ArgumentationSemantics.HYBRID_GROUNDED.value: ArgumentationSemantics.HYBRID_GROUNDED,
-    ArgumentationSemantics.BIPOLAR_GROUNDED.value: ArgumentationSemantics.BIPOLAR_GROUNDED,
     ArgumentationSemantics.PREFERRED.value: ArgumentationSemantics.PREFERRED,
     ArgumentationSemantics.STABLE.value: ArgumentationSemantics.STABLE,
     ArgumentationSemantics.D_PREFERRED.value: ArgumentationSemantics.D_PREFERRED,
@@ -453,9 +444,6 @@ _ARGUMENTATION_SEMANTICS_ALIASES: dict[str, ArgumentationSemantics] = {
 
 _CLI_ARGUMENTATION_SEMANTICS = (
     ArgumentationSemantics.GROUNDED,
-    ArgumentationSemantics.LEGACY_GROUNDED,
-    ArgumentationSemantics.HYBRID_GROUNDED,
-    ArgumentationSemantics.BIPOLAR_GROUNDED,
     ArgumentationSemantics.PREFERRED,
     ArgumentationSemantics.STABLE,
     ArgumentationSemantics.D_PREFERRED,
@@ -468,9 +456,6 @@ _CLI_ARGUMENTATION_SEMANTICS = (
 _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = {
     ReasoningBackend.CLAIM_GRAPH: frozenset({
         ArgumentationSemantics.GROUNDED,
-        ArgumentationSemantics.LEGACY_GROUNDED,
-        ArgumentationSemantics.HYBRID_GROUNDED,
-        ArgumentationSemantics.BIPOLAR_GROUNDED,
         ArgumentationSemantics.PREFERRED,
         ArgumentationSemantics.STABLE,
         ArgumentationSemantics.D_PREFERRED,
@@ -480,7 +465,6 @@ _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = 
     }),
     ReasoningBackend.ASPIC: frozenset({
         ArgumentationSemantics.GROUNDED,
-        ArgumentationSemantics.HYBRID_GROUNDED,
         ArgumentationSemantics.PREFERRED,
         ArgumentationSemantics.STABLE,
     }),
@@ -489,7 +473,6 @@ _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = 
     }),
     ReasoningBackend.PRAF: frozenset({
         ArgumentationSemantics.GROUNDED,
-        ArgumentationSemantics.HYBRID_GROUNDED,
         ArgumentationSemantics.PREFERRED,
         ArgumentationSemantics.STABLE,
         ArgumentationSemantics.COMPLETE,
@@ -499,9 +482,7 @@ _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = 
 
 def normalize_reasoning_backend(value: ReasoningBackend | str) -> ReasoningBackend:
     if isinstance(value, ReasoningBackend):
-        return ReasoningBackend.ASPIC if value == ReasoningBackend.STRUCTURED_PROJECTION else value
-    if str(value) == "structured_projection":
-        return ReasoningBackend.ASPIC
+        return value
     try:
         return ReasoningBackend(str(value))
     except ValueError as exc:
@@ -542,8 +523,6 @@ def supported_argumentation_semantics(
 def validate_backend_semantics(
     backend: ReasoningBackend | str,
     semantics: ArgumentationSemantics | str,
-    *,
-    hybrid_graph: bool = False,
 ) -> tuple[ReasoningBackend, ArgumentationSemantics]:
     normalized_backend = normalize_reasoning_backend(backend)
     normalized_semantics = normalize_argumentation_semantics(semantics)
@@ -553,16 +532,6 @@ def validate_backend_semantics(
         raise ValueError(
             f"{normalized_backend.value} does not support semantics "
             f"'{normalized_semantics.value}'; supported semantics: {supported_names}"
-        )
-    if (
-        normalized_backend == ReasoningBackend.CLAIM_GRAPH
-        and normalized_semantics == ArgumentationSemantics.GROUNDED
-        and hybrid_graph
-    ):
-        raise ValueError(
-            "grounded is ambiguous for hybrid claim graphs; "
-            "use legacy_grounded or explicit bipolar semantics such as "
-            "d-preferred, s-preferred, or c-preferred."
         )
     return normalized_backend, normalized_semantics
 

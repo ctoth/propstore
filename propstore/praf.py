@@ -53,7 +53,6 @@ from propstore.dung import (
     ArgumentationFramework,
     complete_extensions,
     grounded_extension,
-    hybrid_grounded_extension,
     preferred_extensions,
     stable_extensions,
 )
@@ -479,8 +478,6 @@ def _extensions_for_semantics(
 ) -> tuple[frozenset[str], ...]:
     if semantics == "grounded":
         return (grounded_extension(af),)
-    if semantics == "hybrid-grounded":
-        return (hybrid_grounded_extension(af),)
     if semantics == "preferred":
         return tuple(preferred_extensions(af, backend="brute"))
     if semantics == "stable":

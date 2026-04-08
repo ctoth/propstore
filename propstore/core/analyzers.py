@@ -26,7 +26,6 @@ from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionRes
 from propstore.dung import (
     ArgumentationFramework,
     grounded_extension,
-    hybrid_grounded_extension,
     preferred_extensions,
     stable_extensions,
 )
@@ -528,10 +527,6 @@ def analyze_claim_graph(
     _, normalized_semantics = validate_backend_semantics(
         ReasoningBackend.CLAIM_GRAPH,
         semantics,
-        hybrid_graph=(
-            shared.argumentation_framework.attacks is not None
-            and shared.argumentation_framework.attacks != shared.argumentation_framework.defeats
-        ),
     )
     if normalized_semantics == ArgumentationSemantics.GROUNDED:
         extensions = (
@@ -539,19 +534,6 @@ def analyze_claim_graph(
                 name=normalized_semantics.value,
                 accepted_claim_ids=tuple(
                     grounded_extension(shared.argumentation_framework)
-                ),
-            ),
-        )
-    elif normalized_semantics in {
-        ArgumentationSemantics.LEGACY_GROUNDED,
-        ArgumentationSemantics.HYBRID_GROUNDED,
-        ArgumentationSemantics.BIPOLAR_GROUNDED,
-    }:
-        extensions = (
-            ExtensionResult(
-                name=normalized_semantics.value,
-                accepted_claim_ids=tuple(
-                    hybrid_grounded_extension(shared.argumentation_framework)
                 ),
             ),
         )

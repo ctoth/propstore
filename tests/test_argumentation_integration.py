@@ -17,7 +17,7 @@ from propstore.argumentation import (
     build_praf,
     compute_claim_graph_justified_claims,
 )
-from propstore.dung import conflict_free, grounded_extension, hybrid_grounded_extension
+from propstore.dung import conflict_free, grounded_extension
 from propstore.preference import claim_strength
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 from tests.conftest import (
@@ -237,11 +237,11 @@ class TestBuildAF:
 
 class TestComputeJustified:
     def test_grounded(self, basic_scenario):
-        """Legacy grounded preserves the committed hybrid-grounded compatibility path."""
+        """Grounded returns the canonical Dung-grounded survivors."""
         result = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(basic_scenario),
             {"claim_a", "claim_b", "claim_c"},
-            semantics="legacy_grounded",
+            semantics="grounded",
         )
         # claim_a defeats claim_b, claim_c undercuts claim_b
         # claim_b is defeated, claim_a and claim_c are undefeated
@@ -368,16 +368,12 @@ class TestAFProperties:
     @given(stance_scenarios())
     @_PROP_SETTINGS
     def test_grounded_is_conflict_free(self, scenario):
-        """P3: Explicit grounded computation remains conflict-free for both AF shapes."""
+        """P3: Grounded computation is conflict-free with respect to defeats."""
         claim_ids, stances, sample_sizes = scenario
         conn = _build_scenario_db(claim_ids, stances, sample_sizes)
         af = build_argumentation_framework(SQLiteArgumentationStore(conn), set(claim_ids))
-        if af.attacks is not None and af.attacks != af.defeats:
-            ext = hybrid_grounded_extension(af)
-            assert conflict_free(ext, af.attacks)
-        else:
-            ext = grounded_extension(af)
-            assert conflict_free(ext, af.defeats)
+        ext = grounded_extension(af)
+        assert conflict_free(ext, af.defeats)
 
     @given(active_stance_scenarios())
     @_PROP_SETTINGS
@@ -396,13 +392,13 @@ class TestAFProperties:
     @given(stance_scenarios())
     @_PROP_SETTINGS
     def test_justified_subset_of_input(self, scenario):
-        """Legacy grounded survivors stay inside the provided active set."""
+        """Grounded survivors stay inside the provided active set."""
         claim_ids, stances, sample_sizes = scenario
         conn = _build_scenario_db(claim_ids, stances, sample_sizes)
         result = compute_claim_graph_justified_claims(
             SQLiteArgumentationStore(conn),
             set(claim_ids),
-            semantics="legacy_grounded",
+            semantics="grounded",
         )
         assert result <= frozenset(claim_ids)
 

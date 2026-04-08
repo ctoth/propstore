@@ -23,7 +23,6 @@ from propstore.dung import (
     complete_extensions,
     defends,
     grounded_extension,
-    hybrid_grounded_extension,
     preferred_extensions,
     stable_extensions,
 )
@@ -115,24 +114,14 @@ class TestGroundedConcrete:
         )
         assert result == frozenset({"A", "C"})
 
-    def test_grounded_name_not_used_for_hybrid_attack_defeat_fallback_without_opt_in(self):
-        """Plain grounded is Dung-only and must reject hybrid attack/defeat frameworks."""
+    def test_grounded_ignores_attack_metadata(self):
+        """Grounded semantics always uses defeats, even when attacks are present."""
         fw = ArgumentationFramework(
             arguments=frozenset({"A", "B"}),
             defeats=frozenset(),
             attacks=frozenset({("A", "B")}),
         )
-        with pytest.raises(ValueError, match="hybrid_grounded_extension"):
-            grounded_extension(fw)
-
-    def test_hybrid_grounded_extension_is_explicitly_named(self):
-        """Hybrid attack-aware grounded evaluation must be opt-in."""
-        fw = ArgumentationFramework(
-            arguments=frozenset({"A", "B"}),
-            defeats=frozenset(),
-            attacks=frozenset({("A", "B")}),
-        )
-        assert hybrid_grounded_extension(fw) == frozenset()
+        assert grounded_extension(fw) == frozenset({"A", "B"})
 
 
 class TestPreferredConcrete:
@@ -491,31 +480,3 @@ def af_with_attacks_superset(draw, max_args=6):
         attacks=all_attacks,
     )
 
-
-class TestHybridGroundedProperties:
-    """Properties for the explicitly named hybrid grounded fallback."""
-
-    @given(af_with_attacks_superset())
-    @settings(max_examples=100, deadline=None)
-    def test_grounded_subset_of_every_preferred(self, framework):
-        """The explicit hybrid helper must still return a least complete set."""
-        grounded = hybrid_grounded_extension(framework)
-        for pref in preferred_extensions(framework, backend="brute"):
-            assert grounded <= pref
-
-    @given(af_with_attacks_superset())
-    @settings(max_examples=100, deadline=None)
-    def test_grounded_conflict_free_wrt_attacks(self, framework):
-        """The explicit hybrid helper must respect attack-based conflict-freeness."""
-        ext = hybrid_grounded_extension(framework)
-        cf_relation = framework.attacks if framework.attacks is not None else framework.defeats
-        assert conflict_free(ext, cf_relation)
-
-    @given(af_with_attacks_superset())
-    @settings(max_examples=100, deadline=None)
-    def test_grounded_is_complete_when_complete_exists(self, framework):
-        """The explicit hybrid helper returns a complete extension when one exists."""
-        completes = complete_extensions(framework, backend="brute")
-        assume(completes)
-        grounded = hybrid_grounded_extension(framework)
-        assert grounded in completes

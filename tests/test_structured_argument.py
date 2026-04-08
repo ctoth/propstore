@@ -176,14 +176,13 @@ def _frameworks_with_optional_attacks(draw):
     )
 
 
-def test_worldline_policy_accepts_legacy_structured_projection_alias() -> None:
-    worldline = WorldlineDefinition.from_dict({
-        "id": "structured_backend",
-        "targets": ["force"],
-        "policy": {"reasoning_backend": "structured_projection"},
-    })
-
-    assert worldline.policy.reasoning_backend == ReasoningBackend.ASPIC
+def test_worldline_policy_rejects_removed_structured_projection_alias() -> None:
+    with pytest.raises(ValueError, match="Unknown reasoning_backend"):
+        WorldlineDefinition.from_dict({
+            "id": "structured_backend",
+            "targets": ["force"],
+            "policy": {"reasoning_backend": "structured_projection"},
+        })
 
 
 def test_structured_projection_uses_stable_argument_ids_and_exact_labels() -> None:
@@ -653,7 +652,7 @@ def test_grounded_semantics_uses_plain_dung_grounded_even_when_attacks_exist() -
     assert justified == frozenset({"arg:a", "arg:b"})
 
 
-def test_hybrid_grounded_requires_explicit_opt_in() -> None:
+def test_grounded_semantics_has_single_canonical_meaning() -> None:
     projection = StructuredProjection(
         arguments=(),
         framework=ArgumentationFramework(
@@ -672,13 +671,8 @@ def test_hybrid_grounded_requires_explicit_opt_in() -> None:
         projection,
         semantics="grounded",
     )
-    hybrid = compute_structured_justified_arguments(
-        projection,
-        semantics="hybrid-grounded",
-    )
 
     assert grounded == frozenset({"arg:a", "arg:b"})
-    assert hybrid == frozenset()
 
 
 def test_structured_projection_rejects_claim_graph_only_semantics() -> None:
@@ -743,7 +737,7 @@ def test_structured_resolution_reports_no_stance_data_like_claim_graph() -> None
         "concept1",
         ResolutionStrategy.ARGUMENTATION,
         world=store,
-        reasoning_backend=ReasoningBackend.STRUCTURED_PROJECTION,
+        reasoning_backend=ReasoningBackend.ASPIC,
     )
 
     assert result.status == "conflicted"
@@ -794,7 +788,7 @@ def test_structured_backend_matches_claim_graph_on_simple_deterministic_case() -
         "concept1",
         ResolutionStrategy.ARGUMENTATION,
         world=store,
-        reasoning_backend=ReasoningBackend.STRUCTURED_PROJECTION,
+        reasoning_backend=ReasoningBackend.ASPIC,
     )
 
     assert claim_graph.status == "resolved"
@@ -848,7 +842,7 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
     )
 
     def _unexpected_claim_graph(*args, **kwargs):
-        raise AssertionError("claim_graph capture should not run for structured_projection")
+        raise AssertionError("claim_graph capture should not run for aspic")
 
     monkeypatch.setattr(
         "propstore.argumentation.compute_claim_graph_justified_claims",
@@ -862,7 +856,7 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
             "inputs": {"bindings": {"task": "speech"}},
             "policy": {
                 "strategy": "argumentation",
-                "reasoning_backend": "structured_projection",
+                "reasoning_backend": "aspic",
             },
         }),
         world,

@@ -45,7 +45,7 @@ Condition disjointness is checked via Z3 satisfiability. Category concepts get E
 
 - `reasoning_backend` selects the argumentation backend used when a render policy asks for argumentation-based conflict resolution.
 - `claim_graph` remains the default backend and preserves the current claim-row projection and behavior.
-- `aspic` is the canonical structured-argument backend over active claims plus exact support metadata. `structured_projection` remains accepted only as a legacy parsed-input alias and normalizes to `aspic`.
+- `aspic` is the canonical structured-argument backend over active claims plus exact support metadata.
 - `atms` is a global label/nogood propagation backend over the active belief space. It is an ATMS-style engine pass, not a full de Kleer runtime manager, not AGM entrenchment, and not full ASPIC+.
 - the separate `propstore.revision` layer performs claim/context revision over derived belief state; argumentation consumers observe that revised state through adapters or worldline capture, rather than performing revision themselves
 - `resolution_strategy` selects how to pick a winner when a conflicted concept still has multiple active claims after belief-space reasoning.

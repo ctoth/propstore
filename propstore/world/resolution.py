@@ -549,7 +549,7 @@ def _resolve_structured_argumentation(
     comparison: str = "elitist",
     link: str = "last",
 ) -> tuple[str | None, str | None]:
-    """Resolve via the structured projection compatibility wrapper."""
+    """Resolve via the ASPIC structured-argument pipeline."""
     _, normalized_semantics = validate_backend_semantics(
         ReasoningBackend.ASPIC,
         semantics,

@@ -15,7 +15,6 @@ from propstore.core.environment import StanceStore
 from propstore.dung import (
     ArgumentationFramework,
     grounded_extension,
-    hybrid_grounded_extension,
     preferred_extensions,
     stable_extensions,
 )
@@ -90,16 +89,7 @@ def compute_structured_justified_arguments(
     )
     framework = projection.framework
     if normalized_semantics == ArgumentationSemantics.GROUNDED:
-        # Dung grounded semantics is defined over defeats only. Strip
-        # attack metadata so hybrid frameworks are evaluated honestly.
-        if framework.attacks is not None and framework.attacks != framework.defeats:
-            framework = ArgumentationFramework(
-                arguments=framework.arguments,
-                defeats=framework.defeats,
-            )
         return grounded_extension(framework)
-    if normalized_semantics == ArgumentationSemantics.HYBRID_GROUNDED:
-        return hybrid_grounded_extension(projection.framework)
     if normalized_semantics == ArgumentationSemantics.PREFERRED:
         return [frozenset(ext) for ext in preferred_extensions(projection.framework)]
     if normalized_semantics == ArgumentationSemantics.STABLE:

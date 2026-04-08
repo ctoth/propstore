@@ -34,12 +34,7 @@ class _MiniStore:
 
 
 def test_praf_exact_enum_respects_attack_only_edges() -> None:
-    """Attack-only edges must not create a fake hybrid-grounded winner.
-
-    If an edge exists only in ``framework.attacks`` and no complete extension
-    survives under the hybrid semantics, probabilistic hybrid-grounded evaluation
-    must stay skeptical instead of promoting the attacker.
-    """
+    """Attack-only edges must not affect grounded acceptance without defeats."""
     fw = ArgumentationFramework(
         arguments=frozenset({"a", "b"}),
         defeats=frozenset(),
@@ -53,21 +48,16 @@ def test_praf_exact_enum_respects_attack_only_edges() -> None:
 
     result = compute_praf_acceptance(
         praf,
-        semantics="hybrid-grounded",
+        semantics="grounded",
         strategy="exact_enum",
     )
 
-    assert result.acceptance_probs["a"] == pytest.approx(0.0)
-    assert result.acceptance_probs["b"] == pytest.approx(0.0)
+    assert result.acceptance_probs["a"] == pytest.approx(1.0)
+    assert result.acceptance_probs["b"] == pytest.approx(1.0)
 
 
 def test_praf_mc_respects_attack_only_edges_when_decomposing() -> None:
-    """MC decomposition must preserve skeptical attack-only hybrid-grounded behavior.
-
-    Components connected only by attacks still interact under the grounded
-    semantics used here, so decomposition must not turn an attack-only pair
-    into an artificial winner.
-    """
+    """MC decomposition must preserve grounded defeat-only semantics."""
     fw = ArgumentationFramework(
         arguments=frozenset({"a", "b"}),
         defeats=frozenset(),
@@ -81,13 +71,13 @@ def test_praf_mc_respects_attack_only_edges_when_decomposing() -> None:
 
     result = compute_praf_acceptance(
         praf,
-        semantics="hybrid-grounded",
+        semantics="grounded",
         strategy="mc",
         rng_seed=42,
     )
 
-    assert result.acceptance_probs["a"] == pytest.approx(0.0)
-    assert result.acceptance_probs["b"] == pytest.approx(0.0)
+    assert result.acceptance_probs["a"] == pytest.approx(1.0)
+    assert result.acceptance_probs["b"] == pytest.approx(1.0)
 
 
 def test_praf_mc_respects_support_coupling_when_decomposing() -> None:
@@ -117,7 +107,7 @@ def test_praf_mc_respects_support_coupling_when_decomposing() -> None:
     praf = build_praf(store, {"claim_a", "claim_b", "claim_c"})
     result = compute_praf_acceptance(
         praf,
-        semantics="hybrid-grounded",
+        semantics="grounded",
         strategy="mc",
         rng_seed=42,
     )
@@ -128,7 +118,7 @@ def test_praf_mc_respects_support_coupling_when_decomposing() -> None:
 
 
 def test_praf_exact_dp_respects_attack_only_edges_via_fallback() -> None:
-    """The exact-DP path must preserve skeptical attack-only hybrid semantics."""
+    """The exact-DP path must preserve grounded defeat-only semantics."""
     fw = ArgumentationFramework(
         arguments=frozenset({"a", "b"}),
         defeats=frozenset(),
@@ -142,12 +132,12 @@ def test_praf_exact_dp_respects_attack_only_edges_via_fallback() -> None:
 
     result = compute_praf_acceptance(
         praf,
-        semantics="hybrid-grounded",
+        semantics="grounded",
         strategy="exact_dp",
     )
 
-    assert result.acceptance_probs["a"] == pytest.approx(0.0)
-    assert result.acceptance_probs["b"] == pytest.approx(0.0)
+    assert result.acceptance_probs["a"] == pytest.approx(1.0)
+    assert result.acceptance_probs["b"] == pytest.approx(1.0)
 
 
 def test_structured_projection_keeps_vacuous_attack_edges() -> None:

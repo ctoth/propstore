@@ -330,7 +330,7 @@ class TestVacuousSurvivesAFConstruction:
 
         ids = {"claim_s", "claim_v"}
         result = compute_claim_graph_justified_claims(
-            SQLiteArgumentationStore(conn), ids, semantics="legacy_grounded",
+            SQLiteArgumentationStore(conn), ids, semantics="grounded",
         )
         # claim_s should survive — it has a strong attack on claim_v,
         # and claim_v's vacuous attack should not eliminate claim_s

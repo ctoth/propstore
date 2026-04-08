@@ -174,13 +174,13 @@ Each worldline selects a reasoning backend via `--reasoning-backend`. Backends a
 | Backend | Enum value | What it captures |
 |---------|-----------|-----------------|
 | `claim_graph` | `CLAIM_GRAPH` | Justified/defeated claim sets via Dung AF over claim rows |
-| `aspic` | `ASPIC` | Full ASPIC+ engine. `structured_projection` remains a legacy parsed-input alias. |
+| `aspic` | `ASPIC` | Full ASPIC+ engine. |
 | `atms` | `ATMS` | ATMS label state from assumption-based truth maintenance |
 | `praf` | `PRAF` | Acceptance probabilities per claim via probabilistic AF |
 
 Each backend has additional parameters configurable via the render policy:
 
-- **All backends**: `semantics` (backend-dependent; the worldline CLI accepts `grounded`, `legacy_grounded`, `hybrid-grounded`, `bipolar-grounded`, `preferred`, `stable`, `d-preferred`, `s-preferred`, `c-preferred`, `bipolar-stable`, `complete`), `comparison` (elitist / democratic)
+- **All backends**: `semantics` (backend-dependent; the worldline CLI accepts `grounded`, `preferred`, `stable`, `d-preferred`, `s-preferred`, `c-preferred`, `bipolar-stable`, `complete`), `comparison` (elitist / democratic)
 - **aspic**: `link` (last / weakest -- ASPIC+ link principle per Modgil & Prakken 2018 Defs 19-21)
 - **praf**: `praf_strategy` (auto / mc / exact / dfquad_quad / dfquad_baf), `praf_mc_epsilon`, `praf_mc_confidence`, `praf_mc_seed`, `praf_treewidth_cutoff`
 
