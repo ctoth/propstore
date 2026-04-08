@@ -229,11 +229,7 @@ class KnowledgeRepo:
         ref = f"refs/heads/{branch}".encode()
         tip = _ref_get(self._repo.refs, ref)
         if tip is None:
-            # Fallback for HEAD-based access (backward compat)
-            try:
-                tip = self._repo.head()
-            except KeyError:
-                return []
+            return []
 
         result: list[dict] = []
         walker = _walker(self._repo, tip, max_entries=max_count)
@@ -316,6 +312,17 @@ class KnowledgeRepo:
                 data = yaml.safe_load(raw)
             except (FileNotFoundError, yaml.YAMLError):
                 continue
+            logical_ids = (data or {}).get("logical_ids")
+            if isinstance(logical_ids, list):
+                for entry in logical_ids:
+                    if not isinstance(entry, dict):
+                        continue
+                    namespace = entry.get("namespace")
+                    value = entry.get("value")
+                    if namespace == "propstore" and isinstance(value, str):
+                        m = _CONCEPT_ID_RE.match(value)
+                        if m:
+                            max_id = max(max_id, int(m.group(1)))
             cid = (data or {}).get("id", "")
             if isinstance(cid, str):
                 m = _CONCEPT_ID_RE.match(cid)

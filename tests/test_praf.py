@@ -1184,8 +1184,8 @@ def test_extension_probability_queries_exact_set_not_single_argument():
     assert negative.extension_probability == pytest.approx(0.0)
 
 
-def test_exact_dp_rejects_or_downgrades_unsupported_skeptical_acceptance_mode():
-    """Exact-DP must not silently pretend to support skeptical singleton acceptance."""
+def test_exact_dp_rejects_unsupported_skeptical_acceptance_mode():
+    """Exact-DP must fail clearly on unsupported skeptical singleton acceptance."""
     from propstore.praf import ProbabilisticAF, compute_praf_acceptance
 
     af = ArgumentationFramework(
@@ -1198,24 +1198,19 @@ def test_exact_dp_rejects_or_downgrades_unsupported_skeptical_acceptance_mode():
         p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
     )
 
-    result = compute_praf_acceptance(
-        praf,
-        semantics="preferred",
-        strategy="exact_dp",
-        query_kind="argument_acceptance",
-        inference_mode="skeptical",
-    )
-
-    assert result.strategy_requested == "exact_dp"
-    assert result.strategy_used == "exact_enum"
-    assert result.downgraded_from == "exact_dp"
-    assert result.inference_mode == "skeptical"
-    assert result.acceptance_probs == {"a": 0.0, "b": 0.0}
+    with pytest.raises(ValueError, match="exact_dp only supports credulous argument acceptance queries"):
+        compute_praf_acceptance(
+            praf,
+            semantics="preferred",
+            strategy="exact_dp",
+            query_kind="argument_acceptance",
+            inference_mode="skeptical",
+        )
 
 
-def test_direct_exact_dp_falls_back_to_exact_enum_for_non_grounded_semantics():
-    """Direct tree-decomp entrypoint must fall back cleanly outside grounded semantics."""
-    from propstore.praf import ProbabilisticAF, compute_praf_acceptance
+def test_direct_exact_dp_rejects_non_grounded_semantics():
+    """Direct tree-decomp entrypoint must fail outside grounded semantics."""
+    from propstore.praf import ProbabilisticAF
     from propstore.praf_treedecomp import compute_exact_dp
 
     af = ArgumentationFramework(
@@ -1228,16 +1223,11 @@ def test_direct_exact_dp_falls_back_to_exact_enum_for_non_grounded_semantics():
         p_defeats={edge: Opinion.dogmatic_true() for edge in af.defeats},
     )
 
-    direct = compute_exact_dp(praf, semantics="preferred")
-    exact_enum = compute_praf_acceptance(
-        praf,
-        semantics="preferred",
-        strategy="exact_enum",
-        query_kind="argument_acceptance",
-        inference_mode="credulous",
-    )
-
-    assert direct == exact_enum.acceptance_probs
+    with pytest.raises(
+        ValueError,
+        match="exact_dp only supports grounded semantics on defeat-only probabilistic frameworks",
+    ):
+        compute_exact_dp(praf, semantics="preferred")
 
 
 def test_exact_dp_capability_surface_does_not_claim_extension_probability():

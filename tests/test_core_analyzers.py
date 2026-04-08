@@ -97,7 +97,7 @@ def test_shared_claim_graph_analyzer_matches_current_grounded(conn: sqlite3.Conn
     assert result.projection.survivor_claim_ids == ()
 
 
-def test_shared_claim_graph_analyzer_rejects_grounded_on_hybrid_graph() -> None:
+def test_shared_claim_graph_analyzer_uses_grounded_over_defeats_only() -> None:
     from propstore.bipolar import BipolarArgumentationFramework
     from propstore.core.analyzers import SharedAnalyzerInput, analyze_claim_graph
     from propstore.dung import ArgumentationFramework
@@ -123,8 +123,9 @@ def test_shared_claim_graph_analyzer_rejects_grounded_on_hybrid_graph() -> None:
         ),
     )
 
-    with pytest.raises(ValueError, match="grounded is ambiguous"):
-        analyze_claim_graph(shared, semantics="grounded")
+    result = analyze_claim_graph(shared, semantics="grounded")
+
+    assert _accepted_extensions(result) == {frozenset({"c1", "c2"})}
 
 
 def test_shared_claim_graph_analyzer_matches_current_preferred_and_stable(
@@ -262,18 +263,13 @@ def test_shared_projection_is_independent_of_active_claim_id_order() -> None:
 
 
 class TestConflictStanceSynthesis:
-    """Regression: conflicts must not be suppressed when policy says to include them."""
+    """Conflicts should always synthesize rebut stances when not already explicit."""
 
     def test_conflict_visible_despite_existing_stances(
         self, conn: sqlite3.Connection
     ) -> None:
-        """When include_conflict_stances=True, a conflict between A and C
-        should produce synthetic rebuts stances even if A already has a
-        support stance to B.
-
-        Bug: analyzers.py:302-304 skips conflicts when either claim has
-        any existing stance, violating non-commitment discipline.
-        """
+        """A conflict between A and C must still produce synthetic rebuts
+        even if A already has an explicit support stance to B."""
         # claim A, B, C all on the same concept so conflicts are meaningful
         _insert_claim(conn, "cA", "temp", 100.0, sample_size=50)
         _insert_claim(conn, "cB", "temp", 200.0, sample_size=50)
@@ -296,7 +292,6 @@ class TestConflictStanceSynthesis:
         shared = shared_analyzer_input_from_store(
             store,
             {"cA", "cB", "cC"},
-            include_conflict_stances=True,
         )
 
         # The synthetic rebuts stances between A and C must exist
@@ -311,39 +306,3 @@ class TestConflictStanceSynthesis:
         assert ("cC", "cA") in synthetic_pairs, (
             "Conflict A↔C should produce synthetic rebuts C→A"
         )
-
-    def test_default_preserves_suppression(
-        self, conn: sqlite3.Connection
-    ) -> None:
-        """Default (include_conflict_stances=False) preserves the old
-        suppression behavior for backward compatibility."""
-        _insert_claim(conn, "cA", "temp", 100.0, sample_size=50)
-        _insert_claim(conn, "cB", "temp", 200.0, sample_size=50)
-        _insert_claim(conn, "cC", "temp", 300.0, sample_size=50)
-        _insert_stance(conn, "cA", "cB", "supports")
-        insert_conflict(
-            conn,
-            concept_id="temp",
-            claim_a_id="cA",
-            claim_b_id="cC",
-            warning_class="CONFLICT",
-        )
-        conn.commit()
-
-        from propstore.core.analyzers import shared_analyzer_input_from_store
-
-        store = SQLiteArgumentationStore(conn)
-        # Default — no include_conflict_stances kwarg
-        shared = shared_analyzer_input_from_store(
-            store,
-            {"cA", "cB", "cC"},
-        )
-
-        synthetic_pairs = {
-            (s["claim_id"], s["target_claim_id"])
-            for s in shared.stance_rows
-            if s["stance_type"] == "rebuts"
-        }
-        # Old behavior: conflict suppressed because cA has a stance
-        assert ("cA", "cC") not in synthetic_pairs
-        assert ("cC", "cA") not in synthetic_pairs

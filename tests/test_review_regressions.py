@@ -117,8 +117,8 @@ def test_praf_mc_respects_support_coupling_when_decomposing() -> None:
     assert result.acceptance_probs["claim_b"] == pytest.approx(0.0)
 
 
-def test_praf_exact_dp_respects_attack_only_edges_via_fallback() -> None:
-    """The exact-DP path must preserve grounded defeat-only semantics."""
+def test_praf_exact_dp_rejects_attack_only_edges() -> None:
+    """The exact-DP path must fail on attack-only frameworks instead of downgrading."""
     fw = ArgumentationFramework(
         arguments=frozenset({"a", "b"}),
         defeats=frozenset(),
@@ -130,14 +130,15 @@ def test_praf_exact_dp_respects_attack_only_edges_via_fallback() -> None:
         p_defeats={},
     )
 
-    result = compute_praf_acceptance(
-        praf,
-        semantics="grounded",
-        strategy="exact_dp",
-    )
-
-    assert result.acceptance_probs["a"] == pytest.approx(1.0)
-    assert result.acceptance_probs["b"] == pytest.approx(1.0)
+    with pytest.raises(
+        ValueError,
+        match="exact_dp only supports grounded semantics on defeat-only probabilistic frameworks",
+    ):
+        compute_praf_acceptance(
+            praf,
+            semantics="grounded",
+            strategy="exact_dp",
+        )
 
 
 def test_structured_projection_keeps_vacuous_attack_edges() -> None:

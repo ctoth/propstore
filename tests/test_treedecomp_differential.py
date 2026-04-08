@@ -1,8 +1,7 @@
 """Differential tests for the tree-decomposition exact backend.
 
-These tests cross-check the public exact routing against exact enumeration.
-If the DP backend cannot maintain exactness, public routing must fall back to
-the enumerator rather than returning silent wrong answers.
+These tests cross-check the public exact-DP routing against exact enumeration.
+If the DP backend cannot maintain exactness, the public exact-DP surface is wrong.
 """
 
 from __future__ import annotations
@@ -115,7 +114,7 @@ def test_exact_dp_matches_exact_enum_under_repeated_randomized_differential_runs
         exact = compute_praf_acceptance(praf, semantics="grounded", strategy="exact_enum")
         routed = compute_praf_acceptance(praf, semantics="grounded", strategy="exact_dp")
 
-        assert routed.strategy_used == "exact_enum"
+        assert routed.strategy_used == "exact_dp"
         _assert_acceptance_close(routed.acceptance_probs, exact.acceptance_probs)
 
 
@@ -128,5 +127,5 @@ def test_exact_dp_history_independence():
     exact = compute_praf_acceptance(praf, semantics="grounded", strategy="exact_enum")
     routed = compute_praf_acceptance(praf, semantics="grounded", strategy="exact_dp")
 
-    assert routed.strategy_used == "exact_enum"
+    assert routed.strategy_used == "exact_dp"
     _assert_acceptance_close(routed.acceptance_probs, exact.acceptance_probs)

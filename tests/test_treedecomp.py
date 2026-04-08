@@ -343,22 +343,24 @@ class TestDPAgreesBruteForce:
         self._cross_validate(praf)
 
     def test_complete_semantics(self):
-        """Cross-validate under complete semantics."""
+        """Public exact-DP must reject unsupported complete semantics."""
         praf = _make_praf(
             {"a", "b", "c"},
             {("a", "b"), ("b", "c"), ("c", "a")},
             p_defeat=0.6,
         )
-        self._cross_validate(praf, semantics="complete")
+        with pytest.raises(ValueError, match="exact_dp only supports grounded semantics"):
+            self._cross_validate(praf, semantics="complete")
 
     def test_preferred_semantics(self):
-        """Cross-validate under preferred semantics."""
+        """Public exact-DP must reject unsupported preferred semantics."""
         praf = _make_praf(
             {"a", "b", "c"},
             {("a", "b"), ("b", "c"), ("c", "a")},
             p_defeat=0.6,
         )
-        self._cross_validate(praf, semantics="preferred")
+        with pytest.raises(ValueError, match="exact_dp only supports grounded semantics"):
+            self._cross_validate(praf, semantics="preferred")
 
     def test_review_counterexample_matches_exact_enumeration(self):
         """The review's grounded mismatch example must agree with exact enumeration."""
@@ -573,8 +575,8 @@ class TestDPWitness:
 # 13. test_hybrid_dispatch_selects_dp
 # ===================================================================
 class TestHybridDispatch:
-    def test_hybrid_dispatch_selects_mc_when_exact_dp_is_gated(self):
-        """Auto should avoid the unsound public exact-DP route until fixed."""
+    def test_hybrid_dispatch_selects_exact_dp_when_supported(self):
+        """Auto should route to exact-DP on low-treewidth grounded defeat-only PrAFs."""
         from propstore.praf import compute_praf_acceptance
 
         # Build a path graph with 20 nodes (treewidth 1)
@@ -585,7 +587,7 @@ class TestHybridDispatch:
         result = compute_praf_acceptance(
             praf, semantics="grounded", strategy="auto"
         )
-        assert result.strategy_used == "mc"
+        assert result.strategy_used == "exact_dp"
 
     # ---------------------------------------------------------------
     # 14. test_hybrid_dispatch_selects_mc
@@ -621,11 +623,7 @@ class TestHybridDispatch:
 # ===================================================================
 class TestDPSemantics:
     def test_dp_grounded_vs_preferred(self):
-        """Grounded and preferred semantics produce valid (potentially
-        different) results on the same PrAF.
-
-        Per Popescu & Wallner (2024, p.5): algorithm handles multiple semantics.
-        """
+        """Grounded exact-DP works, but preferred must be rejected by the public surface."""
         from propstore.praf import compute_praf_acceptance
 
         praf = _make_praf(
@@ -636,25 +634,19 @@ class TestDPSemantics:
         gr_result = compute_praf_acceptance(
             praf, semantics="grounded", strategy="exact_dp"
         )
-        pr_result = compute_praf_acceptance(
-            praf, semantics="preferred", strategy="exact_dp"
-        )
+        with pytest.raises(ValueError, match="exact_dp only supports grounded semantics"):
+            compute_praf_acceptance(
+                praf, semantics="preferred", strategy="exact_dp"
+            )
 
-        # All probabilities should be in [0, 1]
         for arg in praf.framework.arguments:
             assert 0.0 <= gr_result.acceptance_probs[arg] <= 1.0
-            assert 0.0 <= pr_result.acceptance_probs[arg] <= 1.0
 
-        # Cross-validate both against brute-force
         bf_gr = compute_praf_acceptance(
             praf, semantics="grounded", strategy="exact_enum"
         )
-        bf_pr = compute_praf_acceptance(
-            praf, semantics="preferred", strategy="exact_enum"
-        )
         for arg in praf.framework.arguments:
             assert abs(gr_result.acceptance_probs[arg] - bf_gr.acceptance_probs[arg]) < 1e-6
-            assert abs(pr_result.acceptance_probs[arg] - bf_pr.acceptance_probs[arg]) < 1e-6
 
 
 # ===================================================================

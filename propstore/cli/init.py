@@ -8,29 +8,16 @@ import click
 from propstore.cli.repository import Repository
 
 
-_FALLBACK_FORMS = (
-    "category",
-    "boolean",
-    "structural",
-    "count",
-    "rate",
-    "score",
-    "ratio",
-)
-
-
 def _seed_form_files() -> dict[str, bytes]:
     """Return default form files keyed by repo-relative path."""
     form_files: dict[str, bytes] = {}
     package_forms_dir = Path(__file__).resolve().parent.parent / "_resources" / "forms"
-    if package_forms_dir.is_dir():
-        for form_path in sorted(package_forms_dir.glob("*.yaml")):
-            form_files[f"forms/{form_path.name}"] = form_path.read_bytes()
-        return form_files
-
-    for form_name in _FALLBACK_FORMS:
-        stub = f"name: {form_name}\nkind: {form_name}\ndimensionless: false\n"
-        form_files[f"forms/{form_name}.yaml"] = stub.encode("utf-8")
+    if not package_forms_dir.is_dir():
+        raise click.ClickException(
+            f"init requires packaged form resources at {package_forms_dir}"
+        )
+    for form_path in sorted(package_forms_dir.glob("*.yaml")):
+        form_files[f"forms/{form_path.name}"] = form_path.read_bytes()
     return form_files
 @click.command()
 @click.argument("directory", default="knowledge")

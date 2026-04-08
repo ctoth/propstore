@@ -401,16 +401,6 @@ def _all_structure_deterministic(praf: ProbabilisticAF) -> bool:
     return True
 
 
-def _public_exact_dp_enabled(
-    praf: ProbabilisticAF,
-    semantics: str,
-    query_kind: str,
-    inference_mode: str | None,
-) -> bool:
-    """Gate public exact-DP routing until the backend is differential-safe."""
-    return False
-
-
 def _normalize_queried_set(
     queried_set: frozenset[str] | set[str] | tuple[str, ...] | list[str] | None,
 ) -> tuple[str, ...] | None:
@@ -737,30 +727,18 @@ def compute_praf_acceptance(
             if requested_strategy != normalized_strategy else result
         )
     if normalized_strategy == "exact_dp":
-        supported = _exact_dp_supports_query(
+        from propstore.praf_treedecomp import supports_exact_dp
+
+        if not _exact_dp_supports_query(
             query_kind=normalized_query_kind,
             inference_mode=normalized_inference_mode,
-        )
-        if (
-            not supported
-            or not _public_exact_dp_enabled(
-                praf,
-                semantics,
-                normalized_query_kind,
-                normalized_inference_mode,
-            )
         ):
-            downgraded = _compute_exact_enumeration(
-                praf,
-                semantics,
-                query_kind=normalized_query_kind,
-                inference_mode=normalized_inference_mode,
-                queried_set=normalized_queried_set,
+            raise ValueError(
+                "exact_dp only supports credulous argument acceptance queries"
             )
-            return _with_strategy_override(
-                downgraded,
-                strategy_requested=requested_strategy,
-                downgraded_from=requested_strategy,
+        if not supports_exact_dp(praf, semantics):
+            raise ValueError(
+                "exact_dp only supports grounded semantics on defeat-only probabilistic frameworks"
             )
         result = _compute_exact_dp(
             praf,
@@ -837,19 +815,16 @@ def compute_praf_acceptance(
             query_kind=normalized_query_kind,
             inference_mode=normalized_inference_mode,
         )
-        and _public_exact_dp_enabled(
-            praf,
-            semantics,
-            normalized_query_kind,
-            normalized_inference_mode,
-        )
     ):
-        return _compute_exact_dp(
-            praf,
-            semantics,
-            query_kind=normalized_query_kind,
-            inference_mode=normalized_inference_mode,
-        )
+        from propstore.praf_treedecomp import supports_exact_dp
+
+        if supports_exact_dp(praf, semantics):
+            return _compute_exact_dp(
+                praf,
+                semantics,
+                query_kind=normalized_query_kind,
+                inference_mode=normalized_inference_mode,
+            )
 
     # Default: MC
     return _compute_mc(

@@ -757,11 +757,6 @@ class RenderPolicy:
     praf_mc_confidence: float = 0.95  # MC confidence level
     praf_treewidth_cutoff: int = 12  # max treewidth for exact DP (Popescu 2024, p.8)
     praf_mc_seed: int | None = None  # RNG seed (None = random)
-    # When True, conflict-detected claim pairs produce synthetic rebuts stances
-    # even if the claims already participate in other stance relationships.
-    # Default False preserves legacy suppression behavior; True is the principled
-    # non-commitment choice (render-time policy, not build-time filter).
-    include_conflict_stances: bool = False
     # IC merge fields for the assignment-level Konieczny-style adaptation.
     # merge_operator selects the aggregation family used by the global solver.
     merge_operator: MergeOperator = MergeOperator.SIGMA
@@ -871,7 +866,6 @@ class RenderPolicy:
                 if data.get("praf_mc_seed") is None
                 else int(data["praf_mc_seed"])
             ),
-            include_conflict_stances=bool(data.get("include_conflict_stances", False)),
             merge_operator=normalize_merge_operator(
                 data.get("merge_operator", MergeOperator.SIGMA)
             ),
@@ -927,8 +921,6 @@ class RenderPolicy:
             data["praf_treewidth_cutoff"] = self.praf_treewidth_cutoff
         if self.praf_mc_seed is not None:
             data["praf_mc_seed"] = self.praf_mc_seed
-        if self.include_conflict_stances:
-            data["include_conflict_stances"] = self.include_conflict_stances
         if self.merge_operator != MergeOperator.SIGMA:
             data["merge_operator"] = self.merge_operator
         if self.branch_filter is not None:

@@ -7,7 +7,7 @@ probabilities in PrAFs.
 Current native support is intentionally narrower than the paper:
 grounded semantics on defeat-only probabilistic worlds where
 `attacks == defeats` and there are no support relations. Richer worlds
-fall back to canonical exact enumeration.
+are rejected by this backend.
 
 **Known limitation:** The tree decomposition DP currently tracks full edge sets
 and forgotten arguments in table keys, giving row count O(2^|defeats| * 2^|args|).
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from propstore.praf import ProbabilisticAF
 
 
-def _supports_native_exact_dp(
+def supports_exact_dp(
     praf: ProbabilisticAF,
     semantics: str,
 ) -> bool:
@@ -463,37 +463,17 @@ def compute_exact_dp(
     processes a nice tree decomposition bottom-up, maintaining tables of
     partial labellings weighted by probability.
 
-    For non-grounded semantics, falls back to brute-force enumeration.
+    Unsupported semantics or relation structures are rejected.
 
     Complexity: O(3^k * n * 2^d_bag) where k is treewidth, n is number
     of nodes, d_bag is max defeats per bag (Popescu & Wallner 2024, Theorem 7).
     """
-    if not _supports_native_exact_dp(praf, semantics):
-        return _compute_brute_force_fallback(praf, semantics)
+    if not supports_exact_dp(praf, semantics):
+        raise ValueError(
+            "exact_dp only supports grounded semantics on defeat-only probabilistic frameworks"
+        )
 
     return _compute_grounded_dp(praf)
-
-
-def _compute_brute_force_fallback(
-    praf: ProbabilisticAF,
-    semantics: str,
-) -> dict[str, float]:
-    """Brute-force enumeration fallback for non-grounded semantics.
-
-    Per Popescu & Wallner (2024, Theorem 6): P_acc for multi-extension
-    semantics is #.NP-complete. No efficient TD DP exists for these.
-    """
-    from propstore.praf import _compute_exact_enumeration
-
-    result = _compute_exact_enumeration(
-        praf,
-        semantics,
-        query_kind="argument_acceptance",
-        inference_mode="credulous",
-        queried_set=None,
-    )
-    assert result.acceptance_probs is not None
-    return result.acceptance_probs
 
 
 # ===================================================================

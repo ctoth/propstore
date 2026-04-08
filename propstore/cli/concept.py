@@ -29,6 +29,7 @@ from propstore.identity import (
     normalize_logical_value,
     primary_logical_id,
 )
+from propstore.form_utils import load_form_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.cli.repository import Repository
 from propstore.loaded import LoadedEntry
@@ -246,10 +247,23 @@ def _concept_display_handle(data: dict) -> str:
     return primary_logical_id(data) or data.get("canonical_name") or data.get("artifact_id") or "?"
 
 
-def _build_concept_registry(concepts: list[LoadedEntry]) -> dict[str, dict]:
+def _build_concept_registry(
+    concepts: list[LoadedEntry],
+    *,
+    forms_root: KnowledgePath,
+) -> dict[str, dict]:
     registry: dict[str, dict] = {}
     for concept_record in concepts:
         data = deepcopy(concept_record.data)
+        form_name = data.get("form")
+        if isinstance(form_name, str) and form_name:
+            form_def = load_form_path(forms_root, form_name)
+            if form_def is None:
+                raise click.ClickException(
+                    f"concept '{data.get('artifact_id') or data.get('canonical_name') or concept_record.filename}' "
+                    f"references missing form definition '{form_name}'"
+                )
+            data["_form_definition"] = form_def
         artifact_id = data.get("artifact_id")
         if isinstance(artifact_id, str) and artifact_id:
             registry[artifact_id] = data
@@ -598,7 +612,10 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
                 source_path=source_path,
                 data=claim_data,
             ))
-        concept_registry = _build_concept_registry(updated_concepts)
+        concept_registry = _build_concept_registry(
+            updated_concepts,
+            forms_root=repo.tree() / "forms",
+        )
         claim_validation = validate_claims(updated_claim_files, concept_registry)
         if not claim_validation.ok:
             for e in claim_validation.errors:
@@ -823,45 +840,25 @@ def search(obj: dict, query: str) -> None:
     repo: Repository = obj["repo"]
     sidecar = repo.sidecar_path
 
-    if sidecar.exists():
-        import contextlib
-        conn = sqlite3.connect(sidecar)
-        with contextlib.closing(conn):
-            rows = conn.execute(
-                "SELECT concept.primary_logical_id, concept_fts.canonical_name, concept_fts.definition "
-                "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
-                "WHERE concept_fts MATCH ? LIMIT 20",
-                (query,),
-            ).fetchall()
-        if rows:
-            for logical_id, name, defn in rows:
-                snippet = (defn or "")[:80]
-                click.echo(f"  {logical_id}  {name}  — {snippet}")
-        else:
-            click.echo("No matches.")
-        return
+    if not sidecar.exists():
+        raise click.ClickException(
+            "concept search requires a built sidecar; run 'pks build' first"
+        )
 
-    # Fallback: grep over YAML files
-    query_lower = query.lower()
-    concepts_tree = _concepts_tree(repo)
-    if not concepts_tree.exists():
-        click.echo("No concepts directory found.")
-        return
-
-    found = False
-    for entry in load_concepts(concepts_tree):
-        data = entry.data
-        searchable = " ".join([
-            data.get("canonical_name", ""),
-            data.get("definition", ""),
-            " ".join(a.get("name", "") for a in (data.get("aliases") or [])),
-        ]).lower()
-        if query_lower in searchable:
-            snippet = (data.get("definition", "") or "")[:80]
-            click.echo(f"  {_concept_display_handle(data)}  {data.get('canonical_name')}  — {snippet}")
-            found = True
-
-    if not found:
+    import contextlib
+    conn = sqlite3.connect(sidecar)
+    with contextlib.closing(conn):
+        rows = conn.execute(
+            "SELECT concept.primary_logical_id, concept_fts.canonical_name, concept_fts.definition "
+            "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
+            "WHERE concept_fts MATCH ? LIMIT 20",
+            (query,),
+        ).fetchall()
+    if rows:
+        for logical_id, name, defn in rows:
+            snippet = (defn or "")[:80]
+            click.echo(f"  {logical_id}  {name}  — {snippet}")
+    else:
         click.echo("No matches.")
 
 

@@ -870,25 +870,19 @@ class TestConceptList:
 
 
 class TestConceptSearch:
-    def test_search_by_name_yaml_fallback(self, workspace: Path) -> None:
-        """concept search should find concepts by name via YAML grep fallback."""
+    def test_search_requires_sidecar(self, workspace: Path) -> None:
+        """concept search should require a built sidecar."""
         runner = CliRunner()
         result = runner.invoke(cli, ["concept", "search", "fundamental"])
-        assert result.exit_code == 0, result.output
-        assert "speech:fundamental_frequency" in result.output
-        assert "fundamental_frequency" in result.output
-
-    def test_search_by_definition_yaml_fallback(self, workspace: Path) -> None:
-        """concept search should find concepts by definition text."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["concept", "search", "definition"])
-        assert result.exit_code == 0, result.output
-        # Both concepts have "Test definition for X" in their definition
-        assert "speech:fundamental_frequency" in result.output
+        assert result.exit_code != 0
+        assert "requires a built sidecar" in result.output
 
     def test_search_no_matches(self, workspace: Path) -> None:
         """concept search with no matches should report no matches."""
         runner = CliRunner()
+        build_result = runner.invoke(cli, ["build"])
+        assert build_result.exit_code == 0, build_result.output
+
         result = runner.invoke(cli, ["concept", "search", "zzz_nonexistent_zzz"])
         assert result.exit_code == 0
         assert "No matches" in result.output
@@ -905,6 +899,16 @@ class TestConceptSearch:
         assert result.exit_code == 0, result.output
         assert "speech:fundamental_frequency" in result.output
         assert "fundamental_frequency" in result.output
+
+    def test_search_by_definition_with_fts(self, workspace: Path) -> None:
+        """concept search should find concepts by definition text via FTS."""
+        runner = CliRunner()
+        build_result = runner.invoke(cli, ["build"])
+        assert build_result.exit_code == 0, build_result.output
+
+        result = runner.invoke(cli, ["concept", "search", "definition"])
+        assert result.exit_code == 0, result.output
+        assert "speech:fundamental_frequency" in result.output
 
 
 # ── Step 3: claim validate-file command ──────────────────────────────
