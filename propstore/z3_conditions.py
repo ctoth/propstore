@@ -11,7 +11,6 @@ determines which type each concept gets.
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -327,12 +326,8 @@ class Z3ConditionSolver:
 
     def are_disjoint(self, conditions_a: Sequence[str], conditions_b: Sequence[str]) -> bool:
         """Check if two condition sets are disjoint (their conjunction is UNSAT)."""
-        try:
-            expr_a = self._conditions_to_z3(conditions_a)
-            expr_b = self._conditions_to_z3(conditions_b)
-        except (Z3TranslationError, ValueError):
-            return False  # Can't determine — assume not disjoint (conservative)
-
+        expr_a = self._conditions_to_z3(conditions_a)
+        expr_b = self._conditions_to_z3(conditions_b)
         solver = z3.Solver(ctx=self._ctx)
         solver.add(expr_a)
         solver.add(expr_b)
@@ -343,12 +338,8 @@ class Z3ConditionSolver:
 
         Both A∧¬B and B∧¬A must be UNSAT.
         """
-        try:
-            expr_a = self._conditions_to_z3(conditions_a)
-            expr_b = self._conditions_to_z3(conditions_b)
-        except (Z3TranslationError, ValueError):
-            return False  # Can't determine — assume not equivalent
-
+        expr_a = self._conditions_to_z3(conditions_a)
+        expr_b = self._conditions_to_z3(conditions_b)
         # Check A ∧ ¬B is UNSAT
         s1 = z3.Solver(ctx=self._ctx)
         s1.add(expr_a)
@@ -384,14 +375,10 @@ class Z3ConditionSolver:
         for i in range(1, len(condition_sets)):
             matched = False
             for j, rep in enumerate(representatives):
-                try:
-                    if self.are_equivalent(condition_sets[i], rep):
-                        classes[j].append(i)
-                        matched = True
-                        break
-                except Z3TranslationError as exc:
-                    logging.warning("Equivalence check failed in partition: %s", exc)
-                    continue
+                if self.are_equivalent(condition_sets[i], rep):
+                    classes[j].append(i)
+                    matched = True
+                    break
             if not matched:
                 representatives.append(condition_sets[i])
                 classes.append([i])

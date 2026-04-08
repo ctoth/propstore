@@ -1007,9 +1007,9 @@ class TestAlgorithmExceptionHandling:
                 detect_algorithm_conflicts([cf], registry)
 
 
-class TestParameterZ3FallbackHandling:
-    def test_z3_partition_error_falls_back_to_pairwise(self):
-        """Z3 partition failure should fall back to pairwise detection."""
+class TestParameterZ3FailureHandling:
+    def test_z3_partition_error_raises(self):
+        """Z3 partition failure should raise; there is no pairwise fallback."""
         from unittest.mock import patch
         from propstore.z3_conditions import Z3TranslationError, Z3ConditionSolver
         from propstore.conflict_detector.parameters import detect_parameter_conflicts
@@ -1031,10 +1031,8 @@ class TestParameterZ3FallbackHandling:
             "partition_equivalence_classes",
             side_effect=Z3TranslationError("partition failed"),
         ):
-            records, _ = detect_parameter_conflicts([cf], cel_registry, solver=solver)
-
-        # Should not crash — falls back to pairwise
-        assert isinstance(records, list)
+            with pytest.raises(RuntimeError, match="Z3 partitioning failed during parameter conflict detection"):
+                detect_parameter_conflicts([cf], cel_registry, solver=solver)
 
     def test_z3_partition_unexpected_error_propagates(self):
         """RuntimeError in partition should propagate."""

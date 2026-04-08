@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
@@ -25,8 +24,8 @@ if TYPE_CHECKING:
 def _build_z3_solver(cel_registry: dict[str, ConceptInfo]):
     try:
         from propstore.z3_conditions import Z3ConditionSolver
-    except ImportError:
-        return None
+    except ImportError as exc:
+        raise RuntimeError("Z3 condition reasoning is required but unavailable") from exc
     return Z3ConditionSolver(cel_registry)
 
 
@@ -47,14 +46,13 @@ def detect_parameter_conflicts(
 
         all_conditions = [sorted(claim.get("conditions") or []) for claim in claims]
 
-        if z3_solver is not None and len(claims) > 2:
+        if len(claims) > 2:
             from propstore.z3_conditions import Z3TranslationError
             import z3
             try:
                 eq_classes = z3_solver.partition_equivalence_classes(all_conditions)
             except (Z3TranslationError, z3.Z3Exception) as exc:
-                logging.warning("Z3 partition failed, falling back to pairwise: %s", exc)
-                eq_classes = None
+                raise RuntimeError("Z3 partitioning failed during parameter conflict detection") from exc
         else:
             eq_classes = None
 
@@ -214,13 +212,7 @@ def _detect_cross_class_parameter_conflicts(
                     else ConflictClass.OVERLAP
                 )
             except (Z3TranslationError, z3.Z3Exception) as exc:
-                logging.warning("Z3 disjointness check failed: %s", exc)
-                cross_class = _classify_conditions(
-                    rep_i,
-                    rep_j,
-                    cel_registry,
-                    solver=z3_solver,
-                )
+                raise RuntimeError("Z3 disjointness check failed during parameter conflict detection") from exc
 
             for idx_a in group_i:
                 for idx_b in group_j:

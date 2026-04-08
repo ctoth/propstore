@@ -1,10 +1,4 @@
-"""Tests for Z3-based condition reasoning and the soundness bug fix.
-
-Tests the Z3 translation of CEL ASTs and the disjointness/equivalence
-queries. Also includes regression tests for the fallback path soundness
-bug where string-set disjointness was incorrectly treated as region
-disjointness.
-"""
+"""Tests for Z3-based condition reasoning."""
 
 from __future__ import annotations
 
@@ -43,54 +37,31 @@ def make_claim_file(claims, filename="test_paper"):
     )
 
 
-# ── Soundness bug regression ─────────────────────────────────────────
+# ── Strict Z3 requirements ──────────────────────────────────────────
 
 
-class TestSoundnessBugRegression:
-    """Regression tests for the fallback path bug where string-set
-    disjointness was treated as region disjointness."""
+class TestStrictZ3Requirements:
+    """Condition classification should require the canonical Z3 path."""
 
-    def test_unparseable_string_disjoint_but_overlapping_regions(self):
-        """Conditions with F1/F0 (division in name) can't be parsed by
-        the simple regex. The old code returned PHI_NODE because the
-        condition strings were different. But F1/F0 > 3.0 is a subset
-        of F1/F0 > 2.0 — they OVERLAP, not disjoint."""
-        result = _classify_conditions(
-            ["F1/F0 > 3.0"],
-            ["F1/F0 > 2.0"],
-        )
-        assert result == ConflictClass.OVERLAP
+    def test_classify_conditions_requires_registry(self):
+        with pytest.raises(ValueError, match="requires a CEL registry"):
+            _classify_conditions(
+                ["F1/F0 > 3.0"],
+                ["F1/F0 > 2.0"],
+            )
 
-    def test_unparseable_conditions_no_common_strings(self):
-        """When conditions are unparseable and have no common strings,
-        the fallback should return OVERLAP (conservative), not PHI_NODE."""
-        result = _classify_conditions(
-            ["some_complex_expr(a, b) > 1"],
-            ["other_complex_expr(c, d) < 5"],
-        )
-        assert result == ConflictClass.OVERLAP
+    def test_untranslatable_conditions_raise(self):
+        from propstore.z3_conditions import Z3ConditionSolver, Z3TranslationError
 
-    def test_unparseable_conditions_identical_strings(self):
-        """Identical unparseable conditions should still be CONFLICT."""
-        result = _classify_conditions(
-            ["F1/F0 > 3.0"],
-            ["F1/F0 > 3.0"],
-        )
-        assert result == ConflictClass.CONFLICT
-
-    def test_soundness_via_detect_conflicts(self):
-        """End-to-end: two claims with overlapping unparseable conditions
-        should be OVERLAP, not PHI_NODE."""
-        claims = [
-            make_parameter_claim("claim1", "concept1", 200.0,
-                                 conditions=["F1/F0 > 3.0"]),
-            make_parameter_claim("claim2", "concept1", 350.0,
-                                 conditions=["F1/F0 > 2.0"]),
-        ]
-        cf = make_claim_file(claims)
-        records = detect_conflicts([cf], make_concept_registry())
-        assert len(records) == 1
-        assert records[0].warning_class == ConflictClass.OVERLAP
+        registry = _make_cel_registry()
+        solver = Z3ConditionSolver(registry)
+        with pytest.raises(Z3TranslationError):
+            _classify_conditions(
+                ["task == 'dancing'"],
+                ["task == 'speech'"],
+                registry,
+                solver=solver,
+            )
 
 
 # ── Z3 module tests ──────────────────────────────────────────────────
@@ -622,8 +593,8 @@ class TestZ3Caching:
 
 
 class TestPartitionExceptionHandling:
-    def test_translation_error_skips_pair(self):
-        """Z3TranslationError in are_equivalent should skip pair, not crash."""
+    def test_translation_error_propagates(self):
+        """Z3TranslationError in are_equivalent should propagate."""
         from unittest.mock import patch
         from propstore.cel_checker import ConceptInfo, KindType
         from propstore.z3_conditions import Z3TranslationError, Z3ConditionSolver
@@ -648,11 +619,8 @@ class TestPartitionExceptionHandling:
         ]
 
         with patch.object(solver, "are_equivalent", side_effect=flaky_are_equivalent):
-            result = solver.partition_equivalence_classes(condition_sets)
-
-        # Should complete without crash. The failed pair gets its own class.
-        assert isinstance(result, list)
-        assert len(result) >= 2  # At least 2 classes since one comparison failed
+            with pytest.raises(Z3TranslationError, match="translation failed"):
+                solver.partition_equivalence_classes(condition_sets)
 
     def test_unexpected_error_propagates(self):
         """RuntimeError in are_equivalent should propagate."""

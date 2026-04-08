@@ -12,14 +12,14 @@ def _make_registry():
 
 
 class TestZ3ExceptionHandling:
-    def test_z3_translation_error_returns_none(self):
-        """Z3TranslationError should be caught and return None (fallback to interval)."""
+    def test_z3_translation_error_propagates(self):
+        """Z3TranslationError should propagate; there is no fallback path."""
         from propstore.z3_conditions import Z3TranslationError, Z3ConditionSolver
         registry = _make_registry()
         solver = Z3ConditionSolver(registry)
         with patch.object(solver, 'are_equivalent', side_effect=Z3TranslationError("test")):
-            result = _try_z3_classify(["freq > 100"], ["freq > 200"], registry, solver=solver)
-        assert result is None
+            with pytest.raises(Z3TranslationError, match="test"):
+                _try_z3_classify(["freq > 100"], ["freq > 200"], registry, solver=solver)
 
     def test_unexpected_error_propagates(self):
         """RuntimeError should NOT be caught — must propagate."""
