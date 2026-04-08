@@ -213,12 +213,26 @@ def _classify_pair(
     from propstore.conflict_detector import ConflictClass, detect_conflicts
     from propstore.loaded import LoadedEntry
 
+    comparison_source = (
+        (left_claim.get("provenance") or {}).get("paper")
+        if isinstance(left_claim.get("provenance"), dict)
+        else None
+    )
+    if not isinstance(comparison_source, str) or not comparison_source:
+        comparison_source = (
+            (right_claim.get("provenance") or {}).get("paper")
+            if isinstance(right_claim.get("provenance"), dict)
+            else None
+        )
+    if not isinstance(comparison_source, str) or not comparison_source:
+        comparison_source = "merge_comparison"
+
     left_file = LoadedEntry(
         filename="_left",
         source_path=None,
         data={
             "source": {
-                "paper": "merge_left",
+                "paper": comparison_source,
                 "extraction_model": "merge",
                 "extraction_date": "2026-01-01",
             },
@@ -230,7 +244,7 @@ def _classify_pair(
         source_path=None,
         data={
             "source": {
-                "paper": "merge_right",
+                "paper": comparison_source,
                 "extraction_model": "merge",
                 "extraction_date": "2026-01-01",
             },
