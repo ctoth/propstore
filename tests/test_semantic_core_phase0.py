@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from propstore.world import BoundWorld, Environment, HypotheticalWorld, RenderPolicy, ResolutionStrategy, SyntheticClaim
-from propstore.world.labelled import compile_environment_assumptions
+from propstore.core.labels import compile_environment_assumptions
 
 
 class _ExactMatchSolver:

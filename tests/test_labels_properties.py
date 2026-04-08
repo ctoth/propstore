@@ -22,7 +22,7 @@ from propstore.core.labels import (
     NogoodSet,
     normalize_environments,
 )
-from propstore.world.labelled import combine_labels, merge_labels
+from propstore.core.labels import combine_labels, merge_labels
 
 
 # ── Hypothesis strategies ─────────────────────────────────────────

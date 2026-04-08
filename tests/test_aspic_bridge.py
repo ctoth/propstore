@@ -1190,7 +1190,7 @@ class TestBuildAspicProjection:
 
     def test_accepts_support_metadata(self):
         """build_aspic_projection accepts support_metadata kwarg."""
-        from propstore.world.labelled import Label, SupportQuality
+        from propstore.core.labels import Label, SupportQuality
         claims = [_make_claim("A")]
         store = _MiniStore(claims=claims)
         metadata = {"A": (Label.empty(), SupportQuality.EXACT)}
@@ -1245,7 +1245,7 @@ class TestAspicBackendIntegration:
         from propstore.cli import cli
         from propstore.dung import ArgumentationFramework
         from propstore.structured_argument import SupportQuality
-        from propstore.world.labelled import Label
+        from propstore.core.labels import Label
 
         class FakeRepo:
             pass

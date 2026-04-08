@@ -61,7 +61,7 @@ def test_load_yaml_dir_empty_directory(tmp_path: Path) -> None:
 
 def test_write_yaml_file_roundtrip(tmp_path: Path) -> None:
     """write_yaml_file writes YAML that can be read back identically."""
-    from propstore.cli.helpers import write_yaml_file
+    from propstore.data_utils import write_yaml_file
 
     path = tmp_path / "out.yaml"
     data = {"id": "concept1", "name": "Test", "unicode": "Rényi entropy"}
@@ -75,7 +75,7 @@ def test_write_yaml_file_roundtrip(tmp_path: Path) -> None:
 
 def test_write_yaml_file_preserves_key_order(tmp_path: Path) -> None:
     """write_yaml_file preserves dict key insertion order (sort_keys=False)."""
-    from propstore.cli.helpers import write_yaml_file
+    from propstore.data_utils import write_yaml_file
 
     path = tmp_path / "ordered.yaml"
     data = {"z_last": 1, "a_first": 2, "m_middle": 3}
@@ -88,7 +88,7 @@ def test_write_yaml_file_preserves_key_order(tmp_path: Path) -> None:
 
 def test_write_yaml_file_uses_block_style(tmp_path: Path) -> None:
     """write_yaml_file uses block style, not flow style for nested structures."""
-    from propstore.cli.helpers import write_yaml_file
+    from propstore.data_utils import write_yaml_file
 
     path = tmp_path / "block.yaml"
     data = {"items": [1, 2, 3]}
@@ -102,7 +102,7 @@ def test_write_yaml_file_uses_block_style(tmp_path: Path) -> None:
 
 def test_write_yaml_file_handles_unicode(tmp_path: Path) -> None:
     """write_yaml_file writes unicode directly, not escaped."""
-    from propstore.cli.helpers import write_yaml_file
+    from propstore.data_utils import write_yaml_file
 
     path = tmp_path / "unicode.yaml"
     data = {"name": "Rényi"}
@@ -117,10 +117,7 @@ def test_write_yaml_file_handles_unicode(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def test_write_yaml_file_importable_from_data_utils() -> None:
-    """Bug F18: write_yaml_file lives in propstore.cli.helpers, forcing the
-    heuristic layer (relate.py) to import from the CLI/agent layer — a layer
-    violation.  write_yaml_file should be importable from propstore.data_utils,
-    a shared utilities module that any layer can depend on."""
+    """write_yaml_file should live in propstore.data_utils, not the CLI layer."""
     from propstore.data_utils import write_yaml_file  # noqa: F401
 
     assert callable(write_yaml_file)

@@ -149,35 +149,6 @@ def next_id(counters: Path) -> tuple[str, int]:
     return cid, n
 
 
-# ── YAML I/O ─────────────────────────────────────────────────────────
-
-def load_concept_file(path: Path) -> dict:
-    """Re-exported from :mod:`propstore.data_utils` for backward compatibility."""
-    from propstore.data_utils import load_concept_file as _load_concept_file
-    return _load_concept_file(path)
-
-
-def write_yaml_file(path: Path, data: dict) -> None:
-    """Write a dict to a YAML file with consistent formatting.
-
-    Uses block style, preserves key order, and writes unicode directly.
-
-    Re-exported from :mod:`propstore.data_utils` for backward compatibility.
-    """
-    from propstore.data_utils import write_yaml_file as _write_yaml_file
-    _write_yaml_file(path, data)
-
-
-def write_concept_file(path: Path, data: dict) -> None:
-    write_yaml_file(path, data)
-
-
-# ── Lookup helpers ───────────────────────────────────────────────────
-
-# Re-exported from propstore.data_utils for backward compatibility
-from propstore.data_utils import find_concept, load_all_concepts_by_id
-
-
 # ── WorldModel helpers ────────────────────────────────────────────────
 
 @contextmanager

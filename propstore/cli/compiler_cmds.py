@@ -21,7 +21,7 @@ from propstore.identity import (
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
     from propstore.world import BoundWorld, QueryableAssumption, RenderPolicy, WorldModel
-    from propstore.world.labelled import Label, SupportQuality
+    from propstore.core.labels import Label, SupportQuality
 
 
 def _maybe_float(value: object) -> float | None:

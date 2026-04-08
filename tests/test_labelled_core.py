@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from propstore.world.bound import BoundWorld
-from propstore.world.labelled import (
+from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,
     JustificationRecord,

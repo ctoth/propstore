@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from propstore.world import Environment
-from propstore.world.labelled import Label
+from propstore.core.labels import Label
 
 
 def test_compiled_world_graph_normalizes_order_and_supporting_records() -> None:

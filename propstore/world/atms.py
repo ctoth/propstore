@@ -35,7 +35,7 @@ from propstore.core.id_types import (
 )
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness, ParameterizationEdge
 from propstore.propagation import evaluate_parameterization
-from propstore.world.labelled import (
+from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,
     Label,
@@ -43,8 +43,8 @@ from propstore.world.labelled import (
     cel_to_binding,
     combine_labels,
     merge_labels,
+    SupportQuality,
 )
-from propstore.world.labelled import SupportQuality
 from propstore.world.types import (
     ATMSConceptFutureStatusEntry,
     ATMSConceptInterventionPlan,

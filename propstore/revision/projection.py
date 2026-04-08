@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from propstore.core.id_types import AssumptionId, to_claim_id
-from propstore.world.labelled import SupportQuality
+from propstore.core.labels import SupportQuality
 
 from propstore.revision.state import BeliefAtom, BeliefBase, RevisionScope
 

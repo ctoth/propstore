@@ -59,7 +59,7 @@ def _make_bound(
     effective_assumptions: tuple[str, ...] = (),
 ) -> BoundWorld:
     bindings = bindings or {}
-    from propstore.world.labelled import compile_environment_assumptions
+    from propstore.core.labels import compile_environment_assumptions
 
     environment = Environment(
         bindings=bindings,

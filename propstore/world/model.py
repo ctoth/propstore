@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from propstore.cel_checker import ConceptInfo, KindType
 from propstore.core.id_types import to_concept_id
-from propstore.world.labelled import compile_environment_assumptions
+from propstore.core.labels import compile_environment_assumptions
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository

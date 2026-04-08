@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from propstore.cel_checker import ConceptInfo, KindType
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.form_utils import kind_type_from_form_name
-from propstore.world.labelled import Label, SupportQuality
+from propstore.core.labels import Label, SupportQuality
 from propstore.world.types import (
     ArgumentationSemantics,
     ArtifactStore,

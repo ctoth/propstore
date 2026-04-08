@@ -34,7 +34,7 @@ from propstore.core.environment import (
 )
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.row_types import StanceRow, coerce_stance_row
-from propstore.world.labelled import Label, SupportQuality
+from propstore.core.labels import Label, SupportQuality
 from propstore.world.types import (
     BeliefSpace,
     ClaimSupportView,

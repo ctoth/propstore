@@ -21,8 +21,8 @@ from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,
     Label,
+    SupportQuality,
 )
-from propstore.world.labelled import SupportQuality
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph

@@ -18,7 +18,7 @@ from propstore.dung import (
     preferred_extensions,
     stable_extensions,
 )
-from propstore.world.labelled import Label, SupportQuality
+from propstore.core.labels import Label, SupportQuality
 from propstore.world.types import (
     ArgumentationSemantics,
     ReasoningBackend,

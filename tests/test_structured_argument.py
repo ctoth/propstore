@@ -16,7 +16,7 @@ from propstore.structured_argument import (
 )
 from propstore.dung import ArgumentationFramework, grounded_extension
 from propstore.world.bound import BoundWorld
-from propstore.world.labelled import Label, compile_environment_assumptions
+from propstore.core.labels import Label, compile_environment_assumptions
 from propstore.world.resolution import resolve
 from propstore.world.types import Environment, ReasoningBackend, ResolutionStrategy
 from propstore.worldline import WorldlineDefinition

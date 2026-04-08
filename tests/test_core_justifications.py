@@ -5,7 +5,7 @@ import json
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.justifications import claim_justifications_from_active_graph
-from propstore.world.labelled import compile_environment_assumptions
+from propstore.core.labels import compile_environment_assumptions
 from propstore.world.types import Environment
 
 

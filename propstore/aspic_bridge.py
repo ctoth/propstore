@@ -54,7 +54,7 @@ from propstore.structured_argument import (
     StructuredArgument,
     StructuredProjection,
 )
-from propstore.world.labelled import Label, SupportQuality
+from propstore.core.labels import Label, SupportQuality
 from propstore.core.environment import StanceStore
 from propstore.world.types import SupportMetadata
 

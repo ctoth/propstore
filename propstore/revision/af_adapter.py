@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 from propstore.revision.state import EpistemicState
-from propstore.world.labelled import Label, SupportQuality
+from propstore.core.labels import Label, SupportQuality
 
 
 @dataclass(frozen=True)

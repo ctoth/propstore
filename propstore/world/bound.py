@@ -11,7 +11,7 @@ from propstore.core.activation import is_claim_mapping_active
 from propstore.core.environment import ArtifactStore, ConceptCatalogStore
 from propstore.core.id_types import ConceptId, to_context_id
 from propstore.core.row_types import coerce_conflict_row, coerce_parameterization_row
-from propstore.world.labelled import (
+from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,
     Label,

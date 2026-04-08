@@ -6,7 +6,7 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.world import BoundWorld
-from propstore.world.labelled import (
+from propstore.core.labels import (
     EnvironmentKey,
     Label,
     SupportQuality,
