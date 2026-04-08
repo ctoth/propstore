@@ -112,7 +112,7 @@ def _validate_form_name(form: str, repo: Repository) -> None:
 
 
 def normalize_source_concepts_document(repo: Repository, data: dict[str, Any]) -> dict[str, Any]:
-    from propstore.source_ops import _master_concept_match
+    from propstore.source_ops import _primary_branch_concept_match
 
     concepts = data.get("concepts", [])
     if not isinstance(concepts, list):
@@ -139,7 +139,7 @@ def normalize_source_concepts_document(repo: Repository, data: dict[str, Any]) -
         aliases = normalized.get("aliases")
         if aliases is None:
             normalized["aliases"] = []
-        registry_match = _master_concept_match(repo, normalized["local_name"]) or _master_concept_match(
+        registry_match = _primary_branch_concept_match(repo, normalized["local_name"]) or _primary_branch_concept_match(
             repo,
             normalized["proposed_name"],
         )
