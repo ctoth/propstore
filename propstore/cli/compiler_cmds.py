@@ -81,9 +81,9 @@ def _bind_world(
 @click.pass_obj
 def validate(obj: dict) -> None:
     """Validate all concepts and claims. Runs CEL type-checking."""
+    from propstore.compiler.context import build_compilation_context_from_repo
     from propstore.validate import load_concepts, validate_concepts
     from propstore.validate_claims import (
-        build_concept_registry,
         load_claim_files,
         validate_claims,
     )
@@ -126,8 +126,8 @@ def validate(obj: dict) -> None:
         files = load_claim_files(claims_root)
         claim_file_count = len(files)
         if files:
-            registry = build_concept_registry(repo)
-            claim_result = validate_claims(files, registry)
+            context = build_compilation_context_from_repo(repo, claim_files=files)
+            claim_result = validate_claims(files, context)
             for w in claim_result.warnings:
                 click.echo(f"WARNING: {w}", err=True)
             for e in claim_result.errors:
@@ -151,13 +151,11 @@ def validate(obj: dict) -> None:
 @click.pass_obj
 def build(obj: dict, output: str | None, force: bool) -> None:
     """Validate everything, build sidecar, run conflict detection."""
+    from propstore.compiler.context import build_compilation_context_from_paths
+    from propstore.compiler.passes import compile_claim_files
     from propstore.sidecar.build import build_sidecar
     from propstore.validate import load_concepts, validate_concepts
-    from propstore.validate_claims import (
-        build_concept_registry,
-        load_claim_files,
-        validate_claims,
-    )
+    from propstore.validate_claims import load_claim_files
 
     repo: Repository = obj["repo"]
     git = repo.git
@@ -216,15 +214,27 @@ def build(obj: dict, output: str | None, force: bool) -> None:
 
     # Step 2: Validate claims (if any)
     claim_files = None
-    concept_registry = None
+    compilation_context = build_compilation_context_from_paths(
+        tree / "concepts",
+        tree / "forms",
+        context_ids=context_ids,
+    )
+    claim_bundle = None
     if (tree / "claims").exists():
         files = load_claim_files(tree / "claims")
         if files:
-            concept_registry = build_concept_registry(repo)
-            claim_result = validate_claims(
-                files, concept_registry,
+            compilation_context = build_compilation_context_from_paths(
+                tree / "concepts",
+                tree / "forms",
+                claim_files=files,
                 context_ids=context_ids if context_ids else None,
             )
+            claim_bundle = compile_claim_files(
+                files,
+                compilation_context,
+                context_ids=context_ids if context_ids else None,
+            )
+            claim_result = claim_bundle.to_validation_result()
             if not claim_result.ok:
                 for e in claim_result.errors:
                     click.echo(f"ERROR: {e}", err=True)
@@ -237,6 +247,8 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     rebuilt = build_sidecar(
         tree, sidecar_path, force=force,
         commit_hash=hash_key,
+        compilation_context=compilation_context,
+        claim_bundle=claim_bundle,
     )
 
     # Step 4: Summary via WorldModel (proves the roundtrip)

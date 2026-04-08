@@ -24,6 +24,14 @@ import jsonschema
 import yaml
 import bridgman
 
+from propstore.compiler.context import (
+    CompilationContext,
+    build_compilation_context_from_paths as build_claim_compilation_context_from_paths,
+    build_compilation_context_from_repo as build_claim_compilation_context_from_repo,
+    build_legacy_concept_registry_from_paths,
+    compilation_context_from_legacy_registry,
+)
+from propstore.compiler.passes import compile_claim_files
 from propstore.resources import load_resource_json
 from propstore.identity import (
     CLAIM_ARTIFACT_ID_RE,
@@ -204,202 +212,31 @@ def validate_single_claim_file(
 
 def validate_claims(
     claim_files: list[LoadedEntry],
-    concept_registry: dict[str, dict],
+    concept_registry: dict[str, dict] | CompilationContext,
     context_ids: set[str] | None = None,
 ) -> ValidationResult:
     """Validate claim files against schema and compiler contract.
 
     Args:
         claim_files: loaded claim YAML files
-        concept_registry: mapping from concept ID to concept data dict
+        concept_registry: legacy concept registry or compilation context
         context_ids: set of valid context IDs (if None, skip context validation)
     """
-    result = ValidationResult()
-    cel_registry = build_cel_registry(concept_registry)
-
-    # JSON Schema validation
-    json_schema = _load_claim_schema()
-
-    normalized_claim_files: list[LoadedEntry] = []
-    for claim_file in claim_files:
-        data = claim_file.data
-        claims = data.get("claims")
-        needs_legacy_normalization = isinstance(claims, list) and any(
-            isinstance(claim, dict)
-            and not claim.get("artifact_id")
-            and isinstance(claim.get("id"), str)
-            and claim.get("id")
-            for claim in claims
+    context = (
+        concept_registry
+        if isinstance(concept_registry, CompilationContext)
+        else compilation_context_from_legacy_registry(
+            concept_registry,
+            claim_files=claim_files,
+            context_ids=context_ids,
         )
-        if not needs_legacy_normalization:
-            normalized_claim_files.append(claim_file)
-            continue
-        source = data.get("source") if isinstance(data.get("source"), dict) else {}
-        default_namespace = str(source.get("paper") or claim_file.filename or "legacy")
-        normalized_data, _ = normalize_claim_file_payload(
-            copy.deepcopy(data),
-            default_namespace=default_namespace,
-        )
-        normalized_claim_files.append(
-            LoadedEntry(
-                claim_file.filename,
-                claim_file.source_path,
-                normalized_data,
-                claim_file.knowledge_root,
-            )
-        )
-    claim_files = normalized_claim_files
-
-    seen_artifact_ids: dict[str, str] = {}
-    seen_logical_ids: dict[str, str] = {}
-    all_artifact_ids: set[str] = set()
-
-    for cf in claim_files:
-        claims = cf.data.get("claims")
-        if not isinstance(claims, list):
-            continue
-        for claim in claims:
-            if not isinstance(claim, dict):
-                continue
-            artifact_id = claim.get("artifact_id")
-            if isinstance(artifact_id, str) and artifact_id:
-                all_artifact_ids.add(artifact_id)
-
-    for cf in claim_files:
-        data = cf.data
-
-        if data.get("stage") == "draft":
-            result.errors.append(
-                f"{cf.filename}: draft artifacts are not accepted in the final claim "
-                "validation path"
-            )
-            continue
-
-        # JSON Schema validation
-        try:
-            jsonschema.validate(_coerce_schema_numeric_strings(json_safe(data)), json_schema)
-        except jsonschema.ValidationError as e:
-            result.errors.append(f"{cf.filename}: JSON Schema error: {e.message}")
-
-        if "claims" not in data:
-            result.errors.append(f"{cf.filename}: missing required 'claims' key")
-            continue
-
-        claims = data["claims"]
-        if not isinstance(claims, list):
-            result.errors.append(f"{cf.filename}: 'claims' must be a list")
-            continue
-
-        for claim in claims:
-            if not isinstance(claim, dict):
-                result.errors.append(f"{cf.filename}: claim must be a dict")
-                continue
-
-            cid = claim.get("artifact_id")
-            ctype = claim.get("type")
-
-            if not cid:
-                result.errors.append(f"{cf.filename}: claim missing 'artifact_id'")
-                continue
-
-            if "id" in claim:
-                result.errors.append(
-                    f"{cf.filename}: claim '{cid}' uses obsolete raw 'id'; use artifact_id and logical_ids"
-                )
-
-            # ── Claim artifact ID format ─────────────────────
-            if not CLAIM_ARTIFACT_ID_RE.match(cid):
-                result.errors.append(
-                    f"{cf.filename}: claim artifact_id '{cid}' does not match required format "
-                    "ps:claim:<opaque-token>"
-                )
-
-            # ── Claim artifact ID uniqueness ─────────────────
-            if cid in seen_artifact_ids:
-                result.errors.append(
-                    f"{cf.filename}: duplicate claim artifact_id '{cid}' "
-                    f"(also in {seen_artifact_ids[cid]})")
-            else:
-                seen_artifact_ids[cid] = cf.filename
-
-            logical_ids = claim.get("logical_ids")
-            _validate_logical_ids(
-                logical_ids,
-                filename=cf.filename,
-                artifact_id=cid,
-                seen_logical_ids=seen_logical_ids,
-                result=result,
-            )
-
-            version_id = claim.get("version_id")
-            if not isinstance(version_id, str) or not CLAIM_VERSION_ID_RE.match(version_id):
-                result.errors.append(
-                    f"{cf.filename}: claim '{cid}' version_id must match sha256:<64 hex chars>"
-                )
-            else:
-                expected_version_id = compute_claim_version_id(claim)
-                if version_id != expected_version_id:
-                    result.errors.append(
-                        f"{cf.filename}: claim '{cid}' version_id mismatch "
-                        f"(expected {expected_version_id})"
-                    )
-
-            # ── Provenance ───────────────────────────────────
-            prov = claim.get("provenance")
-            if not prov or not isinstance(prov, dict):
-                result.errors.append(f"{cf.filename}: claim '{cid}' missing provenance")
-            else:
-                if not prov.get("paper"):
-                    result.errors.append(
-                        f"{cf.filename}: claim '{cid}' provenance missing 'paper'")
-                if prov.get("page") is None:
-                    result.errors.append(
-                        f"{cf.filename}: claim '{cid}' provenance missing 'page'")
-
-            # ── Context reference ────────────────────────────
-            claim_context = claim.get("context")
-            if claim_context and context_ids is not None:
-                if claim_context not in context_ids:
-                    result.errors.append(
-                        f"{cf.filename}: claim '{cid}' references nonexistent "
-                        f"context '{claim_context}'")
-
-            # ── CEL conditions ───────────────────────────────
-            conditions = claim.get("conditions")
-            if conditions and isinstance(conditions, list):
-                for cel_expr in conditions:
-                    if isinstance(cel_expr, str):
-                        cel_errors = check_cel_expression(cel_expr, cel_registry)
-                        for ce in cel_errors:
-                            if ce.is_warning:
-                                result.warnings.append(
-                                    f"{cf.filename}: claim '{cid}' CEL warning: {ce.message}")
-                            else:
-                                result.errors.append(
-                                    f"{cf.filename}: claim '{cid}' CEL error: {ce.message}")
-
-            # ── Type-specific validation ─────────────────────
-            if ctype == "parameter":
-                _validate_parameter(claim, cid, cf.filename, concept_registry, result)
-            elif ctype == "equation":
-                _validate_equation(claim, cid, cf.filename, concept_registry, result)
-            elif ctype == "observation":
-                _validate_observation(claim, cid, cf.filename, concept_registry, result)
-            elif ctype == "model":
-                _validate_model(claim, cid, cf.filename, concept_registry, result)
-            elif ctype == "measurement":
-                _validate_measurement(claim, cid, cf.filename, concept_registry, result)
-            elif ctype == "algorithm":
-                _validate_algorithm(claim, cid, cf.filename, concept_registry, result)
-            elif ctype in ("mechanism", "comparison", "limitation"):
-                _validate_observation(claim, cid, cf.filename, concept_registry, result, claim_type=ctype)
-            else:
-                result.errors.append(
-                    f"{cf.filename}: claim '{cid}' has unrecognized type '{ctype}'")
-
-            _validate_stances(claim, cid, cf.filename, all_artifact_ids, result)
-
-    return result
+    )
+    bundle = compile_claim_files(
+        claim_files,
+        context,
+        context_ids=context_ids,
+    )
+    return bundle.to_validation_result()
 
 
 def _validate_stances(
@@ -838,44 +675,7 @@ def build_concept_registry_from_paths(
     Claims can reference concepts by any of these keys.
     All keys point to the same enriched concept data dict.
     """
-    from propstore.validate import load_concepts, _normalize_legacy_concept_record
-    concepts_root = coerce_knowledge_path(concepts_dir)
-    forms_root = coerce_knowledge_path(forms_dir)
-    concepts = load_concepts(concepts_root)
-    registry: dict[str, dict] = {}
-    for concept in concepts:
-        enriched = _normalize_legacy_concept_record(dict(concept.data))
-        cid = enriched.get("artifact_id")
-        if not cid:
-            continue
-        # Load structured form definition
-        form_def = load_form_path(forms_root, enriched.get("form"))
-        form_name = enriched.get("form")
-        if isinstance(form_name, str) and form_name:
-            if form_def is None:
-                raise ValueError(
-                    f"concept '{cid}' references missing form definition '{form_name}'"
-                )
-            enriched["_form_definition"] = form_def
-        # Index by concept ID
-        registry[cid] = enriched
-        raw_id = concept.data.get("id")
-        if isinstance(raw_id, str) and raw_id and raw_id not in registry:
-            registry[raw_id] = enriched
-        # Index by canonical_name (claims can reference concepts by name)
-        canonical = enriched.get("canonical_name")
-        if canonical and canonical not in registry:
-            registry[canonical] = enriched
-        for logical_id in enriched.get("logical_ids", []) or []:
-            formatted = format_logical_id(logical_id) if isinstance(logical_id, dict) else None
-            if formatted and formatted not in registry:
-                registry[formatted] = enriched
-        # Index by aliases
-        for alias in enriched.get("aliases", []) or []:
-            alias_name = alias.get("name") if isinstance(alias, dict) else None
-            if alias_name and alias_name not in registry:
-                registry[alias_name] = enriched
-    return registry
+    return build_legacy_concept_registry_from_paths(concepts_dir, forms_dir)
 
 
 def build_concept_registry(repo: Repository | None) -> dict[str, dict]:
@@ -886,7 +686,7 @@ def build_concept_registry(repo: Repository | None) -> dict[str, dict]:
     """
     if repo is None:
         return {}
-    return build_concept_registry_from_paths(
-        repo.tree() / "concepts",
-        repo.tree() / "forms",
-    )
+    context = build_claim_compilation_context_from_repo(repo)
+    from propstore.compiler.context import legacy_concept_registry_for_context
+
+    return legacy_concept_registry_for_context(context)

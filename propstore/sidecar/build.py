@@ -5,9 +5,14 @@ from __future__ import annotations
 import logging
 import sqlite3
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+from propstore.compiler.context import (
+    build_compilation_context_from_loaded,
+    legacy_concept_registry_for_context,
+)
+from propstore.compiler.passes import compile_claim_files
 from propstore.form_utils import FormDefinition, load_all_forms_path
-from propstore.identity import format_logical_id
 from propstore.knowledge_path import KnowledgePath
 from propstore.sidecar.claims import (
     build_claim_fts_index,
@@ -26,7 +31,6 @@ from propstore.sidecar.concepts import (
     populate_parameterizations,
     populate_relationships,
 )
-from propstore.sidecar.concept_utils import concept_artifact_id
 from propstore.sidecar.schema import (
     create_claim_tables,
     create_context_tables,
@@ -37,6 +41,10 @@ from propstore.sidecar.schema import (
 from propstore.sidecar.sources import populate_sources
 from propstore.validate import load_concepts
 from propstore.validate_claims import load_claim_files
+
+if TYPE_CHECKING:
+    from propstore.compiler.context import CompilationContext
+    from propstore.compiler.ir import ClaimCompilationBundle
 
 _SEMANTIC_INPUT_VERSION = "semantic-input-v1"
 
@@ -70,6 +78,8 @@ def build_sidecar(
     force: bool = False,
     *,
     commit_hash: str | None = None,
+    compilation_context: CompilationContext | None = None,
+    claim_bundle: ClaimCompilationBundle | None = None,
 ) -> bool:
     """Build the SQLite sidecar from a knowledge tree."""
     sidecar_path.parent.mkdir(parents=True, exist_ok=True)
@@ -99,32 +109,31 @@ def build_sidecar(
         if (knowledge_root / "contexts").exists()
         else None
     )
+    context_ids = {
+        c.data["id"]
+        for c in (context_files or [])
+        if isinstance(c.data, dict) and c.data.get("id")
+    }
 
-    concept_registry: dict[str, dict] = {}
-    for concept in concepts:
-        concept_id = concept_artifact_id(concept.data)
-        if concept_id is None:
-            continue
-        enriched = dict(concept.data)
-        form_name = enriched.get("form")
-        if isinstance(form_name, str):
-            form_definition = form_registry.get(form_name)
-            if form_definition is not None:
-                enriched["_form_definition"] = form_definition
-        concept_registry[concept_id] = enriched
-        canonical_name = enriched.get("canonical_name")
-        if canonical_name:
-            concept_registry[canonical_name] = enriched
-        for logical_id in enriched.get("logical_ids", []) or []:
-            if not isinstance(logical_id, dict):
-                continue
-            formatted = format_logical_id(logical_id)
-            if formatted:
-                concept_registry[formatted] = enriched
-        for alias in enriched.get("aliases", []) or []:
-            alias_name = alias.get("name")
-            if alias_name:
-                concept_registry[alias_name] = enriched
+    if compilation_context is None:
+        compilation_context = build_compilation_context_from_loaded(
+            concepts,
+            forms_dir=knowledge_root / "forms",
+            claim_files=list(claim_files) if claim_files is not None else None,
+            context_ids=context_ids,
+        )
+    concept_registry = legacy_concept_registry_for_context(compilation_context)
+    if claim_bundle is None and claim_files is not None:
+        claim_bundle = compile_claim_files(
+            list(claim_files),
+            compilation_context,
+            context_ids=context_ids if context_ids else None,
+        )
+    normalized_claim_files = (
+        list(claim_bundle.normalized_claim_files)
+        if claim_bundle is not None
+        else claim_files
+    )
 
     embedding_snapshot = None
     if sidecar_path.exists():
@@ -184,17 +193,23 @@ def build_sidecar(
         if context_files:
             populate_contexts(conn, context_files)
 
-        if claim_files is not None:
-            populate_claims(conn, claim_files, concept_registry, form_registry=form_registry)
+        if normalized_claim_files is not None:
+            populate_claims(
+                conn,
+                normalized_claim_files,
+                concept_registry,
+                form_registry=form_registry,
+                semantic_bundle=claim_bundle,
+            )
 
             context_hierarchy = ContextHierarchy(list(context_files)) if context_files else None
             populate_conflicts(
                 conn,
-                claim_files,
+                normalized_claim_files,
                 concept_registry,
                 context_hierarchy=context_hierarchy,
             )
-            build_claim_fts_index(conn, claim_files)
+            build_claim_fts_index(conn, normalized_claim_files)
 
         if embedding_snapshot is not None:
             try:
@@ -210,7 +225,7 @@ def build_sidecar(
                 print(f"Warning: embedding restore failed: {exc}", file=sys.stderr)
                 conn.row_factory = None
 
-        if claim_files is not None:
+        if normalized_claim_files is not None:
             populate_stances_from_files(conn, knowledge_root / "stances")
             populate_authored_justifications_from_files(conn, knowledge_root / "justifications")
 
