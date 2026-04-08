@@ -11,7 +11,7 @@ import yaml
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
-from propstore.build_sidecar import _content_hash, build_sidecar
+from propstore.sidecar.build import _content_hash, build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from tests.conftest import (
     make_claim_identity,
@@ -300,6 +300,17 @@ class TestTableCreation:
     def test_creates_sqlite_file(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         assert sidecar_path.exists()
+
+    def test_meta_table_stores_schema_version(self, knowledge_reader, sidecar_path):
+        build_sidecar(knowledge_reader, sidecar_path)
+        conn = sqlite3.connect(sidecar_path)
+        row = conn.execute(
+            "SELECT schema_version FROM meta WHERE key='sidecar'"
+        ).fetchone()
+        assert row is not None
+        assert isinstance(row[0], int)
+        assert row[0] >= 1
+        conn.close()
 
     def test_concept_table_exists(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
@@ -599,7 +610,7 @@ class TestRebuildSkipping:
         assert build_sidecar(knowledge_reader, sidecar_path) is True
 
     def test_rebuild_when_semantic_version_changes(self, knowledge_reader, sidecar_path, monkeypatch):
-        import propstore.build_sidecar as build_sidecar_module
+        import propstore.sidecar.build as build_sidecar_module
 
         assert build_sidecar(knowledge_reader, sidecar_path, force=True) is True
 
@@ -799,6 +810,55 @@ class TestClaimTable:
         assert row["provenance_page"] == 5
         conn.close()
 
+    def test_claim_keeps_source_slug_separate_from_provenance_paper(
+        self,
+        knowledge_reader,
+        sidecar_path,
+    ):
+        claims_dir = knowledge_reader / "claims"
+        claims_dir.mkdir(exist_ok=True)
+        sources_dir = knowledge_reader / "sources"
+        sources_dir.mkdir(exist_ok=True)
+
+        source_doc = {
+            "id": "source-alpha",
+            "kind": "academic_paper",
+            "origin": {"type": "doi", "value": "10.1000/example"},
+            "trust": {"prior_base_rate": 0.6},
+        }
+        (sources_dir / "alpha_source.yaml").write_text(
+            yaml.dump(source_doc, default_flow_style=False)
+        )
+
+        claim_data = _normalize_claim_concept_refs(
+            {
+                "source": {"paper": "alpha_source"},
+                "claims": [
+                    {
+                        "id": "claim_slug",
+                        "type": "parameter",
+                        "concept": "concept1",
+                        "value": 200.0,
+                        "unit": "Hz",
+                        "provenance": {"paper": "Alpha Paper", "page": 9},
+                    }
+                ],
+            }
+        )
+        (claims_dir / "alpha_source.yaml").write_text(
+            yaml.dump(claim_data, default_flow_style=False)
+        )
+
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
+
+        conn = sqlite3.connect(sidecar_path)
+        row = conn.execute(
+            "SELECT source_slug, source_paper FROM claim_core WHERE primary_logical_id = ?",
+            ("alpha_source:claim_slug",),
+        ).fetchone()
+        assert row == ("alpha_source", "Alpha Paper")
+        conn.close()
+
     def test_claim_has_version_id(self, sidecar_with_claims):
         """Claims have non-empty immutable version IDs."""
         conn = sqlite3.connect(sidecar_with_claims)
@@ -837,6 +897,21 @@ class TestClaimTable:
         ).fetchone()[0]
         assert claim_count == 9
         assert stance_count == 1
+        conn.close()
+
+    def test_without_authored_justifications_sidecar_persists_no_synthetic_rows(
+        self,
+        knowledge_reader,
+        sidecar_path,
+        claim_files,
+    ):
+        build_sidecar(knowledge_reader, sidecar_path, force=True)
+        conn = sqlite3.connect(sidecar_path)
+        justification_ids = [
+            row[0]
+            for row in conn.execute("SELECT id FROM justification ORDER BY id").fetchall()
+        ]
+        assert justification_ids == []
         conn.close()
 
     def test_claim_description_from_yaml(self, sidecar_with_claims):
@@ -956,11 +1031,13 @@ class TestClaimTable:
         conn.close()
 
     def test_no_claim_table_without_claims(self, knowledge_reader, sidecar_path):
-        """Normalized claim tables are not created when no claims directory exists."""
+        """Stable sidecar schema keeps claim tables present even with zero claims."""
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
         cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='claim_core'")
-        assert cursor.fetchone() is None
+        assert cursor.fetchone() == ("claim_core",)
+        claim_count = conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
+        assert claim_count == 0
         conn.close()
 
 
@@ -1522,7 +1599,7 @@ class TestAlgorithmBindings:
 class TestClaimInsertRow:
     def test_prepare_claim_insert_row_returns_dict(self):
         """_prepare_claim_insert_row should return a dict with named columns."""
-        from propstore.build_sidecar import _prepare_claim_insert_row
+        from propstore.sidecar.claim_utils import prepare_claim_insert_row
 
         claim = {
             "id": "test_claim1",
@@ -1532,14 +1609,14 @@ class TestClaimInsertRow:
             "unit": "Hz",
             "provenance": {"paper": "test.yaml", "page": 1},
         }
-        row = _prepare_claim_insert_row(
+        row = prepare_claim_insert_row(
             claim, "test_paper.yaml", claim_seq=1, concept_registry={}
         )
         assert isinstance(row, dict), f"Expected dict, got {type(row).__name__}"
 
     def test_prepare_claim_insert_row_has_all_columns(self):
         """The returned dict should have entries for every claim table column."""
-        from propstore.build_sidecar import _prepare_claim_insert_row
+        from propstore.sidecar.claim_utils import prepare_claim_insert_row
 
         claim = {
             "id": "test_claim1",
@@ -1549,7 +1626,7 @@ class TestClaimInsertRow:
             "unit": "Hz",
             "provenance": {"paper": "test.yaml", "page": 1},
         }
-        row = _prepare_claim_insert_row(
+        row = prepare_claim_insert_row(
             claim, "test_paper.yaml", claim_seq=1, concept_registry={}
         )
         assert "id" in row
@@ -1638,11 +1715,11 @@ class TestExtractNumericClaimFieldsFloatSafety:
         Current code: float('N/A') raises ValueError.
         Expected: graceful handling — return None for the value field.
         """
-        from propstore.build_sidecar import _extract_numeric_claim_fields
+        from propstore.sidecar.claim_utils import extract_numeric_claim_fields
 
         claim = {"value": "N/A", "unit": "Hz"}
         # This should NOT raise — non-numeric values should be handled gracefully
-        result = _extract_numeric_claim_fields(claim)
+        result = extract_numeric_claim_fields(claim)
         assert result["value"] is None, (
             "Non-numeric claim value 'N/A' should produce value=None, "
             "not crash with ValueError"
@@ -1650,7 +1727,7 @@ class TestExtractNumericClaimFieldsFloatSafety:
 
     def test_non_numeric_value_in_prepare_row_does_not_crash(self):
         """End-to-end: _prepare_claim_insert_row with value='N/A' must not crash."""
-        from propstore.build_sidecar import _prepare_claim_insert_row
+        from propstore.sidecar.claim_utils import prepare_claim_insert_row
 
         claim = {
             "id": "crash_claim",
@@ -1661,7 +1738,7 @@ class TestExtractNumericClaimFieldsFloatSafety:
             "provenance": {"paper": "test.yaml", "page": 1},
         }
         # This should NOT raise ValueError from float("N/A")
-        row = _prepare_claim_insert_row(
+        row = prepare_claim_insert_row(
             claim, "test_paper.yaml", claim_seq=1, concept_registry={}
         )
         assert isinstance(row, dict)
@@ -1671,20 +1748,20 @@ class TestExtractNumericClaimFieldsFloatSafety:
 
     def test_empty_string_value_does_not_crash(self):
         """A claim with value='' (empty string) must not crash."""
-        from propstore.build_sidecar import _extract_numeric_claim_fields
+        from propstore.sidecar.claim_utils import extract_numeric_claim_fields
 
         claim = {"value": "", "unit": "Hz"}
-        result = _extract_numeric_claim_fields(claim)
+        result = extract_numeric_claim_fields(claim)
         assert result["value"] is None, (
             "Empty string claim value should produce value=None"
         )
 
     def test_numeric_string_still_works(self):
         """A claim with a valid numeric string must still convert correctly."""
-        from propstore.build_sidecar import _extract_numeric_claim_fields
+        from propstore.sidecar.claim_utils import extract_numeric_claim_fields
 
         claim = {"value": "42.5", "unit": "Hz"}
-        result = _extract_numeric_claim_fields(claim)
+        result = extract_numeric_claim_fields(claim)
         assert result["value"] == 42.5
 
 
@@ -1881,3 +1958,4 @@ class TestClaimValueSI:
         assert row["upper_bound"] == 0.3, "raw upper_bound preserved"
         assert row["lower_bound_si"] == pytest.approx(100.0), "lower_bound_si = 0.1 * 1000"
         assert row["upper_bound_si"] == pytest.approx(300.0), "upper_bound_si = 0.3 * 1000"
+
