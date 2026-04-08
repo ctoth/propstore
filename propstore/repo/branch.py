@@ -27,7 +27,7 @@ class BranchInfo:
     """Metadata about a branch.
 
     Attributes:
-        name: Branch name (e.g. "paper/foo", "master").
+        name: Branch name (e.g. "paper/foo", "main").
         tip_sha: Hex SHA of the branch tip commit.
         kind: Inferred from name prefix — "paper", "source", "agent",
               "hypothesis", or "workspace".
@@ -52,7 +52,7 @@ def _detect_kind(name: str) -> str:
 
 
 def create_branch(kr: KnowledgeRepo, name: str, source_commit: str | None = None) -> str:
-    """Create a branch pointing at source_commit (default: master tip).
+    """Create a branch pointing at source_commit (default: current HEAD tip).
 
     Returns the tip SHA of the new branch.
     Raises ValueError if the branch already exists.
@@ -61,32 +61,40 @@ def create_branch(kr: KnowledgeRepo, name: str, source_commit: str | None = None
     if _ref_get(kr._repo.refs, ref):
         raise ValueError(f"Branch {name!r} already exists")
 
+    parent_branch = ""
     if source_commit is None:
-        # Default to master tip
-        master_ref = _ref_get(kr._repo.refs, b"refs/heads/master")
-        if master_ref is None:
-            raise ValueError("No master branch — repository has no commits")
-        sha_bytes = master_ref
+        current_branch = kr.current_branch_name()
+        if current_branch is not None:
+            current_ref = _ref_get(kr._repo.refs, f"refs/heads/{current_branch}".encode())
+            if current_ref is None:
+                raise ValueError(f"Current branch {current_branch!r} has no tip")
+            sha_bytes = current_ref
+            parent_branch = current_branch
+        else:
+            head_sha = kr.head_sha()
+            if head_sha is None:
+                raise ValueError("Repository has no commits")
+            sha_bytes = head_sha.encode("ascii")
     else:
         sha_bytes = source_commit.encode("ascii")
 
     _ref_set(kr._repo.refs, ref, sha_bytes)
     kr._branch_meta[name] = {
-        "parent_branch": "master" if source_commit is None else "",
+        "parent_branch": parent_branch,
         "created_at": int(time.time()),
     }
     return sha_bytes.decode("ascii")
 
 
 def delete_branch(kr: KnowledgeRepo, name: str) -> None:
-    """Delete a branch. Raises ValueError for 'master'.
+    """Delete a branch. Raises ValueError for the current HEAD branch.
 
-    Master is the integration branch and must never be deleted
+    The checked-out branch must never be deleted
     (analogous to AGM's requirement that the knowledge base always
     exists — Alchourrón et al. 1985).
     """
-    if name == "master":
-        raise ValueError("Cannot delete master branch")
+    if kr.current_branch_name() == name:
+        raise ValueError("Cannot delete current HEAD branch")
     ref = f"refs/heads/{name}".encode()
     if _ref_get(kr._repo.refs, ref) is None:
         raise ValueError(f"Branch {name!r} does not exist")

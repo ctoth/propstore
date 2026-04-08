@@ -25,6 +25,7 @@ from propstore.repo.branch import (
     list_branches,
     merge_base,
 )
+from propstore.repo.git_backend import _set_symbolic_ref
 
 
 def _create_two_parent_commit(
@@ -130,18 +131,15 @@ def test_delete_branch(tmp_path):
     assert branch_head(kr, "paper/ephemeral") is None
 
 
-def test_delete_master_refused(tmp_path):
-    """Deleting master must raise ValueError.
-
-    Master is the integration branch (propstore spec). It must never
-    be deletable — this is analogous to AGM's requirement that the
-    knowledge base always exists (Alchourrón et al. 1985).
-    """
+def test_delete_current_head_branch_refused(tmp_path):
+    """Deleting the current HEAD branch must raise ValueError."""
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     kr.commit_files({"a.yaml": b"x: 1\n"}, "seed")
+    create_branch(kr, "paper/active")
+    _set_symbolic_ref(kr._repo.refs, b"HEAD", b"refs/heads/paper/active")
 
     with pytest.raises(ValueError):
-        delete_branch(kr, "master")
+        delete_branch(kr, "paper/active")
 
 
 def test_list_branches_includes_master(tmp_path):
@@ -363,21 +361,28 @@ def test_existing_api_unchanged(tmp_path):
 
     All existing operations (init, commit_files, read_file, list_dir,
     head_sha, log) must work without a branch parameter, defaulting to
-    master. This ensures the Phase 1 refactor does not break any
+    the current HEAD branch. This ensures the Phase 1 refactor does not break any
     existing callers.
     """
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    kr.commit_files({"a.yaml": b"x: 1\n"}, "seed master")
+    master_tip = kr.head_sha()
+    create_branch(kr, "paper/current")
+    _set_symbolic_ref(kr._repo.refs, b"HEAD", b"refs/heads/paper/current")
 
-    # commit_files without branch param defaults to master
-    sha = kr.commit_files({"a.yaml": b"x: 1\n"}, "add a")
+    # commit_files without branch param defaults to the current HEAD branch
+    sha = kr.commit_files({"b.yaml": b"y: 2\n"}, "add b")
     assert isinstance(sha, str) and len(sha) == 40
 
     # read_file works
-    assert kr.read_file("a.yaml") == b"x: 1\n"
+    assert kr.read_file("b.yaml") == b"y: 2\n"
+    assert master_tip is not None
+    with pytest.raises(FileNotFoundError):
+        kr.read_file("b.yaml", commit=master_tip)
 
     # list_dir works
     entries = kr.list_dir(".")
-    assert "a.yaml" in entries
+    assert "b.yaml" in entries
 
     # head_sha works
     assert kr.head_sha() == sha
@@ -385,7 +390,7 @@ def test_existing_api_unchanged(tmp_path):
     # log works
     entries = kr.log(max_count=10)
     assert len(entries) >= 1
-    assert entries[0]["message"].startswith("add a")
+    assert entries[0]["message"].startswith("add b")
 
 
 def test_old_import_path_works():

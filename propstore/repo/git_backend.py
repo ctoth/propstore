@@ -38,6 +38,7 @@ sidecar/
 """
 
 _DEFAULT_AUTHOR = b"pks <pks@propstore>"
+_PRIMARY_BRANCH = "master"
 
 
 def _ref_get(refs, ref_name: bytes) -> bytes | None:
@@ -111,6 +112,36 @@ class KnowledgeRepo:
     @property
     def root(self) -> Path:
         return self._root
+
+    def primary_branch_name(self) -> str:
+        """Return the repository's canonical primary branch name."""
+        return _PRIMARY_BRANCH
+
+    def current_branch_name(self) -> str | None:
+        """Return the symbolic HEAD branch name, if HEAD points at a branch."""
+        head_target = _symref_get(self._repo.refs, b"HEAD")
+        if head_target is None or not head_target.startswith(b"refs/heads/"):
+            return None
+        return head_target[len(b"refs/heads/"):].decode("utf-8")
+
+    def _resolve_read_branch_name(self, branch: str | None = None) -> str | None:
+        if branch:
+            return branch
+        current = self.current_branch_name()
+        if current:
+            return current
+        primary = self.primary_branch_name()
+        if self.branch_sha(primary) is not None:
+            return primary
+        return None
+
+    def _resolve_write_branch_name(self, branch: str | None = None) -> str:
+        if branch:
+            return branch
+        current = self.current_branch_name()
+        if current:
+            return current
+        return self.primary_branch_name()
 
     def tree(self, commit: str | None = None):
         """Return a read-only knowledge tree rooted at this repository."""
@@ -195,13 +226,13 @@ class KnowledgeRepo:
     # ── Write ────────────────────────────────────────────────────────
 
     def commit_files(
-        self, changes: Mapping[str | Path, bytes], message: str, *, branch: str = "master"
+        self, changes: Mapping[str | Path, bytes], message: str, *, branch: str | None = None
     ) -> str:
         """Add/update files and commit. Returns the commit sha hex."""
         return self._commit(adds=changes, deletes=[], message=message, branch=branch)
 
     def commit_deletes(
-        self, paths: Sequence[str | Path], message: str, *, branch: str = "master"
+        self, paths: Sequence[str | Path], message: str, *, branch: str | None = None
     ) -> str:
         """Delete files and commit. Returns the commit sha hex."""
         return self._commit(adds={}, deletes=paths, message=message, branch=branch)
@@ -212,20 +243,23 @@ class KnowledgeRepo:
         deletes: Sequence[str | Path],
         message: str,
         *,
-        branch: str = "master",
+        branch: str | None = None,
     ) -> str:
         """Add/update and delete files in a single atomic commit."""
         return self._commit(adds=adds, deletes=deletes, message=message, branch=branch)
 
     # ── History ──────────────────────────────────────────────────────
 
-    def log(self, max_count: int = 50, *, branch: str = "master") -> list[dict]:
+    def log(self, max_count: int = 50, *, branch: str | None = None) -> list[dict]:
         """Return recent commits as plain dicts, newest first.
 
-        Walks from the tip of the named branch (default: master).
+        Walks from the tip of the named branch, defaulting to the current HEAD branch.
         Each entry includes a 'parents' list of hex SHA strings
         to support Backward Uniqueness verification (Bonanno 2007).
         """
+        branch = self._resolve_read_branch_name(branch)
+        if branch is None:
+            return []
         ref = f"refs/heads/{branch}".encode()
         tip = _ref_get(self._repo.refs, ref)
         if tip is None:
@@ -414,15 +448,15 @@ class KnowledgeRepo:
         adds: Mapping[str | Path, bytes],
         deletes: Sequence[str | Path],
         message: str,
-        branch: str = "master",
+        branch: str | None = None,
     ) -> str:
         """Build a new tree from the branch tip (if any), apply adds/deletes, commit.
 
         Parameterized by branch (Darwiche & Pearl 1997, C1-C4: each branch
         is an independent epistemic state). Parent is resolved from the
-        named branch ref, not HEAD. HEAD symref is only set when
-        branch == "master" (Bonanno 2007: BU preserved per branch).
+        named branch ref, not HEAD.
         """
+        branch = self._resolve_write_branch_name(branch)
         store = self._repo.object_store
         branch_ref = f"refs/heads/{branch}".encode()
 
@@ -471,10 +505,8 @@ class KnowledgeRepo:
         commit.parents = parents
         store.add_object(commit)
         _ref_set(self._repo.refs, branch_ref, commit.id)
-        # Only set HEAD symref when committing to master
-        if branch == "master":
-            if not _symref_get(self._repo.refs, b"HEAD"):
-                _set_symbolic_ref(self._repo.refs, b"HEAD", b"refs/heads/master")
+        if _symref_get(self._repo.refs, b"HEAD") is None and self.head_sha() is None:
+            _set_symbolic_ref(self._repo.refs, b"HEAD", branch_ref)
 
         return commit.id.decode("ascii")
 

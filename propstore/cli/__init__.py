@@ -179,7 +179,12 @@ def _render_text_log(records: list[dict[str, object]], *, show_files: bool) -> N
 
 @cli.command("log")
 @click.option("-n", "--count", default=20, show_default=True, help="Number of entries to show")
-@click.option("--branch", "branch_name", default="master", show_default=True, help="Branch history to inspect.")
+@click.option(
+    "--branch",
+    "branch_name",
+    default=None,
+    help="Branch history to inspect. Defaults to the current HEAD branch.",
+)
 @click.option("--show-files", is_flag=True, help="Show per-commit file changes.")
 @click.option(
     "--format",
@@ -196,6 +201,8 @@ def log_cmd(ctx, count, branch_name, show_files, output_format):
     git = repo.git
     if git is None:
         raise click.ClickException("log requires a git-backed repository")
+    if branch_name is None:
+        branch_name = git.current_branch_name() or git.primary_branch_name()
     if git.branch_sha(branch_name) is None:
         raise click.ClickException(f"Branch not found: {branch_name}")
     entries = git.log(max_count=count, branch=branch_name)
