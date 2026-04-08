@@ -1172,7 +1172,7 @@ class TestSemanticCorePhase7Worldlines:
         def fail_old_path(*args, **kwargs):
             raise AssertionError("worldline praf capture must not use the old store path")
 
-        monkeypatch.setattr("propstore.praf_projection.build_praf", fail_old_path)
+        monkeypatch.setattr("propstore.praf.build_praf", fail_old_path)
 
         def fake_shared(graph, **kwargs):
             assert graph == active_graph

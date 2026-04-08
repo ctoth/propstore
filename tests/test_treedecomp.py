@@ -53,7 +53,7 @@ def _make_praf(
 class TestTreewidthEstimation:
     def test_treewidth_estimation_empty(self):
         """Empty graph has treewidth 0."""
-        from propstore.praf_treedecomp import estimate_treewidth
+        from propstore.praf.treedecomp import estimate_treewidth
 
         af = ArgumentationFramework(
             arguments=frozenset(), defeats=frozenset()
@@ -68,7 +68,7 @@ class TestTreewidthEstimation:
 
         Cite: 'Path graphs have treewidth 1 (standard result).'
         """
-        from propstore.praf_treedecomp import estimate_treewidth
+        from propstore.praf.treedecomp import estimate_treewidth
 
         # a -> b -> c -> d (path)
         af = ArgumentationFramework(
@@ -86,7 +86,7 @@ class TestTreewidthEstimation:
 
         Cite: 'Complete graph K_n has treewidth n-1.'
         """
-        from propstore.praf_treedecomp import estimate_treewidth
+        from propstore.praf.treedecomp import estimate_treewidth
 
         nodes = {"a", "b", "c", "d"}
         # All pairs attack each other
@@ -107,7 +107,7 @@ class TestTreewidthEstimation:
     # ---------------------------------------------------------------
     def test_treewidth_estimation_tree(self):
         """Tree graph has treewidth 1."""
-        from propstore.praf_treedecomp import estimate_treewidth
+        from propstore.praf.treedecomp import estimate_treewidth
 
         # Star-shaped tree: a attacks b, c, d
         af = ArgumentationFramework(
@@ -123,7 +123,7 @@ class TestTreewidthEstimation:
 # ===================================================================
 class TestNiceTreeDecomposition:
     def _get_nice_td(self, af):
-        from propstore.praf_treedecomp import (
+        from propstore.praf.treedecomp import (
             compute_tree_decomposition,
             to_nice_tree_decomposition,
         )
@@ -192,7 +192,7 @@ class TestNiceTreeDecomposition:
 
     def test_compute_tree_decomposition_rejects_disconnected_framework(self):
         """Public TD construction must not silently return a disconnected forest."""
-        from propstore.praf_treedecomp import compute_tree_decomposition
+        from propstore.praf.treedecomp import compute_tree_decomposition
 
         af = ArgumentationFramework(
             arguments=frozenset({"a", "b", "c", "d"}),
@@ -204,7 +204,7 @@ class TestNiceTreeDecomposition:
 
     def test_validate_tree_decomposition_rejects_running_intersection_violation(self):
         """Validator must catch bags containing the same vertex in disconnected regions."""
-        from propstore.praf_treedecomp import TreeDecomposition, validate_tree_decomposition
+        from propstore.praf.treedecomp import TreeDecomposition, validate_tree_decomposition
 
         af = ArgumentationFramework(
             arguments=frozenset({"a", "b", "c"}),
@@ -230,7 +230,7 @@ class TestNiceTreeDecomposition:
 
     def test_compute_tree_decomposition_matches_review_counterexample_fix(self):
         """The review's concrete AF should now yield a valid connected decomposition."""
-        from propstore.praf_treedecomp import (
+        from propstore.praf.treedecomp import (
             compute_tree_decomposition,
             to_nice_tree_decomposition,
             validate_tree_decomposition,
@@ -733,7 +733,7 @@ class TestWitnessMechanism:
         Per Popescu & Wallner (2024, Theorem 7, p.5): table size per bag
         is bounded by 3^k (three possible labels per argument in bag).
         """
-        from propstore.praf_treedecomp import (
+        from propstore.praf.treedecomp import (
             compute_exact_dp,
             compute_tree_decomposition,
             to_nice_tree_decomposition,

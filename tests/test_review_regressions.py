@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.praf_projection import build_praf
+from propstore.praf import build_praf
 from propstore.dung import ArgumentationFramework
 from propstore.opinion import Opinion
 from propstore.praf import (

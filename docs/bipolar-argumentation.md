@@ -92,7 +92,7 @@ All extension functions enumerate all subsets (exponential complexity), suitable
 
 ### PrAF (Monte Carlo sampling)
 
-Each MC sample in the PrAF subsystem draws supports with opinion-based probabilities (`propstore/praf.py:495-528`). Within each sampled world, `cayrol_derived_defeats` produces derived defeats from whichever support edges survived sampling. The derived defeats are added to the sampled `ArgumentationFramework.defeats`, so each MC world properly accounts for bipolar structure.
+Each MC sample in the PrAF subsystem draws supports with opinion-based probabilities (`propstore/praf/engine.py`). Within each sampled world, `cayrol_derived_defeats` produces derived defeats from whichever support edges survived sampling. The derived defeats are added to the sampled `ArgumentationFramework.defeats`, so each MC world properly accounts for bipolar structure.
 
 See [Probabilistic Argumentation](probabilistic-argumentation.md) for full PrAF details.
 

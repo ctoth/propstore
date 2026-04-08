@@ -1566,7 +1566,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             sys.exit(2)
 
         if backend == ReasoningBackend.PRAF:
-            from propstore.praf_projection import build_praf
+            from propstore.praf import build_praf
             from propstore.praf import compute_praf_acceptance
 
             praf = build_praf(wm, claim_ids, comparison=set_comparison)

@@ -15,6 +15,8 @@ import math
 import random as _random_mod
 from dataclasses import dataclass
 
+from .components import connected_components
+
 _Z_SCORES = {0.90: 1.645, 0.95: 1.960, 0.99: 2.576}
 _DETERMINISTIC_EPSILON = 1e-12
 _UNSET = object()
@@ -727,7 +729,7 @@ def compute_praf_acceptance(
             if requested_strategy != normalized_strategy else result
         )
     if normalized_strategy == "exact_dp":
-        from propstore.praf_treedecomp import supports_exact_dp
+        from .treedecomp import supports_exact_dp
 
         if not _exact_dp_supports_query(
             query_kind=normalized_query_kind,
@@ -806,7 +808,7 @@ def compute_praf_acceptance(
 
     # Medium AF with low treewidth: exact DP (Popescu & Wallner 2024)
     # Per plan Section 2.4: estimate treewidth, use DP if below cutoff.
-    from propstore.praf_treedecomp import estimate_treewidth
+    from .treedecomp import estimate_treewidth
 
     tw = estimate_treewidth(praf.framework)
     if (
@@ -816,7 +818,7 @@ def compute_praf_acceptance(
             inference_mode=normalized_inference_mode,
         )
     ):
-        from propstore.praf_treedecomp import supports_exact_dp
+        from .treedecomp import supports_exact_dp
 
         if supports_exact_dp(praf, semantics):
             return _compute_exact_dp(
@@ -896,42 +898,6 @@ def _deterministic_fallback(
         inference_mode=None,
         queried_set=queried_set,
     )
-
-
-def _connected_components(praf: ProbabilisticAF) -> list[set[str]]:
-    """Decompose into components of the primitive semantic dependency graph.
-
-    Per Hunter & Thimm (2017, Prop 18): acceptance probability separates
-    over connected components. Each component can be solved independently.
-    """
-    adj: dict[str, set[str]] = {a: set() for a in praf.framework.arguments}
-    relations = set(_primitive_attacks(praf)) | set(praf.supports)
-    for src, tgt in relations:
-        adj[src].add(tgt)
-        adj[tgt].add(src)
-
-    visited: set[str] = set()
-    components: list[set[str]] = []
-
-    for start in praf.framework.arguments:
-        if start in visited:
-            continue
-        # BFS
-        component: set[str] = set()
-        queue = [start]
-        while queue:
-            node = queue.pop()
-            if node in visited:
-                continue
-            visited.add(node)
-            component.add(node)
-            for neighbor in adj[node]:
-                if neighbor not in visited:
-                    queue.append(neighbor)
-        components.append(component)
-
-    return components
-
 
 def _sample_subgraph(
     praf: ProbabilisticAF,
@@ -1053,7 +1019,7 @@ def _compute_mc(
         )
 
     # Decompose into connected components per Hunter & Thimm (2017, Prop 18)
-    components = _connected_components(praf)
+    components = connected_components(praf)
 
     # Compute acceptance per component independently
     all_acceptance: dict[str, float] = {}
@@ -1293,7 +1259,7 @@ def _compute_exact_dp(
     dynamic programming on tree decompositions. Tractable for low-treewidth
     AFs (complexity O(3^k * n) where k is treewidth).
     """
-    from propstore.praf_treedecomp import compute_exact_dp
+    from .treedecomp import compute_exact_dp
 
     if query_kind != "argument_acceptance" or inference_mode != "credulous":
         raise ValueError("exact_dp currently only supports credulous argument acceptance")
@@ -1394,7 +1360,7 @@ def _compute_dfquad(
     the same as a weak argument. A principled separation would maintain P_A for
     sampling and τ as an independent parameter.
     """
-    from propstore.praf_dfquad import (
+    from .dfquad import (
         compute_dfquad_baf_strengths,
         compute_dfquad_quad_strengths,
     )

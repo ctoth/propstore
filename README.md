@@ -72,7 +72,7 @@ propstore ships multiple reasoning backends at different abstraction levels, sel
 |---------|-------------|-----------|
 | `claim_graph` | Dung AF over active claim rows with heuristic metadata preferences. Default backend. | `claim_graph.py`, `dung.py`, `dung_z3.py` |
 | `aspic` | Full ASPIC+ argument construction: recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack (Def 8), last-link/weakest-link preference defeat (Defs 19-21). | `aspic_bridge.py`, `aspic.py` |
-| `praf` | Probabilistic argumentation: MC sampling with Agresti-Coull stopping (Li et al. 2012), DF-QuAD gradual semantics (Freedman et al. 2025), optional COH enforcement (Hunter & Thimm 2017) | `praf_projection.py`, `praf.py`, `praf_dfquad.py` |
+| `praf` | Probabilistic argumentation: MC sampling with Agresti-Coull stopping (Li et al. 2012), DF-QuAD gradual semantics (Freedman et al. 2025), optional COH enforcement (Hunter & Thimm 2017) | `praf/__init__.py`, `praf/engine.py`, `praf/projection.py`, `praf/dfquad.py`, `praf/treedecomp.py` |
 | `atms` | ATMS label propagation and bounded replay over the active belief space (de Kleer 1986). Does not expose Dung extensions — use ATMS-native commands instead. | `world/atms.py` |
 
 Additional argumentation infrastructure:

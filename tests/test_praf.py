@@ -419,7 +419,7 @@ def test_build_praf_from_store():
     from propstore.praf import ProbabilisticAF
 
     # Import the store-to-PrAF projection entrypoint directly.
-    from propstore.praf_projection import build_praf
+    from propstore.praf import build_praf
 
     store = MagicMock()
     store.claims_by_ids.return_value = {
@@ -753,7 +753,8 @@ def test_component_p_defeats_mismatch_direct():
     """
     import random as random_mod
 
-    from propstore.praf import ProbabilisticAF, _sample_subgraph
+    from propstore.praf import ProbabilisticAF
+    from propstore.praf.engine import _sample_subgraph
 
     # Construct a PrAF with a defeat that has NO p_defeats entry,
     # simulating the state after component decomposition filtering.
@@ -1211,7 +1212,7 @@ def test_exact_dp_rejects_unsupported_skeptical_acceptance_mode():
 def test_direct_exact_dp_rejects_non_grounded_semantics():
     """Direct tree-decomp entrypoint must fail outside grounded semantics."""
     from propstore.praf import ProbabilisticAF
-    from propstore.praf_treedecomp import compute_exact_dp
+    from propstore.praf.treedecomp import compute_exact_dp
 
     af = ArgumentationFramework(
         arguments=frozenset({"a", "b"}),
@@ -1232,7 +1233,7 @@ def test_direct_exact_dp_rejects_non_grounded_semantics():
 
 def test_exact_dp_capability_surface_does_not_claim_extension_probability():
     """Exact-DP support flags must match the implementation we actually expose."""
-    from propstore.praf import _exact_dp_supports_query
+    from propstore.praf.engine import _exact_dp_supports_query
 
     assert _exact_dp_supports_query(
         query_kind="extension_probability",
