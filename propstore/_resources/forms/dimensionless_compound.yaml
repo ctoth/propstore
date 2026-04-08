@@ -1,1 +1,3 @@
 name: dimensionless_compound
+kind: quantity
+dimensionless: true
