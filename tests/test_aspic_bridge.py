@@ -62,7 +62,7 @@ from propstore.aspic_bridge import (
     csaf_to_projection,
     build_aspic_projection,
 )
-from propstore.structured_argument import (
+from propstore.structured_projection import (
     StructuredArgument,
     StructuredProjection,
     compute_structured_justified_arguments,
@@ -1057,7 +1057,7 @@ class TestBridgeConcrete:
 class _MiniStore:
     """Minimal ArtifactStore-compatible mock for build_aspic_projection tests.
 
-    Follows the _ProjectionStore pattern from test_structured_argument.py.
+    Follows the _ProjectionStore pattern from test_structured_projection.py.
     """
 
     def __init__(
@@ -1244,7 +1244,7 @@ class TestAspicBackendIntegration:
 
         from propstore.cli import cli
         from propstore.dung import ArgumentationFramework
-        from propstore.structured_argument import SupportQuality
+        from propstore.structured_projection import SupportQuality
         from propstore.core.labels import Label
 
         class FakeRepo:
@@ -1299,11 +1299,11 @@ class TestAspicBackendIntegration:
         monkeypatch.setattr("propstore.cli.Repository.find", lambda start=None: FakeRepo())
         monkeypatch.setattr("propstore.world.WorldModel", FakeWorldModel)
         monkeypatch.setattr(
-            "propstore.argumentation.compute_claim_graph_justified_claims",
+            "propstore.claim_graph.compute_claim_graph_justified_claims",
             _unexpected_claim_graph,
         )
         monkeypatch.setattr(
-            "propstore.argumentation.stance_summary",
+            "propstore.claim_graph.stance_summary",
             lambda *args, **kwargs: {
                 "total_stances": 0,
                 "included_as_attacks": 0,
@@ -1317,7 +1317,7 @@ class TestAspicBackendIntegration:
             lambda *args, **kwargs: FakeProjection(),
         )
         monkeypatch.setattr(
-            "propstore.structured_argument.compute_structured_justified_arguments",
+            "propstore.structured_projection.compute_structured_justified_arguments",
             lambda projection, *, semantics="grounded", backend=None: frozenset({"arg:target_a"}),
         )
 
@@ -1342,7 +1342,7 @@ class TestCutover:
         This test should pass both before and after cutover — it establishes
         that the function signature and return type are stable.
         """
-        from propstore.structured_argument import build_structured_projection
+        from propstore.structured_projection import build_structured_projection
 
         claims = [_make_claim("baseline_A"), _make_claim("baseline_B")]
         store = _MiniStore(claims=claims)
@@ -1355,13 +1355,13 @@ class TestCutover:
     def test_structured_projection_backend_uses_aspic_engine(self, monkeypatch):
         """Prove delegation: build_structured_projection calls build_bridge_csaf.
 
-        Before cutover, structured_argument.py has its own construction logic
+        Before cutover, structured_projection.py had its own construction logic
         and never calls build_bridge_csaf — this test FAILS (RED).
 
         After cutover, build_structured_projection delegates to
         build_aspic_projection which calls build_bridge_csaf — this test PASSES.
         """
-        from propstore.structured_argument import build_structured_projection
+        from propstore.structured_projection import build_structured_projection
 
         calls = []
         original_build_bridge_csaf = build_bridge_csaf

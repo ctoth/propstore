@@ -19,7 +19,7 @@ import sqlite3
 
 import pytest
 
-from propstore.argumentation import (
+from propstore.claim_graph import (
     build_argumentation_framework,
     compute_claim_graph_justified_claims,
 )

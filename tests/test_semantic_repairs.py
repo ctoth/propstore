@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import yaml
 
-from propstore.argumentation import compute_claim_graph_justified_claims
+from propstore.claim_graph import compute_claim_graph_justified_claims
 from propstore.sidecar.build import build_sidecar
 from propstore.world import ResolutionStrategy, WorldModel, resolve
 from propstore.world.value_resolver import ActiveClaimResolver

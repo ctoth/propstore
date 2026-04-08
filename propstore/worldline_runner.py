@@ -279,7 +279,7 @@ def run_worldline(
                             for claim_id in analyzer_result.extensions[0].accepted_claim_ids
                         )
                 else:
-                    from propstore.argumentation import compute_claim_graph_justified_claims
+                    from propstore.claim_graph import compute_claim_graph_justified_claims
 
                     current = compute_claim_graph_justified_claims(
                         world, {str(claim_id) for claim_id in active_ids},
@@ -302,7 +302,7 @@ def run_worldline(
                 reasoning_backend == ReasoningBackend.ASPIC
                 and world.has_table("relation_edge")
             ):
-                from propstore.structured_argument import (
+                from propstore.structured_projection import (
                     build_structured_projection,
                     compute_structured_justified_arguments,
                 )
@@ -385,7 +385,7 @@ def run_worldline(
                 else:
                     # Li et al. (2012): PrAF = (A, P_A, D, P_D).
                     # Build probabilistic AF and compute acceptance probabilities.
-                    from propstore.argumentation import build_praf
+                    from propstore.claim_graph import build_praf
                     from propstore.praf import compute_praf_acceptance
 
                     praf = build_praf(

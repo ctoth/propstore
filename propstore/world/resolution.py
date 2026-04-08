@@ -554,7 +554,7 @@ def _resolve_structured_argumentation(
         ReasoningBackend.ASPIC,
         semantics,
     )
-    from propstore.structured_argument import (
+    from propstore.structured_projection import (
         build_structured_projection,
         compute_structured_justified_arguments,
     )

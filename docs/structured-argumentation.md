@@ -75,7 +75,7 @@ ASPIC+ arguments are mapped back to `StructuredArgument` dataclasses for downstr
 ## Architecture
 
 ```
-structured_argument.py              aspic_bridge.py                aspic.py
+structured_projection.py              aspic_bridge.py                aspic.py
   build_structured_projection() ---> build_aspic_projection()
                                        _extract_stance_rows()
                                        _extract_justifications()
@@ -95,7 +95,7 @@ structured_argument.py              aspic_bridge.py                aspic.py
 
 Data flows one way: claims/stances/justifications enter as propstore domain objects, are translated into formal ASPIC+ types, pass through argument construction and attack/defeat computation, produce a Dung AF, and exit as extensions.
 
-`propstore/aspic.py` is a leaf module with zero propstore imports. It implements ASPIC+ in pure logic. `propstore/aspic_bridge.py` handles all translation between propstore's claim graph and the formal engine. `propstore/structured_argument.py` provides the public dataclasses and thin delegation wrappers.
+`propstore/aspic.py` is a leaf module with zero propstore imports. It implements ASPIC+ in pure logic. `propstore/aspic_bridge.py` handles all translation between propstore's claim graph and the formal engine. `propstore/structured_projection.py` provides the public dataclasses and thin delegation wrappers.
 
 ## Argument Construction
 

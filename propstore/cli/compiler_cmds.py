@@ -1541,7 +1541,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
 
     Usage: pks world extensions domain=example --semantics grounded
     """
-    from propstore.argumentation import stance_summary
+    from propstore.claim_graph import stance_summary
     from propstore.world import ReasoningBackend, WorldModel
     from propstore.world.types import normalize_reasoning_backend
 
@@ -1566,7 +1566,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             sys.exit(2)
 
         if backend == ReasoningBackend.PRAF:
-            from propstore.argumentation import build_praf
+            from propstore.claim_graph import build_praf
             from propstore.praf import compute_praf_acceptance
 
             praf = build_praf(wm, claim_ids, comparison=set_comparison)
@@ -1611,7 +1611,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             return
 
         if backend == ReasoningBackend.CLAIM_GRAPH:
-            from propstore.argumentation import (
+            from propstore.claim_graph import (
                 build_argumentation_framework,
                 compute_claim_graph_justified_claims,
             )
@@ -1627,7 +1627,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             )
             arg_to_claim = {cid: cid for cid in claim_ids}
         elif backend == ReasoningBackend.ASPIC:
-            from propstore.structured_argument import (
+            from propstore.structured_projection import (
                 build_structured_projection,
                 compute_structured_justified_arguments,
             )

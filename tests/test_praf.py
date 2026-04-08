@@ -419,7 +419,7 @@ def test_build_praf_from_store():
     from propstore.praf import ProbabilisticAF
 
     # We need to import build_praf from argumentation
-    from propstore.argumentation import build_praf
+    from propstore.claim_graph import build_praf
 
     store = MagicMock()
     store.claims_by_ids.return_value = {

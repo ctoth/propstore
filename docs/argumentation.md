@@ -15,7 +15,7 @@ Two backends: brute-force enumeration (`dung.py`) and Z3 SAT encoding (`dung_z3.
 
 ## Claim-graph bridge
 
-The bridge layer (`argumentation.py`) converts raw stances into a Dung AF:
+The bridge layer (`claim_graph.py`) converts raw stances into a Dung AF:
 
 1. Load stances between active claims with confidence above threshold
 2. Undercutting and supersedes attacks always become defeats

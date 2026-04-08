@@ -1,9 +1,8 @@
-"""Claim-graph argumentation backend.
+"""Store-based claim-graph and PrAF entrypoints.
 
-This module does not build full structured ASPIC+ arguments. The "arguments"
-here are active claim rows, preferences come from heuristic claim metadata,
-and conditions only decide which claims are active before AF construction.
-The result is a claim-graph backend inspired by Dung and ASPIC+ ideas.
+This module is not the general argumentation core. It owns the store-based
+entrypoints for the claim-graph backend and PrAF construction, while
+delegating shared orchestration to `propstore.core.analyzers`.
 """
 
 from __future__ import annotations
@@ -11,13 +10,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from propstore.core.analyzers import (
-    _ATTACK_TYPES,
-    _NON_ATTACK_TYPES,
-    _SUPPORT_TYPES,
     analyze_claim_graph,
     build_praf_from_shared_input,
     shared_analyzer_input_from_store,
 )
+from propstore.core.relation_types import ATTACK_TYPES, NON_ATTACK_TYPES, SUPPORT_TYPES
 from propstore.dung import ArgumentationFramework
 from propstore.world.types import (
     ArgumentationSemantics,
@@ -28,6 +25,10 @@ from propstore.world.types import (
 
 if TYPE_CHECKING:
     from propstore.praf import ProbabilisticAF
+
+_ATTACK_TYPES = ATTACK_TYPES
+_NON_ATTACK_TYPES = NON_ATTACK_TYPES
+_SUPPORT_TYPES = SUPPORT_TYPES
 
 
 def build_argumentation_framework(
