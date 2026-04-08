@@ -26,6 +26,16 @@ from propstore.cel_checker import (
     check_cel_expression,
 )
 from propstore.form_utils import kind_type_from_form_name, load_form_path
+from propstore.identity import (
+    CONCEPT_ARTIFACT_ID_RE,
+    CONCEPT_VERSION_ID_RE,
+    LOGICAL_NAMESPACE_RE,
+    LOGICAL_VALUE_RE,
+    compute_concept_version_id,
+    derive_concept_artifact_id,
+    format_logical_id,
+    normalize_logical_value,
+)
 
 if TYPE_CHECKING:
     from propstore.knowledge_path import KnowledgePath
@@ -85,11 +95,6 @@ def load_concepts(concepts_root: KnowledgePath | None) -> list[LoadedEntry]:
     return load_yaml_entries(concepts_root)
 
 
-_CONCEPT_ID_RE = re.compile(r'^concept\d+$')
-
-
-
-
 VALID_RELATIONSHIP_TYPES = frozenset([
     "broader", "narrower", "related", "component_of",
     "derived_from", "contested_definition",
@@ -103,10 +108,105 @@ def _load_all_claim_ids(claims_dir: KnowledgePath | None) -> set[str]:
         data = claim_file.data
         if isinstance(data.get("claims"), list):
             for claim in data["claims"]:
-                cid = claim.get("id")
+                cid = claim.get("artifact_id")
                 if cid:
                     claim_ids.add(cid)
     return claim_ids
+
+
+def _validate_logical_ids(
+    logical_ids: object,
+    *,
+    filename: str,
+    artifact_id: str,
+    seen_logical_ids: dict[str, str],
+    result: ValidationResult,
+) -> set[str]:
+    formatted_ids: set[str] = set()
+    if not isinstance(logical_ids, list) or not logical_ids:
+        result.errors.append(
+            f"{filename}: concept '{artifact_id}' must define a non-empty logical_ids list"
+        )
+        return formatted_ids
+
+    for index, entry in enumerate(logical_ids, start=1):
+        if not isinstance(entry, dict):
+            result.errors.append(
+                f"{filename}: concept '{artifact_id}' logical_ids entry #{index} must be a mapping"
+            )
+            continue
+
+        namespace = entry.get("namespace")
+        value = entry.get("value")
+        if not isinstance(namespace, str) or not LOGICAL_NAMESPACE_RE.match(namespace):
+            result.errors.append(
+                f"{filename}: concept '{artifact_id}' logical_ids entry #{index} "
+                f"uses invalid namespace {namespace!r}"
+            )
+            continue
+        if not isinstance(value, str) or not LOGICAL_VALUE_RE.match(value):
+            result.errors.append(
+                f"{filename}: concept '{artifact_id}' logical_ids entry #{index} "
+                f"uses invalid value {value!r}"
+            )
+            continue
+
+        formatted = format_logical_id(entry)
+        if formatted is None:
+            result.errors.append(
+                f"{filename}: concept '{artifact_id}' logical_ids entry #{index} "
+                "must serialize as namespace:value"
+            )
+            continue
+        if formatted in formatted_ids:
+            result.errors.append(
+                f"{filename}: concept '{artifact_id}' duplicates logical ID '{formatted}'"
+            )
+            continue
+        if formatted in seen_logical_ids:
+            result.errors.append(
+                f"{filename}: duplicate logical ID '{formatted}' "
+                f"(also in {seen_logical_ids[formatted]})"
+            )
+            continue
+        formatted_ids.add(formatted)
+        seen_logical_ids[formatted] = filename
+
+
+def _normalize_legacy_concept_record(data: dict) -> dict:
+    normalized = dict(data)
+    if isinstance(normalized.get("artifact_id"), str) and normalized.get("artifact_id"):
+        return normalized
+
+    local_seed = str(normalized.get("id") or normalized.get("canonical_name") or "concept")
+    canonical_name = normalized.get("canonical_name")
+    primary_namespace = str(normalized.get("domain") or "propstore")
+    primary_value = normalize_logical_value(str(canonical_name or local_seed))
+    logical_ids = normalized.get("logical_ids")
+    normalized_logical_ids: list[dict[str, str]] = []
+    if isinstance(logical_ids, list):
+        for entry in logical_ids:
+            if not isinstance(entry, dict):
+                continue
+            namespace = entry.get("namespace")
+            value = entry.get("value")
+            if isinstance(namespace, str) and namespace and isinstance(value, str) and value:
+                normalized_logical_ids.append({"namespace": namespace, "value": value})
+
+    if not normalized_logical_ids:
+        normalized_logical_ids = [{"namespace": primary_namespace, "value": primary_value}]
+        propstore_local = normalize_logical_value(local_seed)
+        if primary_namespace != "propstore" or propstore_local != primary_value:
+            normalized_logical_ids.append({"namespace": "propstore", "value": propstore_local})
+        normalized["logical_ids"] = normalized_logical_ids
+
+    normalized["artifact_id"] = derive_concept_artifact_id("propstore", normalize_logical_value(local_seed))
+    version_id = normalized.get("version_id")
+    if not isinstance(version_id, str) or not version_id:
+        normalized["version_id"] = compute_concept_version_id(normalized)
+    return normalized
+
+    return formatted_ids
 
 
 def validate_concepts(
@@ -128,6 +228,7 @@ def validate_concepts(
     """
     result = ValidationResult()
     id_to_concept: dict[str, LoadedEntry] = {}
+    seen_logical_ids: dict[str, str] = {}
     cel_registry = build_cel_registry_from_loaded(concepts)
 
     def _forms_dir(c: LoadedEntry) -> KnowledgePath:
@@ -150,24 +251,48 @@ def validate_concepts(
         all_claim_ids = _load_all_claim_ids(claims_dir)
 
     for c in concepts:
-        data = c.data
+        data = _normalize_legacy_concept_record(c.data)
 
         # ── Required fields (basic) ─────────────────────────────
-        cid = data.get("id")
+        cid = data.get("artifact_id")
         name = data.get("canonical_name")
         status = data.get("status")
         definition = data.get("definition")
         form = data.get("form")
 
         if not cid:
-            result.errors.append(f"{c.filename}: missing required field 'id'")
+            result.errors.append(f"{c.filename}: missing required field 'artifact_id'")
             continue
+        if "id" in data and "artifact_id" in c.data:
+            result.errors.append(
+                f"{c.filename}: concept '{cid}' uses obsolete raw 'id'; "
+                "use artifact_id and logical_ids"
+            )
         if not name:
             result.errors.append(f"{c.filename}: missing required field 'canonical_name'")
         if not status:
             result.errors.append(f"{c.filename}: missing required field 'status'")
         if not definition:
             result.errors.append(f"{c.filename}: missing required field 'definition'")
+        _validate_logical_ids(
+            data.get("logical_ids"),
+            filename=c.filename,
+            artifact_id=cid,
+            seen_logical_ids=seen_logical_ids,
+            result=result,
+        )
+        version_id = data.get("version_id")
+        if not isinstance(version_id, str) or not CONCEPT_VERSION_ID_RE.match(version_id):
+            result.errors.append(
+                f"{c.filename}: concept '{cid}' version_id must match sha256:<64 hex chars>"
+            )
+        else:
+            expected_version_id = compute_concept_version_id(data)
+            if version_id != expected_version_id:
+                result.errors.append(
+                    f"{c.filename}: concept '{cid}' version_id mismatch "
+                    f"(expected {expected_version_id})"
+                )
         if not form:
             result.errors.append(f"{c.filename}: missing required field 'form'")
         elif not isinstance(form, str):
@@ -220,7 +345,7 @@ def validate_concepts(
         # ── ID uniqueness ───────────────────────────────────────
         if cid in id_to_concept:
             result.errors.append(
-                f"{c.filename}: duplicate ID '{cid}' "
+                f"{c.filename}: duplicate concept artifact_id '{cid}' "
                 f"(also in {id_to_concept[cid].filename})")
         else:
             id_to_concept[cid] = c
@@ -230,10 +355,12 @@ def validate_concepts(
             result.errors.append(
                 f"{c.filename}: canonical_name '{name}' does not match filename '{c.filename}'")
 
-        # ── ID format ─────────────────────────────────────────────
-        if cid and not _CONCEPT_ID_RE.match(cid):
+        # ── Artifact ID format ───────────────────────────────────
+        if cid and not CONCEPT_ARTIFACT_ID_RE.match(cid):
             result.errors.append(
-                f"{c.filename}: concept ID '{cid}' does not match required format conceptN (e.g. concept1, concept42)")
+                f"{c.filename}: concept artifact_id '{cid}' does not match required format "
+                "ps:concept:<opaque-token>"
+            )
 
         # ── Deprecated concepts must have replaced_by ───────────
         if status == "deprecated":
@@ -247,8 +374,8 @@ def validate_concepts(
     all_ids = set(id_to_concept.keys())
 
     for c in concepts:
-        data = c.data
-        cid = data.get("id", "")
+        data = _normalize_legacy_concept_record(c.data)
+        cid = data.get("artifact_id", "")
         status = data.get("status")
 
         # ── replaced_by target exists and isn't deprecated ──────
@@ -445,7 +572,7 @@ def validate_concepts(
         if data.get("status") != "deprecated":
             continue
         visited = set()
-        current_id = data.get("id")
+        current_id = data.get("artifact_id")
         while current_id:
             if current_id in visited:
                 result.errors.append(
