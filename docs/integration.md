@@ -22,13 +22,15 @@ pks source add-stance Halpin_2010 --batch ../papers/Halpin_2010/stances.yaml
 pks source finalize Halpin_2010
 pks source promote Halpin_2010
 ```
-6. **Build** — `pks build` validates, detects conflicts, compiles the sidecar
+6. **Build** — `pks build` validates, detects conflicts, and compiles the sidecar read model from canonical sources, concepts, claims, authored justifications, stances, and contexts
 7. **Embed** — `pks claim embed --all --model <model>` generates embeddings for cross-paper search
 8. **Query** — `pks claim similar`, `pks world query`, `pks world bind`, etc.
 
 The concept registry grows organically as papers are processed. Each extraction agent sees the full registry and reuses existing concepts where possible. Path dependence (which paper is processed first) is acceptable — reconciliation via embedding similarity merges duplicate concepts after the fact.
 
 Without propstore installed, `extract-claims` still works — it uses descriptive concept names without registry validation. propstore adds structured validation, git-backed source lifecycle, conflict detection, and cross-source reasoning on top.
+
+`notes.md` remains a source-branch artifact. It is not compiled into the claim reasoning tables; the sidecar only materializes semantic/query-facing structures.
 
 ## Reconciliation workflow
 
@@ -110,7 +112,7 @@ pks claim relate --all --model gemini/gemini-2.0-flash --concurrency 10
 pks claim relate --all --model gemini/gemini-2.0-flash --second-pass-threshold 0.3
 ```
 
-This feeds the argumentation framework — the classified stances become the attack and support relations that Dung extension computation operates on.
+This feeds the argumentation framework — the classified stances become the attack and support relations that Dung extension computation operates on. Support and explanation justifications are derived from those active relations at query time rather than persisted as synthetic sidecar rows.
 
 ## Algorithm comparison (ast-equiv)
 

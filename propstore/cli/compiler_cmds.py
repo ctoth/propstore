@@ -151,7 +151,7 @@ def validate(obj: dict) -> None:
 @click.pass_obj
 def build(obj: dict, output: str | None, force: bool) -> None:
     """Validate everything, build sidecar, run conflict detection."""
-    from propstore.build_sidecar import build_sidecar
+    from propstore.sidecar.build import build_sidecar
     from propstore.validate import load_concepts, validate_concepts
     from propstore.validate_claims import (
         build_concept_registry,

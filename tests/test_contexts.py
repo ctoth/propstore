@@ -385,9 +385,9 @@ class TestContextProperties:
 # ── Step 2: Context tables in sidecar ────────────────────────────────
 
 import sqlite3
-from propstore.build_sidecar import (
-    _create_context_tables,
-    _populate_contexts,
+from propstore.sidecar.schema import (
+    create_context_tables,
+    populate_contexts,
 )
 
 
@@ -400,7 +400,7 @@ class TestContextSidecar:
     def test_create_context_tables(self):
         """_create_context_tables creates all three tables."""
         conn = self._make_conn()
-        _create_context_tables(conn)
+        create_context_tables(conn)
         tables = {r[0] for r in conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table'"
         ).fetchall()}
@@ -411,12 +411,12 @@ class TestContextSidecar:
     def test_populate_contexts(self):
         """Contexts from LoadedEntry list appear in context table."""
         conn = self._make_conn()
-        _create_context_tables(conn)
+        create_context_tables(conn)
         contexts = [
             LoadedEntry("a", None, make_context("ctx_a", "A", "Desc A")),
             LoadedEntry("b", None, make_context("ctx_b", "B", "Desc B")),
         ]
-        _populate_contexts(conn, contexts)
+        populate_contexts(conn, contexts)
         rows = conn.execute("SELECT * FROM context").fetchall()
         assert len(rows) == 2
         ids = {r["id"] for r in rows}
@@ -425,12 +425,12 @@ class TestContextSidecar:
     def test_populate_assumptions(self):
         """Context assumptions appear in context_assumption table in order."""
         conn = self._make_conn()
-        _create_context_tables(conn)
+        create_context_tables(conn)
         contexts = [
             LoadedEntry("a", None, make_context("ctx_a", "A",
                          assumptions=["x == 1", "y == 2"])),
         ]
-        _populate_contexts(conn, contexts)
+        populate_contexts(conn, contexts)
         rows = conn.execute(
             "SELECT * FROM context_assumption WHERE context_id='ctx_a' ORDER BY seq"
         ).fetchall()
@@ -441,12 +441,12 @@ class TestContextSidecar:
     def test_populate_exclusions(self):
         """Exclusion pairs appear in context_exclusion table."""
         conn = self._make_conn()
-        _create_context_tables(conn)
+        create_context_tables(conn)
         contexts = [
             LoadedEntry("a", None, make_context("ctx_a", "A", excludes=["ctx_b"])),
             LoadedEntry("b", None, make_context("ctx_b", "B")),
         ]
-        _populate_contexts(conn, contexts)
+        populate_contexts(conn, contexts)
         rows = conn.execute("SELECT * FROM context_exclusion").fetchall()
         assert len(rows) == 1
         assert rows[0]["context_a"] == "ctx_a"
@@ -455,20 +455,20 @@ class TestContextSidecar:
     def test_populate_inherits(self):
         """Parent reference is stored in context.inherits column."""
         conn = self._make_conn()
-        _create_context_tables(conn)
+        create_context_tables(conn)
         contexts = [
             LoadedEntry("p", None, make_context("ctx_parent", "Parent")),
             LoadedEntry("c", None, make_context("ctx_child", "Child", inherits="ctx_parent")),
         ]
-        _populate_contexts(conn, contexts)
+        populate_contexts(conn, contexts)
         row = conn.execute("SELECT inherits FROM context WHERE id='ctx_child'").fetchone()
         assert row["inherits"] == "ctx_parent"
 
     def test_empty_contexts_ok(self):
         """Build succeeds with no contexts."""
         conn = self._make_conn()
-        _create_context_tables(conn)
-        _populate_contexts(conn, [])
+        create_context_tables(conn)
+        populate_contexts(conn, [])
         assert conn.execute("SELECT COUNT(*) FROM context").fetchone()[0] == 0
 
 
@@ -563,13 +563,17 @@ class TestBoundWorldContext:
 
     def _build_test_world(self):
         """Build a test sidecar with contexts and claims, return (conn, hierarchy)."""
-        from propstore.build_sidecar import _create_tables, _create_claim_tables, _create_context_tables
+        from propstore.sidecar.schema import (
+            create_claim_tables,
+            create_context_tables,
+            create_tables,
+        )
 
         conn = sqlite3.connect(":memory:")
         conn.row_factory = sqlite3.Row
-        _create_tables(conn)
-        _create_claim_tables(conn)
-        _create_context_tables(conn)
+        create_tables(conn)
+        create_claim_tables(conn)
+        create_context_tables(conn)
 
         # Contexts: root -> child, plus unrelated (excludes root)
         conn.execute("INSERT INTO context VALUES ('ctx_root', 'Root', 'Root ctx', NULL)")

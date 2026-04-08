@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 
 from propstore.opinion import Opinion, discount, from_probability
 from propstore.praf import p_arg_from_claim
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
 from propstore.cli.repository import Repository
 from propstore.world import WorldModel
@@ -279,3 +279,4 @@ def test_world_model_claim_rows_include_calibrated_source_prior(tmp_path: Path) 
     assert claim is not None
     assert claim["source"]["trust"]["prior_base_rate"] == pytest.approx(0.36)
     assert p_arg_from_claim(claim) == Opinion.vacuous(a=0.36)
+

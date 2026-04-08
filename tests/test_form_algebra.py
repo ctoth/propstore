@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.form_utils import dims_signature
 
 
@@ -486,3 +486,4 @@ class TestWorldModelFormQueries:
         results = world_model.form_algebra_using("mass")
         output_forms = [r["output_form"] for r in results]
         assert "force" in output_forms or "energy" in output_forms
+

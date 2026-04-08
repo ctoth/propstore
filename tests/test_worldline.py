@@ -16,7 +16,7 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.cli.worldline_cmds import _parse_kv_args
 from propstore.knowledge_path import GitKnowledgePath
 from propstore.repo import KnowledgeRepo
@@ -2263,3 +2263,4 @@ class TestWorldlineCLIFlags:
         assert "Revision result: revise" in result.output
         assert "Input atom: claim:synthetic" in result.output
         assert "Rejected atoms: claim:legacy" in result.output
+

@@ -1,0 +1,130 @@
+"""Shared concept-side identity and resolution helpers for the sidecar."""
+
+from __future__ import annotations
+
+import hashlib
+
+from propstore.identity import (
+    compute_concept_version_id,
+    derive_concept_artifact_id,
+    format_logical_id,
+    normalize_logical_value,
+    primary_logical_id,
+)
+
+
+def concept_content_hash(data: dict) -> str:
+    version_id = data.get("version_id")
+    if isinstance(version_id, str) and version_id:
+        return version_id.removeprefix("sha256:")[:16]
+    h = hashlib.sha256()
+    h.update((data.get("canonical_name", "")).encode())
+    h.update((data.get("domain", "")).encode())
+    h.update((data.get("definition", "")).encode())
+    return h.hexdigest()[:16]
+
+
+def concept_logical_ids(concept: dict) -> list[dict[str, str]]:
+    logical_ids = concept.get("logical_ids")
+    if isinstance(logical_ids, list):
+        normalized: list[dict[str, str]] = []
+        for entry in logical_ids:
+            if not isinstance(entry, dict):
+                continue
+            namespace = entry.get("namespace")
+            value = entry.get("value")
+            if isinstance(namespace, str) and namespace and isinstance(value, str) and value:
+                normalized.append({"namespace": namespace, "value": value})
+        if normalized:
+            return normalized
+
+    legacy_value = concept.get("id")
+    if not isinstance(legacy_value, str) or not legacy_value:
+        legacy_value = concept.get("canonical_name")
+    if not isinstance(legacy_value, str) or not legacy_value:
+        legacy_value = "concept"
+    return [{"namespace": "legacy", "value": normalize_logical_value(legacy_value)}]
+
+
+def concept_primary_logical_id(concept: dict) -> str | None:
+    primary = primary_logical_id(concept)
+    if isinstance(primary, str) and primary:
+        return primary
+    return format_logical_id(concept_logical_ids(concept)[0])
+
+
+def concept_artifact_id(concept: dict) -> str | None:
+    artifact_id = concept.get("artifact_id")
+    if isinstance(artifact_id, str) and artifact_id:
+        return artifact_id
+    legacy_id = concept.get("id")
+    if isinstance(legacy_id, str) and legacy_id:
+        return legacy_id
+    primary = concept_primary_logical_id(concept)
+    if isinstance(primary, str) and ":" in primary:
+        namespace, value = primary.split(":", 1)
+        return derive_concept_artifact_id(namespace, value)
+    return None
+
+
+def concept_version_id(concept: dict) -> str | None:
+    version_id = concept.get("version_id")
+    if isinstance(version_id, str) and version_id:
+        return version_id
+    canonical = dict(concept)
+    canonical["artifact_id"] = concept_artifact_id(concept)
+    canonical["logical_ids"] = concept_logical_ids(concept)
+    return compute_concept_version_id(canonical)
+
+
+def concept_reference_candidates(concept: dict) -> set[str]:
+    candidates: set[str] = set()
+    artifact_id = concept.get("artifact_id")
+    if isinstance(artifact_id, str) and artifact_id:
+        candidates.add(artifact_id)
+    canonical_name = concept.get("canonical_name")
+    if isinstance(canonical_name, str) and canonical_name:
+        candidates.add(canonical_name)
+    for logical_id in concept.get("logical_ids", []) or []:
+        if not isinstance(logical_id, dict):
+            continue
+        formatted = format_logical_id(logical_id)
+        if formatted:
+            candidates.add(formatted)
+        value = logical_id.get("value")
+        if isinstance(value, str) and value:
+            candidates.add(value)
+    for alias in concept.get("aliases", []) or []:
+        if not isinstance(alias, dict):
+            continue
+        alias_name = alias.get("name")
+        if isinstance(alias_name, str) and alias_name:
+            candidates.add(alias_name)
+    return candidates
+
+
+def resolve_concept_reference(
+    concept_ref: str | None,
+    concept_registry: dict,
+) -> str | None:
+    if not concept_ref:
+        return concept_ref
+
+    direct = concept_registry.get(concept_ref)
+    if isinstance(direct, dict):
+        resolved = direct.get("artifact_id")
+        if resolved:
+            return resolved
+
+    seen_ids: set[str] = set()
+    for concept in concept_registry.values():
+        if not isinstance(concept, dict):
+            continue
+        concept_id = concept.get("artifact_id")
+        if not concept_id or concept_id in seen_ids:
+            continue
+        seen_ids.add(concept_id)
+        if concept_ref in concept_reference_candidates(concept):
+            return concept_id
+
+    return concept_ref

@@ -19,6 +19,7 @@ from propstore.identity import (
     normalize_identity_namespace,
     normalize_logical_value,
 )
+from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 
 
 def _rewrite_concept_ref(value: object) -> object:
@@ -208,6 +209,7 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
             concept_id TEXT,
             target_concept TEXT,
             seq INTEGER,
+            source_slug TEXT,
             source_paper TEXT NOT NULL DEFAULT 'test',
             provenance_page INTEGER NOT NULL DEFAULT 1,
             provenance_json TEXT,
@@ -286,6 +288,11 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
 def create_world_model_schema(conn: sqlite3.Connection) -> None:
     """Create the canonical sidecar schema expected by WorldModel."""
     conn.executescript("""
+        CREATE TABLE meta (
+            key TEXT PRIMARY KEY,
+            schema_version INTEGER NOT NULL
+        );
+
         CREATE TABLE source (
             slug TEXT PRIMARY KEY,
             source_id TEXT,
@@ -411,6 +418,7 @@ def create_world_model_schema(conn: sqlite3.Connection) -> None:
             type TEXT NOT NULL,
             concept_id TEXT,
             target_concept TEXT,
+            source_slug TEXT,
             source_paper TEXT NOT NULL DEFAULT 'test',
             provenance_page INTEGER NOT NULL DEFAULT 1,
             provenance_json TEXT,
@@ -467,6 +475,11 @@ def create_world_model_schema(conn: sqlite3.Connection) -> None:
             derivation_chain TEXT
         );
     """)
+    conn.execute(
+        "INSERT INTO meta (key, schema_version) VALUES (?, ?)",
+        (SIDECAR_META_KEY, SCHEMA_VERSION),
+    )
+    conn.commit()
 
 
 def insert_claim(
@@ -487,17 +500,19 @@ def insert_claim(
     expression: str | None = None,
     auto_summary: str | None = None,
     source_paper: str = "test",
+    source_slug: str | None = None,
     provenance_page: int = 1,
 ) -> None:
     logical_id = f"test:{claim_id}"
     version_id = f"sha256:{hashlib.sha256(claim_id.encode('utf-8')).hexdigest()}"
+    resolved_source_slug = source_paper if source_slug is None else source_slug
     conn.execute(
         """
         INSERT INTO claim_core (
             id, primary_logical_id, logical_ids_json, version_id,
             type, concept_id, target_concept, seq,
-            source_paper, provenance_page, provenance_json, context_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            source_slug, source_paper, provenance_page, provenance_json, context_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             claim_id,
@@ -508,6 +523,7 @@ def insert_claim(
             concept_id,
             target_concept,
             None,
+            resolved_source_slug,
             source_paper,
             provenance_page,
             None,

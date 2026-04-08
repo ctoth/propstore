@@ -12,7 +12,7 @@ from click.testing import CliRunner
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
 from propstore.cli.repository import Repository
 from propstore.source_ops import _parameterization_group_merge_preview
@@ -1032,7 +1032,7 @@ def test_source_promote_writes_master_claims_stances_sources_and_justifications(
         }
     finally:
         conn.close()
-    assert "just1" in justification_ids
+    assert justification_ids == {"just1"}
 
 
 def test_source_promote_materializes_unique_proposed_concepts(tmp_path: Path) -> None:
@@ -1206,3 +1206,4 @@ def test_source_promote_blocks_on_ambiguous_new_concept_slug_collision(tmp_path:
     )
     assert promote.exit_code != 0
     assert "novel concept" in promote.output
+

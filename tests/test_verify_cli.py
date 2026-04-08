@@ -8,7 +8,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.artifact_codes import attach_source_artifact_codes
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
 from propstore.cli.repository import Repository
 from tests.test_source_relations import _init_source, _seed_master_concept
@@ -266,3 +266,4 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
     left_claim = next(claim for claim in left[1]["claims"] if claim["artifact_id"] == "ps:claim:b")
     right_claim = next(claim for claim in right[1]["claims"] if claim["artifact_id"] == "ps:claim:b")
     assert left_claim["artifact_code"] == right_claim["artifact_code"]
+

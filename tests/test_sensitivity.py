@@ -3,7 +3,7 @@
 import pytest
 import yaml
 
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.sensitivity import SensitivityEntry, SensitivityResult, analyze_sensitivity
 from propstore.world import WorldModel
 
@@ -502,3 +502,4 @@ class TestSensitivityConditionsRespected:
         bound = world.bind(task="singing")
         result = analyze_sensitivity(world, "concept5", bound)
         assert result is None
+
