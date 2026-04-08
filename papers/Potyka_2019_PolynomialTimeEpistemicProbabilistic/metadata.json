@@ -1,0 +1,11 @@
+{
+  "title": "A Polynomial-time Fragment of Epistemic Probabilistic Argumentation",
+  "authors": ["Nico Potyka"],
+  "year": 2019,
+  "venue": "International Journal of Approximate Reasoning",
+  "doi": "10.1016/j.ijar.2019.10.005",
+  "arxiv_id": "1811.12083",
+  "source_url": "https://arxiv.org/abs/1811.12083",
+  "pages": 15,
+  "tags": ["probabilistic-argumentation", "complexity", "epistemic-probability", "linear-programming", "tractability"]
+}

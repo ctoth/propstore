@@ -1,0 +1,10 @@
+{
+  "title": "The Berkeley FrameNet Project",
+  "authors": ["Collin F. Baker", "Charles J. Fillmore", "John B. Lowe"],
+  "year": "1998",
+  "arxiv_id": null,
+  "doi": "10.3115/980845.980860",
+  "abstract": "FrameNet is a three-year NSF-supported project in corpus-based computational lexicography, now in its second year (NSF IRI-9618838, \"Tools for Lexicon Building\"). The project's key features are (a) a commitment to corpus evidence for semantic and syntactic generalizations, and (b) the representation of the valences of its target words (mostly nouns, adjectives, and verbs) in which the weights are frame-semantic descriptions of the use of frame semantics. The resulting database will contain (a) descriptions of the frames underlying the meanings of the words described, and (b) the valence representation (semantic and syntactic) of several thousand words and phrases, each accompanied by (c) a representative selection of associated corpus attestations, which jointly exemplify the observed linkages between \"frame elements\" and their syntactic realizations (e.g., grammatical function, phrase type, and other syntactic traits). This report will outline the project's goals and workflow, and information about the computational and lexicographic tools that have been adopted or created in-house for this work.",
+  "url": "https://aclanthology.org/C98-1013",
+  "pdf_url": null
+}

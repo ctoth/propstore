@@ -1,0 +1,10 @@
+{
+  "title": "The sameAs Problem: A Survey on Identity Management in the Web of Data",
+  "authors": ["Joe Raad", "Nathalie Pernelle", "Fatiha Saïs", "Wouter Beek", "Frank van Harmelen"],
+  "year": "2019",
+  "arxiv_id": "1907.10528",
+  "doi": "10.48550/arXiv.1907.10528",
+  "abstract": "In a decentralized knowledge representation system such as the Web of Data, it is common and indeed allowed for different knowledge graphs to provide multiple names used to denote the same thing. The owl:sameAs statements are used to indicate that two different names actually refer to the same entity. The declarative nature and formal semantics of such identity statements can have wide-ranging effects in a global knowledge space like the Web of Data. This survey provides an extensive overview of the sameAs problem, addressing identity link creation, quality assessment, erroneous link detection, repair approaches, and alternative identity relations.",
+  "url": "https://arxiv.org/abs/1907.10528",
+  "pdf_url": "https://arxiv.org/pdf/1907.10528"
+}

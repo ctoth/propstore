@@ -1,0 +1,10 @@
+{
+  "title": "Bridging Text and Knowledge with Frames",
+  "authors": ["Srini Narayanan"],
+  "year": "2014",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "FrameNet is the best currently operational version of Chuck Fillmore's Frame Semantics. As FrameNet has evolved over the years, we have been building a set of increasingly ambitious prototype systems that exploit FrameNet as a machine resource. Results from this work point to frames as a natural representation for applications that require linking textual meaning to world knowledge.",
+  "url": null,
+  "pdf_url": null
+}

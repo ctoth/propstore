@@ -1,0 +1,11 @@
+# Abstract
+
+## Original Text (Verbatim)
+
+Semantic representations capture the meaning of a text. Abstract Meaning Representation (AMR), a type of semantic representation, focuses on predicate-argument structure and abstracts away from surface form. Though AMR was designed initially for English, it has now been adapted to a multitude of languages in the form of new English annotation schemes, cross-lingual text-to-AMR parsing, and text-to-text/text-to-graph text generation. We advance prior work on cross-lingual AMR by thoroughly investigating the amount, types, and causes of differences which appear in AMRs of different languages. Further, we compare how AMR captures meaning in cross-lingual pairs versus strings, and show that AMR graphs are able to draw out fine-grained differences between parallel sentences. We explore three primary research questions: (1) What are the types and causes of differences in parallel AMRs? (2) How can we measure the amount of difference between AMR pairs in different languages? (3) Given that AMR structure is affected by language and exhibits cross-lingual differences, how do cross-lingual AMR pairs compare to string-based representations of cross-lingual sentence pairs? We find that the source language itself does have a measurable impact on AMR structure, and that translation divergences and annotation choices also lead to differences in cross-lingual AMR pairs. We explore the implications of this finding throughout our study, concluding that, while AMR is useful to capture meaning across languages, evaluations need to take into account source language influence if they are to paint an accurate picture of parser output and meaning generally.
+
+---
+
+## Our Interpretation
+
+This paper investigates whether AMR, designed for English predicate-argument semantics, works as a cross-linguistic meaning representation. The key finding is that source language significantly distorts AMR structure -- even after relexicalizing non-English concepts to English tokens, Smatch scores between source-language AMRs and gold English AMRs fall below 50%. This matters for any system comparing structured meaning representations across sources, as representational divergence may reflect language/annotation artifacts rather than genuine semantic disagreement.

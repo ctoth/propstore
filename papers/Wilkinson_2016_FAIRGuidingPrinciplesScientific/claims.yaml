@@ -1,0 +1,253 @@
+source:
+  paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+produced_by:
+  agent: "claude-opus-4-6-1m"
+  skill: "extract-claims"
+  timestamp: "2026-04-03T07:54:24Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Scientific data must be assigned globally unique and persistent identifiers to be findable by both humans and machines."
+    concepts:
+      - persistent_identifier
+      - findability
+      - data_management
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "F1. (meta)data are assigned a globally unique and persistent identifier"
+
+  - id: claim2
+    type: observation
+    statement: "Data must be described with rich metadata to be findable, where richness is defined by the reusability requirements of R1."
+    concepts:
+      - metadata
+      - findability
+      - data_management
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "F2. data are described with rich metadata (defined by R1 below)"
+
+  - id: claim3
+    type: observation
+    statement: "Metadata must explicitly include the identifier of the data it describes, creating a bidirectional link between data and its description."
+    concepts:
+      - metadata
+      - persistent_identifier
+      - findability
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "F3. metadata clearly and explicitly include the identifier of the data it describes"
+
+  - id: claim4
+    type: observation
+    statement: "Data and metadata must be registered or indexed in a searchable resource to be findable."
+    concepts:
+      - metadata
+      - findability
+      - searchable_index
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "F4. (meta)data are registered or indexed in a searchable resource"
+
+  - id: claim5
+    type: observation
+    statement: "Data and metadata must be retrievable by their identifier using a standardized, open, free, and universally implementable communications protocol that allows for authentication and authorization where necessary."
+    concepts:
+      - accessibility
+      - persistent_identifier
+      - communication_protocol
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "A1. (meta)data are retrievable by their identifier using a standardised communications protocol"
+
+  - id: claim6
+    type: observation
+    statement: "Metadata must remain accessible even when the data it describes is no longer available."
+    concepts:
+      - metadata
+      - accessibility
+      - data_persistence
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "A2. metadata are accessible, even when the data are no longer available"
+
+  - id: claim7
+    type: observation
+    statement: "Data and metadata must use a formal, accessible, shared, and broadly applicable language for knowledge representation to be interoperable."
+    concepts:
+      - interoperability
+      - knowledge_representation
+      - metadata
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "I1. (meta)data use a formal, accessible, shared, and broadly applicable language for knowledge representation"
+
+  - id: claim8
+    type: observation
+    statement: "Vocabularies used in data and metadata should themselves follow FAIR principles, creating a recursive application of the framework."
+    concepts:
+      - interoperability
+      - vocabulary
+      - fair_principles
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "I2. (meta)data use vocabularies that follow FAIR principles"
+
+  - id: claim9
+    type: observation
+    statement: "Data and metadata must include qualified references to other data and metadata, where references are typed rather than bare links."
+    concepts:
+      - interoperability
+      - qualified_reference
+      - metadata
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "I3. (meta)data include qualified references to other (meta)data"
+
+  - id: claim10
+    type: observation
+    statement: "Data reusability requires rich description with accurate and relevant attributes, a clear usage license, detailed provenance, and compliance with domain-relevant community standards."
+    concepts:
+      - reusability
+      - provenance
+      - data_license
+      - community_standards
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "R1. meta(data) are richly described with a plurality of accurate and relevant attributes"
+
+  - id: claim11
+    type: mechanism
+    statement: "Machine-actionability is essential for modern scientific data because humans cannot operate at the scale and speed required by contemporary scientific data volumes, whereas machines can autonomously find, access, interoperate, and reuse data with minimal human intervention."
+    concepts:
+      - machine_actionability
+      - data_management
+      - scalability
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 2
+      section: "The significance of machine-actionable data in research"
+      quote_fragment: "humans are simply unable to operate at the scope, scale, and speed necessitated by the scale of contemporary scientific data"
+
+  - id: claim12
+    type: observation
+    statement: "FAIR compliance is a continuous spectrum, not a binary state; resources progressively move along a continuum toward an optimal FAIR state."
+    concepts:
+      - fair_principles
+      - data_management
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles in detail"
+      quote_fragment: "the resource along the continuum towards this optimal state"
+
+  - id: claim13
+    type: observation
+    statement: "The FAIR principles are domain-independent, high-level principles that can be applied to a wide range of scholarly subjects, and apply equally to data, metadata, algorithms, tools, and workflows."
+    concepts:
+      - fair_principles
+      - data_management
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 0
+      section: "Abstract"
+      quote_fragment: "includes not only the data itself, but also the algorithms, tools, and workflows that led to that data"
+
+  - id: claim14
+    type: observation
+    statement: "FAIR is not synonymous with open data; data can be maximally FAIR while remaining access-restricted, because the accessibility principle explicitly permits authentication and authorization."
+    concepts:
+      - fair_principles
+      - accessibility
+      - data_license
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles in detail"
+      quote_fragment: "the protocol allows for an authentication and authorization procedure, where necessary"
+
+  - id: claim15
+    type: mechanism
+    statement: "Machine-actionability has two distinct contexts: determining what a digital object is by reading its contextual metadata, and determining how to process its content by reading the content itself. Either or both may be machine-actionable independently."
+    concepts:
+      - machine_actionability
+      - metadata
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 2
+      section: "The significance of machine-actionable data in research"
+      quote_fragment: "first, when referring to the contextual metadata surrounding a digital object... and second, when referring to the content of the digital object itself"
+
+  - id: claim16
+    type: comparison
+    statement: "Unlike prior data management initiatives that focused primarily on human scholars, the FAIR principles put equal emphasis on machine-actionability, arguing that machines must be first-class consumers of scientific data infrastructure."
+    concepts:
+      - fair_principles
+      - machine_actionability
+      - data_management
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 0
+      section: "Abstract"
+      quote_fragment: "Distinct from peer initiatives that focus on the human scholar, the FAIR Principles put specific emphasis on enhancing the ability of machines"
+
+  - id: claim17
+    type: observation
+    statement: "The four FAIR principle categories (Findable, Accessible, Interoperable, Reusable) are related but independent and separable; a resource may achieve high compliance with one category and low compliance with another."
+    concepts:
+      - fair_principles
+      - findability
+      - accessibility
+      - interoperability
+      - reusability
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles in detail"
+      quote_fragment: "The elements of the FAIR Principles are related, but independent and separable"
+
+  - id: claim18
+    type: limitation
+    statement: "The FAIR principles do not specify concrete implementation requirements or compliance metrics; they are technology-agnostic guidance, not specifications, and formal compliance scoring remains future work."
+    concepts:
+      - fair_principles
+      - data_management
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles in detail"
+      quote_fragment: "each principle describes a quality of data/metadata and does not prescribe a particular technology"
+
+  - id: claim19
+    type: observation
+    statement: "Detailed provenance metadata is a prerequisite for data reusability, enabling trust assessment and informed reuse decisions."
+    concepts:
+      - provenance
+      - reusability
+      - data_management
+    provenance:
+      paper: Wilkinson_2016_FAIRGuidingPrinciplesScientific
+      page: 3
+      section: "The FAIR Guiding Principles"
+      quote_fragment: "R1.2. (meta)data are associated with detailed provenance"

@@ -1,0 +1,310 @@
+source:
+  paper: Beek_2018_SameAs.ccClosure500MOwl
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-04-04T07:57:41Z"
+
+claims:
+  - id: claim1
+    type: parameter
+    concept: explicit_sameas_statement_count
+    value: 558943116
+    unit: "statements"
+    conditions:
+      - "dataset == 'LOD_Laundromat_2015'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 6
+      section: "4.1 Explicit Identity Relation"
+      quote_fragment: "The LOD Laundromat corpus contains a total of 558,943,116 owl:sameAs statements"
+    notes: "Extracted from LOD Laundromat corpus via SPARQL CONSTRUCT over LOD-a-lot HDT file"
+
+  - id: claim2
+    type: parameter
+    concept: unique_terms_in_explicit_identity
+    value: 179739567
+    unit: "terms"
+    conditions:
+      - "dataset == 'LOD_Laundromat_2015'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 6
+      section: "4.1 Explicit Identity Relation"
+      quote_fragment: "179,739,567 unique terms occur in owl:sameAs assertions"
+
+  - id: claim3
+    type: parameter
+    concept: iri_fraction_in_identity
+    value: 0.9741
+    unit: "fraction"
+    conditions:
+      - "dataset == 'LOD_Laundromat_2015'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 6
+      section: "4.1 Explicit Identity Relation"
+      quote_fragment: "the vast majority of these are IRIs (175,078,015 or 97.41%)"
+
+  - id: claim4
+    type: parameter
+    concept: non_singleton_identity_set_count
+    value: 48999148
+    unit: "sets"
+    conditions:
+      - "dataset == 'LOD_Laundromat_2015'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 9
+      section: "4.2 Implicit Identity Relation"
+      quote_fragment: "The number of non-singleton identity sets is 48,999,148"
+
+  - id: claim5
+    type: parameter
+    concept: identity_set_size_power_law_exponent
+    value: 3.3
+    unit: "dimensionless"
+    conditions:
+      - "dataset == 'LOD_Laundromat_2015'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 9
+      section: "4.2 Implicit Identity Relation"
+      figure: "Fig. 6"
+      quote_fragment: "fits a power law with exponent 3.3 +/- 0.04"
+    notes: "Exponent for non-singleton identity set cardinality distribution"
+
+  - id: claim6
+    type: parameter
+    concept: largest_identity_set_cardinality
+    value: 177794
+    unit: "terms"
+    conditions:
+      - "dataset == 'LOD_Laundromat_2015'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 9
+      section: "4.2 Implicit Identity Relation"
+      quote_fragment: "the largest identity set has cardinality 177,794"
+    notes: "Contains Albert Einstein, countries of the world, and the empty string — evidence of identity error propagation"
+
+  - id: claim7
+    type: parameter
+    concept: size_two_identity_set_fraction
+    value: 0.6396
+    unit: "fraction"
+    conditions:
+      - "dataset == 'LOD_Laundromat_2015'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 9
+      section: "4.2 Implicit Identity Relation"
+      quote_fragment: "31,337,556 sets; 63.96% has size 2"
+
+  - id: claim8
+    type: parameter
+    concept: full_materialization_triple_count
+    value: 2.0e+12
+    unit: "triples"
+    conditions:
+      - "dataset == 'LOD_Laundromat_2015'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 10
+      section: "4.2 Implicit Identity Relation"
+      quote_fragment: "the number of owl:sameAs triples that would be needed to express the full materialization"
+    notes: "Approximately 2 trillion triples; impractical to store directly"
+
+  - id: claim9
+    type: parameter
+    concept: closure_computation_time
+    value: 5
+    unit: "minutes"
+    conditions:
+      - "algorithm == 'union_find_merge_by_rank'"
+      - "implementation == 'cpp'"
+      - "hardware == 'regular_laptop'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 5
+      section: "3.3 Implicit Identity Relation: Closure"
+      quote_fragment: "takes just under 5 min using CPP on a regular laptop"
+
+  - id: claim10
+    type: parameter
+    concept: sort_dedup_time
+    value: 26
+    unit: "minutes"
+    conditions:
+      - "tool == 'GNU_sort_unique'"
+      - "storage == 'SSD'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 4
+      section: "3.2 Explicit Identity Relation: Compaction"
+      quote_fragment: "we use GNU sort unique, which takes 26min on an SSD disk"
+
+  - id: claim11
+    type: parameter
+    concept: namespace_count_in_identity_graph
+    value: 2618
+    unit: "namespaces"
+    conditions:
+      - "dataset == 'LOD_Laundromat_2015'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 8
+      section: "4.1 Explicit Identity Relation"
+      quote_fragment: "2,618 host-based namespaces/datasets, that are connected through 10,791 edges, and consists of 142 components"
+
+  - id: claim12
+    type: parameter
+    concept: schema_assertions_about_sameas
+    value: 2773
+    unit: "assertions"
+    conditions:
+      - "dataset == 'LOD_Laundromat_2015'"
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 11
+      section: "4.3 Schema Assertions"
+      quote_fragment: "over 2,773 assertions about owl:sameAs that extend its schema as defined in the OWL vocabulary"
+
+  - id: claim13
+    type: observation
+    statement: "Transitive closure of owl:sameAs identity assertions propagates errors, producing identity sets that conflate unrelated entities such as Albert Einstein, countries of the world, and the empty string."
+    concepts:
+      - identity_closure
+      - error_propagation
+      - owl_sameas
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 9
+      section: "4.2 Implicit Identity Relation"
+      quote_fragment: "the largest identity set has cardinality 177,794. It includes Albert Einstein, the countries of the world, and the empty string"
+
+  - id: claim14
+    type: observation
+    statement: "The distribution of owl:sameAs statements per term in the full LOD Cloud does not follow a power-law distribution, contradicting earlier findings from the smaller 2011 Billion Triple Challenge dataset."
+    concepts:
+      - power_law_distribution
+      - owl_sameas
+      - dataset_scale_dependence
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 7
+      section: "4.1 Explicit Identity Relation"
+      quote_fragment: "although most terms do appear in a small number of statements, this distribution does not display a power-law distribution"
+
+  - id: claim15
+    type: observation
+    statement: "Most namespaces use owl:sameAs only for inter-dataset linking, not for equating resources within the same dataset, indicating that most datasets internally enforce the Unique Name Assumption."
+    concepts:
+      - unique_name_assumption
+      - namespace_linking_pattern
+      - owl_sameas
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 8
+      section: "4.1 Explicit Identity Relation"
+      quote_fragment: "most namespaces only use identity statements for linking to other datasets, but not for equating dataset-internal resources"
+
+  - id: claim16
+    type: observation
+    statement: "The owl:sameAs linking network at namespace level has high-centrality hubs (dbpedia.org, freebase.com) that act as domain-specific naming authorities connecting otherwise disconnected dataset clusters."
+    concepts:
+      - naming_authority
+      - network_centrality
+      - linked_data_topology
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 8
+      section: "4.1 Explicit Identity Relation"
+      figure: "Fig. 5"
+      quote_fragment: "there are high-centrality nodes that act as domain-specific naming authorities/hubs"
+
+  - id: claim17
+    type: mechanism
+    statement: "Union-find with merge-by-rank computes identity closure efficiently by always merging the smaller identity set into the larger one, achieving near-linear time complexity on 558M statements in approximately 5 minutes on commodity hardware."
+    concepts:
+      - union_find
+      - merge_by_rank
+      - identity_closure
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 5
+      section: "3.3 Implicit Identity Relation: Closure"
+      quote_fragment: "merge the smaller of the two sets into the larger one"
+
+  - id: claim18
+    type: mechanism
+    statement: "Canonical ordering of identity pairs as (min(x,y), max(x,y)) followed by sort-unique deduplication exploits symmetry of owl:sameAs to significantly reduce the input data before closure computation."
+    concepts:
+      - deduplication
+      - canonical_ordering
+      - symmetry_exploitation
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 4
+      section: "3.2 Explicit Identity Relation: Compaction"
+
+  - id: claim19
+    type: comparison
+    statement: "The LOD Laundromat-based collection of 558M owl:sameAs statements is 66 times larger than the previous largest collection by Schmachtenberg et al. (2014), which gathered 8.38M statements from 559 resources."
+    concepts:
+      - dataset_scale
+      - owl_sameas
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 1
+      section: "1.1 Related Work"
+      quote_fragment: "crawled 8.38M owl:sameAs statements from 559 resources"
+
+  - id: claim20
+    type: limitation
+    statement: "The identity closure dataset is a snapshot at crawl time and becomes stale as Linked Open Data sources are updated, with no mechanism for incremental updates."
+    concepts:
+      - data_staleness
+      - snapshot_limitation
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 13
+      section: "6 Conclusion"
+
+  - id: claim21
+    type: limitation
+    statement: "The closure computation propagates all identity assertions without quality assessment, meaning a single erroneous owl:sameAs statement can contaminate an entire identity set through transitivity."
+    concepts:
+      - error_propagation
+      - identity_closure
+      - quality_assessment
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 9
+      section: "4.2 Implicit Identity Relation"
+    notes: "The 177,794-member identity set is direct evidence of this problem"
+
+  - id: claim22
+    type: limitation
+    statement: "Some super-property assertions about owl:sameAs introduce semantic bugs by treating identity as mere equivalence or relatedness, but the dataset stores these assertions without flagging the semantic conflict."
+    concepts:
+      - semantic_overloading
+      - owl_sameas
+      - schema_assertions
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 11
+      section: "4.3 Schema Assertions"
+      quote_fragment: "Some super-property assertions introduce semantic bugs"
+
+  - id: claim23
+    type: observation
+    statement: "Full materialization of the identity closure would require approximately 2 trillion owl:sameAs triples, making direct storage impractical and necessitating an indexed lookup service instead."
+    concepts:
+      - materialization_cost
+      - identity_closure
+      - storage_architecture
+    provenance:
+      paper: Beek_2018_SameAs.ccClosure500MOwl
+      page: 10
+      section: "4.2 Implicit Identity Relation"

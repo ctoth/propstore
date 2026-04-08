@@ -1,0 +1,4 @@
+---
+tags: [frame-semantics, lexical-semantics, knowledge-representation, prototype-theory]
+---
+Fillmore introduces frame semantics as a research program where word meanings are understood through structured background knowledge (frames) that words presuppose and invoke. The paper demonstrates through extensive lexical analysis — including the commercial transaction frame (BUY/SELL/PAY), prototype effects (BACHELOR), and perspectival contrasts (LAND/GROUND, STINGY/THRIFTY) — that meaning cannot be reduced to denotation or feature lists but requires understanding the motivating context that structures a domain of experience. Relevant to propstore's concept registry and non-commitment discipline: competing framings of the same domain are competing structured perspectives, not errors to be resolved.

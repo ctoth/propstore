@@ -1,0 +1,4 @@
+---
+tags: [event-structure, formal-semantics, generative-lexicon, temporal-logic, cognitive-simulation]
+---
+This paper introduces Dynamic Event Structure (DES) and Habitat Theory as formal frameworks for modeling how entity attributes change over time during events, using Dynamic Interval Temporal Logic and qualia-structured record types. The key contribution is a dynamic interpretation of event structure that tracks attribute value changes through state transitions with scale-typed attributes (nominal, ordinal, interval, ratio), and the Habitat concept as a typed record capturing contextual preconditions for entity function. The framework provides formal tools for modeling temporal change in entity properties that could inform claim dynamics, context modeling, and typed attribute handling in propstore.

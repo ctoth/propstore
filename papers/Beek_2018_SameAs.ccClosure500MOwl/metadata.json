@@ -1,0 +1,15 @@
+{
+  "title": "sameAs.cc: The Closure of 500M owl:sameAs Statements",
+  "authors": [
+    "Wouter Beek",
+    "Joe Raad",
+    "Jan Wielemaker",
+    "Frank van Harmelen"
+  ],
+  "year": "2018",
+  "doi": "10.1007/978-3-319-93417-4_5",
+  "arxiv_id": null,
+  "abstract": "The owl:sameAs predicate is an essential ingredient of the Semantic Web architecture. It allows parties to independently mint identifiers, while at the same time ensuring that these parties are able to understand each other's data. An online resource that collects all owl:sameAs statements in the Linked Open Data Cloud has therefore considerable potential value, both as a reference for the same entity as well as analytical value. This paper presents sameAs.cc: the largest dataset of identity statements has been gathered from the LOD Cloud to date. We describe our approach for crawling, indexing, and calculating the equivalence closure over this dataset. The dataset is published online, as well as a web service that can be queried by both humans and machines.",
+  "url": "https://www.semanticscholar.org/paper/423c13d783af9e7f840b6332f891c3dad42ea5cb",
+  "pdf_url": "https://research.vu.nl/files/75391278/Beek2018_Chapter_SameAsCcTheClosureOf500MOwlSam.pdf"
+}

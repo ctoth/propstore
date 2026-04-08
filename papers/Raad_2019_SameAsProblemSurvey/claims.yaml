@@ -1,0 +1,162 @@
+source:
+  paper: Raad_2019_SameAsProblemSurvey
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-04-03T07:53:34Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "The owl:sameAs predicate has formal semantics requiring full substitutability (all properties that hold for one URI must hold for the other), but most publishers use it loosely to express contextual similarity rather than true identity."
+    concepts:
+      - owl_sameas
+      - identity_semantics
+      - contextual_identity
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 0
+      section: "Abstract / Introduction"
+      quote_fragment: "the declarative nature and formal semantics of such identity statements can have wide-ranging effects in a global knowledge space"
+
+  - id: claim2
+    type: mechanism
+    statement: "Transitivity of owl:sameAs causes cascading identity errors: if A=B and B=C are asserted, A=C is entailed even when A and C are clearly distinct entities, creating identity closure communities that grow far beyond justified scope."
+    concepts:
+      - owl_sameas
+      - transitivity
+      - identity_closure
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 0
+      section: "Introduction"
+      quote_fragment: "knowledge graphs of hundreds of millions of statements can easily be inferred from a single erroneous sameAs statement"
+
+  - id: claim3
+    type: observation
+    statement: "The Linked Open Data cloud contains over 558 million owl:sameAs statements across hundreds of datasets, with identity closure communities numbering over 48 million."
+    concepts:
+      - owl_sameas
+      - linked_open_data
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 0
+      section: "Introduction"
+      quote_fragment: "over half a billion statements"
+
+  - id: claim4
+    type: observation
+    statement: "Identity links in the Web of Data are created by four main mechanisms: matching rules (key-based and similarity-based), OWL reasoning (via inverse functional properties), SKOS producers (skos:exactMatch), and crowd-sourcing."
+    concepts:
+      - identity_link_creation
+      - owl_sameas
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 2
+      section: "Section 2: Contextual Identity"
+      quote_fragment: "matching rules, OWL, SKOS producers"
+
+  - id: claim5
+    type: mechanism
+    statement: "Contextual identity holds when two resources share the same set of properties within a defined context C but may differ outside that context, providing a weaker but more accurate notion than global owl:sameAs identity."
+    concepts:
+      - contextual_identity
+      - identity_semantics
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 2
+      section: "Section 2: Contextual Identity"
+      quote_fragment: "contextual identity... two resources are contextually identical when they share properties within a defined context"
+
+  - id: claim6
+    type: comparison
+    statement: "Unlike owl:sameAs which requires global substitutability, contextual identity (introduced by Halpin et al. 2010) restricts equivalence to a specific context (dataset, named graph, or property subset), avoiding the error propagation caused by transitive closure over heterogeneous contexts."
+    concepts:
+      - contextual_identity
+      - owl_sameas
+      - identity_semantics
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 2
+      section: "Section 2: Contextual Identity"
+      quote_fragment: "Principles (5) and (6) refer to the notion of contextual propositional attitudes"
+
+  - id: claim7
+    type: observation
+    statement: "Inverse Functional Properties (IFPs) theoretically ensure at most one entity per value, but IFP violations are common in practice, making key-based identity link creation unreliable."
+    concepts:
+      - inverse_functional_property
+      - identity_link_creation
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 2
+      section: "Section 2"
+      quote_fragment: "IFPs theoretically ensure at most one entity per value; in practice, violations common"
+
+  - id: claim8
+    type: observation
+    statement: "Erroneous identity link detection approaches fall into four categories: terminology-based (string similarity), semantic-based (ontological comparison), network-based (graph structure analysis), and content-based (description comparison), with precision ranging from 0.69 to 0.99 and recall from 0.79 to 1.00 across evaluated approaches."
+    concepts:
+      - identity_link_detection
+      - owl_sameas
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 4
+      section: "Section 5: Erroneous Identity Link Detection"
+      table: "Table 3"
+
+  - id: claim9
+    type: limitation
+    statement: "Existing identity link detection approaches lack evaluation on comprehensive gold standard datasets — most evaluations are limited to specific datasets, preventing reliable comparison across methods."
+    concepts:
+      - identity_link_detection
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 4
+      section: "Section 5"
+      quote_fragment: "quality and accuracy of link detection approaches have not yet been thoroughly evaluated on a comprehensive gold standard"
+
+  - id: claim10
+    type: mechanism
+    statement: "Network-based identity link detection exploits structural properties of the identity graph (metalink consistency, authority, descriptiveness, closeness, richness, degree) to identify erroneous owl:sameAs links without requiring content comparison, achieving precision 80-93% and recall 89-100% on 411K links."
+    concepts:
+      - identity_link_detection
+      - network_analysis
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 5
+      section: "Section 5.3: Network-Based Approaches"
+      quote_fragment: "tested on 411K owl:sameAs links with evaluation suggesting precision between 80% and 93%"
+
+  - id: claim11
+    type: observation
+    statement: "Alternative identity predicates have been proposed to replace owl:sameAs for cases where full substitutability is too strong, but they suffer from adoption problems — the community continues to use owl:sameAs loosely rather than switching to more precise predicates."
+    concepts:
+      - identity_semantics
+      - owl_sameas
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 5
+      section: "Section 4: Identity Management Services"
+
+  - id: claim12
+    type: limitation
+    statement: "The survey scope is primarily the Linked Open Data cloud and may not generalize to all knowledge graph settings where identity management is needed."
+    concepts:
+      - linked_open_data
+      - identity_semantics
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 6
+      section: "Section 6: Conclusion"
+
+  - id: claim13
+    type: comparison
+    statement: "Unlike content-based approaches that treat each identity link as a feature vector for outlier detection, network-based approaches exploit the global structure of the identity graph, enabling detection of errors invisible to pairwise comparison."
+    concepts:
+      - identity_link_detection
+      - network_analysis
+    provenance:
+      paper: Raad_2019_SameAsProblemSurvey
+      page: 5
+      section: "Section 5.2-5.3"

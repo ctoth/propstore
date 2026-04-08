@@ -1,0 +1,172 @@
+source:
+  paper: Kuhn_2014_TrustyURIs
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-04-03T07:57:22Z"
+
+claims:
+  - id: claim1
+    type: mechanism
+    statement: "Trusty URIs achieve content verification by embedding a cryptographic hash (SHA-256) of the digital artifact directly in its URI, so that any retriever can recompute the hash and compare it to the URI without contacting the original publisher or any central authority."
+    concepts:
+      - content_addressing
+      - cryptographic_hash
+      - uri_scheme
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 1
+      section: "Introduction"
+      quote_fragment: "we propose an approach to make items on the web verifiable, immutable, and permanent by including cryptographic hash values to Uniform Resource Identifiers (URIs)"
+
+  - id: claim2
+    type: mechanism
+    statement: "Trusty URIs compute hashes at the abstract RDF graph level rather than byte level, which means the same trusty URI remains valid regardless of which RDF serialization format (Turtle, N-Triples, RDF/XML, TriX, TriG, N-Quads) the content is presented in."
+    concepts:
+      - content_addressing
+      - rdf_graph
+      - serialization_format
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 0
+      section: "Abstract"
+      quote_fragment: "Digital artifacts can be identified not only on the byte level but also on more abstract levels such as RDF graphs, which means that resources keep their hash values even when presented in a different format"
+
+  - id: claim3
+    type: observation
+    statement: "A trusty URI artifact code is exactly 45 characters: 2 characters for the module identifier, 1 character for the version, and 42 characters for the hash value encoded in modified Base64 notation."
+    concepts:
+      - uri_scheme
+      - cryptographic_hash
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 4
+      section: "Approach"
+
+  - id: claim4
+    type: mechanism
+    statement: "Self-referencing in trusty URIs is resolved by using a placeholder character (#) where the artifact code will appear, computing the hash over the content with placeholders, then replacing the placeholders with the computed artifact code -- the circular dependency is broken because strong hash functions make it impossible for the calculated hash to have been part of the pre-transformation content."
+    concepts:
+      - content_addressing
+      - self_reference
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 5
+      section: "Approach"
+      quote_fragment: "For strong hashing algorithms, it is impossible to ensure that this calculated sequence of bytes was already part of the original content before the transformation"
+
+  - id: claim5
+    type: observation
+    statement: "The range of verifiability of a trusty URI extends to its entire reference tree: all artifacts reachable by following trusty URI links from a root trusty URI can be cryptographically verified, while non-trusty URI links break the verification chain."
+    concepts:
+      - content_addressing
+      - provenance
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 2
+      section: "Introduction"
+      figure: "Fig 1"
+      quote_fragment: "we show how they can be used by approaches like nanopublications to make not only specific resources but their entire reference trees verifiable"
+
+  - id: claim6
+    type: comparison
+    statement: "Unlike ni-URIs (RFC 6920), trusty URIs support self-references within artifacts, handle blank nodes in RDF, and extend the range of verifiability to referenced artifacts -- ni-URIs are limited to verifying individual resources without following reference chains."
+    concepts:
+      - uri_scheme
+      - content_addressing
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 3
+      section: "Background"
+      quote_fragment: "self-references are not supported, and the range of verifiability does not directly extend to referenced artifacts"
+
+  - id: claim7
+    type: observation
+    statement: "RDF blank nodes can be converted to trusty URIs by hashing, solving the normalization problem for blank nodes in a completely general way that fully supports RDF semantics without requiring auxiliary triples."
+    concepts:
+      - rdf_graph
+      - content_addressing
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 5
+      section: "Approach"
+      quote_fragment: "This approach solves the problem of blank nodes for normalization, is completely general"
+
+  - id: claim8
+    type: observation
+    statement: "Trusty URI verification of nanopublications in normal mode correctly identifies 100% of valid files across all implementations (Java, Perl, Python) and all RDF formats, with corrupted files detected at rates between 84-100% depending on the corruption type and format."
+    concepts:
+      - cryptographic_hash
+      - content_addressing
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 10
+      section: "Evaluation"
+      table: "Table 2"
+
+  - id: claim9
+    type: observation
+    statement: "In batch mode, trusty URI verification time drops by two orders of magnitude compared to normal mode (e.g., Java N-Quads: 0.0019s vs 0.5229s per file) because startup and library initialization costs are amortized."
+    concepts:
+      - content_addressing
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 11
+      section: "Evaluation"
+      table: "Table 2"
+
+  - id: claim10
+    type: observation
+    statement: "Hash computation time for RDF content scales as O(n log n) with file size due to the sorting requirement for RDF triple normalization, not O(n) like simple file hashing."
+    concepts:
+      - cryptographic_hash
+      - rdf_graph
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 12
+      section: "Evaluation"
+      figure: "Fig 3"
+
+  - id: claim11
+    type: observation
+    statement: "A 2GB RDF file requires approximately 5 minutes to transform into a trusty URI artifact and 2 minutes to verify; the largest file tested (177GB) required 29 hours to transform and 3 hours to check."
+    concepts:
+      - content_addressing
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 13
+      section: "Evaluation"
+
+  - id: claim12
+    type: limitation
+    statement: "Trusty URIs guarantee syntactic identity (the content hasn't changed) but not semantic stability -- if the meaning of referenced ontology terms evolves, the hash only confirms the original bytes/triples are unchanged, not that they still mean the same thing."
+    concepts:
+      - content_addressing
+      - uri_scheme
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 13
+      section: "Conclusions"
+      quote_fragment: "could become an important technical pillar for the semantic web, in particular for scientific data, where provenance and verifiability are crucial"
+
+  - id: claim13
+    type: limitation
+    statement: "Some RDF library implementations contain bugs that cause false validation of corrupted files in specific edge cases (TriX in Java, TriG in Python), indicating that the trusty URI specification is correct but implementations may fail to fully enforce it."
+    concepts:
+      - content_addressing
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 10
+      section: "Evaluation"
+      quote_fragment: "Due to minor bugs in the used RDF libraries; the extra information is not sufficiently checked"
+
+  - id: claim14
+    type: observation
+    statement: "Immutability of trusty URIs forces a version-creation model for updates: any content change produces a new URI, which means all existing links to the old URI remain valid pointers to the original version, creating a complete backwards-compatible version history by construction."
+    concepts:
+      - content_addressing
+      - uri_scheme
+    provenance:
+      paper: Kuhn_2014_TrustyURIs
+      page: 2
+      section: "Introduction"

@@ -1,0 +1,23 @@
+{
+  "title": "Acceptability Semantics for Weighted Argumentation Frameworks",
+  "authors": [
+    "Leila Amgoud",
+    "Jonathan Ben-Naim",
+    "Dragan Doder",
+    "Srdjan Vesic"
+  ],
+  "year": "2017",
+  "doi": "10.24963/ijcai.2017/9",
+  "url": "https://www.semanticscholar.org/paper/4a5e3c7c9cd826773dd86df25ed2166e934762be",
+  "pdf_url": "https://www.ijcai.org/proceedings/2017/0009.pdf",
+  "bibtex": "@InProceedings{Amgoud2017AcceptabilitySemanticsWeighted,\n author = {Leila Amgoud and Jonathan Ben-Naim and Dragan Doder and Srdjan Vesic},\n booktitle = {Proceedings of the Twenty-Sixth International Joint Conference on Artificial Intelligence (IJCAI-17)},\n pages = {56--62},\n title = {Acceptability Semantics for Weighted Argumentation Frameworks},\n year = {2017},\n doi = {10.24963/ijcai.2017/9}\n}\n",
+  "venue": "International Joint Conference on Artificial Intelligence",
+  "venue_type": "conference",
+  "pages": "56-62",
+  "tags": [
+    "weighted-argumentation",
+    "gradual-semantics",
+    "axiomatic-principles",
+    "acceptability-degree"
+  ]
+}

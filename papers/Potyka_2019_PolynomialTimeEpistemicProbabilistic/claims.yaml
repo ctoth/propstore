@@ -1,0 +1,216 @@
+source:
+  paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+  extraction_model: claude-opus-4-6
+  extraction_date: "2026-03-30"
+
+claims:
+
+  - id: claim1
+    statement: "There is a bijection between equivalence classes of atomically equivalent probability functions (PA/equiv) and probability labellings (LA). For any labelling L, the product distribution PL(w) = prod_{A in w} L(A) * prod_{A not in w} (1-L(A)) is a valid probability function with PL(A) = L(A)."
+    type: observation
+    concepts: [concept61]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 3
+      section: "4"
+      quote_fragment: "The function r: PA/equiv -> LA defined by r([P]) = LP, where LP(A) = P(A) for all A in A is a bijection."
+
+  - id: claim2
+    statement: "A probability function P satisfies a linear atomic constraint if and only if the corresponding probability labelling LP satisfies it."
+    type: observation
+    concepts: [concept61]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 4
+      section: "4"
+      quote_fragment: "The following statements are equivalent: (1) P satisfies a linear atomic constraint l. (2) All P' in [P] satisfy l. (3) LP = r([P]) satisfies l."
+
+  - id: claim3
+    statement: "PArgAtSAT (satisfiability of linear atomic constraints in epistemic probabilistic argumentation) can be solved in polynomial time via linear programming with n+m variables (n arguments, m constraints)."
+    type: observation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 4
+      section: "4"
+      quote_fragment: "PArgAtSAT can be solved in polynomial time."
+
+  - id: claim4
+    statement: "PArgAtENT (computing probability bounds for arguments under linear atomic constraints) can be solved in polynomial time via linear programming."
+    type: observation
+    concepts: [concept97, concept61]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 5
+      section: "4"
+      quote_fragment: "PArgAtENT can be solved in polynomial time."
+
+  - id: claim5
+    statement: "If P != NP, there is no polynomial-size set of linear constraints ensuring that k-th order labellings (k > 1) correspond to probability functions."
+    type: limitation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 7
+      section: "5"
+      quote_fragment: "If P != NP, then, for k > 1, there is no set of linear constraints C such that the size of C is polynomial in A."
+
+  - id: claim6
+    statement: "The satisfiability problem for linear 2DN constraints (probability statements about disjunctions of two literals) is NP-complete."
+    type: observation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 7
+      section: "6"
+      quote_fragment: "The satisfiability problem for Linear 2DN Constraints is NP-complete."
+
+  - id: claim7
+    statement: "The satisfiability problem for linear 2CN constraints (probability statements about conjunctions of two literals) is NP-complete."
+    type: observation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 7
+      section: "6"
+      quote_fragment: "The satisfiability problem for Linear 2CN Constraints is NP-complete."
+
+  - id: claim8
+    statement: "The satisfiability problem for 2D linear atomic constraints (disjunctions of two atomic constraints) is NP-complete, even when each atomic constraint has at most 2 probability terms."
+    type: observation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 8
+      section: "6"
+      quote_fragment: "The satisfiability problem for 2D Linear Atomic Constraints is NP-complete."
+
+  - id: claim9
+    statement: "Deciding whether the upper probability bound for a 3CNF-query is non-zero under linear atomic constraints is NP-complete."
+    type: observation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 9
+      section: "7"
+      quote_fragment: "decide whether the upper bound on the probability of Q among the probability functions that satisfy C is non-zero."
+
+  - id: claim10
+    statement: "The maximum entropy probability labelling L* satisfying atomic constraints can be computed in polynomial time via convex optimization. The corresponding PL* maximizes entropy among all probability functions satisfying the constraints."
+    type: observation
+    concepts: [concept97, concept61]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 10
+      section: "7.1"
+      quote_fragment: "LP* can be computed in polynomial time."
+
+  - id: claim11
+    statement: "Under maximum entropy with atomic constraints, conjunctive queries can be answered in polynomial time: P*(conjunction A_i^{b_i}) = product L*(A_i)^{b_i} * (1-L*(A_i))^{1-b_i}."
+    type: observation
+    concepts: [concept97, concept61]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 10
+      section: "7.1"
+      quote_fragment: "P*(conjunction of A_i^{b_i}) = product of L*(A_i)^{b_i} * (1-L*(A_i))^{1-b_i}"
+
+  - id: claim12
+    statement: "Under maximum entropy with atomic constraints, all arguments are stochastically independent: P*(chi2 | chi1) = P*(chi2) for any conjunctions chi1, chi2. Conditioning becomes meaningless."
+    type: limitation
+    concepts: [concept61]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 12
+      section: "7.2"
+      quote_fragment: "P*(chi2 | chi1) = P*(chi2)"
+
+  - id: claim13
+    statement: "Conditioning can be simulated under maximum entropy by adding atomic constraints pi(A_i) = 1 for conditioned arguments and recomputing P*."
+    type: mechanism
+    concepts: [concept61]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 12
+      section: "7.3"
+      quote_fragment: "add the constraints pi(A_i) = 1 for i = 1,...,n, recompute P* and answer a regular conjunctive query"
+
+  - id: claim14
+    statement: "Under coherence (COH) and maximum entropy, if A attacks B then P*(A AND B AND chi) <= min{0.25, 1-P*(A)} for any conjunction chi."
+    type: observation
+    concepts: [concept61]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 12
+      section: "7.3"
+      quote_fragment: "If P* satisfies coherence (COH), then P*(A AND B AND chi) <= min{0.25, 1-P*(A)}."
+
+  - id: claim15
+    statement: "Under support-coherence (S-COH) and maximum entropy, if A supports B then P*(A AND NOT B AND chi) <= min{0.25, 1-P*(A)} for any conjunction chi."
+    type: observation
+    concepts: [concept61]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 12
+      section: "7.3"
+      quote_fragment: "If P* satisfies support-coherence (S-COH), then P*(A AND NOT B AND chi) <= min{0.25, 1-P*(A)}."
+
+  - id: claim16
+    statement: "Under COH + S-COH, if A attacks C and B supports C, then P*(A) + P*(B) <= 1, and conjunction bounds hold for both attack-violating and support-violating conjunctions."
+    type: observation
+    concepts: [concept61]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 13
+      section: "7.3"
+      quote_fragment: "P*(A) + P*(B) <= 1"
+
+  - id: claim17
+    statement: "Computing the probability of a 3CNF-query under maximum entropy with atomic constraints is #P-hard."
+    type: limitation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 10
+      section: "7.1"
+      quote_fragment: "The following problem is #P-hard"
+
+  - id: claim18
+    statement: "All convex programs in this paper can be solved in cubic time in the size of the argumentation problem via interior-point methods. Simplex typically achieves linear in variables, quadratic in constraints."
+    type: observation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 14
+      section: "9"
+      quote_fragment: "interior-point methods can solve convex programs in cubic time in the number of optimization variables and optimization constraints"
+
+  - id: claim19
+    statement: "The ProBabble Java library solves epistemic probabilistic argumentation problems with thousands of arguments in hundreds of milliseconds. Without the labelling approach, the same time is needed for only 10-15 arguments."
+    type: observation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 14
+      section: "9"
+      quote_fragment: "Problems with thousands of arguments can usually be solved within a few hundred milliseconds."
+
+  - id: claim20
+    statement: "All semantic constraints from Hunter and Thimm 2016 (COH, SFOU, FOU, SOPT, OPT, JUS) and their support duals (S-COH, SSCE, SCE, SPES, PES) are expressible as linear atomic constraints and thus fall within the tractable fragment."
+    type: observation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 3
+      section: "3"
+      quote_fragment: "It still captures the semantical constraints from [31] that we discussed, but also gives us polynomial performance guarantees."
+
+  - id: claim21
+    statement: "Whether the RAT (rationality) constraint -- P(A) > 0.5 implies P(B) <= 0.5 for attackers -- can be handled in polynomial time remains an open question."
+    type: limitation
+    concepts: [concept97]
+    provenance:
+      paper: Potyka_2019_PolynomialTimeEpistemicProbabilistic
+      page: 8
+      section: "6"
+      quote_fragment: "We may reuse ideas for 2SAT in order to handle such constraints efficiently. However, we currently cannot say for certain if this is possible in polynomial time"

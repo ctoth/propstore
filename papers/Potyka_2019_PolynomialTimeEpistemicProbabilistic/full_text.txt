@@ -1,0 +1,2122 @@
+=== PAGE 1 ===
+arXiv:1811.12083v2  [cs.AI]  6 Mar 2019
+A Polynomial-time Fragment of Epistemic Probabilistic
+Argumentation (Technical Report)
+Nico Potyka
+University of Osnabrück
+npotyka@uos.de
+ABSTRACT
+Probabilistic argumentation allows reasoning about argumentation
+problems in a way that is well-founded by probability theory. How-
+ever, in practice, this approach can be severely limited by the fact
+that probabilities are deﬁned by adding an exponential number of
+terms. We show that this exponential blowup can be avoided in an
+interesting fragment of epistemic probabilistic argumentation and
+that some computational problems that have been considered in-
+tractable can be solved in polynomial time. We give efﬁcient convex
+programming formulations for these problems and explore how far
+our fragment can be extended without loosing tractability.
+KEYWORDS
+Probabilistic Argumentation, Algorithms for Probabilistic Argumen-
+tation, Complexity of Probabilistic Argumentation
+1
+INTRODUCTION
+Abstract argumentation [18] studies the acceptability of arguments
+based on their relationships and abstracted from their content. To
+this end, abstract argumentation problems can be modeled as graphs,
+where nodes correspond to arguments and edges to special relations
+like attack or support. In the basic setting introduced in [18] only at-
+tack relations were considered. In bipolar argumentation, this frame-
+work is extended with support relations [3, 8, 13, 14]. Another use-
+ful extension is to go beyond the classical two-valued view that ar-
+guments can only be accepted or rejected. Examples include rank-
+ing frameworks that can be based on ﬁxed point equations [5, 7,
+15, 37] or the graph structure [1, 12] and weighted argumentation
+frameworks [2, 4, 40, 48, 52]. Probabilistic argumentation frame-
+works express uncertainty by building up on probability theory and
+probabilistic reasoning methods. Uncertainty can be introduced, for
+example, over possible worlds, over subgraphs of the argumenta-
+tion graph or over classical extensions [17, 19, 27, 36, 38, 44, 53–
+55, 57, 58]. For the subgraph-based approach, the computational
+complexity has been studied extensively in [20, 21].
+Our focus here is on the epistemic approach to probabilistic ar-
+gumentation that evolved from work in [26, 56]. The basic idea is
+to consider probability functions over possible worlds in order to
+assign degrees of beliefs to arguments. Here, a possible world is
+a subset of arguments that are assumed to be accepted in this state.
+Based on the relationships between arguments, the possible degrees
+of beliefs are then restricted by semantical constraints. For example,
+the probability of an argument can be bounded from above based on
+the probabilities of its attackers or bounded from below by the prob-
+ability of its supporters. This is conceptually similar to weighted
+argumentation frameworks, where attack relations are supposed to
+decrease the strength of arguments, whereas support relations are
+supposed to increase the strength [2, 4, 40].
+Two basic computational problems for epistemic probabilistic ar-
+gumentation have been introduced in [31]. The satisﬁability prob-
+lem asks whether a given set of semantical constraints over an ar-
+gumentation graph can be satisﬁed by a probability function. The
+entailment problem is to answer queries about the probability of ar-
+guments. To this end, probability bounds on the probability of the
+argument are computed based on the probability functions that sat-
+isfy the given semantical constraints. Based on their close relation-
+ship to problems considered in probabilistic reasoning, it has been
+conjectured that these problems are intractable. However, as we will
+explain, both problems can actually be solved in polynomial time.
+Intuitively, the reason is that the semantical constraints can only talk
+about atomic probability statements. For this reason, reasoning with
+probability functions over possible world turns out to be equivalent
+to reasoning with functions that assign probabilities to arguments di-
+rectly. We call these functions probability labellings as they can be
+seen as generalizations of labellings in classical abstract argumen-
+tation [11] that, intuitively, label arguments as rejected (probability
+0), accepted (probability 1) or undecided (probability 0.5).
+We explain the epistemic probabilistic argumentation approach
+from [26, 31, 56] in more detail in Section 2 and introduce a slight
+generalization of the computational problems considered in [31].
+Even more general variants of these problems have been considered
+in [29], but these variants are too general to obtain polynomial run-
+time guarantees as we will explain in Section 6 and 7 . In Section
+4, we show that reasoning with probability labellings is equivalent
+to reasoning with probability functions when only atomic proba-
+bility statements are considered and use this observation to show
+that both the satisﬁability and the entailment problem considered in
+[31] and their generalizations can be solved in polynomial time. We
+then look at how far we can extend our language towards the lan-
+guage considered in [29] by allowing connecting arguments or con-
+straints with logical connectives. In Section 6, we look at more ex-
+pressive constraints. We ﬁnd that the constraint language cannot be
+extended much further. If we only allow connecting two arguments
+or their negation by only conjunction or disjunction in probability
+statements or if we allow connecting two constraints disjunctively,
+the satisﬁability problem becomes intractable. In Section 7, we look
+at more expressive queries. We cannot avoid an exponential blowup
+when considering arbitrary queries. However, we show that when
+applying the principle of maximum entropy, conjunctive queries
+can still be answered in polynomial time. In particular, we show
+that a compact representation of the maximum entropy probability
+function that satisﬁes the constraints can be computed in polyno-
+mial time. However, when only atomic constraints are considered,
+
+=== PAGE 2 ===
+?>=<
+89:;
+A
+$?>=<
+89:;
+B
+d
+?>=<
+89:;
+C
+D
+✷
+✤☞
+?>=<
+89:;
+D
+d
+r
+❴
+▲
+Z
+Figure 1: A simple example BAF.
+the principle of maximum entropy implies strong independency as-
+sumptions that may yield counterintuitive probabilities.
+2
+BACKGROUND
+We consider bipolar argumentation frameworks (BAFs) (A, R, S)
+consisting of a set of arguments A, an attack relation R ⊆A × A
+and a support relation S ⊆A × A. At(A) = {B ∈A | (B,A) ∈R}
+denotes the set of attackers of an argument A and Sup(A) = {B ∈
+A | (B,A) ∈S} denotes its supporters. We visualize bipolar ar-
+gumentation frameworks as graphs, where arguments are denoted
+as nodes, solid edges denote attack relations and dashed edges de-
+note support relations. Figure 1 shows an example BAF with four
+arguments A, B,C, D.
+We deﬁne a possible world as a subset of arguments w ⊆A. In-
+tuitively, w contains the arguments that are accepted in a particular
+state of the world. As usual, 2A denotes the set of all subsets of A,
+that is, the set of all possible worlds. An agent can regard certain
+states of the world more likely than others. In order to formalize
+agents’ beliefs, we consider probability functions P : 2A →[0, 1]
+such that Í
+w ∈2A P(w) = 1. We denote the set of all probability
+functions over A by PA. The probability of an argument A ∈A
+under P is deﬁned by adding the probabilities of all worlds in which
+A is accepted, that is, P(A) = Í
+w ∈2A,A∈w P(w). P(A) can be under-
+stood as a degree of belief of an agent, where P(A) = 1 means
+complete acceptance and P(A) = 0 means complete rejectance.
+Given an argumentation graph, a probability function should main-
+tain reasonable relationships between the probabilities of arguments
+based on their relationships in the graph. For example, if an argu-
+ment is accepted, its attackers should not be accepted. We introduce
+some additional terminology for the discussion.
+Deﬁnition 2.1. Let P be a probability function and let F be a
+formula over A. We say that
+(1) P (classically) accepts F iff P(F) > 0.5 (P(F) = 1).
+(2) P (classically) rejects F iff P(F) < 0.5 (P(F) = 0).
+In order to give meaningful semantics to edges in the graph, sev-
+eral constraints have been introduced in the literature that can be
+imposed on the probability functions. For the satisﬁability and en-
+tailment problem in [31], the following constraints have been con-
+sidered (for attack-only graphs).
+COH: P is called coherent if for all A,B ∈A with (A, B) ∈R,
+we have P(B) ≤1 −P(A).
+SFOU: P is called semi-founded if P(A) ≥0.5 for all A ∈A
+with At(A) = ∅.
+FOU: P is called founded if P(A) = 1 for all A ∈A with
+At(A) = ∅.
+SOPT: P is called semi-optimistic if P(A) ≥1−Í
+B∈At(A) P(B)
+for all A ∈A with At(A) , ∅.
+OPT: P is called optimistic if P(A) ≥1 −Í
+B∈At(A) P(B).
+JUS: P is called justiﬁable if P is coherent and optimistic.
+The intuition for these constraints comes from the idea that probabil-
+ity 0.5 represents indifference, whereas probabilities smaller (larger)
+than 0.5 tend towards rejectance (acceptance) of the argument. Co-
+herence imposes an upper bound on the beliefs in arguments based
+on the beliefs in their attackers. Semi-Foundedness says that an
+agent should not tend to reject an argument if there is no reason for
+this. Foundedness even demands that the argument should be fully
+accepted in this case. Semi-optimistic and Optimistic give lower
+bounds for the belief in an argument that decrease as the belief in its
+attackers increases. Usually, not all constraints are employed, but a
+subset is selected that seems reasonable for a particular application.
+Example 2.2. If we demand COH and FOU for the BAF in Fig-
+ure 1, we get P(C) = 1 and P(D) = 1 from FOU. From COH, we
+get P(A) ≤1 −P(B), P(B) ≤1 −P(A) and P(B) ≤1 −P(D). Since
+P(D) = 1, the last inequality implies P(B) = 0.
+Inspired by the probabilistic entailment problem from probabilis-
+tic logic [24, 25, 41], the authors in [31] considered the following
+reasoning problems: Given a partial probability assignment (con-
+straints of the form P(A) = x for some A ∈A) and a subset of the
+semantical constraints,
+(1) decide whether there is a probability function that satisﬁes
+the partial probability assignment and the semantical con-
+straints,
+(2) compute lower and upper bounds on the probability of an ar-
+gument among all probability functions that satisfy the par-
+tial probability assignment and the semantical constraints,
+(3) decide whether given lower and upper bounds on the proba-
+bility of an argument are taken by probability functions that
+satisfy the partial probability assignment and the semantical
+constraints.
+Because of their similarity to intractable probabilistic reasoning
+problems, it has been conjectured that these problems are intractable
+as well. However, as we will explain soon, all three problems can
+be solved in polynomial time.
+3
+LINEAR ATOMIC CONSTRAINTS
+The discussion in [31] was restricted to attack-only graphs. When
+we consider support edges, new constraints are necessary. In [29],
+a general constraint language has been introduced that allows ex-
+pressing the previous constraints, but also more ﬂexible constraints
+that can take account of support relations or of both support and at-
+tack relations simultaneously. In particular, constraints can contain
+complex formulas of arguments and constraints can be connected
+via logical connectives. Unfortunately, expressiveness hardly ever
+comes without cost. Therefore, we consider only a simple fragment
+for now. It still captures the semantical constraints from [31] that we
+discussed, but also gives us polynomial performance guarantees.
+Deﬁnition 3.1 (Linear Atomic Constraint, Satisﬁability). A lin-
+ear atomic constraint is an expression of the form Ín
+i=1 ci ·π(Ai) ≤
+c0, where Ai ∈A and ci ∈R. A probability function P satisﬁes
+a linear atomic constraint iff Ín
+i=1 ci · P(Ai) ≤c0. P satisﬁes a set
+2
+
+=== PAGE 3 ===
+of linear atomic constraints C, denoted as P |= C, iff it satisﬁes all
+l ∈C. In this case, C is called satisﬁable.
+Note that, in our notation, π is just a syntactic symbol that is
+used to write constraints. P denotes probability functions that may
+or may not satisfy these constraints. Note also that constraints with
+≥and = can be expressed in our language as well. For ≥, just note
+that Ín
+i=1 ci · π(Ai ) ≤c0 is equivalent to Ín
+i=1 −ci · π(Ai) ≥−c0.
+For =, note that Ín
+i=1 ci · π(Ai) ≤c0 and Ín
+i=1 ci · π(Ai) ≥c0 to-
+gether are equivalent to Ín
+i=1 ci · π(Ai) = c0. We merely restrict our
+language to constraints with ≤in order to keep the notation sim-
+ple. Notice that this restriction is also not important for complexity
+considerations because the number of constraints just changes by a
+constant factor when using ≥and =.
+We can now rephrase the computational problems from [31] for
+arbitrary linear atomic constraints. We consider only the satisﬁabil-
+ity and entailment problem. Since the entailment problem can be
+solved in polynomial time, there is no need to look at its decision
+variant introduced in [31]. We also do not need special partial prob-
+ability assignments, since they can just be expressed by atomic con-
+straints of the form π(A) = p. Formally, we consider the following
+computational problems:
+PArgAtSAT: Given a ﬁnite set of linear atomic constraints C,
+decide whether it is satisﬁable.
+PArgAtENT: Given a ﬁnite set of satisﬁable linear atomic con-
+straintsC and an argument A, compute lower and upper bounds
+on the probability of A among the probability functions that
+satisfy C. More precisely, solve the two optimization prob-
+lems
+min
+P ∈PA
+/ max
+P ∈PA
+P(A)
+such that
+P |= C.
+In the naming scheme, PArg stands for probabilistic argumenta-
+tion, At for the restriction to linear atomic a constraints and SAT
+and ENT stand for satisﬁability and entailment, respectively. As we
+mentioned already, the computational problems from [29] are in-
+deed a special case because the partial probability assignments can
+be encoded as constraints in C. We illustrate this in the following
+example.
+Example 3.2. Consider the BAF in Figure 1. Say our partial prob-
+ability assignment assigns probability 1 to B and 0 to C. These as-
+signments correspond to the two linear constraints π(B) = 1 and
+π(C) = 0. Say we also impose COH. Then, we additionally have
+the constraints π(A) + π(B) ≤1 and π(B) + π(D) ≤1. Taken
+together, these constraints imply that every probability function P
+that satisﬁes all constraints, must satisfy P(B) = 1, P(C) = 0 (partial
+assignment constraints), P(A) = 0 and P(D) = 0 (follow with co-
+herence constraints). Note that when also adding the foundedness
+constraints π(C) = 1 and π(D) = 1, the set of constraints becomes
+unsatisﬁable.
+For support relations, we can deﬁne constraints dual to the attack-
+only constraints from [31]. To this end, we replace R with S, prob-
+ability (1 −p) with p, ≤with ≥and vice versa.
+S-COH: P is called support-coherent if for all A,B ∈A with
+(A,B) ∈S, we have P(B) ≥P(A).
+SSCE: P is called semi-sceptical if P(A) ≤0.5 for all A ∈A
+with Sup(A) = ∅.
+SCE: P is called sceptical if P(A) = 0 for all A ∈A with
+Sup(A) = ∅.
+SPES: P is called semi-pessimistic if P(A) ≤Í
+B∈Sup(A) P(B)
+for all A ∈A with Sup(A) , ∅.
+PES: P is called pessimistic if P(A) ≤Í
+B∈Sup(A) P(B).
+Notice that S-COH is dual to COH, SSCE and SCE are dual to
+SFOU and FOU, SPES and PES are dual to SOPT and OPT. Intu-
+itively, support-coherence says that an argument must be believed at
+least as strong as its supporter. Semi-scepticality says that an agent
+should not tend to accept an argument if there is no reason for this.
+Scepticality demands that the argument should be fully rejected in
+this case. Semi-pessimism and Pessimism give upper bounds on the
+belief in an argument based on the belief in its supporters.
+Example 3.3. If we add S-COH to our constraints from Exam-
+ple 2.2, we must have P(C) ≥P(D) and P(A) ≥P(C) for ev-
+ery satisfying probability function P. Since we already know that
+P(C) = 1, we can conclude P(A) = 1. Overall, the constraints imply
+P(A) = P(C) = P(D) = 1 and P(B) = 0.
+Note that if both attack and support relations are present, some
+constraints can be incompatible. For example, if we employ both
+foundedness and scepticality, every satisfying probability function
+must satisfy 1 = P(A) = 0 for every unattacked argument, which is
+clearly impossible.
+4
+POLYNOMIAL-TIME ALGORITHMS FOR
+LINEAR ATOMIC CONSTRAINTS
+In this section, we will give polynomial-time algorithms for PAr-
+gAtSAT and PArgAtENT. These algorithms are linear programming
+algorithms that are commonly applied in this area [24, 25, 41]. Con-
+ceptually, the algorithms work as follows:
+(1) Take a knowledge base (and a query) as input and build up a
+corresponding linear program.
+(2) Apply a linear programming solver in order to solve the prob-
+lem.
+Interior-point methods can solve linear programming problems in
+polynomial time with respect to the size of the linear program [9].
+Unfortunately, the linear programs often become exponentially large
+for probabilistic reasoning problems because the number of worlds
+is exponential in the number of atoms of the language. However,
+since our constraint language actually only allows talking about
+atoms, we can do better. To this end, we will replace probability
+functions of exponential size with probability labellings of linear
+size.
+We deﬁne a probability labelling as a function L : A →[0, 1].
+That is, a probability labelling assigns a degree of belief to argu-
+ments directly, rather than in an indirect way using possible worlds.
+LA denotes the set of all probability labellings over A. We will
+now show that probability labellings correspond to equivalence classes
+of probability functions and that by restricting to these equivalence
+classes (represented by probability labellings), we can solve PAr-
+gAtSAT and PArgAtENT in polynomial time.
+We call two probability functions P1, P2 atomically equivalent,
+denoted as P1 ≡P2, iff P1(A) = P2(A) for all A ∈A. Atomic
+3
+
+=== PAGE 4 ===
+equivalence is an equivalence relation. [P] = {P′ ∈PA | P′ ≡P}
+denotes the equivalence class of P and PA/≡= {[P] | P ∈PA}
+denotes the set of all equivalence classes. We ﬁrst note that there is
+a one-to-one relationship between PA/≡and LA.
+LEMMA 4.1. The function r : PA/≡→LA deﬁned by r([P]) =
+LP, where LP(A) = P(A) for all A ∈A is a bijection.
+PROOF. First note that r is well-deﬁned: this is because, for all
+P′ ∈[P], we have LP′(A) = P′(A) = P(A) = LP(A) for all A ∈A by
+deﬁnition of ≡.
+r is injective for if r([P1]) = r([P2]), then P1(A) = LP1(A) =
+LP2(A) = P2(A) for all A ∈A. That is, P1 ≡P2 and [P1] = [P2].
+r is also surjective. To see this, consider an arbitrary L ∈LA.
+Deﬁne PL : 2A →[0, 1] via PL(w) = Î
+A∈w L(A) · Î
+A∈A\w(1 −
+L(A)) for all w ∈2A. We prove by induction over the number of
+arguments that Í
+w ∈2A PL(w) = 1. For the base case, consider A =
+{A}. Then PL(∅)+PL({A}) =  1−L(A)+L(A) = 1. For the induction
+step, consider |A| = n + 1 and let B ∈A. Then
+Õ
+w ∈2A
+PL(w) =
+Õ
+w ∈2A
+Ö
+A∈w
+L(A) ·
+Ö
+A∈A\w
+(1 −L(A))
+=  1 −L(B)
+Õ
+w ∈2A\{B}
+Ö
+A∈w
+L(A) ·
+Ö
+A∈A\w
+(1 −L(A))
++ L(B)
+Õ
+w ∈2A\{B}
+Ö
+A∈w
+L(A) ·
+Ö
+A∈A\w
+(1 −L(A))
+=  1 −L(B) + L(B) = 1.
+In the second and third row, we partitioned the worlds in those that
+reject B (second row) and those that accept B (third row). Notice
+that the sums in the second and third row correspond to possible
+worlds over a set of arguments of length n, so that our induction
+hypothesis implies that they sum up to 1. Hence, PL is a probability
+function. Furthermore, for all B ∈A, we have
+PL(B) =
+Õ
+w ∈2A,B∈w
+P(w)
+= L(B)
+Õ
+w ∈2A\{B}
+Ö
+A∈w
+L(A) ·
+Ö
+A∈A\w
+(1 −L(A)) = L(B),
+where we used again the fact that the sum in the second row has to
+sum up to 1. Hence, r([PL]) = L and r is also surjective and thus
+bijective.
+□
+Intuitively, r determines a compact representative for the equiv-
+alence class [P], namely the probability labelling LP = r([P]). We
+say that a probability labelling L satisﬁes a linear atomic constraint
+Ín
+i=1 ci · π(Ai) ≤c0 iff Ín
+i=1 ci · L(Ai) ≤c0. The following lemma
+explains that we can capture the set of all probability functions that
+satisfy a constraint by the set of labellings that satisfy the constraint.
+LEMMA 4.2. The following statements are equivalent:
+(1) P satisﬁes a linear atomic constraint l.
+(2) All P′ ∈[P] satisfy l.
+(3) LP = r([P]) satisﬁes l.
+PROOF. This follows immediately from the satisfaction deﬁni-
+tion and the observation that Ín
+i=1 ci · P(Ai) = Ín
+i=1 ci · LP(Ai) =
+Ín
+i=1 ci · P′(Ai) for all P′ ∈[P].
+□
+We can now show that both PArgAtSAT and PArgAtENT can be
+decided in polynomial time. To this end, we replace the probability
+functions with probability labellings in our optimization problems
+and show that this does not change the outcome.
+THEOREM 4.3. PArgAtSAT can be solved in polynomial time.
+In particular, when given n arguments A = {A1, . . . ,An} and m
+constraints C = {Ín
+i=1 c(j)
+i
+· π(Ai) ≤c(j)
+0
+| 1 ≤j ≤m}, then C is
+satisﬁable if and only if the linear optimization problem
+min
+(x,s)∈Rn+m
+m
+Õ
+i=1
+si
+such that
+n
+Õ
+i=1
+c(j)
+i
+· xi ≤c(j)
+0
++ sj,
+1 ≤j ≤m,
+0 ≤x ≤1,s ≥0,
+has minimum 0.
+PROOF. First notice that every probablistic labelling L corresponds
+to a vector x ∈[0, 1]n such that xi = L(Ai). The points (x, s) ∈
+Rn+m are intuitively composed of a labelling x and a vector of slack
+variables s that relax the constraints.
+To begin with, we show that the optimization problem is bounded
+from below by 0 and always has a well-deﬁned minimum. Let s ∈
+Rm be deﬁned by sj = max{0, −c(j)
+0 }. Then (0,s) ∈Rn+m is a
+feasible solution because for all constraints, we get Ín
+i=1 c(j)
+i
+· 0 =
+0 ≤c(j)
+0
++ max{0, −c(j)
+0 }. Hence, the feasible region is non-empty
+and the theory of linear programming implies that the minimum
+exists [6]. In particular, since s is non-negative, it is clear that the
+minimum can never be smaller than 0.
+We show next that the minimum is 0 if and only if there is a
+labelling that satisﬁes C. Assume ﬁrst that the minimum is 0 and
+let (x∗, 0) ∈Rn+m be an optimal solution. Consider L∗deﬁned by
+L∗(Ai) = x∗
+i . We have Ín
+i=1 c(j)
+i
+· L∗(Ai) = Ín
+i=1 c(j)
+i
+· x∗
+i ≤c(j)
+0
++ 0
+for all 1 ≤j ≤m. Hence, L∗satisﬁes C.
+Conversely, assume that there is a probability labelling that satis-
+ﬁes C. Let x∗∈[0, 1]n be deﬁned by x∗
+i = L(Ai) and consider the
+point (x∗, 0) ∈Rn+m. We have Ín
+i=1 c(j)
+i
+· x∗
+i = Ín
+i=1 c(j)
+i
+· L∗(Ai) ≤
+c(j)
+0 . Therefore, (x∗, 0) is a feasible solution. In particular, it yields
+0 for the objective function and hence is minimal.
+We know from the theory of linear programming that linear opti-
+mization problems can be solved in polynomial time with respect to
+the number of optimization variables and constraints [6]. We have
+n +m optimization variables and m constraints (non-negativity con-
+straints are free). Hence, we can decide in polynomial time whether
+there exists a probability labelling that satisﬁes C. If there is such
+a labelling L, then the probability function PL from the proof of
+Lemma 4.1 satisﬁes C according to Lemma 4.2. Conversely, if there
+is no probability function that satisﬁes C, then there can be no la-
+belling that satisﬁes it either. For if there was such a labelling L, then
+PL would satisfy C as well. Hence, C can be satisﬁed by a probabil-
+ity function P if and only if the minimum of our linear optimization
+problem is 0. Hence, PArgAtSAT can be solved in polynomial time
+by the given linear program.
+□
+4
+
+=== PAGE 5 ===
+THEOREM 4.4. PArgAtENT can be solved in polynomial time.
+In particular, when given n arguments A = {A1, . . . , An} and m
+constraints C = {Ín
+i=1 c(j)
+i
+· π(Ai) ≤c(j)
+0
+| 1 ≤j ≤m} such that C
+is satisﬁable, then the lower and upper bounds on the probability of
+Ak are the results of the following linear optimization problems:
+min
+x ∈Rn/ max
+x ∈Rn
+xk
+such that
+n
+Õ
+i=1
+c(j)
+i
+· xi ≤c(j)
+0 ,
+1 ≤j ≤m,
+0 ≤x ≤1.
+PROOF. For concreteness and w.l.o.g. assume that we want to
+compute bounds on the probability of A1. We look only at the min-
+imization problem for computing the lower bound (for the maxi-
+mization problem, everything is completely analogous). That is, we
+consider the following linear optimization problem:
+min
+x ∈Rn
+x1
+such that
+n
+Õ
+i=1
+c(j)
+i
+· xi ≤c(j)
+0 ,
+1 ≤j ≤m,
+0 ≤x ≤1.
+By assumption, C is satisﬁable. Hence, the feasible region is non-
+empty and the theory of linear programming implies that the mini-
+mum exists and can be computed in polynomial time [6]. The min-
+imum found corresponds exactly to the smallest probability that
+is assigned to A1 by a probability labelling that satisﬁes the con-
+straints. To see this, note that if we take a minimal solution x∗, we
+can construct a labelling L that satisﬁes the constraints as in the pre-
+vious proof. In particular, x∗
+1 = L(A1). There can be no probability
+labelling that satisﬁes the constraints and assigns a smaller probabil-
+ity to A1 because each such labelling yields a feasible vector x ∈Rn
+with x1 = L(A1).
+Similar to before, it follows that the minimum also corresponds
+to the smallest probability that is assigned to A1 by a probability
+function that satisﬁes C. If the minimum is taken by a labelling
+L, we know that the corresponding probability function PL from
+the proof of Lemma 4.1 yields the same probability and satisﬁes C
+according to Lemma 4.2. Hence, the minimum cannot be smaller
+than the probability taken by probability functions that satisfy C.
+Conversely, if there is a probability function that satisﬁes C and
+gives P(A1) = p, then the labelling LP gives LP(A1) = p as well and
+satisﬁes C according to Lemma 4.2. Hence, the minimum cannot be
+larger than the probability taken by probability functions that satisfy
+C either, and so it must be indeed equal. Hence, PArgAtENT can be
+solved in polynomial time by the given linear program.
+□
+5
+COMPLEX FORMULAS AND K-TH ORDER
+LABELLINGS
+Until now, we looked only at probabilities of arguments. However,
+the real power of probability functions is that they allow computing
+probabilities for arbitrary formulas over arguments. By a formula
+over a set of arguments A, we mean an expression that is formed by
+connecting the arguments in A via logical connectives. Satisfaction
+of formulas by possible worlds is explained in the usual recursive
+way. For example, w |= ¬F iff w does not satisfy F and w |= F ∧G
+iff w satisﬁes both F and G. We will now also allow non-atomic
+linear constraints.
+Deﬁnition 5.1 (Linear Constraint). A linear constraint is an ex-
+pression of the form Ín
+i=1 ci ·π(Fi) ≤c0, where Fi is a formula over
+A and ci ∈R.
+In order to deﬁne satisfaction of non-atomic linear constraints,
+we have to deﬁne the probability of a formula F under a probability
+function P. This probability is deﬁned by adding the probabilities
+of all worlds that satisfy F, that is, P(F) = Í
+w ∈2A,w |=F P(w). P
+satisﬁes a linear atomic constraint Ín
+i=1 ci · π(Fi) ≤c0 iff Ín
+i=1 ci ·
+P(Fi) ≤c0. The following lemma summarizes some well-known
+computation rules that will be useful in the following.
+LEMMA 5.2. Let P be a probability function and let F,G denote
+formulas over A.
+(1) P(F ∧G) + P(F ∧¬G) = P(F).
+(2) If F entails G, then P(F) ≤P(G).
+PROOF. 1. We have
+P(F ∧G) + P(F ∧¬G)
+=
+Õ
+w ∈2A,w |=(F ∧G)
+P(w) +
+Õ
+w ∈2A,w |=(F ∧¬G)
+P(w)
+=
+Õ
+w ∈2A,w |= (F ∧G)∨(F ∧¬G) P(w)
+= P(F)
+where we used the fact that (F ∧G) and (F ∧¬G) are exlusive for-
+mulas and that (F ∧G) ∨(F ∧¬G) ≡F ∧(G ∨¬G) ≡F.
+2. Since F entails G, every world that satisﬁes F also satisﬁes G
+and therefore P(F) = Í
+w ∈2A,w |=F P(w) ≤Í
+w ∈2A,w |=G P(w) =
+P(G).
+□
+Our language is now signiﬁcantly more expressive. Unfortunately,
+computing P(F) naively involves adding an exponential number of
+terms. Is there a more efﬁcient way to compute P(F)? As we saw
+before, if F is an atom, we can do better because we can replace
+probability functions with probability labellings. Can we generalize
+this idea efﬁciently to complex formulas? The answer is probably
+negative for the following reasons. While 2SAT, the restriction of
+the propositional satisﬁability problem to clauses with at most two
+literals, can be solved in polynomial time, the probabilistic variant
+2PSAT is NP-hard [24]. If there was a way to connect probability
+functions over non-atomic arguments to generalized labellings, it
+could be used to solve 2PSAT. We will explain this in more detail
+in the remainder of this section. We will also give some intuition
+for why complex formulas are difﬁcult to handle. The results devel-
+oped here will not be used in subsequent sections. The reader who
+is not interested in the details can ﬁnd the main result at the end of
+this section or can skip the rest of this section entirely.
+To begin with, we generalize probability labellings to complex
+formulas. Instead of assigning probabilities to single arguments, we
+will assign probabilities to valuations of k arguments. Let Vk de-
+note the set of all k-valuations of the form (A1 = b1, . . . , Ak = bk),
+where A1, . . . , Ak are distinct arguments from A and bi ∈{0, 1}
+evaluates the i-th arguments as accepted (1) or rejected (0). That is,
+every v ∈Vk evaluates k arguments as either accepted or rejected.
+5
+
+=== PAGE 6 ===
+How many k-valuations are there? We can pick  n
+k
+ k-elementary
+subsets of arguments and for each such subset, there are 2k pos-
+sible valuations. Hence, the number of k-valuations is 2k ·  |A |
+k
+,
+which is polynomial in the number of arguments.
+We deﬁne a k-th order labelling as a function λ : Vk →[0, 1]
+that assign probabilities to k-tuples of arguments. We can use k-
+th order labellings to assign probabilities to formulas over k argu-
+ments. We say that a valuation (A1 = b1, . . . , Ak = bk) ∈Vk
+satisﬁes an argument A ∈A iff A = Ai for some i ∈{1, . . . ,k} and
+bi = 1, that is, if it evaluates A and evaluates A as accepted. A valu-
+ation satisﬁes a complex formula if it evaluates all arguments in the
+complex formula and evaluates the formula to true when interpret-
+ing it in the usual recursive way. Note, that a valuation can satisfy
+a formula only if all arguments in the formula are evaluated by the
+valuation. In particular, a valuation in Vk can satisfy only formulas
+with at most k arguments by deﬁnition.
+We deﬁne the probability of a formula F under a k-th order la-
+belling λ as λ(F) = Í
+v ∈Vk,v |=F λ(w) as before. A k-th order la-
+belling λ satisﬁes a linear atomic constraint iff Ín
+i=1 ci · λ(Fi) ≤c0.
+As before, we would like to summarize probability functions in
+equivalence classes such that every labelling corresponds to the
+probability functions in one equivalence class. To begin with, we
+deﬁne what we mean by correspondence.
+Deﬁnition 5.3. A k-th order labelling λ corresponds to a proba-
+bility function P if λ(F) = P(F) for all formulas F that contain at
+most k arguments.
+Clearly, every valuation of |A| arguments corresponds to a pos-
+sible world and so every |A|-order labelling corresponds to a prob-
+ability function. However, this is not an interesting relationship be-
+cause |A|-order labellings are still exponentially large. Indeed, as
+we explained before, there are 2k ·  |A |
+k
+ possible k-valuations, so
+the size of k-th order labellings is exponential in k. However, if k is
+small, this is not a problem.
+In order to connect k-th order labellings to probability functions,
+we can generalize atomic equivalence to k-th order equivalence.
+Formally, we call two probability functions P1, P2 k-th order equiv-
+alent and write P1 ≡k P2 if P1(Ók
+i=1 Abi
+i ) = P2(Ók
+i=1 Abi
+i ) for all
+distinct arguments A1, . . . , Ak ∈A and bi ∈{0, 1}, where we let
+A0
+i := ¬Ai and A1
+i := Ai. Notice that ﬁrst-order equivalence is basi-
+cally atomic equivalence. Roughly speaking, two probability func-
+tions are k-th order equivalent if they assign the same probabilities
+to all conjunctions that contain exactly k distinct arguments in pos-
+itive or negative form. In order to apply our previous idea, we need
+a bijective mapping between k-th order equivalence classes of prob-
+ability functions and k-th order labellings. Unfortunately, not every
+k-th order labelling corresponds to a probability function.
+Example 5.4. The deﬁnition of a ﬁrst-order labelling admits the
+labelling λ with λ(A = 0) = λ(A = 1) = 1. That is, λ(¬A) = λ(A) =
+1 However, for every probability function P, we necessarily have
+P(¬A) = 1 −P(A). Hence, λ cannot correspond to a probability
+function.
+In general, in order to establish an interesting relationship be-
+tween k-th order labellings and probability functions, we have to
+add additional conditions that correspond to normalization and ad-
+ditivity of probability functions. How many of these conditions do
+A
+B
+λ(A,B)
+A
+C
+λ(A,C)
+B
+C
+λ(B,C)
+0
+0
+0.5
+0
+0
+0
+0
+0
+0.5
+0
+1
+0
+0
+1
+0.5
+0
+1
+0
+1
+0
+0
+1
+0
+0.5
+1
+0
+0
+1
+1
+0.5
+1
+1
+0
+1
+1
+0.5
+Table 1: 3rd-order labelling for Example 5.5
+we need? For k = 1, we only need one normalization condition
+λ(A) = 1 −λ(¬A) for every A ∈A. Hence. |A| conditions are suf-
+ﬁcient. Does the number keep polynomial for k > 1. First note that
+normalization is not sufﬁcient for k > 1. We also have to assure
+some marginal consistency conditions that assure that the probabil-
+ities of overlapping valuations are consistent. We know from item 1
+in Lemma 5.2 that probability functions satisfy P(A1∧¬A2)+P(A1∧
+A2) = P(A1) = P(A1 ∧¬A3) + P(A1 ∧A3) for all A1,A2,A3 ∈A.
+Therefore, for k = 2, we need at least the following two types of
+conditions:
+(1) λ(¬A1 ∧¬A2)+λ(¬A1∧A2)+λ(A1 ∧¬A2)+λ(A1 ∧A2) = 1
+for all distinct A1,A2 ∈A (normalization) and
+(2) λ(A1 ∧¬A2) + λ(A1 ∧A2) = λ(A1 ∧¬A3) + λ(A1 ∧A3) for
+all distinct A1, A2,A3 ∈A (marginal consistency).
+The number of normalization and marginal consistency conditions
+is still polynomial. Unfortunately, they are not sufﬁcient to guaran-
+tee that every labelling corresponds to a probability function.
+Example 5.5. Consider three arguments A, B,C and the second-
+order labelling λ shown in Table 1. It is easy to check that λ does in-
+deed satisfy the normalization and marginalization conditions. Now
+assume that λ corresponds to a probability function P. Since a con-
+junction entails every subconjunction, we get from item 2 of Lemma
+5.2 that P(A ∧B ∧C) ≤P(A ∧C) = λ(A ∧C) = 0 and that
+P(A∧B∧¬C) ≤P(B∧¬C) = λ(B∧¬C) = 0. From item 1 of Lemma
+5.2, we get P(A ∧B) = P(A ∧B ∧C) + P(A ∧B ∧¬C). This implies
+0.5 = λ(A∧B) = P(A∧B) = P(A∧B∧¬C)+P(A∧B∧¬C) = 0+0 = 0,
+which is clearly a contradiction. Hence, λ does not correspond to a
+probability function even though it satisﬁes our basic normalization
+and marginalization conditions.
+Example 5.5 shows that it does not sufﬁce to guarantee marginal-
+ization consistency for up to k arguments. Even though the proba-
+bilities may be locally consistent, they may be impossible to obtain
+from a probability function over all arguments.
+Is there a clever way to extend our conditions? In order to shed
+some light on this question, let us ﬁrst note that all our conditions
+can be expressed as linear constraints. For example, for k = 2, we
+have the constraints
+(1) π(¬A1 ∧¬A2)+π(¬A1 ∧A2)+π(A1 ∧¬A2)+π(A1 ∧A2) = 1
+for all distinct A1,A2 ∈A (normalization) and
+(2) π(A1 ∧¬A2) + π(A1 ∧A2) = π(A1 ∧¬A3) + π(A1 ∧A3) for
+all distinct A1, A2,A3 ∈A (marginal consistency).
+Clearly, a k-th order labelling satisﬁes the conditions iff it satisﬁes
+the linear constraints. Indeed, it is hard to imagine how non-linear
+conditions could help to solve the problem in Example 5.5. There-
+fore, we may as well ask, is there a polynomially sized set of linear
+constraints such that every k-th order labelling that satisﬁes the con-
+straints corresponds to a probability function? As we saw before,
+6
+
+=== PAGE 7 ===
+the answer is yes for k = 1 because we only need one normaliza-
+tion condition for every argument. However, for k > 1, such a set
+cannot exist under the usual complexity-theoretical assumptions.
+PROPOSITION 5.6. If P , NP, then, for k > 1, there is no set of
+linear constraints C such that the size of C is polynomial in A and
+every k-th order labelling that satisﬁes C corresponds to a proba-
+bility function.
+PROOF. We show the contrapositive by showing that under the
+assumption that C has polynomial size, 2PSAT can be solved in
+polynomial time. Since 2SAT is NP-hard [24], this implies P = NP.
+For the sake of contradiction, assume that such a set C exists. A
+2PSAT instance consists of n propositional atoms α and m propo-
+sitional 2-clauses of the form π(αbi,1
+i,1 ∨αbi,1
+i,2 ) = p. The problem is
+to decide whether the clauses can be satisﬁed by a probability func-
+tion [24]. Clearly, we can introduce an argument A for every propo-
+sitional atom α and represent every statement π(αbi,1
+i,1 ∨αbi,2
+i,2 ) = pi
+with a linear constraint π(Abi,1
+i,1 ∨Abi,2
+i,2 ) = pi. Then the set of linear
+constraints can be satisﬁed if and only if the 2PSAT instance can be
+satisﬁed.
+In order to decide satisﬁability, we can build up a linear opti-
+mization problem over k-th order labellings similar to the proof of
+Proposition 4.3. The number of optimization variables is 2k ·  |A |
+k
+
+(number of probabilities stored in the probability labelling) plus 2m
+(two slack variables for every clause). The probability and slack
+variables are again non-negative. We add m constraints π(Abi,1
+i,1 ∨
+Abi,2
+i,2 ) = pi + s+
+i −s−
+i . The term (s+
+i −s−
+i ) guarantees that the con-
+straint can be satisﬁed. Note that the original constraint is satisﬁed
+iff s+
+i = s−
+i = 0 (we will again minimize the slack variables). Fur-
+thermore, we need the constraints from C. The objective function
+is Ím
+i=1(s+
+i + s−
+i ). Since C is supposed to be of polynomial size, the
+linear optimization problem has polynomial size. Therefore, it can
+be solved in polynomial time.
+Similar to the proof of Proposition 4.3, we can check that the
+clauses are satisﬁable by a k-th order labelling if and only if the lin-
+ear optimization problem has minimum 0. If the clauses are satisﬁ-
+able, consider a probability function P that satisﬁes the constraints.
+We can obtain a corresponding k-th order labelling λP by assign-
+ing probability P(Óm
+k=1 Abi
+i ) to the assignment (A1 = b1, . . . ,Ak =
+bk) ∈Vk. Since P satisﬁes the constraints, λP clearly satisﬁes them
+as well. Therefore, we can let s+
+i = s−
+i = 0 for i = 1, . . . ,m and the
+minimum is 0.
+Conversely, if the minimum is 0, there is a k-th order labelling λ
+that satisﬁes λ(Abi,1
+i,1 ∨Abi,2
+i,2 ) = pi +0+0 = pi fori = 1, . . . ,m. That is,
+it satisﬁes all clauses. It also satisﬁes C and, therefore, corresponds
+to a probability function P. Hence, P satisﬁes the clauses and so the
+clauses are satisﬁable.
+Hence, under the assumption that C has polynomial size, 2PSAT
+can be solved in polynomial time and therefore P = NP.
+□
+Hence, assuming P , NP, our previous idea cannot be general-
+ized to arbitrary non-atomic formulas. However, there may still be
+interesting special cases that can be solved efﬁciently in other ways.
+We will look at some other fragments in the following sections.
+6
+COMPLEX CONSTRAINTS
+In this section, we look at how far we can extend the expressive-
+ness of our constraint language when keeping the query language
+atomic. Unfortunately, there are strong limitations. Even if we only
+allow constraining the probability of the disjunction of two liter-
+als, the satisﬁability problem becomes intractable. To show this,
+we deﬁne a linear 2DN constraint as an expression of the form
+Ín
+i=1 ci · π(Abi,1
+i,1 ∨Abi,2
+i,2 ) ≤c0, where ci ∈R, Ai,j ∈A and
+bi,j ∈{0, 1} and we let A0
+i,j := ¬Ai,j and A1
+i,j := Ai,j. As be-
+fore, we say that a probability function P satisﬁes such a constraint
+iff Ín
+i=1 ci · P(Abi,1
+i,1 ∨Abi,1
+i,2 ) ≤c0.
+PROPOSITION 6.1. The satisﬁability problem for Linear 2DN
+Constraints is NP-complete.
+PROOF. For membership, we need a result from Linear Program-
+ming theory. Among the optimal solutions of an N-dimensional lin-
+ear program, there must be one that satisﬁes N constraints with
+equality [6]. Here, our constraints consist of |C| semantical con-
+straints from C, a normalization constraint that makes sure that
+the probabilities sum to 1 and 2n non-negativity constraints for the
+probabilities of possible worlds. Therefore, if C is satisﬁable, there
+must be an optimal solution P∗that satisﬁes at least 2n −(|C| + 1)
+non-negativity constraints with equality. That is, P∗assigns non-
+zero probability to at most |C| + 1 possible worlds. Let W = {w |
+w ∈2A, P∗(w) > 0}. Then |W | ≤|C| + 1, that is, W has polyno-
+mial size. Furthermore, for arbitrary formulas F over A, P∗(F) =
+Í
+w ∈2A,w |=F P∗(w) = Í
+w ∈W,w |=F P∗(w). Hence, the set of pairs
+{(w, P∗(w)) | w ∈W } provides a certiﬁcate of polynomial size
+such that checking the constraints and P∗(Q) > 0 can be done in
+polynomial time.
+For hardness, we can give a polynomial-time reduction from
+2PSAT, the problem of deciding whether a set of probability state-
+ments of the form π(αbi,1
+i,1 ∨αbi,1
+i,2 ) = p over propositional 2-clauses
+is satisﬁable. As shown in [24], 2PSAT is NP-complete. We can
+introduce an argument A for every propositional atom α and rep-
+resent every statement π(αbi,1
+i,1 ∨αbi,1
+i,2 ) = p with a linear 2D con-
+straint π(Abi,1
+i,1 ∨Abi,1
+i,2 ) = p. Then, clearly, the set of linear 2D con-
+straints can be satisﬁed if and only if the 2PSAT instance can be
+satisﬁed.
+□
+The problem does not get signiﬁcantly easier when considering
+conjunction instead of disjunction. We deﬁne a linear 2CN con-
+straint as an expression of the form Ín
+i=1 ci ·π(Abi,1
+i,1 ∧Abi,2
+i,2 ) ≤c0 and
+say that P satisﬁes such a constraint iff Ín
+i=1 ci ·P(Abi,1
+i,1 ∧Abi,1
+i,2 ) ≤c0.
+PROPOSITION 6.2. The satisﬁability problem for Linear 2CN
+Constraints is NP-complete.
+PROOF. Membership follows as in the previous proposition.
+For hardness, we can give a polynomial-time reduction from sat-
+isﬁability of linear 2DN constraints that we considered before. Con-
+sider an arbitrary linear 2DN constraint Ín
+i=1 ci · π(Abi,1
+i,1 ∨Abi,2
+i,2 ) ≤
+c0. Notice that every formula Abi,1
+i,1 ∨Abi,2
+i,2 can be equivalently ex-
+pressed as a disjunction of three exclusive conjunctions of length 2.
+For example A ∨¬B ≡(A ∧¬B) ∨(¬A ∧¬B) ∨(A ∧B). Since these
+7
+
+=== PAGE 8 ===
+conjunctions cannot be satisﬁed simultaneously, we have P  (A ∧
+¬B)∨(¬A∧¬B)∨(A∧B) = P(A∧¬B)+P(¬A∧¬B)+P(A∧B).In
+general, every linear 2DN constraint Ín
+i=1 ci · π(Abi,1
+i,1 ∨Abi,2
+i,2 ) ≤c0
+can be equivalently represented by a linear 2CN constraint Ín
+i=1 ci ·
+  Í3
+i=1 π(Ci)) ≤c0 where the Ci are exclusive conjunctions of two
+literals chosen as before to satisfy (Abi,1
+i,1 ∨Abi,2
+i,2 ) ≡Ô3
+i=1 Ci. The
+number of constraints remains unchanged and their size changes
+only by a constant factor. In particular, a set of linear 2DN con-
+straints is satisﬁable if and only if the corresponding set of linear
+2CN constraints is satisﬁable.
+□
+So talking about the probability of formulas in constraints is
+inherently difﬁcult. However, instead of allowing logical connec-
+tives in probability statements, we could consider logical connec-
+tions of constraints as considered in [29]. Note that connecting con-
+straints conjunctively does not add anything semantically. This is
+because there is no difference between adding two constraints or
+their conjunction to a knowledge base when the usual interpretation
+of conjunction is used. Adding negation basically means allowing
+for strict inequalities. Negation alone does not add any additional
+difﬁculties and the problem can be reduced to the case without
+negation with constant cost [28]. The most interesting case is allow-
+ing for connecting constraints disjunctively. We deﬁne a 2D linear
+atomic constraint as an expression of the form l1 ∨l2, where l1,l2
+are linear atomic constraints. We say that a probability function P
+satisﬁes such a constraint iff it satisﬁes l1 or l2. Unfortunately, the
+satisﬁability problem for 2D linear atomic constraints is again NP-
+hard.
+PROPOSITION 6.3. The satisﬁability problem for 2D Linear Atomic
+Constraints is NP-complete.
+In particular, the problem remains NP-hard even when the con-
+straints are further restricted to the form   Í2
+i=1 ci · π(Ai) ≤c0
+ ∨
+  Í2
+i=1 ci · π(Bi) ≤c0
+, that is, even when the linear atomic con-
+straints in the disjunction can contain at most 2 probability terms.
+PROOF. Membership follows again from noticing that a labelling
+that satisﬁes the constraints is a certiﬁcate that can be checked in
+polynomial time.
+For hardness, we give a polynomial-time reduction from 3SAT
+to satisﬁability of 2D Linear Atomic Constraints. As before, for
+every propositional atom, we introduce a corresponding argument.
+Consider a clause (αb1
+1 ∨αb2
+2 ∨αb3
+3 ). We introduce three additional
+auxiliary arguments X1,X2,X3 and encode the clause by four 2D
+linear atomic constraints. We use the constraints  π(Ai) = bi
+ ∨
+ π(Xi) = 1 for i = 1, . . . , 3 and  π(X1) + π(X2) ≤1 ∨ π(X2) +
+π(X3) ≤1. Notice that π(A) = 1 is equivalent to −π(A) ≤−1
+and π(A) = 0 is equivalent to π(A) ≤0. The constraint π(Xi ) = 1
+must be satisﬁed if the i-th literal is not satisﬁed. The last constraint
+expresses that at most two literals are allowed to be falsiﬁed. If all
+three literals are falsiﬁed, the last constraint is not satisﬁed. If the
+ﬁrst or second literal are satisﬁed, the ﬁrst atom in the disjunction
+will be satisﬁed, if the third literal is satisﬁed, the second atom will
+be satisﬁed. Our reduction introduces 3m new arguments and 3m
+additional constraints, so the size is polynomial.
+If F is satisﬁable, then there is a possible world w (interpreta-
+tion) that satisﬁes F. Consider the probability function Pw that as-
+signs probability 1 to w and 0 to all other worlds. Let L denote the
+probability labelling corresponding to Pw. We extend L to a prob-
+ability labelling L′ over the n + 3m arguments. For every clause
+(Ab1
+1 ∨Ab2
+2 ∨Ab3
+3 ), w satisﬁes one literal Abi
+i
+and we set the corre-
+sponding auxilary argument Xi to 0 and the other two to 1. Then the
+2D linear atomic constraints are satisﬁed by L′ and the correspond-
+ing probability function PL′ satisﬁes the constraint as well as shown
+before. Hence, the 2D linear atomic constraints are satisﬁable.
+Conversely, if all 2D linear atomic constraints are satisﬁed by a
+probability function P, then every world w with P(w) > 0 must sat-
+isfy F (strictly speaking, w also interprets the auxiliary arguments,
+but those can just be ignored). For the sake of contradiction, assume
+that this is not the case. That is, there is a world w with P(w) > 0
+that does not satisfy F. Then there is a clause (Ab1
+1 ∨Ab2
+2 ∨Ab3
+3 ) in
+F such that w satisﬁes neither Ab1
+1 nor Ab2
+2 nor Ab3
+3 . If bi = 1, then
+P(Ai) = Í
+v ∈A,Ai ∈v P(v) ≤Í
+v ∈A\w P(v) = 1 −P(w) < 1 and
+if bi = 0, then P(Ai) ≥P(w) > 0. Then the constraints  π(Ai) =
+bi
+ ∨ π(Xi) = 1 can only be satisﬁed if P(Xi) = 1 for i = 1, . . . , 3.
+But then P(X1) + P(X2) = P(X2) + P(X3) = 2 and the constraint
+ π(X1) + π(X2) ≤1 ∨ π(X2) + π(X3) ≤1 is violated, which
+contradicts our assumption that P satisﬁes the constraints. Hence,
+indeed every world w with P(w) > 0 must satisfy F and since there
+must be at least one world with non-zero probability (otherwise, P
+cannot be a probability function), F is satisﬁable.
+□
+It seems that our constraint language cannot be extended signif-
+icantly without loosing our polynomial runtime guarantees. How-
+ever, there is still one interesting special case left that we did not
+exclude so far. It may be possible to extend our fragment to state-
+ments of the form  π(A1) ≤c1
+ ∨ π(A2) ≤c2
+, where every linear
+atomic constraint can only contain a single probability term. This
+would allow making conditional statements like in the rationality
+property [30]:
+RAT: P is called rational if for all A, B ∈A with (A, B) ∈R,
+we have P(A) > 0.5 implies P(B) ≤0.5.
+We may reuse ideas for 2SAT in order to handle such constraints
+efﬁciently. However, we currently cannot say for certain if this is
+possible in polynomial time and leave this question for future work.
+7
+COMPLEX QUERIES
+As we saw in the previous section, our constraint language cannot
+be extended signiﬁcantly without loosing polynomial runtime guar-
+antees. We will now conduct a similar analysis for the query lan-
+guage. That is, we investigate how far we can extend the expressive-
+ness of our query language when keeping the constraint language
+atomic.
+Unfortunately, there is again no efﬁcient way to answer arbi-
+trarily complex queries because, otherwise, the entailment problem
+could be used to solve the propositional satisﬁability problem. In
+order to make this precise, we deﬁne a 3CNF-Query as a formula
+Q = Óm
+i=1
+  Ô3
+j=1 Abi, j
+i,j
+ over arguments, where again bi,j ∈{0, 1},
+A0
+i,j := ¬Ai and A1
+i,j = Ai. Just deciding whether the upper proba-
+bility bound for a 3CNF-Query is non-zero is NP-hard already.
+8
+
+=== PAGE 9 ===
+PROPOSITION 7.1. Let C be a satisﬁable set of linear atomic
+constraints over A = {A1, . . . , An} and let Q be a 3CNF-query.
+Then the following problem is NP-complete: decide whether the up-
+per bound on the probability of Q among the probability functions
+that satisfy C is non-zero.
+PROOF. For membership, we can construct a polynomial certiﬁ-
+cate like in the proof of Proposition 6.1.
+For hardness, we give a polynomial-time reduction from 3SAT.
+Given a propositional 3CNF formula F with n atoms αi, we in-
+troduce corresponding arguments Ai. Let Q be the query obtained
+from F by replacing αi with Ai for i = 1, . . . ,n. We do not add any
+constraints, so that all P ∈PA satisfy our constraints trivially. Then
+the upper bound on the probability of Q is non-zero iff F is satisﬁ-
+able. To see this, note that if F is satisﬁable, there is an interpretation
+that satisﬁes F and a corresponding possible world w that satisﬁes
+Q. Then the probability function Pw with Pw(w) = 1 and P(w′) = 0
+for all other possible worlds gives Pw(Q) = Pw(w) = 1 > 0.
+Conversely, if F is not satisﬁable, Q is not satisﬁable either and
+P(Q) = Í
+w ∈2A,w |=Q P(w) = 0 because the sum does not contain
+any terms for any P ∈PA.
+□
+However, there may be some interesting special cases that can
+be solved efﬁciently if we make additional assumptions. One case
+is answering conjunctive queries under the principle of maximum
+entropy as we explain in the following. However, the derived prob-
+abilities have to be considered with care as we explain at the end of
+this section.
+7.1
+Answering Conjunctive Queries under the
+Principle of Maximum Entropy
+When reasoning under the principle of maximum entropy, we do
+not consider all probability functions that satisfy our constraints
+anymore, but restrict to the one that maximizes entropy [32, 33, 43].
+The entropy of a probability function P over A is deﬁned as H(P) =
+−Í
+w ∈2A P(w) · logP(w), where 0 · log 0 is deﬁned as 0. The en-
+tropy can be seen as a measure of uncertainty. Indeed, the entropy
+is always non-negative and maximal if P is the uniform distribution.
+Therefore, if no constraints are given (no information about the ar-
+guments), the principle of maximum entropy is roughly equivalent
+to the principle of indifference. When accepting the uniform dis-
+tribution as the simplest probabilistic model, the principle of max-
+imum entropy can also be seen as a probabilistic version of Oc-
+cam’s razor. Intuitively, by maximizing entropy among the probabil-
+ity functions that satisfy a set of constraints, we select the probabil-
+ity distribution that adds as little information as possible. In addition
+to these intuitive justiﬁcations, the principle of optimum entropy
+has been justiﬁed by several characterizations with common-sense
+properties [32–34, 43].
+For a probability labelling L over n arguments A = {A1 . . . , An},
+we deﬁne its entropy as H(L) = Ín
+i=1
+  −L(Ai) · logL(Ai) −(1 −
+L(Ai)) · log(1 −L(Ai)). In the proof of Lemma 4.1, we identiﬁed a
+very special probability function PL in the equivalence class corre-
+sponding to L. We highlight this probability function in the follow-
+ing corollary.
+COROLLARY 7.2. For every labelling L ∈LA, there is a prob-
+ability function PL such that PL(w) = Î
+A∈w L(A) · Î
+A∈A\w(1 −
+L(A)) and r([PL]) = L.
+As we show next, the entropy H(L) of a labelling L corresponds
+to the maximum entropy taken in the equivalence class [PL]. In par-
+ticular, the maximum in [PL] is always taken by the corresponding
+probability function PL.
+PROPOSITION 7.3. For every labelling L ∈LA, the correspond-
+ing probability function PL maximizes entropy among all P′ ∈[PL].
+In particular, H(PL) = H(L).
+PROOF. Consider an arbitrary probability function P ∈[PL] For
+all formulas F, we let 1F : 2A →{0, 1} denote the indicator func-
+tion that yields 1 iff w |= F. Then we have
+H(L) −H(P)
+= −
+n
+Õ
+i=1
+ L(Ai) · logL(Ai) + (1 −L(Ai)) · log(1 −L(Ai))
++
+Õ
+w ∈2A
+P(w) · logP(w)
+= −
+n
+Õ
+i=1
+ P(Ai) · log L(Ai) + (1 −P(Ai)) · log(1 −L(Ai))
++
+Õ
+w ∈2A
+P(w) · logP(w)
+= −
+n
+Õ
+i=1
+  Õ
+w ∈2A
+1Ai (w) · P(w) · logL(Ai)
++
+Õ
+w ∈2A
+1¬Ai(w) · P(w) · log(1 −L(Ai))
++
+Õ
+w ∈2A
+P(w) · logP(w)
+= −
+Õ
+w ∈2A
+P(w)
+n
+Õ
+i=1
+  1Ai (w) logL(Ai) + 1¬Ai (w) log(1 −L(Ai))
++
+Õ
+w ∈2A
+P(w) · logP(w)
+= −
+Õ
+w ∈2A
+P(w) log   Ö
+Ai ∈w
+L(Ai) ·
+Ö
+Ai ∈A\w
+(1 −L(Ai))
++
+Õ
+w ∈2A
+P(w) · logP(w)
+=
+Õ
+w ∈2A
+P(w) log
+P(w)
+Î
+Ai ∈w L(Ai) · Î
+Ai ∈A\w(1 −L(Ai))
+=
+Õ
+w ∈2A
+P(w) log P(w)
+PL(w) = KL(P,PL) ≥0,
+where, for the second equality, we used the fact that P(A) = L(A)
+for all A ∈A and in the last row, we used the observation that the
+previous formula corresponds to the KL-divergence between two
+probability functions that is always non-negative. Furthermore, the
+KL-divergence is 0 if and only if both arguments are equal [59], that
+is, KL(P,PL) = 0 if and only if P = PL. Therefore, H(L) = H(PL)
+9
+
+=== PAGE 10 ===
+and H(L) > H(P) whenever P , PL. In particular, H(PL) > H(P)
+for all P ∈[PL] \ {PL}.
+□
+Hence, in order to compute the probability function with maxi-
+mum entropy, we can just compute the labelling L∗with maximum
+entropy. The corresponding probability function PL∗then maximizes
+entropy. This is the basic idea of the following proposition.
+PROPOSITION 7.4. Given a satisﬁable ﬁnite set of linear atomic
+constraints C, the optimization problem
+arg max
+P ∈PA
+H(P)
+such that
+P |= C.
+has a unique solution P∗and LP ∗is the unique solution of the opti-
+mization problem
+arg max
+L∈LA
+H(L)
+such that
+L |= C.
+In particular, LP ∗can be computed in polynomial time.
+PROOF. Both optimization problems have a strictly concave and
+continuous objective function. Maximizing such a function subject
+to consistent linear constraints yields a unique solution [42]. In par-
+ticular, these problems can be solved by interior-point methods in
+polynomial time in the number of optimization variables and con-
+straints [9]. For the ﬁrst problem, the number of optimization vari-
+ables is exponential in the number of arguments, but for the sec-
+ond problem the number of optimization variables equals the num-
+ber of arguments. Hence, the problem can be solved in polynomial
+time. Since the solution L∗of the second problem maximizes en-
+tropy among all probability labellings, and the probability distribu-
+tions corresponding to the labellings maximize entropy among their
+equivalence classes according to Proposition 7.3, L∗must equal
+LP ∗.
+□
+Having computed LP ∗, we can compute a compact representa-
+tion of P∗. Of course, constructing P∗explicitly would take expo-
+nential time again. Fortunately, for some queries, we can just work
+with the compact representation directly. This includes, in particu-
+lar, conjunctive queries, as we explain in the following proposition.
+PROPOSITION 7.5. Let A = {A1, . . . ,An}, let C be a satisﬁ-
+able set of linear atomic constraints and let Q be a conjunction of
+literals, that is, Q = Ó
+i ∈I Abi
+i , where I ⊆{1, . . . ,n}, bi ∈{0, 1}.
+Let P∗be the probability function that maximizes entropy among all
+probability functions that satisfy C. Then P∗(Q) can be computed in
+polynomial time even if P∗is unknown. In particular,
+P∗(
+Û
+i ∈I
+Abi
+i ) =
+Ö
+i ∈I
+L∗(Ai)bi · (1 −L∗(Ai))1−bi,
+where L∗is the probability labelling that maximizes entropy among
+all probability labellings that satisfy C.
+PROOF. First note that L(Ai)bi = L(Ai) if bi = 1 and L(Ai)bi =
+1 otherwise. Dually, (1 −L(Ai))1−bi = 1 −L(Ai) if bi = 0 and
+(1 −L(Ai))1−bi = 1 otherwise. Let S = Ð
+i ∈I {Ai} denote the atoms
+occuring in Q. We know from Proposition 7.3 that for all w ∈2A
+with w |= Q, we have
+P∗(w) =
+Ö
+A∈w
+L(A) ·
+Ö
+A∈A\w
+(1 −L(A))
+=   Ö
+i ∈I
+L(Ai)bi (1 −L(Ai))1−bi  ·  Ö
+A∈w\S
+L(A)
+Ö
+A∈A\ S∪w
+(1 −L(A)),
+where we split up the arguments in S (indexed by I) since we know
+their interpretation (because w |= Q). Therefore,
+P∗(Q) =
+Õ
+w ∈2A,w |=Q
+P(w)
+=   Ö
+i ∈I
+L(Ai)bi (1 −L(Ai))1−bi  Õ
+w ∈2A\S
+Ö
+A∈w
+L(A)
+Ö
+A∈A\(S∪w)
+(1 −L(A))
+=
+Ö
+i ∈I
+L(Ai)bi · (1 −L(Ai))1−bi,
+where we used the fact that Í
+w ∈2A\S Î
+A∈w L(A)·Î
+A∈A\(S∪w)(1−
+L(A)) = 1 as we explained in the proof of Lemma 4.1 (the products
+correspond to probabilities of a probability function over A \ S).
+Î
+i ∈I L(Ai)bi · (1 −L(Ai))1−bi can be computed in linear time
+when we know L∗. We can compute L∗in polynomial time as ex-
+plained in Proposition 7.4. Hence, we can compute P∗(Q) in poly-
+nomial time.
+□
+However, even under the principle of maximum entropy, queries
+cannot become arbitrarily complex. In this case, 3CNF-queries are
+even sufﬁcient to solve #3SAT, the problem of counting the inter-
+pretations that satisfy a 3CNF formula.
+PROPOSITION 7.6. The following problem is #P-hard: Given a
+satisﬁable set of linear atomic constraints C over A and a 3CNF-
+query Q, compute P∗(Q), where P∗is the probability function that
+maximizes entropy among all probability functions that satisfy C.
+PROOF. We give a polynomial-time reduction from #3SAT. Given
+a propositional 3CNF formula F, we construct a corresponding argu-
+ment query Q as in the proof of Proposition 7.1. We let C = ∅so that
+P∗is just the uniform distribution with P∗(w) =
+1
+2n for all w ∈2A.
+Then P∗(Q) = Í
+w ∈2A,w |=Q P∗(w) = |{w ∈2A |w |=Q }|
+2n
+and P∗(Q)·2n
+is the number of possible worlds that satisfy Q, which equals the
+number of propositional interpretations that satisfy F.
+□
+Similar to the proof of Proposition 7.1, it can be seen that the
+corresponding decision problem that asks whether the query has a
+non-zero probability, is NP-complete. While queries can be difﬁcult
+to compute in general, there are still some special cases that can be
+solved efﬁciently. For example, consider the query A ∨B that asks
+for the probability that A or B (or both) are accepted. Then the query
+is equivalent to  A ∧B ∨ A ∧¬B ∨ ¬A ∧B. Since the three
+conjunctions are exclusive (they cannot be satisﬁed by the same
+worlds), we have P(A ∨B) = P(A ∧B) + P(A ∧¬B) + P(¬A ∧B).
+Hence, we can answer the disjunctive query by three conjunctive
+queries that can be computed in polynomial time. More generally,
+if we can rewrite a query efﬁciently as a disjunction of k exclusive
+conjunctions, the query can be answered by k conjunctive queries.
+However, in general, k can grow exponentially with the number of
+atoms in the query.
+10
+
+=== PAGE 11 ===
+w
+PL(w)
+P1(w)
+P2(w)
+∅
+0.25
+0.5
+0
+{A}
+0.25
+0
+0.5
+{B}
+0.25
+0
+0.5
+{A,B}
+0.25
+0.5
+0
+Table 2: Some probability functions in [PL] for Example 7.7.
+7.2
+Independency Assumptions under the
+Principle of Maximum Entropy
+Applying the principle of maximum entropy allows us to answer
+conjunctive queries efﬁciently. Unfortunately, in some cases, it may
+give us undesired probabilities. Readers familiar with the idea of
+stochastic independence may have noticed that the probability func-
+tions PL have a very special structure. In the language of probability
+theory, each PL assumes stochastic independence between all argu-
+ments. In the remainder of this section, we will discuss this assump-
+tion and its ramiﬁcations.
+Formally, stochastic independence means that the probability of
+two events happening simultaneously equals the product of the in-
+dividual probabilities. Translated to our setting, arguments A1 and
+A2 are independent if P(Ab1
+1 ∧Ab2
+2 ) = P(Ab1
+1 ) · P(Ab2
+2 ) for all b1,b2 ∈
+{0, 1}, where again A0
+i := ¬Ai and A1
+i := Ai. In general, prob-
+abilities are deﬁned by a probabilistic model P, for example, by
+a probability function or as a probabilistic graphical model like a
+Bayesian network. Stochastic independence is therefore a property
+of a probabilistic model. In our framework, it is a property of a
+single probability function. Until now, we computed probabilities
+based on all probability functions that satisfy our constraints. While
+some of these functions satisfy certain independency assumptions,
+others do not. Let us emphasize that the independency assumptions
+that we talk about in this section are not inherent to the epistemic
+probabilistic argumentation approach in general. In general, we rea-
+son with many probability functions which usually differ in the in-
+dependency assumptions that they make. Not even the probability
+functions in a single equivalence class must make the same inde-
+pendency assumptions as we illustrate in the following example.
+Example 7.7. Consider the BAF ({A,B}, ∅, ∅) and the labelling
+L with L(A) = L(B) = 0.5. Figure 2 shows some other probability
+distributions in [PL]. We have PL(A) = P1(A) = P2(A) = 0.5 =
+PL(B) = P1(B) = P2(B) and therefore PL ≡P1 ≡P2. A and B are
+stochastically independent under PL, but neither under P1 nor under
+P2. To see this, note that P1(A ∧B) = 0.5 , 0.25 = 0.5 · 0.5 =
+P1(A) · P1(B) and P2(A ∧B) = 0 , 0.25 = 0.5 · 0.5 = P2(A) · P2(B).
+The independency assumptions that we talk about here are en-
+forced only when we answer queries under the principle of maxi-
+mum entropy and only when the constraints are atomic. They are,
+in particular, not needed for our previous polynomial-time results.
+Let us now look at the meaning of these independency assump-
+tions. Recall from Proposition 7.5 that for all sets of argument in-
+dices I, we have
+P∗(
+Û
+i ∈I
+Abi
+i ) =
+Ö
+i ∈I
+L∗(Ai)bi · (1 −L∗(Ai))1−bi
+=
+Ö
+i ∈I
+P∗(Abi
+i )
+for the maximum entropy probability function P∗. That is, all ar-
+guments are assumed to be stochastically independent under P∗.
+Note that this does not mean that P∗cannot capture any relation-
+ship between two arguments. In particular, by construction, P∗does
+maintain all semantical relationships between arguments that are
+expressed by the semantical constraints. For example, if we enforce
+Coherence, then P∗will satisfy P∗(B) ≤1 −P∗(A) whenever A at-
+tacks B. Note that this is an atomic relationship, whereas stochasti-
+cal independence talks about non-atomic events (at least, a conjunc-
+tion is involved). Since we do not consider any non-atomic con-
+straints in this section, the principle of maximum entropy does in-
+deed imply that all arguments are stochastically independent under
+P∗. However, this does not mean that P∗would ignore the atomic re-
+lationships between arguments that are expressed by our constraints.
+These relationships are indeed satisﬁed by deﬁnition of P∗.
+Example 7.8. Consider the BAF ({A,B}, {(A,B)}, ∅) and the con-
+straint π(A) = 0.8. If we also demand Coherence, we have L∗(A) =
+0.8 and L∗(B) = 0.2 for the maximum entropy labelling L∗. For the
+maximum entropy probability function, we have P∗(∅) = P∗({A,B}) =
+0.8 · 0.2 = 0.16, P∗({A}) = 0.82 = 0.64 and P∗({B}) = 0.22 = 0.04.
+Furthermore, we have P∗(A) = L∗(A) = 0.8 and P∗(B) = L∗(B) =
+0.2. Hence, P∗(A ∧B) = P∗({A,B}) = 0.16 = P(A) · P(B), that is,
+A and B are stochastically independent under P∗. However, P∗still
+respects P(B) ≤1 −P(A) as demanded by coherence.
+However, the assumption of stochastic independence may yield
+improper probabilities in some cases. Again, if arguments A and B
+are stochastically independent, then P(A ∧B) = P(A) · P(B). That is,
+stochastical independence allows us to compute the probability of
+a conjunction of arguments by just multiplying the individual prob-
+abilities. What can happen if P assumes stochastical independence
+of A and B mistakenly? To answer this question, it is convenient
+to introduce some additional tools from probability theory. For two
+formulas F,G over A such that P(F) >= 0, the conditional prob-
+ability of G given F is deﬁned as P(G | F) = P(F ∧G)
+P(F ) . Intuitively,
+P(G | F) is the probability of G under the assumption that F is true.
+In the following lemma, we rephrase two basic results from proba-
+bility theory.
+LEMMA 7.9. For all formulas F1, . . . , Fn over A, we have
+(1) P(F2 | F1) = P(F2) whenever P(F1) > 0 and F1 and F2 are
+stochastically independent under P.
+(2) P(Ón
+i=1 Fi) = P(F1) · În
+i=2 P(Fi | Ói−1
+k=1 Fk).
+(Chain Rule).
+PROOF. 1. P(F2 | F1) = P(F2∧F1
+P(F1)
+= P(F2)·P(F1)
+P(F1)
+= P(F2), where
+we ﬁrst used the deﬁnition of conditional probability and then the
+deﬁnition of stochastical independence.
+2. The claim follows by induction. For n = 1, the claim is trivially
+true. For the induction step, we have
+P(
+n+1
+Û
+i=1
+Fi) = P(
+n
+Û
+i=1
+Fi)
+P(Ón+1
+i=1 Fi)
+P(Ón
+i=1 Fi)
+=
+
+P(F1) ·
+n
+Ö
+i=2
+P(Fi |
+i−1
+Û
+k=1
+Fk)
+
+· P(Fn+1 |
+n
+Û
+k=1
+Fk),
+11
+
+=== PAGE 12 ===
+where we used the induction hypothesis and the deﬁnition of condi-
+tional probability for the last equality.
+□
+Note that the chain rule does not assume stochastical indepen-
+dence between the formulas. In particular, for a simple conjunction
+of two arguments, the chain rule implies P(A ∧B) = P(A) · P(B | A).
+From item 1 in Lemma 7.9, we can see that assuming independence
+of A and B basically means assuming P(B | A) = P(B). That is,
+knowledge about A does not change our beliefs about B. If this as-
+sumption is not justiﬁed, the probability of the conjunction may be
+too low or too large. For example, if A has a positive impact on the
+probability of B, we have P(A ∧B) = P(A) · P(B | A) > P(A) · P(B),
+so that the computed probability is too low when assuming indepen-
+dence of A and B.
+7.3
+Analysis of Independency Assumptions
+In our framework, arguments should indeed have an impact on other
+arguments when they are connected via an attack or support relation.
+An attacker should have a negative impact on the probability of an
+attacked argument and a supporter should have a positive impact
+on the probability of a supported argument. The independency as-
+sumptions make conditional queries meaningless as we explain in
+the following corollary.
+COROLLARY 7.10. Let C be a satisﬁable set of linear atomic
+constraints over A and let P∗be the corresponding maximum en-
+tropy model. For all conjunctions χ1, χ2 of arguments from A such
+that P∗(χ1) > 0, we have P∗(χ2 | χ1) = P∗(χ2).
+PROOF. Let χ1 = Ón
+i=1 Ai and χ2 = Óm
+i=1 Bi. Then P∗(χ1 ∧
+χ2) = În
+i=1 P∗(Ai) · Îm
+i=1 P∗(Bi) = P∗(Ón
+i=1 Ai) · P∗(Óm
+i=1 Bi) =
+P∗(χ1) · P∗(χ2). Hence, χ1, χ2 are stochastically independent under
+P∗and the claim follows from item 1 of Lemma 7.9.
+□
+Hence, conditioning on the state of an argument does not have
+any effect. However, we may be able to work around this. In order
+to simulate conditioning, we can just add constraints that enforce
+the condition. In order to answer a query conditioned on Ón
+i=1 Ai,
+we can add the constraints π(Ai) = 1 for i = 1, . . . ,n, recompute P∗
+and answer a regular conjunctive query.
+Since conjunctive queries are related to conditional queries via
+the chain rule, the independency assumptions will also affect the
+probability of conjunctive queries. However, in this case, the prob-
+lem can be less severe because the marginal probabilities may al-
+ready capture the relationship between connected arguments due to
+our semantical constraints. It is difﬁcult to say what probability a
+conjunctive query should yield in general. Therefore, we will just
+look at some simple cases and check whether semantical constraints
+can give us plausible guarantees for the maximum entropy model.
+To begin with, consider a single attack relation (A,B) ∈R. The
+most critical case here is that both A and B occur in positive form
+in a query. Let us consider a conjunction that contains A ∧B as
+a subformula. By the chain rule, we have for an arbitrary proba-
+bilistic model P and an arbitrary conjunction χ of arguments that
+P(A ∧B ∧χ) = P(A) · P(B | A) · P(χ | A ∧B). We should probably
+expect something like P(B | A) ≤0.5 (if A is accepted, B should not
+be accepted). This implies, in particular, that P(A∧B∧χ) ≤0.5, that
+is, a conjunction that contains both A and B in positive form should
+never be accepted. However, under the maximum entropy model,
+we have P∗(B | A) = P∗(B). Therefore, the probability of the con-
+junction can generally be too large and may even be greater than 0.5.
+However, if we employ constraints, then P∗(B) may already contain
+the impact of A in a plausible manner. Coherence does actually give
+us an interesting guarantee in this case.
+PROPOSITION 7.11. Let A, B ∈A be arguments such that (A, B) ∈
+R and let χ be a conjunction of arguments from A. If P∗satisﬁes
+coherence (COH), then P∗(A ∧B ∧χ) ≤min{0.25, 1 −P∗(A)}.
+PROOF. If P∗satisﬁes coherence, we have P∗(A ∧B ∧χ) ≤
+P∗(A ∧B) = P∗(A) · P∗(B) ≤P∗(A) · (1 −P∗(A)). From the ﬁrst-
+order necessary condition for optimality from differential calculus,
+we can see that the last term is maximal when P∗(A) = 0.5. The
+maximum is 0.25, which gives us the ﬁrst upper bound. We also
+have P∗(A ∧B ∧χ) ≤P∗(A) · (1 −P∗(A)) ≤1 −P∗(A), which gives
+us the second upper bound.
+□
+We can interpret this as follows: if P∗(A) is close to 1 (A is close
+to being classically accepted), P∗(A∧B ∧χ) will be close to 0. This
+makes sense because accepting A should imply rejecting B when
+interpreting attack relations in a classical sense. As P∗(A) moves to-
+wards 0, the impact of the attack relation becomes gradually weaker.
+Intuitively, under the maximum entropy model, the strength of an
+attack relation is determined by the belief in the source. In particu-
+lar, a conjunction that contains both A and B in positive form can
+never be accepted under the maximum entropy model (the degree
+of belief is bounded from above by 0.25).
+Now consider a support relation (A, B) ∈S. Here, the most criti-
+cal case is that A is accepted, but B is not. Therefore, we consider a
+conjunction that contains A ∧¬B as a subformula now. In general,
+we have P(A ∧¬B ∧χ) = P(A) · P(¬B | A) · P(χ | A ∧¬B). Now,
+we should expect P(¬B | A) ≤0.5 or equivalently P(B | A) > 0.5
+(if A is accepted, B should be accepted as well). So the probability
+of the conjunction should again be bounded from above by 0.5. Of
+course, we have again P∗(¬B | A) = P∗(¬B) under the maximum
+entropy model, so that the probability of the conjunction may be
+too large when P∗(¬B) > 0.5 and we employ no constraints. In this
+case, support-coherence gives us plausible guarantees.
+PROPOSITION 7.12. Let A, B ∈A be arguments such that (A, B) ∈
+S and let χ be a conjunction of arguments from A. If P∗satisﬁes
+support-coherence (S-COH), then P∗(A ∧¬B ∧χ) ≤min{0.25, 1 −
+P∗(A)}.
+PROOF. If P∗satisﬁes support-coherence, we have P∗(¬B) = 1−
+P∗(B) ≤1 −P∗(A). Therefore, P∗(A ∧¬B ∧χ) = P∗(A) · P∗(¬B |
+A) · P(χ | A ∧¬B) ≤P∗(A) · (1 −P∗(A)). The claim follows now
+from the exact same analysis as in the previous proposition.
+□
+The guarantees for support-coherence for supports are, of course,
+dual to those for coherence for attacks due to their dual nature and
+can be interpreted accordingly. Again, we can intuitively say that
+support relations have a classical meaning when the source has
+probability 1 and that their strength becomes gradually weaker as
+the probability of the source moves towards 0.
+As a ﬁnal simple example, let us consider the case that we have
+both an attack (A,C) ∈R and a support (B,C) ∈S. Then the chain
+12
+
+=== PAGE 13 ===
+rule implies that P(Aa ∧Bb ∧Cc) = P(Aa) · P(Bb | Aa) · P(Cc |
+Aa ∧Bb), where a,b,c ∈{0, 1}. Assuming that attack and support
+can cancel their effects, we should expect something like
+(1) P(C | A ∧B) = P(C),
+(2) P(C | ¬A ∧¬B) = P(C),
+(3) P(C | A ∧¬B) ≤0.5 and
+(4) P(¬C | ¬A ∧B) ≤0.5
+for the conditional probabilities. The ﬁrst two desiderata are al-
+ways met by P∗due to the independency assumptions. Of course,
+this is just coincidential and the more interesting desiderata are the
+third and fourth one. When we apply both coherence and support-
+coherence, we maintain our previous guarantees for attacks and sup-
+ports, but also get a reasonable interaction between the belief in A
+and B. Namely, A and B cannot be accepted simultaneously. Ar-
+guably, this makes sense because they give opposite evidence for
+C.
+PROPOSITION 7.13. Let A, B,C ∈A be arguments such that
+(A,C) ∈R and (B,C) ∈S and let χ be a conjunction of arguments
+from A. If P∗satisﬁes coherence (COH) and support-coherence (S-
+COH), then
+(1) P∗(A) + P∗(B) ≤1,
+(2) P∗(A ∧¬B ∧C ∧χ) ≤min{0.25, 1 −P∗(A)}.
+(3) P∗(¬A ∧B ∧¬C ∧χ) ≤min{0.25, 1 −P∗(B)}.
+PROOF. 1. We have P∗(B) ≤P ∗(C) ≤1 −P∗(A), where the
+ﬁrst inequality follows from support-coherence and the second from
+coherence. Adding P∗(A) to both sides of the inequality yields the
+claim.
+2. We have P∗(A∧¬B∧C∧χ) = P∗(A)·(1−P∗(B))·P∗(C)·P∗(χ) ≤
+P∗(A) · P∗(C) ≤P∗(A) · (1 −P∗(A)). Now the two bounds can be
+derived exactly as before.
+3. The proof is analogous to the proof of item 2.
+□
+In summary, we demonstrated that applying constraints like co-
+herence and support-coherence can give us plausible guarantees for
+some probabilities under the maximum entropy model despite its
+independency assumptions. However, overall, the independency as-
+sumptions can cause difﬁculties. Most importantly, conditioning be-
+comes meaningless under P∗. However, sometimes we can work
+around this by simulating conditioning with constraints as explained
+at the beginning of this section. The independency assumptions also
+affect conjunctive queries. In this case, our semantical constraints
+may still give plausible guarantees for the probabilities under P∗.
+We illustrated this for coherence and support-coherence. Still, in
+general, the probabilities may be larger (in case of attack) or lower
+(in case of support) as desired. A more detailed analysis of the pos-
+sible cases would be interesting, but is out of scope here. For this pa-
+per, our conclusion is that the principle of maximum entropy should
+only be applied with care. It allows answering conjunctive queries
+efﬁciently, but it has to be checked carefully whether the applied
+constraints can assure meaningful probabilities for the application
+at hand.
+8
+RELATED WORK
+As mentioned in the introduction, there is a large variety of other
+probabilistic argumentation frameworks [17, 19, 27, 36, 38, 44, 53–
+55, 57, 58]. We sketch three early works here to give an impres-
+sion of some ideas. [19] consider probability functions over possi-
+ble worlds as well, but the mechanics are very different from what
+we saw here. Instead of considering all possible probability func-
+tions that satisfy particular constraints, a single probability function
+is derived from a set of probabilistic rules. Roughly speaking, these
+rules express the likelihood of assumptions under given precondi-
+tions. Multiple rules for one assumption are only allowed if they
+can be ordered by speciﬁcity. [38] consider functions that assign
+probabilities to arguments (like probability labellings) and attack re-
+lations. The functions are supposed to be given and allow assigning
+a probability to subgraphs of the given argumentation framework
+using common independency assumptions. Then the probability of
+an argument is deﬁned by taking the probability of every subgraph
+and adding those probabilities for which the argument is accepted in
+the subgraph under a particular semantics. Since the number of sub-
+graphs is exponential, the authors present a Monte-Carlo algorithm
+to approximate the probability of an argument. In [53], probabilities
+are again introduced over possible worlds. Again, a single probabil-
+ity distribution is derived from rules. However, in contrast to [19],
+these rules are probabilistic extensions of a light form of ASPIC
+rules [10, 51]. They are also more a ﬂexible in that they do not need
+to be ordered according to speciﬁcity.
+[55] recently introduced a very general probabilistic argumen-
+tation framework that generalizes many ideas that have been con-
+sidered before in the literature. The authors consider probability
+functions over subsets of defeasible theories or over subgraphs. The
+latter approach can then be seen as a generalization of the former,
+which abstracts from the structure of arguments. The authors dis-
+cuss probabilistic labellings that should not be confused with proba-
+bility labellings that we considered here. Roughly speaking, in [55],
+a probabilistic labelling frame corresponds to a probability function
+over subsets of possible classical labellings over an argumentation
+framework. These probabilistic labelling frames can then be used
+to assign probabilities to arguments. In this sense, a probabilistic
+labelling considered in [55] induces a probability labelling as con-
+sidered here. However, the focus in [55] is on conceptual questions
+and computational problems are not discussed.
+Our polynomial-time algorithms are based on a connection be-
+tween probability functions and probability labellings. The relation-
+ship is established by considering an equivalence relation over prob-
+ability functions. Conceptual similar ideas have been considered in
+probabilistic-logical reasoning. However, in this area, equivalence
+relations are introduced over possible worlds. Roughly speaking,
+the possible worlds are partitioned into equivalence classes that in-
+terpret the formulas that appear in the knowledge base in the same
+manner. Reasoning algorithms can then be modiﬁed to work on
+probability functions over equivalence classes [22, 23, 35, 47]. If
+the number of equivalence classes is small, a signiﬁcant speedup
+can be obtained. However, identifying compact representatives for
+these equivalence classes is intractable in general [49]. In particular,
+in general, the number of equivalence classes over possible worlds
+can still be exponential. Indeed, many polynomial cases that we
+13
+
+=== PAGE 14 ===
+found here cannot be solved in polynomial time with this approach.
+For example, if one atomic constraint P(A) = pA is given for every
+argument A, every equivalence class of possible worlds will contain
+exactly one possible world, so that actually nothing is gained.
+[31] also considered an inconsistency-tolerant generalization of
+the entailment problem that still works when there are conﬂicts be-
+tween the partial probability assignment constraints and the seman-
+tical constraints. We can probably derive similar polynomial run-
+time guarantees for this problem. However, the approach in [31]
+is based on the assumption that the semantical constraints are con-
+sistent. This is no problem for the semantical constraints consid-
+ered in [31] because the probability of attacked arguments is only
+bounded from above and the probability of non-attacked arguments
+is only bounded from below. However, in bipolar argumentation
+frameworks, we want to consider more complicated relationships
+and the constraints can easily become inconsistent. Therefore, it is
+interesting to also analyze other variants that use ideas for paracon-
+sistent probabilistic reasoning [16, 50] or reasoning with priorities
+[46]. It is also interesting to note that our satisﬁability test from
+Proposition 4.3 actually corresponds to an inconsistency measure.
+If the knowledge base is inconsistent, the returned value will be 0,
+otherwise it measures by how much probability functions must vio-
+late the constraints numerically [45].
+9
+DISCUSSION AND FUTURE WORK
+We showed that the satisﬁability and entailment problem for the
+epistemic probabilistic argumentation approach considered in [31]
+can be solved in polynomial time. In fact, arbitrary linear atomic
+constraints can be considered. We found that the constraint lan-
+guage cannot be extended signiﬁcantly without loosing polynomial
+runtime guarantees. However, it may still be possible to allow dis-
+junctions of two probability statements, which would allow express-
+ing conditional constraints like RAT. For the query language, we
+found that conjunctive queries can still be answered in polynomial
+time under the principle of maximum entropy when all constraints
+are atomic. However, atomic constraints cannot enforce stochastical
+dependence, so that the maximum entropy model assumes stochas-
+tical independency between all arguments. While it is important to
+be aware of this assumption, sometimes atomic constraints are suf-
+ﬁcient to enforce meaningful relationships between connected argu-
+ments as we demonstrated with coherence and support-coherence.
+An interesting question for future work is whether we can compute
+conjunctive queries for the entailment problem in polynomial time
+even without using the principle of maximum entropy.
+We focussed mainly on complexity results and did not speak
+much about the runtime guarantees of our convex programming
+formulations. In general, interior-point methods can solve convex
+programs in cubic time in the number of optimization variables and
+optimization constraints [9]. This means that all convex programs
+that we introduced here can be solved in cubic time in the size of
+the argumentation problem in the worst-case. Our linear programs
+for satisﬁability and entailment can often be solved faster by us-
+ing the Simplex algorithm. Even though the Simplex algorithm has
+exponential worst-case runtime, in practice, the runtime usually de-
+pends only linearly on the number of optimization variables and
+quadratically on the number of constraints [39].
+Implementations for satisﬁability and entailment can be found in
+the Java-library ProBabble1. You have to install IBM CPLEX in or-
+der to use ProBabble, but IBM offers free licenses for academic pur-
+poses. Problems with thousands of arguments can usually be solved
+within a few hundred milliseconds. Without the labelling approach,
+the same amount of time would be needed for 10-15 arguments al-
+ready because the number of possible worlds grows exponentially.
+Acknowledgements: I am very grateful to Anthony Hunter and
+Sylwia Polberg for helpful discussions. I am also indebted to some
+anonymous reviewers for their critical comments and for pointing
+out that the independency assumptions of the maximum entropy
+model should be analyzed carefully.
+REFERENCES
+[1] Leila Amgoud and Jonathan Ben-Naim. 2013. Ranking-based semantics for ar-
+gumentation frameworks. In International Conference on Scalable Uncertainty
+Management (SUM). Springer, 134–147.
+[2] Leila Amgoud and Jonathan Ben-Naim. 2017.
+Evaluation of arguments in
+weighted bipolar graphs. In European Conference on Symbolic and Quantitative
+Approaches to Reasoning with Uncertainty (ECSQARU). Springer, 25–35.
+[3] Leila Amgoud, Claudette Cayrol, and Marie-Christine Lagasquie-Schiex. 2004.
+On the bipolarity in argumentation frameworks.. In International Workshop on
+Non-Monotonic Reasoning (NMR), Vol. 4. 1–9.
+[4] Pietro Baroni, Marco Romano, Francesca Toni, Marco Aurisicchio, and Giorgio
+Bertanza. 2015. Automatic evaluation of design alternatives with quantitative
+argumentation. Argument & Computation 6, 1 (2015), 24–49.
+[5] Howard Barringer, Dov M Gabbay, and John Woods. 2012. Temporal, numerical
+and meta-level dynamics in argumentation networks. Argument & Computation
+3, 2-3 (2012), 143–202.
+[6] Dimitris Bertsimas and John N Tsitsiklis. 1997. Introduction to linear optimiza-
+tion. Vol. 6. Athena Scientiﬁc Belmont, MA.
+[7] Philippe Besnard and Anthony Hunter. 2001. A logic-based theory of deductive
+arguments. Artiﬁcial Intelligence 128, 1-2 (2001), 203–235.
+[8] Guido Boella, Dov M Gabbay, Leon van der Torre, and Serena Villata. 2010. Sup-
+port in abstract argumentation. In International Conference on Computational
+Models of Argument (COMMA). Frontiers in Artiﬁcial Intelligence and Applica-
+tions, IOS Press, 40–51.
+[9] Stephen Boyd and Lieven Vandenberghe. 2004.
+Convex Optimization.
+Cam-
+bridge University Press, New York, NY, USA.
+[10] Martin Caminada and Leila Amgoud. 2007. On the evaluation of argumentation
+formalisms. Artiﬁcial Intelligence 171, 5 (2007), 286–310.
+[11] Martin WA Caminada and Dov M Gabbay. 2009. A logical account of formal
+argumentation. Studia Logica 93, 2-3 (2009), 109.
+[12] Claudette Cayrol and Marie-Christine Lagasquie-Schiex. 2005. Graduality in
+Argumentation. Journal of Artiﬁcial Intelligence Research (JAIR) 23 (2005), 245–
+297.
+[13] Claudette Cayrol and Marie-Christine Lagasquie-Schiex. 2013. Bipolarity in ar-
+gumentation graphs: Towards a better understanding. International Journal of
+Approximate Reasoning 54, 7 (2013), 876–899.
+[14] Andrea Cohen, Sebastian Gottifredi, Alejandro J. García, and Guillermo R.
+Simari. 2014. A Survey of Different Approaches to Support in Argumentation
+Systems. Knowledge Eng. Review 29, 5 (2014), 513–550.
+[15] Marco Correia, Jorge Cruz, and Joao Leite. 2014. On the Efﬁcient Implementa-
+tion of Social Abstract Argumentation.. In ECAI. 225–230.
+[16] L. Daniel. 2009. Paraconsistent Probabilistic Reasoning. Ph.D. Dissertation.
+L’École Nationale Supérieure des Mines de Paris.
+[17] Dragan Doder and Stefan Woltran. 2014.
+Probabilistic argumentation
+frameworks–a logical approach. In International Conference on Scalable Uncer-
+tainty Management (SUM). Springer, 134–147.
+[18] Phan Minh Dung. 1995. On the acceptability of arguments and its fundamental
+role in nonmonotonic reasoning, logic programming and n-person games. Artiﬁ-
+cial intelligence 77, 2 (1995), 321–357.
+[19] Phan Minh Dung and Phan Minh Thang. 2010. Towards (probabilistic) argumen-
+tation for jury-based dispute resolution.. In International Conference on Compu-
+tational Models of Argument (COMMA). 171–182.
+[20] Bettina Fazzinga, Sergio Flesca, and Filippo Furfaro. 2018. Probabilistic bipolar
+abstract argumentation frameworks: complexity results.. In International Joint
+Conferences on Artiﬁcial Intelligence (IJCAI). 1803–1809.
+1https://sourceforge.net/projects/probabble/
+14
+
+=== PAGE 15 ===
+[21] Bettina Fazzinga, Sergio Flesca, and Francesco Parisi. 2013. On the complexity
+of probabilistic abstract argumentation.. In International Joint Conferences on
+Artiﬁcial Intelligence (IJCAI). 898–904.
+[22] Marc Finthammer and Christoph Beierle. 2012. Using equivalences of worlds
+for aggregation semantics of relational conditionals. In Annual Conference on
+Artiﬁcial Intelligence. Springer, 49–60.
+[23] Volker G Fischer and Manfred Schramm. 1996. Tabl-a tool for efﬁcient compila-
+tion of probabilistic constraints. (1996).
+[24] George Georgakopoulos, Dimitris Kavvadias, and Christos H Papadimitriou.
+1988. Probabilistic satisﬁability. Journal of complexity 4, 1 (1988), 1–11.
+[25] Pierre Hansen and Brigitte Jaumard. 2000.
+Probabilistic Satisﬁability.
+In
+Handbook of Defeasible Reasoning and Uncertainty Management Systems, Jürg
+Kohlas and Serafín Moral (Eds.). Handbook of Defeasible Reasoning and Uncer-
+tainty Management Systems, Vol. 5. Springer Netherlands, 321–367.
+[26] Anthony Hunter. 2013. A probabilistic approach to modelling uncertain logical
+arguments. International Journal of Approximate Reasoning 54, 1 (2013), 47–
+81.
+[27] Anthony Hunter. 2014. Probabilistic qualiﬁcation of attack in abstract argumen-
+tation. International Journal of Approximate Reasoning 55, 2 (2014), 607–638.
+[28] Anthony Hunter, Sylwia Polberg, and Nico Potyka. 2018. Updating Belief in
+Arguments in Epistemic Graphs. In International Conference on Principles of
+Knowledge Representation and Reasoning (KR). 138–147.
+[29] Anthony Hunter, Sylwia. Polberg, and M. Thimm. 2018. Epistemic Graphs for
+Representing and Reasoning with Positive and Negative Inﬂuences of Arguments.
+ArXiv (2018).
+[30] Anthony Hunter and Matthias Thimm. 2014. Probabilistic argumentation with
+incomplete information. In ECAI. IOS Press, 1033–1034.
+[31] Anthony Hunter and Matthias Thimm. 2016. On Partial Information and Con-
+tradictions in Probabilistic Abstract Argumentation. In International Conference
+on Principles of Knowledge Representation and Reasoning (KR). AAAI Press,
+53–62.
+[32] E.T. Jaynes. 1983. Papers on Probability, Statistics and Statistical Physics. D.
+Reidel Publishing Company, Dordrecht, Holland.
+[33] R.W. Johnson and J.E. Shore. 1983. Comments on and correction to “Axiomatic
+derivation of the principle of maximum entropy and the principle of minimum
+cross-entropy”. IEEE Transactions on Information Theory IT-29, 6 (1983), 942–
+943.
+[34] G. Kern-Isberner. 2001. Conditionals in nonmonotonic reasoning and belief revi-
+sion. Springer, Lecture Notes in Artiﬁcial Intelligence LNAI 2087.
+[35] Gabriele Kern-Isberner and Thomas Lukasiewicz. 2004. Combining probabilistic
+logic programming with the power of maximum entropy. Artiﬁcial Intelligence
+157, 1-2 (2004), 139–202.
+[36] Hiroyuki Kido and Keishi Okamoto. [n. d.]. A Bayesian Approach to Argument-
+Based Reasoning for Attack Estimation. In International Joint Conferences on
+Artiﬁcial Intelligence (IJCAI). 249–255.
+[37] Joao Leite and Joao Martins. 2011. Social abstract argumentation. In Interna-
+tional Joint Conferences on Artiﬁcial Intelligence (IJCAI), Vol. 11. 2287–2292.
+[38] Hengfei Li, Nir Oren, and Timothy J Norman. 2011. Probabilistic argumentation
+frameworks. In International Workshop on Theory and Applications of Formal
+Argumentation. Springer, 1–16.
+[39] J. Matousek and B. Gärtner. 2007. Understanding and Using Linear Program-
+ming. Springer.
+[40] Till Mossakowski and Fabian Neuhaus. 2018.
+Modular Semantics and
+Characteristics for Bipolar Weighted Argumentation Graphs.
+arXiv preprint
+arXiv:1807.06685 (2018).
+[41] Nils J. Nilsson. 1986. Probabilistic logic. Artiﬁcial Intelligence 28 (February
+1986), 71–88. Issue 1.
+[42] J. Nocedal and S. J. Wright. 2006. Numerical Optimization (2nd ed.). Springer,
+New York.
+[43] J.B. Paris and A. Vencovská. 1990. A note on the inevitability of maximum
+entropy. International Journal of Approximate Reasoning 14 (1990), 183–223.
+[44] Sylwia Polberg and Dragan Doder. 2014. Probabilistic abstract dialectical frame-
+works. In European Workshop on Logics in Artiﬁcial Intelligence. Springer, 591–
+599.
+[45] Nico Potyka. 2014. Linear Programs for Measuring Inconsistency in Probabilistic
+Logics. In International Conference on Principles of Knowledge Representation
+and Reasoning (KR). AAAI Press, 568–578.
+[46] Nico Potyka. 2015. Reasoning over linear probabilistic knowledge bases with pri-
+orities. In International Conference on Scalable Uncertainty Management (SUM)
+(LNCS), Vol. 10564. Springer, 121–136.
+[47] Nico Potyka. 2016. Solving Reasoning Problems for Probabilistic Conditional
+Logics with Consistent and Inconsistent Information. Ph.D. Dissertation. Fer-
+nUniversität in Hagen.
+[48] Nico Potyka. 2018. Continuous Dynamical Systems for Weighted Bipolar Argu-
+mentation. In International Conference on Principles of Knowledge Representa-
+tion and Reasoning (KR). 148–157.
+[49] Nico Potyka, Christoph Beierle, and Gabriele Kern-Isberner. 2015. A concept
+for the evolution of relational probabilistic belief states and the computation of
+their changes under optimum entropy semantics. Journal of Applied Logic 13, 4
+(2015), 414–440.
+[50] Nico Potyka and Matthias Thimm. 2015. Probabilistic Reasoning with Incon-
+sistent Beliefs using Inconsistency Measures (International Joint Conference on
+Artiﬁcial Intelligence (IJCAI)). 3156–3163.
+[51] Henry Prakken. 2010. An abstract framework for argumentation with structured
+arguments. Argument & Computation 1, 2 (2010), 93–124.
+[52] Antonio Rago, Francesca Toni, Marco Aurisicchio, and Pietro Baroni. 2016.
+Discontinuity-Free Decision Support with Quantitative Argumentation Debates..
+In International Conference on Principles of Knowledge Representation and Rea-
+soning (KR). 63–73.
+[53] Tjitze Rienstra. 2012. Towards a probabilistic dung-style argumentation system.
+In International Conference on Agreement Technologies (AT). 138–152.
+[54] Tjitze Rienstra, Matthias Thimm, Beishui Liao, and Leendert van der Torre. 2018.
+Probabilistic Abstract Argumentation based on SCC Decomposability. In Inter-
+national Conference on Principles of Knowledge Representation and Reasoning
+(KR).
+[55] Régis Riveret, Pietro Baroni, Yang Gao, Guido Governatori, Antonino Rotolo,
+and Giovanni Sartor. 2018. A labelling framework for probabilistic argumenta-
+tion. Annals of Mathematics and Artiﬁcial Intelligence (2018), 1–51.
+[56] Matthias Thimm. 2012. A Probabilistic Semantics for abstract Argumentation..
+In European Conference on Artiﬁcial Intelligence (ECAI), Vol. 12. 750–755.
+[57] Matthias Thimm, Pietro Baroni, Massimiliano Giacomin, and Paolo Vicig. 2017.
+Probabilities on Extensions in Abstract Argumentation. In International Work-
+shop on Theory and Applications of Formal Argumentation. Springer, 102–119.
+[58] Matthias Thimm, Federico Cerutti, and Tjitze Rienstra. 2018.
+Probabilistic
+Graded Semantics. In International Conference on Computational Models of Ar-
+gument (COMMA). IOS Press, 369–380.
+[59] Raymond W Yeung. 2008. Information theory and network coding. Springer
+Science & Business Media.
+15
+
