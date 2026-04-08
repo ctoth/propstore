@@ -1,0 +1,252 @@
+source:
+  paper: Halpin_2010_OwlSameAsIsntSame
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-04-04T08:05:15Z"
+
+claims:
+  # --- Observation Claims: Core theoretical arguments ---
+
+  - id: claim1
+    type: observation
+    statement: "owl:sameAs commits to full Leibnizian identity (indiscernibility of identicals), requiring that all properties of one URI hold for the other, making it too strong for most actual Linked Data interlinking uses."
+    concepts:
+      - owl_sameas
+      - leibniz_identity
+      - linked_data_interlinking
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 1
+      section: "Introduction"
+      quote_fragment: "owl:sameAs can be viewed as encoding only one point on a scale of similarity, one that is often too strong"
+
+  - id: claim2
+    type: observation
+    statement: "Many Linked Data contexts are referentially opaque (quotation, belief contexts, temporal indexing), meaning substitutivity of identicals fails and owl:sameAs assertions produce incorrect inferences."
+    concepts:
+      - referential_opacity
+      - owl_sameas
+      - substitutivity
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 4
+      section: "4.1 Identical but Referentially Opaque"
+      quote_fragment: "referentially opaque contexts that do not allow inference exist"
+
+  - id: claim3
+    type: observation
+    statement: "Identity between URIs in Linked Data is not binary but exists on a spectrum with at least five distinct levels: identical-but-referentially-opaque, intentionally-equivalent, matching, similar, and related."
+    concepts:
+      - identity_spectrum
+      - uri_identity
+      - linked_data_interlinking
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 3
+      section: "4 Varieties of Identity and Similarity"
+
+  # --- Mechanism Claims: Design rationale ---
+
+  - id: claim4
+    type: mechanism
+    statement: "sim:claimsIdentical is defined as reflexive and symmetric but NOT transitive because transitivity allows identity errors to propagate across disagreeing sources — if source A claims x=y and source B claims y=z, transitivity would force x=z even when A and B disagree about z's identity."
+    concepts:
+      - claims_identical
+      - transitivity
+      - identity_error_propagation
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 7
+      section: "5 Similarity Ontology"
+      quote_fragment: "This property is transitive because if an entity a claims to be entity b and b claims to be c, then a is claiming to be c"
+
+  - id: claim5
+    type: mechanism
+    statement: "Named graphs with a sim:hasContext property provide lightweight provenance for identity claims without requiring complex RDF reification, enabling tracking of who asserted each identity relationship and under what context."
+    concepts:
+      - named_graphs
+      - identity_provenance
+      - context_qualification
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 8
+      section: "5 Similarity Ontology"
+
+  # --- Measurement Claims: Empirical findings ---
+
+  - id: claim6
+    type: measurement
+    target_concept: owl_sameas_true_identity_rate
+    measure: accuracy
+    value: 51
+    unit: "%"
+    evaluation_population: "250 randomly sampled owl:sameAs statements from LOD Cloud, 3 Mechanical Turk judges"
+    methodology: "Weighted random sample from 58.7M owl:sameAs triples, classified by 3 judges into 3 optimized categories"
+    conditions:
+      - "dataset == 'Linked Open Data Cloud 2010'"
+      - "category_scheme == 'optimized_3_categories'"
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 12
+      section: "6.3 Experimental Design"
+    notes: "Range across 3 raters was 29-72%, reflecting substantial inter-rater disagreement"
+
+  - id: claim7
+    type: measurement
+    target_concept: inter_rater_agreement
+    measure: effect_size
+    value: 0.215
+    unit: "Cohen's kappa"
+    evaluation_population: "3 Mechanical Turk judges, 250 owl:sameAs pairs"
+    methodology: "Cohen's kappa on 6-category classification (Same, Matching, Similar, Related, Unrelated, Don't Know)"
+    conditions:
+      - "category_scheme == 'original_6_categories'"
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 12
+      section: "6.3 Experimental Design"
+    notes: "Classified as 'fair' agreement"
+
+  - id: claim8
+    type: measurement
+    target_concept: inter_rater_agreement
+    measure: effect_size
+    value: 0.435
+    unit: "Cohen's kappa"
+    evaluation_population: "3 Mechanical Turk judges, 250 owl:sameAs pairs"
+    methodology: "Cohen's kappa after merging to 3 categories (Identical / Similar-Matching-Related / Can't Tell-Not Related)"
+    conditions:
+      - "category_scheme == 'optimized_3_categories'"
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 12
+      section: "6.3 Experimental Design"
+    notes: "Classified as 'moderate' agreement"
+
+  - id: claim9
+    type: measurement
+    target_concept: owl_sameas_weaker_relation_rate
+    measure: accuracy
+    value: 21
+    unit: "%"
+    evaluation_population: "250 randomly sampled owl:sameAs statements, 3 judges"
+    methodology: "Proportion judged as similar/matching/related rather than identical"
+    conditions:
+      - "dataset == 'Linked Open Data Cloud 2010'"
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 13
+      section: "6.3 Experimental Design"
+    notes: "Range +/- 3% across raters; these are cases that would benefit from sim: properties"
+
+  # --- Parameter Claims ---
+
+  - id: claim10
+    type: parameter
+    concept: owl_sameas_triple_count_lod_2010
+    value: 58691520
+    unit: "triples"
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 9
+      section: "6.1 Data"
+      quote_fragment: "totalled 58,691,520 sameAs triples from 1,202 unique domain names"
+
+  - id: claim11
+    type: parameter
+    concept: owl_sameas_domain_count_lod_2010
+    value: 1202
+    unit: "domains"
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 9
+      section: "6.1 Data"
+
+  # --- Comparison Claims ---
+
+  - id: claim12
+    type: comparison
+    statement: "SKOS exactMatch/closeMatch are insufficient alternatives to owl:sameAs because they are designed for concept schemes (thesauri, taxonomies), not arbitrary entity linking, and lack formal logical grounding for identity relationships between arbitrary resources."
+    concepts:
+      - skos_matching
+      - owl_sameas
+      - identity_representation
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 6
+      section: "5 Similarity Ontology"
+
+  - id: claim13
+    type: comparison
+    statement: "The Similarity Ontology's eight graded properties capture distinctions that owl:sameAs conflates into a single relation, with each property having formally specified reflexivity, symmetry, and transitivity characteristics that match different real-world identity scenarios."
+    concepts:
+      - similarity_ontology
+      - owl_sameas
+      - identity_spectrum
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 7
+      section: "5 Similarity Ontology"
+      table: "Table 1"
+
+  # --- Limitation Claims ---
+
+  - id: claim14
+    type: limitation
+    statement: "The 6-category identity taxonomy (Same, Matching, Similar, Related, Unrelated, Don't Know) proved too fine-grained for reliable human agreement (kappa=0.215), requiring collapse to 3 categories to achieve moderate agreement (kappa=0.435)."
+    concepts:
+      - identity_classification
+      - inter_rater_agreement
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 12
+      section: "6.3 Experimental Design"
+
+  - id: claim15
+    type: limitation
+    statement: "Identity judgments based solely on RDF-retrievable properties are unreliable for approximately 27% of owl:sameAs pairs, where judges could not determine the relationship without dereferencing to human-readable descriptions."
+    concepts:
+      - identity_classification
+      - rdf_property_sufficiency
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 13
+      section: "6.3 Experimental Design"
+    notes: "Range 8-46% across raters, showing high variance"
+
+  - id: claim16
+    type: limitation
+    statement: "The proposed Similarity Ontology properties have not been empirically validated for reliable human distinguishability — it remains unknown whether users can consistently apply the eight-way distinction in practice."
+    concepts:
+      - similarity_ontology
+      - identity_classification
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 14
+      section: "7 Conclusion"
+
+  # --- Observation Claims: Distribution findings ---
+
+  - id: claim17
+    type: observation
+    statement: "The distribution of owl:sameAs links across domains in the LOD Cloud is heavy-tailed and approximately exponential, but does not strictly follow a power law (Clauset et al. test, estimated exponent 2.42, significance p=0.08)."
+    concepts:
+      - owl_sameas_distribution
+      - power_law
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 9
+      section: "6.1 Data"
+      figure: "Fig. 2"
+
+  - id: claim18
+    type: observation
+    statement: "Biomedical datasets (bio2rdf at 26M, uniprot at 6M) are the dominant providers of owl:sameAs statements in the LOD Cloud, accounting for over half of all identity assertions."
+    concepts:
+      - owl_sameas_distribution
+      - biomedical_linked_data
+    provenance:
+      paper: Halpin_2010_OwlSameAsIsntSame
+      page: 9
+      section: "6.1 Data"

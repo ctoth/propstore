@@ -1,0 +1,13 @@
+{
+  "title": "Trusty URIs: Verifiable, Immutable, and Permanent Digital Artifacts for Linked Data",
+  "authors": [
+    "Tobias Kuhn",
+    "Michel Dumontier"
+  ],
+  "year": "2014",
+  "arxiv_id": "1401.5775",
+  "doi": "10.1007/978-3-319-11964-9_27",
+  "abstract": "To make digital resources on the web verifiable, immutable, and permanent, we propose a technique to include cryptographic hash values in URIs. We call them trusty URIs and we show how they can be used by approaches like nanopublications to make not only specific resources but their entire reference trees verifiable. Digital artifacts can be identified not only on the byte level but also on more abstract levels such as RDF graphs, which means that resources keep their hash values even when presented in a different format. Our approach sticks to the core principles of the web, namely openness and decentralized architecture, is fully compatible with existing standards and protocols, and our therefore shows that these desired properties are indeed accomplishable by our approach, and that it remains practical even for very large files.",
+  "url": "https://arxiv.org/abs/1401.5775",
+  "pdf_url": "https://arxiv.org/pdf/1401.5775"
+}

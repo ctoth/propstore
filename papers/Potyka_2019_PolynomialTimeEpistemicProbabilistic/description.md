@@ -1,0 +1,11 @@
+This paper identifies a polynomial-time fragment of epistemic probabilistic argumentation. Epistemic probabilistic argumentation assigns degrees of belief to arguments via probability functions over possible worlds (subsets of arguments). The key problem is that the number of possible worlds is exponential in the number of arguments, making naive computation intractable.
+
+The paper's central contribution is showing that when constraints are restricted to linear atomic form -- constraints that only reference probabilities of individual arguments P(A), not complex formulas P(F) -- then probability functions can be replaced by probability labellings L: A -> [0,1] that assign belief degrees directly to arguments. These labellings are exponentially more compact and form equivalence classes with the full probability functions. This reduction makes both the satisfiability problem (PArgAtSAT) and the entailment problem (PArgAtENT, computing probability bounds) solvable via linear programming in polynomial time.
+
+The paper defines semantic constraints for both attack relations (COH, SFOU, FOU, SOPT, OPT, JUS) and support relations (S-COH, SSCE, SCE, SPES, PES), all of which are linear atomic and thus fall within the tractable fragment.
+
+The paper then maps the tractability boundary precisely: extending constraints to 2-literal disjunctions (2DN), 2-literal conjunctions (2CN), or disjunctions of atomic constraints all yield NP-completeness. For queries, 3CNF-queries make even deciding non-zero upper bounds NP-hard. However, under the principle of maximum entropy with atomic constraints, conjunctive queries remain polynomial-time computable because the max-entropy distribution PL factors as a product of independent marginals.
+
+The independence assumption of the max-entropy model is analyzed in detail. While conditioning becomes trivially meaningless (P*(B|A) = P*(B)), semantic constraints like COH and S-COH still provide meaningful guarantees -- e.g., under COH, P*(A AND B AND chi) <= 0.25 when A attacks B. Conditioning can be simulated by adding constraints.
+
+The ProBabble Java library implements these algorithms and handles thousands of arguments in hundreds of milliseconds. Worst-case complexity is cubic in the number of arguments and constraints via interior-point methods.

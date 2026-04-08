@@ -1,0 +1,235 @@
+source:
+  paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "A weighted argumentation graph (WAG) is a tuple G = <A, w, R> where A is a finite set of arguments, w: A -> [0,1] assigns basic strengths, and R is an attack relation on A."
+    concepts:
+      - argument_initial_weight
+      - dung_framework
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 1
+      section: "2. Basic Concepts"
+      quote_fragment: "A weighted argumentation graph (WAG) is an ordered tuple G = <A, w, R>"
+
+  - id: claim2
+    type: observation
+    statement: "An acceptability semantics S maps any WAG G to a vector Deg^S_G in [0,1]^n assigning each argument an acceptability degree representing its overall strength after aggregating its basic strength and the overall strengths of its attackers."
+    concepts:
+      - acceptability
+      - argument_initial_weight
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 2
+      section: "2. Basic Concepts"
+      quote_fragment: "A semantics is a function S transforming any WAG G into a vector Deg^S_G in [0,1]^n"
+
+  - id: claim3
+    type: observation
+    statement: "Cardinality Precedence (CP), Quality Precedence (QP), and Compensation are pairwise incompatible: no semantics can satisfy any two of them simultaneously."
+    concepts:
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 4
+      section: "3.2 Properties"
+      quote_fragment: "CP, QP and Compensation are pairwise incompatible"
+
+  - id: claim4
+    type: observation
+    statement: "The set {Independence, Directionality, Equivalence, Resilience, Reinforcement, Maximality, QP} is incompatible — no semantics can satisfy all of them."
+    concepts:
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 4
+      section: "3.2 Properties"
+      quote_fragment: "Independence, Directionality, Equivalence, Resilience, Reinforcement, Maximality and QP are incompatible"
+
+  - id: claim5
+    type: observation
+    statement: "CP and Compensation are each individually compatible with all of principles 1-12 (Anonymity through Proportionality)."
+    concepts:
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 4
+      section: "3.2 Properties"
+      quote_fragment: "CP (respectively Compensation) is compatible with all principles 1-12"
+
+  - id: claim6
+    type: observation
+    statement: "If a semantics satisfies Independence, Directionality, Neutrality, Proportionality, Weakening and Maximality, then for any WAG and any argument a, Deg(a) is in [0, w(a)] — the acceptability degree never exceeds the basic strength."
+    concepts:
+      - acceptability
+      - argument_initial_weight
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 4
+      section: "3.2 Properties"
+      quote_fragment: "Deg^S_G(a) in [0, w(a)]"
+
+  - id: claim7
+    type: observation
+    statement: "Counter-Transitivity follows from Independence, Directionality, Equivalence, Reinforcement, Maximality, and Neutrality: if the attackers of b are at least as numerous and strong as those of a (with same basic weight), then a is at least as strong as b."
+    concepts:
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 4
+      section: "3.2 Properties"
+      quote_fragment: "if the attackers of an argument b are at least as numerous and strong as those of an argument a, then a is at least as strong as b"
+
+  - id: claim8
+    type: mechanism
+    statement: "The weighted max-based semantics (Mbs) computes acceptability as Deg(a) = w(a) / (1 + max_{b in Att(a)} Deg(b)), considering only the strongest attacker. The iterative scoring function converges and this fixed-point equation uniquely characterizes the semantics."
+    concepts:
+      - acceptability
+      - argument_initial_weight
+      - sum_attacker_scores
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 4
+      section: "4.1 Weighted Max-Based Semantics"
+      quote_fragment: "Deg^Mbs_G(a) = w(a) / (1 + max_{b in Att(a)} Deg^Mbs_G(b))"
+
+  - id: claim9
+    type: observation
+    statement: "Under weighted max-based semantics, an attacked argument retains at least half its basic strength: Deg^Mbs(a) is in [w(a)/2, w(a)] for all arguments."
+    concepts:
+      - acceptability
+      - argument_initial_weight
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 5
+      section: "4.1 Weighted Max-Based Semantics"
+      quote_fragment: "Deg^Mbs_G(a) in [w(a)/2, w(a)]"
+
+  - id: claim10
+    type: mechanism
+    statement: "The weighted card-based semantics (Cbs) computes Deg(a) = w(a) / (1 + |AttF(a)| + avg_{b in AttF(a)} Deg(b)), using attacker count plus average strength, considering only founded (w>0) attackers. The fixed-point equation uniquely characterizes it."
+    concepts:
+      - acceptability
+      - argument_initial_weight
+      - sum_attacker_scores
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 5
+      section: "4.2 Weighted Card-Based Semantics"
+      quote_fragment: "w(a) / (1 + |AttF_G(a)| + sum / |AttF_G(a)|)"
+
+  - id: claim11
+    type: observation
+    statement: "Cbs is the first semantics in the literature to satisfy Cardinality Precedence (CP). It satisfies all 15 principles except Quality Precedence and Compensation."
+    concepts:
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 5
+      section: "4.2 Weighted Card-Based Semantics"
+      quote_fragment: "Weighted card-based semantics satisfies all the principles except Quality Precedence and Compensation"
+
+  - id: claim12
+    type: mechanism
+    statement: "The weighted h-categorizer semantics (Hbs) computes Deg(a) = w(a) / (1 + sum_{b in Att(a)} Deg(b)), extending Besnard and Hunter's 2001 h-categorizer to weighted cyclic graphs. The fixed-point equation uniquely characterizes it."
+    concepts:
+      - acceptability
+      - argument_initial_weight
+      - sum_attacker_scores
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 5
+      section: "4.3 Weighted h-Categorizer Semantics"
+      quote_fragment: "Deg^Hbs_G(a) = w(a) / (1 + sum_{b in Att(a)} Deg^Hbs_G(b))"
+
+  - id: claim13
+    type: observation
+    statement: "Hbs satisfies Compensation and all principles compatible with it (13 of 15), making it the first semantics to satisfy compensation together with all compatible principles for any graph structure."
+    concepts:
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 5
+      section: "4.3 Weighted h-Categorizer Semantics"
+      quote_fragment: "Weighted h-categorizer semantics satisfies all the principles except CP and QP"
+
+  - id: claim14
+    type: comparison
+    statement: "DF-QuAD violates Weakening, Counting, Reinforcement, and Resilience, while all three novel semantics (Mbs, Cbs, Hbs) satisfy Weakening. Hbs additionally satisfies Counting and Reinforcement, which DF-QuAD does not."
+    concepts:
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 6
+      section: "Table 1"
+      quote_fragment: "Table 1 comparison grid"
+
+  - id: claim15
+    type: comparison
+    statement: "Dung's extension-based semantics (Grounded, Stable, Preferred, Complete) when applied to weighted graphs via preference-based attack removal satisfy very few of the 15 principles — they violate Equivalence, Maximality, Weakening, Counting, Proportionality, Reinforcement, and Resilience."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 6
+      section: "5. Formal Analysis of Existing Semantics"
+      quote_fragment: "weakening is violated by Dung's semantics in this setting"
+
+  - id: claim16
+    type: observation
+    statement: "The Iterative Schema (IS) of Gabbay and Rodrigues 2015 is the only existing semantics besides Mbs that satisfies Quality Precedence, but IS violates Maximality — it declares a worthless unattacked argument (w=0) as accepted."
+    concepts:
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 6
+      section: "5. Formal Analysis of Existing Semantics"
+      quote_fragment: "IS and Mbs are the only semantics that satisfy QP principle. However, IS violates key principles like Maximality"
+
+  - id: claim17
+    type: observation
+    statement: "All three novel scoring functions (f_m, f_c, f_h) converge as iteration approaches infinity, and their fixed-point equations are both properties of and unique characterizations of each semantics."
+    concepts:
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 4
+      section: "4. Three Novel Semantics"
+      quote_fragment: "f^i_m converges as i approaches infinity... it is the only function satisfying the equation"
+
+  - id: claim18
+    type: observation
+    statement: "Mbs violates Counting and Reinforcement because it considers only the strongest attacker and neglects remaining attackers entirely."
+    concepts:
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 4
+      section: "4.1 Weighted Max-Based Semantics"
+      quote_fragment: "It violates, however, Counting since by definition, this semantics focuses only on the strongest attacker"
+
+  - id: claim19
+    type: observation
+    statement: "The basic strength w(a) may represent diverse quantities: probability, certainty degree of premises, user votes, importance of a promoted value, or trustworthiness of a source — all expressible as a numerical value in [0,1]."
+    concepts:
+      - argument_initial_weight
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 1
+      section: "1. Introduction"
+      quote_fragment: "basic strength, which may represent various issues like its probability, certainty degree of its premises, votes provided by users"
+
+  - id: claim20
+    type: observation
+    statement: "The Resilience principle (attacks cannot completely kill an argument with w(a)>0) distinguishes Dung's semantics from gradual semantics like those of Amgoud and Ben-Naim 2013 and Besnard and Hunter 2001."
+    concepts:
+      - dung_framework
+      - acceptability
+    provenance:
+      paper: Amgoud_2017_AcceptabilitySemanticsWeightedArgumentation
+      page: 3
+      section: "3.1 Principles"
+      quote_fragment: "Resilience is one of the main principles, which distinguishes Dung's semantics from those proposed in"

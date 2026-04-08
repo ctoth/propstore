@@ -1,0 +1,10 @@
+{
+  "title": "Micropublications: a Semantic Model for Claims, Evidence, Arguments and Annotations in Biomedical Communications",
+  "authors": ["Tim Clark", "Paolo N. Ciccarese", "Carole A. Goble"],
+  "year": "2014",
+  "arxiv_id": "1305.3506",
+  "doi": "10.1186/2041-1480-5-28",
+  "abstract": "Scientific publications are documentary representations of defeasible arguments, supported by data and reproducible methods. They are the essential mediating artifacts in the ecosystem of scientific communications, the institutional 'goal' of science is publishing results. The linear document publication format, dating from 1665, has survived transition to the Web. Interactable publication volume; the difficulty of verifying evidence; and observed problems in evidence and citation distortions suggest a need for a very flexible yet machine-readable model of scientific publications. This model should support digital communications, evidence examination, challenge, verification and reuse, and incremental adoption. Such a model must be capable of expressing a broad spectrum of representational complexity, ranging from minimal to maximal formats. The Micropublications semantic model of scientific argument and evidence provides these features. Micropublications support natural language statements, data, methods, and materials specifications; discussion and commentary; challenge and disagreement, as well as allowing many kinds of statement formalization.",
+  "url": "https://arxiv.org/abs/1305.3506",
+  "pdf_url": "https://arxiv.org/pdf/1305.3506v4"
+}

@@ -1,0 +1,331 @@
+source:
+  paper: Melo_2013_NotQuiteSameIdentity
+produced_by:
+  agent: "claude-opus-4-6"
+  skill: "extract-claims"
+  timestamp: "2026-04-04T08:03:11Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "Two entities are identical if and only if they share all properties (Leibniz's Law / Identity of Indiscernibles)."
+    concepts:
+      - identity
+      - leibniz_law
+      - indiscernibility
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 0
+      section: "Abstract / Introduction"
+      quote_fragment: "sameAs links are intended to express that two identifiers are equivalent in all respects"
+
+  - id: claim2
+    type: observation
+    statement: "There is no universal agreed-upon way of determining which properties should count as salient in determining near-identity and similarity."
+    concepts:
+      - near_identity
+      - salience
+      - similarity
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 1
+      section: "3 Criteria for Near-Identity and Similarity"
+      quote_fragment: "There is no universal agreed-upon way of determining which properties should count as salient"
+
+  - id: claim3
+    type: mechanism
+    statement: "Many existing owl:sameAs links do not reflect genuine identity because publishers use them informally to express similarity, relatedness, or approximate equivalence rather than strict Leibniz's Law identity."
+    concepts:
+      - owl_sameas
+      - identity
+      - near_identity
+      - linked_data
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 0
+      section: "Abstract"
+      quote_fragment: "many existing ones do not reflect such genuine identity"
+
+  - id: claim4
+    type: observation
+    statement: "Within a single dataset, distinct URIs refer to distinct entities (Unique Name Assumption), so sameAs links that create equivalence classes merging URIs from the same dataset violate this constraint."
+    concepts:
+      - unique_name_assumption
+      - identity_constraint
+      - equivalence_class
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 2
+      section: "Unique Name Constraints"
+      quote_fragment: "any two URIs of the two resources is not a valid DBpedia URI"
+
+  - id: claim5
+    type: observation
+    statement: "Finding a minimum-weight set of sameAs edges to remove in order to restore consistency with distinctness constraints is equivalent to the minimum multicut problem."
+    concepts:
+      - minimum_multicut
+      - identity_constraint
+      - graph_optimization
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 2
+      section: "Combinatorial Optimization Problem"
+
+  - id: claim6
+    type: observation
+    statement: "Computing an optimal cut C for identity constraint satisfaction is NP-hard and APX-hard, by reduction from the minimum multicut problem."
+    concepts:
+      - computational_complexity
+      - minimum_multicut
+      - np_hard
+      - apx_hard
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 2
+      section: "Theorem 6"
+      quote_fragment: "a gap-preserving problem reduction of this form shows that our problem is at least as hard as the minimum multicut problem"
+
+  - id: claim7
+    type: mechanism
+    statement: "The LP relaxation of the minimum multicut formulation can be solved in polynomial time using region growing techniques, yielding a logarithmic approximation guarantee for the identity constraint satisfaction problem."
+    concepts:
+      - lp_relaxation
+      - minimum_multicut
+      - approximation_algorithm
+      - region_growing
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 3
+      section: "Linear Program Relaxation Algorithm"
+      quote_fragment: "we use the region growing technique of Garg, Vazirani, and Vazirani (1996)"
+
+  - id: claim8
+    type: mechanism
+    statement: "When linking exactly two data sources, the identity constraint problem reduces to a bipartite matching solvable in polynomial time via the Hungarian algorithm (LSAP), because pairwise non-adjacency implies connected components span at most one node from each side."
+    concepts:
+      - hungarian_algorithm
+      - bipartite_matching
+      - linear_sum_assignment
+      - identity_constraint
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 3
+      section: "Relationship to the Hungarian Algorithm / Theorem 7"
+      quote_fragment: "computing the minimal cut is equivalent to solving the LSAP"
+
+  - id: claim9
+    type: equation
+    expression: "minimize sum(d_ij * w_ij) subject to path constraints and 0 <= d_ij <= 1"
+    sympy: "Minimize(Sum(d_ij * w_ij), {Sum(d_ij, path) >= 1 for all demand pairs})"
+    variables:
+      - symbol: "d_ij"
+        concept: "edge_cut_indicator"
+        role: "decision_variable"
+      - symbol: "w_ij"
+        concept: "edge_weight"
+        role: "parameter"
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 3
+      section: "Linear Program Relaxation Algorithm"
+
+  - id: claim10
+    type: parameter
+    concept: total_sameas_statements
+    value: 22441457
+    unit: "count"
+    conditions:
+      - "dataset == 'BTC_2011'"
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 4
+      section: "Data Preparation and Analysis"
+
+  - id: claim11
+    type: parameter
+    concept: total_uris
+    value: 34419740
+    unit: "count"
+    conditions:
+      - "dataset == 'BTC_2011'"
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 4
+      section: "Data Preparation and Analysis"
+      table: "Table 3"
+
+  - id: claim12
+    type: parameter
+    concept: connected_components
+    value: 12735767
+    unit: "count"
+    conditions:
+      - "dataset == 'BTC_2011'"
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 5
+      section: "Constraint Analysis"
+      table: "Table 3"
+
+  - id: claim13
+    type: parameter
+    concept: average_component_size
+    value: 2.70
+    unit: "URIs/component"
+    conditions:
+      - "dataset == 'BTC_2011'"
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 5
+      section: "Constraint Analysis"
+      table: "Table 3"
+
+  - id: claim14
+    type: parameter
+    concept: constraint_violations_detected
+    value: 519170
+    unit: "node_pairs"
+    conditions:
+      - "dataset == 'BTC_2011'"
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 5
+      section: "Constraint Analysis"
+      table: "Table 3"
+
+  - id: claim15
+    type: parameter
+    concept: edges_removed_for_consistency
+    value: 280086
+    unit: "edges"
+    conditions:
+      - "dataset == 'BTC_2011'"
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 6
+      section: "Constraint-Based Cleaning"
+      table: "Table 4"
+
+  - id: claim16
+    type: observation
+    statement: "The number of edges removed to restore consistency is lower than the number of constraint violations, because removing a single strategically placed sameAs link can satisfy multiple constraints simultaneously."
+    concepts:
+      - minimum_multicut
+      - identity_constraint
+      - graph_optimization
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 6
+      section: "Constraint-Based Cleaning"
+      quote_fragment: "the algorithm explicitly aims at deleting a minimal number of edges in order to ensure that the constraints are no longer violated"
+
+  - id: claim17
+    type: observation
+    statement: "The most frequent domains of entity URIs in the BTC 2011 sameAs graph are DBpedia, Freebase, linkeddata.uriburner.com, lib-onv, and Max Planck Institute for Informatics, each involved in over 250,000 undirected edges."
+    concepts:
+      - linked_data
+      - owl_sameas
+      - knowledge_graph
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 4
+      section: "Graph Construction"
+
+  - id: claim18
+    type: comparison
+    statement: "Unlike prior empirical studies of sameAs usage (Halpin et al. 2010, Ding et al. 2010) which analyzed the problem, this work provides a computational method for detecting and repairing erroneous identity links via graph-based constraint satisfaction."
+    concepts:
+      - identity_constraint
+      - graph_optimization
+      - owl_sameas
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 6
+      section: "Implications and Suggestions"
+
+  - id: claim19
+    type: limitation
+    statement: "The OWL standard does not make a Unique Name Assumption and instead provides owl:differentFrom, but in practice almost no publishers issue owl:differentFrom statements between entity pairs, making explicit distinctness assertions unavailable."
+    concepts:
+      - unique_name_assumption
+      - owl_different_from
+      - linked_data
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 1
+      section: "2 Criteria for Identity"
+
+  - id: claim20
+    type: limitation
+    statement: "Some constraint violations may stem not from incorrect sameAs links but from inadvertent duplicates within a dataset, such as two Wikipedia articles with different titles describing the same entity."
+    concepts:
+      - identity_constraint
+      - false_positive
+      - unique_name_assumption
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 5
+      section: "Constraint Analysis"
+
+  - id: claim21
+    type: observation
+    statement: "The owl:sameAs property as it appears in the wild frequently cannot be interpreted as strict identity, and there are no signs of this changing; a separate predicate for genuine identity is needed."
+    concepts:
+      - owl_sameas
+      - identity
+      - near_identity
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 5
+      section: "6 Implications and Suggestions"
+      quote_fragment: "owl:sameAs as it appears in the wild frequently cannot be interpreted as strict identity"
+
+  - id: claim22
+    type: observation
+    statement: "Additional properties should be used to describe the exact nature of relationships between different entities when possible, such as distinguishing between a university as an institution versus a geographical entity."
+    concepts:
+      - near_identity
+      - identity
+      - relationship_typing
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 5
+      section: "6 Implications and Suggestions"
+
+  - id: claim23
+    type: parameter
+    concept: constraint_violations_detected
+    value: 138906
+    unit: "node_pairs"
+    conditions:
+      - "dataset == 'sameAs.org'"
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 5
+      section: "Constraint Analysis"
+      table: "Table 3"
+
+  - id: claim24
+    type: parameter
+    concept: edges_removed_for_consistency
+    value: 32793
+    unit: "edges"
+    conditions:
+      - "dataset == 'sameAs.org'"
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 6
+      section: "Constraint-Based Cleaning"
+      table: "Table 4"
+
+  - id: claim25
+    type: observation
+    statement: "Edge weights based on the count of sameAs links between two URIs allow purely structural analysis without requiring schema alignment or content similarity computation."
+    concepts:
+      - edge_weight
+      - graph_optimization
+      - owl_sameas
+    provenance:
+      paper: Melo_2013_NotQuiteSameIdentity
+      page: 2
+      section: "Definition 5"

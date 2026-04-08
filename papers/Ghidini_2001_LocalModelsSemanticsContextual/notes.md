@@ -83,3 +83,7 @@ A context c_i is the set of local models allowed by C within a compatibility seq
 6. **Formal consequence**: The labelled formula i:phi and cross-context logical consequence provide a formal basis for propstore's render-time reasoning across contexts
 
 The paper also connects to Distributed First Order Logics (DFOL) for heterogeneous knowledge base federation, which is directly relevant to propstore's use case of integrating heterogeneous knowledge sources.
+
+---
+
+**See also:** [[McCarthy_1993_FormalizingContext]] - Ghidini's Local Models Semantics provides the rigorous model-theoretic foundation for the multi-context systems that McCarthy's 1993 paper sketches informally. McCarthy's lifting rules correspond to Ghidini's bridge rules; McCarthy's ist(c,p) maps to Ghidini's labelled formulas i:phi.

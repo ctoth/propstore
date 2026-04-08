@@ -1,0 +1,179 @@
+source:
+  paper: Kuhn_2017_ReliableGranularReferences
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-04-03T07:58:47Z"
+
+claims:
+  - id: claim1
+    type: mechanism
+    statement: "Nanopublications with trusty URIs provide granular, verifiable references to Linked Data by embedding SHA-256 cryptographic hashes directly into URIs, making each data unit self-verifying and immutable."
+    concepts:
+      - content_hash_addressing
+      - provenance
+      - linked_data
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 0
+      section: "Abstract / Introduction"
+      quote_fragment: "nanopublications are a concept to represent Linked Data in a granular and provenance-aware manner"
+
+  - id: claim2
+    type: mechanism
+    statement: "Incremental versioning of nanopublication datasets amortizes the overhead of auxiliary triples (provenance, metadata, structural information) because unchanged nanopublications are reused across versions rather than duplicated."
+    concepts:
+      - incremental_versioning
+      - provenance
+      - content_hash_addressing
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 4
+      section: "3.2 From Snapshots to Incremental Datasets"
+      quote_fragment: "All remaining nanopublications remain unchanged and can thereby be reused"
+
+  - id: claim3
+    type: observation
+    statement: "The overhead from auxiliary nanopublication triples disappears once the version history of datasets is taken into account, and the incremental approach produces fewer total triples than cumulative snapshot approaches after approximately two versions."
+    concepts:
+      - incremental_versioning
+      - linked_data
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 10
+      section: "5 Results"
+      quote_fragment: "the overhead of nanopublications has indeed turned into a gain"
+
+  - id: claim4
+    type: parameter
+    concept: nanopub_index_size_limit
+    value: 1000
+    unit: "entries"
+    conditions:
+      - "type == 'nanopublication_index'"
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 4
+      section: "3.1 Incremental Datasets with Nanopublications"
+      quote_fragment: "the size limit of a nanopublication index is set to 1000 entries"
+    notes: "Maximum number of elements or sub-indexes per index nanopublication"
+
+  - id: claim5
+    type: observation
+    statement: "Existing nanopublication datasets have overhead ratios ranging from 0.42x (neuroLex) to 6.45x (DisGeNET v3.0.1.0) in auxiliary triples relative to content triples, with an average of approximately 5 triples per assertion graph."
+    concepts:
+      - linked_data
+      - provenance
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 2
+      section: "1 Introduction"
+      quote_fragment: "the nanopublications are 'decontextualized' the triples is significantly larger than those of the content"
+      table: "Table 1"
+
+  - id: claim6
+    type: mechanism
+    statement: "Fingerprints provide content-based identity for nanopublication subsets by computing cryptographic hashes over selected triple subsets (ignoring metadata like timestamps), while topics provide semantic identity by mapping nanopublications to URI-based subject identifiers that persist across content changes."
+    concepts:
+      - content_hash_addressing
+      - linked_data
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 5
+      section: "3.2 From Snapshots to Incremental Datasets"
+      quote_fragment: "Fingerprints -- like trusty URIs -- correspond to a cryptographic hash value... Topics are similar to fingerprints, but normally correspond to a URI instead of a hash"
+
+  - id: claim7
+    type: comparison
+    statement: "Unlike dataset-level versioning approaches (which require downloading entire snapshots to reference specific subsets), the nanopublication incremental approach allows precise references to arbitrary subsets of a dataset version through fingerprint and topic configurations."
+    concepts:
+      - incremental_versioning
+      - linked_data
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 1
+      section: "1 Introduction"
+      quote_fragment: "Researchers can only specify at the dataset level which data they use as input. They cannot reliably point to the exact subset"
+
+  - id: claim8
+    type: observation
+    statement: "In the DisGeNET dataset evaluation, 60% of studied papers (12 out of 20) used less than 5% of the full dataset, and the largest subset used only 23% of the data, demonstrating that typical researcher subsets are a small fraction of complete datasets."
+    concepts:
+      - linked_data
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 11
+      section: "4.3 Evaluation on Data Analyses"
+      quote_fragment: "less than 1% of the dataset was used. The largest paper subset used only 23% of the data"
+      table: "Table 3"
+
+  - id: claim9
+    type: observation
+    statement: "Subset retrieval via the decentralized nanopublication server network takes approximately 30-40 seconds for a typical subset (18098 nanopublications, 615332 triples) versus 60-80 seconds for the full DisGeNET dataset (48106698 triples), despite the subset requiring individual nanopublication verification."
+    concepts:
+      - content_hash_addressing
+      - linked_data
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 12
+      section: "5 Results"
+      quote_fragment: "we can efficiently retrieve the specific subset of data"
+      figure: "Fig 5"
+
+  - id: claim10
+    type: mechanism
+    statement: "The three kinds of changes to nanopublications in a dataset version are: removal, addition, and replacement (old nanopublication replaced by new version), enabling incremental computation of dataset diffs rather than full snapshot comparisons."
+    concepts:
+      - incremental_versioning
+      - linked_data
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 4
+      section: "3.1 Incremental Datasets with Nanopublications"
+      quote_fragment: "there are three kinds of changes that can happen: A nanopublication can be removed... added... changed and replaced by a new version"
+
+  - id: claim11
+    type: limitation
+    statement: "The nanopublication approach requires that the internal structure of each nanopublication be defined and that provenance and metadata be separated even when virtually identical for large numbers of entries, introducing structural overhead that must be amortized over version history."
+    concepts:
+      - provenance
+      - linked_data
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 1
+      section: "1 Introduction"
+      quote_fragment: "the internal structure of each nanopublication has to be defined, and the provenance and metadata has to be separated even if it is virtually identical for a large number of them"
+
+  - id: claim12
+    type: limitation
+    statement: "The evaluation datasets (WikiPathways for versioning, DisGeNET for subset analysis) are specific to the life sciences domain; generalizability of overhead characteristics to other domains was not tested."
+    concepts:
+      - linked_data
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 8
+      section: "4 Implementation and Methods"
+
+  - id: claim13
+    type: observation
+    statement: "The change-based incremental approach keeps separate lists of added and removed triples per version, while the timestamp-based approach keeps all triples in one collection with addition/removal timestamps; the timestamp approach leads to the same overall triple count even when triples acquire multiple timestamps."
+    concepts:
+      - incremental_versioning
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 5
+      section: "3.2 From Snapshots to Incremental Datasets"
+      quote_fragment: "The change-based approach keeps separate lists of added and removed triples... the timestamp-based approach keeps all triples in the same collection but attaches timestamps"
+
+  - id: claim14
+    type: observation
+    statement: "The WikiPathways dataset grew over 11 monthly versions from June 2016 to May 2017, and after the first two transitional months the incremental nanopublication approach consistently used fewer total triples than traditional snapshot approaches, with the decontextualized overhead becoming negative (-1.5% to -3.0%)."
+    concepts:
+      - incremental_versioning
+      - linked_data
+    provenance:
+      paper: Kuhn_2017_ReliableGranularReferences
+      page: 10
+      section: "5 Results"
+      quote_fragment: "this overhead turns into a 'negative overhead' of 96% (= 1 - 1.53/0.63*1.7M), meaning that we would need 98% more triples if we were to switch to decontextualized snapshots"
+      figure: "Fig 3"

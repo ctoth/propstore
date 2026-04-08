@@ -1,0 +1,21 @@
+{
+  "title": "Unique, Persistent, Resolvable: Identifiers as the Foundation of FAIR",
+  "authors": [
+    "N. Juty",
+    "Sarala M. Wimalaratne",
+    "S. Soiland-Reyes",
+    "J. Kunze",
+    "C. Goble",
+    "Tim Clark"
+  ],
+  "year": "2020",
+  "doi": "10.1162/dint_a_00025",
+  "abstract": "The FAIR principles describe characteristics intended to support access to and reuse of digital artifacts in the scientific research ecosystem. Persistent, globally unique identifiers, resolvable on the Web, and associated with a set of additional descriptive metadata, are foundational to FAIR data. Here we describe some basic principles and exemplars for their design, use and orchestration with other system elements to achieve FAIRness for digital research objects.",
+  "url": "https://www.semanticscholar.org/paper/702722650e46840cb5a75d523e1719eb64cac4c7",
+  "pdf_url": "https://www.mitpressjournals.org/doi/pdf/10.1162/dint_a_00025",
+  "bibtex": "@Article{Juty2020UniquePR,\n author = {N. Juty and Sarala M. Wimalaratne and S. Soiland-Reyes and J. Kunze and C. Goble and Tim Clark},\n booktitle = {Data Intelligence},\n journal = {Data Intelligence},\n pages = {30-39},\n title = {Unique, Persistent, Resolvable: Identifiers as the Foundation of FAIR},\n volume = {2},\n year = {2020}\n}\n",
+  "venue": "Data Intelligence",
+  "venue_type": "journal",
+  "volume": "2",
+  "pages": "30-39"
+}

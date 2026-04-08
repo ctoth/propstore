@@ -1,0 +1,10 @@
+{
+  "title": "Ontology Lexicalization: The lemon Perspective",
+  "authors": ["Paul Buitelaar", "Philipp Cimiano", "John McCrae", "Elena Montiel-Posada", "Thierry Declerck"],
+  "year": "2011",
+  "arxiv_id": null,
+  "doi": null,
+  "abstract": "Ontologies capture knowledge but fail to capture the structure and use of terms in expressing and referring to this knowledge in natural language. The structure and use of terms (terminology) is a concern of terminology as well as lexicology. In recent years, the relevance of terminology in knowledge representation has been recognized, and considerable work has been done on both lexical and linguistic issues in knowledge representation. Natural language is often the medium of choice for knowledge representation and transfer between humans. However, ambiguity is widespread in natural language. Words have multiple meanings and grammar can be ambiguous in structure and therefore in interpretation. This paper presents the lemon (Lexicon Model for Ontologies) model for representing ontology lexicalizations, a modular RDF vocabulary providing a simple core model supplemented with modules for morphology, phrase structure, syntax-semantics mapping, and variation.",
+  "url": null,
+  "pdf_url": null
+}

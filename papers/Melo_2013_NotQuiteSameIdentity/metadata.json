@@ -1,0 +1,16 @@
+{
+  "title": "Not Quite the Same: Identity Constraints for the Web of Linked Data",
+  "authors": [
+    "Gerard de Melo"
+  ],
+  "year": "2013",
+  "arxiv_id": null,
+  "doi": "10.1609/aaai.v27i1.8468",
+  "abstract": "\n \n Linked Data is based on the idea that information from different sources can flexibly be connected to enable novel applications that individual datasets do not support on their own. This hinges upon the existence of links between datasets that would otherwise be isolated. The most notable form, sameAs links, are intended to express that two identifiers are equivalent in all respects. Unfortunately, many existing ones do not reflect such genuine identity. This study provides a novel method to analyse this phenomenon, based on a thorough theoretical analysis, as well as a novel graph-based method to resolve such issues to some extent. Our experiments on a representative Web-scale set of sameAs links from the Web of Data show that our method can identify and remove hundreds of thousands of constraint violations.Linked Data is based on the idea that information from different sources can flexibly be connected to enable novel applications that individual datasets do not support on their own. This hinges upon the existence of links between datasets that would otherwise be isolated. The most notable form, sameAs links, are intended to express that two identifiers are equivalent in all respects. Unfortunately, many existing ones do not reflect such genuine identity. This study provides a novel method to analyse this phenomenon, based on a thorough theoretical analysis, as well as a novel graph-based method to resolve such issues to some extent. Our experiments on a representative Web-scale set of sameAs links from the Web of Data show that our method can identify and remove hundreds of thousands of constraint violations.\n \n",
+  "url": "https://www.semanticscholar.org/paper/190daeac6a72dbcf315a524a89b544552507055e",
+  "pdf_url": "https://ojs.aaai.org/index.php/AAAI/article/download/8468/8327",
+  "bibtex": "@Article{Melo2013NotQT,\n author = {Gerard de Melo},\n booktitle = {AAAI Conference on Artificial Intelligence},\n pages = {1092-1098},\n title = {Not Quite the Same: Identity Constraints for the Web of Linked Data},\n year = {2013}\n}\n",
+  "venue": "AAAI Conference on Artificial Intelligence",
+  "venue_type": "conference",
+  "pages": "1092-1098"
+}

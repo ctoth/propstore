@@ -1,0 +1,141 @@
+source:
+  paper: Juty_2020_UniquePersistentResolvableIdentifiers
+produced_by:
+  agent: "claude-opus-4-6-1m"
+  skill: "extract-claims"
+  timestamp: "2026-04-03T07:54:34Z"
+
+claims:
+  - id: claim1
+    type: observation
+    statement: "FAIR identifiers must satisfy three essential properties: global uniqueness, persistence, and resolvability on the Web."
+    concepts:
+      - fair_identifier
+      - identifier_uniqueness
+      - identifier_persistence
+      - identifier_resolvability
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 2
+      section: "2 Identifiers Resolvable on the Internet"
+      quote_fragment: "digital objects must be uniquely specific... must have unique names, and must be locatable"
+
+  - id: claim2
+    type: observation
+    statement: "The foundational F (Findable) element of FAIR is a prerequisite for all other FAIR principles (Accessible, Interoperable, Reusable), which are built upon it."
+    concepts:
+      - fair_principles
+      - fair_identifier
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 1
+      section: "1 Introduction"
+      quote_fragment: "All the other FAIR principles ('A', 'I', and 'R') are based upon it"
+
+  - id: claim3
+    type: mechanism
+    statement: "Identifier persistence is achieved through two complementary patterns: Pattern 1 registers each identifier individually with a redirecting service (enabling per-identifier metadata), while Pattern 2 registers a unique namespace with a resolver endpoint (enabling bulk migration when hosting infrastructure changes)."
+    concepts:
+      - identifier_persistence
+      - identifier_redirection
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 3
+      section: "3 Identifier Persistence and Indirection"
+      quote_fragment: "Identifiers may be made persistent by (1) registering each one with a redirecting service... or (2) by registering a unique namespace"
+
+  - id: claim4
+    type: observation
+    statement: "Identifier persistence is fundamentally a social contract, not a purely technical property, because it depends on institutional commitment to maintain resolution infrastructure over time."
+    concepts:
+      - identifier_persistence
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 3
+      section: "3 Identifier Persistence and Indirection"
+      quote_fragment: "identifier persistence is crucial for provenance... it is a social commitment"
+
+  - id: claim5
+    type: comparison
+    statement: "DOIs (Pattern 1) require per-identifier registration and mandatory structured metadata, while identifiers.org (Pattern 2) requires only namespace-level registration and delegates metadata to the data provider, trading individual metadata control for scalability."
+    concepts:
+      - digital_object_identifier
+      - identifiers_org
+      - identifier_persistence
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 3
+      section: "4.1 Digital Object Identifiers / 4.2 Identifiers.org and CURIEs"
+
+  - id: claim6
+    type: observation
+    statement: "DOI resolution uses a multi-step redirect process: the client sends an HTTP GET to the doi.org resolver, which redirects to the dataset landing page containing metadata, enabling content negotiation for machine-readable formats."
+    concepts:
+      - digital_object_identifier
+      - identifier_resolvability
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 4
+      section: "4.1 Digital Object Identifiers"
+      quote_fragment: "client sends an http-GET request to the doi.org resolver for the DOI of interest"
+
+  - id: claim7
+    type: observation
+    statement: "The identifiers.org system provides globally resolvable HTTP URI-based identifiers using Compact Identifiers (CURIEs) that consolidate alternative equivalent URIs for the same resource into a single canonical URI string."
+    concepts:
+      - identifiers_org
+      - compact_identifier
+      - identifier_resolvability
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 5
+      section: "4.2 Identifiers.org and CURIEs"
+      quote_fragment: "allows alternative equivalent URIs to be consolidated as a single canonical URI string"
+
+  - id: claim8
+    type: limitation
+    statement: "PURLs lack structured metadata management and namespace-level operations, making them insufficient as general-purpose primary identifiers for persistently archived FAIR data."
+    concepts:
+      - persistent_url
+      - fair_identifier
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 6
+      section: "4.3 PURLs"
+      quote_fragment: "we do not recommend PURLs as general purpose primary identifiers for persistently archived FAIR data"
+
+  - id: claim9
+    type: observation
+    statement: "The Joint Declaration of Data Citation Principles (JDDCP) provides a set of guiding principles for publishing and citing research data, including globally unique persistent identifiers, inline resolution via a landing page or service, and accessibility of human and machine readable metadata."
+    concepts:
+      - data_citation
+      - fair_identifier
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 6
+      section: "5. Data Citation"
+
+  - id: claim10
+    type: observation
+    statement: "Achieving FAIR research objects requires not only persistent resolvable identifiers but also well-documented APIs for associated human- and machine-readable metadata, going beyond minimal provenance to include descriptive 'guide' metadata to enable discoverability."
+    concepts:
+      - fair_principles
+      - fair_identifier
+      - metadata_standards
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 6
+      section: "6. Identifiers Plus Metadata"
+      quote_fragment: "metadata standards should typically include not only provenance information but descriptive 'guide' metadata"
+
+  - id: claim11
+    type: comparison
+    statement: "ARKs are more permissive in design than DOIs, with over 500 registered organizations having created over 3.2 billion ARKs, and any organization can operate its own resolver, whereas DOIs require registration through a centralized Registration Agency."
+    concepts:
+      - archival_resource_key
+      - digital_object_identifier
+    provenance:
+      paper: Juty_2020_UniquePersistentResolvableIdentifiers
+      page: 4
+      section: "4.1 Archival Resource Names (ARKs)"
+      quote_fragment: "ARKs work similarly to DOIs, but are more permissive in design"

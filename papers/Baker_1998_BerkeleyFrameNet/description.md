@@ -1,0 +1,4 @@
+---
+tags: [frame-semantics, computational-lexicography, corpus-linguistics, knowledge-representation]
+---
+Describes the Berkeley FrameNet project, a corpus-based computational lexicography effort that builds a machine-readable lexical database of English organized around semantic frames, with annotated BNC examples capturing both semantic (Frame Element) and syntactic (Phrase Type, Grammatical Function) valence patterns. The project demonstrates a systematic workflow from frame identification through subcorpus extraction, human annotation, and entry writing, producing a database linking ~5,000 lexical units to their frame-semantic and syntactic combinatorial properties. Relevant to propstore as a concrete precedent for organizing structured knowledge around semantic frames with corpus-grounded evidence and provenance.

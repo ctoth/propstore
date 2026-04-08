@@ -1,0 +1,208 @@
+source:
+  paper: Kuhn_2015_DigitalArtifactsVerifiable
+produced_by:
+  agent: "Claude Opus 4.6 (1M context)"
+  skill: "extract-claims"
+  timestamp: "2026-04-03T07:58:07Z"
+
+claims:
+  - id: claim1
+    type: mechanism
+    statement: "Trusty URIs achieve content verification by embedding a SHA-256 cryptographic hash of the artifact's content directly into the URI itself, so that encountering a URI and verifying its content are a single operation rather than requiring a separate verification channel."
+    concepts:
+      - trusty_uri
+      - cryptographic_hash
+      - content_verification
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 1
+      section: "Introduction"
+      quote_fragment: "propose trusty URIs containing cryptographic hash values"
+
+  - id: claim2
+    type: observation
+    statement: "Trusty URIs are format-independent: for RDF content (module RA), the hash is computed over the abstract graph structure rather than the byte-level serialization, so the same trusty URI remains valid across different serialization formats (Turtle, N-Triples, RDF/XML, TriG, N-Quads)."
+    concepts:
+      - trusty_uri
+      - rdf_graph
+      - serialization_format
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 3
+      section: "Approach"
+      quote_fragment: "independent of the serialization format of the data and of the used encoding"
+
+  - id: claim3
+    type: observation
+    statement: "A trusty URI artifact code consists of exactly 45 Base64url characters: a 2-character module identifier (type letter + version letter) followed by a 43-character data part containing the SHA-256 hash encoded in Base64url."
+    concepts:
+      - trusty_uri
+      - artifact_code
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 5
+      section: "Specification"
+      quote_fragment: "The current modules only generate URIs with exactly 45 trailing Base64url characters"
+
+  - id: claim4
+    type: mechanism
+    statement: "Self-referencing trusty URIs (where the artifact contains its own URI) are handled by a two-step process: first compute the hash with a placeholder where the artifact code will go, then substitute the computed artifact code for the placeholder in the final artifact."
+    concepts:
+      - trusty_uri
+      - self_reference
+      - nanopublication
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 3
+      section: "Self-References"
+      quote_fragment: "the generation process involves not yet to compute the hash from a given artifact, but to actually transform the artifact into a new version"
+
+  - id: claim5
+    type: mechanism
+    statement: "Module RA achieves deterministic RDF graph hashing by sorting all triples using a 9-rule lexicographic comparison on preprocessed URIs, then hashing the sorted serialization — this ensures the same set of triples always produces the same hash regardless of insertion order."
+    concepts:
+      - rdf_graph
+      - deterministic_serialization
+      - cryptographic_hash
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 6
+      section: "Module RA"
+      quote_fragment: "the triples and graphs have to be sorted"
+
+  - id: claim6
+    type: comparison
+    statement: "Unlike Named Information (ni:) URIs (RFC 6920) which use a separate namespace from HTTP, trusty URIs embed hashes directly in standard HTTP URIs, making them usable as linked data identifiers without requiring a new resolution mechanism."
+    concepts:
+      - trusty_uri
+      - named_information_uri
+      - linked_data
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 2
+      section: "Background"
+      quote_fragment: "their hash values exist in a separate name space... a new resolution mechanism is needed"
+
+  - id: claim7
+    type: comparison
+    statement: "Unlike PGP signatures and external checksums which decouple verification from identification, trusty URIs make verification intrinsic to the identifier — encountering the URI is sufficient to know what hash to check."
+    concepts:
+      - trusty_uri
+      - cryptographic_signature
+      - content_verification
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 2
+      section: "Background"
+      quote_fragment: "you only have to check whether the hash value actually matches the content"
+
+  - id: claim8
+    type: observation
+    statement: "In normal (non-batch) mode, all three implementations (Java, Perl, Python) detected 100% of corrupted files across all tested formats, with no false negatives."
+    concepts:
+      - trusty_uri
+      - content_verification
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 9
+      section: "Evaluation"
+      quote_fragment: "corrupted files were also reliably detected"
+
+  - id: claim9
+    type: observation
+    statement: "In batch mode, corrupted TriG files could be missed (0.83%-15.6% miss rate) when the corruption affected meta-information not part of the RDF content, because batch mode checking does not fully validate the non-RDF wrapper."
+    concepts:
+      - trusty_uri
+      - content_verification
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 9
+      section: "Evaluation"
+      table: "Table 1"
+      quote_fragment: "the changed TriG value was not part of the RDF content but of the meta-information"
+
+  - id: claim10
+    type: observation
+    statement: "Trusty URI processing time scales linearly with file size: the Bio2RDF evaluation on files ranging from 3.1GB to 47.2GB showed a clear linear relationship between file size and processing time in log-log space."
+    concepts:
+      - trusty_uri
+      - computational_complexity
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 10
+      section: "Evaluation"
+      figure: "Fig. 4"
+      quote_fragment: "Time required for transforming and checking files versus file size"
+
+  - id: claim11
+    type: observation
+    statement: "The largest file in the Bio2RDF dataset (47.7GB) was successfully processed in 29 hours and verified in approximately 3 hours, demonstrating that trusty URIs remain practical even for very large files."
+    concepts:
+      - trusty_uri
+      - scalability
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 10
+      section: "Evaluation"
+      quote_fragment: "the largest file of the dataset (47.7GB) was successfully processed in 29 hours and checked in about three hours"
+
+  - id: claim12
+    type: limitation
+    statement: "Trusty URIs cannot handle RDF blank nodes: blank nodes must be deleted when a trusty URI is produced, because blank nodes have no stable identity across serializations."
+    concepts:
+      - trusty_uri
+      - rdf_graph
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 6
+      section: "Module RA"
+      quote_fragment: "Hash blank nodes are not supported and have to be deleted"
+
+  - id: claim13
+    type: limitation
+    statement: "If the SHA-256 hash algorithm becomes vulnerable to collision attacks in the future, new trusty URI modules using a different hash algorithm would need to be defined — the current specification is hash-algorithm-dependent."
+    concepts:
+      - trusty_uri
+      - cryptographic_hash
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 4
+      section: "Approach"
+      quote_fragment: "if the used hash algorithms should become vulnerable to attacks in the future, new modules might also become necessary"
+
+  - id: claim14
+    type: limitation
+    statement: "Content negotiation creates tension with trusty URIs: the same resource served in different formats will have different byte-level representations, so a module FA hash is format-specific even though the logical content is the same."
+    concepts:
+      - trusty_uri
+      - content_negotiation
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 4
+      section: "Approach"
+      quote_fragment: "the same content negotiation can be used to return the same content in different formats"
+
+  - id: claim15
+    type: observation
+    statement: "The trusty URI module system is designed for extensibility: new content types can be supported by defining new modules (identified by a type letter and version letter) without breaking existing modules or requiring changes to the core specification."
+    concepts:
+      - trusty_uri
+      - extensibility
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 3
+      section: "Approach"
+      quote_fragment: "certain module can be defined in a way that makes artifacts and their URIs transferable to another module"
+
+  - id: claim16
+    type: observation
+    statement: "Batch mode processing is approximately 5x faster than normal mode for trusty URI verification, because batch mode avoids per-file startup overhead by processing multiple files in a single program invocation."
+    concepts:
+      - trusty_uri
+      - computational_complexity
+    provenance:
+      paper: Kuhn_2015_DigitalArtifactsVerifiable
+      page: 9
+      section: "Evaluation"
+      table: "Table 1"
+      quote_fragment: "average values are below 0.6s per file"
