@@ -1,24 +1,49 @@
 """Regression tests for the new repository merge surface."""
 from __future__ import annotations
 
-import yaml
+from pathlib import Path
+from uuid import uuid4
 
+import yaml
+from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import strategies as st
+
+from propstore.identity import compute_claim_version_id
 from propstore.repo import KnowledgeRepo
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_classifier import build_merge_framework
 from propstore.repo.merge_commit import create_merge_commit
+from tests.conftest import make_claim_identity, normalize_claims_payload
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = {
+    doc = normalize_claims_payload({
         "source": {
             "paper": paper,
             "extraction_model": "test",
             "extraction_date": "2026-01-01",
         },
         "claims": claims,
-    }
+    })
     return yaml.dump(doc, sort_keys=False).encode()
+
+
+def _claims_commit_payload(claim_ids: list[str], *, prefix: str) -> dict[str, bytes]:
+    if not claim_ids:
+        return {}
+    midpoint = max(1, len(claim_ids) // 2)
+    payload: dict[str, bytes] = {}
+    first_half = claim_ids[:midpoint]
+    second_half = claim_ids[midpoint:]
+    if first_half:
+        payload[f"claims/{prefix}_a.yaml"] = _claim_yaml(
+            [_obs_claim(claim_id, f"{claim_id} statement", [f"concept_{claim_id}"]) for claim_id in first_half]
+        )
+    if second_half:
+        payload[f"claims/{prefix}_b.yaml"] = _claim_yaml(
+            [_obs_claim(claim_id, f"{claim_id} statement", [f"concept_{claim_id}"]) for claim_id in reversed(second_half)]
+        )
+    return payload
 
 
 def _obs_claim(
@@ -61,6 +86,30 @@ def _param_claim(
     return claim
 
 
+def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_paper") -> bytes:
+    normalized = normalize_claims_payload(
+        {
+            "source": {
+                "paper": paper,
+                "extraction_model": "test",
+                "extraction_date": "2026-01-01",
+            },
+            "claims": claims,
+        }
+    )
+    rewritten_claims: list[dict] = []
+    for original, normalized_claim in zip(claims, normalized["claims"], strict=True):
+        merged = dict(normalized_claim)
+        if "artifact_id" in original:
+            merged["artifact_id"] = original["artifact_id"]
+        if "logical_ids" in original:
+            merged["logical_ids"] = original["logical_ids"]
+        merged["version_id"] = compute_claim_version_id(merged)
+        rewritten_claims.append(merged)
+    normalized["claims"] = rewritten_claims
+    return yaml.dump(normalized, sort_keys=False).encode()
+
+
 def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
@@ -73,7 +122,7 @@ def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
     merge = build_merge_framework(kr, "master", branch_name)
 
     assert len(merge.arguments) == 1
-    assert merge.arguments[0].claim_id == "claim1"
+    assert merge.arguments[0].claim_id == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
     assert merge.arguments[0].branch_origins == ("master", branch_name)
 
 
@@ -95,7 +144,10 @@ def test_syntax_independence_claim_order(tmp_path):
 
     merge = build_merge_framework(kr, "master", branch_name)
     emitted = {argument.claim_id for argument in merge.arguments}
-    assert emitted == {"claimA", "claimB"}
+    assert emitted == {
+        make_claim_identity("claimA", namespace="test_paper")["artifact_id"],
+        make_claim_identity("claimB", namespace="test_paper")["artifact_id"],
+    }
 
 
 def test_syntax_independence_filename(tmp_path):
@@ -116,7 +168,7 @@ def test_syntax_independence_filename(tmp_path):
 
     merge = build_merge_framework(kr, "master", branch_name)
     assert len(merge.arguments) == 1
-    assert merge.arguments[0].claim_id == "claimA"
+    assert merge.arguments[0].claim_id == make_claim_identity("claimA", namespace="test_paper")["artifact_id"]
 
 
 def test_merge_commit_has_two_parents(tmp_path):
@@ -166,12 +218,12 @@ def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     all_claim_ids = {
-        claim["id"]
+        claim["artifact_id"]
         for claim_file in claim_files
         for claim in claim_file.data.get("claims", [])
     }
-    assert "claimL" in all_claim_ids
-    assert "claimR" in all_claim_ids
+    assert make_claim_identity("claimL", namespace="test_paper")["artifact_id"] in all_claim_ids
+    assert make_claim_identity("claimR", namespace="test_paper")["artifact_id"] in all_claim_ids
 
 
 def test_merge_commit_valid_claims(tmp_path):
@@ -230,6 +282,38 @@ def test_conflict_merge_is_deterministic(tmp_path):
     assert commit_a.tree == commit_b.tree
 
 
+def test_same_logical_id_different_artifacts_merge_as_conflicting_alternatives(tmp_path):
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    base_sha = kr.commit_files({}, "seed")
+    branch_name = "paper/logical_conflict"
+    create_branch(kr, branch_name, source_commit=base_sha)
+
+    shared_logical_ids = [{"namespace": "shared_paper", "value": "claim1"}]
+    left_claim = _param_claim("claim1", "concept_x", 300.0)
+    left_claim["artifact_id"] = "ps:claim:leftlogical0001"
+    left_claim["logical_ids"] = shared_logical_ids
+    right_claim = _param_claim("claim1", "concept_x", 150.0)
+    right_claim["artifact_id"] = "ps:claim:rightlogical0001"
+    right_claim["logical_ids"] = shared_logical_ids
+
+    kr.commit_files(
+        {"claims/shared.yaml": _claim_yaml_with_explicit_identities([left_claim])},
+        "left",
+    )
+    kr.commit_files(
+        {"claims/shared.yaml": _claim_yaml_with_explicit_identities([right_claim])},
+        "right",
+        branch=branch_name,
+    )
+
+    merge = build_merge_framework(kr, "master", branch_name)
+
+    assert len(merge.arguments) == 2
+    assert {argument.canonical_claim_id for argument in merge.arguments} == {"shared_paper:claim1"}
+    assert len(merge.framework.attacks) == 2
+    assert not merge.framework.ignorance
+
+
 def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
@@ -263,3 +347,57 @@ def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
         for row in manifest["merge"]["arguments"]
     }
     assert observed_origins == expected_origins
+
+
+@settings(
+    max_examples=25,
+    deadline=None,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
+@given(
+    left_ids=st.lists(
+        st.from_regex(r"left_[a-z]{1,4}", fullmatch=True),
+        min_size=1,
+        max_size=4,
+        unique=True,
+    ),
+    right_ids=st.lists(
+        st.from_regex(r"right_[a-z]{1,4}", fullmatch=True),
+        min_size=1,
+        max_size=4,
+        unique=True,
+    ),
+)
+def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
+    tmp_path: Path,
+    left_ids: list[str],
+    right_ids: list[str],
+):
+    from propstore.validate_claims import load_claim_files
+
+    assume(set(left_ids).isdisjoint(right_ids))
+
+    kr = KnowledgeRepo.init(tmp_path / f"knowledge_{uuid4().hex}")
+    base_sha = kr.commit_files({}, "seed")
+    branch_name = "paper/property_preserve"
+    create_branch(kr, branch_name, source_commit=base_sha)
+
+    left_payload = _claims_commit_payload(left_ids, prefix="left")
+    right_payload = _claims_commit_payload(right_ids, prefix="right")
+    if left_payload:
+        kr.commit_files(left_payload, "left additions")
+    if right_payload:
+        kr.commit_files(right_payload, "right additions", branch=branch_name)
+
+    merge_sha = create_merge_commit(kr, "master", branch_name)
+    claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
+    merged_artifact_ids = {
+        claim["artifact_id"]
+        for claim_file in claim_files
+        for claim in claim_file.data.get("claims", [])
+    }
+    expected_artifact_ids = {
+        make_claim_identity(claim_id, namespace="test_paper")["artifact_id"]
+        for claim_id in [*left_ids, *right_ids]
+    }
+    assert merged_artifact_ids == expected_artifact_ids
