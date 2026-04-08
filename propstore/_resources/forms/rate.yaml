@@ -4,3 +4,13 @@ dimensionless: false
 unit_symbol: 1/s
 dimensions:
   T: -1
+common_alternatives:
+- unit: per 100 patient-years
+  type: multiplicative
+  multiplier: 3.17e-10
+- unit: per 1000 person-years
+  type: multiplicative
+  multiplier: 3.17e-11
+- unit: per year
+  type: multiplicative
+  multiplier: 3.169e-8
