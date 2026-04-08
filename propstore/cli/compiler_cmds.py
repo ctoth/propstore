@@ -246,20 +246,24 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     try:
         wm = WorldModel(repo)
         s = wm.stats()
-        conflict_count = s["conflicts"]
         claim_count = s["claims"]
 
         conflicts = wm.conflicts()
-        # Group PHI_NODEs by concept for compact display
+        # Group PHI_NODEs by concept for compact display;
+        # count them separately from real conflicts.
         from collections import defaultdict
         phi_groups: dict[str, set[str]] = defaultdict(set)
+        phi_node_count = 0
+        real_conflict_count = 0
         for c in conflicts:
             wc = c["warning_class"]
             if wc in ("PHI_NODE", "CONTEXT_PHI_NODE"):
                 key = f"{wc}: {c['concept_id']}"
                 phi_groups[key].add(c["claim_a_id"])
                 phi_groups[key].add(c["claim_b_id"])
+                phi_node_count += 1
             else:
+                real_conflict_count += 1
                 click.echo(
                     f"  {wc}: {c['concept_id']} "
                     f"({c['claim_a_id']} vs {c['claim_b_id']})", err=True)
@@ -268,10 +272,12 @@ def build(obj: dict, output: str | None, force: bool) -> None:
             click.echo(
                 f"  {key} — {len(sorted_ids)} branches: "
                 f"{', '.join(sorted_ids)}", err=True)
+        conflict_count = real_conflict_count
         wm.close()
     except FileNotFoundError:
         # Sidecar didn't get written (no claims?) — fall back to counting
         conflict_count = 0
+        phi_node_count = 0
         claim_count = 0
         if claim_files:
             for cf in claim_files:
@@ -280,7 +286,8 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     status = "rebuilt" if rebuilt else "unchanged"
     click.echo(
         f"Build {status}: {len(concepts)} concepts, {claim_count} claims, "
-        f"{conflict_count} conflicts, {warning_count} warnings")
+        f"{conflict_count} conflicts, {phi_node_count} phi-nodes, "
+        f"{warning_count} warnings")
 
 
 @click.command()
