@@ -832,7 +832,7 @@ class TestWorldlineDependencyLiveness:
             return frozenset({world._winner_id}) & frozenset(active_claim_ids)
 
         monkeypatch.setattr(
-            "propstore.argumentation.compute_claim_graph_justified_claims",
+            "propstore.claim_graph.compute_claim_graph_justified_claims",
             fake_justified_claims,
         )
         monkeypatch.setattr(
@@ -1105,7 +1105,7 @@ class TestSemanticCorePhase7Worldlines:
             raise AssertionError("worldline claim_graph capture must not use the old store path")
 
         monkeypatch.setattr(
-            "propstore.argumentation.compute_claim_graph_justified_claims",
+            "propstore.claim_graph.compute_claim_graph_justified_claims",
             fail_old_path,
         )
 
@@ -1172,7 +1172,7 @@ class TestSemanticCorePhase7Worldlines:
         def fail_old_path(*args, **kwargs):
             raise AssertionError("worldline praf capture must not use the old store path")
 
-        monkeypatch.setattr("propstore.argumentation.build_praf", fail_old_path)
+        monkeypatch.setattr("propstore.claim_graph.build_praf", fail_old_path)
 
         def fake_shared(graph, **kwargs):
             assert graph == active_graph
@@ -1284,7 +1284,7 @@ class TestSemanticCorePhase7Worldlines:
             fake_build_aspic_projection,
         )
         monkeypatch.setattr(
-            "propstore.structured_argument.compute_structured_justified_arguments",
+            "propstore.structured_projection.compute_structured_justified_arguments",
             lambda *args, **kwargs: frozenset({"arg:a"}),
         )
 
@@ -1347,7 +1347,7 @@ class TestSemanticCorePhase7Worldlines:
                 fake_build_aspic_projection,
             )
             monkeypatch.setattr(
-                "propstore.structured_argument.compute_structured_justified_arguments",
+                "propstore.structured_projection.compute_structured_justified_arguments",
                 lambda *args, **kwargs: frozenset({"arg:a"}),
             )
 
@@ -1444,7 +1444,7 @@ class TestSemanticCorePhase7Worldlines:
             },
         )()
         monkeypatch.setattr(
-            "propstore.structured_argument.build_structured_projection",
+            "propstore.structured_projection.build_structured_projection",
             lambda *args, **kwargs: projection,
         )
 
@@ -1476,7 +1476,7 @@ class TestSemanticCorePhase7Worldlines:
         world, active_graph = self._graph_only_world()
 
         monkeypatch.setattr(
-            "propstore.argumentation.compute_claim_graph_justified_claims",
+            "propstore.claim_graph.compute_claim_graph_justified_claims",
             lambda *args, **kwargs: (_ for _ in ()).throw(
                 AssertionError("worldline claim_graph capture must not use the old store path")
             ),

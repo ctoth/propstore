@@ -22,6 +22,13 @@ from propstore.core.graph_types import (
     ProvenanceRecord,
     RelationEdge,
 )
+from propstore.core.relation_types import (
+    ATTACK_TYPES,
+    GRAPH_RELATION_TYPES,
+    PREFERENCE_SENSITIVE_ATTACK_TYPES,
+    SUPPORT_TYPES,
+    UNCONDITIONAL_ATTACK_TYPES,
+)
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from propstore.dung import (
     ArgumentationFramework,
@@ -48,12 +55,11 @@ from propstore.world.types import (
     validate_backend_semantics,
 )
 
-_ATTACK_TYPES = frozenset({"rebuts", "undercuts", "undermines", "supersedes"})
-_UNCONDITIONAL_TYPES = frozenset({"undercuts", "supersedes"})
-_PREFERENCE_TYPES = frozenset({"rebuts", "undermines"})
-_SUPPORT_TYPES = frozenset({"supports", "explains"})
-_NON_ATTACK_TYPES = frozenset({"supports", "explains", "none"})
-_GRAPH_RELATION_TYPES = _ATTACK_TYPES | _SUPPORT_TYPES
+_ATTACK_TYPES = ATTACK_TYPES
+_UNCONDITIONAL_TYPES = UNCONDITIONAL_ATTACK_TYPES
+_PREFERENCE_TYPES = PREFERENCE_SENSITIVE_ATTACK_TYPES
+_SUPPORT_TYPES = SUPPORT_TYPES
+_GRAPH_RELATION_TYPES = GRAPH_RELATION_TYPES
 _REAL_CONFLICT_CLASSES = frozenset({"CONFLICT", "OVERLAP", "PARAM_CONFLICT"})
 
 

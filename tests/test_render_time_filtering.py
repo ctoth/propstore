@@ -18,7 +18,7 @@ import sqlite3
 
 import pytest
 
-from propstore.argumentation import (
+from propstore.claim_graph import (
     build_argumentation_framework,
     compute_claim_graph_justified_claims,
     stance_summary,
@@ -278,7 +278,7 @@ class TestStanceSummary:
 class TestVacuousSurvivesAFConstruction:
     """Vacuous stances must survive into the AF and only be filtered at render time.
 
-    Finding 11 / F14: argumentation.py:137 prunes vacuous opinions (u > 0.99)
+    Finding 11 / F14: claim_graph.py:137 prunes vacuous opinions (u > 0.99)
     at AF construction time. This is a build-time gate that violates the design
     checklist: "Does this add a gate anywhere before render time? If yes → WRONG."
 

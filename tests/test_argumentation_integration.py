@@ -12,7 +12,7 @@ import pytest
 from hypothesis import given, settings, assume
 from hypothesis import strategies as st
 
-from propstore.argumentation import (
+from propstore.claim_graph import (
     build_argumentation_framework,
     build_praf,
     compute_claim_graph_justified_claims,

@@ -2296,7 +2296,7 @@ class TestFloatEqualityBugs:
             semantics="grounded",
         )
 
-        with patch("propstore.argumentation.build_praf") as mock_build, \
+        with patch("propstore.claim_graph.build_praf") as mock_build, \
              patch("propstore.praf.compute_praf_acceptance", return_value=mock_praf_result):
             mock_build.return_value = MagicMock()
             # WorldModel IS the ArtifactStore — pass it directly

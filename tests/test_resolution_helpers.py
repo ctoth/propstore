@@ -228,11 +228,11 @@ def test_structured_resolution_distinguishes_skeptical_failure(monkeypatch) -> N
         },
     )
     monkeypatch.setattr(
-        "propstore.structured_argument.build_structured_projection",
+        "propstore.structured_projection.build_structured_projection",
         lambda *args, **kwargs: projection,
     )
     monkeypatch.setattr(
-        "propstore.structured_argument.compute_structured_justified_arguments",
+        "propstore.structured_projection.compute_structured_justified_arguments",
         lambda *args, **kwargs: [frozenset({"arg:a"}), frozenset({"arg:b"})],
     )
 
@@ -270,7 +270,7 @@ def test_aspic_resolution_threads_link_to_build_aspic_projection(monkeypatch) ->
         fake_build_aspic_projection,
     )
     monkeypatch.setattr(
-        "propstore.structured_argument.compute_structured_justified_arguments",
+        "propstore.structured_projection.compute_structured_justified_arguments",
         lambda *args, **kwargs: frozenset({"arg:a"}),
     )
 
@@ -323,7 +323,7 @@ def test_aspic_resolution_property_threads_selected_preference_config(
             fake_build_aspic_projection,
         )
         monkeypatch.setattr(
-            "propstore.structured_argument.compute_structured_justified_arguments",
+            "propstore.structured_projection.compute_structured_justified_arguments",
             lambda *args, **kwargs: frozenset({"arg:a"}),
         )
 
@@ -367,7 +367,7 @@ def test_structured_resolution_grounded_uses_plain_grounded_extension(monkeypatc
         },
     )
     monkeypatch.setattr(
-        "propstore.structured_argument.build_structured_projection",
+        "propstore.structured_projection.build_structured_projection",
         lambda *args, **kwargs: projection,
     )
 

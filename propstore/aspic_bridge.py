@@ -1,4 +1,4 @@
-"""ASPIC+ bridge — translate claim graph to formal engine.
+"""ASPIC+ translation layer from propstore data to the formal engine.
 
 Implements translation rules T1-T7 from proposals/aspic-bridge-spec.md:
     T1: claims_to_literals — claims -> Literal map
@@ -12,6 +12,9 @@ Implements translation rules T1-T7 from proposals/aspic-bridge-spec.md:
 References:
     Modgil & Prakken 2018: Defs 1-22, the complete ASPIC+ framework.
     proposals/aspic-bridge-spec.md: translation rules and rationale.
+
+This module owns propstore-to-ASPIC translation. Projection-level callers
+should normally enter through `propstore.structured_projection`.
 """
 
 from __future__ import annotations
@@ -41,16 +44,16 @@ from propstore.aspic import (
     top_rule,
     transposition_closure,
 )
-from propstore.argumentation import _ATTACK_TYPES, _SUPPORT_TYPES
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.justifications import (
     CanonicalJustification,
     claim_justifications_from_active_graph,
 )
+from propstore.core.relation_types import ATTACK_TYPES, SUPPORT_TYPES
 from propstore.core.row_types import StanceRow, StanceRowInput, coerce_stance_row
 from propstore.dung import ArgumentationFramework
 from propstore.preference import metadata_strength_vector, claim_strength
-from propstore.structured_argument import (
+from propstore.structured_projection import (
     StructuredArgument,
     StructuredProjection,
 )
@@ -59,12 +62,14 @@ from propstore.core.environment import StanceStore
 from propstore.world.types import SupportMetadata
 
 Argument = PremiseArg | StrictArg | DefeasibleArg
+_ATTACK_TYPES = ATTACK_TYPES
+_SUPPORT_TYPES = SUPPORT_TYPES
 
 
 def _default_support_metadata(claim: dict) -> tuple[Label | None, SupportQuality]:
     """Compute default (label, support_quality) for a claim.
 
-    Moved from structured_argument.py during Phase 5 cleanup.
+    Moved from structured_projection.py during Phase 5 cleanup.
     """
     import json
 
@@ -788,7 +793,7 @@ def build_aspic_projection(
     """
     active_by_id = {c["id"]: c for c in active_claims if c.get("id")}
 
-    # Extract stances and justifications (same logic as structured_argument.py)
+    # Extract stances and justifications (same logic as structured_projection.py)
     stance_rows = _extract_stance_rows(store, active_by_id, active_graph=active_graph)
     justifications = _extract_justifications(
         active_by_id, stance_rows, active_graph=active_graph,

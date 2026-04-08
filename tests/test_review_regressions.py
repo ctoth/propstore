@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.argumentation import build_praf
+from propstore.claim_graph import build_praf
 from propstore.dung import ArgumentationFramework
 from propstore.opinion import Opinion
 from propstore.praf import (
@@ -10,7 +10,7 @@ from propstore.praf import (
     compute_praf_acceptance,
     summarize_defeat_relations,
 )
-from propstore.structured_argument import build_structured_projection
+from propstore.structured_projection import build_structured_projection
 
 
 class _MiniStore:

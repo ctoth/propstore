@@ -9,12 +9,11 @@ from typing import Any
 
 import yaml
 
-from propstore.aspic_bridge import build_aspic_projection
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
 from propstore.core.row_types import StanceRow
 from propstore.dung import ArgumentationFramework
 from propstore.knowledge_path import KnowledgePath
-from propstore.structured_argument import StructuredProjection
+from propstore.structured_projection import StructuredProjection, build_structured_projection
 
 
 @dataclass(frozen=True)
@@ -298,7 +297,7 @@ def build_branch_structured_summary(kr, branch: str) -> BranchStructuredSummary:
     claim_provenance = _summary_claim_provenance(active_claims)
     content_signature = _summary_content_signature(active_claims, stance_rows)
     if active_claims:
-        projection = build_aspic_projection(_BranchSnapshotStore(stance_rows), active_claims)
+        projection = build_structured_projection(_BranchSnapshotStore(stance_rows), active_claims)
     else:
         projection = _empty_projection()
     return BranchStructuredSummary(

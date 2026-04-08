@@ -1,9 +1,9 @@
-"""Structured arguments built from canonical claim justifications.
+"""Public projection facade for structured argumentation.
 
-After the Phase 5 cutover, build_structured_projection delegates to
-aspic_bridge.build_aspic_projection for full recursive ASPIC+ argument
-construction (Modgil & Prakken 2018 Defs 1-22).  This module retains
-the public dataclasses and thin delegation wrappers.
+After the Phase 5 cutover, `build_structured_projection()` delegates to
+`aspic_bridge.build_aspic_projection()` for full recursive ASPIC+
+construction (Modgil & Prakken 2018 Defs 1-22). This module intentionally
+retains the public projection dataclasses and thin delegation wrappers.
 """
 
 from __future__ import annotations
