@@ -94,14 +94,14 @@ def _load_yaml_from_branch(repo: Repository, branch: str, relpath: str) -> dict[
         return None
 
 
-def _load_master_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
+def _load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
     from propstore.validate import load_concepts
 
-    master_tip = branch_head(repo.git, repo.git.primary_branch_name())
-    if master_tip is None:
+    primary_tip = branch_head(repo.git, repo.git.primary_branch_name())
+    if primary_tip is None:
         return {}, {}
 
-    tree = repo.tree(commit=master_tip)
+    tree = repo.tree(commit=primary_tip)
     concepts_root = tree / "concepts"
     if not concepts_root.exists():
         return {}, {}
@@ -126,14 +126,14 @@ def _load_master_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], 
     return concepts_by_artifact, handle_to_artifact
 
 
-def _load_master_concept_docs(repo: Repository) -> list[dict[str, Any]]:
+def _load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
     from propstore.validate import load_concepts
 
-    master_tip = branch_head(repo.git, repo.git.primary_branch_name())
-    if master_tip is None:
+    primary_tip = branch_head(repo.git, repo.git.primary_branch_name())
+    if primary_tip is None:
         return []
 
-    tree = repo.tree(commit=master_tip)
+    tree = repo.tree(commit=primary_tip)
     concepts_root = tree / "concepts"
     if not concepts_root.exists():
         return []
@@ -145,8 +145,8 @@ def _load_master_concept_docs(repo: Repository) -> list[dict[str, Any]]:
     return docs
 
 
-def _master_concept_match(repo: Repository, handle: str) -> dict[str, str] | None:
-    concepts_by_artifact, handle_to_artifact = _load_master_concepts(repo)
+def _primary_branch_concept_match(repo: Repository, handle: str) -> dict[str, str] | None:
+    concepts_by_artifact, handle_to_artifact = _load_primary_branch_concepts(repo)
     artifact_id = handle_to_artifact.get(handle)
     if artifact_id is None:
         return None
@@ -164,7 +164,7 @@ def _projected_source_concepts(
     repo: Repository,
     concepts_doc: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], set[str]]:
-    _concepts_by_artifact, master_handle_to_artifact = _load_master_concepts(repo)
+    _concepts_by_artifact, primary_handle_to_artifact = _load_primary_branch_concepts(repo)
     projected: list[dict[str, Any]] = []
     local_handle_to_artifact: dict[str, str] = {}
     parameterized_artifacts: set[str] = set()
@@ -181,8 +181,8 @@ def _projected_source_concepts(
         if artifact_id is None:
             for key in ("local_name", "proposed_name"):
                 handle = entry.get(key)
-                if isinstance(handle, str) and handle in master_handle_to_artifact:
-                    artifact_id = master_handle_to_artifact[handle]
+                if isinstance(handle, str) and handle in primary_handle_to_artifact:
+                    artifact_id = primary_handle_to_artifact[handle]
                     break
         handle_seed = str(entry.get("proposed_name") or entry.get("local_name") or "concept")
         if artifact_id is None:
@@ -215,7 +215,7 @@ def _projected_source_concepts(
                 if input_ref.startswith("ps:concept:") or input_ref.startswith("tag:"):
                     inputs.append(input_ref)
                     continue
-                artifact_id = local_handle_to_artifact.get(input_ref) or master_handle_to_artifact.get(input_ref)
+                artifact_id = local_handle_to_artifact.get(input_ref) or primary_handle_to_artifact.get(input_ref)
                 if artifact_id is None:
                     artifact_id = derive_concept_artifact_id("propstore", _normalize_slug(input_ref))
                 inputs.append(artifact_id)
@@ -229,23 +229,23 @@ def _projected_source_concepts(
 
 
 def _parameterization_group_merge_preview(
-    master_concepts: list[dict[str, Any]],
+    primary_branch_concepts: list[dict[str, Any]],
     projected_concepts: list[dict[str, Any]],
     *,
     parameterized_artifacts: set[str],
 ) -> list[dict[str, Any]]:
-    master_by_artifact: dict[str, dict[str, Any]] = {}
-    master_ids: set[str] = set()
-    for concept in master_concepts:
+    primary_by_artifact: dict[str, dict[str, Any]] = {}
+    primary_ids: set[str] = set()
+    for concept in primary_branch_concepts:
         if not isinstance(concept, dict):
             continue
         artifact_id = concept.get("artifact_id")
         if not isinstance(artifact_id, str) or not artifact_id:
             continue
-        master_by_artifact[artifact_id] = copy.deepcopy(concept)
-        master_ids.add(artifact_id)
+        primary_by_artifact[artifact_id] = copy.deepcopy(concept)
+        primary_ids.add(artifact_id)
 
-    preview_by_artifact = {artifact_id: copy.deepcopy(doc) for artifact_id, doc in master_by_artifact.items()}
+    preview_by_artifact = {artifact_id: copy.deepcopy(doc) for artifact_id, doc in primary_by_artifact.items()}
     for concept in projected_concepts:
         if not isinstance(concept, dict):
             continue
@@ -263,7 +263,7 @@ def _parameterization_group_merge_preview(
         else:
             preview_by_artifact[artifact_id] = copy.deepcopy(concept)
 
-    previous_groups = build_groups(list(master_by_artifact.values()))
+    previous_groups = build_groups(list(primary_by_artifact.values()))
     preview_groups = build_groups(list(preview_by_artifact.values()))
     previous_lookup: dict[str, frozenset[str]] = {}
     for group in previous_groups:
@@ -273,7 +273,7 @@ def _parameterization_group_merge_preview(
 
     merges: list[dict[str, Any]] = []
     for group in sorted(preview_groups, key=lambda members: tuple(sorted(members))):
-        existing_members = sorted(member for member in group if member in master_ids)
+        existing_members = sorted(member for member in group if member in primary_ids)
         collapsed = {
             previous_lookup.get(member, frozenset({member}))
             for member in existing_members
@@ -297,10 +297,10 @@ def _preview_source_parameterization_group_merges(
     repo: Repository,
     concepts_doc: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    master_concepts = _load_master_concept_docs(repo)
+    primary_branch_concepts = _load_primary_branch_concept_docs(repo)
     projected_concepts, parameterized_artifacts = _projected_source_concepts(repo, concepts_doc)
     return _parameterization_group_merge_preview(
-        master_concepts,
+        primary_branch_concepts,
         projected_concepts,
         parameterized_artifacts=parameterized_artifacts,
     )
@@ -515,14 +515,14 @@ def _load_source_claim_index(repo: Repository, name: str) -> tuple[dict[str, str
     return local_to_artifact, logical_to_artifact, artifact_ids
 
 
-def _load_master_claim_index(repo: Repository) -> tuple[dict[str, str], set[str]]:
+def _load_primary_branch_claim_index(repo: Repository) -> tuple[dict[str, str], set[str]]:
     from propstore.validate_claims import load_claim_files
 
-    master_tip = branch_head(repo.git, repo.git.primary_branch_name())
-    if master_tip is None:
+    primary_tip = branch_head(repo.git, repo.git.primary_branch_name())
+    if primary_tip is None:
         return {}, set()
 
-    tree = repo.tree(commit=master_tip)
+    tree = repo.tree(commit=primary_tip)
     claims_root = tree / "claims"
     if not claims_root.exists():
         return {}, set()
@@ -863,7 +863,7 @@ def finalize_source_branch(repo: Repository, name: str) -> str:
     concepts_doc = _load_branch_yaml(repo, name, "concepts.yaml") or {}
 
     local_to_artifact, logical_to_artifact, local_artifact_ids = _load_source_claim_index(repo, name)
-    master_logical_to_artifact, master_artifact_ids = _load_master_claim_index(repo)
+    primary_logical_to_artifact, primary_artifact_ids = _load_primary_branch_claim_index(repo)
 
     claims = claims_doc.get("claims", []) if isinstance(claims_doc, dict) else []
     claim_errors: list[str] = []
@@ -895,9 +895,9 @@ def finalize_source_branch(repo: Repository, name: str) -> str:
         if not isinstance(target, str) or not target:
             stance_errors.append(str(target))
             continue
-        if target in local_artifact_ids or target in master_artifact_ids:
+        if target in local_artifact_ids or target in primary_artifact_ids:
             continue
-        if target in logical_to_artifact or target in master_logical_to_artifact:
+        if target in logical_to_artifact or target in primary_logical_to_artifact:
             continue
         stance_errors.append(target)
 
@@ -1013,7 +1013,7 @@ def _rewrite_claim_concept_refs(claim: dict[str, Any], concept_map: dict[str, st
 
 def _resolve_source_concept_promotions(repo: Repository, name: str) -> tuple[dict[str, str], dict[str, bytes]]:
     concepts_doc = _load_branch_yaml(repo, name, "concepts.yaml") or {}
-    concepts_by_artifact, handle_to_artifact = _load_master_concepts(repo)
+    concepts_by_artifact, handle_to_artifact = _load_primary_branch_concepts(repo)
     mapping: dict[str, str] = {}
     concept_adds: dict[str, bytes] = {}
     new_concepts: list[tuple[dict[str, Any], str, str]] = []
@@ -1137,7 +1137,7 @@ def promote_source_branch(repo: Repository, name: str) -> str:
         raise ValueError(f"Cannot promote source {name!r}; unresolved concept mappings: {formatted}")
 
     local_to_artifact, logical_to_artifact, _local_artifact_ids = _load_source_claim_index(repo, name)
-    master_logical_to_artifact, master_artifact_ids = _load_master_claim_index(repo)
+    primary_logical_to_artifact, primary_artifact_ids = _load_primary_branch_claim_index(repo)
 
     promoted_stance_files: dict[str, bytes] = {}
     stances_by_source: dict[str, list[dict[str, Any]]] = {}
@@ -1155,9 +1155,9 @@ def promote_source_branch(repo: Repository, name: str) -> str:
             target = local_to_artifact[target]
         elif target in logical_to_artifact:
             target = logical_to_artifact[target]
-        elif target in master_logical_to_artifact:
-            target = master_logical_to_artifact[target]
-        elif target not in master_artifact_ids and not target.startswith("ps:claim:"):
+        elif target in primary_logical_to_artifact:
+            target = primary_logical_to_artifact[target]
+        elif target not in primary_artifact_ids and not target.startswith("ps:claim:"):
             raise ValueError(f"Unresolved promoted stance target: {target}")
         normalized = copy.deepcopy(stance)
         normalized["target"] = target
@@ -1175,6 +1175,17 @@ def promote_source_branch(repo: Repository, name: str) -> str:
         {"stances": promoted_stances},
     )
     promoted_claims = promoted_claims_doc.get("claims", []) or []
+
+    # Strip source-branch-only fields before writing to master.
+    # The claim JSON schema uses additionalProperties: false, so these
+    # fields (valid on source branches) would cause build validation errors.
+    _SOURCE_ONLY_FIELDS = {"id", "source_local_id", "artifact_code"}
+    for claim in promoted_claims:
+        if isinstance(claim, dict):
+            for field in _SOURCE_ONLY_FIELDS:
+                claim.pop(field, None)
+            claim["version_id"] = compute_claim_version_id(claim)
+    promoted_claims_doc["claims"] = promoted_claims
 
     stances_by_source = {}
     for stance in promoted_stances_doc.get("stances", []) or []:
