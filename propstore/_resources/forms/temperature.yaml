@@ -3,7 +3,7 @@ kind: quantity
 dimensionless: false
 unit_symbol: K
 dimensions:
-  Θ: 1
+  Theta: 1
 common_alternatives:
 - unit: °C
   type: affine
