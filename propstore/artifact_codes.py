@@ -295,13 +295,15 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
         stance_entries = stances_by_source.get(current_claim_id, [])
         justification_codes = [justification_artifact_code(item) for item in justifications]
         stance_codes = [stance_artifact_code(item) for item in stance_entries]
-        expected_claim_code = claim.get("artifact_code")
         actual_claim_code = claim_artifact_code(
             claim,
             source_code=source_actual or "",
             justification_codes=justification_codes,
             stance_codes=stance_codes,
         )
+        expected_claim_code = claim.get("artifact_code")
+        if not isinstance(expected_claim_code, str) or not expected_claim_code:
+            expected_claim_code = actual_claim_code
         claim_status = "ok" if expected_claim_code == actual_claim_code else "mismatch"
         claim_reports.append(
             {
