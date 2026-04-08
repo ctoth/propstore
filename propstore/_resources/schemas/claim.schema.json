@@ -2,8 +2,12 @@
     "$defs": {
         "Claim": {
             "additionalProperties": false,
-            "description": "A single propositional claim extracted from a paper. All claims have an id, type, provenance, and optional conditions and stances. Type-specific fields (concept/value/unit for parameter, expression/sympy for equation, etc.) are all present on this class; the validator enforces which are required per claim type.",
+            "description": "A single propositional claim extracted from a paper. All claims have an artifact_id, one or more logical_ids, a version_id, type, provenance, and optional conditions and stances. Type-specific fields (concept/value/unit for parameter, expression/sympy for equation, etc.) are all present on this class; the validator enforces which are required per claim type.",
             "properties": {
+                "artifact_id": {
+                    "description": "Durable opaque storage identity for this claim. Format: ps:claim:<opaque-token>.\n",
+                    "type": "string"
+                },
                 "body": {
                     "description": "Python function body for algorithm claims.\n",
                     "type": [
@@ -39,7 +43,7 @@
                     ]
                 },
                 "context": {
-                    "description": "Optional context ID limiting the claim's visibility to a validated context hierarchy.\n",
+                    "description": "Optional context ID scoping this claim to a named assumption context.\n",
                     "type": [
                         "string",
                         "null"
@@ -73,16 +77,19 @@
                     ],
                     "description": "Fit statistics for equation claims."
                 },
-                "id": {
-                    "description": "Stable identifier. Format: [source:]claim + sequential integer. Paper-local files use bare IDs (claim1, claim42). After import, IDs are prefixed with the knowledge source (e.g., Dung_1995_AcceptabilityArguments:claim1).\n",
-                    "type": "string"
-                },
                 "listener_population": {
                     "description": "Description of the listener population tested (e.g., native_english, hearing_impaired). Optional for measurement claims.\n",
                     "type": [
                         "string",
                         "null"
                     ]
+                },
+                "logical_ids": {
+                    "description": "Human-facing namespaced handles for this claim. Old source-local IDs survive only here, never as the storage key. The first entry is the primary display handle.\n",
+                    "items": {
+                        "$ref": "#/$defs/LogicalId"
+                    },
+                    "type": "array"
                 },
                 "lower_bound": {
                     "description": "Lower bound of a range estimate. Must appear together with upper_bound.\n",
@@ -223,10 +230,16 @@
                         "array",
                         "null"
                     ]
+                },
+                "version_id": {
+                    "description": "Immutable content-derived version identifier for this serialized claim state. Format: sha256:<64 hex chars>.\n",
+                    "type": "string"
                 }
             },
             "required": [
-                "id",
+                "artifact_id",
+                "logical_ids",
+                "version_id",
                 "type",
                 "provenance"
             ],
@@ -345,6 +358,40 @@
             "title": "FitStatistics",
             "type": "object"
         },
+        "LogicalId": {
+            "additionalProperties": false,
+            "description": "A namespaced logical handle for a first-class object.",
+            "properties": {
+                "confidence": {
+                    "description": "Classification confidence 0.0-1.0, derived from pass and strength.",
+                    "type": [
+                        "number",
+                        "null"
+                    ]
+                },
+                "namespace": {
+                    "description": "Namespace for the logical handle (e.g., Aarts_2015).",
+                    "type": "string"
+                },
+                "pass_number": {
+                    "description": "Which NLI pass found this relationship (1 or 2).",
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "value": {
+                    "description": "Local handle value inside the namespace (e.g., claim1).",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "namespace",
+                "value"
+            ],
+            "title": "LogicalId",
+            "type": "object"
+        },
         "MeasureType": {
             "description": "The type of perceptual or behavioral measurement. These are documented examples; validators accept any string.",
             "enum": [
@@ -438,13 +485,6 @@
             "additionalProperties": false,
             "description": "Provenance metadata for how a stance was classified. Optional on Stance.",
             "properties": {
-                "confidence": {
-                    "description": "Classification confidence 0.0-1.0, derived from pass and strength.",
-                    "type": [
-                        "number",
-                        "null"
-                    ]
-                },
                 "embedding_distance": {
                     "description": "Cosine distance between source and target claim embeddings.",
                     "type": [
@@ -467,13 +507,6 @@
                     "description": "LLM model used for classification (litellm model string).",
                     "type": [
                         "string",
-                        "null"
-                    ]
-                },
-                "pass_number": {
-                    "description": "Which NLI pass found this relationship (1 or 2).",
-                    "type": [
-                        "integer",
                         "null"
                     ]
                 }
@@ -532,7 +565,7 @@
                     ]
                 },
                 "target": {
-                    "description": "Claim ID of the related claim.",
+                    "description": "Artifact ID of the related claim.",
                     "type": "string"
                 },
                 "type": {
