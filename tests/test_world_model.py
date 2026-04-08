@@ -15,7 +15,7 @@ import sqlite3
 import pytest
 import yaml
 
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from tests.conftest import create_world_model_schema, make_claim_identity
 from propstore.world import (
@@ -525,6 +525,56 @@ class TestUnboundQueries:
     def test_get_claim_missing(self, world):
         assert world.get_claim("nonexistent") is None
 
+    def test_get_claim_joins_source_by_source_slug(self, concept_dir, repo):
+        knowledge = concept_dir.parent
+        claims_dir = knowledge / "claims"
+        claims_dir.mkdir(exist_ok=True)
+        sources_dir = knowledge / "sources"
+        sources_dir.mkdir(exist_ok=True)
+
+        (sources_dir / "alpha_source.yaml").write_text(
+            yaml.dump(
+                {
+                    "id": "source-alpha",
+                    "kind": "academic_paper",
+                    "origin": {"type": "doi", "value": "10.1000/example"},
+                    "trust": {"prior_base_rate": 0.6},
+                },
+                default_flow_style=False,
+            )
+        )
+        (claims_dir / "alpha_source.yaml").write_text(
+            yaml.dump(
+                _normalize_claim_concept_refs(
+                    {
+                        "source": {"paper": "alpha_source"},
+                        "claims": [
+                            {
+                                "id": "claim_slug",
+                                "type": "parameter",
+                                "concept": "concept1",
+                                "value": 200.0,
+                                "unit": "Hz",
+                                "provenance": {"paper": "Alpha Paper", "page": 9},
+                            }
+                        ],
+                    }
+                ),
+                default_flow_style=False,
+            )
+        )
+
+        build_sidecar(knowledge, repo.sidecar_path, force=True)
+        wm = WorldModel(repo)
+        claim = wm.get_claim(_claim_artifact("alpha_source", "claim_slug"))
+        assert claim is not None
+        assert claim["source_slug"] == "alpha_source"
+        assert claim["source_paper"] == "Alpha Paper"
+        assert claim["source"]["id"] == "source-alpha"
+        assert claim["source"]["origin"]["type"] == "doi"
+        assert claim["source"]["origin"]["value"] == "10.1000/example"
+        wm.close()
+
     def test_resolve_alias(self, world):
         assert world.resolve_alias("F0") == CONCEPT1_ID
         assert world.resolve_alias("Ps") == CONCEPT2_ID
@@ -664,8 +714,8 @@ class TestUnboundQueries:
         conn = sqlite3.connect(sidecar)
         create_world_model_schema(conn)
         conn.execute(
-            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
-            "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', NULL, 'concept2', 'test', 1, NULL, NULL)"
+            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, concept_id, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
+            "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', NULL, 'concept2', 'test', 'test', 1, NULL, NULL)"
         )
         conn.execute(
             "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "
@@ -700,8 +750,8 @@ class TestUnboundQueries:
         conn = sqlite3.connect(sidecar)
         create_world_model_schema(conn)
         conn.execute(
-            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
-            "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', NULL, 'concept2', 'test', 1, NULL, NULL)"
+            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, concept_id, target_concept, source_slug, source_paper, provenance_page, provenance_json, context_id) "
+            "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', NULL, 'concept2', 'test', 'test', 1, NULL, NULL)"
         )
         conn.execute(
             "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "
@@ -1334,10 +1384,12 @@ class TestConflictResolution:
         # claim12 undercuts claim6 → claim6 defeated
         # claim13 undermines claim4 (equal strength) → claim4 defeated
         # claim14 explains claim6 → not an attack
-        # Survivors: {claim12, claim13, claim14} → still conflicted
+        # Conflict-derived rebuts between claim12/13/14 now also participate,
+        # so the grounded extension can be empty even though the target claims
+        # are still in genuine conflict.
         assert result.status == "conflicted"
         assert result.reason is not None
-        assert "survive" in result.reason
+        assert "all claims defeated" in result.reason
 
     def test_resolve_recency_tie_returns_conflicted(self, world):
         """Two claims with identical dates → conflicted, not arbitrary winner."""
@@ -2341,6 +2393,19 @@ class TestWorldModelSidecarPath:
         with pytest.raises(ValueError, match="Unsupported sidecar schema"):
             WorldModel(sidecar_path=db_path)
 
+    def test_worldmodel_rejects_unsupported_schema_version(self, tmp_path):
+        db_path = tmp_path / "propstore.sqlite"
+        conn = sqlite3.connect(db_path)
+        create_world_model_schema(conn)
+        conn.execute(
+            "UPDATE meta SET schema_version = 9999 WHERE key = 'sidecar'"
+        )
+        conn.commit()
+        conn.close()
+
+        with pytest.raises(ValueError, match="Unsupported sidecar schema version"):
+            WorldModel(sidecar_path=db_path)
+
     def test_worldmodel_importable_without_cli(self):
         """propstore.world.model.WorldModel.from_path should not require
         propstore.cli.repository at runtime.
@@ -2571,3 +2636,4 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         assert result.acceptance_probs is not None
         assert result.acceptance_probs["claim_a"] > result.acceptance_probs["synth_b"]
         assert result.acceptance_probs["synth_b"] < 1.0
+
