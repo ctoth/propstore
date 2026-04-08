@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import sqlite3
 from dataclasses import dataclass
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 from ast_equiv import canonical_dump
 
@@ -22,6 +23,9 @@ from propstore.identity import (
 from propstore.loaded import LoadedEntry
 from propstore.sidecar.concept_utils import resolve_concept_reference
 from propstore.stances import VALID_STANCE_TYPES
+
+if TYPE_CHECKING:
+    from propstore.compiler.ir import SemanticClaim
 
 
 @dataclass(frozen=True)
@@ -484,25 +488,46 @@ def resolve_algorithm_storage(
 
 
 def extract_deferred_stance_rows(
-    claim: dict,
+    claim: dict | SemanticClaim,
     claim_reference_map: dict[str, str],
     *,
     source_paper: str,
 ) -> list[tuple]:
-    claim_id = resolve_claim_reference(
-        claim.get("artifact_id") or claim.get("id"),
-        claim_reference_map,
-        source_paper=source_paper,
-    )
-    rows: list[tuple] = []
-    for stance in claim.get("stances", []) or []:
-        if not isinstance(stance, dict):
-            continue
-        target_claim_id = resolve_claim_reference(
-            stance.get("target"),
+    if hasattr(claim, "resolved_claim") and hasattr(claim, "stances"):
+        semantic_claim = claim
+        claim_data = semantic_claim.resolved_claim
+        claim_id = (
+            claim_data.get("artifact_id")
+            if isinstance(claim_data.get("artifact_id"), str)
+            else claim_data.get("id")
+        )
+        stance_inputs = [
+            (
+                stance.data,
+                stance.target_ref.resolved_id or stance.target_ref.raw_text,
+            )
+            for stance in semantic_claim.stances
+        ]
+    else:
+        claim_data = claim
+        claim_id = resolve_claim_reference(
+            claim_data.get("artifact_id") or claim_data.get("id"),
             claim_reference_map,
             source_paper=source_paper,
         )
+        stance_inputs = []
+        for stance in claim_data.get("stances", []) or []:
+            if not isinstance(stance, dict):
+                continue
+            target_claim_id = resolve_claim_reference(
+                stance.get("target"),
+                claim_reference_map,
+                source_paper=source_paper,
+            )
+            stance_inputs.append((stance, target_claim_id))
+
+    rows: list[tuple] = []
+    for stance, target_claim_id in stance_inputs:
         stance_type = stance.get("type")
         if not target_claim_id or not stance_type:
             continue
@@ -539,8 +564,8 @@ def extract_deferred_stance_rows(
 
 
 def prepare_claim_insert_row(
-    claim: dict,
-    source_paper: str,
+    claim: dict | SemanticClaim,
+    source_paper: str | None,
     *,
     claim_seq: int,
     concept_registry: dict | None = None,
@@ -548,11 +573,17 @@ def prepare_claim_insert_row(
 ) -> dict[str, object]:
     from propstore.description_generator import generate_description
 
-    normalized_claim = canonicalize_claim_for_storage(
-        claim,
-        concept_registry or {},
-        source_paper=source_paper,
-    )
+    if hasattr(claim, "resolved_claim") and hasattr(claim, "source_paper"):
+        semantic_claim = claim
+        normalized_claim = copy.deepcopy(semantic_claim.resolved_claim)
+        effective_source_paper = str(source_paper or semantic_claim.source_paper)
+    else:
+        normalized_claim = canonicalize_claim_for_storage(
+            claim,
+            concept_registry or {},
+            source_paper=str(source_paper),
+        )
+        effective_source_paper = str(source_paper)
     claim_type = normalized_claim.get("type")
     provenance = normalized_claim.get("provenance", {})
     conditions = normalized_claim.get("conditions")
@@ -627,10 +658,10 @@ def prepare_claim_insert_row(
         "canonical_ast": canonical_ast,
         "variables_json": variables_json,
         "stage": stage,
-        "source_slug": source_paper,
-        "source_paper": provenance.get("paper", source_paper),
+        "source_slug": effective_source_paper,
+        "source_paper": provenance.get("paper", effective_source_paper),
         "provenance_page": provenance.get("page", 0),
-        "provenance_json": json.dumps(provenance),
+        "provenance_json": json.dumps(provenance, sort_keys=True),
         "context_id": normalized_claim.get("context"),
-        "branch": claim.get("branch"),
+        "branch": normalized_claim.get("branch"),
     }

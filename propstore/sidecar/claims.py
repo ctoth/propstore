@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import yaml
 
@@ -21,6 +22,9 @@ from propstore.sidecar.claim_utils import (
     resolve_claim_reference,
 )
 from propstore.stances import VALID_STANCE_TYPES
+
+if TYPE_CHECKING:
+    from propstore.compiler.ir import ClaimCompilationBundle
 
 
 def populate_stances_from_files(
@@ -193,30 +197,56 @@ def populate_claims(
     concept_registry: dict | None = None,
     *,
     form_registry: dict | None = None,
+    semantic_bundle: ClaimCompilationBundle | None = None,
 ) -> None:
     """Populate normalized claim storage from authored claim files."""
     claim_seq = 0
     deferred_stances: list[tuple] = []
-    claim_reference_map = collect_claim_reference_map(claim_files)
-    for claim_file in claim_files:
-        source_paper = claim_file.data.get("source", {}).get("paper", claim_file.filename)
-        for claim in claim_file.data.get("claims", []):
-            claim_seq += 1
-            row = prepare_claim_insert_row(
-                claim,
-                source_paper,
-                claim_seq=claim_seq,
-                concept_registry=concept_registry,
-                form_registry=form_registry,
-            )
-            insert_claim_row(conn, row)
-            deferred_stances.extend(
-                extract_deferred_stance_rows(
-                    claim,
-                    claim_reference_map,
-                    source_paper=source_paper,
+    reference_source = (
+        list(semantic_bundle.normalized_claim_files)
+        if semantic_bundle is not None
+        else list(claim_files)
+    )
+    claim_reference_map = collect_claim_reference_map(reference_source)
+    if semantic_bundle is not None:
+        for semantic_file in semantic_bundle.semantic_files:
+            for semantic_claim in semantic_file.claims:
+                claim_seq += 1
+                row = prepare_claim_insert_row(
+                    semantic_claim,
+                    semantic_claim.source_paper,
+                    claim_seq=claim_seq,
+                    concept_registry=concept_registry,
+                    form_registry=form_registry,
                 )
-            )
+                insert_claim_row(conn, row)
+                deferred_stances.extend(
+                    extract_deferred_stance_rows(
+                        semantic_claim,
+                        claim_reference_map,
+                        source_paper=semantic_claim.source_paper,
+                    )
+                )
+    else:
+        for claim_file in claim_files:
+            source_paper = claim_file.data.get("source", {}).get("paper", claim_file.filename)
+            for claim in claim_file.data.get("claims", []):
+                claim_seq += 1
+                row = prepare_claim_insert_row(
+                    claim,
+                    source_paper,
+                    claim_seq=claim_seq,
+                    concept_registry=concept_registry,
+                    form_registry=form_registry,
+                )
+                insert_claim_row(conn, row)
+                deferred_stances.extend(
+                    extract_deferred_stance_rows(
+                        claim,
+                        claim_reference_map,
+                        source_paper=source_paper,
+                    )
+                )
 
     for stance_row in deferred_stances:
         insert_claim_stance_row(conn, stance_row)
