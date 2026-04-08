@@ -1,5 +1,13 @@
 # propstore — Project Instructions
 
+propstore is a **semantic operating system**. It has two theoretically serious halves:
+
+1. **Concept/semantic layer** — What things mean, how linguistic expressions map to formal concepts, how frames structure knowledge, how contexts qualify truth. Grounded in frame semantics (Fillmore 1982), generative lexicon theory (Pustejovsky 1991), context formalization (McCarthy 1993), ontology lexicalization (lemon/Buitelaar 2011), and micropublication structure (Clark 2014).
+
+2. **Argumentation/reasoning layer** — How claims conflict, how evidence accumulates, how disagreement resolves at render time. Grounded in Dung AFs, ASPIC+, ATMS, subjective logic, probabilistic argumentation, and IC merging.
+
+Neither half is auxiliary to the other. The concept layer is not a "dumb key-value store for the argumentation engine." It is a theoretically grounded system for representing what concepts are, how they relate to language, and how the same concept participates in different contexts. The argumentation layer operates *over* this semantic substrate.
+
 ## Core Design Principle
 
 **The system needs a formal non-commitment discipline at the semantic core.**
@@ -22,54 +30,25 @@ When the system lacks evidence, it must say so — not fabricate a number. Vacuo
 ## Architectural Layers (one-way dependencies, top depends on bottom)
 
 1. **Source-of-truth storage** — Claims, concepts, forms, contexts, conditions, provenance. Immutable except by explicit user migration. Never mutated by heuristic or LLM output. `propstore/repo/` provides git-backed storage with branch isolation, semantic merge classification, two-parent merge commits, branch reasoning (ATMS/ASPIC+ bridge), and IC merge operators.
-2. **Theory / typing layer** — Forms, dimensions, condition languages, parameterization graphs, CEL type-checking, Z3 condition reasoning.
+2. **Concept/semantic layer** — Concepts are not labels; they are frame elements (Fillmore 1982) with structured internal composition (Pustejovsky 1991 qualia). The concept registry formally links linguistic expressions to ontological entities (lemon model). Contexts are first-class logical objects qualifying when propositions hold (McCarthy 1993 `ist(c, p)`). Forms define dimensional structure; CEL + Z3 provide type-checking and condition reasoning. Vocabulary reconciliation operates at the frame level, not string level.
 3. **Heuristic analysis layer** — Embedding similarity, LLM stance classification, candidate concept merges. All output is **proposal artifacts**, never source mutations.
 4. **Argumentation layer** — Dung AF construction, ASPIC+ bridge (`aspic_bridge.py` translates claims/stances to formal ASPIC+ types, `aspic.py` builds recursive arguments), preference ordering, extension computation. Operates over assumption-labeled data, not hardened source facts.
 5. **Render layer** — Resolution strategies (recency, sample_size, argumentation, override), world queries, hypothetical reasoning. Multiple render policies over the same underlying corpus.
 6. **Agent workflow layer** — extract-claims, reconcile-vocabulary, relate, adjudicate. These produce proposals, not truth.
 
-### Known Limitations
+## Literature Grounding
 
-**ASPIC+ argument construction:** The claim graph routes through `aspic_bridge.py`, which translates claims, justifications, and stances into ASPIC+ types (Literal, Rule, KnowledgeBase, PreferenceConfig) and delegates to `aspic.py` for formal recursive argument construction (Modgil & Prakken 2018 Defs 1-22). `structured_argument.py` delegates to this bridge. The StructuredProjection output type is preserved for downstream consumers. Rule ordering in the bridge is always empty — only premise ordering from metadata has discriminating power.
-
-## Key Literature Grounding
-
-| Paper | What it grounds | Status |
-|-------|----------------|--------|
-| Dung 1995 | AF = (Args, Defeats), grounded/preferred/stable/complete extensions | Implemented |
-| de Kleer 1986 | ATMS: label every datum with minimal assumption sets, never commit to one context | Implemented |
-| Dixon 1993 | ATMS context switching = AGM operations; entrenchment from justification structure | Aspirational — no AGM operations implemented |
-| Alchourron 1985 | AGM postulates: correctness criteria for any belief revision operation | Aspirational — referenced via Dixon 1993 |
-| Modgil & Prakken 2018 | ASPIC+: attack-based conflict-free, rationality postulates, preference orderings | Implemented — recursive argument construction (PremiseArg/StrictArg/DefeasibleArg), three-type attack determination (Def 8), last-link/weakest-link preference defeat (Defs 19-21), transposition closure (Def 12). Rationality postulates (Thms 12-15) achieved by construction via transposition closure and c-consistency, not runtime-verified |
-| Pollock 1987 | Rebutting vs undercutting defeat, warrant = ultimately undefeated argument | Implemented |
-| Cayrol 2005 | Bipolar argumentation: support creates new defeat paths | Implemented — derived defeats with fixpoint |
-| Odekerken 2023 | ASPIC+ with incomplete information: stability and relevance | Partial — stability and relevance via ATMS bounded replay (not ASP-based per Odekerken); missing K_a (assumption premises) partition |
-| Jøsang 2001 | Subjective Logic: Opinion = (b,d,u,a), expectation E(ω) = b + a·u, consensus fusion | Implemented |
-| Guo et al. 2017 | Temperature scaling for neural network calibration; ECE metric | Implemented |
-| Sensoy et al. 2018 | Evidential deep learning: Dirichlet-based uncertainty from evidence counts | Implemented — evidence-to-opinion mapping |
-| Hunter & Thimm 2017 | Probabilistic argumentation: acceptance probability, COH constraint, component decomposition | Partial — COH constraint (opt-in via enforce_coh), component decomposition for MC dispatch; component decomposition implemented at praf.py |
-| Li et al. 2012 | PrAF = (A, P_A, D, P_D): MC sampling with Agresti-Coull stopping for probabilistic AFs | Implemented — MC sampling with Agresti-Coull |
-| Denoeux 2019 | Decision-making with belief functions: pignistic, Hurwicz, interval criteria | Partial — pignistic, Hurwicz, lower/upper bound criteria implemented (`world/types.py:apply_decision_criterion`); interval dominance not implemented |
-| Freedman et al. 2025 | DF-QuAD gradual semantics for quantitative bipolar argumentation frameworks | Implemented — but P_A conflated with base score |
-| Konieczny & Pino Perez 2002 | IC merging: IC0-IC8 postulates, Sigma/Max/GMax operators | Partial — assignment-level global `mu` with cross-concept constraints, CEL, Z3 validation, and production `IC_MERGE` wiring is implemented in `propstore/repo/ic_merge.py` and `propstore/world/resolution.py`; full belief-base/model semantics and full postulate claims remain deferred |
-| Coste-Marquis et al. 2007 | PAF three-valued attack relation, AF edit distance, merge classification | Implemented — `propstore/repo/merge_classifier.py` |
-| Darwiche & Pearl 1997 | Iterated revision C1-C4, epistemic states | Implemented — branch isolation in `propstore/repo/branch.py` |
-| Bonanno 2007 | Backward Uniqueness (BU); git merges need IC merging, not temporal revision | Validated — BU confirmed for linear branches, IC merging for merge points |
-| Mason & Johnson 1989 | DATMS: agent belief spaces as ATMS assumptions, nogoods for scalability | Implemented — `propstore/repo/branch_reasoning.py` |
-| Baumann & Brewka 2015 | AGM expansion/revision for Dung AFs, kernel union operator | Referenced — kernel union for AF expansion semantics |
-| Spohn 1988 | Ordinal Conditional Functions as epistemic states and distance metric | Referenced — OCF distance adapted for claim_distance |
-| Booth & Meyer 2006 | Admissible/restrained revision; argumentation and merging compose | Confirmed — pipeline composition validated, not formally verified |
-| Amgoud & Vesic 2014 | Rich PAF: attack inversion, democratic preference lifting | Deferred — would enrich aspic_bridge.py with Def(T) attack inversion |
+See `papers/index.md` for the full collection with descriptions and tags. Each paper directory contains `notes.md` with detailed extraction, `claims.yaml` where extracted, and cross-references via `reconcile`.
 
 ## Known Limitations
 
-**Decision criteria:** Denoeux 2019 pignistic, Hurwicz, and lower/upper bound criteria
-are implemented in `world/types.py:apply_decision_criterion` and wired through the CLI
-(`--decision-criterion`). Interval dominance is not yet implemented.
+**ASPIC+ argument construction:** The claim graph routes through `aspic_bridge.py` → `aspic.py` for recursive argument construction (Modgil & Prakken 2018 Defs 1-22). Rule ordering in the bridge is always empty — only premise ordering from metadata has discriminating power.
 
-**Semantic merge:** Branch primitives, merge classification, merge commits, branch reasoning, and assignment-level global `IC_MERGE` with cross-concept `mu` are implemented in `propstore/repo/` and `propstore/world/resolution.py`. CEL-backed constraints use Z3 as the canonical production validator, and `RenderPolicy.branch_weights` are consumed by the global merge solver. Full belief-base/model semantics for Konieczny IC0-IC8 and richer branch-aware argumentation integration remain beyond the current implementation. Rich PAF attack inversion (Amgoud & Vesic 2014) is deferred.
+**Decision criteria:** Interval dominance (Denoeux 2019) not yet implemented. Pignistic, Hurwicz, lower/upper bound are in `world/types.py:apply_decision_criterion`.
 
-**Deduction, comultiplication, abduction:** These extended Jøsang operators (Jøsang & McAnally 2004; Jøsang 2008) are not implemented. The 2001 paper's core operators are complete. Implementing these requires retrieving the source papers.
+**Semantic merge:** Assignment-level IC merge with CEL/Z3 is implemented. Full belief-base/model semantics for Konieczny IC0-IC8 and rich PAF attack inversion (Amgoud & Vesic 2014) are deferred.
+
+**Deduction, comultiplication, abduction:** Extended Jøsang operators not implemented. Core 2001 operators are complete.
 
 ## Technical Conventions
 
