@@ -1019,6 +1019,55 @@ class TestConceptCategoryValues:
         assert result.exit_code != 0
         assert not (workspace / "knowledge" / "concepts" / "test_freq.yaml").exists()
 
+    def test_add_category_closed_sets_extensible_false(self, workspace: Path) -> None:
+        """pks concept add --form category --closed writes extensible: false in form_parameters."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "general",
+            "--name", "closed_cat",
+            "--definition", "A closed category",
+            "--form", "category",
+            "--values", "a,b,c",
+            "--closed",
+        ])
+        assert result.exit_code == 0, result.output
+        filepath = workspace / "knowledge" / "concepts" / "closed_cat.yaml"
+        data = yaml.safe_load(filepath.read_text())
+        assert data["form"] == "category"
+        assert data["form_parameters"]["values"] == ["a", "b", "c"]
+        assert data["form_parameters"]["extensible"] is False
+
+    def test_add_category_without_closed_omits_extensible(self, workspace: Path) -> None:
+        """Without --closed, extensible key is not written (defaults to true at read time)."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "general",
+            "--name", "open_cat",
+            "--definition", "An open category",
+            "--form", "category",
+            "--values", "x,y",
+        ])
+        assert result.exit_code == 0, result.output
+        filepath = workspace / "knowledge" / "concepts" / "open_cat.yaml"
+        data = yaml.safe_load(filepath.read_text())
+        assert "extensible" not in data.get("form_parameters", {})
+
+    def test_closed_on_non_category_fails(self, workspace: Path) -> None:
+        """--closed on a non-category form is an error."""
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "concept", "add",
+            "--domain", "speech",
+            "--name", "test_freq2",
+            "--definition", "A frequency",
+            "--form", "frequency",
+            "--closed",
+        ])
+        assert result.exit_code != 0
+        assert "closed" in result.output.lower() or "category" in result.output.lower()
+
 
 class TestConceptCategories:
     def test_categories_lists_category_concepts(self, workspace: Path) -> None:

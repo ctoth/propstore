@@ -92,6 +92,7 @@ def write_metadata(obj: dict, name: str, file_path: Path) -> None:
 @click.option("--name", "concept_name", required=True)
 @click.option("--definition", required=True)
 @click.option("--form", "form_name", required=True)
+@click.option("--closed", is_flag=True, default=False, help="Declare category value set as exhaustive (extensible: false)")
 @click.pass_obj
 def propose_concept(
     obj: dict,
@@ -99,15 +100,22 @@ def propose_concept(
     concept_name: str,
     definition: str,
     form_name: str,
+    closed: bool,
 ) -> None:
+    if closed and form_name != "category":
+        raise click.ClickException("--closed is only valid with --form=category")
     repo: Repository = obj["repo"]
     try:
+        form_parameters: dict | None = None
+        if closed:
+            form_parameters = {"extensible": False}
         info = commit_source_concept_proposal(
             repo,
             name,
             local_name=concept_name,
             definition=definition,
             form=form_name,
+            form_parameters=form_parameters,
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc

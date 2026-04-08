@@ -45,6 +45,7 @@ def commit_source_concept_proposal(
     local_name: str,
     definition: str,
     form: str,
+    form_parameters: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Propose a concept on a source branch.
 
@@ -57,14 +58,15 @@ def commit_source_concept_proposal(
     existing = _load_yaml(repo, branch, "concepts.yaml") or {"concepts": []}
     concepts = list(existing.get("concepts", []))
     concepts = [entry for entry in concepts if not (isinstance(entry, dict) and entry.get("local_name") == local_name)]
-    concepts.append(
-        {
-            "local_name": local_name,
-            "proposed_name": local_name,
-            "definition": definition,
-            "form": form,
-        }
-    )
+    entry: dict[str, Any] = {
+        "local_name": local_name,
+        "proposed_name": local_name,
+        "definition": definition,
+        "form": form,
+    }
+    if form_parameters:
+        entry["form_parameters"] = form_parameters
+    concepts.append(entry)
     doc = normalize_source_concepts_document(repo, {"concepts": concepts})
     repo.git.commit_batch(
         adds={"concepts.yaml": yaml.safe_dump(doc, sort_keys=False, allow_unicode=True).encode("utf-8")},

@@ -344,6 +344,7 @@ def _resolve_sidecar_concept_id(conn: sqlite3.Connection, handle: str) -> str:
 @click.option("--form", "form_name", default=None,
               help="Form name (references forms/<name>.yaml, prompted if omitted)")
 @click.option("--values", default=None, help="Comma-separated values (required for category concepts)")
+@click.option("--closed", is_flag=True, default=False, help="Declare category value set as exhaustive (extensible: false)")
 @click.option("--dry-run", is_flag=True, help="Show what would happen without writing")
 @click.pass_obj
 def add(
@@ -353,6 +354,7 @@ def add(
     definition: str | None,
     form_name: str | None,
     values: str | None,
+    closed: bool,
     dry_run: bool,
 ) -> None:
     """Add a new concept to the registry."""
@@ -395,9 +397,15 @@ def add(
         if not value_list:
             click.echo("ERROR: --values must contain at least one value", err=True)
             sys.exit(EXIT_ERROR)
-        data["form_parameters"] = {"values": value_list}
+        fp: dict = {"values": value_list}
+        if closed:
+            fp["extensible"] = False
+        data["form_parameters"] = fp
     elif values is not None:
         click.echo("ERROR: --values is only valid with --form=category", err=True)
+        sys.exit(EXIT_ERROR)
+    elif closed:
+        click.echo("ERROR: --closed is only valid with --form=category", err=True)
         sys.exit(EXIT_ERROR)
 
     data = _normalize_concept_data(data, local_handle=cid)
