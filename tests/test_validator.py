@@ -1,7 +1,7 @@
 """Tests for the concept file validator.
 
 Tests the compiler contract checks that JSON Schema can't express:
-- id uniqueness
+- artifact_id uniqueness
 - canonical_name matches filename
 - deprecated concepts have replaced_by
 - replaced_by targets exist and aren't themselves deprecated
@@ -11,7 +11,7 @@ Tests the compiler contract checks that JSON Schema can't express:
 - exactly one kind variant populated
 - contested_definition relationships have notes
 - conditional exactness parameterizations have conditions
-- id prefix matches domain field
+- concept identity fields are present and canonical
 """
 
 import pytest
@@ -21,6 +21,11 @@ from propstore.loaded import LoadedEntry
 from propstore.validate import (
     load_concepts,
     validate_concepts,
+)
+from tests.conftest import (
+    attach_concept_version_id,
+    make_concept_identity,
+    normalize_claims_payload,
 )
 
 
@@ -50,57 +55,111 @@ def concept_dir(tmp_path):
 
 def write_concept(concept_dir, filename, data):
     """Helper: write a concept YAML file."""
+    normalized = dict(data)
+    raw_id = normalized.pop("id", None)
+    if "artifact_id" not in normalized or "logical_ids" not in normalized:
+        local_id = str(raw_id or normalized.get("canonical_name") or filename.removesuffix(".yaml"))
+        normalized.update(
+            make_concept_identity(
+                local_id,
+                domain=str(normalized.get("domain") or "propstore"),
+                canonical_name=str(normalized.get("canonical_name") or local_id),
+            )
+        )
+
+    replaced_by = normalized.get("replaced_by")
+    if isinstance(replaced_by, str) and replaced_by.startswith("concept"):
+        normalized["replaced_by"] = make_concept_identity(replaced_by)["artifact_id"]
+
+    relationships = normalized.get("relationships")
+    if isinstance(relationships, list):
+        rewritten_relationships = []
+        for rel in relationships:
+            if not isinstance(rel, dict):
+                rewritten_relationships.append(rel)
+                continue
+            rel_copy = dict(rel)
+            target = rel_copy.get("target")
+            if isinstance(target, str) and target.startswith("concept"):
+                rel_copy["target"] = make_concept_identity(target)["artifact_id"]
+            rewritten_relationships.append(rel_copy)
+        normalized["relationships"] = rewritten_relationships
+
+    parameterizations = normalized.get("parameterization_relationships")
+    if isinstance(parameterizations, list):
+        rewritten_parameterizations = []
+        for param in parameterizations:
+            if not isinstance(param, dict):
+                rewritten_parameterizations.append(param)
+                continue
+            param_copy = dict(param)
+            inputs = param_copy.get("inputs")
+            if isinstance(inputs, list):
+                param_copy["inputs"] = [
+                    make_concept_identity(input_id)["artifact_id"]
+                    if isinstance(input_id, str) and input_id.startswith("concept")
+                    else input_id
+                    for input_id in inputs
+                ]
+            rewritten_parameterizations.append(param_copy)
+        normalized["parameterization_relationships"] = rewritten_parameterizations
+
+    normalized = attach_concept_version_id(normalized)
     path = concept_dir / filename
-    path.write_text(yaml.dump(data, default_flow_style=False))
+    path.write_text(yaml.dump(normalized, default_flow_style=False))
     return path
 
 
 def make_quantity_concept(id, name, status="accepted", **kwargs):
     """Helper: make a minimal valid quantity concept dict."""
     c = {
-        "id": id,
         "canonical_name": name,
         "status": status,
         "definition": f"Definition of {name}.",
+        "domain": "speech",
         "form": "frequency",
     }
+    c.update(make_concept_identity(id, domain="speech", canonical_name=name))
     c.update(kwargs)
     return c
 
 
 def make_category_concept(id, name, values, status="accepted", extensible=True, **kwargs):
     c = {
-        "id": id,
         "canonical_name": name,
         "status": status,
         "definition": f"Definition of {name}.",
+        "domain": "speech",
         "form": "category",
         "form_parameters": {"values": values, "extensible": extensible},
     }
+    c.update(make_concept_identity(id, domain="speech", canonical_name=name))
     c.update(kwargs)
     return c
 
 
 def make_boolean_concept(id, name, status="accepted", **kwargs):
     c = {
-        "id": id,
         "canonical_name": name,
         "status": status,
         "definition": f"Definition of {name}.",
+        "domain": "speech",
         "form": "boolean",
     }
+    c.update(make_concept_identity(id, domain="speech", canonical_name=name))
     c.update(kwargs)
     return c
 
 
 def make_structural_concept(id, name, status="accepted", **kwargs):
     c = {
-        "id": id,
         "canonical_name": name,
         "status": status,
         "definition": f"Definition of {name}.",
+        "domain": "speech",
         "form": "structural",
     }
+    c.update(make_concept_identity(id, domain="speech", canonical_name=name))
     c.update(kwargs)
     return c
 
@@ -356,11 +415,12 @@ class TestParameterizationInputs:
 class TestFormValidation:
     def test_missing_form_error(self, concept_dir):
         c = {
-            "id": "concept1",
             "canonical_name": "bad_concept",
             "status": "accepted",
             "definition": "No form.",
+            "domain": "speech",
         }
+        c.update(make_concept_identity("concept1", domain="speech", canonical_name="bad_concept"))
         write_concept(concept_dir, "bad_concept.yaml", c)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
@@ -368,12 +428,13 @@ class TestFormValidation:
 
     def test_nonexistent_form_error(self, concept_dir):
         c = {
-            "id": "concept1",
             "canonical_name": "bad_concept",
             "status": "accepted",
             "definition": "Bad form ref.",
+            "domain": "speech",
             "form": "nonexistent_form",
         }
+        c.update(make_concept_identity("concept1", domain="speech", canonical_name="bad_concept"))
         write_concept(concept_dir, "bad_concept.yaml", c)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
@@ -382,20 +443,32 @@ class TestFormValidation:
 
 # ── ID format ────────────────────────────────────────────────────────
 
-class TestIdFormat:
-    def test_valid_concept_id(self, concept_dir):
+class TestIdentityFormat:
+    def test_valid_concept_artifact_id(self, concept_dir):
         c = make_quantity_concept("concept1", "test_concept")
         write_concept(concept_dir, "test_concept.yaml", c)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
         assert not result.errors
 
-    def test_invalid_concept_id_rejected(self, concept_dir):
-        c = make_quantity_concept("speech_0001", "test_concept")
+    def test_invalid_concept_artifact_id_rejected(self, concept_dir):
+        c = make_quantity_concept("concept1", "test_concept")
+        c["artifact_id"] = "speech_0001"
+        c["version_id"] = attach_concept_version_id(c)["version_id"]
         write_concept(concept_dir, "test_concept.yaml", c)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
-        assert any("format" in e.lower() or "conceptN" in e.lower() for e in result.errors)
+        assert any("artifact_id" in e.lower() or "ps:concept:" in e.lower() for e in result.errors)
+
+    def test_obsolete_raw_id_rejected(self, concept_dir):
+        c = make_quantity_concept("concept1", "test_concept")
+        c["id"] = "concept1"
+        c["version_id"] = attach_concept_version_id(c)["version_id"]
+        path = concept_dir / "test_concept.yaml"
+        path.write_text(yaml.dump(c, default_flow_style=False))
+        concepts = load_concepts(concept_dir)
+        result = validate_concepts(concepts)
+        assert any("obsolete raw 'id'" in e.lower() for e in result.errors)
 
 
 # ── CEL expression validation in relationships ───────────────────────
@@ -482,19 +555,18 @@ class TestCanonicalClaim:
         # Write a claim file so the validator can find claim1
         claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
-        claim_data = {
+        claim_data = normalize_claims_payload({
             "source": {"paper": "test_paper"},
             "claims": [
                 {
-                    "id": "claim1",
                     "type": "parameter",
-                    "concept": "concept1",
+                    "concept": make_concept_identity("concept1", domain="speech", canonical_name="concept_a")["artifact_id"],
                     "value": 200.0,
                     "unit": "Hz",
                     "provenance": {"paper": "test_paper", "page": 1},
                 },
             ],
-        }
+        })
         (claims_dir / "test_paper.yaml").write_text(
             yaml.dump(claim_data, default_flow_style=False))
 
@@ -506,7 +578,7 @@ class TestCanonicalClaim:
                                        "exactness": "exact",
                                        "source": "Test_2024",
                                        "bidirectional": True,
-                                       "canonical_claim": "claim1",
+                                       "canonical_claim": claim_data["claims"][0]["artifact_id"],
                                    }])
         write_concept(concept_dir, "concept_a.yaml", c1)
         write_concept(concept_dir, "concept_b.yaml", c2)
@@ -611,12 +683,13 @@ class TestFormParameterValidation:
     def test_category_concept_without_values_errors(self, concept_dir):
         """Concept with form=category and no form_parameters → error."""
         c = {
-            "id": "concept1",
             "canonical_name": "test_cat",
             "status": "accepted",
             "definition": "A category concept.",
+            "domain": "speech",
             "form": "category",
         }
+        c.update(make_concept_identity("concept1", domain="speech", canonical_name="test_cat"))
         write_concept(concept_dir, "test_cat.yaml", c)
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
