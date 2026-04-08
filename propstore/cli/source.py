@@ -8,6 +8,7 @@ import click
 
 from propstore.cli.repository import Repository
 from propstore.concept_alignment import commit_source_concept_proposal, commit_source_concepts_batch
+from propstore.provenance import stamp_file
 from propstore.source_ops import (
     commit_source_claim_proposal,
     commit_source_claims_batch,
@@ -320,3 +321,21 @@ def sync(obj: dict, name: str, output_dir: Path | None) -> None:
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(f"Synchronized {source_branch_name(name)} to {destination}")
+
+
+@source.command("stamp-provenance")
+@click.argument("name")
+@click.option("--file", "file_path", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--agent", required=True)
+@click.option("--skill", "skill_name", required=True)
+@click.option("--plugin-version", required=False)
+def stamp_provenance(
+    name: str,
+    file_path: Path,
+    agent: str,
+    skill_name: str,
+    plugin_version: str | None,
+) -> None:
+    """Stamp extraction provenance onto a pipeline artifact."""
+    stamp_file(file_path, agent=agent, skill=skill_name, plugin_version=plugin_version)
+    click.echo(f"Stamped provenance on {file_path}")
