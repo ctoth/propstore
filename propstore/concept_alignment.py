@@ -45,7 +45,14 @@ def commit_source_concept_proposal(
     local_name: str,
     definition: str,
     form: str,
-) -> str:
+) -> dict[str, Any]:
+    """Propose a concept on a source branch.
+
+    Returns a dict with keys: ``local_name``, ``status`` ("linked" or
+    "proposed"), and optionally ``registry_match`` (with ``artifact_id``
+    and ``canonical_name``) when linked to an existing concept.
+    """
+    _validate_form_name(form, repo)
     branch = f"source/{source_name}"
     existing = _load_yaml(repo, branch, "concepts.yaml") or {"concepts": []}
     concepts = list(existing.get("concepts", []))
@@ -59,12 +66,47 @@ def commit_source_concept_proposal(
         }
     )
     doc = normalize_source_concepts_document(repo, {"concepts": concepts})
-    return repo.git.commit_batch(
+    repo.git.commit_batch(
         adds={"concepts.yaml": yaml.safe_dump(doc, sort_keys=False, allow_unicode=True).encode("utf-8")},
         deletes=[],
         message=f"Propose concepts for {source_name}",
         branch=branch,
     )
+    # Find the entry we just added to return its status info.
+    for entry in doc.get("concepts", []):
+        if isinstance(entry, dict) and entry.get("local_name") == local_name:
+            result: dict[str, Any] = {
+                "local_name": local_name,
+                "form": entry.get("form", form),
+                "status": entry.get("status", "proposed"),
+            }
+            if entry.get("registry_match"):
+                result["registry_match"] = entry["registry_match"]
+            return result
+    return {"local_name": local_name, "form": form, "status": "proposed"}
+
+
+def _get_valid_form_names(repo: Repository) -> list[str] | None:
+    """Return sorted valid form names from the repo, or None if no forms directory."""
+    forms_tree = repo.tree() / "forms"
+    try:
+        if not forms_tree.exists():
+            return None
+    except (FileNotFoundError, OSError):
+        return None
+    names = sorted(f.stem for f in forms_tree.iterdir() if f.suffix == ".yaml")
+    return names if names else None
+
+
+def _validate_form_name(form: str, repo: Repository) -> None:
+    """Raise ValueError if form is not a known form in the repo."""
+    valid_forms = _get_valid_form_names(repo)
+    if valid_forms is None:
+        return  # No forms directory — skip validation
+    if form not in valid_forms:
+        raise ValueError(
+            f"Unknown form {form!r}. Valid forms: {', '.join(valid_forms)}"
+        )
 
 
 def normalize_source_concepts_document(repo: Repository, data: dict[str, Any]) -> dict[str, Any]:
@@ -86,6 +128,7 @@ def normalize_source_concepts_document(repo: Repository, data: dict[str, Any]) -
             raise ValueError(
                 f"concept #{index} is missing local_name/proposed_name/definition/form"
             )
+        _validate_form_name(str(form).strip(), repo)
         normalized = copy.deepcopy(entry)
         normalized["local_name"] = str(local_name).strip()
         normalized["proposed_name"] = str(proposed_name).strip()

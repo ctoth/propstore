@@ -333,3 +333,175 @@ def test_source_sync_materializes_branch_to_papers_workspace(tmp_path: Path) -> 
     synced_notes = repo.root.parent / "papers" / "demo-sync" / "notes.md"
     assert synced_notes.exists()
     assert synced_notes.read_text(encoding="utf-8") == "# Notes\n"
+
+
+def _init_source(runner, repo, name="demo"):
+    """Helper: init a source branch and return the result."""
+    return runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "init", name,
+            "--kind", "academic_paper",
+            "--origin-type", "manual",
+            "--origin-value", name,
+        ],
+    )
+
+
+def _seed_forms(repo, form_names):
+    """Commit minimal form YAML files to master so form validation passes."""
+    adds = {}
+    for form_name in form_names:
+        adds[f"forms/{form_name}.yaml"] = yaml.safe_dump(
+            {"name": form_name}, sort_keys=False, allow_unicode=True,
+        ).encode("utf-8")
+    repo.git.commit_batch(
+        adds=adds, deletes=[], message="Seed forms", branch="master",
+    )
+
+
+def test_propose_concept_reports_linked_status(tmp_path: Path) -> None:
+    """When a proposed concept matches one on master, CLI should print 'Linked'."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+
+    # Seed a concept on master so propose-concept can link to it.
+    _seed_forms(repo, ["structural"])
+    repo.git.commit_batch(
+        adds={
+            "concepts/existing.yaml": yaml.safe_dump(
+                {
+                    "canonical_name": "existing",
+                    "status": "accepted",
+                    "definition": "Existing concept.",
+                    "domain": "source",
+                    "form": "structural",
+                    "artifact_id": "ps:concept:existing",
+                    "logical_ids": [{"namespace": "propstore", "value": "existing"}],
+                    "version_id": "version:existing",
+                },
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
+        deletes=[],
+        message="Seed existing concept",
+        branch="master",
+    )
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--name", "existing",
+            "--definition", "Existing concept from source.",
+            "--form", "structural",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Linked" in result.output
+    assert "existing" in result.output
+    assert "ps:concept:existing" in result.output
+
+
+def test_propose_concept_reports_proposed_status(tmp_path: Path) -> None:
+    """When a proposed concept is new, CLI should print 'Proposed new concept'."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+
+    _seed_forms(repo, ["structural"])
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--name", "brand_new_thing",
+            "--definition", "A brand new concept.",
+            "--form", "structural",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Proposed new concept" in result.output
+    assert "brand_new_thing" in result.output
+    assert "structural" in result.output
+
+
+def test_propose_concept_rejects_invalid_form(tmp_path: Path) -> None:
+    """propose-concept should reject a form name not in the repo's forms directory."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+
+    _seed_forms(repo, ["structural", "scalar"])
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--name", "some_concept",
+            "--definition", "A concept.",
+            "--form", "bogus_form",
+        ],
+    )
+
+    assert result.exit_code != 0, result.output
+    assert "Unknown form" in result.output
+    assert "bogus_form" in result.output
+    assert "structural" in result.output
+
+
+def test_add_concepts_batch_rejects_invalid_form(tmp_path: Path) -> None:
+    """add-concepts --batch should reject a YAML file with an invalid form name."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+
+    _seed_forms(repo, ["structural", "scalar"])
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    concepts_file = tmp_path / "concepts.yaml"
+    concepts_file.write_text(
+        yaml.safe_dump(
+            {
+                "concepts": [
+                    {
+                        "local_name": "some_concept",
+                        "definition": "A concept.",
+                        "form": "bogus_form",
+                    },
+                ]
+            },
+            sort_keys=False,
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "add-concepts", "demo",
+            "--batch", str(concepts_file),
+        ],
+    )
+
+    assert result.exit_code != 0, result.output
+    assert "Unknown form" in result.output
+    assert "bogus_form" in result.output
+    assert "structural" in result.output

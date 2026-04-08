@@ -97,14 +97,24 @@ def propose_concept(
     form_name: str,
 ) -> None:
     repo: Repository = obj["repo"]
-    commit_source_concept_proposal(
-        repo,
-        name,
-        local_name=concept_name,
-        definition=definition,
-        form=form_name,
-    )
-    click.echo(f"Proposed concept {concept_name} on {source_branch_name(name)}")
+    try:
+        info = commit_source_concept_proposal(
+            repo,
+            name,
+            local_name=concept_name,
+            definition=definition,
+            form=form_name,
+        )
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    status = info.get("status", "proposed")
+    if status == "linked":
+        match = info.get("registry_match", {})
+        canonical = match.get("canonical_name", concept_name)
+        artifact_id = match.get("artifact_id", "")
+        click.echo(f"Linked '{concept_name}' \u2192 existing '{canonical}' ({artifact_id})")
+    else:
+        click.echo(f"Proposed new concept '{concept_name}' (form: {info.get('form', form_name)})")
 
 
 @source.command("add-concepts")
