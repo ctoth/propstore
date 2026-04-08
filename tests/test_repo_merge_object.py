@@ -4,21 +4,23 @@ from __future__ import annotations
 import yaml
 
 import propstore.repo as repo_module
+from propstore.identity import compute_claim_version_id
 from propstore.repo import KnowledgeRepo
 from propstore.repo.branch import create_branch
 from propstore.repo.merge_classifier import build_merge_framework
 from propstore.repo.merge_commit import create_merge_commit
+from tests.conftest import make_claim_identity, normalize_claims_payload
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = {
+    doc = normalize_claims_payload({
         "source": {
             "paper": paper,
             "extraction_model": "test",
             "extraction_date": "2026-01-01",
         },
         "claims": claims,
-    }
+    })
     return yaml.dump(doc, sort_keys=False).encode()
 
 
@@ -63,6 +65,28 @@ def _param_claim(
     return claim
 
 
+def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_paper") -> bytes:
+    normalized = normalize_claims_payload({
+        "source": {
+            "paper": paper,
+            "extraction_model": "test",
+            "extraction_date": "2026-01-01",
+        },
+        "claims": claims,
+    })
+    rewritten_claims: list[dict] = []
+    for original, normalized_claim in zip(claims, normalized["claims"], strict=True):
+        merged = dict(normalized_claim)
+        if "artifact_id" in original:
+            merged["artifact_id"] = original["artifact_id"]
+        if "logical_ids" in original:
+            merged["logical_ids"] = original["logical_ids"]
+        merged["version_id"] = compute_claim_version_id(merged)
+        rewritten_claims.append(merged)
+    normalized["claims"] = rewritten_claims
+    return yaml.dump(normalized, sort_keys=False).encode()
+
+
 def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
@@ -86,7 +110,8 @@ def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
 
     assert len(merge.arguments) == 2
     claim_ids = {argument.claim_id for argument in merge.arguments}
-    assert all(claim_id.startswith("claim1__") for claim_id in claim_ids)
+    artifact_id = make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+    assert all(claim_id.startswith(f"{artifact_id}__") for claim_id in claim_ids)
 
     left_id, right_id = sorted(claim_ids)
     assert (left_id, right_id) in merge.framework.attacks
@@ -154,14 +179,14 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
 
     assert len(merge.arguments) == 1
     emitted = merge.arguments[0]
-    assert emitted.claim_id == "claim1"
+    assert emitted.claim_id == make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
     assert emitted.claim["value"] == 999.0
     assert emitted.branch_origins == (branch_name,)
     assert merge.framework.attacks == frozenset()
     assert merge.framework.ignorance == frozenset()
 
 
-def test_create_merge_commit_preserves_conflicting_versions_with_provenance(tmp_path):
+def test_create_merge_commit_keeps_divergent_same_artifact_versions_out_of_materialized_claims(tmp_path):
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
@@ -186,18 +211,98 @@ def test_create_merge_commit_preserves_conflicting_versions_with_provenance(tmp_
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
 
-    conflict_versions = []
-    for claim_file in claim_files:
-        for claim in claim_file.data.get("claims", []):
-            if claim["id"].startswith("claim1__"):
-                conflict_versions.append(claim)
+    materialized_claims = [
+        claim
+        for claim_file in claim_files
+        for claim in claim_file.data.get("claims", [])
+    ]
+    assert materialized_claims == []
 
-    assert len(conflict_versions) == 2
-    origins = {claim["provenance"]["branch_origin"] for claim in conflict_versions}
-    assert origins == {"master", branch_name}
+    manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
+    manifest_arguments = manifest["merge"]["arguments"]
+    assert len(manifest_arguments) == 2
+    assert all(row["materialized"] is False for row in manifest_arguments)
+    assert {row["artifact_id"] for row in manifest_arguments} == {
+        make_claim_identity("claim1", namespace="test_paper")["artifact_id"]
+    }
 
 
 def test_repo_public_merge_surface_excludes_bridge_helpers() -> None:
     assert not hasattr(repo_module, "make_branch_assumption")
     assert not hasattr(repo_module, "branch_nogoods_from_merge")
     assert not hasattr(repo_module, "inject_branch_stances")
+
+
+def test_create_merge_commit_records_semantic_candidates_in_manifest(tmp_path):
+    kr = KnowledgeRepo.init(tmp_path / "knowledge")
+    base_sha = kr.commit_files({}, "seed")
+    branch_name = "paper/candidates"
+    create_branch(kr, branch_name, source_commit=base_sha)
+
+    left_claim = {
+        "id": "claim_a",
+        "type": "observation",
+        "statement": "Equivalent observation",
+        "concepts": ["concept_x"],
+        "provenance": {"paper": "left_paper", "page": 1},
+        "artifact_id": "ps:claim:leftcandidate0001",
+        "logical_ids": [{"namespace": "left_paper", "value": "claim_a"}],
+    }
+    right_claim = {
+        "id": "claim_b",
+        "type": "observation",
+        "statement": "Equivalent observation",
+        "concepts": ["concept_x"],
+        "provenance": {"paper": "right_paper", "page": 1},
+        "artifact_id": "ps:claim:rightcandidate0001",
+        "logical_ids": [{"namespace": "right_paper", "value": "claim_b"}],
+    }
+
+    kr.commit_files(
+        {"claims/left.yaml": _claim_yaml_with_explicit_identities([left_claim], paper="left_paper")},
+        "left",
+    )
+    kr.commit_files(
+        {"claims/right.yaml": _claim_yaml_with_explicit_identities([right_claim], paper="right_paper")},
+        "right",
+        branch=branch_name,
+    )
+
+    merge_sha = create_merge_commit(kr, "master", branch_name)
+    manifest = yaml.safe_load((kr.tree(commit=merge_sha) / "merge" / "manifest.yaml").read_text())
+
+    assert manifest["merge"]["semantic_candidates"] == [
+        [
+            "ps:claim:leftcandidate0001",
+            "ps:claim:rightcandidate0001",
+        ]
+    ]
+    assert manifest["merge"]["semantic_candidate_details"] == [
+        {
+            "claim_ids": [
+                "ps:claim:leftcandidate0001",
+                "ps:claim:rightcandidate0001",
+            ],
+            "logical_ids": ["left_paper:claim_a", "right_paper:claim_b"],
+            "artifact_ids": [
+                "ps:claim:leftcandidate0001",
+                "ps:claim:rightcandidate0001",
+            ],
+            "arguments": [
+                {
+                    "claim_id": "ps:claim:leftcandidate0001",
+                    "logical_id": "left_paper:claim_a",
+                    "artifact_id": "ps:claim:leftcandidate0001",
+                    "branch_origins": ["master"],
+                    "source_paper": "left_paper",
+                },
+                {
+                    "claim_id": "ps:claim:rightcandidate0001",
+                    "logical_id": "right_paper:claim_b",
+                    "artifact_id": "ps:claim:rightcandidate0001",
+                    "branch_origins": [branch_name],
+                    "source_paper": "right_paper",
+                },
+            ],
+        }
+    ]
