@@ -19,7 +19,7 @@ from propstore.conflict_detector import (
 )
 from propstore.cel_checker import ConceptInfo, KindType
 from propstore.loaded import LoadedEntry
-from tests.conftest import make_concept_registry
+from tests.conftest import make_concept_identity, make_concept_registry
 
 
 # ── Test helpers ─────────────────────────────────────────────────────
@@ -214,30 +214,45 @@ class TestValueComparison:
 class TestParameterizationConflict:
     def _make_param_registry(self):
         """Registry with a parameterization relationship: ra = ta / T0."""
+        concept10 = make_concept_identity(
+            "concept10",
+            domain="speech",
+            canonical_name="open_quotient",
+        )
+        concept11 = make_concept_identity(
+            "concept11",
+            domain="speech",
+            canonical_name="return_time",
+        )
+        concept12 = make_concept_identity(
+            "concept12",
+            domain="speech",
+            canonical_name="period",
+        )
         return {
-            "concept10": {
-                "id": "concept10",
+            concept10["artifact_id"]: {
+                **concept10,
                 "canonical_name": "open_quotient",
                 "form": "duration_ratio",
                 "status": "accepted",
                 "definition": "ra = ta / T0",
                 "parameterization_relationships": [
                     {
-                        "inputs": ["concept11", "concept12"],
+                        "inputs": [concept11["artifact_id"], concept12["artifact_id"]],
                         "sympy": "concept11 / concept12",
                         "exactness": "exact",
                     }
                 ],
             },
-            "concept11": {
-                "id": "concept11",
+            concept11["artifact_id"]: {
+                **concept11,
                 "canonical_name": "return_time",
                 "form": "time",
                 "status": "accepted",
                 "definition": "ta",
             },
-            "concept12": {
-                "id": "concept12",
+            concept12["artifact_id"]: {
+                **concept12,
                 "canonical_name": "period",
                 "form": "time",
                 "status": "accepted",
@@ -249,49 +264,79 @@ class TestParameterizationConflict:
         """Derived value from parameterization conflicts with direct claim -> PARAM_CONFLICT."""
         pytest.importorskip("sympy")
         registry = self._make_param_registry()
+        concept10_id = make_concept_identity(
+            "concept10",
+            domain="speech",
+            canonical_name="open_quotient",
+        )["artifact_id"]
+        concept11_id = make_concept_identity(
+            "concept11",
+            domain="speech",
+            canonical_name="return_time",
+        )["artifact_id"]
+        concept12_id = make_concept_identity(
+            "concept12",
+            domain="speech",
+            canonical_name="period",
+        )["artifact_id"]
         claims = [
             # Direct claim: ra = 5%
-            make_parameter_claim("claim1", "concept10", 5.0, unit="%"),
+            make_parameter_claim("claim1", concept10_id, 5.0, unit="%"),
             # Inputs: ta = 0.001, T0 = 0.01 => ra = 0.001/0.01 = 0.1 = 10%... wait
             # Let's use simpler numbers: ta=1, T0=10 => ra = 0.1, but claim says 5.0
-            make_parameter_claim("claim2", "concept11", 1.0, unit="s"),
-            make_parameter_claim("claim3", "concept12", 10.0, unit="s"),
+            make_parameter_claim("claim2", concept11_id, 1.0, unit="s"),
+            make_parameter_claim("claim3", concept12_id, 10.0, unit="s"),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], registry)
         # Should find PARAM_CONFLICT: derived ra = 1/10 = 0.1, but claimed ra = 5.0
         param_conflicts = [r for r in records if r.warning_class == ConflictClass.PARAM_CONFLICT]
         assert len(param_conflicts) >= 1
-        assert param_conflicts[0].concept_id == "concept10"
+        assert param_conflicts[0].concept_id == concept10_id
         assert param_conflicts[0].derivation_chain is not None
 
     def test_param_no_conflict_approximate(self):
         """Approximate parameterization -> skip, no PARAM_CONFLICT."""
         pytest.importorskip("sympy")
+        concept10 = make_concept_identity(
+            "concept10",
+            domain="speech",
+            canonical_name="open_quotient",
+        )
+        concept11 = make_concept_identity(
+            "concept11",
+            domain="speech",
+            canonical_name="return_time",
+        )
+        concept12 = make_concept_identity(
+            "concept12",
+            domain="speech",
+            canonical_name="period",
+        )
         registry = {
-            "concept10": {
-                "id": "concept10",
+            concept10["artifact_id"]: {
+                **concept10,
                 "canonical_name": "open_quotient",
                 "form": "duration_ratio",
                 "status": "accepted",
                 "definition": "ra ~ ta / T0",
                 "parameterization_relationships": [
                     {
-                        "inputs": ["concept11", "concept12"],
+                        "inputs": [concept11["artifact_id"], concept12["artifact_id"]],
                         "sympy": "concept11 / concept12",
                         "exactness": "approximate",
                     }
                 ],
             },
-            "concept11": {
-                "id": "concept11",
+            concept11["artifact_id"]: {
+                **concept11,
                 "canonical_name": "return_time",
                 "form": "time",
                 "status": "accepted",
                 "definition": "ta",
             },
-            "concept12": {
-                "id": "concept12",
+            concept12["artifact_id"]: {
+                **concept12,
                 "canonical_name": "period",
                 "form": "time",
                 "status": "accepted",
@@ -299,9 +344,9 @@ class TestParameterizationConflict:
             },
         }
         claims = [
-            make_parameter_claim("claim1", "concept10", 5.0, unit="%"),
-            make_parameter_claim("claim2", "concept11", 1.0, unit="s"),
-            make_parameter_claim("claim3", "concept12", 10.0, unit="s"),
+            make_parameter_claim("claim1", concept10["artifact_id"], 5.0, unit="%"),
+            make_parameter_claim("claim2", concept11["artifact_id"], 1.0, unit="s"),
+            make_parameter_claim("claim3", concept12["artifact_id"], 10.0, unit="s"),
         ]
         cf = make_claim_file(claims)
         records = detect_conflicts([cf], registry)
@@ -829,37 +874,52 @@ class TestTransitiveContextSemantics:
         from propstore.conflict_detector import detect_transitive_conflicts
         from propstore.validate_contexts import ContextHierarchy
 
+        concept_out = make_concept_identity(
+            "concept_out",
+            domain="speech",
+            canonical_name="concept_out",
+        )
+        concept_mid = make_concept_identity(
+            "concept_mid",
+            domain="speech",
+            canonical_name="concept_mid",
+        )
+        concept_in = make_concept_identity(
+            "concept_in",
+            domain="speech",
+            canonical_name="concept_in",
+        )
         registry = {
-            "concept_out": {
-                "id": "concept_out",
+            concept_out["artifact_id"]: {
+                **concept_out,
                 "canonical_name": "concept_out",
                 "form": "frequency",
                 "status": "accepted",
                 "definition": "output",
                 "parameterization_relationships": [
                     {
-                        "inputs": ["concept_mid"],
+                        "inputs": [concept_mid["artifact_id"]],
                         "sympy": "concept_mid * 2",
                         "exactness": "exact",
                     }
                 ],
             },
-            "concept_mid": {
-                "id": "concept_mid",
+            concept_mid["artifact_id"]: {
+                **concept_mid,
                 "canonical_name": "concept_mid",
                 "form": "frequency",
                 "status": "accepted",
                 "definition": "middle",
                 "parameterization_relationships": [
                     {
-                        "inputs": ["concept_in"],
+                        "inputs": [concept_in["artifact_id"]],
                         "sympy": "concept_in * 3",
                         "exactness": "exact",
                     }
                 ],
             },
-            "concept_in": {
-                "id": "concept_in",
+            concept_in["artifact_id"]: {
+                **concept_in,
                 "canonical_name": "concept_in",
                 "form": "frequency",
                 "status": "accepted",
@@ -869,13 +929,13 @@ class TestTransitiveContextSemantics:
         claims = [
             make_parameter_claim(
                 "direct_out",
-                "concept_out",
+                concept_out["artifact_id"],
                 100.0,
                 conditions=["task == 'speech'"],
             ) | {"context": "ctx_root"},
             make_parameter_claim(
                 "source_in",
-                "concept_in",
+                concept_in["artifact_id"],
                 10.0,
                 conditions=["task == 'speech'"],
             ) | {"context": "ctx_other"},
@@ -894,7 +954,7 @@ class TestTransitiveContextSemantics:
 
         assert len(records) == 1
         assert records[0].warning_class == ConflictClass.PARAM_CONFLICT
-        assert records[0].concept_id == "concept_out"
+        assert records[0].concept_id == concept_out["artifact_id"]
 
     def test_unrelated_contexts_do_not_suppress_direct_conflicts(self):
         """Claims in unrelated contexts should NOT be suppressed as CONTEXT_PHI_NODE.
