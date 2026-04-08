@@ -6,7 +6,7 @@ import sqlite3
 import pytest
 import yaml
 
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.world import WorldModel
 
 
@@ -279,6 +279,7 @@ def test_world_model_compiled_graph_matches_normalized_storage_projection(
                     alg.canonical_ast,
                     alg.variables_json,
                     alg.stage,
+                    core.source_slug,
                     core.source_paper,
                     core.provenance_page,
                     core.provenance_json,
@@ -373,3 +374,4 @@ def test_world_model_compiled_graph_matches_normalized_storage_projection(
     projected = build_compiled_world_graph(NormalizedProjectionStore(graph_build_world))
     graph_build_world._conn.row_factory = sqlite3.Row
     assert projected == graph_build_world.compiled_graph()
+
