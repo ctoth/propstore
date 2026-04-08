@@ -12,17 +12,18 @@ from propstore.repo.structured_merge import (
     build_branch_structured_summary,
     build_structured_merge_candidates,
 )
+from tests.conftest import make_claim_identity, normalize_claims_payload
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = {
+    doc = normalize_claims_payload({
         "source": {
             "paper": paper,
             "extraction_model": "test",
             "extraction_date": "2026-01-01",
         },
         "claims": claims,
-    }
+    })
     return yaml.dump(doc, sort_keys=False).encode()
 
 
@@ -31,6 +32,10 @@ def _stance_yaml(source_claim: str, stances: list[dict]) -> bytes:
         {"source_claim": source_claim, "stances": stances},
         sort_keys=False,
     ).encode()
+
+
+def _artifact_id(local_id: str, *, paper: str = "test_paper") -> str:
+    return make_claim_identity(local_id, namespace=paper)["artifact_id"]
 
 
 def _obs_claim(cid: str, statement: str) -> dict:
@@ -58,8 +63,8 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
                 _obs_claim("claim_b", "B"),
             ]),
             "stances/claim_a.yaml": _stance_yaml(
-                "claim_a",
-                [{"target": "claim_b", "type": "contradicts"}],
+                _artifact_id("claim_a"),
+                [{"target": _artifact_id("claim_b"), "type": "contradicts"}],
             ),
         },
         "seed structured branch",
@@ -67,9 +72,9 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
 
     summary = build_branch_structured_summary(kr, "master")
 
-    assert summary.claim_ids == ("claim_a", "claim_b")
-    assert summary.claim_provenance["claim_a"]["paper"] == "test_paper"
-    assert summary.claim_provenance["claim_b"]["paper"] == "test_paper"
+    assert summary.claim_ids == (_artifact_id("claim_a"), _artifact_id("claim_b"))
+    assert summary.claim_provenance[_artifact_id("claim_a")]["paper"] == "test_paper"
+    assert summary.claim_provenance[_artifact_id("claim_b")]["paper"] == "test_paper"
     assert summary.relation_surface == {
         "attack": "preserved_via_projection",
         "non_attack": "not_preserved_in_summary",
@@ -91,7 +96,7 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
         )
         for attacker, target in summary.projection.framework.attacks
     }
-    assert ("claim_a", "claim_b") in claim_attack_pairs
+    assert (_artifact_id("claim_a"), _artifact_id("claim_b")) in claim_attack_pairs
 
 
 def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
@@ -106,8 +111,8 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
             _obs_claim("claim_b", "B"),
         ]),
         "stances/claim_a.yaml": _stance_yaml(
-            "claim_a",
-            [{"target": "claim_b", "type": "contradicts"}],
+            _artifact_id("claim_a"),
+            [{"target": _artifact_id("claim_b"), "type": "contradicts"}],
         ),
     }
     kr.commit_files(adds, "left structured")
@@ -130,8 +135,8 @@ def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
                 _obs_claim("claim_b", "B"),
             ]),
             "stances/claim_a.yaml": _stance_yaml(
-                "claim_a",
-                [{"target": "claim_b", "type": "contradicts"}],
+                _artifact_id("claim_a"),
+                [{"target": _artifact_id("claim_b"), "type": "contradicts"}],
             ),
         },
         "seed structured branch",
@@ -167,8 +172,8 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
                 _obs_claim("claim_b", "B"),
             ]),
             "stances/claim_a.yaml": _stance_yaml(
-                "claim_a",
-                [{"target": "claim_b", "type": "contradicts"}],
+                _artifact_id("claim_a"),
+                [{"target": _artifact_id("claim_b"), "type": "contradicts"}],
             ),
         },
         "right",
@@ -177,8 +182,8 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
 
     summary = build_branch_structured_summary(kr, "master")
 
-    assert summary.claim_ids == ("claim_a",)
-    assert set(summary.projection.argument_to_claim_id.values()) == {"claim_a"}
+    assert summary.claim_ids == (_artifact_id("claim_a"),)
+    assert set(summary.projection.argument_to_claim_id.values()) == {_artifact_id("claim_a")}
     assert summary.projection.framework.attacks == frozenset()
 
 
@@ -242,7 +247,10 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
     kr.commit_files(
         {
             "claims/claims.yaml": _claim_yaml(base_claims),
-            "stances/claim_a.yaml": _stance_yaml("claim_a", in_scope_stances),
+            "stances/claim_a.yaml": _stance_yaml(
+                _artifact_id("claim_a"),
+                [{"target": _artifact_id("claim_b"), "type": "contradicts"}],
+            ),
         },
         "left",
     )
@@ -250,8 +258,8 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
         {
             "claims/claims.yaml": _claim_yaml(base_claims),
             "stances/claim_a.yaml": _stance_yaml(
-                "claim_a",
-                in_scope_stances + extra_stances,
+                _artifact_id("claim_a"),
+                [{"target": _artifact_id("claim_b"), "type": "contradicts"}] + extra_stances,
             ),
         },
         "right",
@@ -304,7 +312,10 @@ def test_branch_structured_summary_is_order_invariant(
     kr.commit_files(
         {
             "claims/claims.yaml": _claim_yaml([claims_by_id[claim_id] for claim_id in claim_order]),
-            "stances/claim_a.yaml": _stance_yaml("claim_a", stances),
+            "stances/claim_a.yaml": _stance_yaml(
+                _artifact_id("claim_a"),
+                [{"target": _artifact_id(target), "type": "contradicts"} for target in stance_order],
+            ),
         },
         "left",
     )
@@ -314,10 +325,10 @@ def test_branch_structured_summary_is_order_invariant(
                 [claims_by_id["claim_c"], claims_by_id["claim_a"], claims_by_id["claim_b"]]
             ),
             "stances/claim_a.yaml": _stance_yaml(
-                "claim_a",
+                _artifact_id("claim_a"),
                 [
-                    {"target": "claim_c", "type": "contradicts"},
-                    {"target": "claim_b", "type": "contradicts"},
+                    {"target": _artifact_id("claim_c"), "type": "contradicts"},
+                    {"target": _artifact_id("claim_b"), "type": "contradicts"},
                 ],
             ),
         },
