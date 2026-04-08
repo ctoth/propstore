@@ -11,6 +11,33 @@ from propstore.repo.paf_queries import (
 )
 
 
+def semantic_candidate_details(merge: RepoMergeFramework) -> list[dict]:
+    argument_index = merge.argument_index()
+    details: list[dict] = []
+    for claim_ids in merge.semantic_candidates:
+        arguments = [argument_index[claim_id] for claim_id in sorted(claim_ids)]
+        details.append({
+            "claim_ids": [argument.claim_id for argument in arguments],
+            "logical_ids": [
+                argument.logical_id
+                for argument in arguments
+                if isinstance(argument.logical_id, str) and argument.logical_id
+            ],
+            "artifact_ids": [argument.artifact_id for argument in arguments],
+            "arguments": [
+                {
+                    "claim_id": argument.claim_id,
+                    "logical_id": argument.logical_id,
+                    "artifact_id": argument.artifact_id,
+                    "branch_origins": list(argument.branch_origins),
+                    "source_paper": argument.claim.get("provenance", {}).get("paper"),
+                }
+                for argument in arguments
+            ],
+        })
+    return details
+
+
 def summarize_merge_framework(
     merge: RepoMergeFramework,
     *,
@@ -26,6 +53,8 @@ def summarize_merge_framework(
         detail = {
             "claim_id": argument.claim_id,
             "canonical_claim_id": argument.canonical_claim_id,
+            "artifact_id": argument.artifact_id,
+            "logical_id": argument.logical_id,
             "concept_id": argument.concept_id,
             "branch_origins": list(argument.branch_origins),
             "provenance": dict(argument.claim.get("provenance", {})),
@@ -37,6 +66,8 @@ def summarize_merge_framework(
             "credulously_accepted": detail["credulously_accepted"],
             "branch_origins": detail["branch_origins"],
             "canonical_claim_id": detail["canonical_claim_id"],
+            "artifact_id": detail["artifact_id"],
+            "logical_id": detail["logical_id"],
             "concept_id": detail["concept_id"],
         }
         argument_details.append(detail)
@@ -66,10 +97,12 @@ def summarize_merge_framework(
         "completion_count": len(enumerate_paf_completions(merge.framework)),
         "skeptical": skeptical,
         "credulous": credulous,
+        "semantic_candidates": [list(group) for group in merge.semantic_candidates],
+        "semantic_candidate_details": semantic_candidate_details(merge),
         "canonical_groups": canonical_groups_out,
         "argument_details": argument_details,
         "statuses": statuses,
     }
 
 
-__all__ = ["summarize_merge_framework"]
+__all__ = ["semantic_candidate_details", "summarize_merge_framework"]
