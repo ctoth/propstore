@@ -8,6 +8,7 @@ from propstore.conflict_detector.models import ConflictClass
 from propstore.form_utils import FormDefinition, UnitConversion
 from propstore.param_conflicts import _detect_param_conflicts, detect_transitive_conflicts
 from propstore.loaded import LoadedEntry
+from tests.conftest import make_concept_identity
 
 from propstore.cel_checker import KindType
 
@@ -37,24 +38,35 @@ def _stub_claim_file() -> LoadedEntry:
     )
 
 
+def _concept(local_id: str, *, form: str) -> tuple[str, dict]:
+    data = {
+        **make_concept_identity(local_id, domain="test", canonical_name=local_id),
+        "canonical_name": local_id,
+        "form": form,
+    }
+    return data["artifact_id"], data
+
+
 def test_detect_param_conflicts_handles_equality_parameterizations_without_warning():
     """Eq(...) parameterizations should produce conflicts, not warnings."""
     records = []
+    concept1_id, concept1 = _concept("concept1", form="quantity")
+    concept2_id, concept2 = _concept("concept2", form="quantity")
+    concept3_id, concept3 = _concept("concept3", form="quantity")
     by_concept = {
-        "concept1": [{"id": "claim_a", "value": [10.0], "conditions": []}],
-        "concept2": [{"id": "claim_b", "value": [9.807], "conditions": []}],
-        "concept3": [{"id": "claim_c", "value": [99.0], "conditions": []}],
+        concept1_id: [{"id": "claim_a", "value": [10.0], "conditions": []}],
+        concept2_id: [{"id": "claim_b", "value": [9.807], "conditions": []}],
+        concept3_id: [{"id": "claim_c", "value": [99.0], "conditions": []}],
     }
     concept_registry = {
-        "concept1": {"id": "concept1", "form": "quantity"},
-        "concept2": {"id": "concept2", "form": "quantity"},
-        "concept3": {
-            "id": "concept3",
-            "form": "quantity",
+        concept1_id: concept1,
+        concept2_id: concept2,
+        concept3_id: {
+            **concept3,
             "parameterization_relationships": [
                 {
                     "exactness": "exact",
-                    "inputs": ["concept1", "concept2"],
+                    "inputs": [concept1_id, concept2_id],
                     "sympy": "Eq(concept3, concept1 * concept2)",
                 }
             ],
@@ -72,12 +84,12 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
 
     param_warnings = [
         warning for warning in caught
-        if "Could not evaluate parameterization for concept3" in str(warning.message)
+        if f"Could not evaluate parameterization for {concept3_id}" in str(warning.message)
     ]
     assert param_warnings == []
     assert len(records) == 1
     assert records[0].warning_class == ConflictClass.PARAM_CONFLICT
-    assert records[0].concept_id == "concept3"
+    assert records[0].concept_id == concept3_id
     assert records[0].claim_b_id == "claim_a"
 
 
@@ -86,23 +98,24 @@ def test_same_value_different_units_no_conflict():
     records = []
     freq_form = _frequency_form()
     forms = {"frequency": freq_form}
+    freq_input_id, freq_input = _concept("freq_input", form="frequency")
+    freq_output_id, freq_output = _concept("freq_output", form="quantity")
 
     by_concept = {
-        "freq_input": [
+        freq_input_id: [
             {"id": "claim_hz", "value": 200.0, "unit": "Hz", "conditions": []},
             {"id": "claim_khz", "value": 0.2, "unit": "kHz", "conditions": []},
         ],
-        "freq_output": [{"id": "claim_out", "value": [100.0], "conditions": []}],
+        freq_output_id: [{"id": "claim_out", "value": [100.0], "conditions": []}],
     }
     concept_registry = {
-        "freq_input": {"id": "freq_input", "form": "frequency"},
-        "freq_output": {
-            "id": "freq_output",
-            "form": "quantity",
+        freq_input_id: freq_input,
+        freq_output_id: {
+            **freq_output,
             "parameterization_relationships": [
                 {
                     "exactness": "exact",
-                    "inputs": ["freq_input"],
+                    "inputs": [freq_input_id],
                     "sympy": "Eq(freq_output, freq_input / 2)",
                 }
             ],
@@ -123,22 +136,23 @@ def test_different_value_different_units_conflict():
     records = []
     freq_form = _frequency_form()
     forms = {"frequency": freq_form}
+    freq_input_id, freq_input = _concept("freq_input", form="frequency")
+    freq_output_id, freq_output = _concept("freq_output", form="quantity")
 
     by_concept = {
-        "freq_input": [
+        freq_input_id: [
             {"id": "claim_khz", "value": 0.5, "unit": "kHz", "conditions": []},
         ],
-        "freq_output": [{"id": "claim_out", "value": [100.0], "conditions": []}],
+        freq_output_id: [{"id": "claim_out", "value": [100.0], "conditions": []}],
     }
     concept_registry = {
-        "freq_input": {"id": "freq_input", "form": "frequency"},
-        "freq_output": {
-            "id": "freq_output",
-            "form": "quantity",
+        freq_input_id: freq_input,
+        freq_output_id: {
+            **freq_output,
             "parameterization_relationships": [
                 {
                     "exactness": "exact",
-                    "inputs": ["freq_input"],
+                    "inputs": [freq_input_id],
                     "sympy": "Eq(freq_output, freq_input / 2)",
                 }
             ],
@@ -161,29 +175,30 @@ def test_transitive_propagation_normalizes_units():
     """A parameterization chain where an input uses non-SI unit. Derived value should use SI."""
     freq_form = _frequency_form()
     forms = {"frequency": freq_form}
+    concept_a_id, concept_a = _concept("concept_a", form="frequency")
+    concept_b_id, concept_b = _concept("concept_b", form="quantity")
+    concept_c_id, concept_c = _concept("concept_c", form="quantity")
 
     # Chain: concept_a (input) -> concept_b (derived) -> concept_c (derived)
     # concept_a has a claim in kHz, concept_c has a direct claim to compare against
     concept_registry = {
-        "concept_a": {"id": "concept_a", "form": "frequency"},
-        "concept_b": {
-            "id": "concept_b",
-            "form": "quantity",
+        concept_a_id: concept_a,
+        concept_b_id: {
+            **concept_b,
             "parameterization_relationships": [
                 {
                     "exactness": "exact",
-                    "inputs": ["concept_a"],
+                    "inputs": [concept_a_id],
                     "sympy": "Eq(concept_b, concept_a * 2)",
                 }
             ],
         },
-        "concept_c": {
-            "id": "concept_c",
-            "form": "quantity",
+        concept_c_id: {
+            **concept_c,
             "parameterization_relationships": [
                 {
                     "exactness": "exact",
-                    "inputs": ["concept_b"],
+                    "inputs": [concept_b_id],
                     "sympy": "Eq(concept_c, concept_b + 100)",
                 }
             ],
@@ -197,9 +212,9 @@ def test_transitive_propagation_normalizes_units():
     claim_data = {
         "source": {"paper": "test"},
         "claims": [
-            {"id": "claim_a", "concept": "concept_a", "value": 0.1, "unit": "kHz"},
-            {"id": "claim_b_direct", "concept": "concept_b", "value": 200.0},
-            {"id": "claim_c_direct", "concept": "concept_c", "value": 300.0},
+            {"id": "claim_a", "concept": concept_a_id, "value": 0.1, "unit": "kHz"},
+            {"id": "claim_b_direct", "concept": concept_b_id, "value": 200.0},
+            {"id": "claim_c_direct", "concept": concept_c_id, "value": 300.0},
         ],
     }
     claim_file = LoadedEntry(
