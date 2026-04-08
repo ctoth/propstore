@@ -22,7 +22,21 @@ from propstore.cli.form import form
 from propstore.cli.init import init
 from propstore.cli.merge_cmds import merge
 from propstore.cli.repo_import_cmd import import_repo_cmd
-from propstore.cli.repository import Repository, RepositoryNotFound
+from propstore.cli.repository import Repository
+
+
+class _LazyRepository:
+    def __init__(self, start: Path | None) -> None:
+        self._start = start
+        self._repo: Repository | None = None
+
+    def _resolve(self) -> Repository:
+        if self._repo is None:
+            self._repo = Repository.find(self._start)
+        return self._repo
+
+    def __getattr__(self, name: str):
+        return getattr(self._resolve(), name)
 
 
 @click.group()
@@ -39,10 +53,7 @@ def cli(ctx: click.Context, directory: str | None) -> None:
         # init bypasses Repository lookup — store the start dir for init to use
         ctx.obj["start"] = start
         return
-    try:
-        ctx.obj["repo"] = Repository.find(start)
-    except RepositoryNotFound as exc:
-        raise click.ClickException(str(exc)) from exc
+    ctx.obj["repo"] = _LazyRepository(start)
 
 
 cli.add_command(concept)
@@ -286,7 +297,7 @@ def show_cmd(ctx, commit):
 @click.pass_context
 def checkout_cmd(ctx, commit):
     """Build sidecar from a historical commit (non-destructive)."""
-    from propstore.build_sidecar import build_sidecar
+    from propstore.sidecar.build import build_sidecar
 
     repo = ctx.obj["repo"]
     git = repo.git
