@@ -665,6 +665,192 @@ def commit_source_stances_batch(repo: Repository, name: str, stances_file: Path)
     )
 
 
+def commit_source_claim_proposal(
+    repo: Repository,
+    name: str,
+    *,
+    claim_id: str,
+    claim_type: str,
+    statement: str | None = None,
+    concept: str | None = None,
+    value: float | None = None,
+    unit: str | None = None,
+    page: int | None = None,
+) -> dict[str, Any]:
+    """Propose a single claim on a source branch.
+
+    Returns the normalized claim entry (with artifact_id).
+    """
+    branch = source_branch_name(name)
+    source_doc = load_source_document(repo, name)
+    existing = _load_yaml_from_branch(repo, branch, "claims.yaml") or {"claims": []}
+    claims = list(existing.get("claims", []) or [])
+
+    # Restore existing claims to pre-normalized form so re-normalization
+    # produces consistent content hashes.
+    _NORM_KEYS = {"source_local_id", "logical_ids", "artifact_id", "version_id"}
+    restored: list[dict[str, Any]] = []
+    for c in claims:
+        if not isinstance(c, dict):
+            restored.append(c)
+            continue
+        # Skip the claim being replaced (dedup)
+        if c.get("source_local_id") == claim_id or c.get("id") == claim_id:
+            continue
+        rc = {k: v for k, v in c.items() if k not in _NORM_KEYS}
+        # Restore original local id
+        local_id = c.get("source_local_id")
+        if local_id:
+            rc["id"] = local_id
+        restored.append(rc)
+    claims = restored
+
+    # Build claim dict
+    claim: dict[str, Any] = {"id": claim_id, "type": claim_type}
+    if statement is not None:
+        claim["statement"] = statement
+    if concept is not None:
+        claim["concept"] = concept
+    if value is not None:
+        claim["value"] = value
+    if unit is not None:
+        claim["unit"] = unit
+    if page is not None:
+        claim["provenance"] = {"page": page}
+
+    claims.append(claim)
+    data: dict[str, Any] = dict(existing)
+    data["claims"] = claims
+
+    normalized, _ = normalize_source_claims_payload(
+        data,
+        source_uri=str(source_doc.get("id") or source_tag_uri(repo, name)),
+        source_namespace=_normalize_slug(name),
+    )
+
+    commit_source_file(
+        repo,
+        name,
+        relpath="claims.yaml",
+        content=yaml.safe_dump(normalized, sort_keys=False, allow_unicode=True).encode("utf-8"),
+        message=f"Propose claim for {_normalize_slug(name)}",
+    )
+
+    # Find the entry we just added
+    for entry in normalized.get("claims", []):
+        if isinstance(entry, dict) and entry.get("source_local_id") == claim_id:
+            return entry
+    # Fallback: return the last claim
+    return normalized["claims"][-1]
+
+
+def commit_source_justification_proposal(
+    repo: Repository,
+    name: str,
+    *,
+    just_id: str,
+    conclusion: str,
+    premises: list[str],
+    rule_kind: str,
+    page: int | None = None,
+) -> dict[str, Any]:
+    """Propose a single justification on a source branch.
+
+    Returns the normalized justification entry.
+    """
+    branch = source_branch_name(name)
+    local_to_artifact, _logical, _artifacts = _load_source_claim_index(repo, name)
+    existing = _load_yaml_from_branch(repo, branch, "justifications.yaml") or {"justifications": []}
+    justs = list(existing.get("justifications", []) or [])
+
+    # Dedup by id
+    justs = [j for j in justs if not (isinstance(j, dict) and j.get("id") == just_id)]
+
+    # Build justification dict
+    just: dict[str, Any] = {
+        "id": just_id,
+        "conclusion": conclusion,
+        "premises": premises,
+        "rule_kind": rule_kind,
+    }
+    if page is not None:
+        just["provenance"] = {"page": page}
+
+    justs.append(just)
+    data: dict[str, Any] = dict(existing)
+    data["justifications"] = justs
+
+    normalized = normalize_source_justifications_payload(
+        data,
+        local_to_artifact=local_to_artifact,
+    )
+
+    commit_source_file(
+        repo,
+        name,
+        relpath="justifications.yaml",
+        content=yaml.safe_dump(normalized, sort_keys=False, allow_unicode=True).encode("utf-8"),
+        message=f"Propose justification for {_normalize_slug(name)}",
+    )
+
+    # Find the entry we just added
+    for entry in normalized.get("justifications", []):
+        if isinstance(entry, dict) and entry.get("id") == just_id:
+            return entry
+    return normalized["justifications"][-1]
+
+
+def commit_source_stance_proposal(
+    repo: Repository,
+    name: str,
+    *,
+    source_claim: str,
+    target: str,
+    stance_type: str,
+    strength: str | None = None,
+    note: str | None = None,
+) -> dict[str, Any]:
+    """Propose a single stance on a source branch.
+
+    Returns the normalized stance entry.
+    """
+    branch = source_branch_name(name)
+    local_to_artifact, _logical, _artifacts = _load_source_claim_index(repo, name)
+    existing = _load_yaml_from_branch(repo, branch, "stances.yaml") or {"stances": []}
+    stances = list(existing.get("stances", []) or [])
+
+    # Build stance dict (no dedup for stances per spec)
+    stance: dict[str, Any] = {
+        "source_claim": source_claim,
+        "target": target,
+        "type": stance_type,
+    }
+    if strength is not None:
+        stance["strength"] = strength
+    if note is not None:
+        stance["note"] = note
+
+    stances.append(stance)
+    data: dict[str, Any] = dict(existing)
+    data["stances"] = stances
+
+    normalized = normalize_source_stances_payload(
+        data,
+        local_to_artifact=local_to_artifact,
+    )
+
+    commit_source_file(
+        repo,
+        name,
+        relpath="stances.yaml",
+        content=yaml.safe_dump(normalized, sort_keys=False, allow_unicode=True).encode("utf-8"),
+        message=f"Propose stance for {_normalize_slug(name)}",
+    )
+
+    # Return the last stance (the one we just added)
+    return normalized["stances"][-1]
+
+
 def _load_branch_yaml(repo: Repository, name: str, relpath: str) -> dict[str, Any] | None:
     return _load_yaml_from_branch(repo, source_branch_name(name), relpath)
 

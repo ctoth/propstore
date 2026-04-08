@@ -9,10 +9,13 @@ import click
 from propstore.cli.repository import Repository
 from propstore.concept_alignment import commit_source_concept_proposal, commit_source_concepts_batch
 from propstore.source_ops import (
+    commit_source_claim_proposal,
     commit_source_claims_batch,
+    commit_source_justification_proposal,
     commit_source_justifications_batch,
     commit_source_metadata,
     commit_source_notes,
+    commit_source_stance_proposal,
     commit_source_stances_batch,
     finalize_source_branch,
     init_source_branch,
@@ -115,6 +118,115 @@ def propose_concept(
         click.echo(f"Linked '{concept_name}' \u2192 existing '{canonical}' ({artifact_id})")
     else:
         click.echo(f"Proposed new concept '{concept_name}' (form: {info.get('form', form_name)})")
+
+
+@source.command("propose-claim")
+@click.argument("name")
+@click.option("--id", "claim_id", required=True)
+@click.option("--type", "claim_type", required=True)
+@click.option("--statement", required=False)
+@click.option("--concept", required=False)
+@click.option("--value", type=float, required=False)
+@click.option("--unit", required=False)
+@click.option("--page", type=int, required=False)
+@click.pass_obj
+def propose_claim(
+    obj: dict,
+    name: str,
+    claim_id: str,
+    claim_type: str,
+    statement: str | None,
+    concept: str | None,
+    value: float | None,
+    unit: str | None,
+    page: int | None,
+) -> None:
+    repo: Repository = obj["repo"]
+    try:
+        entry = commit_source_claim_proposal(
+            repo,
+            name,
+            claim_id=claim_id,
+            claim_type=claim_type,
+            statement=statement,
+            concept=concept,
+            value=value,
+            unit=unit,
+            page=page,
+        )
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    artifact_id = entry.get("artifact_id", "")
+    click.echo(f"Proposed claim '{claim_id}' (type: {claim_type}, artifact: {artifact_id})")
+
+
+@source.command("propose-justification")
+@click.argument("name")
+@click.option("--id", "just_id", required=True)
+@click.option("--conclusion", required=True)
+@click.option("--premises", required=True)
+@click.option("--rule-kind", required=True)
+@click.option("--page", type=int, required=False)
+@click.pass_obj
+def propose_justification(
+    obj: dict,
+    name: str,
+    just_id: str,
+    conclusion: str,
+    premises: str,
+    rule_kind: str,
+    page: int | None,
+) -> None:
+    repo: Repository = obj["repo"]
+    premises_list = [p.strip() for p in premises.split(",") if p.strip()]
+    try:
+        entry = commit_source_justification_proposal(
+            repo,
+            name,
+            just_id=just_id,
+            conclusion=conclusion,
+            premises=premises_list,
+            rule_kind=rule_kind,
+            page=page,
+        )
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    resolved_premises = ", ".join(entry.get("premises", premises_list))
+    resolved_conclusion = entry.get("conclusion", conclusion)
+    click.echo(f"Proposed justification '{just_id}' ({rule_kind}: {resolved_premises} \u2192 {resolved_conclusion})")
+
+
+@source.command("propose-stance")
+@click.argument("name")
+@click.option("--source-claim", required=True)
+@click.option("--target", required=True)
+@click.option("--type", "stance_type", required=True)
+@click.option("--strength", required=False)
+@click.option("--note", required=False)
+@click.pass_obj
+def propose_stance(
+    obj: dict,
+    name: str,
+    source_claim: str,
+    target: str,
+    stance_type: str,
+    strength: str | None,
+    note: str | None,
+) -> None:
+    repo: Repository = obj["repo"]
+    try:
+        entry = commit_source_stance_proposal(
+            repo,
+            name,
+            source_claim=source_claim,
+            target=target,
+            stance_type=stance_type,
+            strength=strength,
+            note=note,
+        )
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"Proposed stance: '{source_claim}' {stance_type} '{target}'")
 
 
 @source.command("add-concepts")
