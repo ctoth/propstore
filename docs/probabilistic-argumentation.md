@@ -118,7 +118,7 @@ Opinions flow into PrAF from the stance and calibration layer:
    - Confidence float -> `from_probability(confidence, 1)` (moderate uncertainty)
    - No data -> `Opinion.dogmatic_true()` (backward compatibility)
 
-3. **Construction from store:** `build_praf_from_shared_input()` in `propstore/core/analyzers.py:586` assembles the full `ProbabilisticAF` from relation maps and claim data.
+3. **Construction from store:** `build_praf()` in `propstore/praf_projection.py` is the store-facing entrypoint. It delegates to `build_praf_from_shared_input()` in `propstore/core/analyzers.py` to assemble the full `ProbabilisticAF` from relation maps and claim data.
 
 The calibration layer (temperature scaling per Guo et al. 2017, evidence-to-opinion mapping per Sensoy et al. 2018) feeds into opinion construction upstream of PrAF. See `docs/argumentation.md` for details on the opinion algebra and calibration.
 

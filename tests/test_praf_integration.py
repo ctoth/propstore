@@ -396,7 +396,7 @@ def test_build_praf_deterministic():
 
     Per Li et al. (2012, Def 2): PrAF = (A, P_A, D, P_D).
     """
-    from propstore.claim_graph import build_praf
+    from propstore.praf_projection import build_praf
     from propstore.praf import ProbabilisticAF
 
     claims, stances = _make_claims_and_stances_deterministic()
@@ -451,7 +451,7 @@ def test_build_praf_uncertain_defeat_probabilities():
     but only c1->c2 is a *defeat*. We use equal sample sizes here to get
     mutual defeats for testing P_D values.
     """
-    from propstore.claim_graph import build_praf
+    from propstore.praf_projection import build_praf
 
     # Override claims with equal sample_size so both rebuts pass preference filter
     claims = [
@@ -500,7 +500,7 @@ def test_build_praf_no_stances():
 
     Edge case: claims exist but no stances between them.
     """
-    from propstore.claim_graph import build_praf
+    from propstore.praf_projection import build_praf
 
     claims = [
         {"id": "c1", "concept_id": "temp", "type": "parameter", "value": 100.0,

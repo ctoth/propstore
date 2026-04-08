@@ -1303,7 +1303,7 @@ class TestAspicBackendIntegration:
             _unexpected_claim_graph,
         )
         monkeypatch.setattr(
-            "propstore.claim_graph.stance_summary",
+            "propstore.relation_analysis.stance_summary",
             lambda *args, **kwargs: {
                 "total_stances": 0,
                 "included_as_attacks": 0,

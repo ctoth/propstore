@@ -1,20 +1,16 @@
-"""Store-based claim-graph and PrAF entrypoints.
+"""Store-based claim-graph entrypoints.
 
 This module is not the general argumentation core. It owns the store-based
-entrypoints for the claim-graph backend and PrAF construction, while
-delegating shared orchestration to `propstore.core.analyzers`.
+entrypoints for the claim-graph backend and delegates shared orchestration to
+`propstore.core.analyzers`.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from propstore.core.analyzers import (
     analyze_claim_graph,
-    build_praf_from_shared_input,
     shared_analyzer_input_from_store,
 )
-from propstore.core.relation_types import ATTACK_TYPES, NON_ATTACK_TYPES, SUPPORT_TYPES
 from propstore.dung import ArgumentationFramework
 from propstore.world.types import (
     ArgumentationSemantics,
@@ -22,13 +18,6 @@ from propstore.world.types import (
     ReasoningBackend,
     validate_backend_semantics,
 )
-
-if TYPE_CHECKING:
-    from propstore.praf import ProbabilisticAF
-
-_ATTACK_TYPES = ATTACK_TYPES
-_NON_ATTACK_TYPES = NON_ATTACK_TYPES
-_SUPPORT_TYPES = SUPPORT_TYPES
 
 
 def build_argumentation_framework(
@@ -57,35 +46,6 @@ def build_argumentation_framework(
         comparison=comparison,
     )
     return shared.argumentation_framework
-
-
-def build_praf(
-    store: ArtifactStore,
-    active_claim_ids: set[str],
-    *,
-    comparison: str = "elitist",
-) -> "ProbabilisticAF":
-    """Build a primitive-relation probabilistic model over the claim graph.
-
-    P_A comes from p_arg_from_claim() (default: dogmatic true).
-    Primitive attacks and supports carry opinion-derived existence probabilities.
-    Direct defeats are the primitive semantic relation after preference filtering.
-    Cayrol derived defeats remain world-derived consequences and are not stored
-    as authoritative probabilistic inputs.
-
-    Steps:
-      1. Collect primitive attacks/supports and direct defeats
-      2. Build the semantic AF envelope with Cayrol closure for deterministic evaluation
-      3. Attach provenance-bearing primitive relation records
-      4. Set P_A for each argument
-      5. Return ProbabilisticAF
-    """
-    shared = shared_analyzer_input_from_store(
-        store,
-        active_claim_ids,
-        comparison=comparison,
-    )
-    return build_praf_from_shared_input(shared)
 
 
 def compute_claim_graph_justified_claims(
@@ -139,59 +99,3 @@ def compute_claim_graph_justified_claims(
     }:
         return accepted[0] if accepted else frozenset()
     return accepted
-
-
-
-def stance_summary(
-    store: ArtifactStore,
-    active_claim_ids: set[str],
-) -> dict:
-    """Summarize stances used in AF construction for render explanation.
-
-    Returns counts, opinion statistics, and model info so the render
-    layer can explain which stances were included under what policy.
-
-    All stances participate in AF construction regardless of opinion
-    uncertainty, per Li et al. (2012, Def 2) and the CLAUDE.md design
-    checklist (no gates before render time). Vacuous opinions
-    (Josang 2001, p.8) are counted but not pruned — filtering is
-    deferred to render/resolution time.
-    """
-    rows = store.stances_between(active_claim_ids)
-
-    total = 0
-    included = 0
-    vacuous_count = 0
-    excluded_non_attack = 0
-    models: set[str] = set()
-    uncertainties: list[float] = []
-
-    for row in rows:
-        total += 1
-        stype = row["stance_type"]
-        model = row.get("resolution_model")
-        opinion_u = row.get("opinion_uncertainty")
-
-        if stype in _NON_ATTACK_TYPES:
-            excluded_non_attack += 1
-            continue
-
-        included += 1
-        if model:
-            models.add(model)
-        if opinion_u is not None:
-            uncertainties.append(opinion_u)
-            if opinion_u > 0.99:
-                vacuous_count += 1
-
-    result: dict = {
-        "total_stances": total,
-        "included_as_attacks": included,
-        "vacuous_count": vacuous_count,
-        "excluded_non_attack": excluded_non_attack,
-        "models": sorted(models),
-    }
-    if uncertainties:
-        result["mean_uncertainty"] = sum(uncertainties) / len(uncertainties)
-
-    return result
