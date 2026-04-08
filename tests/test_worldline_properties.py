@@ -15,7 +15,7 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.world import HypotheticalWorld, WorldModel
 from propstore.worldline import WorldlineDefinition
 from propstore.worldline_runner import run_worldline
@@ -655,3 +655,4 @@ class TestBindingIsolation:
         assert wrong_claim not in result.dependencies["claims"], (
             f"{wrong_claim} leaked into dependencies with location={location}"
         )
+

@@ -224,7 +224,7 @@ class TestStanceYamlRoundTrip:
 
 class TestSidecarPopulatesOpinionColumns:
     def test_opinion_columns_from_stance_yaml(self, tmp_path):
-        from propstore.build_sidecar import _populate_stances_from_files
+        from propstore.sidecar.claims import populate_stances_from_files
 
         conn = sqlite3.connect(":memory:")
         conn.row_factory = sqlite3.Row
@@ -251,6 +251,7 @@ class TestSidecarPopulatesOpinionColumns:
                 relation_type TEXT NOT NULL,
                 target_kind TEXT NOT NULL,
                 target_id TEXT NOT NULL,
+                target_justification_id TEXT,
                 strength TEXT,
                 conditions_differ TEXT,
                 note TEXT,
@@ -299,7 +300,7 @@ class TestSidecarPopulatesOpinionColumns:
         }
         (stances_dir / "c1.yaml").write_text(yaml.dump(stance_data))
 
-        _populate_stances_from_files(conn, stances_dir)
+        populate_stances_from_files(conn, stances_dir)
 
         row = conn.execute(
             "SELECT * FROM relation_edge WHERE source_kind='claim' AND target_kind='claim' AND source_id='c1'"
@@ -317,7 +318,7 @@ class TestSidecarPopulatesOpinionColumns:
 
 class TestSidecarHandlesOldFormatYaml:
     def test_missing_opinion_fields_become_null(self, tmp_path):
-        from propstore.build_sidecar import _populate_stances_from_files
+        from propstore.sidecar.claims import populate_stances_from_files
 
         conn = sqlite3.connect(":memory:")
         conn.row_factory = sqlite3.Row
@@ -344,6 +345,7 @@ class TestSidecarHandlesOldFormatYaml:
                 relation_type TEXT NOT NULL,
                 target_kind TEXT NOT NULL,
                 target_id TEXT NOT NULL,
+                target_justification_id TEXT,
                 strength TEXT,
                 conditions_differ TEXT,
                 note TEXT,
@@ -389,7 +391,7 @@ class TestSidecarHandlesOldFormatYaml:
         }
         (stances_dir / "c1.yaml").write_text(yaml.dump(stance_data))
 
-        _populate_stances_from_files(conn, stances_dir)
+        populate_stances_from_files(conn, stances_dir)
 
         row = conn.execute(
             "SELECT * FROM relation_edge WHERE source_kind='claim' AND target_kind='claim' AND source_id='c1'"

@@ -4,7 +4,7 @@ import pytest
 import yaml
 
 from propstore.argumentation import compute_claim_graph_justified_claims
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.world import ResolutionStrategy, WorldModel, resolve
 from propstore.world.value_resolver import ActiveClaimResolver
 
@@ -281,3 +281,4 @@ def test_mixed_direct_and_multistatement_algorithm_uses_ast_equivalence():
     result = resolver.value_of_from_active(active, "target")
 
     assert result.status == "determined"
+

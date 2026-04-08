@@ -17,6 +17,8 @@ Source: `propstore/world/model.py` (WorldModel), `propstore/world/bound.py` (Bou
 
 The top-level entry point. A WorldModel wraps a compiled sidecar database and provides concept/claim lookup, similarity search, and the `bind()` method that produces query surfaces.
 
+WorldModel expects a current, versioned sidecar schema. On open it validates the `meta` table, schema version, required tables, and required columns, and raises `ValueError` if the sidecar is stale or partial.
+
 ### Construction
 
 | Constructor | Signature | Description |
@@ -65,6 +67,8 @@ with WorldModel.from_path("knowledge") as world:
 | `all_claim_stances` | `() -> list[dict]` | All claim-to-claim stances. |
 | `conflicts` | `(concept_id?) -> list[dict]` | Conflict witnesses, optionally scoped to a concept. |
 | `explain` | `(claim_id) -> list[dict]` | BFS walk of the stance graph from a claim. |
+
+`get_claim()` and `claims_for()` return compiled source-facing fields including `source_slug`, `source_paper`, and, when available, a nested `source` record loaded from the `source` table.
 
 #### Similarity search
 

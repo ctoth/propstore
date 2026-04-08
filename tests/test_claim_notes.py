@@ -13,7 +13,7 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.validate_claims import load_claim_files, validate_claims
 from propstore.world import WorldModel
 from tests.conftest import (
@@ -345,3 +345,4 @@ class TestClaimNotesProperties:
                 )
             finally:
                 conn.close()
+

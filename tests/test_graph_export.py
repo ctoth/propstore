@@ -5,7 +5,7 @@ import sqlite3
 import pytest
 import yaml
 
-from propstore.build_sidecar import build_sidecar
+from propstore.sidecar.build import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
 from propstore.world import WorldModel
 from tests.conftest import create_world_model_schema
@@ -446,3 +446,4 @@ class TestConflictedClaims:
             assert claim_node.metadata.get("status") == "conflicted", (
                 f"{claim_node.id} should be marked conflicted under speech"
             )
+

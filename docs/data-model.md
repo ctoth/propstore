@@ -1,6 +1,28 @@
 # Data Model
 
-propstore's data model has seven main entities: **concepts**, **forms**, **claims**, **conditions**, **stances**, **justifications**, and **contexts**. Everything lives in YAML files under `knowledge/`.
+propstore has canonical authored artifacts in `knowledge/`, plus a compiled SQLite sidecar used as the read/query surface. Git/YAML is the source of truth; the sidecar is a versioned materialization.
+
+The main authored entities are **sources**, **concepts**, **forms**, **claims**, **stances**, **authored justifications**, and **contexts**. Conditions are fields on claims and relations, not a separate top-level entity.
+
+## Sources
+
+Sources live in `sources/<slug>.yaml` and are first-class provenance records. Claims compile with a stable `source_slug` foreign-key-style reference to these rows.
+
+```yaml
+id: tag:example.org,2026:halpin-2010
+kind: academic_paper
+origin:
+  type: doi
+  value: 10.1016/j.websem.2010.01.001
+  retrieved: 2026-04-07
+trust:
+  prior_base_rate: 0.6
+  quality:
+    venue: peer_reviewed
+artifact_code: sha256:...
+```
+
+Source-branch `notes.md` and metadata remain canonical git artifacts. They are not compiled into claim reasoning tables.
 
 ## Concepts
 
@@ -264,7 +286,10 @@ The compiler type-checks conditions against the concept registry: quantity conce
 
 ## Justifications
 
-Justifications are inference rules that connect premise claims to conclusion claims. They represent the reasoning structure within and across papers — how one claim's truth supports or explains another.
+Justifications are inference rules that connect premise claims to conclusion claims. There are two distinct cases:
+
+- Authored justifications live in `justifications/<source>.yaml` and compile into the sidecar `justification` table.
+- Runtime-derived justifications such as `reported:claim_id` and `supports:a->b` are built from the active claim graph when argumentation code needs them. They are not persisted in the sidecar.
 
 ### Data model
 
@@ -303,9 +328,20 @@ Justifications translate directly to ASPIC+ rules via the bridge in `aspic_bridg
 
 An `undercuts` stance can include a `target_justification_id` field to attack a specific defeasible rule rather than all rules concluding a given claim. When multiple defeasible rules support the same conclusion, omitting `target_justification_id` raises an ambiguity error. This implements Pollock's (1987) undercutting defeat: the attacker targets the inference rule itself, not the conclusion.
 
-### Current status
+### Authoring
 
-Justifications are derived at runtime from claims and their `supports`/`explains` relations — they are not authored as standalone YAML files. The `CanonicalJustification` type and sidecar `justification` table exist to make this derived structure queryable.
+Authored justifications are optional and look like:
+
+```yaml
+justifications:
+  - id: just1
+    conclusion: claim_observation
+    premises: [claim_parameter]
+    rule_kind: reported_claim
+    rule_strength: defeasible
+```
+
+The sidecar stores authored justifications exactly so source-authored inference structure remains queryable. Support and explanation edges still participate in argumentation, but their `CanonicalJustification` records are synthesized at runtime from the active graph.
 
 ## Stances
 

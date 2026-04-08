@@ -884,7 +884,7 @@ def _setup_git_knowledge_repo(tmp_path):
 def test_build_from_git(tmp_path):
     """pks build produces sidecar from git tree, keyed to commit hash."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
-    from propstore.build_sidecar import build_sidecar
+    from propstore.sidecar.build import build_sidecar
 
     hash_key = kr.head_sha()
     tree = repo.tree(commit=hash_key)
@@ -919,7 +919,7 @@ def test_build_from_git(tmp_path):
 def test_build_skips_when_unchanged(tmp_path):
     """Second build with same HEAD skips rebuild."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
-    from propstore.build_sidecar import build_sidecar
+    from propstore.sidecar.build import build_sidecar
 
     hash_key = kr.head_sha()
     tree = repo.tree(commit=hash_key)
@@ -942,7 +942,7 @@ def test_build_skips_when_unchanged(tmp_path):
 def test_build_rebuilds_on_new_commit(tmp_path):
     """New commit triggers sidecar rebuild."""
     kr, repo = _setup_git_knowledge_repo(tmp_path)
-    from propstore.build_sidecar import build_sidecar
+    from propstore.sidecar.build import build_sidecar
 
     hash_key1 = kr.head_sha()
     tree1 = repo.tree(commit=hash_key1)
@@ -1934,3 +1934,4 @@ def test_source_add_claim_creates_source_branch_commit(tmp_path):
     )
     assert finalize_report["status"] == "ready"
     assert finalize_report["artifact_code_status"] == "complete"
+

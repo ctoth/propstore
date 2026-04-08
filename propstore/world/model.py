@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 from propstore.cel_checker import ConceptInfo, KindType
 from propstore.core.id_types import to_concept_id
 from propstore.core.labels import compile_environment_assumptions
+from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
@@ -98,6 +99,7 @@ _REQUIRED_SCHEMA: dict[str, set[str]] = {
         "type",
         "concept_id",
         "target_concept",
+        "source_slug",
         "source_paper",
         "provenance_page",
         "provenance_json",
@@ -202,6 +204,28 @@ class WorldModel(ArtifactStore):
         self._conn.close()
 
     def _validate_schema(self) -> None:
+        if not self._has_table("meta"):
+            raise ValueError(
+                "Unsupported sidecar schema: missing table(s) meta. "
+                "Rebuild with 'pks build'."
+            )
+        meta_row = self._conn.execute(
+            "SELECT schema_version FROM meta WHERE key = ?",
+            (SIDECAR_META_KEY,),
+        ).fetchone()
+        if meta_row is None:
+            raise ValueError(
+                "Unsupported sidecar schema: missing metadata row for sidecar. "
+                "Rebuild with 'pks build'."
+            )
+        actual_version = meta_row["schema_version"]
+        if actual_version != SCHEMA_VERSION:
+            raise ValueError(
+                "Unsupported sidecar schema version: "
+                f"expected {SCHEMA_VERSION}, found {actual_version}. "
+                "Rebuild with 'pks build'."
+            )
+
         missing_tables = sorted(
             table for table in _REQUIRED_SCHEMA if not self._has_table(table)
         )
@@ -360,6 +384,7 @@ class WorldModel(ArtifactStore):
                 alg.canonical_ast,
                 alg.variables_json,
                 alg.stage,
+                core.source_slug,
                 core.source_paper,
                 src.source_id AS source_id,
                 src.kind AS source_kind,
@@ -380,7 +405,7 @@ class WorldModel(ArtifactStore):
             LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
             LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
             LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
-            LEFT JOIN source AS src ON src.slug = core.source_paper
+            LEFT JOIN source AS src ON src.slug = core.source_slug
         """
 
     def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[dict]:
@@ -615,14 +640,13 @@ class WorldModel(ArtifactStore):
             for claim_id in claim_ids
         }
         placeholders = ",".join("?" for _ in resolved_ids)
-        target_justification_sql = self._claim_stance_target_justification_sql()
         rows = self._conn.execute(
             f"""
             SELECT
                 source_id AS claim_id,
                 target_id AS target_claim_id,
                 relation_type AS stance_type,
-                {target_justification_sql},
+                target_justification_id,
                 strength,
                 conditions_differ,
                 note,
@@ -685,14 +709,13 @@ class WorldModel(ArtifactStore):
         return [dict(row) for row in rows]
 
     def all_claim_stances(self) -> list[dict]:
-        target_justification_sql = self._claim_stance_target_justification_sql()
         rows = self._conn.execute(
             """
             SELECT
                 source_id AS claim_id,
                 target_id AS target_claim_id,
                 relation_type AS stance_type,
-                """ + target_justification_sql + """,
+                target_justification_id,
                 strength,
                 conditions_differ,
                 note,
@@ -894,7 +917,6 @@ class WorldModel(ArtifactStore):
 
     def explain(self, claim_id: str) -> list[dict]:
         """Walk normalized claim relation edges breadth-first from claim_id."""
-        target_justification_sql = self._claim_stance_target_justification_sql()
         result: list[dict] = []
         visited: set[str] = set()
         queue: deque[str] = deque([claim_id])
@@ -908,7 +930,7 @@ class WorldModel(ArtifactStore):
                     source_id AS claim_id,
                     target_id AS target_claim_id,
                     relation_type AS stance_type,
-                    """ + target_justification_sql + """,
+                    target_justification_id,
                     strength,
                     conditions_differ,
                     note,
@@ -936,9 +958,6 @@ class WorldModel(ArtifactStore):
                     queue.append(target)
 
         return result
-
-    def _claim_stance_target_justification_sql(self) -> str:
-        return "target_justification_id"
 
     # ── Condition binding ────────────────────────────────────────────
 
