@@ -8,6 +8,7 @@ Detects PARAM_CONFLICT via single-hop and multi-hop parameterization chains:
 from __future__ import annotations
 
 import enum
+import re
 import warnings
 from collections import defaultdict
 from collections.abc import Sequence
@@ -58,6 +59,7 @@ class _Sentinel(enum.Enum):
 
 
 _INCOHERENT_CONTEXT = _Sentinel.INCOHERENT_CONTEXT
+_SAFE_SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def _representative_source_claim_id(source_ids: Sequence[str]) -> str:
@@ -69,6 +71,81 @@ def _representative_source_claim_id(source_ids: Sequence[str]) -> str:
     as the representative edge endpoint.
     """
     return source_ids[0]
+
+
+def _iter_unique_concepts(concept_registry: dict[str, dict]) -> list[tuple[str, dict]]:
+    unique: list[tuple[str, dict]] = []
+    seen_ids: set[str] = set()
+    for _registry_key, concept_data in concept_registry.items():
+        if not isinstance(concept_data, dict):
+            continue
+        concept_id = concept_data.get("artifact_id") or concept_data.get("id")
+        if not isinstance(concept_id, str) or not concept_id or concept_id in seen_ids:
+            continue
+        seen_ids.add(concept_id)
+        unique.append((concept_id, concept_data))
+    return unique
+
+
+def _concept_symbol_candidates(concept_data: dict) -> tuple[str, ...]:
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    def add(candidate: object) -> None:
+        if not isinstance(candidate, str) or not candidate:
+            return
+        if not _SAFE_SYMBOL_RE.match(candidate):
+            return
+        if candidate in seen:
+            return
+        seen.add(candidate)
+        candidates.append(candidate)
+
+    add(concept_data.get("canonical_name"))
+    for logical_id in concept_data.get("logical_ids", []) or []:
+        if not isinstance(logical_id, dict):
+            continue
+        add(logical_id.get("value"))
+    return tuple(candidates)
+
+
+def _evaluate_parameterization_with_registry(
+    sympy_expr: str,
+    input_values: dict[str, float],
+    output_concept_id: str,
+    concept_registry: dict[str, dict],
+) -> float | None:
+    from propstore.propagation import evaluate_parameterization
+
+    output_data = concept_registry.get(output_concept_id, {})
+    input_aliases = {
+        concept_id: _concept_symbol_candidates(concept_registry.get(concept_id, {}))
+        for concept_id in input_values
+    }
+    output_aliases = _concept_symbol_candidates(output_data)
+
+    rewritten = sympy_expr
+    for alias in output_aliases:
+        rewritten = re.sub(
+            rf"(?<![A-Za-z0-9_]){re.escape(alias)}(?![A-Za-z0-9_])",
+            "__out__",
+            rewritten,
+        )
+
+    safe_values: dict[str, float] = {}
+    for index, (concept_id, value) in enumerate(input_values.items()):
+        safe_symbol = f"__in_{index}__"
+        safe_values[safe_symbol] = value
+        for alias in input_aliases.get(concept_id, ()):
+            rewritten = re.sub(
+                rf"(?<![A-Za-z0-9_]){re.escape(alias)}(?![A-Za-z0-9_])",
+                safe_symbol,
+                rewritten,
+            )
+
+    if rewritten == sympy_expr:
+        return evaluate_parameterization(sympy_expr, input_values, output_concept_id)
+    return evaluate_parameterization(rewritten, safe_values, "__out__")
 
 
 def _merge_contexts_for_derivation(
@@ -113,14 +190,12 @@ def _detect_param_conflicts(
     - Use SymPy to compute derived value
     - Compare with direct claims for the output concept
     """
-    from propstore.propagation import evaluate_parameterization
-
     # Rebuild by_concept from all claim files if needed (may already have it)
     all_param_claims = by_concept
     if not all_param_claims:
         all_param_claims = _collect_parameter_claims(claim_files)
 
-    for concept_id, concept_data in concept_registry.items():
+    for concept_id, concept_data in _iter_unique_concepts(concept_registry):
         param_rels = concept_data.get("parameterization_relationships", [])
         if not param_rels:
             continue
@@ -178,10 +253,11 @@ def _detect_param_conflicts(
             # Evaluate the SymPy expression
             try:
                 assert isinstance(sympy_expr_str, str)
-                derived_value = evaluate_parameterization(
+                derived_value = _evaluate_parameterization_with_registry(
                     sympy_expr_str,
                     input_values,
                     concept_id,
+                    concept_registry,
                 )
                 if derived_value is None:
                     raise ValueError("parameterization evaluation returned no result")
@@ -240,13 +316,13 @@ def detect_transitive_conflicts(
     the single-hop conflicts already found by _detect_param_conflicts.
     """
     from propstore.parameterization_groups import build_groups
-    from propstore.propagation import evaluate_parameterization
 
     records: list[ConflictRecord] = []
+    unique_registry = {concept_id: concept_data for concept_id, concept_data in _iter_unique_concepts(concept_registry)}
 
     # Convert concept_registry to list[dict] for build_groups
     concept_list = []
-    for cid, cdata in concept_registry.items():
+    for cid, cdata in unique_registry.items():
         entry = dict(cdata)
         if "id" not in entry:
             entry["id"] = cid
@@ -259,7 +335,7 @@ def detect_transitive_conflicts(
     from propstore.parameterization_walk import parameterization_edges_from_registry
 
     param_edges = parameterization_edges_from_registry(
-        concept_registry,
+        unique_registry,
         exactness_filter={"exact", "approximate"},
     )
     direct_param_outputs = set(param_edges.keys())
@@ -356,8 +432,11 @@ def detect_transitive_conflicts(
                     assert not isinstance(derived_context, _Sentinel)  # narrowed above
 
                     # Evaluate
-                    derived_val = evaluate_parameterization(
-                        sympy_expr, input_vals, cid
+                    derived_val = _evaluate_parameterization_with_registry(
+                        sympy_expr,
+                        input_vals,
+                        cid,
+                        unique_registry,
                     )
                     if derived_val is None:
                         continue
