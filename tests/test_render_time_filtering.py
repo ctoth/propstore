@@ -21,8 +21,8 @@ import pytest
 from propstore.claim_graph import (
     build_argumentation_framework,
     compute_claim_graph_justified_claims,
-    stance_summary,
 )
+from propstore.relation_analysis import stance_summary
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 

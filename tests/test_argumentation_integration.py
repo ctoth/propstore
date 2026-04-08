@@ -14,10 +14,10 @@ from hypothesis import strategies as st
 
 from propstore.claim_graph import (
     build_argumentation_framework,
-    build_praf,
     compute_claim_graph_justified_claims,
 )
 from propstore.dung import conflict_free, grounded_extension
+from propstore.praf_projection import build_praf
 from propstore.preference import claim_strength
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 from tests.conftest import (

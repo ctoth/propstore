@@ -1541,7 +1541,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
 
     Usage: pks world extensions domain=example --semantics grounded
     """
-    from propstore.claim_graph import stance_summary
+    from propstore.relation_analysis import stance_summary
     from propstore.world import ReasoningBackend, WorldModel
     from propstore.world.types import normalize_reasoning_backend
 
@@ -1566,7 +1566,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             sys.exit(2)
 
         if backend == ReasoningBackend.PRAF:
-            from propstore.claim_graph import build_praf
+            from propstore.praf_projection import build_praf
             from propstore.praf import compute_praf_acceptance
 
             praf = build_praf(wm, claim_ids, comparison=set_comparison)
