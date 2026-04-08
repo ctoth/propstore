@@ -47,10 +47,8 @@ from propstore.cel_checker import (
 )
 from propstore.form_utils import (
     FormDefinition,
-    allowed_units_from_form_definition,
     json_safe,
     load_form_path,
-    load_form_definition,
 )
 from propstore.stances import VALID_STANCE_TYPES
 
@@ -565,15 +563,13 @@ def _validate_parameter(
         result.errors.append(f"{filename}: parameter claim '{cid}' missing 'unit'")
     elif concept_data is not None:
         form_def: FormDefinition | None = concept_data.get("_form_definition")
-        if form_def is not None:
-            _validate_unit_against_form(unit, form_def, cid, concept or "", filename, result)
-        else:
-            # Legacy fallback: use _allowed_units if set
-            allowed_units = concept_data.get("_allowed_units") or []
-            if allowed_units and unit not in allowed_units:
-                result.errors.append(
-                    f"{filename}: parameter claim '{cid}' unit '{unit}' does not match "
-                    f"concept '{concept}' allowed units {sorted(allowed_units)}")
+        if form_def is None:
+            result.errors.append(
+                f"{filename}: parameter claim '{cid}' concept '{concept}' "
+                "is missing a loaded form definition"
+            )
+            return
+        _validate_unit_against_form(unit, form_def, cid, concept or "", filename, result)
 
 
 def _validate_unit_against_form(
@@ -585,7 +581,7 @@ def _validate_unit_against_form(
     Uses dimensional analysis via physgen's unit table:
     1. Resolve the unit string to SI dimensions
     2. Compare against the form's declared dimensions
-    3. Fall back to allowed_units whitelist if dimensional lookup fails
+    3. Check the form's declared unit whitelist if dimensional lookup fails
     """
     from propstore.unit_dimensions import resolve_unit_dimensions, dimensions_compatible
 
@@ -842,16 +838,13 @@ def build_concept_registry_from_paths(
             continue
         # Load structured form definition
         form_def = load_form_path(forms_root, enriched.get("form"))
-        if form_def is not None:
+        form_name = enriched.get("form")
+        if isinstance(form_name, str) and form_name:
+            if form_def is None:
+                raise ValueError(
+                    f"concept '{cid}' references missing form definition '{form_name}'"
+                )
             enriched["_form_definition"] = form_def
-            if form_def.allowed_units:
-                enriched["_allowed_units"] = sorted(form_def.allowed_units)
-        else:
-            # Fallback to legacy dict-based loading
-            form_definition = load_form_definition(forms_root, enriched.get("form"))
-            allowed_units = sorted(allowed_units_from_form_definition(form_definition))
-            if allowed_units:
-                enriched["_allowed_units"] = allowed_units
         # Index by concept ID
         registry[cid] = enriched
         raw_id = concept.data.get("id")

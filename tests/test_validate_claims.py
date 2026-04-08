@@ -15,6 +15,7 @@ Tests the compiler contract checks that JSON Schema can't express:
 import pytest
 import yaml
 
+from propstore.identity import derive_concept_artifact_id
 from propstore.loaded import LoadedEntry
 from propstore.validate_claims import (
     load_claim_files,
@@ -22,7 +23,63 @@ from propstore.validate_claims import (
     validate_claims,
     validate_single_claim_file,
 )
-from tests.conftest import make_parameter_claim, make_concept_registry
+
+
+def _concept_artifact(local_id: str) -> str:
+    return derive_concept_artifact_id("propstore", local_id)
+
+
+def _rewrite_claim_concept_refs(claim: dict) -> dict:
+    rewritten = dict(claim)
+    concept = rewritten.get("concept")
+    if isinstance(concept, str) and concept.startswith("concept"):
+        rewritten["concept"] = _concept_artifact(concept)
+
+    target_concept = rewritten.get("target_concept")
+    if isinstance(target_concept, str) and target_concept.startswith("concept"):
+        rewritten["target_concept"] = _concept_artifact(target_concept)
+
+    concepts = rewritten.get("concepts")
+    if isinstance(concepts, list):
+        rewritten["concepts"] = [
+            _concept_artifact(value) if isinstance(value, str) and value.startswith("concept") else value
+            for value in concepts
+        ]
+
+    variables = rewritten.get("variables")
+    if isinstance(variables, list):
+        rewritten["variables"] = []
+        for variable in variables:
+            if not isinstance(variable, dict):
+                rewritten["variables"].append(variable)
+                continue
+            variable_copy = dict(variable)
+            value = variable_copy.get("concept")
+            if isinstance(value, str) and value.startswith("concept"):
+                variable_copy["concept"] = _concept_artifact(value)
+            rewritten["variables"].append(variable_copy)
+
+    parameters = rewritten.get("parameters")
+    if isinstance(parameters, list):
+        rewritten["parameters"] = []
+        for parameter in parameters:
+            if not isinstance(parameter, dict):
+                rewritten["parameters"].append(parameter)
+                continue
+            parameter_copy = dict(parameter)
+            value = parameter_copy.get("concept")
+            if isinstance(value, str) and value.startswith("concept"):
+                parameter_copy["concept"] = _concept_artifact(value)
+            rewritten["parameters"].append(parameter_copy)
+
+    return rewritten
+from tests.conftest import (
+    attach_claim_version_id,
+    make_claim_identity,
+    make_parameter_claim,
+    make_concept_registry,
+    normalize_concept_payloads,
+)
 
 
 @pytest.fixture
@@ -45,7 +102,7 @@ def make_source(paper="test_paper"):
 def make_equation_claim(id, expression, variables, page=1, **kwargs):
     """Helper: make a minimal valid equation claim."""
     c = {
-        "id": id,
+        **make_claim_identity(id),
         "type": "equation",
         "expression": expression,
         "sympy": kwargs.pop("sympy", expression),
@@ -53,41 +110,66 @@ def make_equation_claim(id, expression, variables, page=1, **kwargs):
         "provenance": {"paper": "test_paper", "page": page},
     }
     c.update(kwargs)
-    return c
+    return attach_claim_version_id(c)
 
 
 def make_observation_claim(id, statement, concepts, page=1, **kwargs):
     """Helper: make a minimal valid observation claim."""
     c = {
-        "id": id,
+        **make_claim_identity(id),
         "type": "observation",
         "statement": statement,
-        "concepts": concepts,
+        "concepts": [
+            _concept_artifact(value) if isinstance(value, str) and value.startswith("concept") else value
+            for value in concepts
+        ],
         "provenance": {"paper": "test_paper", "page": page},
     }
     c.update(kwargs)
-    return c
+    return attach_claim_version_id(c)
 
 
 def make_model_claim(id, name, equations, parameters, page=1, **kwargs):
     """Helper: make a minimal valid model claim."""
     c = {
-        "id": id,
+        **make_claim_identity(id),
         "type": "model",
         "name": name,
         "equations": equations,
-        "parameters": parameters,
+        "parameters": [
+            {
+                **parameter,
+                "concept": _concept_artifact(parameter["concept"])
+                if isinstance(parameter, dict) and isinstance(parameter.get("concept"), str)
+                and parameter["concept"].startswith("concept")
+                else parameter.get("concept") if isinstance(parameter, dict) else parameter,
+            }
+            if isinstance(parameter, dict) else parameter
+            for parameter in parameters
+        ],
         "provenance": {"paper": "test_paper", "page": page},
     }
     c.update(kwargs)
-    return c
+    return attach_claim_version_id(c)
 
 
 def make_claim_file_data(claims, paper="test_paper"):
     """Wrap claims in a proper ClaimFile structure."""
+    normalized_claims = []
+    for index, claim in enumerate(claims, start=1):
+        if not isinstance(claim, dict):
+            normalized_claims.append(claim)
+            continue
+        normalized = dict(claim)
+        normalized = _rewrite_claim_concept_refs(normalized)
+        if "artifact_id" not in normalized:
+            raw_id = normalized.pop("id", f"claim{index}")
+            normalized.update(make_claim_identity(str(raw_id), namespace=paper))
+        normalized["version_id"] = attach_claim_version_id(normalized)["version_id"]
+        normalized_claims.append(normalized)
     return {
         "source": make_source(paper),
-        "claims": claims,
+        "claims": normalized_claims,
     }
 
 
@@ -195,7 +277,9 @@ class TestClaimIdErrors:
         assert any("duplicate" in e.lower() for e in result.errors)
 
     def test_invalid_claim_id_format(self, claims_dir):
-        claim = make_parameter_claim("123numeric", "concept1", 440.0, "Hz")
+        claim = make_parameter_claim("claim1", "concept1", 440.0, "Hz")
+        claim["artifact_id"] = "bad-artifact-id"
+        claim["version_id"] = attach_claim_version_id(claim)["version_id"]
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
@@ -217,7 +301,7 @@ class TestConceptReferenceErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
-        assert any("concept9999" in e for e in result.errors)
+        assert any(_concept_artifact("concept9999") in e for e in result.errors)
 
     def test_nonexistent_concept_equation_error(self, claims_dir):
         claim = make_equation_claim(
@@ -234,7 +318,7 @@ class TestConceptReferenceErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
-        assert any("concept9999" in e for e in result.errors)
+        assert any(_concept_artifact("concept9999") in e for e in result.errors)
 
     def test_nonexistent_concept_observation_error(self, claims_dir):
         claim = make_observation_claim(
@@ -248,7 +332,7 @@ class TestConceptReferenceErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
-        assert any("concept9999" in e for e in result.errors)
+        assert any(_concept_artifact("concept9999") in e for e in result.errors)
 
     def test_nonexistent_concept_model_error(self, claims_dir):
         claim = make_model_claim(
@@ -265,7 +349,7 @@ class TestConceptReferenceErrors:
         files = load_claim_files(claims_dir)
         result = validate_claims(files, make_concept_registry())
         assert not result.ok
-        assert any("concept9999" in e for e in result.errors)
+        assert any(_concept_artifact("concept9999") in e for e in result.errors)
 
 
 # ── Provenance errors ────────────────────────────────────────────────
@@ -319,14 +403,11 @@ class TestParameterClaimErrors:
             "unit": "Pa",
             "provenance": {"paper": "test_paper", "page": 1},
         }
-        registry = make_concept_registry()
-        registry["concept1"]["_allowed_units"] = ["Hz"]
-
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, registry)
+        result = validate_claims(files, make_concept_registry())
         assert not result.ok
         assert any("allowed units" in e.lower() or "does not match" in e.lower()
                    for e in result.errors)
@@ -679,8 +760,8 @@ class TestCelErrors:
         """Structural concept in CEL should produce an error."""
         # We need a concept registry with a structural concept
         registry = make_concept_registry()
-        registry["concept101"] = {
-            "id": "concept101",
+        registry[_concept_artifact("concept101")] = {
+            "artifact_id": _concept_artifact("concept101"),
             "canonical_name": "focalization",
             "form": "structural",
             "status": "accepted",
@@ -932,14 +1013,11 @@ class TestMeasurementClaimValidation:
             "unit": "ratio",
             "provenance": {"paper": "test_paper", "page": 1},
         }
-        registry = make_concept_registry()
-        registry["concept2"]["_allowed_units"] = ["Pa"]
-
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
         files = load_claim_files(claims_dir)
-        result = validate_claims(files, registry)
+        result = validate_claims(files, make_concept_registry())
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_valid_measurement_claim(self, claims_dir):
@@ -1079,19 +1157,23 @@ class TestFormAwareUnitValidation:
         concepts_dir = knowledge / "concepts"
 
         # Write concept files
-        for cdata in [
-            {"id": "concept1", "canonical_name": "fundamental_frequency",
-             "form": "frequency", "status": "accepted", "definition": "F0"},
-            {"id": "concept2", "canonical_name": "subglottal_pressure",
-             "form": "pressure", "status": "accepted", "definition": "Ps"},
-            {"id": "concept3", "canonical_name": "task",
-             "form": "category", "status": "accepted", "definition": "Task type",
-             "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True}},
-            {"id": "concept4", "canonical_name": "open_quotient",
-             "form": "duration_ratio", "status": "accepted", "definition": "OQ"},
-            {"id": "concept5", "canonical_name": "h1_h2_difference",
-             "form": "level", "status": "accepted", "definition": "H1-H2"},
-        ]:
+        concept_payloads = normalize_concept_payloads(
+            [
+                {"id": "concept1", "canonical_name": "fundamental_frequency",
+                 "form": "frequency", "status": "accepted", "definition": "F0", "domain": "speech"},
+                {"id": "concept2", "canonical_name": "subglottal_pressure",
+                 "form": "pressure", "status": "accepted", "definition": "Ps", "domain": "speech"},
+                {"id": "concept3", "canonical_name": "task",
+                 "form": "category", "status": "accepted", "definition": "Task type", "domain": "speech",
+                 "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True}},
+                {"id": "concept4", "canonical_name": "open_quotient",
+                 "form": "duration_ratio", "status": "accepted", "definition": "OQ", "domain": "speech"},
+                {"id": "concept5", "canonical_name": "h1_h2_difference",
+                 "form": "level", "status": "accepted", "definition": "H1-H2", "domain": "speech"},
+            ],
+            default_domain="speech",
+        )
+        for cdata in concept_payloads:
             (concepts_dir / f"{cdata['canonical_name']}.yaml").write_text(
                 _yaml.dump(cdata, default_flow_style=False))
 
@@ -1202,16 +1284,17 @@ class TestFormAwareUnitValidation:
         result = validate_claims(files, registry)
         assert result.ok, f"Unexpected errors: {result.errors}"
 
-    def test_parameter_claim_on_concept_without_form_definition_skips_check(self, claims_dir):
-        """If form definition can't be loaded, skip unit check gracefully."""
+    def test_parameter_claim_on_concept_without_form_definition_errors(self, claims_dir):
+        """Missing form metadata is a hard validation error."""
         registry = make_concept_registry()
-        # No _allowed_units set, and no form definition on disk
+        registry[_concept_artifact("concept1")].pop("_form_definition", None)
         claim = make_parameter_claim("claim1", "concept1", 440.0, "anything")
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
         files = load_claim_files(claims_dir)
         result = validate_claims(files, registry)
-        assert result.ok, f"Unexpected errors: {result.errors}"
+        assert not result.ok
+        assert any("missing a loaded form definition" in e for e in result.errors)
 
 
 # ── Empty claim files (T3) ───────────────────────────────────────────
@@ -1563,8 +1646,8 @@ class TestSympyExceptNarrowing:
 
         # Build registry with form definitions that have dimensions
         registry = {
-            "concept1": {
-                "id": "concept1",
+            _concept_artifact("concept1"): {
+                "artifact_id": _concept_artifact("concept1"),
                 "canonical_name": "frequency",
                 "form": "frequency",
                 "status": "accepted",
@@ -1574,8 +1657,8 @@ class TestSympyExceptNarrowing:
                     dimensions={"T": -1},
                 ),
             },
-            "concept2": {
-                "id": "concept2",
+            _concept_artifact("concept2"): {
+                "artifact_id": _concept_artifact("concept2"),
                 "canonical_name": "pressure",
                 "form": "pressure",
                 "status": "accepted",

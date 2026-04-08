@@ -8,6 +8,7 @@ import yaml
 from propstore.build_sidecar import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
 from propstore.world import WorldModel
+from tests.conftest import create_world_model_schema
 
 
 # ── Fixtures (duplicated from test_world_model.py) ────────────────────
@@ -330,64 +331,7 @@ class TestUnboundGraph:
     def test_measurement_claim_of_edge_uses_target_concept(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        conn.executescript("""
-            CREATE TABLE concept (
-                id TEXT PRIMARY KEY,
-                canonical_name TEXT,
-                status TEXT,
-                domain TEXT,
-                form TEXT,
-                kind_type TEXT,
-                form_parameters TEXT
-            );
-            CREATE TABLE claim_core (
-                id TEXT PRIMARY KEY,
-                content_hash TEXT,
-                seq INTEGER,
-                type TEXT,
-                concept_id TEXT,
-                target_concept TEXT,
-                source_paper TEXT NOT NULL DEFAULT 'test',
-                provenance_page INTEGER NOT NULL DEFAULT 1,
-                provenance_json TEXT,
-                context_id TEXT
-            );
-            CREATE TABLE claim_numeric_payload (
-                claim_id TEXT PRIMARY KEY,
-                value REAL,
-                lower_bound REAL,
-                upper_bound REAL,
-                uncertainty REAL,
-                uncertainty_type TEXT,
-                sample_size INTEGER,
-                unit TEXT,
-                value_si REAL,
-                lower_bound_si REAL,
-                upper_bound_si REAL
-            );
-            CREATE TABLE claim_text_payload (
-                claim_id TEXT PRIMARY KEY,
-                conditions_cel TEXT,
-                statement TEXT,
-                expression TEXT,
-                sympy_generated TEXT,
-                sympy_error TEXT,
-                name TEXT,
-                measure TEXT,
-                listener_population TEXT,
-                methodology TEXT,
-                notes TEXT,
-                description TEXT,
-                auto_summary TEXT
-            );
-            CREATE TABLE claim_algorithm_payload (
-                claim_id TEXT PRIMARY KEY,
-                body TEXT,
-                canonical_ast TEXT,
-                variables_json TEXT,
-                stage TEXT
-            );
-        """)
+        create_world_model_schema(conn)
         conn.execute(
             "INSERT INTO concept (id, canonical_name, status, domain, form, kind_type, form_parameters) "
             "VALUES ('concept2', 'jnd_threshold', 'accepted', 'speech', 'frequency', 'quantity', NULL)"

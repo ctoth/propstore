@@ -16,6 +16,7 @@ from propstore.validate_contexts import (
     validate_contexts,
 )
 from propstore.value_comparison import DEFAULT_TOLERANCE
+from tests.conftest import create_world_model_schema
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -48,7 +49,7 @@ def insert_claim_row(
             source_paper, provenance_page, provenance_json, context_id
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (claim_id, None, None, "observation", concept_id, None, "test", 1, None, None),
+        (claim_id, "", 1, "observation", concept_id, None, "test", 1, None, None),
     )
     conn.execute(
         """
@@ -730,70 +731,7 @@ class TestBoundWorldContext:
         """WorldModel.bind() should load and apply context hierarchy from sidecar tables."""
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        conn.executescript("""
-            CREATE TABLE claim_core (
-                id TEXT PRIMARY KEY,
-                content_hash TEXT,
-                seq INTEGER,
-                type TEXT,
-                concept_id TEXT,
-                target_concept TEXT,
-                source_paper TEXT NOT NULL DEFAULT 'test',
-                provenance_page INTEGER NOT NULL DEFAULT 1,
-                provenance_json TEXT,
-                context_id TEXT
-            );
-            CREATE TABLE claim_numeric_payload (
-                claim_id TEXT PRIMARY KEY,
-                value REAL,
-                lower_bound REAL,
-                upper_bound REAL,
-                uncertainty REAL,
-                uncertainty_type TEXT,
-                sample_size INTEGER,
-                unit TEXT,
-                value_si REAL,
-                lower_bound_si REAL,
-                upper_bound_si REAL
-            );
-            CREATE TABLE claim_text_payload (
-                claim_id TEXT PRIMARY KEY,
-                conditions_cel TEXT,
-                statement TEXT,
-                expression TEXT,
-                sympy_generated TEXT,
-                sympy_error TEXT,
-                name TEXT,
-                measure TEXT,
-                listener_population TEXT,
-                methodology TEXT,
-                notes TEXT,
-                description TEXT,
-                auto_summary TEXT
-            );
-            CREATE TABLE claim_algorithm_payload (
-                claim_id TEXT PRIMARY KEY,
-                body TEXT,
-                canonical_ast TEXT,
-                variables_json TEXT,
-                stage TEXT
-            );
-            CREATE TABLE context (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                description TEXT,
-                inherits TEXT
-            );
-            CREATE TABLE context_assumption (
-                context_id TEXT NOT NULL,
-                assumption_cel TEXT NOT NULL,
-                seq INTEGER NOT NULL
-            );
-            CREATE TABLE context_exclusion (
-                context_a TEXT NOT NULL,
-                context_b TEXT NOT NULL
-            );
-        """)
+        create_world_model_schema(conn)
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_root', 'Root', NULL)")
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_child', 'Child', 'ctx_root')")
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_other', 'Other', NULL)")
@@ -825,70 +763,7 @@ class TestBoundWorldContext:
         """Binding through a sidecar context should expose and apply effective assumptions."""
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        conn.executescript("""
-            CREATE TABLE claim_core (
-                id TEXT PRIMARY KEY,
-                content_hash TEXT,
-                seq INTEGER,
-                type TEXT,
-                concept_id TEXT,
-                target_concept TEXT,
-                source_paper TEXT NOT NULL DEFAULT 'test',
-                provenance_page INTEGER NOT NULL DEFAULT 1,
-                provenance_json TEXT,
-                context_id TEXT
-            );
-            CREATE TABLE claim_numeric_payload (
-                claim_id TEXT PRIMARY KEY,
-                value REAL,
-                lower_bound REAL,
-                upper_bound REAL,
-                uncertainty REAL,
-                uncertainty_type TEXT,
-                sample_size INTEGER,
-                unit TEXT,
-                value_si REAL,
-                lower_bound_si REAL,
-                upper_bound_si REAL
-            );
-            CREATE TABLE claim_text_payload (
-                claim_id TEXT PRIMARY KEY,
-                conditions_cel TEXT,
-                statement TEXT,
-                expression TEXT,
-                sympy_generated TEXT,
-                sympy_error TEXT,
-                name TEXT,
-                measure TEXT,
-                listener_population TEXT,
-                methodology TEXT,
-                notes TEXT,
-                description TEXT,
-                auto_summary TEXT
-            );
-            CREATE TABLE claim_algorithm_payload (
-                claim_id TEXT PRIMARY KEY,
-                body TEXT,
-                canonical_ast TEXT,
-                variables_json TEXT,
-                stage TEXT
-            );
-            CREATE TABLE context (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                description TEXT,
-                inherits TEXT
-            );
-            CREATE TABLE context_assumption (
-                context_id TEXT NOT NULL,
-                assumption_cel TEXT NOT NULL,
-                seq INTEGER NOT NULL
-            );
-            CREATE TABLE context_exclusion (
-                context_a TEXT NOT NULL,
-                context_b TEXT NOT NULL
-            );
-        """)
+        create_world_model_schema(conn)
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_root', 'Root', NULL)")
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_child', 'Child', 'ctx_root')")
         conn.execute(
@@ -929,70 +804,7 @@ class TestBoundWorldContext:
         """The active graph produced by bind() must match current context-filtered visibility."""
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        conn.executescript("""
-            CREATE TABLE claim_core (
-                id TEXT PRIMARY KEY,
-                content_hash TEXT,
-                seq INTEGER,
-                type TEXT,
-                concept_id TEXT,
-                target_concept TEXT,
-                source_paper TEXT NOT NULL DEFAULT 'test',
-                provenance_page INTEGER NOT NULL DEFAULT 1,
-                provenance_json TEXT,
-                context_id TEXT
-            );
-            CREATE TABLE claim_numeric_payload (
-                claim_id TEXT PRIMARY KEY,
-                value REAL,
-                lower_bound REAL,
-                upper_bound REAL,
-                uncertainty REAL,
-                uncertainty_type TEXT,
-                sample_size INTEGER,
-                unit TEXT,
-                value_si REAL,
-                lower_bound_si REAL,
-                upper_bound_si REAL
-            );
-            CREATE TABLE claim_text_payload (
-                claim_id TEXT PRIMARY KEY,
-                conditions_cel TEXT,
-                statement TEXT,
-                expression TEXT,
-                sympy_generated TEXT,
-                sympy_error TEXT,
-                name TEXT,
-                measure TEXT,
-                listener_population TEXT,
-                methodology TEXT,
-                notes TEXT,
-                description TEXT,
-                auto_summary TEXT
-            );
-            CREATE TABLE claim_algorithm_payload (
-                claim_id TEXT PRIMARY KEY,
-                body TEXT,
-                canonical_ast TEXT,
-                variables_json TEXT,
-                stage TEXT
-            );
-            CREATE TABLE context (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                description TEXT,
-                inherits TEXT
-            );
-            CREATE TABLE context_assumption (
-                context_id TEXT NOT NULL,
-                assumption_cel TEXT NOT NULL,
-                seq INTEGER NOT NULL
-            );
-            CREATE TABLE context_exclusion (
-                context_a TEXT NOT NULL,
-                context_b TEXT NOT NULL
-            );
-        """)
+        create_world_model_schema(conn)
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_root', 'Root', NULL)")
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_child', 'Child', 'ctx_root')")
         conn.execute("INSERT INTO context (id, name, inherits) VALUES ('ctx_other', 'Other', NULL)")
@@ -1386,6 +1198,8 @@ class TestContextCLIIntegration:
         import sqlite3
         conn = sqlite3.connect(ws / "knowledge" / "sidecar" / "propstore.sqlite")
         conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT context_id FROM claim_core WHERE id = 'claim1'").fetchone()
+        row = conn.execute(
+            "SELECT context_id FROM claim_core WHERE primary_logical_id = 'test:claim1'"
+        ).fetchone()
         assert row["context_id"] == "ctx_atms"
         conn.close()

@@ -5,7 +5,195 @@ Plain functions (not pytest fixtures) since callers invoke them directly.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import sqlite3
+
+from propstore.cel_checker import KindType
+from propstore.form_utils import FormDefinition
+from propstore.identity import (
+    compute_claim_version_id,
+    compute_concept_version_id,
+    derive_claim_artifact_id,
+    derive_concept_artifact_id,
+    normalize_identity_namespace,
+    normalize_logical_value,
+)
+
+
+def _rewrite_concept_ref(value: object) -> object:
+    if isinstance(value, str) and value.startswith("concept") and ":" not in value:
+        return derive_concept_artifact_id("propstore", value)
+    return value
+
+
+def _canonical_concept_ref(value: str | None) -> str | None:
+    if value is None:
+        return None
+    rewritten = _rewrite_concept_ref(value)
+    return str(rewritten) if isinstance(rewritten, str) else value
+
+
+def make_claim_identity(local_id: str, *, namespace: str = "test") -> dict:
+    """Build deterministic test identity fields for a claim."""
+    artifact_id = derive_claim_artifact_id(namespace, local_id)
+    logical_ids = [{"namespace": namespace, "value": local_id}]
+    return {
+        "artifact_id": artifact_id,
+        "logical_ids": logical_ids,
+    }
+
+
+def attach_claim_version_id(claim: dict) -> dict:
+    """Return a claim dict with a correct version_id."""
+    enriched = dict(claim)
+    enriched["version_id"] = compute_claim_version_id(enriched)
+    return enriched
+
+
+def make_concept_identity(
+    local_id: str,
+    *,
+    domain: str = "test",
+    canonical_name: str | None = None,
+) -> dict:
+    """Build deterministic test identity fields for a concept."""
+    primary_namespace = normalize_identity_namespace(domain or "propstore")
+    primary_value = normalize_logical_value(canonical_name or local_id)
+    logical_ids = [{"namespace": primary_namespace, "value": primary_value}]
+    if local_id != primary_value or primary_namespace != "propstore":
+        logical_ids.append({"namespace": "propstore", "value": normalize_logical_value(local_id)})
+    return {
+        "artifact_id": derive_concept_artifact_id("propstore", local_id),
+        "logical_ids": logical_ids,
+    }
+
+
+def attach_concept_version_id(concept: dict) -> dict:
+    """Return a concept dict with a correct version_id."""
+    enriched = dict(concept)
+    enriched["version_id"] = compute_concept_version_id(enriched)
+    return enriched
+
+
+def normalize_claims_payload(data: dict, *, default_namespace: str | None = None) -> dict:
+    """Return a claim-file payload with deterministic claim identities."""
+    normalized_data = dict(data)
+    source = normalized_data.get("source")
+    paper = (
+        source.get("paper")
+        if isinstance(source, dict) and isinstance(source.get("paper"), str)
+        else (default_namespace or "test")
+    )
+    raw_claims = list(normalized_data.get("claims", []))
+    local_to_artifact: dict[str, str] = {}
+    normalized_claims = []
+    for index, claim in enumerate(raw_claims, start=1):
+        if not isinstance(claim, dict):
+            normalized_claims.append(claim)
+            continue
+        normalized = dict(claim)
+        if "artifact_id" not in normalized:
+            raw_id = normalized.pop("id", f"claim{index}")
+            logical = make_claim_identity(str(raw_id), namespace=paper)
+            normalized.update(logical)
+            if isinstance(raw_id, str):
+                local_to_artifact[raw_id] = logical["artifact_id"]
+        elif isinstance(normalized.get("artifact_id"), str):
+            raw_id = normalized.get("id")
+            if isinstance(raw_id, str):
+                local_to_artifact[raw_id] = normalized["artifact_id"]
+        normalized_claims.append(normalized)
+
+    for index, normalized in enumerate(normalized_claims):
+        if not isinstance(normalized, dict):
+            continue
+        stances = normalized.get("stances")
+        if isinstance(stances, list):
+            rewritten_stances = []
+            for stance in stances:
+                if not isinstance(stance, dict):
+                    rewritten_stances.append(stance)
+                    continue
+                rewritten = dict(stance)
+                target = rewritten.get("target")
+                if isinstance(target, str) and target in local_to_artifact:
+                    rewritten["target"] = local_to_artifact[target]
+                rewritten_stances.append(rewritten)
+            normalized["stances"] = rewritten_stances
+        normalized_claims[index] = attach_claim_version_id(normalized)
+    normalized_data["claims"] = normalized_claims
+    return normalized_data
+
+
+def normalize_concept_payloads(
+    concepts: list[dict],
+    *,
+    default_domain: str | None = None,
+) -> list[dict]:
+    """Return concept payloads normalized onto the concept identity contract."""
+    raw_to_artifact: dict[str, str] = {}
+    normalized_concepts: list[dict] = []
+    for concept in concepts:
+        normalized = dict(concept)
+        raw_id = normalized.pop("id", None)
+        canonical_name = normalized.get("canonical_name")
+        domain = str(normalized.get("domain") or default_domain or "propstore")
+        if "artifact_id" not in normalized:
+            local_id = str(raw_id or canonical_name or "concept")
+            normalized.update(
+                make_concept_identity(
+                    local_id,
+                    domain=domain,
+                    canonical_name=str(canonical_name) if isinstance(canonical_name, str) else None,
+                )
+            )
+            if isinstance(raw_id, str):
+                raw_to_artifact[raw_id] = normalized["artifact_id"]
+        elif isinstance(raw_id, str) and isinstance(normalized.get("artifact_id"), str):
+            raw_to_artifact[raw_id] = normalized["artifact_id"]
+        normalized_concepts.append(normalized)
+
+    for index, concept in enumerate(normalized_concepts):
+        rewritten = dict(concept)
+        replaced_by = rewritten.get("replaced_by")
+        if isinstance(replaced_by, str):
+            rewritten["replaced_by"] = raw_to_artifact.get(replaced_by, _rewrite_concept_ref(replaced_by))
+
+        relationships = rewritten.get("relationships")
+        if isinstance(relationships, list):
+            rewritten_relationships = []
+            for rel in relationships:
+                if not isinstance(rel, dict):
+                    rewritten_relationships.append(rel)
+                    continue
+                rel_copy = dict(rel)
+                target = rel_copy.get("target")
+                if isinstance(target, str):
+                    rel_copy["target"] = raw_to_artifact.get(target, _rewrite_concept_ref(target))
+                rewritten_relationships.append(rel_copy)
+            rewritten["relationships"] = rewritten_relationships
+
+        parameterizations = rewritten.get("parameterization_relationships")
+        if isinstance(parameterizations, list):
+            rewritten_params = []
+            for param in parameterizations:
+                if not isinstance(param, dict):
+                    rewritten_params.append(param)
+                    continue
+                param_copy = dict(param)
+                inputs = param_copy.get("inputs")
+                if isinstance(inputs, list):
+                    param_copy["inputs"] = [
+                        raw_to_artifact.get(str(input_id), _rewrite_concept_ref(input_id))
+                        for input_id in inputs
+                    ]
+                rewritten_params.append(param_copy)
+            rewritten["parameterization_relationships"] = rewritten_params
+
+        normalized_concepts[index] = attach_concept_version_id(rewritten)
+
+    return normalized_concepts
 
 
 def create_argumentation_schema(conn: sqlite3.Connection) -> None:
@@ -13,11 +201,13 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
     conn.executescript("""
         CREATE TABLE claim_core (
             id TEXT PRIMARY KEY,
+            primary_logical_id TEXT,
+            logical_ids_json TEXT,
+            version_id TEXT,
             type TEXT,
             concept_id TEXT,
             target_concept TEXT,
             seq INTEGER,
-            content_hash TEXT,
             source_paper TEXT NOT NULL DEFAULT 'test',
             provenance_page INTEGER NOT NULL DEFAULT 1,
             provenance_json TEXT,
@@ -57,6 +247,7 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
             relation_type TEXT NOT NULL,
             target_kind TEXT NOT NULL,
             target_id TEXT NOT NULL,
+            conditions_cel TEXT,
             target_justification_id TEXT,
             strength TEXT,
             conditions_differ TEXT,
@@ -92,6 +283,192 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
     """)
 
 
+def create_world_model_schema(conn: sqlite3.Connection) -> None:
+    """Create the canonical sidecar schema expected by WorldModel."""
+    conn.executescript("""
+        CREATE TABLE source (
+            slug TEXT PRIMARY KEY,
+            source_id TEXT,
+            kind TEXT,
+            origin_type TEXT,
+            origin_value TEXT,
+            origin_retrieved TEXT,
+            origin_content_ref TEXT,
+            prior_base_rate REAL,
+            quality_json TEXT,
+            derived_from_json TEXT
+        );
+
+        CREATE TABLE concept (
+            id TEXT PRIMARY KEY,
+            canonical_name TEXT,
+            kind_type TEXT,
+            form TEXT,
+            form_parameters TEXT,
+            primary_logical_id TEXT DEFAULT '',
+            logical_ids_json TEXT DEFAULT '[]',
+            status TEXT,
+            domain TEXT,
+            definition TEXT
+        );
+
+        CREATE TABLE alias (
+            concept_id TEXT NOT NULL,
+            alias_name TEXT NOT NULL
+        );
+
+        CREATE TABLE relationship (
+            source_id TEXT,
+            type TEXT,
+            target_id TEXT,
+            conditions_cel TEXT,
+            note TEXT
+        );
+
+        CREATE TABLE parameterization (
+            output_concept_id TEXT NOT NULL,
+            formula_text TEXT,
+            sympy TEXT,
+            source TEXT,
+            exactness TEXT
+        );
+
+        CREATE TABLE parameterization_group (
+            group_id INTEGER NOT NULL,
+            concept_id TEXT NOT NULL
+        );
+
+        CREATE TABLE relation_edge (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_kind TEXT NOT NULL,
+            source_id TEXT NOT NULL,
+            relation_type TEXT NOT NULL,
+            target_kind TEXT NOT NULL,
+            target_id TEXT NOT NULL,
+            conditions_cel TEXT,
+            target_justification_id TEXT,
+            strength TEXT,
+            conditions_differ TEXT,
+            note TEXT,
+            resolution_method TEXT,
+            resolution_model TEXT,
+            embedding_model TEXT,
+            embedding_distance REAL,
+            pass_number INTEGER,
+            confidence REAL,
+            opinion_belief REAL,
+            opinion_disbelief REAL,
+            opinion_uncertainty REAL,
+            opinion_base_rate REAL
+        );
+
+        CREATE TABLE form (
+            name TEXT PRIMARY KEY,
+            dimensions TEXT,
+            is_dimensionless INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE form_algebra (
+            output_form TEXT NOT NULL,
+            input_forms TEXT NOT NULL,
+            source_formula TEXT,
+            source_concept_id TEXT
+        );
+
+        CREATE VIRTUAL TABLE concept_fts USING fts5(
+            concept_id UNINDEXED,
+            canonical_name,
+            aliases,
+            definition,
+            conditions
+        );
+
+        CREATE TABLE context (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            inherits TEXT
+        );
+
+        CREATE TABLE context_assumption (
+            context_id TEXT NOT NULL,
+            assumption_cel TEXT NOT NULL,
+            seq INTEGER NOT NULL
+        );
+
+        CREATE TABLE context_exclusion (
+            context_a TEXT NOT NULL,
+            context_b TEXT NOT NULL
+        );
+
+        CREATE TABLE claim_core (
+            id TEXT PRIMARY KEY,
+            primary_logical_id TEXT NOT NULL DEFAULT '',
+            logical_ids_json TEXT NOT NULL DEFAULT '[]',
+            version_id TEXT NOT NULL DEFAULT '',
+            content_hash TEXT NOT NULL DEFAULT '',
+            seq INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            concept_id TEXT,
+            target_concept TEXT,
+            source_paper TEXT NOT NULL DEFAULT 'test',
+            provenance_page INTEGER NOT NULL DEFAULT 1,
+            provenance_json TEXT,
+            context_id TEXT
+        );
+
+        CREATE TABLE claim_numeric_payload (
+            claim_id TEXT PRIMARY KEY,
+            value REAL,
+            lower_bound REAL,
+            upper_bound REAL,
+            uncertainty REAL,
+            uncertainty_type TEXT,
+            sample_size INTEGER,
+            unit TEXT,
+            value_si REAL,
+            lower_bound_si REAL,
+            upper_bound_si REAL
+        );
+
+        CREATE TABLE claim_text_payload (
+            claim_id TEXT PRIMARY KEY,
+            conditions_cel TEXT,
+            statement TEXT,
+            expression TEXT,
+            sympy_generated TEXT,
+            sympy_error TEXT,
+            name TEXT,
+            measure TEXT,
+            listener_population TEXT,
+            methodology TEXT,
+            notes TEXT,
+            description TEXT,
+            auto_summary TEXT
+        );
+
+        CREATE TABLE claim_algorithm_payload (
+            claim_id TEXT PRIMARY KEY,
+            body TEXT,
+            canonical_ast TEXT,
+            variables_json TEXT,
+            stage TEXT
+        );
+
+        CREATE TABLE conflict_witness (
+            concept_id TEXT NOT NULL,
+            claim_a_id TEXT NOT NULL,
+            claim_b_id TEXT NOT NULL,
+            warning_class TEXT NOT NULL,
+            conditions_a TEXT,
+            conditions_b TEXT,
+            value_a TEXT,
+            value_b TEXT,
+            derivation_chain TEXT
+        );
+    """)
+
+
 def insert_claim(
     conn: sqlite3.Connection,
     claim_id: str,
@@ -112,19 +489,24 @@ def insert_claim(
     source_paper: str = "test",
     provenance_page: int = 1,
 ) -> None:
+    logical_id = f"test:{claim_id}"
+    version_id = f"sha256:{hashlib.sha256(claim_id.encode('utf-8')).hexdigest()}"
     conn.execute(
         """
         INSERT INTO claim_core (
-            id, type, concept_id, target_concept, seq, content_hash,
+            id, primary_logical_id, logical_ids_json, version_id,
+            type, concept_id, target_concept, seq,
             source_paper, provenance_page, provenance_json, context_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             claim_id,
+            logical_id,
+            json.dumps([{"namespace": "test", "value": claim_id}]),
+            version_id,
             claim_type,
             concept_id,
             target_concept,
-            None,
             None,
             source_paper,
             provenance_page,
@@ -245,15 +627,15 @@ def make_parameter_claim(id, concept_id, value, unit="Hz", *, page=1, paper="tes
     Supports keyword-only extras via **kwargs (e.g. notes, conditions).
     """
     c = {
-        "id": id,
+        **make_claim_identity(id, namespace=paper),
         "type": "parameter",
-        "concept": concept_id,
+        "concept": _canonical_concept_ref(concept_id),
         "value": value,
         "unit": unit,
         "provenance": {"paper": paper, "page": page},
     }
     c.update(kwargs)
-    return c
+    return attach_claim_version_id(c)
 
 
 def make_concept_registry():
@@ -261,27 +643,65 @@ def make_concept_registry():
 
     Returns 3 concepts covering frequency, pressure, and category forms.
     """
-    return {
-        "concept1": {
+    concepts = normalize_concept_payloads([
+        {
             "id": "concept1",
             "canonical_name": "fundamental_frequency",
             "form": "frequency",
             "status": "accepted",
             "definition": "F0",
+            "domain": "speech",
         },
-        "concept2": {
+        {
             "id": "concept2",
             "canonical_name": "subglottal_pressure",
             "form": "pressure",
             "status": "accepted",
             "definition": "Ps",
+            "domain": "speech",
         },
-        "concept3": {
+        {
             "id": "concept3",
             "canonical_name": "task",
             "form": "category",
             "form_parameters": {"values": ["speech", "singing", "whisper"], "extensible": True},
             "status": "accepted",
             "definition": "Task type",
+            "domain": "speech",
         },
+    ], default_domain="speech")
+    registry: dict[str, dict] = {}
+    form_definitions = {
+        "frequency": FormDefinition(
+            name="frequency",
+            kind=KindType.QUANTITY,
+            unit_symbol="Hz",
+            allowed_units={"Hz"},
+        ),
+        "pressure": FormDefinition(
+            name="pressure",
+            kind=KindType.QUANTITY,
+            unit_symbol="Pa",
+            allowed_units={"Pa"},
+        ),
+        "category": FormDefinition(
+            name="category",
+            kind=KindType.CATEGORY,
+            is_dimensionless=True,
+        ),
     }
+    for concept in concepts:
+        form_name = concept.get("form")
+        if isinstance(form_name, str) and form_name in form_definitions:
+            concept["_form_definition"] = form_definitions[form_name]
+        artifact_id = concept["artifact_id"]
+        registry[artifact_id] = concept
+        registry[concept["canonical_name"]] = concept
+        for logical_id in concept.get("logical_ids", []):
+            if isinstance(logical_id, dict):
+                registry[f"{logical_id['namespace']}:{logical_id['value']}"] = concept
+        if concept["canonical_name"] == "fundamental_frequency":
+            registry["F0"] = concept
+        if concept["canonical_name"] == "subglottal_pressure":
+            registry["Ps"] = concept
+    return registry

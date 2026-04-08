@@ -16,6 +16,8 @@ import pytest
 import yaml
 
 from propstore.build_sidecar import build_sidecar
+from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
+from tests.conftest import create_world_model_schema, make_claim_identity
 from propstore.world import (
     ArtifactStore,
     BeliefSpace,
@@ -34,6 +36,74 @@ from propstore.world import (
     WorldModel,
     resolve,
 )
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+
+
+def _concept_artifact(local_id: str) -> str:
+    return derive_concept_artifact_id("propstore", local_id)
+
+
+def _claim_artifact(namespace: str, local_id: str) -> str:
+    return make_claim_identity(local_id, namespace=namespace)["artifact_id"]
+
+
+CONCEPT1_ID = _concept_artifact("concept1")
+CONCEPT2_ID = _concept_artifact("concept2")
+CONCEPT3_ID = _concept_artifact("concept3")
+CONCEPT4_ID = _concept_artifact("concept4")
+CONCEPT5_ID = _concept_artifact("concept5")
+CONCEPT6_ID = _concept_artifact("concept6")
+CONCEPT7_ID = _concept_artifact("concept7")
+
+
+def _normalize_claim_concept_refs(payload: dict) -> dict:
+    normalized = normalize_claims_payload(payload)
+    source = normalized.get("source")
+    paper = source.get("paper") if isinstance(source, dict) and isinstance(source.get("paper"), str) else "test"
+    claims = normalized.get("claims")
+    if not isinstance(claims, list):
+        return normalized
+    for claim in claims:
+        if not isinstance(claim, dict):
+            continue
+        concept = claim.get("concept")
+        if isinstance(concept, str) and concept.startswith("concept"):
+            claim["concept"] = _concept_artifact(concept)
+        target_concept = claim.get("target_concept")
+        if isinstance(target_concept, str) and target_concept.startswith("concept"):
+            claim["target_concept"] = _concept_artifact(target_concept)
+        concepts = claim.get("concepts")
+        if isinstance(concepts, list):
+            claim["concepts"] = [
+                _concept_artifact(value) if isinstance(value, str) and value.startswith("concept") else value
+                for value in concepts
+            ]
+        variables = claim.get("variables")
+        if isinstance(variables, list):
+            for variable in variables:
+                if not isinstance(variable, dict):
+                    continue
+                value = variable.get("concept")
+                if isinstance(value, str) and value.startswith("concept"):
+                    variable["concept"] = _concept_artifact(value)
+        parameters = claim.get("parameters")
+        if isinstance(parameters, list):
+            for parameter in parameters:
+                if not isinstance(parameter, dict):
+                    continue
+                value = parameter.get("concept")
+                if isinstance(value, str) and value.startswith("concept"):
+                    parameter["concept"] = _concept_artifact(value)
+        stances = claim.get("stances")
+        if isinstance(stances, list):
+            for stance in stances:
+                if not isinstance(stance, dict):
+                    continue
+                target = stance.get("target")
+                if isinstance(target, str) and target.startswith("claim") and ":" not in target:
+                    stance["target"] = make_claim_identity(target, namespace=paper)["artifact_id"]
+        claim["version_id"] = compute_claim_version_id(claim)
+    return normalized
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -57,7 +127,11 @@ def concept_dir(tmp_path):
             yaml.dump({"name": form_name}, default_flow_style=False))
 
     def write(name, data):
-        (concepts_path / f"{name}.yaml").write_text(yaml.dump(data, default_flow_style=False))
+        normalized = normalize_concept_payloads(
+            [data],
+            default_domain=str(data.get("domain") or "propstore"),
+        )[0]
+        (concepts_path / f"{name}.yaml").write_text(yaml.dump(normalized, default_flow_style=False))
 
     write("fundamental_frequency", {
         "id": "concept1",
@@ -384,6 +458,19 @@ def claim_files(concept_dir):
         ],
     }
 
+    claim1_alpha_id = make_claim_identity("claim1", namespace="test_paper_alpha")["artifact_id"]
+    claim4_alpha_id = make_claim_identity("claim4", namespace="test_paper_alpha")["artifact_id"]
+    claim6_beta_id = make_claim_identity("claim6", namespace="test_paper_beta")["artifact_id"]
+    alpha["claims"][1]["stances"][0]["target"] = claim1_alpha_id
+    beta["claims"][1]["stances"][0]["target"] = claim1_alpha_id
+    gamma["claims"][0]["stances"][0]["target"] = claim6_beta_id
+    gamma["claims"][1]["stances"][0]["target"] = claim4_alpha_id
+    gamma["claims"][2]["stances"][0]["target"] = claim6_beta_id
+    gamma["claims"][3]["stances"][0]["target"] = claim1_alpha_id
+
+    alpha = _normalize_claim_concept_refs(alpha)
+    beta = _normalize_claim_concept_refs(beta)
+    gamma = _normalize_claim_concept_refs(gamma)
     (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
     (claims_dir / "test_paper_gamma.yaml").write_text(yaml.dump(gamma, default_flow_style=False))
@@ -415,14 +502,14 @@ class TestWorldModelConstruction:
 
     def test_context_manager(self, world):
         with world:
-            assert world.get_concept("concept1") is not None
+            assert world.get_concept(CONCEPT1_ID) is not None
 
 
 # ── Unbound queries ──────────────────────────────────────────────────
 
 class TestUnboundQueries:
     def test_get_concept(self, world):
-        c = world.get_concept("concept1")
+        c = world.get_concept("fundamental_frequency")
         assert c is not None
         assert c["canonical_name"] == "fundamental_frequency"
 
@@ -430,25 +517,32 @@ class TestUnboundQueries:
         assert world.get_concept("nonexistent") is None
 
     def test_get_claim(self, world):
-        c = world.get_claim("claim1")
+        c = world.get_claim(_claim_artifact("test_paper_alpha", "claim1"))
         assert c is not None
         assert c["type"] == "parameter"
-        assert c["concept_id"] == "concept1"
+        assert c["concept_id"] == CONCEPT1_ID
 
     def test_get_claim_missing(self, world):
         assert world.get_claim("nonexistent") is None
 
     def test_resolve_alias(self, world):
-        assert world.resolve_alias("F0") == "concept1"
-        assert world.resolve_alias("Ps") == "concept2"
+        assert world.resolve_alias("F0") == CONCEPT1_ID
+        assert world.resolve_alias("Ps") == CONCEPT2_ID
 
     def test_resolve_alias_missing(self, world):
         assert world.resolve_alias("nonexistent") is None
 
     def test_claims_for(self, world):
-        claims = world.claims_for("concept1")
+        claims = world.claims_for("fundamental_frequency")
         ids = {c["id"] for c in claims}
-        assert ids == {"claim1", "claim2", "claim3", "claim7", "claim9", "claim15"}
+        assert ids == {
+            _claim_artifact("test_paper_alpha", "claim1"),
+            _claim_artifact("test_paper_alpha", "claim2"),
+            _claim_artifact("test_paper_alpha", "claim3"),
+            _claim_artifact("test_paper_beta", "claim7"),
+            _claim_artifact("test_paper_beta", "claim9"),
+            _claim_artifact("test_paper_gamma", "claim15"),
+        }
 
     def test_claims_for_missing(self, world):
         assert world.claims_for("nonexistent") == []
@@ -467,18 +561,22 @@ class TestUnboundQueries:
             yaml.dump({"name": "frequency"}, default_flow_style=False)
         )
 
-        (concepts_path / "fundamental_frequency.yaml").write_text(yaml.dump({
+        concept_payload = normalize_concept_payloads([{
             "id": "concept1",
             "canonical_name": "fundamental_frequency",
             "status": "accepted",
             "definition": "F0",
+            "domain": "speech",
             "form": "frequency",
             "aliases": [{"name": "F0", "source": "common"}],
-        }, default_flow_style=False))
+        }], default_domain="speech")[0]
+        (concepts_path / "fundamental_frequency.yaml").write_text(
+            yaml.dump(concept_payload, default_flow_style=False)
+        )
 
         claims_dir = knowledge / "claims"
         claims_dir.mkdir()
-        (claims_dir / "paper.yaml").write_text(yaml.dump({
+        claim_payload = _normalize_claim_concept_refs({
             "source": {"paper": "paper"},
             "claims": [{
                 "id": "claim1",
@@ -488,7 +586,8 @@ class TestUnboundQueries:
                 "unit": "Hz",
                 "provenance": {"paper": "paper", "page": 1},
             }],
-        }, default_flow_style=False))
+        })
+        (claims_dir / "paper.yaml").write_text(yaml.dump(claim_payload, default_flow_style=False))
 
         from propstore.cli.repository import Repository
 
@@ -497,8 +596,10 @@ class TestUnboundQueries:
 
         wm = WorldModel(repo)
         try:
-            assert [claim["id"] for claim in wm.claims_for("concept1")] == ["claim1"]
-            assert wm.bind().value_of("concept1").status == "determined"
+            assert [claim["id"] for claim in wm.claims_for("fundamental_frequency")] == [
+                make_claim_identity("claim1", namespace="paper")["artifact_id"]
+            ]
+            assert wm.bind().value_of("fundamental_frequency").status == "determined"
         finally:
             wm.close()
 
@@ -516,18 +617,22 @@ class TestUnboundQueries:
             yaml.dump({"name": "frequency"}, default_flow_style=False)
         )
 
-        (concepts_path / "fundamental_frequency.yaml").write_text(yaml.dump({
+        concept_payload = normalize_concept_payloads([{
             "id": "concept1",
             "canonical_name": "fundamental_frequency",
             "status": "accepted",
             "definition": "F0",
+            "domain": "speech",
             "form": "frequency",
             "aliases": [{"name": "F0", "source": "common"}],
-        }, default_flow_style=False))
+        }], default_domain="speech")[0]
+        (concepts_path / "fundamental_frequency.yaml").write_text(
+            yaml.dump(concept_payload, default_flow_style=False)
+        )
 
         claims_dir = knowledge / "claims"
         claims_dir.mkdir()
-        (claims_dir / "paper.yaml").write_text(yaml.dump({
+        claim_payload = _normalize_claim_concept_refs({
             "source": {"paper": "paper"},
             "claims": [{
                 "id": "claim1",
@@ -537,7 +642,8 @@ class TestUnboundQueries:
                 "unit": "Hz",
                 "provenance": {"paper": "paper", "page": 1},
             }],
-        }, default_flow_style=False))
+        })
+        (claims_dir / "paper.yaml").write_text(yaml.dump(claim_payload, default_flow_style=False))
 
         from propstore.cli.repository import Repository
 
@@ -546,66 +652,20 @@ class TestUnboundQueries:
 
         wm = WorldModel(repo)
         try:
-            assert [claim["id"] for claim in wm.claims_for("concept1")] == ["claim1"]
-            assert wm.bind().value_of("concept1").status == "determined"
+            assert [claim["id"] for claim in wm.claims_for("F0")] == [
+                make_claim_identity("claim1", namespace="paper")["artifact_id"]
+            ]
+            assert wm.bind().value_of("F0").status == "determined"
         finally:
             wm.close()
 
     def test_claims_for_includes_measurements_by_target_concept(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        conn.executescript("""
-            CREATE TABLE claim_core (
-                id TEXT PRIMARY KEY,
-                content_hash TEXT,
-                seq INTEGER,
-                type TEXT,
-                concept_id TEXT,
-                target_concept TEXT,
-                source_paper TEXT NOT NULL DEFAULT 'test',
-                provenance_page INTEGER NOT NULL DEFAULT 1,
-                provenance_json TEXT,
-                context_id TEXT
-            );
-            CREATE TABLE claim_numeric_payload (
-                claim_id TEXT PRIMARY KEY,
-                value REAL,
-                lower_bound REAL,
-                upper_bound REAL,
-                uncertainty REAL,
-                uncertainty_type TEXT,
-                sample_size INTEGER,
-                unit TEXT,
-                value_si REAL,
-                lower_bound_si REAL,
-                upper_bound_si REAL
-            );
-            CREATE TABLE claim_text_payload (
-                claim_id TEXT PRIMARY KEY,
-                conditions_cel TEXT,
-                statement TEXT,
-                expression TEXT,
-                sympy_generated TEXT,
-                sympy_error TEXT,
-                name TEXT,
-                measure TEXT,
-                listener_population TEXT,
-                methodology TEXT,
-                notes TEXT,
-                description TEXT,
-                auto_summary TEXT
-            );
-            CREATE TABLE claim_algorithm_payload (
-                claim_id TEXT PRIMARY KEY,
-                body TEXT,
-                canonical_ast TEXT,
-                variables_json TEXT,
-                stage TEXT
-            );
-        """)
+        create_world_model_schema(conn)
         conn.execute(
-            "INSERT INTO claim_core (id, content_hash, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
-            "VALUES ('measurement1', 'h1', 1, 'measurement', NULL, 'concept2', 'test', 1, NULL, NULL)"
+            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
+            "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', NULL, 'concept2', 'test', 1, NULL, NULL)"
         )
         conn.execute(
             "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "
@@ -635,61 +695,13 @@ class TestUnboundQueries:
         finally:
             wm.close()
 
-    def test_claims_for_works_without_schema_probe_state(self, tmp_path):
+    def test_claims_for_works_with_canonical_schema(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        conn.executescript("""
-            CREATE TABLE claim_core (
-                id TEXT PRIMARY KEY,
-                content_hash TEXT,
-                seq INTEGER,
-                type TEXT,
-                concept_id TEXT,
-                target_concept TEXT,
-                source_paper TEXT NOT NULL DEFAULT 'test',
-                provenance_page INTEGER NOT NULL DEFAULT 1,
-                provenance_json TEXT,
-                context_id TEXT
-            );
-            CREATE TABLE claim_numeric_payload (
-                claim_id TEXT PRIMARY KEY,
-                value REAL,
-                lower_bound REAL,
-                upper_bound REAL,
-                uncertainty REAL,
-                uncertainty_type TEXT,
-                sample_size INTEGER,
-                unit TEXT,
-                value_si REAL,
-                lower_bound_si REAL,
-                upper_bound_si REAL
-            );
-            CREATE TABLE claim_text_payload (
-                claim_id TEXT PRIMARY KEY,
-                conditions_cel TEXT,
-                statement TEXT,
-                expression TEXT,
-                sympy_generated TEXT,
-                sympy_error TEXT,
-                name TEXT,
-                measure TEXT,
-                listener_population TEXT,
-                methodology TEXT,
-                notes TEXT,
-                description TEXT,
-                auto_summary TEXT
-            );
-            CREATE TABLE claim_algorithm_payload (
-                claim_id TEXT PRIMARY KEY,
-                body TEXT,
-                canonical_ast TEXT,
-                variables_json TEXT,
-                stage TEXT
-            );
-        """)
+        create_world_model_schema(conn)
         conn.execute(
-            "INSERT INTO claim_core (id, content_hash, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
-            "VALUES ('measurement1', 'h1', 1, 'measurement', NULL, 'concept2', 'test', 1, NULL, NULL)"
+            "INSERT INTO claim_core (id, primary_logical_id, logical_ids_json, version_id, seq, type, concept_id, target_concept, source_paper, provenance_page, provenance_json, context_id) "
+            "VALUES ('measurement1', 'test:measurement1', '[{\"namespace\":\"test\",\"value\":\"measurement1\"}]', 'sha256:h1', 1, 'measurement', NULL, 'concept2', 'test', 1, NULL, NULL)"
         )
         conn.execute(
             "INSERT INTO claim_numeric_payload (claim_id, value, lower_bound, upper_bound, uncertainty, uncertainty_type, sample_size, unit, value_si, lower_bound_si, upper_bound_si) "
@@ -711,11 +723,8 @@ class TestUnboundQueries:
 
         wm = WorldModel(_Repo())
         try:
-            assert wm._claim_has_target_concept is None
             assert [claim["id"] for claim in wm.claims_for("concept2")] == ["measurement1"]
-            assert wm._claim_has_target_concept is None
             assert [claim["id"] for claim in wm.claims_for("concept2")] == ["measurement1"]
-            assert wm._claim_has_target_concept is None
         finally:
             wm.close()
 
@@ -727,7 +736,7 @@ class TestUnboundQueries:
     def test_search(self, world):
         results = world.search("frequency")
         ids = [r["concept_id"] for r in results]
-        assert "concept1" in ids
+        assert CONCEPT1_ID in ids
 
     def test_stats(self, world):
         s = world.stats()
@@ -740,13 +749,13 @@ class TestUnboundQueries:
 
 class TestExplain:
     def test_explain_returns_stance_chain(self, world):
-        chain = world.explain("claim2")
+        chain = world.explain(_claim_artifact("test_paper_alpha", "claim2"))
         assert len(chain) >= 1
-        assert chain[0]["target_claim_id"] == "claim1"
+        assert chain[0]["target_claim_id"] == _claim_artifact("test_paper_alpha", "claim1")
         assert chain[0]["stance_type"] == "rebuts"
 
     def test_explain_no_stances(self, world):
-        chain = world.explain("claim1")
+        chain = world.explain(_claim_artifact("test_paper_alpha", "claim1"))
         assert chain == []
 
     def test_explain_missing_claim(self, world):
@@ -768,35 +777,35 @@ class TestBindAndActiveClaims:
 
     def test_bind_speech_activates_speech_claims(self, world):
         bound = world.bind(task="speech")
-        active = bound.active_claims("concept1")
+        active = bound.active_claims(CONCEPT1_ID)
         active_ids = {c["id"] for c in active}
-        assert "claim1" in active_ids
-        assert "claim2" in active_ids
-        assert "claim7" in active_ids
-        assert "claim3" not in active_ids
-        assert "claim9" not in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim1") in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim2") in active_ids
+        assert _claim_artifact("test_paper_beta", "claim7") in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim3") not in active_ids
+        assert _claim_artifact("test_paper_beta", "claim9") not in active_ids
 
     def test_bind_singing_activates_singing_claims(self, world):
         bound = world.bind(task="singing")
-        active = bound.active_claims("concept1")
+        active = bound.active_claims(CONCEPT1_ID)
         active_ids = {c["id"] for c in active}
-        assert "claim3" in active_ids
-        assert "claim1" not in active_ids
-        assert "claim2" not in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim3") in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim1") not in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim2") not in active_ids
 
     def test_bind_whisper_activates_whisper_claims(self, world):
         bound = world.bind(task="whisper")
-        active = bound.active_claims("concept1")
+        active = bound.active_claims(CONCEPT1_ID)
         active_ids = {c["id"] for c in active}
-        assert "claim9" in active_ids
-        assert "claim1" not in active_ids
-        assert "claim3" not in active_ids
+        assert _claim_artifact("test_paper_beta", "claim9") in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim1") not in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim3") not in active_ids
 
     def test_unconditional_claims_always_active(self, world):
         bound = world.bind(task="speech")
         active = bound.active_claims()
         active_ids = {c["id"] for c in active}
-        assert "claim5" in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim5") in active_ids
 
     def test_empty_bind_all_active(self, world):
         bound = world.bind()
@@ -805,18 +814,18 @@ class TestBindAndActiveClaims:
 
     def test_inactive_claims(self, world):
         bound = world.bind(task="singing")
-        inactive = bound.inactive_claims("concept1")
+        inactive = bound.inactive_claims(CONCEPT1_ID)
         inactive_ids = {c["id"] for c in inactive}
-        assert "claim1" in inactive_ids
-        assert "claim2" in inactive_ids
-        assert "claim9" in inactive_ids
+        assert _claim_artifact("test_paper_alpha", "claim1") in inactive_ids
+        assert _claim_artifact("test_paper_alpha", "claim2") in inactive_ids
+        assert _claim_artifact("test_paper_beta", "claim9") in inactive_ids
 
     def test_active_claims_all_concepts(self, world):
         bound = world.bind(task="speech")
         active = bound.active_claims()
         active_ids = {c["id"] for c in active}
-        assert "claim4" in active_ids
-        assert "claim6" in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim4") in active_ids
+        assert _claim_artifact("test_paper_beta", "claim6") in active_ids
 
 
 # ── value_of ─────────────────────────────────────────────────────────
@@ -824,21 +833,21 @@ class TestBindAndActiveClaims:
 class TestValueOf:
     def test_singing_determined(self, world):
         bound = world.bind(task="singing")
-        result = bound.value_of("concept1")
+        result = bound.value_of(CONCEPT1_ID)
         assert isinstance(result, ValueResult)
         assert result.status == "determined"
         assert len(result.claims) == 1
-        assert result.claims[0]["id"] == "claim3"
+        assert result.claims[0]["id"] == _claim_artifact("test_paper_alpha", "claim3")
 
     def test_speech_conflicted(self, world):
         bound = world.bind(task="speech")
-        result = bound.value_of("concept1")
+        result = bound.value_of(CONCEPT1_ID)
         assert result.status == "conflicted"
         assert len(result.claims) >= 2
 
     def test_no_claims(self, world):
         bound = world.bind(task="speech")
-        result = bound.value_of("concept3")
+        result = bound.value_of(CONCEPT3_ID)
         assert result.status == "no_claims"
 
     def test_no_values_distinct_from_no_claims(self, world):
@@ -848,13 +857,13 @@ class TestValueOf:
         hypo = HypotheticalWorld(
             bound,
             add=[
-                SyntheticClaim(id="synth_obs1", concept_id="concept3", type="observation", value=None,
+                SyntheticClaim(id="synth_obs1", concept_id=CONCEPT3_ID, type="observation", value=None,
                                conditions=["task == 'speech'"]),
-                SyntheticClaim(id="synth_obs2", concept_id="concept3", type="observation", value=None,
+                SyntheticClaim(id="synth_obs2", concept_id=CONCEPT3_ID, type="observation", value=None,
                                conditions=["task == 'speech'"]),
             ],
         )
-        result = hypo.value_of("concept3")
+        result = hypo.value_of(CONCEPT3_ID)
         # Claims ARE present — status must NOT be "no_claims"
         assert result.status != "no_claims", (
             "Claims exist but lack values; status should be 'no_values', not 'no_claims'"
@@ -865,11 +874,11 @@ class TestValueOf:
 
     def test_is_determined(self, world):
         bound = world.bind(task="singing")
-        assert bound.is_determined("concept1") is True
+        assert bound.is_determined(CONCEPT1_ID) is True
 
     def test_is_not_determined(self, world):
         bound = world.bind(task="speech")
-        assert bound.is_determined("concept1") is False
+        assert bound.is_determined(CONCEPT1_ID) is False
 
 
 # ── Bound conflicts ──────────────────────────────────────────────────
@@ -877,17 +886,17 @@ class TestValueOf:
 class TestBoundConflicts:
     def test_singing_no_conflicts_concept1(self, world):
         bound = world.bind(task="singing")
-        conflicts = bound.conflicts("concept1")
+        conflicts = bound.conflicts(CONCEPT1_ID)
         assert len(conflicts) == 0
 
     def test_speech_has_conflicts_concept1(self, world):
         bound = world.bind(task="speech")
-        conflicts = bound.conflicts("concept1")
+        conflicts = bound.conflicts(CONCEPT1_ID)
         assert len(conflicts) >= 1
 
     def test_speech_conflicts_concept2(self, world):
         bound = world.bind(task="speech")
-        conflicts = bound.conflicts("concept2")
+        conflicts = bound.conflicts(CONCEPT2_ID)
         # claims 4, 6, 12, 13, 14 all bind concept2 under speech with different values
         assert len(conflicts) >= 1
 
@@ -897,7 +906,7 @@ class TestBoundConflicts:
 class TestBoundExplain:
     def test_explain_filtered_to_active(self, world):
         bound = world.bind(task="singing")
-        chain = bound.explain("claim2")
+        chain = bound.explain(_claim_artifact("test_paper_alpha", "claim2"))
         assert chain == []
 
 
@@ -986,22 +995,22 @@ class TestHypotheticalWorld:
     def test_remove_claim(self, world):
         """Removed claim absent from active_claims."""
         bound = world.bind(task="speech")
-        hypo = HypotheticalWorld(bound, remove=["claim1"])
-        active_ids = {c["id"] for c in hypo.active_claims("concept1")}
-        assert "claim1" not in active_ids
-        assert "claim2" in active_ids
+        hypo = HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
+        active_ids = {c["id"] for c in hypo.active_claims(CONCEPT1_ID)}
+        assert _claim_artifact("test_paper_alpha", "claim1") not in active_ids
+        assert _claim_artifact("test_paper_alpha", "claim2") in active_ids
 
     def test_add_synthetic_claim(self, world):
         """Added claim in active_claims, affects value_of."""
         bound = world.bind(task="singing")
         sc = SyntheticClaim(
-            id="synth1", concept_id="concept2", value=900.0,
+            id="synth1", concept_id=CONCEPT2_ID, value=900.0,
             conditions=["task == 'singing'"],
         )
         hypo = HypotheticalWorld(bound, add=[sc])
-        active_ids = {c["id"] for c in hypo.active_claims("concept2")}
+        active_ids = {c["id"] for c in hypo.active_claims(CONCEPT2_ID)}
         assert "synth1" in active_ids
-        vr = hypo.value_of("concept2")
+        vr = hypo.value_of(CONCEPT2_ID)
         assert vr.status == "determined"
 
     def test_resolves_conflict(self, world):
@@ -1009,8 +1018,12 @@ class TestHypotheticalWorld:
         bound = world.bind(task="speech")
         # Under speech, concept1 has claim1(200), claim2(350), claim7(250), claim15(205) — conflicted
         # Remove claim2, claim7, claim15 → only claim1 remains → determined
-        hypo = HypotheticalWorld(bound, remove=["claim2", "claim7", "claim15"])
-        vr = hypo.value_of("concept1")
+        hypo = HypotheticalWorld(bound, remove=[
+            _claim_artifact("test_paper_alpha", "claim2"),
+            _claim_artifact("test_paper_beta", "claim7"),
+            _claim_artifact("test_paper_gamma", "claim15"),
+        ])
+        vr = hypo.value_of(CONCEPT1_ID)
         assert vr.status == "determined"
         assert vr.claims[0]["value"] == 200.0
 
@@ -1019,20 +1032,24 @@ class TestHypotheticalWorld:
         bound = world.bind(task="singing")
         # Under singing, concept1 has claim3(180) → determined
         sc = SyntheticClaim(
-            id="synth_conflict", concept_id="concept1", value=999.0,
+            id="synth_conflict", concept_id=CONCEPT1_ID, value=999.0,
             conditions=["task == 'singing'"],
         )
         hypo = HypotheticalWorld(bound, add=[sc])
-        vr = hypo.value_of("concept1")
+        vr = hypo.value_of(CONCEPT1_ID)
         assert vr.status == "conflicted"
 
     def test_cascading_to_derived(self, world):
         """Changing input claims affects derived_value."""
         bound = world.bind(task="speech")
         # Remove all concept1 claims except claim1(200) and resolve concept1
-        hypo = HypotheticalWorld(bound, remove=["claim2", "claim7", "claim15"])
+        hypo = HypotheticalWorld(bound, remove=[
+            _claim_artifact("test_paper_alpha", "claim2"),
+            _claim_artifact("test_paper_beta", "claim7"),
+            _claim_artifact("test_paper_gamma", "claim15"),
+        ])
         # Now concept1 is determined (200), concept6 is determined (0.001)
-        dr = hypo.derived_value("concept5")
+        dr = hypo.derived_value(CONCEPT5_ID)
         assert dr.status == "derived"
         assert dr.value is not None
         assert abs(dr.value - 0.2) < 1e-9  # 0.001 * 200
@@ -1049,41 +1066,54 @@ class TestHypotheticalWorld:
         bound = world.bind(task="speech")
         # concept1 is conflicted in base (claim1=200, claim2=350, etc.)
         # Remove all but claim1 so concept1 is determined at 200
-        hypo_base = HypotheticalWorld(bound, remove=["claim2", "claim7", "claim15"])
-        assert hypo_base.collect_known_values(["concept1"]) == {"concept1": 200.0}
+        hypo_base = HypotheticalWorld(bound, remove=[
+            _claim_artifact("test_paper_alpha", "claim2"),
+            _claim_artifact("test_paper_beta", "claim7"),
+            _claim_artifact("test_paper_gamma", "claim15"),
+        ])
+        assert hypo_base.collect_known_values([CONCEPT1_ID]) == {CONCEPT1_ID: 200.0}
 
         # Now create a hypothetical that replaces concept1 with 500
         sc = SyntheticClaim(
-            id="synth_f0", concept_id="concept1", value=500.0,
+            id="synth_f0", concept_id=CONCEPT1_ID, value=500.0,
             conditions=["task == 'speech'"],
         )
-        hypo = HypotheticalWorld(bound, remove=["claim1", "claim2", "claim7", "claim15"], add=[sc])
+        hypo = HypotheticalWorld(bound, remove=[
+            _claim_artifact("test_paper_alpha", "claim1"),
+            _claim_artifact("test_paper_alpha", "claim2"),
+            _claim_artifact("test_paper_beta", "claim7"),
+            _claim_artifact("test_paper_gamma", "claim15"),
+        ], add=[sc])
         # value_of should see the synthetic claim
-        vr = hypo.value_of("concept1")
+        vr = hypo.value_of(CONCEPT1_ID)
         assert vr.status == "determined"
         assert vr.claims[0]["value"] == 500.0
         # collect_known_values MUST also see the synthetic value
-        known = hypo.collect_known_values(["concept1"])
-        assert known == {"concept1": 500.0}, (
+        known = hypo.collect_known_values([CONCEPT1_ID])
+        assert known == {CONCEPT1_ID: 500.0}, (
             f"collect_known_values leaked to base world: got {known}"
         )
 
     def test_preserves_base(self, world):
         """Base BoundWorld unchanged after hypothetical creation."""
         bound = world.bind(task="speech")
-        base_active = {c["id"] for c in bound.active_claims("concept1")}
-        HypotheticalWorld(bound, remove=["claim1"])
-        after_active = {c["id"] for c in bound.active_claims("concept1")}
+        base_active = {c["id"] for c in bound.active_claims(CONCEPT1_ID)}
+        HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
+        after_active = {c["id"] for c in bound.active_claims(CONCEPT1_ID)}
         assert base_active == after_active
 
     def test_diff_shows_changes(self, world):
         """diff() reports changed concepts."""
         bound = world.bind(task="speech")
-        hypo = HypotheticalWorld(bound, remove=["claim2", "claim7", "claim15"])
+        hypo = HypotheticalWorld(bound, remove=[
+            _claim_artifact("test_paper_alpha", "claim2"),
+            _claim_artifact("test_paper_beta", "claim7"),
+            _claim_artifact("test_paper_gamma", "claim15"),
+        ])
         d = hypo.diff()
         # concept1 was conflicted, now determined → should be in diff
-        assert "concept1" in d
-        base_vr, hypo_vr = d["concept1"]
+        assert CONCEPT1_ID in d
+        base_vr, hypo_vr = d[CONCEPT1_ID]
         assert base_vr.status == "conflicted"
         assert hypo_vr.status == "determined"
 
@@ -1091,7 +1121,7 @@ class TestHypotheticalWorld:
         """remove=[], add=[] == base."""
         bound = world.bind(task="speech")
         hypo = HypotheticalWorld(bound, remove=[], add=[])
-        for cid in ["concept1", "concept2", "concept6"]:
+        for cid in [CONCEPT1_ID, CONCEPT2_ID, CONCEPT6_ID]:
             base_vr = bound.value_of(cid)
             hypo_vr = hypo.value_of(cid)
             assert base_vr.status == hypo_vr.status
@@ -1101,18 +1131,20 @@ class TestHypotheticalWorld:
         bound = world.bind(task="speech")
         # concept1 has claim1(200), claim2(350), claim7(250), claim15(205) — conflicted
         # Verify base has conflicts involving claim2
-        base_conflicts = bound.conflicts("concept1")
+        base_conflicts = bound.conflicts(CONCEPT1_ID)
         assert any(
-            c["claim_a_id"] == "claim2" or c["claim_b_id"] == "claim2"
+            c["claim_a_id"] == _claim_artifact("test_paper_alpha", "claim2")
+            or c["claim_b_id"] == _claim_artifact("test_paper_alpha", "claim2")
             for c in base_conflicts
         ), "precondition: base must have conflicts involving claim2"
 
         # Remove claim2 — no conflict result should reference it
-        hypo = HypotheticalWorld(bound, remove=["claim2"])
-        hypo_conflicts = hypo.conflicts("concept1")
+        hypo = HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim2")])
+        hypo_conflicts = hypo.conflicts(CONCEPT1_ID)
         stale = [
             c for c in hypo_conflicts
-            if c["claim_a_id"] == "claim2" or c["claim_b_id"] == "claim2"
+            if c["claim_a_id"] == _claim_artifact("test_paper_alpha", "claim2")
+            or c["claim_b_id"] == _claim_artifact("test_paper_alpha", "claim2")
         ]
         assert stale == [], (
             f"conflicts() returned stale entries referencing removed claim2: {stale}"
@@ -1129,9 +1161,9 @@ class TestConflictResolution:
         bound = world.bind(env, policy=policy)
 
         assert isinstance(bound, BeliefSpace)
-        result = bound.resolved_value("concept1")
+        result = bound.resolved_value(CONCEPT1_ID)
         assert result.status == "resolved"
-        assert result.winning_claim_id == "claim15"
+        assert result.winning_claim_id == _claim_artifact("test_paper_gamma", "claim15")
 
     def test_bound_resolved_value_uses_policy(self, world):
         bound = world.bind(
@@ -1139,22 +1171,22 @@ class TestConflictResolution:
             policy=RenderPolicy(strategy=ResolutionStrategy.SAMPLE_SIZE),
         )
 
-        result = bound.resolved_value("concept1")
+        result = bound.resolved_value(CONCEPT1_ID)
         assert result.status == "resolved"
-        assert result.winning_claim_id == "claim7"
+        assert result.winning_claim_id == _claim_artifact("test_paper_beta", "claim7")
 
     def test_bound_resolved_value_uses_concept_strategy_override(self, world):
         bound = world.bind(
             task="speech",
             policy=RenderPolicy(
                 strategy=ResolutionStrategy.SAMPLE_SIZE,
-                concept_strategies={"concept1": ResolutionStrategy.RECENCY},
+                concept_strategies={CONCEPT1_ID: ResolutionStrategy.RECENCY},
             ),
         )
 
-        result = bound.resolved_value("concept1")
+        result = bound.resolved_value(CONCEPT1_ID)
         assert result.status == "resolved"
-        assert result.winning_claim_id == "claim15"
+        assert result.winning_claim_id == _claim_artifact("test_paper_gamma", "claim15")
 
     def test_resolve_explicit_kwargs_override_policy_defaults(self, world):
         bound = world.bind(
@@ -1166,7 +1198,7 @@ class TestConflictResolution:
 
         result = resolve(
             bound,
-            "concept1",
+            CONCEPT1_ID,
             world=world,
             policy=bound._policy,
         )
@@ -1176,7 +1208,7 @@ class TestConflictResolution:
     def test_resolve_argumentation_requires_explicit_store(self, world):
         bound = world.bind(task="speech")
 
-        result = resolve(bound, "concept1", ResolutionStrategy.ARGUMENTATION)
+        result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.ARGUMENTATION)
 
         assert result.status == "conflicted"
         assert result.reason == "argumentation strategy requires an explicit artifact store"
@@ -1184,17 +1216,17 @@ class TestConflictResolution:
     def test_resolve_not_conflicted(self, world):
         """Determined → returns same, no resolution."""
         bound = world.bind(task="singing")
-        result = resolve(bound, "concept1", ResolutionStrategy.RECENCY)
+        result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.RECENCY)
         assert isinstance(result, ResolvedResult)
         assert result.status == "determined"
 
     def test_resolve_recency(self, world):
         """Newer provenance wins."""
         bound = world.bind(task="speech")
-        result = resolve(bound, "concept1", ResolutionStrategy.RECENCY)
+        result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.RECENCY)
         # claim15 has date 2025-01-01, claim2 has 2024-06-20, claim1 has 2024-01-15, claim7 has 2023-03-10
         assert result.status == "resolved"
-        assert result.winning_claim_id == "claim15"
+        assert result.winning_claim_id == _claim_artifact("test_paper_gamma", "claim15")
 
     def test_resolve_recency_no_dates(self, world):
         """No dates → stays conflicted."""
@@ -1202,29 +1234,29 @@ class TestConflictResolution:
         # concept2 has claim4 and claim6 but they're compatible (same value)
         # Need a conflicted concept without dates... let's use concept1
         # but claim1/claim2/claim7 all have dates. We'll just verify the strategy reports.
-        result = resolve(bound, "concept1", ResolutionStrategy.RECENCY)
+        result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.RECENCY)
         assert result.status == "resolved"  # All have dates, so it resolves
 
     def test_resolve_sample_size(self, world):
         """Larger n wins."""
         bound = world.bind(task="speech")
-        result = resolve(bound, "concept1", ResolutionStrategy.SAMPLE_SIZE)
+        result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.SAMPLE_SIZE)
         # claim7 has n=50, claim1 has n=30, claim2 has n=10
         assert result.status == "resolved"
-        assert result.winning_claim_id == "claim7"
+        assert result.winning_claim_id == _claim_artifact("test_paper_beta", "claim7")
 
     def test_resolve_sample_size_null(self, world):
         """Has-n beats null."""
         bound = world.bind(task="speech")
-        result = resolve(bound, "concept1", ResolutionStrategy.SAMPLE_SIZE)
+        result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.SAMPLE_SIZE)
         assert result.status == "resolved"
         # claim7 wins with n=50
-        assert result.winning_claim_id == "claim7"
+        assert result.winning_claim_id == _claim_artifact("test_paper_beta", "claim7")
 
     def test_resolve_argumentation_rebuts(self, world):
         """Argumentation: weak rebutter blocked by preference ordering."""
         bound = world.bind(task="speech")
-        result = resolve(bound, "concept1", ResolutionStrategy.ARGUMENTATION, world=world)
+        result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.ARGUMENTATION, world=world)
         # claim2 (sample=10) rebuts claim1 (sample=30) → blocked (weaker)
         # claim15 supersedes claim1 → always defeats
         # claim7 supports claim1 → not an attack
@@ -1236,11 +1268,11 @@ class TestConflictResolution:
         """Specified claim wins."""
         bound = world.bind(task="speech")
         result = resolve(
-            bound, "concept1", ResolutionStrategy.OVERRIDE,
-            overrides={"concept1": "claim1"},
+            bound, CONCEPT1_ID, ResolutionStrategy.OVERRIDE,
+            overrides={CONCEPT1_ID: _claim_artifact("test_paper_alpha", "claim1")},
         )
         assert result.status == "resolved"
-        assert result.winning_claim_id == "claim1"
+        assert result.winning_claim_id == _claim_artifact("test_paper_alpha", "claim1")
         assert result.value == 200.0
 
     def test_resolve_override_invalid(self, world):
@@ -1249,40 +1281,46 @@ class TestConflictResolution:
         # claim3 is inactive under speech (it's a singing claim)
         with pytest.raises(ValueError):
             resolve(
-                bound, "concept1", ResolutionStrategy.OVERRIDE,
-                overrides={"concept1": "claim3"},
+                bound, CONCEPT1_ID, ResolutionStrategy.OVERRIDE,
+                overrides={CONCEPT1_ID: _claim_artifact("test_paper_alpha", "claim3")},
             )
 
     def test_resolve_no_claims(self, world):
         """No claims → no_claims."""
         bound = world.bind(task="speech")
-        result = resolve(bound, "concept3", ResolutionStrategy.RECENCY)
+        result = resolve(bound, CONCEPT3_ID, ResolutionStrategy.RECENCY)
         assert result.status == "no_claims"
 
     def test_resolve_on_hypothetical(self, world):
         """resolve() works on HypotheticalWorld via BeliefSpace."""
         bound = world.bind(task="speech")
-        hypo = HypotheticalWorld(bound, remove=["claim7", "claim15"])
-        result = resolve(hypo, "concept1", ResolutionStrategy.RECENCY)
+        hypo = HypotheticalWorld(bound, remove=[
+            _claim_artifact("test_paper_beta", "claim7"),
+            _claim_artifact("test_paper_gamma", "claim15"),
+        ])
+        result = resolve(hypo, CONCEPT1_ID, ResolutionStrategy.RECENCY)
         # claim2(2024-06-20) vs claim1(2024-01-15) → claim2 wins
         assert result.status == "resolved"
-        assert result.winning_claim_id == "claim2"
+        assert result.winning_claim_id == _claim_artifact("test_paper_alpha", "claim2")
 
     def test_hypothetical_resolved_value_inherits_policy(self, world):
         bound = world.bind(
             task="speech",
             policy=RenderPolicy(strategy=ResolutionStrategy.RECENCY),
         )
-        hypo = HypotheticalWorld(bound, remove=["claim7", "claim15"])
+        hypo = HypotheticalWorld(bound, remove=[
+            _claim_artifact("test_paper_beta", "claim7"),
+            _claim_artifact("test_paper_gamma", "claim15"),
+        ])
 
-        result = hypo.resolved_value("concept1")
+        result = hypo.resolved_value(CONCEPT1_ID)
         assert result.status == "resolved"
-        assert result.winning_claim_id == "claim2"
+        assert result.winning_claim_id == _claim_artifact("test_paper_alpha", "claim2")
 
     def test_resolve_argumentation_supersedes(self, world):
         """Superseding claim defeats target in argumentation framework."""
         bound = world.bind(task="speech")
-        result = resolve(bound, "concept1", ResolutionStrategy.ARGUMENTATION, world=world)
+        result = resolve(bound, CONCEPT1_ID, ResolutionStrategy.ARGUMENTATION, world=world)
         # claim15 supersedes claim1 → claim1 defeated (out of grounded extension)
         # Multiple other claims survive → still conflicted
         assert result.status == "conflicted"
@@ -1292,7 +1330,7 @@ class TestConflictResolution:
     def test_resolve_argumentation_undercuts(self, world):
         """Undercutting eliminates target from grounded extension."""
         bound = world.bind(task="speech")
-        result = resolve(bound, "concept2", ResolutionStrategy.ARGUMENTATION, world=world)
+        result = resolve(bound, CONCEPT2_ID, ResolutionStrategy.ARGUMENTATION, world=world)
         # claim12 undercuts claim6 → claim6 defeated
         # claim13 undermines claim4 (equal strength) → claim4 defeated
         # claim14 explains claim6 → not an attack
@@ -1392,7 +1430,7 @@ class TestChainQuery:
         # concept2 is now conflicted under speech (claim4=800, claim6=800,
         # claim12=900, claim13=850, claim14=810), so use resolution strategy
         result = world.chain_query(
-            "concept2", strategy=ResolutionStrategy.RECENCY, task="speech"
+            CONCEPT2_ID, strategy=ResolutionStrategy.RECENCY, task="speech"
         )
         assert isinstance(result, ChainResult)
 
@@ -1400,12 +1438,12 @@ class TestChainQuery:
         """Target derived from direct claims."""
         # concept5 now has claim11 (0.5) under speech, so it's determined directly
         result = world.chain_query(
-            "concept5", strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech"
+            CONCEPT5_ID, strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech"
         )
         # concept5 is determined via claim11 (value=0.5)
         assert result.result.status == "determined"
         claim_step = next(
-            (s for s in result.steps if s.concept_id == "concept5"), None
+            (s for s in result.steps if s.concept_id == CONCEPT5_ID), None
         )
         assert claim_step is not None
         assert claim_step.source == "claim"
@@ -1416,7 +1454,7 @@ class TestChainQuery:
         # concept7 = 2 * concept5, concept5 now has claim11 (0.5) under speech
         # So concept5 is determined via claim, concept7 = 2 * 0.5 = 1.0
         result = world.chain_query(
-            "concept7", strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech"
+            CONCEPT7_ID, strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech"
         )
         assert isinstance(result.result, DerivedResult)
         assert result.result.status == "derived"
@@ -1426,7 +1464,7 @@ class TestChainQuery:
     def test_chain_reports_steps(self, world):
         """Each step has concept, value, source."""
         result = world.chain_query(
-            "concept5", strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech"
+            CONCEPT5_ID, strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech"
         )
         for step in result.steps:
             assert step.concept_id is not None
@@ -1435,41 +1473,41 @@ class TestChainQuery:
     def test_chain_no_path(self, world):
         """Target unreachable → shows what's missing."""
         # concept5 under singing: parameterization conditions require speech
-        result = world.chain_query("concept5", task="singing")
+        result = world.chain_query(CONCEPT5_ID, task="singing")
         assert result.result.status != "derived"
 
     def test_chain_partial(self, world):
         """Some steps resolve, others don't."""
         # Without strategy, concept1 stays conflicted → concept5 can't derive
-        result = world.chain_query("concept5", task="speech")
+        result = world.chain_query(CONCEPT5_ID, task="speech")
         assert result.result.status != "derived"
 
     def test_chain_with_resolution(self, world):
         """Conflicted intermediate resolved by strategy."""
         # concept5 now has claim11 (0.5) under speech, so it's determined directly
         result = world.chain_query(
-            "concept5", strategy=ResolutionStrategy.RECENCY, task="speech"
+            CONCEPT5_ID, strategy=ResolutionStrategy.RECENCY, task="speech"
         )
         assert result.result.status == "determined"
         claim_step = next(
-            (s for s in result.steps if s.concept_id == "concept5"), None
+            (s for s in result.steps if s.concept_id == CONCEPT5_ID), None
         )
         assert claim_step is not None
         assert claim_step.value == 0.5
 
     def test_chain_subsumes_bind(self, world):
         """No propagation → same as value_of."""
-        result = world.chain_query("concept2", task="speech")
+        result = world.chain_query(CONCEPT2_ID, task="speech")
         bound = world.bind(task="speech")
-        vr = bound.value_of("concept2")
+        vr = bound.value_of(CONCEPT2_ID)
         # Both should show determined
         if isinstance(result.result, ValueResult):
             assert result.result.status == vr.status
 
     def test_chain_determinism(self, world):
         """Same bindings + same strategy → same result."""
-        r1 = world.chain_query("concept5", strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech")
-        r2 = world.chain_query("concept5", strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech")
+        r1 = world.chain_query(CONCEPT5_ID, strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech")
+        r2 = world.chain_query(CONCEPT5_ID, strategy=ResolutionStrategy.SAMPLE_SIZE, task="speech")
         assert r1.result.status == r2.result.status
         if r1.result.status == "derived":
             assert r1.result.value == r2.result.value
@@ -1482,11 +1520,11 @@ class TestChainQuery:
         # concept5 also has a direct claim (claim11=0.5), so it resolves anyway.
         # But concept1 itself is conflicted and unresolved in the chain.
         # The chain result should report concept1 as an unresolved dependency.
-        result = world.chain_query("concept5", task="speech")
+        result = world.chain_query(CONCEPT5_ID, task="speech")
         # concept5 is determined via direct claim, but concept1 is conflicted
         # and was never resolved — it should appear in unresolved_dependencies
         assert hasattr(result, "unresolved_dependencies")
-        assert "concept1" in result.unresolved_dependencies
+        assert CONCEPT1_ID in result.unresolved_dependencies
 
 
 # ── Hypothesis property tests ────────────────────────────────────────
@@ -1496,7 +1534,7 @@ class TestHypothesisProperties:
         for binding in [{}, {"task": "speech"}, {"task": "singing"}, {"task": "whisper"}]:
             bound = world.bind(**binding)
             active_ids = {c["id"] for c in bound.active_claims()}
-            assert "claim5" in active_ids, f"claim5 not active under {binding}"
+            assert _claim_artifact("test_paper_alpha", "claim5") in active_ids, f"claim5 not active under {binding}"
 
     def test_partitioning(self, world):
         all_claims = {c["id"] for c in world.claims_for(None)}
@@ -1545,11 +1583,11 @@ class TestCrossFeatureProperties:
     def test_value_of_invariance(self, world):
         """PX.1: value_of is not affected by calling derived_value, resolve, or hypothetical."""
         bound = world.bind(task="speech")
-        vr_before = bound.value_of("concept1")
-        bound.derived_value("concept5")
-        resolve(bound, "concept1", ResolutionStrategy.RECENCY)
-        HypotheticalWorld(bound, remove=["claim1"])
-        vr_after = bound.value_of("concept1")
+        vr_before = bound.value_of(CONCEPT1_ID)
+        bound.derived_value(CONCEPT5_ID)
+        resolve(bound, CONCEPT1_ID, ResolutionStrategy.RECENCY)
+        HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
+        vr_after = bound.value_of(CONCEPT1_ID)
         assert vr_before.status == vr_after.status
         assert len(vr_before.claims) == len(vr_after.claims)
 
@@ -1557,7 +1595,7 @@ class TestCrossFeatureProperties:
         """PX.2: Functions accepting BeliefSpace produce same structure for BoundWorld and identity HypotheticalWorld."""
         bound = world.bind(task="speech")
         hypo = HypotheticalWorld(bound, remove=[], add=[])
-        for cid in ["concept1", "concept2", "concept6"]:
+        for cid in [CONCEPT1_ID, CONCEPT2_ID, CONCEPT6_ID]:
             bvr = bound.value_of(cid)
             hvr = hypo.value_of(cid)
             assert bvr.status == hvr.status
@@ -1566,8 +1604,8 @@ class TestCrossFeatureProperties:
         """P2.5: Creating a hypothetical does not modify the base."""
         bound = world.bind(task="speech")
         base_claims_before = sorted(c["id"] for c in bound.active_claims())
-        sc = SyntheticClaim(id="s1", concept_id="concept1", value=999.0)
-        HypotheticalWorld(bound, remove=["claim1"], add=[sc])
+        sc = SyntheticClaim(id="s1", concept_id=CONCEPT1_ID, value=999.0)
+        HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc])
         base_claims_after = sorted(c["id"] for c in bound.active_claims())
         assert base_claims_before == base_claims_after
 
@@ -1575,22 +1613,22 @@ class TestCrossFeatureProperties:
         """P2.4: In hypothetical world, active ∪ inactive = adjusted set."""
         bound = world.bind(task="speech")
         sc = SyntheticClaim(
-            id="synth_p", concept_id="concept1", value=999.0,
+            id="synth_p", concept_id=CONCEPT1_ID, value=999.0,
             conditions=["task == 'speech'"],
         )
-        hypo = HypotheticalWorld(bound, remove=["claim1"], add=[sc])
+        hypo = HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc])
         active = {c["id"] for c in hypo.active_claims()}
         inactive = {c["id"] for c in hypo.inactive_claims()}
         assert active & inactive == set(), "Overlap in hypothetical partition"
         # claim1 removed, synth_p added
-        assert "claim1" not in (active | inactive)
+        assert _claim_artifact("test_paper_alpha", "claim1") not in (active | inactive)
         assert "synth_p" in (active | inactive)
 
     def test_resolve_determinism(self, world):
         """P3.4: Same bindings + same strategy → same winner."""
         bound = world.bind(task="speech")
-        r1 = resolve(bound, "concept1", ResolutionStrategy.SAMPLE_SIZE)
-        r2 = resolve(bound, "concept1", ResolutionStrategy.SAMPLE_SIZE)
+        r1 = resolve(bound, CONCEPT1_ID, ResolutionStrategy.SAMPLE_SIZE)
+        r2 = resolve(bound, CONCEPT1_ID, ResolutionStrategy.SAMPLE_SIZE)
         assert r1.winning_claim_id == r2.winning_claim_id
         assert r1.status == r2.status
 
@@ -1748,7 +1786,7 @@ class TestTransitiveConsistency:
         hypo = HypotheticalWorld(bound, add=[sc])
         conflicts = hypo.recompute_conflicts()
         # concept2 now has claim4(800), claim6(800), synth_conflict(999) → conflict
-        concept2_conflicts = [c for c in conflicts if c["concept_id"] == "concept2"]
+        concept2_conflicts = [c for c in conflicts if c["concept_id"] == CONCEPT2_ID]
         assert len(concept2_conflicts) >= 1
         # Check schema
         for c in concept2_conflicts:
@@ -1772,11 +1810,11 @@ class TestTransitiveConsistency:
             {
                 conflict["claim_a_id"],
                 conflict["claim_b_id"],
-            } == {"claim4", "synth_conflict"}
+            } == {_claim_artifact("test_paper_alpha", "claim4"), "synth_conflict"}
             or {
                 conflict["claim_a_id"],
                 conflict["claim_b_id"],
-            } == {"claim6", "synth_conflict"}
+            } == {_claim_artifact("test_paper_beta", "claim6"), "synth_conflict"}
             for conflict in conflicts
         )
 
@@ -1843,7 +1881,11 @@ def algo_concept_dir(tmp_path):
             yaml.dump({"name": form_name}, default_flow_style=False))
 
     def write(name, data):
-        (concepts_path / f"{name}.yaml").write_text(yaml.dump(data, default_flow_style=False))
+        normalized = normalize_concept_payloads(
+            [data],
+            default_domain=str(data.get("domain") or "propstore"),
+        )[0]
+        (concepts_path / f"{name}.yaml").write_text(yaml.dump(normalized, default_flow_style=False))
 
     write("sample_rate", {
         "id": "algo_concept1",
@@ -1989,8 +2031,12 @@ def algo_claim_files(algo_concept_dir):
         ],
     }
 
-    (claims_dir / "algo_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
-    (claims_dir / "algo_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))
+    (claims_dir / "algo_paper_alpha.yaml").write_text(
+        yaml.dump(_normalize_claim_concept_refs(alpha), default_flow_style=False)
+    )
+    (claims_dir / "algo_paper_beta.yaml").write_text(
+        yaml.dump(_normalize_claim_concept_refs(beta), default_flow_style=False)
+    )
 
     from propstore.validate_claims import load_claim_files
     return load_claim_files(claims_dir)
@@ -2010,11 +2056,11 @@ class TestAlgorithmWorldModel:
         bound = algo_world.bind(task="speech")
         algos = bound.algorithm_for("algo_concept3")
         algo_ids = {a["id"] for a in algos}
-        assert "algo_claim1" in algo_ids
-        assert "algo_claim2" in algo_ids
-        assert "algo_claim3" in algo_ids
+        assert _claim_artifact("algo_paper_alpha", "algo_claim1") in algo_ids
+        assert _claim_artifact("algo_paper_alpha", "algo_claim2") in algo_ids
+        assert _claim_artifact("algo_paper_beta", "algo_claim3") in algo_ids
         # Parameter claim should not be returned
-        assert "algo_claim_param" not in algo_ids
+        assert _claim_artifact("algo_paper_beta", "algo_claim_param") not in algo_ids
 
     def test_collect_known_values(self, algo_world):
         """Known values collected from resolved concepts."""
@@ -2277,11 +2323,7 @@ class TestWorldModelSidecarPath:
         # Create a minimal sidecar database at a known path
         db_path = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(db_path)
-        conn.execute(
-            "CREATE TABLE concept "
-            "(id TEXT PRIMARY KEY, canonical_name TEXT, kind_type TEXT, "
-            "form TEXT, form_parameters TEXT)"
-        )
+        create_world_model_schema(conn)
         conn.close()
 
         # This should work: construct WorldModel from a Path to the sidecar db.
@@ -2289,6 +2331,15 @@ class TestWorldModelSidecarPath:
         wm = WorldModel(sidecar_path=db_path)
         assert wm is not None
         wm.close()
+
+    def test_worldmodel_rejects_partial_sidecar_schema(self, tmp_path):
+        db_path = tmp_path / "propstore.sqlite"
+        conn = sqlite3.connect(db_path)
+        conn.execute("CREATE TABLE concept (id TEXT PRIMARY KEY)")
+        conn.close()
+
+        with pytest.raises(ValueError, match="Unsupported sidecar schema"):
+            WorldModel(sidecar_path=db_path)
 
     def test_worldmodel_importable_without_cli(self):
         """propstore.world.model.WorldModel.from_path should not require

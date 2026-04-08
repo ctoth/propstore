@@ -427,8 +427,6 @@ def build_sidecar(
                 fd = form_registry.get(form_name)
                 if fd is not None:
                     enriched["_form_definition"] = fd
-                    if fd.allowed_units:
-                        enriched["_allowed_units"] = sorted(fd.allowed_units)
             concept_registry[cid] = enriched
             # Also register by canonical_name and aliases
             cname = enriched.get("canonical_name")
@@ -488,12 +486,12 @@ def build_sidecar(
         _populate_parameterization_groups(conn, concepts)
         _populate_form_algebra(conn, concepts, form_registry)
         _build_fts_index(conn, concepts)
+        _create_claim_tables(conn)
 
         if context_files:
             _populate_contexts(conn, context_files)
 
         if claim_files is not None:
-            _create_claim_tables(conn)
             _populate_claims(conn, claim_files, concept_registry, form_registry=form_registry)
 
             context_hierarchy = ContextHierarchy(list(context_files)) if context_files else None
