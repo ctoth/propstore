@@ -296,7 +296,7 @@ def test_aspic_resolution_threads_link_to_build_aspic_projection(monkeypatch) ->
     comparison=st.sampled_from(["elitist", "democratic"]),
     link=st.sampled_from(["last", "weakest"]),
 )
-@settings(max_examples=8, deadline=None)
+@settings(deadline=None)
 def test_aspic_resolution_property_threads_selected_preference_config(
     comparison: str,
     link: str,
