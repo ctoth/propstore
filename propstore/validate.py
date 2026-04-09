@@ -173,7 +173,7 @@ def _validate_logical_ids(
         seen_logical_ids[formatted] = filename
 
 
-def _normalize_legacy_concept_record(data: dict) -> dict:
+def normalize_concept_record(data: dict) -> dict:
     normalized = dict(data)
     if isinstance(normalized.get("artifact_id"), str) and normalized.get("artifact_id"):
         return normalized
@@ -251,7 +251,7 @@ def validate_concepts(
         all_claim_ids = _load_all_claim_ids(claims_dir)
 
     for c in concepts:
-        data = _normalize_legacy_concept_record(c.data)
+        data = normalize_concept_record(c.data)
 
         # ── Required fields (basic) ─────────────────────────────
         cid = data.get("artifact_id")
@@ -374,7 +374,7 @@ def validate_concepts(
     all_ids = set(id_to_concept.keys())
 
     for c in concepts:
-        data = _normalize_legacy_concept_record(c.data)
+        data = normalize_concept_record(c.data)
         cid = data.get("artifact_id", "")
         status = data.get("status")
 
