@@ -48,7 +48,6 @@ from propstore.validate import (
     load_concepts,
     load_yaml_dir,
     load_yaml_entries,
-    normalize_concept_record,
 )
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
@@ -59,6 +58,7 @@ from propstore.cel_checker import (
     build_cel_registry,
     check_cel_expression,
 )
+from propstore.core.concepts import LoadedConcept, normalize_loaded_concepts
 from propstore.form_utils import (
     FormDefinition,
     json_safe,
@@ -688,50 +688,51 @@ def build_concept_registry_from_paths(
 
 
 def build_authored_concept_registry(
-    concepts: list[LoadedEntry],
+    concepts: list[LoadedEntry] | list[LoadedConcept],
     forms_dir: Path | KnowledgePath,
     *,
     require_form_definition: bool = True,
 ) -> dict[str, dict]:
     """Build the canonical authored-concept lookup used by validators/builders."""
     forms_root = coerce_knowledge_path(forms_dir)
+    typed_concepts = (
+        concepts
+        if all(isinstance(concept, LoadedConcept) for concept in concepts)
+        else normalize_loaded_concepts(concepts)
+    )
     registry: dict[str, dict] = {}
-    for concept in concepts:
-        enriched = normalize_concept_record(dict(concept.data))
-        raw_id = concept.data.get("id")
-        source_artifact_id = concept.data.get("artifact_id")
-        cid = source_artifact_id or raw_id or enriched.get("artifact_id")
-        if not cid:
-            continue
+    for concept in typed_concepts:
+        record = concept.record
+        enriched = record.to_payload()
+        cid = str(record.artifact_id)
         enriched["_storage_id"] = cid
         # Load structured form definition
-        form_def = load_form_path(forms_root, enriched.get("form"))
-        form_name = enriched.get("form")
-        if isinstance(form_name, str) and form_name:
+        form_def = load_form_path(forms_root, record.form)
+        if record.form:
             if form_def is None:
                 if require_form_definition:
                     raise ValueError(
-                        f"concept '{cid}' references missing form definition '{form_name}'"
+                        f"concept '{cid}' references missing form definition '{record.form}'"
                     )
             else:
                 enriched["_form_definition"] = form_def
         # Index by concept ID
         registry[cid] = enriched
-        if isinstance(raw_id, str) and raw_id and raw_id not in registry:
-            registry[raw_id] = enriched
+        if concept.source_local_id and concept.source_local_id not in registry:
+            registry[concept.source_local_id] = enriched
         # Index by canonical_name (claims can reference concepts by name)
-        canonical = enriched.get("canonical_name")
-        if canonical and canonical not in registry:
+        canonical = record.canonical_name
+        if canonical not in registry:
             registry[canonical] = enriched
-        for logical_id in enriched.get("logical_ids", []) or []:
-            formatted = format_logical_id(logical_id) if isinstance(logical_id, dict) else None
-            if formatted and formatted not in registry:
-                registry[formatted] = enriched
+        for logical_id in record.logical_ids:
+            if logical_id.formatted not in registry:
+                registry[logical_id.formatted] = enriched
+            if logical_id.value not in registry:
+                registry[logical_id.value] = enriched
         # Index by aliases
-        for alias in enriched.get("aliases", []) or []:
-            alias_name = alias.get("name") if isinstance(alias, dict) else None
-            if alias_name and alias_name not in registry:
-                registry[alias_name] = enriched
+        for alias in record.aliases:
+            if alias.name not in registry:
+                registry[alias.name] = enriched
     return registry
 
 

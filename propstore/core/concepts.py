@@ -244,7 +244,12 @@ def normalize_concept_payload(data: Mapping[str, Any]) -> dict[str, Any]:
 
     version_id = normalized.get("version_id")
     if not isinstance(version_id, str) or not version_id:
-        normalized["version_id"] = compute_concept_version_id(normalized)
+        version_payload = {
+            key: value
+            for key, value in normalized.items()
+            if not str(key).startswith("_")
+        }
+        normalized["version_id"] = compute_concept_version_id(version_payload)
 
     return normalized
 
@@ -522,4 +527,3 @@ def primary_logical_id(record: ConceptRecord) -> str | None:
 
 def format_loaded_concept_logical_ids(record: ConceptRecord) -> list[dict[str, str]]:
     return [logical_id.to_payload() for logical_id in record.logical_ids]
-
