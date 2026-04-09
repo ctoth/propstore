@@ -141,13 +141,13 @@ def _rewrite_concept_payload_refs(
 
 
 def normalize_loaded_concepts(concepts: list[LoadedEntry]) -> list[LoadedEntry]:
-    from propstore.validate import _normalize_legacy_concept_record
+    from propstore.validate import normalize_concept_record
 
     normalized_entries: list[tuple[LoadedEntry, dict[str, Any]]] = []
     concept_ref_map: dict[str, str] = {}
 
     for concept in concepts:
-        normalized = _normalize_legacy_concept_record(dict(concept.data))
+        normalized = normalize_concept_record(dict(concept.data))
         artifact_id = normalized.get("artifact_id")
         if isinstance(artifact_id, str) and artifact_id:
             for key in _concept_reference_keys(normalized):
