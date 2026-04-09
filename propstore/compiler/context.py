@@ -204,10 +204,12 @@ def compilation_context_from_concept_registry(
 
     concepts_by_id: dict[str, ConceptRecord] = {}
     concept_lookup: dict[str, list[str]] = {}
+    form_registry: dict[str, FormDefinition] = {}
 
     for key, value in concept_registry.items():
         if not isinstance(value, dict):
             continue
+        raw_form_definition = value.get("_form_definition")
         payload = dict(value)
         if not payload.get("artifact_id") and isinstance(key, str) and key:
             payload["artifact_id"] = key
@@ -220,10 +222,12 @@ def compilation_context_from_concept_registry(
         _extend_lookup(concept_lookup, key, artifact_id)
         for alias_key in concept_reference_keys(record):
             _extend_lookup(concept_lookup, alias_key, artifact_id)
+        if isinstance(raw_form_definition, FormDefinition):
+            form_registry.setdefault(record.form, raw_form_definition)
 
     finalized_lookup = _finalize_lookup(concept_lookup)
     return CompilationContext(
-        form_registry=MappingProxyType({}),
+        form_registry=MappingProxyType(dict(form_registry)),
         context_ids=frozenset(context_ids or set()),
         concepts_by_id=MappingProxyType(dict(concepts_by_id)),
         concept_lookup=finalized_lookup,

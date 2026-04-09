@@ -1,104 +1,129 @@
-"""Connected-component analysis for parameterization relationships.
-
-Builds an adjacency graph from concepts' parameterization_relationships
-and finds connected components using union-find. Each component represents
-a "parameter space group" — a set of concepts that are linked by algebraic
-or functional relationships.
-"""
+"""Connected-component analysis for concept parameterization graphs."""
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+from typing import Any
 
-def build_groups(concepts: list[dict]) -> list[set[str]]:
-    """Find connected components among concepts via parameterization relationships.
+from propstore.core.concepts import ConceptRecord, LoadedConcept
 
-    For each concept with parameterization_relationships, the concept is
-    connected to all its inputs. The result is a list of sets of concept IDs,
-    where each set is one connected component.
 
-    Concepts with no parameterization links appear as singleton groups.
+ConceptGroupInput = ConceptRecord | LoadedConcept | Mapping[str, Any]
 
-    Args:
-        concepts: List of concept data dicts (must have 'artifact_id' field).
 
-    Returns:
-        List of sets of concept IDs, one per connected component.
-    """
+def _unwrap_concept(concept: ConceptGroupInput) -> ConceptRecord | Mapping[str, Any]:
+    if isinstance(concept, LoadedConcept):
+        return concept.record
+    return concept
+
+
+def _concept_candidates(concept: ConceptRecord | Mapping[str, Any]) -> set[str]:
+    if isinstance(concept, ConceptRecord):
+        return set(concept.reference_keys())
+
+    candidates: set[str] = set()
+    artifact_id = concept.get("artifact_id")
+    if isinstance(artifact_id, str) and artifact_id:
+        candidates.add(artifact_id)
+    canonical_name = concept.get("canonical_name")
+    if isinstance(canonical_name, str) and canonical_name:
+        candidates.add(canonical_name)
+    for logical_id in concept.get("logical_ids", []) or []:
+        if not isinstance(logical_id, Mapping):
+            continue
+        namespace = logical_id.get("namespace")
+        value = logical_id.get("value")
+        if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+            candidates.add(f"{namespace}:{value}")
+            candidates.add(value)
+    for alias in concept.get("aliases", []) or []:
+        if not isinstance(alias, Mapping):
+            continue
+        alias_name = alias.get("name")
+        if isinstance(alias_name, str) and alias_name:
+            candidates.add(alias_name)
+    return candidates
+
+
+def _concept_artifact_id(concept: ConceptRecord | Mapping[str, Any]) -> str | None:
+    if isinstance(concept, ConceptRecord):
+        return str(concept.artifact_id)
+    artifact_id = concept.get("artifact_id")
+    if isinstance(artifact_id, str) and artifact_id:
+        return artifact_id
+    return None
+
+
+def _parameterization_inputs(concept: ConceptRecord | Mapping[str, Any]) -> tuple[str, ...]:
+    if isinstance(concept, ConceptRecord):
+        inputs: list[str] = []
+        for parameterization in concept.parameterizations:
+            inputs.extend(str(input_id) for input_id in parameterization.inputs)
+        return tuple(inputs)
+
+    inputs: list[str] = []
+    for parameterization in concept.get("parameterization_relationships", []) or []:
+        if not isinstance(parameterization, Mapping):
+            continue
+        raw_inputs = parameterization.get("inputs")
+        if not isinstance(raw_inputs, Sequence) or isinstance(raw_inputs, str):
+            continue
+        inputs.extend(
+            value
+            for value in raw_inputs
+            if isinstance(value, str) and value
+        )
+    return tuple(inputs)
+
+
+def build_groups(concepts: Sequence[ConceptGroupInput]) -> list[set[str]]:
+    """Find connected components among concepts via parameterization relationships."""
     if not concepts:
         return []
 
-    def concept_candidates(concept: dict) -> set[str]:
-        candidates: set[str] = set()
-        artifact_id = concept.get("artifact_id")
-        if isinstance(artifact_id, str) and artifact_id:
-            candidates.add(artifact_id)
-        canonical_name = concept.get("canonical_name")
-        if isinstance(canonical_name, str) and canonical_name:
-            candidates.add(canonical_name)
-        for logical_id in concept.get("logical_ids", []) or []:
-            if not isinstance(logical_id, dict):
-                continue
-            namespace = logical_id.get("namespace")
-            value = logical_id.get("value")
-            if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
-                candidates.add(f"{namespace}:{value}")
-                candidates.add(value)
-        for alias in concept.get("aliases", []) or []:
-            if not isinstance(alias, dict):
-                continue
-            alias_name = alias.get("name")
-            if isinstance(alias_name, str) and alias_name:
-                candidates.add(alias_name)
-        return candidates
+    unwrapped = [_unwrap_concept(concept) for concept in concepts]
 
-    # Collect all concept IDs
     all_ids: set[str] = set()
     alias_to_id: dict[str, str] = {}
-    for c in concepts:
-        cid = c.get("artifact_id")
-        if isinstance(cid, str) and cid:
-            all_ids.add(cid)
-            for candidate in concept_candidates(c):
-                alias_to_id.setdefault(candidate, cid)
-
-    # Union-Find data structure
-    parent: dict[str, str] = {cid: cid for cid in all_ids}
-    rank: dict[str, int] = {cid: 0 for cid in all_ids}
-
-    def find(x: str) -> str:
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]  # path compression
-            x = parent[x]
-        return x
-
-    def union(a: str, b: str) -> None:
-        ra, rb = find(a), find(b)
-        if ra == rb:
-            return
-        # Union by rank
-        if rank[ra] < rank[rb]:
-            ra, rb = rb, ra
-        parent[rb] = ra
-        if rank[ra] == rank[rb]:
-            rank[ra] += 1
-
-    # Build edges from parameterization relationships
-    for c in concepts:
-        cid = c.get("artifact_id")
-        if not isinstance(cid, str) or not cid:
+    for concept in unwrapped:
+        concept_id = _concept_artifact_id(concept)
+        if concept_id is None:
             continue
-        for param in c.get("parameterization_relationships", []) or []:
-            for input_id in param.get("inputs", []) or []:
-                resolved_input_id = alias_to_id.get(str(input_id), str(input_id))
-                if resolved_input_id in all_ids:
-                    union(cid, resolved_input_id)
+        all_ids.add(concept_id)
+        for candidate in _concept_candidates(concept):
+            alias_to_id.setdefault(candidate, concept_id)
 
-    # Collect connected components
+    parent: dict[str, str] = {concept_id: concept_id for concept_id in all_ids}
+    rank: dict[str, int] = {concept_id: 0 for concept_id in all_ids}
+
+    def find(value: str) -> str:
+        while parent[value] != value:
+            parent[value] = parent[parent[value]]
+            value = parent[value]
+        return value
+
+    def union(left: str, right: str) -> None:
+        left_root, right_root = find(left), find(right)
+        if left_root == right_root:
+            return
+        if rank[left_root] < rank[right_root]:
+            left_root, right_root = right_root, left_root
+        parent[right_root] = left_root
+        if rank[left_root] == rank[right_root]:
+            rank[left_root] += 1
+
+    for concept in unwrapped:
+        concept_id = _concept_artifact_id(concept)
+        if concept_id is None:
+            continue
+        for input_id in _parameterization_inputs(concept):
+            resolved_input_id = alias_to_id.get(input_id, input_id)
+            if resolved_input_id in all_ids:
+                union(concept_id, resolved_input_id)
+
     components: dict[str, set[str]] = {}
-    for cid in all_ids:
-        root = find(cid)
-        if root not in components:
-            components[root] = set()
-        components[root].add(cid)
+    for concept_id in all_ids:
+        root = find(concept_id)
+        components.setdefault(root, set()).add(concept_id)
 
     return list(components.values())
