@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.cel_checker import ConceptInfo, build_cel_registry
 from propstore.form_utils import FormDefinition, load_all_forms_path
-from propstore.identity import format_logical_id
+from propstore.identity import compute_concept_version_id, format_logical_id
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.loaded import LoadedEntry
 from propstore.validate import load_concepts
@@ -49,6 +49,127 @@ def _extend_lookup(
 
 def _finalize_lookup(lookup: dict[str, list[str]]) -> Mapping[str, tuple[str, ...]]:
     return MappingProxyType({key: tuple(values) for key, values in lookup.items()})
+
+
+def _concept_reference_keys(concept: Mapping[str, Any]) -> set[str]:
+    keys: set[str] = set()
+    artifact_id = concept.get("artifact_id")
+    if isinstance(artifact_id, str) and artifact_id:
+        keys.add(artifact_id)
+    raw_id = concept.get("id")
+    if isinstance(raw_id, str) and raw_id:
+        keys.add(raw_id)
+    canonical_name = concept.get("canonical_name")
+    if isinstance(canonical_name, str) and canonical_name:
+        keys.add(canonical_name)
+    logical_ids = concept.get("logical_ids")
+    if isinstance(logical_ids, list):
+        for logical_id in logical_ids:
+            if not isinstance(logical_id, dict):
+                continue
+            formatted = format_logical_id(logical_id)
+            if formatted:
+                keys.add(formatted)
+            value = logical_id.get("value")
+            if isinstance(value, str) and value:
+                keys.add(value)
+    aliases = concept.get("aliases")
+    if isinstance(aliases, list):
+        for alias in aliases:
+            alias_name = alias.get("name") if isinstance(alias, dict) else None
+            if isinstance(alias_name, str) and alias_name:
+                keys.add(alias_name)
+    return keys
+
+
+def _rewrite_concept_reference(
+    value: Any,
+    concept_ref_map: Mapping[str, str],
+) -> Any:
+    if not isinstance(value, str):
+        return value
+    return concept_ref_map.get(value, value)
+
+
+def _rewrite_concept_payload_refs(
+    data: Mapping[str, Any],
+    *,
+    concept_ref_map: Mapping[str, str],
+) -> dict[str, Any]:
+    rewritten = dict(data)
+    replaced_by = rewritten.get("replaced_by")
+    if replaced_by is not None:
+        rewritten["replaced_by"] = _rewrite_concept_reference(
+            replaced_by,
+            concept_ref_map,
+        )
+
+    relationships = rewritten.get("relationships")
+    if isinstance(relationships, list):
+        updated_relationships: list[Any] = []
+        for relationship in relationships:
+            if not isinstance(relationship, dict):
+                updated_relationships.append(relationship)
+                continue
+            relationship_copy = dict(relationship)
+            relationship_copy["target"] = _rewrite_concept_reference(
+                relationship_copy.get("target"),
+                concept_ref_map,
+            )
+            updated_relationships.append(relationship_copy)
+        rewritten["relationships"] = updated_relationships
+
+    parameterizations = rewritten.get("parameterization_relationships")
+    if isinstance(parameterizations, list):
+        updated_parameterizations: list[Any] = []
+        for parameterization in parameterizations:
+            if not isinstance(parameterization, dict):
+                updated_parameterizations.append(parameterization)
+                continue
+            parameterization_copy = dict(parameterization)
+            inputs = parameterization_copy.get("inputs")
+            if isinstance(inputs, list):
+                parameterization_copy["inputs"] = [
+                    _rewrite_concept_reference(input_id, concept_ref_map)
+                    for input_id in inputs
+                ]
+            updated_parameterizations.append(parameterization_copy)
+        rewritten["parameterization_relationships"] = updated_parameterizations
+
+    rewritten["version_id"] = compute_concept_version_id(rewritten)
+    return rewritten
+
+
+def normalize_loaded_concepts(concepts: list[LoadedEntry]) -> list[LoadedEntry]:
+    from propstore.validate import _normalize_legacy_concept_record
+
+    normalized_entries: list[tuple[LoadedEntry, dict[str, Any]]] = []
+    concept_ref_map: dict[str, str] = {}
+
+    for concept in concepts:
+        normalized = _normalize_legacy_concept_record(dict(concept.data))
+        artifact_id = normalized.get("artifact_id")
+        if isinstance(artifact_id, str) and artifact_id:
+            for key in _concept_reference_keys(normalized):
+                concept_ref_map.setdefault(key, artifact_id)
+        normalized_entries.append((concept, normalized))
+
+    rewritten_entries: list[LoadedEntry] = []
+    for concept, normalized in normalized_entries:
+        rewritten = _rewrite_concept_payload_refs(
+            normalized,
+            concept_ref_map=concept_ref_map,
+        )
+        rewritten_entries.append(
+            LoadedEntry(
+                filename=concept.filename,
+                source_path=concept.source_path,
+                knowledge_root=concept.knowledge_root,
+                data=rewritten,
+            )
+        )
+
+    return rewritten_entries
 
 
 def _build_claim_lookup(claim_files: list[LoadedEntry]) -> Mapping[str, tuple[str, ...]]:
@@ -102,13 +223,12 @@ def _build_context_from_concepts(
     claim_files: list[LoadedEntry] | None,
     context_ids: set[str] | None,
 ) -> CompilationContext:
-    from propstore.validate import _normalize_legacy_concept_record
-
+    concepts = normalize_loaded_concepts(concepts)
     concept_payloads_by_id: dict[str, Mapping[str, Any]] = {}
     concept_lookup: dict[str, list[str]] = {}
 
     for concept in concepts:
-        enriched = _normalize_legacy_concept_record(dict(concept.data))
+        enriched = dict(concept.data)
         artifact_id = enriched.get("artifact_id")
         if not isinstance(artifact_id, str) or not artifact_id:
             continue
