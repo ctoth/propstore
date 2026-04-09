@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.core.id_types import ConceptId, to_concept_id
-from propstore.propagation import parse_cached
+from propstore.propagation import parse_cached, rewrite_parameterization_symbols
 
 
 @dataclass
@@ -70,8 +70,16 @@ def analyze_sensitivity(
     """
     from sympy import Equality, Symbol, diff as sym_diff
 
-    typed_concept_id = to_concept_id(concept_id)
-    params = world.parameterizations_for(typed_concept_id)
+    requested_concept_id = to_concept_id(concept_id)
+    resolver = getattr(world, "resolve_concept", None)
+    resolved_concept_id = (
+        resolver(str(requested_concept_id))
+        if callable(resolver)
+        else None
+    )
+    lookup_concept_id = to_concept_id(resolved_concept_id or str(requested_concept_id))
+
+    params = world.parameterizations_for(str(lookup_concept_id))
     if not params:
         return None
 
@@ -90,14 +98,67 @@ def analyze_sensitivity(
         return None
 
     input_ids = json.loads(param["concept_ids"])
-    effective_inputs = [to_concept_id(iid) for iid in input_ids if iid != typed_concept_id]
+    effective_inputs = [to_concept_id(iid) for iid in input_ids if iid != lookup_concept_id]
 
     if not effective_inputs:
         return None
 
-    # Parse the expression
-    all_names = {str(input_id) for input_id in effective_inputs} | {str(typed_concept_id)}
-    parsed, symbols = parse_cached(sympy_str, tuple(sorted(all_names)))
+    def concept_symbol_candidates(resolved_id: ConceptId | str) -> tuple[str, ...]:
+        getter = getattr(world, "get_concept", None)
+        if not callable(getter):
+            return ()
+        concept = getter(str(resolved_id))
+        if not isinstance(concept, Mapping):
+            return ()
+
+        seen: set[str] = set()
+        candidates: list[str] = []
+
+        def add(candidate: object) -> None:
+            if not isinstance(candidate, str) or not candidate or candidate in seen:
+                return
+            seen.add(candidate)
+            candidates.append(candidate)
+
+        add(concept.get("canonical_name"))
+        logical_ids = concept.get("logical_ids")
+        if isinstance(logical_ids, list):
+            for entry in logical_ids:
+                if not isinstance(entry, Mapping):
+                    continue
+                add(entry.get("value"))
+                namespace = entry.get("namespace")
+                value = entry.get("value")
+                if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+                    add(f"{namespace}:{value}")
+        return tuple(candidates)
+
+    output_key = "__out__"
+    input_symbol_map = {
+        input_id: f"__in_{index}__"
+        for index, input_id in enumerate(effective_inputs)
+    }
+    rewritten_sympy = rewrite_parameterization_symbols(
+        sympy_str,
+        symbol_aliases={
+            str(lookup_concept_id): concept_symbol_candidates(lookup_concept_id),
+            **{
+                str(input_id): concept_symbol_candidates(input_id)
+                for input_id in effective_inputs
+            },
+        },
+        symbol_targets={
+            str(lookup_concept_id): output_key,
+            **{
+                str(input_id): symbol
+                for input_id, symbol in input_symbol_map.items()
+            },
+        },
+    )
+
+    # Parse the expression in a safe symbol namespace.
+    all_names = set(input_symbol_map.values()) | {output_key}
+    parsed, symbols = parse_cached(rewritten_sympy, tuple(sorted(all_names)))
 
     # Handle Eq form: extract RHS
     if isinstance(parsed, Equality):
@@ -106,10 +167,20 @@ def analyze_sensitivity(
         expr = parsed
 
     # Resolve input values
+    resolved_overrides: dict[ConceptId, float] = {}
+    if override_values:
+        for key, value in override_values.items():
+            resolved_key = (
+                resolver(str(key))
+                if callable(resolver)
+                else None
+            )
+            resolved_overrides[to_concept_id(resolved_key or str(key))] = float(value)
+
     input_values: dict[ConceptId, float] = {}
     for iid in effective_inputs:
-        if override_values and str(iid) in override_values:
-            input_values[iid] = override_values[str(iid)]
+        if iid in resolved_overrides:
+            input_values[iid] = resolved_overrides[iid]
             continue
 
         # Try value_of
@@ -134,9 +205,9 @@ def analyze_sensitivity(
 
     # Compute output value
     subs_pairs: Any = [
-        (symbols[str(concept_id)], value)
-        for concept_id, value in input_values.items()
-        if str(concept_id) in symbols
+        (symbols[input_symbol_map[input_id]], value)
+        for input_id, value in input_values.items()
+        if input_symbol_map[input_id] in symbols
     ]
     try:
         result: Any = expr.subs(subs_pairs)
@@ -147,7 +218,8 @@ def analyze_sensitivity(
     # Compute partial derivatives and elasticities
     entries: list[SensitivityEntry] = []
     for iid in effective_inputs:
-        input_sym = symbols.get(str(iid), Symbol(str(iid)))
+        input_symbol = input_symbol_map[iid]
+        input_sym = symbols.get(input_symbol, Symbol(input_symbol))
         partial = sym_diff(expr, input_sym)
         partial_str = str(partial)
 
@@ -175,7 +247,7 @@ def analyze_sensitivity(
     entries.sort(key=lambda e: abs(e.elasticity) if e.elasticity is not None else -1, reverse=True)
 
     return SensitivityResult(
-        concept_id=typed_concept_id,
+        concept_id=lookup_concept_id,
         formula=param.get("formula", sympy_str),
         entries=entries,
         input_values=input_values,

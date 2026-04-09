@@ -18,6 +18,7 @@ import yaml
 
 from propstore.sidecar.build import build_sidecar
 from propstore.form_utils import dims_signature
+from propstore.identity import derive_concept_artifact_id
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -36,6 +37,10 @@ def _write_concept(concepts_dir: Path, filename: str, data: dict) -> None:
     (concepts_dir / f"{filename}.yaml").write_text(
         yaml.dump(data, default_flow_style=False, sort_keys=False)
     )
+
+
+def _concept_artifact(local_id: str) -> str:
+    return derive_concept_artifact_id("propstore", local_id)
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -285,7 +290,7 @@ class TestFormAlgebra:
             "SELECT source_concept_id FROM form_algebra WHERE output_form = 'force'"
         ).fetchone()
         assert row is not None
-        assert row[0] == "concept6"
+        assert row[0] == _concept_artifact("concept6")
 
     def test_algebra_records_source_formula(self, sidecar_path):
         conn = sqlite3.connect(sidecar_path)

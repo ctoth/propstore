@@ -16,6 +16,7 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.identity import derive_concept_artifact_id
 from propstore.sidecar.build import build_sidecar
 from propstore.cli.worldline_cmds import _parse_kv_args
 from propstore.knowledge_path import GitKnowledgePath
@@ -23,6 +24,10 @@ from propstore.repo import KnowledgeRepo
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
+
+
+def _concept_artifact(local_id: str) -> str:
+    return derive_concept_artifact_id("propstore", local_id)
 
 
 # ── Test fixtures ───────────────────────────────────────────────────
@@ -654,7 +659,7 @@ class TestWorldlineRunner:
         assert force["status"] == "derived"
         assert abs(force["value"] - 98.07) < 0.1
         assert "g_claim" in result.dependencies["claims"]
-        assert force["inputs_used"]["concept3"]["source"] == "derived"
+        assert force["inputs_used"][_concept_artifact("concept3")]["source"] == "derived"
 
 
 # ═══════════════════════════════════════════════════════════════════
