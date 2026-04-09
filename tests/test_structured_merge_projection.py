@@ -1,6 +1,8 @@
 """Tests for branch-local structured projection into merge summaries."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -89,7 +91,7 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
             summary.projection.argument_to_claim_id[attacker],
             summary.projection.argument_to_claim_id[target],
         )
-        for attacker, target in summary.projection.framework.attacks
+        for attacker, target in (summary.projection.framework.attacks or frozenset())
     }
     assert (_artifact_id("claim_a"), _artifact_id("claim_b")) in claim_attack_pairs
 
@@ -100,7 +102,7 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
     branch_name = "paper/structured"
     create_branch(kr, branch_name, source_commit=base_sha)
 
-    adds = {
+    adds: dict[str | Path, bytes] = {
         "claims/claims.yaml": _claim_yaml([
             _obs_claim("claim_a", "A"),
             _obs_claim("claim_b", "B"),
