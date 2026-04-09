@@ -79,6 +79,9 @@ def concept_version_id(concept: dict) -> str | None:
 
 def concept_reference_candidates(concept: dict) -> set[str]:
     candidates: set[str] = set()
+    raw_id = concept.get("id")
+    if isinstance(raw_id, str) and raw_id:
+        candidates.add(raw_id)
     artifact_id = concept.get("artifact_id")
     if isinstance(artifact_id, str) and artifact_id:
         candidates.add(artifact_id)
@@ -112,7 +115,7 @@ def resolve_concept_reference(
 
     direct = concept_registry.get(concept_ref)
     if isinstance(direct, dict):
-        resolved = direct.get("artifact_id")
+        resolved = direct.get("_storage_id") or direct.get("artifact_id") or direct.get("id")
         if resolved:
             return resolved
 
@@ -120,7 +123,7 @@ def resolve_concept_reference(
     for concept in concept_registry.values():
         if not isinstance(concept, dict):
             continue
-        concept_id = concept.get("artifact_id")
+        concept_id = concept.get("_storage_id") or concept.get("artifact_id") or concept.get("id")
         if not concept_id or concept_id in seen_ids:
             continue
         seen_ids.add(concept_id)

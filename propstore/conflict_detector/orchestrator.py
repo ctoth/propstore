@@ -6,9 +6,8 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from propstore.cel_checker import (
-    ConceptInfo,
-    KindType,
     build_cel_registry,
+    synthetic_category_concept,
     with_synthetic_concepts,
 )
 from propstore.loaded import LoadedEntry
@@ -37,17 +36,28 @@ def detect_conflicts(
         (cf.data.get("source") or {}).get("paper") or cf.filename
         for cf in claim_files
     })
+    synthetic_concepts = [
+        synthetic_category_concept(
+            concept_id="ps:concept:__source__",
+            canonical_name="source",
+            values=source_names,
+            extensible=False,
+        ),
+    ]
+    for synthetic_name in ("domain", "source_kind", "origin_type", "name"):
+        if synthetic_name in cel_registry:
+            continue
+        synthetic_concepts.append(
+            synthetic_category_concept(
+                concept_id=f"ps:concept:__{synthetic_name}__",
+                canonical_name=synthetic_name,
+                values=(),
+                extensible=True,
+            )
+        )
     cel_registry = with_synthetic_concepts(
         cel_registry,
-        (
-            ConceptInfo(
-                id="ps:concept:__source__",
-                canonical_name="source",
-                kind=KindType.CATEGORY,
-                category_values=source_names,
-                category_extensible=False,
-            ),
-        ),
+        synthetic_concepts,
     )
     condition_solver = _build_condition_solver(cel_registry)
 

@@ -45,6 +45,11 @@ def derive_source_trust(repo: Repository, source_doc: dict[str, Any]) -> dict[st
 
     wm = WorldModel(repo)
     try:
+        bindings = {
+            key: value
+            for key, value in _source_bindings(updated).items()
+            if wm.resolve_concept(key) is not None
+        }
         concept_id = wm.resolve_concept("source_trust_base_rate") or wm.resolve_concept("base_replication_rate")
         if concept_id is None:
             trust["prior_base_rate"] = prior
@@ -53,7 +58,7 @@ def derive_source_trust(repo: Repository, source_doc: dict[str, Any]) -> dict[st
             updated["trust"] = trust
             return updated
 
-        result = wm.chain_query(concept_id, **_source_bindings(updated))
+        result = wm.chain_query(concept_id, **bindings)
         resolved = result.result
         resolved_prior: float | None = None
         resolved_from: list[str] = []
