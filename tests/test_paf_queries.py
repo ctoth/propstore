@@ -121,7 +121,6 @@ def test_query_helpers_match_bruteforce_completion_semantics_on_tiny_profiles():
 
 
 @settings(
-    max_examples=25,
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow],
 )

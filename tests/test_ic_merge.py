@@ -294,7 +294,6 @@ class TestClaimDistance:
 
     @given(st_claim_value, st_claim_value)
     @settings(
-        max_examples=50,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -308,7 +307,6 @@ class TestClaimDistance:
 
     @given(st_claim_value)
     @settings(
-        max_examples=50,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -345,7 +343,6 @@ class TestSigmaMerge:
 
     @given(st_branch_profile)
     @settings(
-        max_examples=50,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -361,7 +358,6 @@ class TestSigmaMerge:
 
     @given(st_branch_profile)
     @settings(
-        max_examples=50,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -376,7 +372,6 @@ class TestSigmaMerge:
 
     @given(st_branch_profile)
     @settings(
-        max_examples=50,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -419,7 +414,6 @@ class TestMaxMerge:
 
     @given(st_branch_profile)
     @settings(
-        max_examples=50,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -435,7 +429,6 @@ class TestMaxMerge:
 
     @given(st_branch_profile)
     @settings(
-        max_examples=50,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -501,7 +494,6 @@ class TestGMaxMerge:
 
     @given(st_branch_profile)
     @settings(
-        max_examples=50,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -519,7 +511,6 @@ class TestGMaxMerge:
 
     @given(st_branch_profile)
     @settings(
-        max_examples=50,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -535,7 +526,6 @@ class TestGMaxMerge:
 
     @given(st_branch_profile)
     @settings(
-        max_examples=50,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -791,7 +781,6 @@ class TestAssignmentLevelICMerge:
         st.sampled_from(list(MergeOperator)),
     )
     @settings(
-        max_examples=40,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -841,7 +830,6 @@ class TestAssignmentLevelICMerge:
         st.sampled_from(list(MergeOperator)),
     )
     @settings(
-        max_examples=40,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -884,7 +872,6 @@ class TestAssignmentLevelICMerge:
         st.integers(min_value=0, max_value=4),
     )
     @settings(
-        max_examples=40,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -1020,7 +1007,6 @@ class TestAssignmentLevelICMerge:
         st.sampled_from(list(MergeOperator)),
     )
     @settings(
-        max_examples=40,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -1067,7 +1053,6 @@ class TestAssignmentLevelICMerge:
         st.sampled_from(list(MergeOperator)),
     )
     @settings(
-        max_examples=40,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -1210,7 +1195,6 @@ class TestAssignmentLevelICMerge:
         st.sampled_from(list(MergeOperator)),
     )
     @settings(
-        max_examples=40,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -1300,7 +1284,6 @@ class TestAssignmentLevelICMerge:
 
     @given(st_branch_profile, st.sampled_from(list(MergeOperator)))
     @settings(
-        max_examples=40,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -1317,7 +1300,6 @@ class TestAssignmentLevelICMerge:
 
     @given(st_branch_profile)
     @settings(
-        max_examples=40,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )
@@ -1346,7 +1328,6 @@ class TestAssignmentLevelICMerge:
 
     @given(st_branch_profile, st.sampled_from(list(MergeOperator)))
     @settings(
-        max_examples=40,
         deadline=None,
         suppress_health_check=[HealthCheck.too_slow],
     )

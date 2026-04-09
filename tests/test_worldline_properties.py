@@ -504,7 +504,7 @@ class TestContentHashDeterminism:
     """Same inputs always produce same content hash."""
 
     @given(data=st.data())
-    @settings(max_examples=50, deadline=None)
+    @settings(deadline=None)
     def test_content_hash_deterministic(self, data, property_world):
         """Identical worldline inputs produce identical content hashes.
 
@@ -559,7 +559,7 @@ class TestOverrideAlwaysWins:
         min_value=-1e6, max_value=1e6,
         allow_nan=False, allow_infinity=False,
     ))
-    @settings(max_examples=50, deadline=None)
+    @settings(deadline=None)
     def test_override_always_wins(self, override_value, property_world):
         """Override value is returned regardless of what claims exist.
 
@@ -585,7 +585,7 @@ class TestOverrideAlwaysWins:
         ),
         location=st.sampled_from(_LOCATIONS),
     )
-    @settings(max_examples=50, deadline=None)
+    @settings(deadline=None)
     def test_override_propagates_through_derivation(self, mass_val, location,
                                                     property_world):
         """Override mass feeds into F=ma. The derived force must use it.
@@ -613,7 +613,7 @@ class TestBindingIsolation:
     """Claims conditional on binding X=v1 must not be active when X=v2."""
 
     @given(data=st.data())
-    @settings(max_examples=30, deadline=None)
+    @settings(deadline=None)
     def test_binding_isolation(self, data, property_world):
         """Earth claims inactive on Moon and vice versa.
 

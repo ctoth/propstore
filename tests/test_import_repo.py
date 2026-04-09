@@ -47,7 +47,6 @@ def _expected_imported_claim_yaml(local_id: str, *, namespace: str) -> dict:
 
 
 @settings(
-    max_examples=25,
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
@@ -115,7 +114,6 @@ def test_repo_import_is_snapshot_convergent_under_repeated_commits(
 
 
 @settings(
-    max_examples=20,
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )

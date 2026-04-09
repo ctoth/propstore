@@ -408,7 +408,7 @@ _num_strategy = st.one_of(st.integers(0, 1000), st.floats(0.1, 1000.0, allow_nan
 
 
 @given(name=_name_strategy, op=_op_strategy, val=_num_strategy)
-@settings(max_examples=50)
+@settings()
 def test_unknown_name_always_errors(name, op, val):
     """Any expression referencing a name not in the registry produces an error."""
     assume(name not in ("true", "false", "in"))
@@ -420,7 +420,7 @@ def test_unknown_name_always_errors(name, op, val):
 
 
 @given(val=st.text(min_size=1, max_size=10, alphabet=st.characters(whitelist_categories=("L", "N"))))
-@settings(max_examples=30)
+@settings()
 def test_structural_always_errors(val):
     """Structural concept in any expression always produces an error."""
     assume(val not in ("true", "false", "in"))
@@ -440,7 +440,7 @@ def test_structural_always_errors(val):
         alphabet=st.characters(whitelist_categories=("L", "N")),
     )
 )
-@settings(max_examples=40)
+@settings()
 def test_open_category_undeclared_literals_are_warnings_only(val):
     assume(val not in {"speech", "singing", "whisper"})
     registry = {
@@ -466,7 +466,7 @@ def test_open_category_undeclared_literals_are_warnings_only(val):
         alphabet=st.characters(whitelist_categories=("L", "N")),
     )
 )
-@settings(max_examples=40)
+@settings()
 def test_closed_category_undeclared_literals_are_hard_errors(val):
     assume(val not in {"front", "back", "central"})
     registry = {

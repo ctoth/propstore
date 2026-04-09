@@ -55,7 +55,6 @@ def test_consensual_expand_on_shared_universe_introduces_no_ignorance():
 
 
 @settings(
-    max_examples=25,
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow],
 )
@@ -78,7 +77,6 @@ def test_concordant_profiles_yield_unique_result_for_all_operators():
 
 
 @settings(
-    max_examples=25,
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow],
 )
@@ -107,7 +105,6 @@ def test_sum_merge_matches_majority_profile_on_shared_universe():
 
 
 @settings(
-    max_examples=25,
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow],
 )

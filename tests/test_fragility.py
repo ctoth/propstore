@@ -66,7 +66,7 @@ class TestCombineFragility:
         st.floats(min_value=0.0, max_value=1.0),
         st.floats(min_value=0.0, max_value=1.0),
     )
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_score_bounds(self, p, e, c):
         """All outputs in [0, 1] for inputs in [0, 1]."""
         for combo in ("top2", "mean", "max", "product"):

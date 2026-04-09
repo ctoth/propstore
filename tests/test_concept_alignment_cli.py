@@ -67,7 +67,7 @@ def test_source_propose_concept_writes_inventory(tmp_path: Path) -> None:
     definition_a=st.text(min_size=1, max_size=40),
     definition_b=st.text(min_size=1, max_size=40),
 )
-@settings(max_examples=30, deadline=None)
+@settings(deadline=None)
 def test_alignment_builder_emits_mutual_attacks_for_same_name_different_definition(
     definition_a: str,
     definition_b: str,

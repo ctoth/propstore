@@ -315,7 +315,7 @@ class TestDimensionsPropertyBased:
     """Hypothesis property-based tests for dimensions invariants."""
 
     @given(dimensions=_dimensions_strategy)
-    @settings(max_examples=50)
+    @settings()
     def test_nonempty_dimensions_implies_not_dimensionless(
         self, dimensions: dict[str, int],
     ) -> None:
@@ -335,7 +335,7 @@ class TestDimensionsPropertyBased:
         assert fd.is_dimensionless is False
 
     @given(dimensions=_dimensions_strategy)
-    @settings(max_examples=50, suppress_health_check=[HealthCheck.filter_too_much])
+    @settings(suppress_health_check=[HealthCheck.filter_too_much])
     def test_dimensionless_implies_empty_or_absent_dimensions(
         self, dimensions: dict[str, int],
     ) -> None:
@@ -367,7 +367,7 @@ class TestDimensionsPropertyBased:
             st.text(min_size=1, max_size=5),
         )
     )
-    @settings(max_examples=30)
+    @settings()
     def test_non_integer_exponents_rejected(
         self, exponent: Any,
     ) -> None:
@@ -384,7 +384,7 @@ class TestDimensionsPropertyBased:
     @given(key=st.text(min_size=1, max_size=10).filter(
         lambda k: not k or not k[0].isalpha() or not all(c.isalnum() or c == '_' for c in k)
     ))
-    @settings(max_examples=30)
+    @settings()
     def test_invalid_dimension_keys_rejected(
         self, key: str,
     ) -> None:
@@ -400,7 +400,7 @@ class TestDimensionsPropertyBased:
             jsonschema.validate(form_data, schema)
 
     @given(dimensions=_dimensions_strategy.filter(lambda d: len(d) > 0))
-    @settings(max_examples=30)
+    @settings()
     def test_forms_with_same_dimensions_compatible(
         self, dimensions: dict[str, int],
     ) -> None:

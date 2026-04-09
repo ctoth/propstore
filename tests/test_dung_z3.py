@@ -92,21 +92,21 @@ class TestZ3MatchesBruteForce:
     """Hypothesis property tests: z3 matches brute-force for all semantics."""
 
     @given(argumentation_frameworks())
-    @settings(max_examples=100, deadline=10000)
+    @settings(deadline=10000)
     def test_stable_matches(self, framework):
         assert set(z3_stable_extensions(framework)) == set(
             stable_extensions(framework)
         )
 
     @given(argumentation_frameworks())
-    @settings(max_examples=100, deadline=10000)
+    @settings(deadline=10000)
     def test_complete_matches(self, framework):
         assert set(z3_complete_extensions(framework)) == set(
             complete_extensions(framework)
         )
 
     @given(argumentation_frameworks())
-    @settings(max_examples=100, deadline=10000)
+    @settings(deadline=10000)
     def test_preferred_matches(self, framework):
         assert set(z3_preferred_extensions(framework)) == set(
             preferred_extensions(framework)
@@ -123,21 +123,21 @@ class TestZ3MatchesBruteForceWithAttacksDefeatsDivergence:
     """
 
     @given(af_with_attacks_superset())
-    @settings(max_examples=100, deadline=10000)
+    @settings(deadline=10000)
     def test_stable_matches(self, framework):
         assert set(z3_stable_extensions(framework)) == set(
             stable_extensions(framework, backend="brute")
         )
 
     @given(af_with_attacks_superset())
-    @settings(max_examples=100, deadline=10000)
+    @settings(deadline=10000)
     def test_complete_matches(self, framework):
         assert set(z3_complete_extensions(framework)) == set(
             complete_extensions(framework, backend="brute")
         )
 
     @given(af_with_attacks_superset())
-    @settings(max_examples=100, deadline=10000)
+    @settings(deadline=10000)
     def test_preferred_matches(self, framework):
         assert set(z3_preferred_extensions(framework)) == set(
             preferred_extensions(framework, backend="brute")

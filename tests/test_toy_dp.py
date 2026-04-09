@@ -399,7 +399,7 @@ class TestHypothesisDP:
     """Property-based tests: toy DP must match brute force."""
 
     @given(af=random_small_af())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_dp_matches_brute_force(self, af: dict[str, Any]) -> None:
         """The I/O/U labelling approach must match brute-force enumeration."""
         args = af["args"]
@@ -418,7 +418,7 @@ class TestHypothesisDP:
     @given(af=random_small_af())
     # This path is explicitly exponential in the number of arguments; keep
     # it smaller while the main DP-vs-brute-force property stays at 200.
-    @settings(max_examples=50, deadline=None)
+    @settings(deadline=None)
     def test_labelling_enum_matches_brute_force(self, af: dict[str, Any]) -> None:
         """The explicit 3^n labelling enumeration must also match brute force."""
         args = af["args"]
@@ -437,7 +437,7 @@ class TestHypothesisDP:
             )
 
     @given(af=random_small_af())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_probabilities_in_valid_range(self, af: dict[str, Any]) -> None:
         """All acceptance probabilities must be in [0, 1]."""
         result = toy_dp_acceptance(

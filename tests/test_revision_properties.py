@@ -15,7 +15,7 @@ _ident = st.text(
 
 
 @given(namespace=_ident, value=_ident)
-@settings(max_examples=80, deadline=None)
+@settings(deadline=None)
 def test_normalize_revision_input_resolves_existing_claim_atom_by_all_user_handles(
     namespace: str,
     value: str,

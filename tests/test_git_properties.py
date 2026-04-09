@@ -56,7 +56,7 @@ def _make_disk_repo() -> tuple[KnowledgeRepo, Path]:
 # ── Property 1: Roundtrip preservation ──────────────────────────────
 
 
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 @given(path=valid_path, content=yaml_bytes)
 def test_roundtrip_preservation(path: str, content: bytes) -> None:
     """commit_files then read_file returns data byte-for-byte."""
@@ -68,7 +68,7 @@ def test_roundtrip_preservation(path: str, content: bytes) -> None:
 # ── Property 2: Listing completeness ────────────────────────────────
 
 
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 @given(subdir=valid_subdir, filenames=st.lists(valid_filename, min_size=1, max_size=5, unique=True))
 def test_listing_completeness(subdir: str, filenames: list[str]) -> None:
     """Committed files appear in list_dir(subdir)."""
@@ -84,7 +84,7 @@ def test_listing_completeness(subdir: str, filenames: list[str]) -> None:
 # ── Property 3: Delete semantics ────────────────────────────────────
 
 
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 @given(path=valid_path, content=yaml_bytes)
 def test_delete_semantics(path: str, content: bytes) -> None:
     """After commit_deletes, read_file raises FileNotFoundError."""
@@ -101,7 +101,7 @@ def test_delete_semantics(path: str, content: bytes) -> None:
 # ── Property 4: Batch atomicity ─────────────────────────────────────
 
 
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 @given(
     add_path=valid_path,
     add_content=yaml_bytes,
@@ -145,7 +145,7 @@ def test_batch_atomicity(
 # ── Property 5: Worktree fidelity ───────────────────────────────────
 
 
-@settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(path=valid_path, content=yaml_bytes)
 def test_worktree_fidelity(path: str, content: bytes) -> None:
     """After sync_worktree, on-disk files match git tree byte-for-byte."""
@@ -160,7 +160,7 @@ def test_worktree_fidelity(path: str, content: bytes) -> None:
 # ── Property 6: KnowledgePath equivalence ───────────────────────────
 
 
-@settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(subdir=valid_subdir, filename=valid_filename, content=yaml_bytes)
 def test_knowledge_path_equivalence(subdir: str, filename: str, content: bytes) -> None:
     """GitKnowledgePath and FilesystemKnowledgePath produce same output after sync."""
@@ -191,7 +191,7 @@ def test_knowledge_path_equivalence(subdir: str, filename: str, content: bytes) 
 # ── Property 7: History monotonicity ────────────────────────────────
 
 
-@settings(max_examples=30, deadline=None)
+@settings(deadline=None)
 @given(
     paths=st.lists(valid_path, min_size=2, max_size=5, unique=True),
 )
@@ -216,7 +216,7 @@ def test_history_monotonicity(paths: list[str]) -> None:
 # ── Property 8: Idempotent sync ─────────────────────────────────────
 
 
-@settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(path=valid_path, content=yaml_bytes)
 def test_idempotent_sync(path: str, content: bytes) -> None:
     """sync_worktree called twice produces same filesystem state."""
@@ -248,7 +248,7 @@ def _snapshot_dir(root: Path) -> dict[str, bytes]:
 # ── Property 9: Commit message preservation ─────────────────────────
 
 
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 @given(
     path=valid_path,
     content=yaml_bytes,
@@ -270,7 +270,7 @@ def test_commit_message_preservation(path: str, content: bytes, msg: str) -> Non
 # ── Property 10: Path normalization ─────────────────────────────────
 
 
-@settings(max_examples=30, deadline=None)
+@settings(deadline=None)
 @given(subdir=valid_subdir, name=valid_filename, content=yaml_bytes)
 def test_path_normalization(subdir: str, name: str, content: bytes) -> None:
     """Paths with backslashes are normalized internally."""
@@ -354,7 +354,6 @@ class KnowledgeRepoMachine(RuleBasedStateMachine):
 
 TestKnowledgeRepo = KnowledgeRepoMachine.TestCase
 TestKnowledgeRepo.settings = settings(
-    max_examples=20,
     stateful_step_count=10,
     deadline=None,
 )

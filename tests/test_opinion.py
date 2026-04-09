@@ -395,7 +395,7 @@ class TestConsensusPropertyTests:
     """
 
     @given(valid_opinions(), valid_opinions())
-    @settings(max_examples=100, deadline=None)
+    @settings(deadline=None)
     def test_commutativity(self, op_a, op_b):
         """fuse(a, b) == fuse(b, a) — Jøsang Theorem 7 is symmetric.
 
@@ -418,7 +418,7 @@ class TestConsensusPropertyTests:
         )
 
     @given(valid_opinions())
-    @settings(max_examples=100, deadline=None)
+    @settings(deadline=None)
     def test_vacuous_identity(self, op):
         """fuse(a, vacuous) ≈ a — vacuous opinion is the identity element.
 
@@ -444,7 +444,7 @@ class TestConsensusPropertyTests:
         )
 
     @given(valid_opinions(), valid_opinions())
-    @settings(max_examples=100, deadline=None)
+    @settings(deadline=None)
     def test_consensus_reduces_uncertainty(self, op_a, op_b):
         """Consensus never increases uncertainty (Josang 2001, p.25-26).
 
@@ -461,7 +461,7 @@ class TestConsensusPropertyTests:
         )
 
     @given(valid_opinions())
-    @settings(max_examples=100, deadline=None)
+    @settings(deadline=None)
     def test_vacuous_identity_different_base_rate(self, op):
         """fuse(a, vacuous_with_different_a) still preserves b, d, u of a.
 
@@ -542,19 +542,19 @@ class TestUncertaintyMaximization:
         assert abs(result.expectation() - op.expectation()) < 1e-9
 
     @given(valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_preserves_expectation(self, op):
         result = op.maximize_uncertainty()
         assert abs(result.expectation() - op.expectation()) < 1e-9
 
     @given(valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_uncertainty_never_decreases(self, op):
         result = op.maximize_uncertainty()
         assert result.uncertainty >= op.uncertainty - 1e-9
 
     @given(valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_idempotent(self, op):
         """Maximizing twice should give same result as once."""
         once = op.maximize_uncertainty()
@@ -600,13 +600,13 @@ class TestOpinionOrdering:
         assert not (a > b)
 
     @given(valid_opinions(), valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_total_ordering(self, a, b):
         """Ordering is total: either a <= b or b <= a."""
         assert (a <= b) or (b <= a)
 
     @given(valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_reflexive(self, a):
         assert a <= a
 
@@ -618,7 +618,7 @@ class TestConsensusAssociativityProperty:
     """Hypothesis property test for consensus associativity."""
 
     @given(valid_opinions(), valid_opinions(), valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_consensus_associative(self, a, b, c):
         """consensus(a, consensus(b, c)) ≈ consensus(consensus(a, b), c)"""
         # Skip when any pair would be two dogmatic opinions (u=0 for both)
@@ -636,7 +636,7 @@ class TestConjunctionPreservesSum:
     """Conjunction must preserve b + d + u = 1."""
 
     @given(valid_opinions(), valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_conjunction_preserves_sum(self, a, b):
         result = a & b
         assert abs(result.b + result.d + result.u - 1.0) < 1e-9
@@ -646,7 +646,7 @@ class TestDisjunctionPreservesSum:
     """Disjunction must preserve b + d + u = 1."""
 
     @given(valid_opinions(), valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_disjunction_preserves_sum(self, a, b):
         result = a | b
         assert abs(result.b + result.d + result.u - 1.0) < 1e-9
@@ -656,7 +656,7 @@ class TestNegationInvolutionProperty:
     """Negation involution: ~~op ≈ op for all valid opinions."""
 
     @given(valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_negation_involution(self, op):
         """~~op ≈ op"""
         result = ~~op
@@ -670,7 +670,7 @@ class TestBetaEvidenceRoundTripProperty:
     """Round-trip Opinion -> BetaEvidence -> Opinion for non-dogmatic opinions."""
 
     @given(valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_beta_evidence_round_trip(self, op):
         """op.to_beta_evidence().to_opinion() ≈ op (when u > 0)"""
         assume(op.u > 1e-6)  # dogmatic opinions can't round-trip
@@ -685,7 +685,7 @@ class TestDiscountVacuousTrustProperty:
     """Discounting with vacuous trust yields vacuous result."""
 
     @given(valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_discount_vacuous_trust_yields_vacuous(self, op):
         """Discounting with vacuous trust yields vacuous result."""
         vacuous_trust = Opinion.vacuous(0.5)
@@ -711,7 +711,7 @@ class TestWBF:
             wbf()
 
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_wbf_two_equals_consensus_pair(self, a, b):
         """For N=2 non-dogmatic opinions, WBF == consensus_pair."""
         result_wbf = wbf(a, b)
@@ -722,7 +722,7 @@ class TestWBF:
         assert abs(result_wbf.a - result_cp.a) < 1e-6
 
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_wbf_commutativity(self, a, b):
         """WBF(a, b) == WBF(b, a)."""
         r1 = wbf(a, b)
@@ -733,7 +733,7 @@ class TestWBF:
         assert abs(r1.a - r2.a) < 1e-6
 
     @given(valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_wbf_vacuous_identity(self, a):
         """WBF(a, vacuous) == a — vacuous contributes nothing."""
         vacuous = Opinion.vacuous(a.a)
@@ -743,21 +743,21 @@ class TestWBF:
         assert abs(result.u - a.u) < 1e-6
 
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_wbf_uncertainty_reduction(self, a, b):
         """Fusing two opinions never increases uncertainty beyond the minimum."""
         result = wbf(a, b)
         assert result.u <= min(a.u, b.u) + _TOL
 
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_wbf_sum_invariant(self, a, b):
         """b + d + u == 1 for fused result."""
         result = wbf(a, b)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_wbf_expectation_valid(self, a, b):
         """Fused expectation is in [0, 1].
 
@@ -821,7 +821,7 @@ class TestCCF:
         assert abs(result.u - 0.0) < 1e-6
 
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_ccf_sum_invariant(self, a, b):
         """b + d + u == 1 for CCF result."""
         result = ccf(a, b)
@@ -916,7 +916,7 @@ class TestCCFProperties:
     """CCF properties from van der Heijden 2018."""
 
     @given(a=valid_opinions(), b=valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_ccf_commutativity(self, a, b):
         """CCF(a, b) == CCF(b, a)."""
         r1 = ccf(a, b)
@@ -926,7 +926,7 @@ class TestCCFProperties:
         assert abs(r1.u - r2.u) < 1e-6
 
     @given(a=valid_opinions(), b=valid_opinions(), c=valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_ccf_commutativity_three(self, a, b, c):
         """CCF(a, b, c) is the same regardless of argument order."""
         result_abc = ccf(a, b, c)
@@ -938,21 +938,21 @@ class TestCCFProperties:
         assert abs(result_abc.d - result_cab.d) < 1e-6
 
     @given(a=valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_ccf_single_identity(self, a):
         """CCF of a single opinion is itself."""
         result = ccf(a)
         assert result == a
 
     @given(a=valid_opinions(), b=valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_ccf_sum_invariant_property(self, a, b):
         """Fused opinion satisfies b + d + u = 1."""
         result = ccf(a, b)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
     @given(a=valid_opinions(), b=valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_ccf_non_negative(self, a, b):
         """Fused opinion has non-negative components."""
         result = ccf(a, b)
@@ -961,7 +961,7 @@ class TestCCFProperties:
         assert result.u >= -1e-9
 
     @given(a=valid_opinions(min_uncertainty=0.05), b=valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_ccf_nondogmatic_matches_wbf(self, a, b):
         """For non-dogmatic inputs, CCF delegates to WBF exactly.
 
@@ -983,7 +983,7 @@ class TestFuse:
     """fuse() dispatcher: auto selects WBF or CCF."""
 
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_fuse_auto_selects_wbf(self, a, b):
         """For non-dogmatic inputs, fuse(auto) == wbf()."""
         result_fuse = fuse(a, b, method="auto")
@@ -1000,7 +1000,7 @@ class TestFuse:
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_fuse_explicit_wbf(self, a, b):
         """fuse(method='wbf') == wbf()."""
         r1 = fuse(a, b, method="wbf")
@@ -1009,7 +1009,7 @@ class TestFuse:
         assert abs(r1.d - r2.d) < 1e-9
 
     @given(valid_opinions(min_uncertainty=0.05), valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_fuse_explicit_ccf(self, a, b):
         """fuse(method='ccf') == ccf()."""
         r1 = fuse(a, b, method="ccf")
@@ -1029,7 +1029,7 @@ class TestWBFAdditionalProperties:
         valid_opinions(min_uncertainty=0.05),
         valid_opinions(min_uncertainty=0.05),
     )
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_wbf_three_source_commutativity(self, a, b, c):
         """WBF(a, b, c) is the same regardless of argument order.
 
@@ -1047,7 +1047,7 @@ class TestWBFAdditionalProperties:
         assert abs(r_abc.u - r_cab.u) < 1e-6, f"u: {r_abc.u} vs {r_cab.u}"
 
     @given(valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_wbf_self_fusion_preserves_belief_disbelief_ratio(self, a):
         """When fusing identical opinions, the b:d ratio is preserved.
 
@@ -1066,14 +1066,14 @@ class TestWBFAdditionalProperties:
             )
 
     @given(valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_wbf_self_fusion_reduces_uncertainty(self, a):
         """Fusing an opinion with itself concentrates belief: u decreases."""
         result = wbf(a, a)
         assert result.u <= a.u + _TOL
 
     @given(valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_wbf_base_rate_clamping_observable(self, a):
         """Document that WBF clamps base rates to [0.01, 0.99].
 
@@ -1093,7 +1093,7 @@ class TestCCFAdditionalProperties:
         b=valid_opinions(),
         c=valid_opinions(),
     )
-    @settings(max_examples=100, deadline=None)
+    @settings(deadline=None)
     def test_ccf_associativity(self, a, b, c):
         """CCF(CCF(a, b), c) ≈ CCF(a, CCF(b, c)).
 
@@ -1117,7 +1117,7 @@ class TestCCFAdditionalProperties:
         )
 
     @given(a=valid_opinions(min_uncertainty=0.05))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_ccf_self_fusion_preserves_bd_ratio(self, a):
         """CCF(a, a) preserves b:d ratio (inherited from WBF for non-dogmatic).
 
@@ -1135,7 +1135,7 @@ class TestCCFAdditionalProperties:
             )
 
     @given(a=valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_ccf_base_rate_clamping_observable(self, a):
         """Document that CCF clamps base rates to [0.01, 0.99].
 
@@ -1154,7 +1154,7 @@ class TestConjunctionDisjunctionDeMorgan:
     """
 
     @given(valid_opinions(), valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_de_morgan_conjunction(self, a, b):
         """~(a & b) ≈ (~a | ~b)."""
         lhs = ~(a & b)
@@ -1164,7 +1164,7 @@ class TestConjunctionDisjunctionDeMorgan:
         assert abs(lhs.u - rhs.u) < 1e-9, f"u: {lhs.u} vs {rhs.u}"
 
     @given(valid_opinions(), valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_de_morgan_disjunction(self, a, b):
         """~(a | b) ≈ (~a & ~b)."""
         lhs = ~(a | b)
@@ -1178,21 +1178,21 @@ class TestDiscountProperties:
     """Discount operator properties from Jøsang 2001 Def 14."""
 
     @given(valid_opinions(), valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_discount_preserves_base_rate(self, trust, source):
         """Discounting preserves the source's base rate (Jøsang Def 14)."""
         result = discount(trust, source)
         assert abs(result.a - source.a) < 1e-9
 
     @given(valid_opinions(), valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_discount_sum_invariant(self, trust, source):
         """Discounted opinion satisfies b + d + u = 1."""
         result = discount(trust, source)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-9
 
     @given(valid_opinions())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_discount_full_trust_is_identity(self, source):
         """Discounting with dogmatic trust returns the source unchanged.
 

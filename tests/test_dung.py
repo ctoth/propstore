@@ -255,7 +255,7 @@ class TestHelpers:
 # ── Property tests ──────────────────────────────────────────────────
 
 
-_PROP_SETTINGS = settings(max_examples=200, deadline=None)
+_PROP_SETTINGS = settings(deadline=None)
 
 
 class TestGroundedProperties:

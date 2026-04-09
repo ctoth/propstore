@@ -478,7 +478,7 @@ def test_undercut_does_not_bleed_across_alternative_justifications_for_same_clai
 
 
 @given(extra_support_count=st.integers(min_value=1, max_value=3))
-@settings(max_examples=20, deadline=None)
+@settings(deadline=None)
 def test_named_undercut_property_only_defeats_the_selected_rule_arguments(
     extra_support_count: int,
 ) -> None:
@@ -583,7 +583,7 @@ def test_build_structured_projection_threads_link_to_aspic_bridge(monkeypatch) -
     comparison=st.sampled_from(["elitist", "democratic"]),
     link=st.sampled_from(["last", "weakest"]),
 )
-@settings(max_examples=8, deadline=None)
+@settings(deadline=None)
 def test_build_structured_projection_property_threads_selected_preference_config(
     comparison: str,
     link: str,
@@ -695,7 +695,7 @@ def test_structured_projection_rejects_claim_graph_only_semantics() -> None:
 
 
 @given(framework=_frameworks_with_optional_attacks())
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_grounded_semantics_property_matches_dung_grounded_extension(
     framework: ArgumentationFramework,
 ) -> None:

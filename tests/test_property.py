@@ -33,7 +33,7 @@ _VALID_STRING_LIT = st.from_regex(r"[a-z][a-z_]{0,10}", fullmatch=True)
 
 
 @given(name=_VALID_IDENT, op=_VALID_OP, val=_VALID_INT)
-@settings(max_examples=50)
+@settings()
 def test_tokenizer_simple_int_comparison(name, op, val):
     """Tokenizer should handle any simple 'ident op integer' expression."""
     assume(name not in ("true", "false", "in"))
@@ -46,7 +46,7 @@ def test_tokenizer_simple_int_comparison(name, op, val):
 
 
 @given(name=_VALID_IDENT, op=_VALID_OP, val=_VALID_FLOAT)
-@settings(max_examples=50)
+@settings()
 def test_tokenizer_simple_float_comparison(name, op, val):
     """Tokenizer should handle any simple 'ident op float' expression."""
     assume(name not in ("true", "false", "in"))
@@ -57,7 +57,7 @@ def test_tokenizer_simple_float_comparison(name, op, val):
 
 
 @given(name=_VALID_IDENT, val=_VALID_STRING_LIT)
-@settings(max_examples=50)
+@settings()
 def test_tokenizer_string_equality(name, val):
     """Tokenizer should handle 'ident == string_literal' expressions."""
     assume(name not in ("true", "false", "in"))
@@ -76,7 +76,7 @@ def test_tokenizer_string_equality(name, val):
     val_a=_VALID_INT,
     val_b=_VALID_INT,
 )
-@settings(max_examples=30)
+@settings()
 def test_tokenizer_compound_expression(name_a, name_b, op_a, op_b, val_a, val_b):
     """Tokenizer should handle compound expressions with &&."""
     assume(name_a not in ("true", "false", "in"))
@@ -131,7 +131,7 @@ def _make_registry():
     width_b=st.floats(min_value=10.0, max_value=200.0, allow_nan=False, allow_infinity=False),
     offset=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
 )
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_overlapping_intervals_compatible(lo, width_a, width_b, offset):
     """Two ranges that overlap should be COMPATIBLE (no conflict records)."""
     # Build overlapping intervals by construction
@@ -157,7 +157,7 @@ def test_overlapping_intervals_compatible(lo, width_a, width_b, offset):
     gap=st.floats(min_value=1.0, max_value=100.0, allow_nan=False, allow_infinity=False),
     width_b=st.floats(min_value=1.0, max_value=50.0, allow_nan=False, allow_infinity=False),
 )
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_disjoint_intervals_conflict(lo_a, width_a, gap, width_b):
     """Two non-overlapping ranges (with a gap) should produce a CONFLICT."""
     # Build disjoint intervals by construction
@@ -178,7 +178,7 @@ def test_disjoint_intervals_conflict(lo_a, width_a, gap, width_b):
 @given(
     val=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
 )
-@settings(max_examples=50)
+@settings()
 def test_identical_scalar_always_compatible(val):
     """Identical scalar values should always be COMPATIBLE."""
     claims = [

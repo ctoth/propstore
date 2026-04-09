@@ -214,7 +214,7 @@ def test_verify_tree_reports_claim_mismatch(tmp_path: Path) -> None:
 
 
 @given(order=st.permutations([0, 1]))
-@settings(max_examples=20, deadline=None)
+@settings(deadline=None)
 def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple[int, int]) -> None:
     source_doc = {
         "id": "tag:local@propstore,2026:source/demo",

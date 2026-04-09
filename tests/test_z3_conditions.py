@@ -173,7 +173,7 @@ class TestZ3Disjointness:
             alphabet=st.characters(whitelist_categories=("L", "N")),
         ),
     )
-    @settings(max_examples=40, deadline=None)
+    @settings(deadline=None)
     def test_distinct_open_category_literals_are_disjoint(self, left, right):
         assume(left not in {"speech", "singing", "whisper"})
         assume(right not in {"speech", "singing", "whisper"})

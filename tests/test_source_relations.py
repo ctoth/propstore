@@ -652,7 +652,7 @@ def test_source_finalize_reports_parameterization_group_merges(tmp_path: Path) -
 
 
 @given(master_order=st.permutations([0, 1, 2, 3]), projected_order=st.permutations([0, 1]))
-@settings(max_examples=12, deadline=None)
+@settings(deadline=None)
 def test_parameterization_group_merge_preview_is_order_invariant(
     master_order: tuple[int, ...],
     projected_order: tuple[int, ...],
@@ -749,7 +749,6 @@ def test_parameterization_group_merge_preview_is_order_invariant(
     )
 )
 @settings(
-    max_examples=20,
     deadline=None,
     suppress_health_check=[HealthCheck.function_scoped_fixture],
 )

@@ -362,7 +362,7 @@ class TestSymmetry:
         val_a=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
         val_b=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
     )
-    @settings(max_examples=50)
+    @settings()
     def test_classification_symmetric(self, val_a, val_b):
         """If classify(A, B) = X then classify(B, A) = X."""
         registry = make_concept_registry()
@@ -388,7 +388,7 @@ class TestSymmetry:
     @given(
         val=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
     )
-    @settings(max_examples=50)
+    @settings()
     def test_compatible_is_reflexive(self, val):
         """classify(A, A) is always COMPATIBLE."""
         registry = make_concept_registry()
@@ -811,7 +811,7 @@ class TestAlgorithmConflicts:
         var_a=st.sampled_from(["x", "signal", "sample"]),
         var_b=st.sampled_from(["value", "frame", "obs"]),
     )
-    @settings(max_examples=20)
+    @settings()
     def test_algorithm_output_ownership_independent_of_variable_names(self, var_a, var_b):
         """Output-concept ownership survives variable renaming."""
         claims = [

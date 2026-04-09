@@ -350,7 +350,6 @@ def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
 
 
 @settings(
-    max_examples=25,
     deadline=None,
 )
 @given(

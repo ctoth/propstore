@@ -280,7 +280,7 @@ class TestContextProperties:
         parent_assumptions=st.lists(st.sampled_from(_ASSUMPTION_POOL), unique=True, max_size=3),
         child_assumptions=st.lists(st.sampled_from(_ASSUMPTION_POOL), unique=True, max_size=3),
     )
-    @settings(max_examples=40)
+    @settings()
     def test_effective_assumptions_monotone_under_inheritance(
         self,
         parent_assumptions,
@@ -315,7 +315,7 @@ class TestContextProperties:
             max_size=len(_ASSUMPTION_POOL),
         )
     )
-    @settings(max_examples=40, deadline=None)
+    @settings(deadline=None)
     def test_visibility_depends_on_effective_assumptions_not_context_identity(
         self,
         effective_assumptions,
@@ -960,7 +960,7 @@ class TestContextAwareConflicts:
         value_a=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
         value_b=st.floats(min_value=1.0, max_value=1000.0, allow_nan=False, allow_infinity=False),
     )
-    @settings(max_examples=40)
+    @settings()
     def test_unrelated_context_conflicts_not_suppressed(
         self,
         value_a,

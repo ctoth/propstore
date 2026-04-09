@@ -796,7 +796,7 @@ class TestDecisionCriterionProperties:
             d=st.floats(min_value=0.0, max_value=1.0),
             a=st.floats(min_value=0.0, max_value=1.0),
         )
-        @settings(max_examples=200, deadline=None)
+        @settings(deadline=None)
         def _check(b, d, a):
             u = 1.0 - b - d
             assume(u >= 0.0)

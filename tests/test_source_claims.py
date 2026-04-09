@@ -24,7 +24,7 @@ from propstore.source_ops import normalize_source_claims_payload
         max_size=12,
     ),
 )
-@settings(max_examples=40, deadline=None)
+@settings(deadline=None)
 def test_normalized_source_claim_ids_are_content_stable(local_id_a: str, local_id_b: str) -> None:
     claim_a = {
         "id": local_id_a,

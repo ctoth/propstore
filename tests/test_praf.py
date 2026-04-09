@@ -1016,7 +1016,7 @@ def _small_deterministic_praf_strategy():
 
 
 @given(praf=_small_praf_strategy())
-@settings(max_examples=50)
+@settings()
 def test_coh_holds_after_enforcement(praf):
     """For any small PrAF, after enforce_coh(), COH holds for ALL attack pairs:
     E(P_A(A)) + E(P_A(B)) <= 1.0 + 1e-9.
@@ -1044,7 +1044,7 @@ def test_coh_holds_after_enforcement(praf):
 
 
 @given(praf=_small_praf_strategy())
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_mc_agrees_with_exact_on_small_afs(praf):
     """MC sampling and exact enumeration should agree within epsilon on small AFs.
 
@@ -1072,7 +1072,7 @@ def test_mc_agrees_with_exact_on_small_afs(praf):
 
 
 @given(praf=_small_praf_strategy())
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_coh_idempotent(praf):
     """enforce_coh(enforce_coh(praf)) should equal enforce_coh(praf).
 
@@ -1284,7 +1284,7 @@ def test_query_kind_extension_probability_rejects_inference_mode():
 
 
 @given(praf=_small_praf_strategy())
-@settings(max_examples=40, deadline=None)
+@settings(deadline=None)
 def test_skeptical_acceptance_probability_never_exceeds_credulous(praf):
     from propstore.praf import compute_praf_acceptance
 
@@ -1308,7 +1308,7 @@ def test_skeptical_acceptance_probability_never_exceeds_credulous(praf):
 
 
 @given(sample=_small_praf_and_query_set())
-@settings(max_examples=40, deadline=None)
+@settings(deadline=None)
 def test_extension_probability_property_is_bounded_for_random_query_sets(sample):
     from propstore.praf import compute_praf_acceptance
 
@@ -1326,7 +1326,7 @@ def test_extension_probability_property_is_bounded_for_random_query_sets(sample)
 
 
 @given(praf=_small_deterministic_praf_strategy())
-@settings(max_examples=40, deadline=None)
+@settings(deadline=None)
 def test_deterministic_preferred_query_modes_match_extension_membership_property(praf):
     from propstore.praf import compute_praf_acceptance
 
@@ -1366,7 +1366,7 @@ from hypothesis import strategies as st
 
 
 @given(praf=_small_praf_strategy())
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_coh_minimality_no_unnecessary_adjustment(praf):
     """Arguments not involved in any COH violation should not be adjusted.
 
@@ -1404,7 +1404,7 @@ def test_coh_minimality_no_unnecessary_adjustment(praf):
 
 
 @given(praf=_small_praf_strategy())
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_coh_preserves_opinion_validity(praf):
     """After COH enforcement, all opinions must still be valid (b+d+u=1, all>=0)."""
     from propstore.praf import enforce_coh
@@ -1420,7 +1420,7 @@ def test_coh_preserves_opinion_validity(praf):
 
 
 @given(praf=_small_praf_strategy())
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_coh_expectation_bounds(praf):
     """After COH enforcement, all expectations must be in [0, 1]."""
     from propstore.praf import enforce_coh
@@ -1475,7 +1475,7 @@ def _make_praf_with_self_attacks():
 
 
 @given(praf=_make_praf_with_self_attacks())
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_coh_self_attack_constrains_to_half(praf):
     """Self-attacking argument must have P(A) <= 0.5 after COH.
 
@@ -1495,7 +1495,7 @@ def test_coh_self_attack_constrains_to_half(praf):
 
 
 @given(praf=_make_praf_with_self_attacks())
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_coh_with_self_attacks_idempotent(praf):
     """enforce_coh is idempotent even with self-attacks."""
     from propstore.praf import enforce_coh
