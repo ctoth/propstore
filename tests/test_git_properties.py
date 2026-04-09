@@ -74,7 +74,7 @@ def test_listing_completeness(subdir: str, filenames: list[str]) -> None:
     """Committed files appear in list_dir(subdir)."""
     repo = _make_repo()
     content = b"x: 1\n"
-    changes = {f"{subdir}/{fn}": content for fn in filenames}
+    changes: dict[str | Path, bytes] = {f"{subdir}/{fn}": content for fn in filenames}
     repo.commit_files(changes, f"add files to {subdir}")
     listed = repo.list_dir(subdir)
     for fn in filenames:

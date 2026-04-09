@@ -72,21 +72,21 @@ def _walker(repo: Any, tip: bytes, *, max_entries: int) -> Any:
     return repo.get_walker(include=[tip], max_entries=max_entries)
 
 
-def _repo_object(repo: Repo, object_id: bytes) -> Blob | Tree | Commit:
+def _repo_object(repo: BaseRepo, object_id: bytes) -> Blob | Tree | Commit:
     obj = repo[object_id]
     if isinstance(obj, (Blob, Tree, Commit)):
         return obj
     raise TypeError(f"Unexpected git object type: {type(obj).__name__}")
 
 
-def _commit_object(repo: Repo, object_id: bytes) -> Commit:
+def _commit_object(repo: BaseRepo, object_id: bytes) -> Commit:
     obj = _repo_object(repo, object_id)
     if isinstance(obj, Commit):
         return obj
     raise TypeError(f"Expected commit object, got {type(obj).__name__}")
 
 
-def _tree_object(repo: Repo, object_id: bytes) -> Tree:
+def _tree_object(repo: BaseRepo, object_id: bytes) -> Tree:
     obj = _repo_object(repo, object_id)
     if isinstance(obj, Tree):
         return obj
@@ -315,6 +315,7 @@ class KnowledgeRepo:
         """
         if self._root is None:
             return
+        root = self._root
         try:
             head = self._repo.head()
         except KeyError:
@@ -327,17 +328,17 @@ class KnowledgeRepo:
 
         # Write all git-tracked files
         for rel_path in git_paths:
-            abs_path = self._root / rel_path
+            abs_path = root / rel_path
             abs_path.parent.mkdir(parents=True, exist_ok=True)
             blob = self._resolve_path(tree, PurePosixPath(rel_path).parts)
             if isinstance(blob, Blob):
                 abs_path.write_bytes(blob.data)
 
         # Remove files that are on disk but not in git
-        for disk_file in self._root.rglob("*"):
+        for disk_file in root.rglob("*"):
             if not disk_file.is_file():
                 continue
-            rel = disk_file.relative_to(self._root).as_posix()
+            rel = disk_file.relative_to(root).as_posix()
             if rel.startswith(".git"):
                 continue
             if rel not in git_paths:
