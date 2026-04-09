@@ -6,7 +6,7 @@ import yaml
 
 from propstore.compiler.context import (
     build_compilation_context_from_paths,
-    compilation_context_from_legacy_registry,
+    compilation_context_from_concept_registry,
 )
 from propstore.compiler.passes import compile_claim_files
 from propstore.validate_claims import load_claim_files
@@ -154,7 +154,7 @@ def test_prepare_claim_insert_row_matches_for_raw_and_semantic_claims(tmp_path):
 
     files = load_claim_files(claims_dir)
     registry = make_concept_registry()
-    context = compilation_context_from_legacy_registry(registry, claim_files=files)
+    context = compilation_context_from_concept_registry(registry, claim_files=files)
     bundle = compile_claim_files(files, context)
 
     raw_row = prepare_claim_insert_row(

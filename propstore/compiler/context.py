@@ -270,7 +270,7 @@ def _build_context_from_concepts(
                     _extend_lookup(concept_lookup, alias_name, artifact_id)
 
     finalized_lookup = _finalize_lookup(concept_lookup)
-    legacy_registry = legacy_concept_registry_for_context_payloads(
+    concept_registry = concept_registry_for_context_payloads(
         concept_payloads_by_id,
         finalized_lookup,
     )
@@ -285,7 +285,7 @@ def _build_context_from_concepts(
             if claim_files is None
             else _build_claim_lookup(claim_files)
         ),
-        cel_registry=_freeze_mapping(build_cel_registry(legacy_registry)),
+        cel_registry=_freeze_mapping(build_cel_registry(concept_registry)),
     )
 
 
@@ -333,7 +333,7 @@ def build_compilation_context_from_repo(
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     if repo is None:
-        return compilation_context_from_legacy_registry({}, claim_files=claim_files, context_ids=context_ids)
+        return compilation_context_from_concept_registry({}, claim_files=claim_files, context_ids=context_ids)
     return build_compilation_context_from_paths(
         repo.tree() / "concepts",
         repo.tree() / "forms",
@@ -342,7 +342,7 @@ def build_compilation_context_from_repo(
     )
 
 
-def compilation_context_from_legacy_registry(
+def compilation_context_from_concept_registry(
     concept_registry: dict[str, dict[str, Any]],
     *,
     claim_files: list[LoadedEntry] | None = None,
@@ -364,7 +364,7 @@ def compilation_context_from_legacy_registry(
         _extend_lookup(concept_lookup, key, artifact_id)
         _extend_lookup(concept_lookup, artifact_id, artifact_id)
     finalized_lookup = _finalize_lookup(concept_lookup)
-    legacy_registry = legacy_concept_registry_for_context_payloads(
+    concept_registry = concept_registry_for_context_payloads(
         concept_payloads_by_id,
         finalized_lookup,
     )
@@ -378,20 +378,20 @@ def compilation_context_from_legacy_registry(
             if claim_files is None
             else _build_claim_lookup(claim_files)
         ),
-        cel_registry=_freeze_mapping(build_cel_registry(legacy_registry)),
+        cel_registry=_freeze_mapping(build_cel_registry(concept_registry)),
     )
 
 
-def legacy_concept_registry_for_context(
+def concept_registry_for_context(
     context: CompilationContext,
 ) -> dict[str, dict[str, Any]]:
-    return legacy_concept_registry_for_context_payloads(
+    return concept_registry_for_context_payloads(
         context.concept_payloads_by_id,
         context.concept_lookup,
     )
 
 
-def legacy_concept_registry_for_context_payloads(
+def concept_registry_for_context_payloads(
     concept_payloads_by_id: Mapping[str, Mapping[str, Any]],
     concept_lookup: Mapping[str, tuple[str, ...]],
 ) -> dict[str, dict[str, Any]]:
@@ -408,9 +408,9 @@ def legacy_concept_registry_for_context_payloads(
     return registry
 
 
-def build_legacy_concept_registry_from_paths(
+def build_concept_registry_from_paths(
     concepts_dir: Path | KnowledgePath,
     forms_dir: Path | KnowledgePath,
 ) -> dict[str, dict[str, Any]]:
     context = build_compilation_context_from_paths(concepts_dir, forms_dir)
-    return legacy_concept_registry_for_context(context)
+    return concept_registry_for_context(context)
