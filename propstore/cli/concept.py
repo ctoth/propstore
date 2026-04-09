@@ -10,7 +10,7 @@ from pathlib import Path
 import click
 import yaml
 
-from propstore.concept_alignment import (
+from propstore.source import (
     align_sources,
     decide_alignment,
     load_alignment_artifact,
