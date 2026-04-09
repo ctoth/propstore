@@ -32,9 +32,7 @@ from propstore.identity import (
     LOGICAL_NAMESPACE_RE,
     LOGICAL_VALUE_RE,
     compute_concept_version_id,
-    derive_concept_artifact_id,
     format_logical_id,
-    normalize_logical_value,
 )
 
 if TYPE_CHECKING:
@@ -174,39 +172,9 @@ def _validate_logical_ids(
 
 
 def normalize_concept_record(data: dict) -> dict:
-    normalized = dict(data)
-    if isinstance(normalized.get("artifact_id"), str) and normalized.get("artifact_id"):
-        return normalized
+    from propstore.core.concepts import normalize_concept_payload
 
-    local_seed = str(normalized.get("id") or normalized.get("canonical_name") or "concept")
-    canonical_name = normalized.get("canonical_name")
-    primary_namespace = str(normalized.get("domain") or "propstore")
-    primary_value = normalize_logical_value(str(canonical_name or local_seed))
-    logical_ids = normalized.get("logical_ids")
-    normalized_logical_ids: list[dict[str, str]] = []
-    if isinstance(logical_ids, list):
-        for entry in logical_ids:
-            if not isinstance(entry, dict):
-                continue
-            namespace = entry.get("namespace")
-            value = entry.get("value")
-            if isinstance(namespace, str) and namespace and isinstance(value, str) and value:
-                normalized_logical_ids.append({"namespace": namespace, "value": value})
-
-    if not normalized_logical_ids:
-        normalized_logical_ids = [{"namespace": primary_namespace, "value": primary_value}]
-        propstore_local = normalize_logical_value(local_seed)
-        if primary_namespace != "propstore" or propstore_local != primary_value:
-            normalized_logical_ids.append({"namespace": "propstore", "value": propstore_local})
-        normalized["logical_ids"] = normalized_logical_ids
-
-    normalized["artifact_id"] = derive_concept_artifact_id("propstore", normalize_logical_value(local_seed))
-    version_id = normalized.get("version_id")
-    if not isinstance(version_id, str) or not version_id:
-        normalized["version_id"] = compute_concept_version_id(normalized)
-    return normalized
-
-    return formatted_ids
+    return normalize_concept_payload(data)
 
 
 def validate_concepts(
