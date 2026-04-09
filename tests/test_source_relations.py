@@ -15,7 +15,7 @@ from hypothesis import strategies as st
 from propstore.sidecar.build import build_sidecar
 from propstore.cli import cli
 from propstore.cli.repository import Repository
-from propstore.source_ops import _parameterization_group_merge_preview
+from propstore.source import parameterization_group_merge_preview
 from tests.conftest import normalize_concept_payloads
 
 
@@ -720,7 +720,7 @@ def test_parameterization_group_merge_preview_is_order_invariant(
             "parameterization_relationships": [],
         },
     ]
-    expected = _parameterization_group_merge_preview(
+    expected = parameterization_group_merge_preview(
         master_concepts,
         projected_concepts,
         parameterized_artifacts={"ps:concept:bridge"},
@@ -728,7 +728,7 @@ def test_parameterization_group_merge_preview_is_order_invariant(
 
     reordered_master = [master_concepts[index] for index in master_order]
     reordered_projected = [projected_concepts[index] for index in projected_order]
-    actual = _parameterization_group_merge_preview(
+    actual = parameterization_group_merge_preview(
         reordered_master,
         reordered_projected,
         parameterized_artifacts={"ps:concept:bridge"},

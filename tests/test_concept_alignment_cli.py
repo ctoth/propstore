@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
-from propstore.concept_alignment import build_alignment_artifact
+from propstore.source import build_alignment_artifact
 
 
 def _init_source(runner: CliRunner, repo: Repository, name: str) -> None:

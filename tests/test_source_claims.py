@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
-from propstore.source_ops import normalize_source_claims_payload
+from propstore.source import normalize_source_claims_payload
 
 
 @given(

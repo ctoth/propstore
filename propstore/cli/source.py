@@ -7,11 +7,12 @@ from pathlib import Path
 import click
 
 from propstore.cli.repository import Repository
-from propstore.concept_alignment import commit_source_concept_proposal, commit_source_concepts_batch
 from propstore.provenance import stamp_file
-from propstore.source_ops import (
+from propstore.source import (
     commit_source_claim_proposal,
     commit_source_claims_batch,
+    commit_source_concept_proposal,
+    commit_source_concepts_batch,
     commit_source_justification_proposal,
     commit_source_justifications_batch,
     commit_source_metadata,
