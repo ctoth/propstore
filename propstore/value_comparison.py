@@ -1,7 +1,4 @@
-"""Pure numeric value comparison logic for claims.
-
-Compares values, parses intervals, checks compatibility.
-"""
+"""Pure numeric value comparison logic for claims."""
 
 from __future__ import annotations
 
@@ -13,50 +10,20 @@ if TYPE_CHECKING:
 DEFAULT_TOLERANCE = 1e-9
 
 
-def parse_numeric_values(value_list: list) -> tuple[float, ...]:
-    """Extract numeric values from a claim value list (legacy format).
-
-    Returns a tuple of floats. A single-element list is a scalar;
-    a two-element list is a range [min, max].
-    """
-    result = []
-    for v in value_list:
-        try:
-            result.append(float(v))
-        except (TypeError, ValueError):
-            pass
-    return tuple(result)
-
-
 def extract_interval(claim: dict) -> tuple[float, float, float] | None:
-    """Extract (center, lower, upper) from a claim's named value fields.
-
-    Returns None if the claim has no numeric value information.
-    Falls back to legacy value list format if named fields absent.
-    """
+    """Extract (center, lower, upper) from a claim's named value fields."""
     value = claim.get("value")
     lower_bound = claim.get("lower_bound")
     upper_bound = claim.get("upper_bound")
 
-    is_list_value = isinstance(value, list)
-
-    if value is not None and not is_list_value and lower_bound is not None and upper_bound is not None:
+    if value is not None and not isinstance(value, list) and lower_bound is not None and upper_bound is not None:
         return (float(value), float(lower_bound), float(upper_bound))
-    if value is not None and not is_list_value:
+    if value is not None and not isinstance(value, list):
         v = float(value)
         return (v, v, v)
     if lower_bound is not None and upper_bound is not None:
         lo, hi = float(lower_bound), float(upper_bound)
         return ((lo + hi) / 2, lo, hi)
-
-    # Legacy path: value is a list
-    if isinstance(value, list):
-        nums = parse_numeric_values(value)
-        if len(nums) == 1:
-            return (nums[0], nums[0], nums[0])
-        if len(nums) >= 2:
-            lo, hi = min(nums), max(nums)
-            return ((lo + hi) / 2, lo, hi)
 
     return None
 
@@ -115,7 +82,6 @@ def values_compatible(
 ) -> bool:
     """Check if two claim values are compatible.
 
-    Supports both legacy list format and named value fields.
     When claim_a/claim_b are provided, uses named field extraction.
 
     When *forms* and *concept_form* are supplied and the claims carry ``unit``
@@ -136,32 +102,6 @@ def values_compatible(
                     interval_b = _normalize_interval(interval_b, unit_b, form_def)
             return intervals_compatible(interval_a, interval_b, tolerance)
 
-    # Legacy list path
-    if isinstance(value_a, list) and isinstance(value_b, list):
-        nums_a = parse_numeric_values(value_a)
-        nums_b = parse_numeric_values(value_b)
-
-        if not nums_a or not nums_b:
-            return value_a == value_b
-
-        if len(nums_a) == 1 and len(nums_b) == 1:
-            return abs(nums_a[0] - nums_b[0]) < tolerance
-
-        if len(nums_a) >= 2 and len(nums_b) >= 2:
-            min_a, max_a = min(nums_a), max(nums_a)
-            min_b, max_b = min(nums_b), max(nums_b)
-            return min_a <= max_b and min_b <= max_a
-
-        if len(nums_a) == 1 and len(nums_b) >= 2:
-            min_b, max_b = min(nums_b), max(nums_b)
-            return min_b - tolerance <= nums_a[0] <= max_b + tolerance
-
-        if len(nums_b) == 1 and len(nums_a) >= 2:
-            min_a, max_a = min(nums_a), max(nums_a)
-            return min_a - tolerance <= nums_b[0] <= max_a + tolerance
-
-        return value_a == value_b
-
     # Scalar values (not lists) — compare directly
     if isinstance(value_a, (int, float)) and isinstance(value_b, (int, float)):
         return abs(float(value_a) - float(value_b)) < tolerance
@@ -170,10 +110,7 @@ def values_compatible(
 
 
 def value_str(value, claim: dict | None = None) -> str:
-    """Convert a claim's value to a string representation.
-
-    Supports both legacy list format and named value fields.
-    """
+    """Convert a claim's value to a string representation."""
     if claim is not None:
         interval = extract_interval(claim)
         if interval is not None:
@@ -184,9 +121,4 @@ def value_str(value, claim: dict | None = None) -> str:
             if v is not None and not isinstance(v, list):
                 return f"{v} [{lo}, {hi}]"
             return f"[{lo}, {hi}]"
-
-    if isinstance(value, list):
-        if len(value) == 1:
-            return str(value[0])
-        return str(value)
     return str(value)

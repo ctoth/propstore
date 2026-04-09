@@ -977,8 +977,8 @@ class TestClaimTable:
         assert row["sympy_error"] is not None
         conn.close()
 
-    def test_legacy_list_value_raises(self, concept_dir, knowledge_reader, sidecar_path):
-        """Legacy list value format raises TypeError — no silent conversion."""
+    def test_list_value_input_raises(self, concept_dir, knowledge_reader, sidecar_path):
+        """List-valued claim input raises TypeError — no silent conversion."""
         claims_dir = concept_dir.parent / "claims"
         claims_dir.mkdir(exist_ok=True)
         claim_data = {
