@@ -21,7 +21,6 @@ from propstore.loaded import LoadedEntry
 from propstore.value_comparison import (
     DEFAULT_TOLERANCE,
     extract_interval as _extract_interval,
-    parse_numeric_values as _parse_numeric_values,
     value_str as _value_str,
     values_compatible as _values_compatible,
 )
@@ -234,15 +233,6 @@ def _detect_param_conflicts(
                             # Point value — normalize to SI if forms available
                             input_values[inp_id] = _normalize_claim_value(
                                 center, claim, inp_id, concept_registry, forms,
-                            )
-                            input_claim_ids[inp_id] = claim["id"]
-                            break
-                    else:
-                        # Legacy fallback
-                        vals = _parse_numeric_values(claim.get("value", []))
-                        if len(vals) == 1:
-                            input_values[inp_id] = _normalize_claim_value(
-                                vals[0], claim, inp_id, concept_registry, forms,
                             )
                             input_claim_ids[inp_id] = claim["id"]
                             break
