@@ -8,7 +8,12 @@ from collections import deque
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from propstore.cel_checker import ConceptInfo, KindType, build_cel_registry_from_rows
+from propstore.cel_checker import (
+    ConceptInfo,
+    KindType,
+    build_cel_registry_from_rows,
+    with_standard_synthetic_bindings,
+)
 from propstore.core.id_types import to_concept_id
 from propstore.core.labels import compile_environment_assumptions
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
@@ -276,7 +281,9 @@ class WorldModel(ArtifactStore):
             }
             for row in rows
         ]
-        registry = build_cel_registry_from_rows(normalized_rows)
+        registry = with_standard_synthetic_bindings(
+            build_cel_registry_from_rows(normalized_rows)
+        )
         self._registry = registry
         return registry
 

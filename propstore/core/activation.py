@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from propstore.cel_checker import (
+    synthetic_category_concept,
+    with_standard_synthetic_bindings,
+    with_synthetic_concepts,
+)
 from propstore.core.id_types import ClaimId
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.environment import Environment
@@ -61,6 +67,57 @@ def _claim_conditions(claim: ClaimNode) -> tuple[str, ...]:
     return (str(raw),)
 
 
+_NAME_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_NON_BINDING_NAMES = frozenset({"true", "false", "in"})
+
+
+def _synthetic_names_from_conditions(*condition_groups: tuple[str, ...] | list[str]) -> list[str]:
+    names: set[str] = set()
+    for group in condition_groups:
+        for condition in group:
+            for match in _NAME_PATTERN.findall(str(condition)):
+                if match not in _NON_BINDING_NAMES:
+                    names.add(match)
+    return sorted(names)
+
+
+def _retry_with_standard_bindings(
+    solver: Z3ConditionSolver,
+    *,
+    binding_conditions: tuple[str, ...] | list[str],
+    claim_conditions: tuple[str, ...] | list[str],
+) -> Z3ConditionSolver:
+    try:
+        base_registry = getattr(solver, "_registry")
+    except AttributeError:
+        return solver
+
+    from propstore.z3_conditions import Z3ConditionSolver
+
+    augmented_registry = with_standard_synthetic_bindings(base_registry)
+    extra_names = [
+        name
+        for name in _synthetic_names_from_conditions(binding_conditions, claim_conditions)
+        if name not in augmented_registry
+    ]
+    if extra_names:
+        augmented_registry = with_synthetic_concepts(
+            augmented_registry,
+            [
+                synthetic_category_concept(
+                    concept_id=f"ps:concept:__{name}__",
+                    canonical_name=name,
+                    values=(),
+                    extensible=True,
+                )
+                for name in extra_names
+            ],
+        )
+    if augmented_registry == dict(base_registry):
+        return solver
+    return Z3ConditionSolver(augmented_registry)
+
+
 def is_claim_node_active(
     claim: ClaimNode,
     *,
@@ -84,7 +141,21 @@ def is_claim_node_active(
     if solver is None:
         raise ValueError("A condition solver is required for conditional activation")
 
-    return not solver.are_disjoint(binding_conditions, claim_conditions)
+    try:
+        return not solver.are_disjoint(binding_conditions, claim_conditions)
+    except Exception as exc:
+        from propstore.z3_conditions import Z3TranslationError
+
+        if isinstance(exc, Z3TranslationError):
+            return not _retry_with_standard_bindings(
+                solver,
+                binding_conditions=binding_conditions,
+                claim_conditions=claim_conditions,
+            ).are_disjoint(
+                binding_conditions,
+                claim_conditions,
+            )
+        raise
 
 
 def is_claim_mapping_active(
@@ -119,7 +190,21 @@ def is_claim_mapping_active(
     if solver is None:
         raise ValueError("A condition solver is required for conditional activation")
 
-    return not solver.are_disjoint(binding_conditions, claim_conditions)
+    try:
+        return not solver.are_disjoint(binding_conditions, claim_conditions)
+    except Exception as exc:
+        from propstore.z3_conditions import Z3TranslationError
+
+        if isinstance(exc, Z3TranslationError):
+            return not _retry_with_standard_bindings(
+                solver,
+                binding_conditions=binding_conditions,
+                claim_conditions=claim_conditions,
+            ).are_disjoint(
+                binding_conditions,
+                claim_conditions,
+            )
+        raise
 
 
 def activate_compiled_world_graph(
