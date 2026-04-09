@@ -5,7 +5,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.cel_checker import ConceptInfo, KindType, build_cel_registry
+from propstore.cel_checker import (
+    ConceptInfo,
+    KindType,
+    build_cel_registry,
+    with_synthetic_concepts,
+)
 from propstore.loaded import LoadedEntry
 
 from .algorithms import detect_algorithm_conflicts
@@ -32,12 +37,17 @@ def detect_conflicts(
         (cf.data.get("source") or {}).get("paper") or cf.filename
         for cf in claim_files
     })
-    cel_registry["source"] = ConceptInfo(
-        id="ps:concept:__source__",
-        canonical_name="source",
-        kind=KindType.CATEGORY,
-        category_values=source_names,
-        category_extensible=False,
+    cel_registry = with_synthetic_concepts(
+        cel_registry,
+        (
+            ConceptInfo(
+                id="ps:concept:__source__",
+                canonical_name="source",
+                kind=KindType.CATEGORY,
+                category_values=source_names,
+                category_extensible=False,
+            ),
+        ),
     )
     condition_solver = _build_condition_solver(cel_registry)
 

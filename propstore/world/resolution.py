@@ -12,7 +12,11 @@ import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.cel_checker import (
+    ConceptInfo,
+    build_cel_registry_from_records,
+    scope_cel_registry,
+)
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.form_utils import kind_type_from_form_name
 from propstore.core.labels import Label, SupportQuality
@@ -293,33 +297,13 @@ def _cel_registry_for_concepts(
     world: ArtifactStore,
     concept_ids: Sequence[str],
 ) -> dict[str, ConceptInfo]:
-    registry: dict[str, ConceptInfo] = {}
-    for concept_id in concept_ids:
-        concept = world.get_concept(concept_id)
-        if concept is None:
-            continue
-        canonical_name = concept.get("canonical_name")
-        form = concept.get("form")
-        if not isinstance(canonical_name, str) or not canonical_name:
-            continue
-        kind = kind_type_from_form_name(form)
-        if kind is None:
-            kind = KindType.QUANTITY
-        form_parameters = _normalized_form_parameters(concept)
-        raw_values = form_parameters.get("values")
-        category_values = [
-            value
-            for value in (raw_values if isinstance(raw_values, list | tuple) else ())
-            if isinstance(value, str)
-        ]
-        registry[canonical_name] = ConceptInfo(
-            id=concept_id,
-            canonical_name=canonical_name,
-            kind=kind,
-            category_values=category_values,
-            category_extensible=bool(form_parameters.get("extensible", True)),
-        )
-    return registry
+    records = [
+        concept
+        for concept_id in concept_ids
+        if (concept := world.get_concept(concept_id)) is not None
+    ]
+    registry = build_cel_registry_from_records(records)
+    return scope_cel_registry(registry, concept_ids)
 
 
 def _enriched_policy_integrity_constraints(

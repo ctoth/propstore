@@ -10,7 +10,9 @@ We parse a sufficient subset rather than implementing full CEL.
 
 from __future__ import annotations
 
+import json
 import re
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -46,32 +48,7 @@ def build_cel_registry(concept_registry: dict[str, dict]) -> dict[str, ConceptIn
     For the LoadedEntry list input shape, use
     ``build_cel_registry_from_loaded()``.
     """
-    from propstore.form_utils import kind_type_from_form_name
-
-    registry: dict[str, ConceptInfo] = {}
-    for cid, data in concept_registry.items():
-        name = data.get("canonical_name", "")
-        kind_type = kind_type_from_form_name(data.get("form"))
-        if not name or kind_type is None:
-            continue
-
-        category_values: list[str] = []
-        category_extensible = True
-        if kind_type == KindType.CATEGORY:
-            fp = data.get("form_parameters", {}) or {}
-            if isinstance(fp.get("values"), list):
-                category_values = fp["values"]
-            ext = fp.get("extensible")
-            category_extensible = ext if ext is not None else True
-
-        registry[name] = ConceptInfo(
-            id=cid,
-            canonical_name=name,
-            kind=kind_type,
-            category_values=category_values,
-            category_extensible=category_extensible,
-        )
-    return registry
+    return build_cel_registry_from_concept_map(concept_registry)
 
 
 def build_cel_registry_from_loaded(concepts: list[LoadedEntry]) -> dict[str, ConceptInfo]:
@@ -80,12 +57,133 @@ def build_cel_registry_from_loaded(concepts: list[LoadedEntry]) -> dict[str, Con
     Thin wrapper that converts LoadedEntry list into the dict shape
     expected by ``build_cel_registry()``.
     """
-    concept_registry: dict[str, dict] = {}
-    for c in concepts:
-        cid = c.data.get("artifact_id") or c.data.get("id", "")
-        if cid:
-            concept_registry[str(cid)] = c.data
-    return build_cel_registry(concept_registry)
+    return build_cel_registry_from_records(c.data for c in concepts)
+
+
+def _mapping_form_parameters(value: object) -> Mapping[str, Any]:
+    if isinstance(value, Mapping):
+        return value
+    if isinstance(value, str) and value:
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            return {}
+        if isinstance(parsed, Mapping):
+            return parsed
+    return {}
+
+
+def _kind_type_from_record(data: Mapping[str, Any]) -> KindType | None:
+    from propstore.form_utils import kind_type_from_form_name
+
+    raw_kind = data.get("kind_type")
+    if isinstance(raw_kind, KindType):
+        return raw_kind
+    if isinstance(raw_kind, str):
+        try:
+            return KindType(raw_kind)
+        except ValueError:
+            return kind_type_from_form_name(data.get("form"))
+    return kind_type_from_form_name(data.get("form"))
+
+
+def concept_info_from_record(
+    data: Mapping[str, Any],
+    *,
+    default_id: str | None = None,
+) -> ConceptInfo | None:
+    """Build one ``ConceptInfo`` from any canonical concept-like payload."""
+    canonical_name = data.get("canonical_name")
+    if not isinstance(canonical_name, str) or not canonical_name:
+        return None
+
+    concept_id = data.get("artifact_id") or data.get("id") or default_id
+    if not isinstance(concept_id, str) or not concept_id:
+        return None
+
+    kind_type = _kind_type_from_record(data)
+    if kind_type is None:
+        return None
+
+    form_parameters = _mapping_form_parameters(data.get("form_parameters"))
+    raw_values = form_parameters.get("values")
+    category_values = [
+        value
+        for value in (raw_values if isinstance(raw_values, Sequence) and not isinstance(raw_values, str) else ())
+        if isinstance(value, str)
+    ]
+    raw_extensible = form_parameters.get("extensible")
+    category_extensible = True if raw_extensible is None else bool(raw_extensible)
+
+    return ConceptInfo(
+        id=concept_id,
+        canonical_name=canonical_name,
+        kind=kind_type,
+        category_values=category_values,
+        category_extensible=category_extensible,
+    )
+
+
+def build_cel_registry_from_records(
+    records: Iterable[Mapping[str, Any]],
+) -> dict[str, ConceptInfo]:
+    """Build the canonical CEL registry from concept-like record payloads."""
+    registry: dict[str, ConceptInfo] = {}
+    for record in records:
+        info = concept_info_from_record(record)
+        if info is None:
+            continue
+        registry[info.canonical_name] = info
+    return registry
+
+
+def build_cel_registry_from_concept_map(
+    concept_registry: Mapping[str, Mapping[str, Any]],
+) -> dict[str, ConceptInfo]:
+    """Build a CEL registry from a concept lookup map with aliases or duplicates."""
+    seen_ids: set[str] = set()
+    registry: dict[str, ConceptInfo] = {}
+    for default_id, data in concept_registry.items():
+        concept_id = data.get("artifact_id") or data.get("id") or str(default_id)
+        if not isinstance(concept_id, str) or not concept_id or concept_id in seen_ids:
+            continue
+        seen_ids.add(concept_id)
+        info = concept_info_from_record(data, default_id=concept_id)
+        if info is None:
+            continue
+        registry[info.canonical_name] = info
+    return registry
+
+
+def build_cel_registry_from_rows(
+    rows: Iterable[Mapping[str, Any]],
+) -> dict[str, ConceptInfo]:
+    """Build a CEL registry from sidecar/store concept rows."""
+    return build_cel_registry_from_records(rows)
+
+
+def scope_cel_registry(
+    registry: Mapping[str, ConceptInfo],
+    concept_ids: set[str] | frozenset[str] | list[str] | tuple[str, ...],
+) -> dict[str, ConceptInfo]:
+    """Return the canonical-name keyed subset for the requested concept ids."""
+    scoped_ids = {str(concept_id) for concept_id in concept_ids}
+    return {
+        canonical_name: info
+        for canonical_name, info in registry.items()
+        if info.id in scoped_ids
+    }
+
+
+def with_synthetic_concepts(
+    registry: Mapping[str, ConceptInfo],
+    concepts: Iterable[ConceptInfo],
+) -> dict[str, ConceptInfo]:
+    """Return a copy of *registry* augmented with synthetic CEL concepts."""
+    result = dict(registry)
+    for info in concepts:
+        result[info.canonical_name] = info
+    return result
 
 
 @dataclass
