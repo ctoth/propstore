@@ -265,7 +265,7 @@ def validate_concepts(
             continue
         if "id" in data and "artifact_id" in c.data:
             result.errors.append(
-                f"{c.filename}: concept '{cid}' uses obsolete raw 'id'; "
+                f"{c.filename}: concept '{cid}' uses raw 'id' input; "
                 "use artifact_id and logical_ids"
             )
         if not name:

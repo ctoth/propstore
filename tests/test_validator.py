@@ -460,7 +460,7 @@ class TestIdentityFormat:
         result = validate_concepts(concepts)
         assert any("artifact_id" in e.lower() or "ps:concept:" in e.lower() for e in result.errors)
 
-    def test_obsolete_raw_id_rejected(self, concept_dir):
+    def test_raw_id_input_rejected(self, concept_dir):
         c = make_quantity_concept("concept1", "test_concept")
         c["id"] = "concept1"
         c["version_id"] = attach_concept_version_id(c)["version_id"]
@@ -468,7 +468,7 @@ class TestIdentityFormat:
         path.write_text(yaml.dump(c, default_flow_style=False))
         concepts = load_concepts(concept_dir)
         result = validate_concepts(concepts)
-        assert any("obsolete raw 'id'" in e.lower() for e in result.errors)
+        assert any("raw 'id' input" in e.lower() for e in result.errors)
 
 
 # ── CEL expression validation in relationships ───────────────────────

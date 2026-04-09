@@ -444,7 +444,7 @@ def compile_claim_files(
 
             if "id" in semantic_claim.resolved_claim:
                 per_claim.errors.append(
-                    f"{normalized_file.filename}: claim '{cid}' uses obsolete raw 'id'; "
+                    f"{normalized_file.filename}: claim '{cid}' uses raw 'id' input; "
                     "use artifact_id and logical_ids"
                 )
 
