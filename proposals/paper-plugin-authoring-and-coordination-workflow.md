@@ -73,7 +73,7 @@ metadata:
 ### Repository implications
 
 - Add a first-class `Source` record and source loaders in propstore core.
-- Add `source/` as a branch kind in `propstore/repo/branch.py`. Keep `paper/` as a migration alias initially.
+- Add `source/` as a branch kind in `propstore/repo/branch.py`.
 - Keep `papers/` in the plugin repo as the domain workspace for `academic_paper` sources. Propstore should not own that directory; it should own the git-backed source state.
 - Treat plugin-specific metadata as pass-through source metadata. Propstore preserves it but does not interpret it beyond `kind`, `origin`, and trust-calibration selectors.
 
@@ -201,7 +201,7 @@ source:
   id: "tag:ctoth@audiom.com,2026:source/OpenScienceCollaboration_2015_ReproducibilityPsychology"
 produced_by:
   agent: "automated-agent"
-  skill: "source-add-claim"
+  skill: "source-propose-claim"
   timestamp: "2026-04-04T12:20:00Z"
 claims:
   - id: psychology_replication_rate_2015
@@ -290,16 +290,32 @@ pks source propose-concept Halpin_2010_OwlSameAsIsntSame \
   --definition "A weak identity relation between claim assertions." \
   --form structural
 
-pks source add-claim Halpin_2010_OwlSameAsIsntSame --batch papers/Halpin_2010_OwlSameAsIsntSame/claims.yaml
-pks source add-justification Halpin_2010_OwlSameAsIsntSame --batch papers/Halpin_2010_OwlSameAsIsntSame/justifications.yaml
-pks source add-stance Halpin_2010_OwlSameAsIsntSame --batch papers/Halpin_2010_OwlSameAsIsntSame/stances.yaml
+pks source propose-claim Halpin_2010_OwlSameAsIsntSame \
+  --id claim1 \
+  --type observation \
+  --statement "owl:sameAs does not imply strict identity in all contexts." \
+  --page 4
+
+pks source propose-justification Halpin_2010_OwlSameAsIsntSame \
+  --id just1 \
+  --conclusion claim1 \
+  --premises claim2,claim3 \
+  --rule-kind empirical_support \
+  --page 4
+
+pks source propose-stance Halpin_2010_OwlSameAsIsntSame \
+  --source-claim claim1 \
+  --target Melo_2013_NotQuiteSameIdentity:claim2 \
+  --type rebuts \
+  --strength strong \
+  --note "Halpin 2010 argues the equivalence is weaker than Melo 2013 treats it."
 
 pks source finalize Halpin_2010_OwlSameAsIsntSame
 pks source promote Halpin_2010_OwlSameAsIsntSame
 pks source sync Halpin_2010_OwlSameAsIsntSame
 ```
 
-Claim IDs for `pks source add-claim --batch` should be content-stable, not sequential. The default contract should be:
+Claim IDs for `pks source propose-claim` should be content-stable, not sequential. The default contract should be:
 
 - keep the human-authored local handle from the source file for readability
 - compute the canonical claim ID from canonicalized claim content plus source URI
@@ -413,12 +429,15 @@ calibration:
 
 Promotion should refuse to run if finalize status is not `ready`.
 
-### Transitional batch contract
+### Direct source contract
 
-Keep batch commands so current RPP skills can migrate incrementally. `pks import-papers` should shrink to a compatibility shim and then disappear.
+There is no semantic transition layer between `research-papers-plugin` and `pks`.
+`research-papers-plugin` calls `pks source *` directly as the only supported
+knowledge-ingestion surface. The import bridge and any compatibility shims are
+deleted as part of the cutover, not preserved for a later cleanup phase.
 
 **Existing and reusable:** validation/build surfaces in `propstore/cli/compiler_cmds.py`, committed proposal pattern in `propstore/proposals.py`  
-**Build:** `pks source *`, `pks concept align`, direct source-branch writes, compatibility shims
+**Build:** `pks source *`, `pks concept align`, direct source-branch writes
 
 ## Three-Layer Workflow
 
@@ -515,15 +534,15 @@ This absorbs the old proposal's vague "reconcile before register" step. The pre-
 
 ### `extract-claims`
 
-Stop treating direct global concept registration as a prerequisite. It should read source-local concept handles and call `pks source add-claim --batch`. The current `claim1`/`claim2` generation in `generate_claims.py` must be replaced by propstore-assigned stable IDs.
+Stop treating direct global concept registration as a prerequisite. It should read source-local concept handles and call `pks source propose-claim`. The current `claim1`/`claim2` generation in `generate_claims.py` must be replaced by propstore-assigned stable IDs.
 
 ### `extract-justifications`
 
-Continue extracting separately. Write to `justifications.yaml` and call `pks source add-justification --batch`.
+Continue extracting separately. Write to `justifications.yaml` and call `pks source propose-justification`.
 
 ### `extract-stances`
 
-Stop embedding stances inline. Write `stances.yaml` and call `pks source add-stance --batch`. Cross-source targets should resolve against accepted repository state during import into the source branch, not in a later opaque importer.
+Stop embedding stances inline. Write `stances.yaml` and call `pks source propose-stance`. Cross-source targets should resolve against accepted repository state during source-branch authoring, not in a later opaque importer.
 
 ### `paper-process`
 
@@ -573,11 +592,11 @@ Keep as a domain-level judgment skill. It should consume promoted claims and con
 
 ### Phase 3: direct source authoring
 
-10. Add `pks source add-claim --batch`.
-11. Add `pks source add-justification --batch`.
-12. Add `pks source add-stance --batch`.
+10. Use `pks source propose-claim` as the claim ingestion surface.
+11. Use `pks source propose-justification` as the justification ingestion surface.
+12. Use `pks source propose-stance` as the stance ingestion surface.
 13. Retarget extraction skills.
-14. Reduce `pks import-papers` to compatibility mode.
+14. Delete `pks import-papers`.
 
 ### Phase 4: verification
 
@@ -594,7 +613,6 @@ Keep as a domain-level judgment skill. It should consume promoted claims and con
 ### Phase 6: cleanup
 
 21. Change `paper-process` to the new ordering permanently.
-22. Remove the import bridge once all production skills call `pks source *`.
 
 ### Deferred work
 
@@ -609,7 +627,7 @@ Keep as a domain-level judgment skill. It should consume promoted claims and con
 3. No unresolved source-local state lives on `master`.
 4. Every claim traces to exactly one source with a verifiable origin.
 5. Canonical concept files contain accepted registry state only.
-6. Plugins call `pks source *` directly; the import bridge is transitional and then removed.
+6. Plugins call `pks source *` directly. There is no import bridge.
 7. Artifact codes form a Merkle DAG over the knowledge graph.
 8. `Opinion.a` is a derived quantity when calibration evidence exists.
 9. Merge coordination uses the existing formal merge substrate rather than an ad hoc directory convention.
