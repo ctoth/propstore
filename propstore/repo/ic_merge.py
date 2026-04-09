@@ -27,6 +27,7 @@ from propstore.cel_checker import (
     UnaryOpNode,
     check_cel_expression,
     parse_cel,
+    scope_cel_registry,
 )
 from propstore.world.types import (
     ICMergeProblem,
@@ -145,12 +146,7 @@ def _scoped_cel_registry(constraint: IntegrityConstraint) -> dict[str, Any]:
     registry = constraint.metadata.get("registry")
     if not isinstance(registry, Mapping):
         raise TypeError("CEL integrity constraint requires metadata['registry']")
-    scoped_ids = set(constraint.concept_ids)
-    return {
-        canonical_name: info
-        for canonical_name, info in registry.items()
-        if getattr(info, "id", None) in scoped_ids
-    }
+    return scope_cel_registry(registry, constraint.concept_ids)
 
 
 def _cel_bindings(
@@ -221,8 +217,9 @@ def _validate_cel_constraint(constraint: IntegrityConstraint) -> dict[str, Any]:
         raise ValueError("CEL integrity constraint requires a non-empty cel expression")
     registry = _scoped_cel_registry(constraint)
     errors = check_cel_expression(constraint.cel, registry)
-    if errors:
-        raise ValueError(_cel_errors_text(errors))
+    hard_errors = [error for error in errors if not error.is_warning]
+    if hard_errors:
+        raise ValueError(_cel_errors_text(hard_errors))
     return registry
 
 

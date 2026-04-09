@@ -4,8 +4,9 @@ Answers two questions about pairs of condition sets:
 1. Are they disjoint? (conjunction is UNSAT)
 2. Are they equivalent? (both A∧¬B and B∧¬A are UNSAT)
 
-Uses z3.Real for quantity concepts, z3.EnumSort for category concepts,
-and z3.Bool for boolean concepts. The CEL registry (dict[str, ConceptInfo])
+Uses z3.Real for quantity concepts, z3.Bool for boolean concepts, closed
+enum semantics for non-extensible categories, and symbolic string semantics
+for extensible categories. The CEL registry (dict[str, ConceptInfo])
 determines which type each concept gets.
 """
 
@@ -68,17 +69,14 @@ class Z3ConditionSolver:
         return self._strings[name]
 
     def _get_enum(self, name: str) -> tuple[z3.ExprRef, dict[str, z3.ExprRef]]:
-        """Get or create an EnumSort for a category concept."""
+        """Get or create an EnumSort for a closed category concept."""
         if name not in self._enum_consts:
             info = self._registry.get(name)
             values = list(info.category_values) if info else []
             if not values:
-                # No known values — use a fresh uninterpreted sort
-                sort = z3.DeclareSort(f"{name}_Sort", self._ctx)
-                const = z3.Const(name, sort)
-                self._enum_consts[name] = const
-                self._enum_values[name] = {}
-                return const, {}
+                raise Z3TranslationError(
+                    f"Closed category concept '{name}' has no declared values"
+                )
             sort, enum_vals = z3.EnumSort(f"{name}_Sort", values, self._ctx)
             self._enum_sorts[name] = sort
             const = z3.Const(name, sort)
@@ -86,6 +84,12 @@ class Z3ConditionSolver:
             val_map = dict(zip(values, enum_vals))
             self._enum_values[name] = val_map
         return self._enum_consts[name], self._enum_values[name]
+
+    def _require_concept(self, name: str) -> ConceptInfo:
+        info = self._registry.get(name)
+        if info is None:
+            raise Z3TranslationError(f"Undefined concept: '{name}'")
+        return info
 
     def _translate(self, node: ASTNode) -> Any:
         """Translate a CEL AST node to a Z3 expression."""
@@ -117,19 +121,19 @@ class Z3ConditionSolver:
         raise Z3TranslationError(f"Unknown literal type: {node.lit_type}")
 
     def _translate_name(self, node: NameNode) -> Any:
-        info = self._registry.get(node.name)
-        if info is None:
-            # Unknown concept — treat as real (most permissive)
-            return self._get_real(node.name)
+        info = self._require_concept(node.name)
         if info.kind == KindType.QUANTITY:
             return self._get_real(node.name)
         if info.kind == KindType.BOOLEAN:
             return self._get_bool(node.name)
         if info.kind == KindType.CATEGORY:
+            if info.category_extensible:
+                return self._get_string(node.name)
             const, _ = self._get_enum(node.name)
             return const
-        # STRUCTURAL or unknown — treat as real
-        return self._get_real(node.name)
+        raise Z3TranslationError(
+            f"Structural concept '{node.name}' cannot appear in CEL expressions"
+        )
 
     def _translate_binary(self, node: BinaryOpNode) -> Any:
         # Logical operators
@@ -191,8 +195,11 @@ class Z3ConditionSolver:
         else:
             return None
 
-        info = self._registry.get(name_node.name)
-        if info is None:
+        info = self._require_concept(name_node.name)
+        if info.kind != KindType.CATEGORY:
+            return None
+
+        if info.category_extensible:
             const = self._get_string(name_node.name)
             value = z3.StringVal(lit_node.value, self._ctx)
             if node.op == "==":
@@ -200,13 +207,10 @@ class Z3ConditionSolver:
             if node.op == "!=":
                 return const != value
             return None
-        if info.kind != KindType.CATEGORY:
-            return None
 
         const, val_map = self._get_enum(name_node.name)
         z3_val = val_map.get(lit_node.value)
         if z3_val is None:
-            # Value not in known set — can't translate
             raise Z3TranslationError(
                 f"Unknown category value '{lit_node.value}' for concept '{name_node.name}'"
             )
@@ -228,8 +232,19 @@ class Z3ConditionSolver:
         """Translate 'expr in [v1, v2, ...]'."""
         # Check if LHS is a category concept
         if isinstance(node.expr, NameNode):
-            info = self._registry.get(node.expr.name)
-            if info and info.kind == KindType.CATEGORY:
+            info = self._require_concept(node.expr.name)
+            if info.kind == KindType.CATEGORY:
+                if info.category_extensible:
+                    const = self._get_string(node.expr.name)
+                    clauses = []
+                    for v in node.values:
+                        if not isinstance(v, LiteralNode) or v.lit_type != "string":
+                            raise Z3TranslationError("Non-string in category 'in' list")
+                        clauses.append(const == z3.StringVal(v.value, self._ctx))
+                    if not clauses:
+                        return z3.BoolVal(False, self._ctx)
+                    return z3.Or(*clauses) if len(clauses) > 1 else clauses[0]
+
                 const, val_map = self._get_enum(node.expr.name)
                 clauses = []
                 for v in node.values:
@@ -300,12 +315,14 @@ class Z3ConditionSolver:
         return expr
 
     def _binding_to_z3(self, name: str, value: Any) -> Any:
-        info = self._registry.get(name)
-        if info is None or info.kind == KindType.QUANTITY:
+        info = self._require_concept(name)
+        if info.kind == KindType.QUANTITY:
             return self._get_real(name) == z3.RealVal(value, self._ctx)
         if info.kind == KindType.BOOLEAN:
             return self._get_bool(name) == z3.BoolVal(bool(value), self._ctx)
         if info.kind == KindType.CATEGORY:
+            if info.category_extensible:
+                return self._get_string(name) == z3.StringVal(str(value), self._ctx)
             const, val_map = self._get_enum(name)
             z3_val = val_map.get(value)
             if z3_val is None:
@@ -313,7 +330,9 @@ class Z3ConditionSolver:
                     f"Unknown category value '{value}' for concept '{name}'"
                 )
             return const == z3_val
-        return self._get_real(name) == z3.RealVal(value, self._ctx)
+        raise Z3TranslationError(
+            f"Structural concept '{name}' cannot appear in CEL expressions"
+        )
 
     def is_condition_satisfied(self, condition: str, bindings: Mapping[str, Any]) -> bool:
         """Check whether one CEL condition holds under a concrete assignment."""
