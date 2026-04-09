@@ -1082,7 +1082,7 @@ class TestClaimStanceTable:
         assert "conflicting value" in row["note"]
         conn.close()
 
-    def test_raw_inline_stance_targets_resolve_to_canonical_claim_ids(
+    def test_raw_inline_stance_targets_are_rejected_at_compile_boundary(
         self,
         concept_dir,
         knowledge_reader,
@@ -1118,15 +1118,8 @@ class TestClaimStanceTable:
             )
         )
 
-        build_sidecar(knowledge_reader, sidecar_path, force=True)
-
-        conn = sqlite3.connect(sidecar_path)
-        source_id = make_claim_identity("claim2", namespace="raw_handles")["artifact_id"]
-        target_id = make_claim_identity("claim1", namespace="raw_handles")["artifact_id"]
-        row = _fetch_relation_edge_rows(conn, "AND source_id=?", (source_id,))[0]
-        assert row["claim_id"] == source_id
-        assert row["target_claim_id"] == target_id
-        conn.close()
+        with pytest.raises(ValueError, match="raw 'id' input"):
+            build_sidecar(knowledge_reader, sidecar_path, force=True)
 
     def test_invalid_inline_stance_target_raises(self, concept_dir, knowledge_reader, sidecar_path):
         claims_dir = concept_dir.parent / "claims"
@@ -1158,7 +1151,7 @@ class TestClaimStanceTable:
             yaml.dump(claim_data, default_flow_style=False)
         )
 
-        with pytest.raises(sqlite3.IntegrityError):
+        with pytest.raises(sqlite3.IntegrityError, match="nonexistent target claim"):
             build_sidecar(knowledge_reader, sidecar_path, force=True)
 
     def test_invalid_inline_stance_type_raises(self, concept_dir, knowledge_reader, sidecar_path):

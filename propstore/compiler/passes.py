@@ -27,41 +27,8 @@ from propstore.identity import (
     CLAIM_VERSION_ID_RE,
     compute_claim_version_id,
 )
-from propstore.identity import normalize_claim_file_payload
 from propstore.loaded import LoadedEntry
 from propstore.validate import ValidationResult
-
-
-def _normalize_claim_entries(claim_files: list[LoadedEntry]) -> list[LoadedEntry]:
-    normalized_claim_files: list[LoadedEntry] = []
-    for claim_file in claim_files:
-        data = claim_file.data
-        claims = data.get("claims")
-        needs_legacy_normalization = isinstance(claims, list) and any(
-            isinstance(claim, dict)
-            and not claim.get("artifact_id")
-            and isinstance(claim.get("id"), str)
-            and claim.get("id")
-            for claim in claims
-        )
-        if not needs_legacy_normalization:
-            normalized_claim_files.append(claim_file)
-            continue
-        source = data.get("source") if isinstance(data.get("source"), dict) else {}
-        default_namespace = str(source.get("paper") or claim_file.filename or "legacy")
-        normalized_data, _ = normalize_claim_file_payload(
-            copy.deepcopy(data),
-            default_namespace=default_namespace,
-        )
-        normalized_claim_files.append(
-            LoadedEntry(
-                claim_file.filename,
-                claim_file.source_path,
-                normalized_data,
-                claim_file.knowledge_root,
-            )
-        )
-    return normalized_claim_files
 
 
 def _diagnostics_from_validation_result(
@@ -321,7 +288,7 @@ def compile_claim_files(
     )
     from propstore.form_utils import json_safe
 
-    normalized_claim_files = _normalize_claim_entries(claim_files)
+    normalized_claim_files = list(claim_files)
     claim_lookup = _build_claim_lookup(normalized_claim_files)
     effective_context = replace(context, claim_lookup=claim_lookup)
     concept_registry = concept_registry_for_context(effective_context)
@@ -430,6 +397,20 @@ def compile_claim_files(
                     SemanticDiagnostic(
                         level="error",
                         message=f"{normalized_file.filename}: claim must be a dict",
+                    )
+                )
+                continue
+
+            raw_id = claim.get("id")
+            artifact_id = claim.get("artifact_id")
+            if isinstance(raw_id, str) and raw_id and not artifact_id:
+                file_diagnostics.append(
+                    SemanticDiagnostic(
+                        level="error",
+                        message=(
+                            f"{normalized_file.filename}: claim uses raw 'id' input "
+                            "without canonical identity fields"
+                        ),
                     )
                 )
                 continue

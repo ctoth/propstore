@@ -73,6 +73,16 @@ def _content_hash(knowledge_root: KnowledgePath) -> str:
     return h.hexdigest()
 
 
+def _raise_on_raw_id_claim_inputs(claim_bundle: ClaimCompilationBundle) -> None:
+    raw_id_errors = [
+        diagnostic.message
+        for diagnostic in claim_bundle.diagnostics
+        if diagnostic.is_error and "raw 'id' input" in diagnostic.message
+    ]
+    if raw_id_errors:
+        raise ValueError("\n".join(raw_id_errors))
+
+
 def build_sidecar(
     knowledge_root: KnowledgePath,
     sidecar_path: Path,
@@ -134,6 +144,8 @@ def build_sidecar(
             compilation_context,
             context_ids=context_ids if context_ids else None,
         )
+    if claim_bundle is not None:
+        _raise_on_raw_id_claim_inputs(claim_bundle)
     normalized_claim_files = (
         list(claim_bundle.normalized_claim_files)
         if claim_bundle is not None
