@@ -41,7 +41,7 @@ from propstore.sidecar.schema import (
 )
 from propstore.sidecar.sources import populate_sources
 from propstore.validate import load_concepts
-from propstore.validate_claims import load_claim_files
+from propstore.validate_claims import build_authored_concept_registry, load_claim_files
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
@@ -123,7 +123,11 @@ def build_sidecar(
             claim_files=list(claim_files) if claim_files is not None else None,
             context_ids=context_ids,
         )
-    concept_registry = legacy_concept_registry_for_context(compilation_context)
+    concept_registry = build_authored_concept_registry(
+        concepts,
+        knowledge_root / "forms",
+        require_form_definition=False,
+    )
     if claim_bundle is None and claim_files is not None:
         claim_bundle = compile_claim_files(
             list(claim_files),

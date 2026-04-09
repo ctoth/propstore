@@ -43,7 +43,13 @@ from propstore.identity import (
     normalize_claim_file_payload,
 )
 from propstore.knowledge_path import coerce_knowledge_path
-from propstore.validate import ValidationResult, load_yaml_dir, load_yaml_entries
+from propstore.validate import (
+    ValidationResult,
+    load_concepts,
+    load_yaml_dir,
+    load_yaml_entries,
+    normalize_concept_record,
+)
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
@@ -675,7 +681,58 @@ def build_concept_registry_from_paths(
     Claims can reference concepts by any of these keys.
     All keys point to the same enriched concept data dict.
     """
-    return build_legacy_concept_registry_from_paths(concepts_dir, forms_dir)
+    concepts_root = coerce_knowledge_path(concepts_dir)
+    forms_root = coerce_knowledge_path(forms_dir)
+    concepts = load_concepts(concepts_root)
+    return build_authored_concept_registry(concepts, forms_root)
+
+
+def build_authored_concept_registry(
+    concepts: list[LoadedEntry],
+    forms_dir: Path | KnowledgePath,
+    *,
+    require_form_definition: bool = True,
+) -> dict[str, dict]:
+    """Build the canonical authored-concept lookup used by validators/builders."""
+    forms_root = coerce_knowledge_path(forms_dir)
+    registry: dict[str, dict] = {}
+    for concept in concepts:
+        enriched = normalize_concept_record(dict(concept.data))
+        raw_id = concept.data.get("id")
+        source_artifact_id = concept.data.get("artifact_id")
+        cid = source_artifact_id or raw_id or enriched.get("artifact_id")
+        if not cid:
+            continue
+        enriched["_storage_id"] = cid
+        # Load structured form definition
+        form_def = load_form_path(forms_root, enriched.get("form"))
+        form_name = enriched.get("form")
+        if isinstance(form_name, str) and form_name:
+            if form_def is None:
+                if require_form_definition:
+                    raise ValueError(
+                        f"concept '{cid}' references missing form definition '{form_name}'"
+                    )
+            else:
+                enriched["_form_definition"] = form_def
+        # Index by concept ID
+        registry[cid] = enriched
+        if isinstance(raw_id, str) and raw_id and raw_id not in registry:
+            registry[raw_id] = enriched
+        # Index by canonical_name (claims can reference concepts by name)
+        canonical = enriched.get("canonical_name")
+        if canonical and canonical not in registry:
+            registry[canonical] = enriched
+        for logical_id in enriched.get("logical_ids", []) or []:
+            formatted = format_logical_id(logical_id) if isinstance(logical_id, dict) else None
+            if formatted and formatted not in registry:
+                registry[formatted] = enriched
+        # Index by aliases
+        for alias in enriched.get("aliases", []) or []:
+            alias_name = alias.get("name") if isinstance(alias, dict) else None
+            if alias_name and alias_name not in registry:
+                registry[alias_name] = enriched
+    return registry
 
 
 def build_concept_registry(repo: Repository | None) -> dict[str, dict]:
