@@ -102,7 +102,7 @@ with WorldModel.from_path("knowledge") as world:
 |--------|-----------|-------------|
 | `stats` | `() -> dict` | Counts of concepts, claims, conflicts. |
 | `has_table` | `(name) -> bool` | Check if a sidecar table exists. |
-| `condition_solver` | `() -> Z3ConditionSolver` | Lazy Z3 condition solver. |
+| `condition_solver` | `() -> Z3ConditionSolver` | Lazy shared CEL runtime for activation, conflict detection, and IC-merge. |
 | `close` | `() -> None` | Close the SQLite connection. |
 
 ## BoundWorld
@@ -112,6 +112,8 @@ A condition-bound view of the knowledge base. Created via `WorldModel.bind()`, n
 ```python
 bound = world.bind(task="speech")
 ```
+
+CEL bindings use one production semantics: quantities are numeric, booleans are boolean, closed categories are finite enums, open categories are symbolic strings, and unknown concept names are hard errors.
 
 ### Value queries
 

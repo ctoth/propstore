@@ -1,6 +1,6 @@
 # Conflict Detection
 
-When two claims bind to the same concept with different values, propstore classifies the disagreement. Not all disagreements are conflicts -- some are legitimate regime splits where claims hold under provably disjoint conditions. The conflict detector determines which case applies, using Z3 satisfiability checking as the primary reasoning engine and interval arithmetic as a conservative fallback.
+When two claims bind to the same concept with different values, propstore classifies the disagreement. Not all disagreements are conflicts -- some are legitimate regime splits where claims hold under provably disjoint conditions. The conflict detector determines which case applies through the same Z3-backed CEL runtime used by activation and IC-merge.
 
 ## Conflict classes
 
@@ -10,8 +10,8 @@ Six classes describe the relationship between any pair of claims that share a co
 |-------|---------|-----------|
 | `COMPATIBLE` | Values agree (within tolerance) or ranges overlap. | No -- compatible pairs are filtered out before recording. |
 | `CONFLICT` | Values differ, conditions identical or logically equivalent. Genuine disagreement -- both claims cannot be true simultaneously. | Yes |
-| `PHI_NODE` | Values differ, conditions provably disjoint (Z3-verified or interval-verified). Not a conflict -- a regime split. | Yes (informational) |
-| `OVERLAP` | Values differ, conditions partially overlapping. Conservative default when conditions cannot be fully analyzed. | Yes |
+| `PHI_NODE` | Values differ, conditions provably disjoint. Not a conflict -- a regime split. | Yes (informational) |
+| `OVERLAP` | Values differ, conditions partially overlapping. | Yes |
 | `PARAM_CONFLICT` | A value derived through a parameterization chain contradicts a direct claim. The inputs and the output are individually plausible, but the formula connecting them produces a contradiction. | Yes |
 | `CONTEXT_PHI_NODE` | Claims belong to mutually excluded contexts in the context hierarchy. Not a conflict -- a context-based regime split. | Yes (informational) |
 
@@ -21,7 +21,7 @@ The detection order matters: value compatibility is checked first (yielding `COM
 
 The orchestrator (`conflict_detector/orchestrator.py:detect_conflicts`) coordinates the full pipeline:
 
-1. **Build type registries.** A CEL registry is constructed from the concept registry, and a `Z3ConditionSolver` is built if z3 is installed.
+1. **Build type registries.** A CEL registry is constructed from the concept registry, and a shared `Z3ConditionSolver` is built for the run.
 
 2. **Run type-specific detectors.** Four detectors run in sequence, each sharing the Z3 solver:
    - Parameter conflicts (`conflict_detector/parameters.py`)
@@ -37,7 +37,7 @@ Each type-specific detector follows the same pattern:
 2. For each group with 2+ claims, check all pairs
 3. Skip if values are compatible (`values_compatible()`)
 4. Try context-based classification first (`CONTEXT_PHI_NODE` short-circuits further analysis)
-5. Fall through to condition classification (Z3 or interval fallback)
+5. Fall through to condition classification through the shared Z3 solver
 
 ### Type-specific grouping and comparison
 
@@ -60,19 +60,20 @@ Each concept's kind determines its Z3 representation:
 | Concept kind | Z3 type | Notes |
 |-------------|---------|-------|
 | `QUANTITY` | `z3.Real` | Numeric conditions become real arithmetic |
-| `CATEGORY` | `z3.EnumSort` | Known values from the concept registry populate the sort |
+| closed `CATEGORY` | `z3.EnumSort` | `extensible: false`; declared values are the full domain |
+| open `CATEGORY` | `z3.String` | `extensible: true`; undeclared literals remain semantically valid |
 | `BOOLEAN` | `z3.Bool` | Boolean conditions map directly |
-| `STRUCTURAL` / unknown | `z3.Real` | Fallback for untyped concepts |
+| `STRUCTURAL` / unknown | hard error | Structural and unknown names are rejected everywhere |
 
 CEL AST nodes translate to Z3 as follows: `LiteralNode` becomes `z3.RealVal` or `z3.BoolVal`, `NameNode` becomes a typed Z3 variable, `BinaryOpNode` maps to arithmetic and comparison operators, `UnaryOpNode` maps to `z3.Not` or negation, `InNode` becomes a disjunction of equalities, and `TernaryNode` becomes `z3.If`.
 
-Category comparisons get special handling: `concept == 'value'` patterns resolve string literals against the EnumSort's value map.
+Category comparisons get special handling: closed categories resolve literals against the EnumSort's value map, while open categories compare symbolic strings directly. As a result, `task != 'speech'` does not collapse to closed-world reasoning when `task` is open.
 
 ### Disjointness check (PHI_NODE)
 
 To determine if two condition sets are disjoint, the solver translates both to Z3, asserts both simultaneously, and checks satisfiability. If `solver.check()` returns `UNSAT`, the conditions cannot be simultaneously satisfied -- they describe non-overlapping regimes.
 
-Example: `task == 'speech'` and `task == 'singing'` are disjoint because `task` is a category with an EnumSort, and two distinct enum values cannot be equal.
+Example: `task == 'speech'` and `task == 'singing'` are disjoint for both closed and open categories because distinct literals cannot be equal under either enum or string semantics.
 
 ### Equivalence check (CONFLICT)
 
@@ -108,15 +109,7 @@ Three levels of caching reduce redundant Z3 work:
 - **Condition expression cache:** single condition string to Z3 expression
 - **Condition set cache:** normalized condition tuple to conjoined Z3 expression
 
-## Fallback: interval arithmetic
-
-When Z3 is unavailable or translation fails, the condition classifier falls back to interval arithmetic (`condition_classifier.py`):
-
-1. **Parse conditions** via regex into numeric constraints (`name <= 3.5`), string constraints (`name == 'value'`), and boolean constraints (`name == true`)
-2. **Summarize** per-variable bounds into `_NumericConstraint` (lower/upper bounds, equals, excluded) and `_DiscreteConstraint` objects
-3. **Check disjointness** by testing whether numeric ranges are non-overlapping or discrete value sets conflict for any shared variable
-
-The fallback is conservative: when conditions are unparseable (e.g., `F1/F0 > 3.0` with division in the variable name), it returns `OVERLAP` rather than risking an incorrect `PHI_NODE`.
+Conflict detection, activation, and IC-merge all rely on the same Z3-backed CEL semantics and cache the same parsed/translated condition structure.
 
 ## Regime splits
 

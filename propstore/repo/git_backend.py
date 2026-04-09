@@ -7,7 +7,7 @@ Design invariant: the git object store is the single source of truth.
 The working tree is a materialized view for human inspection.
 
 Moved from propstore/cli/git_backend.py in Phase 1 of the semantic merge
-work. The old location is now a backward-compatibility shim.
+work. The old location now re-exports this module.
 """
 from __future__ import annotations
 
