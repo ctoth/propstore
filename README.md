@@ -50,6 +50,7 @@ See [Semantic Merge](docs/semantic-merge.md) for the full architecture and [Git 
 
 - Validates forms, concepts, contexts, and claims against LinkML schemas and CEL type-checking
 - Compiles a knowledge repo into a queryable SQLite sidecar
+- Uses one Z3-backed CEL runtime across validation, activation, conflict detection, and IC-merge
 - Detects condition-sensitive conflicts with Z3, including regime splits vs real disagreement
 - Projects claim relations into argumentation frameworks via multiple reasoning backends (see below)
 - Computes grounded, complete, preferred, and stable extensions
@@ -223,6 +224,7 @@ uv run pks -C knowledge world bind task=speech speaker_sex=male fundamental_freq
 Most claim stores stop at ingestion or retrieval. `propstore` tries to push further into compilation and reasoning:
 
 - Claims are scoped by typed CEL conditions, so disagreement can be classified as real conflict, partial overlap, or clean regime split
+- Closed categories (`extensible: false`) use finite enum semantics; open categories (`extensible: true`) stay open-domain symbolic strings
 - Stances and conflict records can be projected into multiple reasoning backends — from flat Dung AFs through structured ASPIC+ arguments to probabilistic acceptance
 - Uncertainty is represented honestly via subjective logic opinions with calibrated evidence mapping, not collapsed to point estimates
 - Hypothetical overlays let you ask "what changes if I remove or add this claim?"

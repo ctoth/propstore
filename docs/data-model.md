@@ -282,7 +282,13 @@ conditions:
   - "task == 'speech'"
 ```
 
-The compiler type-checks conditions against the concept registry: quantity concepts get numeric comparisons, category concepts get equality/`in` checks with value-set validation, boolean concepts get boolean logic.
+The compiler type-checks conditions against the concept registry, and production runtime evaluation uses the same Z3-backed CEL semantics:
+
+- quantity concepts use numeric comparisons
+- boolean concepts use boolean logic
+- closed categories (`extensible: false`) use finite enum semantics, so undeclared literals are hard errors
+- open categories (`extensible: true`) use symbolic string semantics, so undeclared literals remain semantically valid and only warn at check time
+- unknown concept names are hard errors everywhere
 
 ## Justifications
 

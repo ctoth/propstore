@@ -35,6 +35,8 @@ parameterization_relationships:
 
 The `sympy` field accepts two forms. The `Eq(y, expr)` form declares an equation that can be solved for the output concept symbol. A bare expression (no `Eq` wrapper) is evaluated by direct substitution of input values.
 
+Parameterization `conditions` use the same CEL subsystem as claim activation, conflict detection, and IC-merge. Closed categories (`extensible: false`) are finite enums; open categories (`extensible: true`) remain open-domain symbolic strings; unknown concept names are hard errors.
+
 Schema definition: `schema/concept_registry.linkml.yaml` (lines 254-284).
 
 ## Parameterization Groups
