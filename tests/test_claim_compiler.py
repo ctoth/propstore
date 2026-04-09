@@ -51,7 +51,8 @@ def test_build_compilation_context_from_paths_keeps_canonical_records_and_lookup
     artifact_id = concepts[0]["artifact_id"]
     logical_id = f"{concepts[0]['logical_ids'][0]['namespace']}:{concepts[0]['logical_ids'][0]['value']}"
 
-    assert artifact_id in context.concept_payloads_by_id
+    assert artifact_id in context.concepts_by_id
+    assert context.concepts_by_id[artifact_id].canonical_name == "fundamental_frequency"
     assert context.concept_lookup["F0"] == (artifact_id,)
     assert context.concept_lookup["fundamental_frequency"] == (artifact_id,)
     assert context.concept_lookup[logical_id] == (artifact_id,)

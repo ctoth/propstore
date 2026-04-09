@@ -18,6 +18,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from propstore.core.concepts import ConceptRecord, LoadedConcept
     from propstore.loaded import LoadedEntry
 
 
@@ -68,7 +69,30 @@ def build_cel_registry_from_loaded(concepts: list[LoadedEntry]) -> dict[str, Con
     Thin wrapper that converts LoadedEntry list into the dict shape
     expected by ``build_cel_registry()``.
     """
-    return build_cel_registry_from_records(c.data for c in concepts)
+    from propstore.core.concepts import normalize_concept_payload
+
+    return build_cel_registry_from_records(
+        normalize_concept_payload(c.data)
+        for c in concepts
+        if isinstance(c.data, Mapping)
+    )
+
+
+def concept_info_from_concept(record: ConceptRecord) -> ConceptInfo | None:
+    return concept_info_from_record(record.to_payload(), default_id=str(record.artifact_id))
+
+
+def build_cel_registry_from_concepts(
+    concepts: Iterable[LoadedConcept | ConceptRecord],
+) -> dict[str, ConceptInfo]:
+    registry: dict[str, ConceptInfo] = {}
+    for concept in concepts:
+        record = concept.record if hasattr(concept, "record") else concept
+        info = concept_info_from_concept(record)
+        if info is None:
+            continue
+        registry[info.canonical_name] = info
+    return registry
 
 
 def _mapping_form_parameters(value: object) -> Mapping[str, Any]:

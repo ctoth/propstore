@@ -53,30 +53,19 @@ def _concept_match_kind(
 ) -> tuple[str | None, str | None]:
     if raw_text == resolved_id:
         return "artifact_id", raw_text
-    concept = context.concept_payloads_by_id.get(resolved_id)
+    concept = context.concepts_by_id.get(resolved_id)
     if concept is None:
         return None, None
-    canonical_name = concept.get("canonical_name")
-    if canonical_name == raw_text:
+    if concept.canonical_name == raw_text:
         return "canonical_name", raw_text
-    logical_ids = concept.get("logical_ids")
-    if isinstance(logical_ids, list):
-        for entry in logical_ids:
-            if not isinstance(entry, dict):
-                continue
-            namespace = entry.get("namespace")
-            value = entry.get("value")
-            if isinstance(namespace, str) and isinstance(value, str):
-                if f"{namespace}:{value}" == raw_text:
-                    return "logical_id", raw_text
-                if value == raw_text:
-                    return "logical_value", raw_text
-    aliases = concept.get("aliases")
-    if isinstance(aliases, list):
-        for alias in aliases:
-            alias_name = alias.get("name") if isinstance(alias, dict) else None
-            if alias_name == raw_text:
-                return "alias", raw_text
+    for logical_id in concept.logical_ids:
+        if logical_id.formatted == raw_text:
+            return "logical_id", raw_text
+        if logical_id.value == raw_text:
+            return "logical_value", raw_text
+    for alias in concept.aliases:
+        if alias.name == raw_text:
+            return "alias", raw_text
     if raw_text in context.concept_lookup:
         return "legacy_key", raw_text
     return None, None

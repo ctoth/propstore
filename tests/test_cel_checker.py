@@ -580,7 +580,7 @@ class TestBuildCelRegistry:
         assert result["temperature"].kind == KindType.QUANTITY
         assert result["color"].category_values == ["red", "blue"]
 
-    def test_from_loaded_skips_no_id(self):
+    def test_from_loaded_derives_identity_from_canonical_name(self):
         from pathlib import Path
 
         concepts = [
@@ -594,7 +594,8 @@ class TestBuildCelRegistry:
             ),
         ]
         result = build_cel_registry_from_loaded(concepts)
-        assert len(result) == 0
+        assert "mystery" in result
+        assert result["mystery"].id.startswith("ps:concept:")
 
 
 def test_category_from_cli_round_trip():
