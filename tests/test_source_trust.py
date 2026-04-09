@@ -60,7 +60,7 @@ def test_p_arg_from_claim_ignores_sample_size_without_calibration_payload() -> N
     probability=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
     n_eff=st.floats(min_value=0.1, max_value=100.0, allow_nan=False, allow_infinity=False),
 )
-@settings(max_examples=40, deadline=None)
+@settings(deadline=None)
 def test_p_arg_from_claim_expectation_stays_in_unit_interval(
     prior: float,
     probability: float,

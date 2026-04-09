@@ -24,13 +24,13 @@ def test_tag_uri_uses_configured_authority() -> None:
 
 
 @given(payload=st.binary(max_size=256))
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_ni_uri_for_bytes_is_deterministic(payload: bytes) -> None:
     assert ni_uri_for_bytes(payload) == ni_uri_for_bytes(payload)
 
 
 @given(left=st.binary(max_size=256), right=st.binary(max_size=256))
-@settings(max_examples=50, deadline=None)
+@settings(deadline=None)
 def test_ni_uri_for_bytes_changes_when_payload_changes(left: bytes, right: bytes) -> None:
     assume(left != right)
 

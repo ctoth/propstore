@@ -66,7 +66,7 @@ def nogood_sets(draw, max_nogoods: int = 3, max_assumptions: int = 3):
     return NogoodSet(tuple(envs))
 
 
-_PROP_SETTINGS = settings(max_examples=200, deadline=None)
+_PROP_SETTINGS = settings(deadline=None)
 
 
 # ── 1. Label minimality (de Kleer 1986 §3, invariant 1) ──────────

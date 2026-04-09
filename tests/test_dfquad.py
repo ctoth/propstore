@@ -625,7 +625,7 @@ def _isolated_tau_pair(draw):
 
 
 @given(praf=_small_praf_strategy_dfquad())
-@settings(max_examples=100, deadline=None)
+@settings(deadline=None)
 def test_dfquad_scores_bounded(praf):
     """All DF-QuAD scores must be in [0, 1].
 
@@ -639,7 +639,7 @@ def test_dfquad_scores_bounded(praf):
 
 
 @given(sample=_paired_quad_inputs())
-@settings(max_examples=40, deadline=None)
+@settings(deadline=None)
 def test_dfquad_quad_property_ignores_praf_argument_probability_when_tau_is_fixed(sample):
     praf, alt_praf, tau = sample
 
@@ -658,7 +658,7 @@ def test_dfquad_quad_property_ignores_praf_argument_probability_when_tau_is_fixe
 
 
 @given(sample=_isolated_tau_pair())
-@settings(max_examples=40, deadline=None)
+@settings(deadline=None)
 def test_dfquad_quad_property_changes_when_tau_changes_with_fixed_topology(sample):
     pa, tau_left, tau_right = sample
     praf = _make_praf(["A"], [], {"A": pa})
@@ -680,7 +680,7 @@ def test_dfquad_quad_property_changes_when_tau_changes_with_fixed_topology(sampl
 
 
 @given(praf=_isolated_prafs())
-@settings(max_examples=40, deadline=None)
+@settings(deadline=None)
 def test_dfquad_baf_property_keeps_isolated_arguments_at_neutral_half(praf):
     result = compute_praf_acceptance(praf, strategy="dfquad_baf")
     for score in result.acceptance_probs.values():
@@ -723,7 +723,7 @@ def _monotonicity_scenario(draw):
 
 
 @given(scenario=_monotonicity_scenario())
-@settings(max_examples=100, deadline=None)
+@settings(deadline=None)
 def test_dfquad_adding_attacker_never_increases_strength(scenario):
     """Adding an attacker to an argument should never increase its strength.
 
@@ -759,7 +759,7 @@ def test_dfquad_adding_attacker_never_increases_strength(scenario):
 
 
 @given(scenario=_monotonicity_scenario())
-@settings(max_examples=100, deadline=None)
+@settings(deadline=None)
 def test_dfquad_adding_supporter_never_decreases_strength(scenario):
     """Adding a supporter to an argument should never decrease its strength.
 
@@ -795,7 +795,7 @@ def test_dfquad_adding_supporter_never_decreases_strength(scenario):
 
 
 @given(praf=_small_praf_strategy_dfquad())
-@settings(max_examples=100, deadline=None)
+@settings(deadline=None)
 def test_dfquad_convergence_bounded(praf):
     """DF-QuAD computation should always terminate and produce valid scores.
 

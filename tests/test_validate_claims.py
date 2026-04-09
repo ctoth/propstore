@@ -808,7 +808,7 @@ from hypothesis import given, strategies as st, settings
     value=st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False),
     page=st.integers(min_value=1, max_value=1000),
 )
-@settings(max_examples=50)
+@settings()
 def test_valid_claims_always_pass(claim_id_num, value, page):
     """Property: any parameter claim with all required fields and valid concept refs should pass."""
     import pathlib

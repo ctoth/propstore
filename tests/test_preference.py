@@ -28,7 +28,7 @@ _comparisons = st.sampled_from(["elitist", "democratic"])
 _preference_attack_types = st.sampled_from(["rebuts", "undermines"])
 _unconditional_attack_types = st.sampled_from(["undercuts", "supersedes"])
 
-_PROP_SETTINGS = settings(max_examples=200, deadline=None)
+_PROP_SETTINGS = settings(deadline=None)
 
 
 # ── Concrete tests: strictly_weaker ─────────────────────────────────

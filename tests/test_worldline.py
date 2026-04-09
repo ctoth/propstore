@@ -1317,7 +1317,7 @@ class TestSemanticCorePhase7Worldlines:
         comparison=st.sampled_from(["elitist", "democratic"]),
         link=st.sampled_from(["last", "weakest"]),
     )
-    @settings(max_examples=8, deadline=None)
+    @settings(deadline=None)
     def test_worldline_aspic_capture_property_threads_selected_preference_config(
         self,
         comparison: str,

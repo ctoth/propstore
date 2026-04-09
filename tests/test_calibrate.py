@@ -240,7 +240,7 @@ class TestCorpusCalibrationEvidenceModel:
     @given(
         distance=st.floats(min_value=0.0, max_value=1.0),
     )
-    @settings(max_examples=50)
+    @settings()
     def test_large_corpus_does_not_produce_near_dogmatic_opinion(
         self, distance: float
     ):
@@ -287,7 +287,7 @@ class TestCorpusCalibrationEvidenceModel:
         n=st.integers(min_value=1, max_value=500),
         distance=st.floats(min_value=0.0, max_value=1.0),
     )
-    @settings(max_examples=50)
+    @settings()
     def test_opinion_bdu_sum_invariant(self, n: int, distance: float):
         """b + d + u = 1.0 must hold for all calibrator outputs.
 
@@ -423,7 +423,7 @@ class TestCorpusOpinionBDUSumProperty:
         ),
         query_distance=st.floats(min_value=0.0, max_value=2.0),
     )
-    @settings(max_examples=100, deadline=None)
+    @settings(deadline=None)
     def test_bdu_sum_is_one(self, ref_distances, query_distance):
         """b + d + u must equal 1.0 for all CorpusCalibrator outputs."""
         cal = CorpusCalibrator(ref_distances)

@@ -290,7 +290,7 @@ class TestComputeJustified:
 # ── Property tests ──────────────────────────────────────────────────
 
 
-_PROP_SETTINGS = settings(max_examples=100, deadline=None)
+_PROP_SETTINGS = settings(deadline=None)
 
 
 @st.composite

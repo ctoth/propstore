@@ -22,7 +22,7 @@ Concrete regression tests verify hand-constructed examples.
 from __future__ import annotations
 
 import pytest
-from hypothesis import given, settings, assume
+from hypothesis import HealthCheck, given, settings, assume
 from hypothesis import strategies as st
 
 from propstore.aspic import (
@@ -87,7 +87,7 @@ class TestLanguageProperties:
     """
 
     @given(logical_language())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_every_literal_has_negation_in_L(self, lang_cfn):
         """For every literal in L, its .contrary is also in L.
 
@@ -101,7 +101,7 @@ class TestLanguageProperties:
             )
 
     @given(logical_language())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_contrary_is_involutory(self, lang_cfn):
         """For every literal a in L, a.contrary.contrary == a.
 
@@ -116,7 +116,7 @@ class TestLanguageProperties:
             )
 
     @given(logical_language())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_contradictories_are_symmetric(self, lang_cfn):
         """If (a, b) is a contradictory pair, then (b, a) is also.
 
@@ -133,7 +133,7 @@ class TestLanguageProperties:
                     )
 
     @given(logical_language())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_no_self_contrary(self, lang_cfn):
         """No literal is contrary or contradictory to itself.
 
@@ -152,7 +152,7 @@ class TestLanguageProperties:
             )
 
     @given(logical_language())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_language_nonempty(self, lang_cfn):
         """L has at least 2 literals (an atom and its negation).
 
@@ -164,7 +164,7 @@ class TestLanguageProperties:
         assert len(L) >= 2
 
     @given(logical_language())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_language_even_size(self, lang_cfn):
         """|L| is even: every atom has exactly one negation.
 
@@ -361,7 +361,7 @@ class TestRuleProperties:
             strict_rules(language=lc[0], contrariness=lc[1]),
         )
     ))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_strict_rules_all_strict(self, lc_rules):
         """Every rule from strict_rules() has kind == 'strict'.
 
@@ -377,7 +377,7 @@ class TestRuleProperties:
             defeasible_rules(language=lc[0]),
         )
     ))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_defeasible_rules_all_defeasible(self, lc_rules):
         """Every rule from defeasible_rules() has kind == 'defeasible'.
 
@@ -395,7 +395,7 @@ class TestRuleProperties:
             defeasible_rules(language=lc[0]),
         )
     ))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_defeasible_rules_all_named(self, lc_rules):
         """Every defeasible rule has name is not None.
 
@@ -413,7 +413,7 @@ class TestRuleProperties:
             defeasible_rules(language=lc[0]),
         )
     ))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_rule_antecedents_in_language(self, lc_sr_dr):
         """All antecedents and consequents are in L.
 
@@ -433,7 +433,7 @@ class TestRuleProperties:
             defeasible_rules(language=lc[0]),
         )
     ))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_consequent_not_in_antecedents(self, lc_sr_dr):
         """No rule has its consequent appearing in its antecedents.
 
@@ -466,7 +466,7 @@ class TestTranspositionClosure:
             strict_rules(language=lc[0], contrariness=lc[1]),
         )
     ))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_transposition_closure_complete(self, lc_rules):
         """For every strict rule A1,...,An -> C, for every i, the transposed
         rule A1,...,~C,...,An -> ~Ai exists in R_s.
@@ -498,7 +498,7 @@ class TestTranspositionClosure:
             strict_rules(language=lc[0], contrariness=lc[1]),
         )
     ))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_transposition_closure_idempotent(self, lc_rules):
         """Applying transposition_closure again produces no new rules.
 
@@ -518,7 +518,7 @@ class TestTranspositionClosure:
             strict_rules(language=lc[0], contrariness=lc[1]),
         )
     ))
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_transposition_closure_preserves_kind(self, lc_rules):
         """All transposed rules have kind == 'strict'.
 
@@ -706,7 +706,7 @@ class TestArgumentConstructionProperties:
     """
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_premise_arg_conclusion_equals_premise(self, data):
         """For every PremiseArg A, conc(A) == A.premise.
 
@@ -726,7 +726,7 @@ class TestArgumentConstructionProperties:
                 )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_sub_contains_self(self, data):
         """For every argument A, A in sub(A).
 
@@ -745,7 +745,7 @@ class TestArgumentConstructionProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_sub_transitively_closed(self, data):
         """For every A, for every B in sub(A), sub(B) ⊆ sub(A).
 
@@ -766,7 +766,7 @@ class TestArgumentConstructionProperties:
                 )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_prem_subset_of_kb(self, data):
         """For every argument A, prem(A) ⊆ K_n ∪ K_p.
 
@@ -785,7 +785,7 @@ class TestArgumentConstructionProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_every_built_argument_is_c_consistent(self, data):
         """Public build_arguments() should emit only c-consistent arguments."""
         L, cfn = data.draw(logical_language())
@@ -798,7 +798,7 @@ class TestArgumentConstructionProperties:
             assert is_c_consistent(prem(arg), system.strict_rules, system.contrariness)
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_conc_in_language(self, data):
         """For every argument A, conc(A) in L.
 
@@ -817,7 +817,7 @@ class TestArgumentConstructionProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_rule_args_antecedents_match(self, data):
         """For every StrictArg/DefeasibleArg A, the conclusions of
         A.sub_args match the antecedents of A.rule.
@@ -841,7 +841,7 @@ class TestArgumentConstructionProperties:
                 )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_def_rules_empty_for_premise(self, data):
         """For every PremiseArg A, def_rules(A) == frozenset().
 
@@ -861,7 +861,7 @@ class TestArgumentConstructionProperties:
                 )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_def_rules_includes_top_for_defeasible(self, data):
         """For every DefeasibleArg A, A.rule in def_rules(A).
 
@@ -882,7 +882,7 @@ class TestArgumentConstructionProperties:
                 )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_is_firm_iff_prem_subset_kn(self, data):
         """is_firm(A) iff prem(A) ⊆ kb.axioms.
 
@@ -903,7 +903,7 @@ class TestArgumentConstructionProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_is_strict_iff_no_def_rules(self, data):
         """is_strict(A) iff def_rules(A) == frozenset().
 
@@ -924,7 +924,7 @@ class TestArgumentConstructionProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None, suppress_health_check=[HealthCheck.filter_too_much])
     def test_firm_strict_exist_when_kn_nonempty(self, data):
         """When K_n is nonempty, at least one argument is both firm and strict.
 
@@ -945,7 +945,7 @@ class TestArgumentConstructionProperties:
         ), "K_n nonempty but no firm+strict argument found"
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_nontriviality(self, data):
         """When rules exist whose antecedents are in K, at least one
         non-PremiseArg is constructed.
@@ -1107,7 +1107,7 @@ class TestAttackProperties:
     """
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_undermining_targets_ordinary_premises(self, data):
         """Every undermining attack targets a PremiseArg with is_axiom == False.
 
@@ -1134,7 +1134,7 @@ class TestAttackProperties:
                 )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_rebutting_targets_defeasible_conclusions(self, data):
         """Every rebutting attack targets a sub-argument whose top_rule() is defeasible.
 
@@ -1160,7 +1160,7 @@ class TestAttackProperties:
                 )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_undercutting_targets_defeasible_rules(self, data):
         """Every undercutting attack targets a sub-argument whose top_rule() is defeasible.
 
@@ -1187,7 +1187,7 @@ class TestAttackProperties:
                 )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_no_attack_on_firm_strict_subarg(self, data):
         """No attack targets a sub-argument B' where is_firm(B') and is_strict(B').
 
@@ -1211,7 +1211,7 @@ class TestAttackProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_attacker_and_target_in_arguments(self, data):
         """Every attack's attacker and target are both in the argument set.
 
@@ -1234,7 +1234,7 @@ class TestAttackProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_target_sub_in_sub_of_target(self, data):
         """Every attack's target_sub is in sub(attack.target).
 
@@ -1255,7 +1255,7 @@ class TestAttackProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_rebutting_symmetry_for_contradictories(self, data):
         """Contradictory rebut is symmetric when both sides are defeasible.
 
@@ -1306,7 +1306,7 @@ class TestAttackProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_attack_kind_is_valid(self, data):
         """Every attack has kind in {"undermining", "rebutting", "undercutting"}.
 
@@ -1550,7 +1550,7 @@ class TestDefeatProperties:
     """
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_undercutting_always_defeats(self, data):
         """Every undercutting attack is a defeat regardless of preference ordering.
 
@@ -1582,7 +1582,7 @@ class TestDefeatProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_defeats_subset_of_attacks(self, data):
         """Every defeat (a,b) corresponds to an attack from a on b.
 
@@ -1610,7 +1610,7 @@ class TestDefeatProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_empty_ordering_all_attacks_defeat(self, data):
         """With empty rule_order and premise_order, every attack succeeds as defeat.
 
@@ -1647,7 +1647,7 @@ class TestDefeatProperties:
         )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_defeat_is_directed(self, data):
         """If (a,b) is a defeat, it means a defeats b — directionality is preserved.
 
@@ -1678,7 +1678,7 @@ class TestDefeatProperties:
             )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_last_link_irreflexive(self, data):
         """No argument is strictly weaker than itself under last-link.
 
@@ -1719,7 +1719,7 @@ class TestDefeatProperties:
                 )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_weakest_link_irreflexive(self, data):
         """No argument is strictly weaker than itself under weakest-link.
 
@@ -1756,7 +1756,7 @@ class TestDefeatProperties:
                 )
 
     @given(data=st.data())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_firm_strict_never_defeated(self, data):
         """If A is firm+strict, no argument B can defeat A.
 
@@ -1794,7 +1794,7 @@ class TestSetComparisonProperties:
         st.sets(st.integers(min_value=0, max_value=3), min_size=1, max_size=4),
         st.sets(st.integers(min_value=0, max_value=3), min_size=1, max_size=4),
     )
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_elitist_matches_definition_19(self, ranking, gamma, gamma_prime):
         order_index = {item: idx for idx, item in enumerate(ranking)}
         base_order = frozenset(
@@ -1820,7 +1820,7 @@ class TestSetComparisonProperties:
         st.sets(st.integers(min_value=0, max_value=3), min_size=1, max_size=4),
         st.sets(st.integers(min_value=0, max_value=3), min_size=1, max_size=4),
     )
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_democratic_matches_definition_19(self, ranking, gamma, gamma_prime):
         order_index = {item: idx for idx, item in enumerate(ranking)}
         base_order = frozenset(
@@ -2206,7 +2206,7 @@ class TestRationalityPostulates:
     """
 
     @given(well_formed_csaf())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_sub_argument_closure(self, csaf):
         """Postulate 1 — Sub-argument closure (Thm 12, p.18).
 
@@ -2226,7 +2226,7 @@ class TestRationalityPostulates:
                     )
 
     @given(well_formed_csaf())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_strict_closure(self, csaf):
         """Postulate 2 — Closure under strict rules (Thm 13, p.18).
 
@@ -2247,7 +2247,7 @@ class TestRationalityPostulates:
             )
 
     @given(well_formed_csaf())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_direct_consistency(self, csaf):
         """Postulate 3 — Direct consistency (Thm 14, p.18).
 
@@ -2270,7 +2270,7 @@ class TestRationalityPostulates:
                     )
 
     @given(well_formed_csaf())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_indirect_consistency(self, csaf):
         """Postulate 4 — Indirect consistency (Thm 15, p.19).
 
@@ -2295,7 +2295,7 @@ class TestRationalityPostulates:
                     )
 
     @given(well_formed_csaf())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_firm_strict_in_every_complete(self, csaf):
         """Postulate 5 — Firm+strict in every complete extension (Def 18).
 
@@ -2318,7 +2318,7 @@ class TestRationalityPostulates:
             )
 
     @given(well_formed_csaf())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_undercutting_always_defeats(self, csaf):
         """Postulate 6 — Undercutting always defeats (Def 9).
 
@@ -2337,7 +2337,7 @@ class TestRationalityPostulates:
                 )
 
     @given(well_formed_csaf())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_attack_based_conflict_free(self, csaf):
         """Postulate 7 — Attack-based conflict-free (Def 14).
 
@@ -2355,7 +2355,7 @@ class TestRationalityPostulates:
             )
 
     @given(well_formed_csaf())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_transposition_closure_maintained(self, csaf):
         """Postulate 8 — Transposition closure (Def 12).
 

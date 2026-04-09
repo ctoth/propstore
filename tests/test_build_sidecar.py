@@ -627,7 +627,7 @@ class TestRebuildSkipping:
         assumption_a=st.sampled_from(["task == 'speech'", "task == 'singing'", "task == 'whisper'"]),
         assumption_b=st.sampled_from(["task == 'speech'", "task == 'singing'", "task == 'whisper'"]),
     )
-    @settings(max_examples=12, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_content_hash_changes_when_context_semantics_change(
         self,
         concept_dir,
@@ -1247,7 +1247,6 @@ class TestClaimStanceTable:
         )
     )
     @settings(
-        max_examples=12,
         deadline=None,
         suppress_health_check=[HealthCheck.function_scoped_fixture],
     )

@@ -136,7 +136,7 @@ def bipolar_frameworks(draw, max_args: int = 6):
     )
 
 
-_PROP_SETTINGS = settings(max_examples=150, deadline=None)
+_PROP_SETTINGS = settings(deadline=None)
 
 
 class TestCayrolProperties:

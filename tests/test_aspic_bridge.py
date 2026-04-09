@@ -210,7 +210,7 @@ class TestClaimsToLiterals:
     """Property tests for T1: claims -> ASPIC+ literals."""
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_every_claim_has_literal(self, graph):
         """Every claim_id maps to exactly one Literal."""
         claims, justifications, stances = graph
@@ -221,7 +221,7 @@ class TestClaimsToLiterals:
             )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_no_duplicate_atoms(self, graph):
         """No two claims share an atom."""
         claims, justifications, stances = graph
@@ -230,7 +230,7 @@ class TestClaimsToLiterals:
         assert len(atoms) == len(set(atoms)), "Duplicate atoms in literals"
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_literal_atom_is_claim_id(self, graph):
         """Each literal's atom equals its claim_id."""
         claims, justifications, stances = graph
@@ -240,7 +240,7 @@ class TestClaimsToLiterals:
             assert lit.negated is False
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_language_closure(self, graph):
         """The language includes every literal's contrary.
 
@@ -264,7 +264,7 @@ class TestJustificationsToRules:
     """Property tests for T2: justifications -> ASPIC+ rules."""
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_reported_claims_produce_no_rules(self, graph):
         """reported_claim justifications are premises, not rules."""
         claims, justifications, stances = graph
@@ -278,7 +278,7 @@ class TestJustificationsToRules:
                 )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_strict_rules_have_no_name(self, graph):
         """Strict rules have name=None (cannot be undercut).
 
@@ -295,7 +295,7 @@ class TestJustificationsToRules:
             assert rule.kind == "strict"
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_defeasible_rules_have_justification_id_as_name(self, graph):
         """Defeasible rules use justification_id as n(r).
 
@@ -311,7 +311,7 @@ class TestJustificationsToRules:
             assert rule.kind == "defeasible"
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_rule_antecedents_match_premise_literals(self, graph):
         """Rule antecedents correspond to premise claim literals."""
         claims, justifications, stances = graph
@@ -342,7 +342,7 @@ class TestStancesToContrariness:
     """Property tests for T3: attack stances -> contrariness function."""
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_rebuts_produce_contradictories(self, graph):
         """rebuts/contradicts stances produce symmetric contradictories.
 
@@ -364,7 +364,7 @@ class TestStancesToContrariness:
                 )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_supersedes_produce_contraries(self, graph):
         """supersedes stances produce asymmetric contraries.
 
@@ -383,7 +383,7 @@ class TestStancesToContrariness:
                 )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_no_self_contrariness(self, graph):
         """No literal is contrary or contradictory to itself.
 
@@ -398,7 +398,7 @@ class TestStancesToContrariness:
             assert not cfn.is_contrary(lit, lit)
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_contradictories_symmetric(self, graph):
         """All contradictory pairs are symmetric.
 
@@ -549,7 +549,7 @@ class TestClaimsToKb:
     """Property tests for T4: claims -> ASPIC+ knowledge base."""
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_kn_kp_disjoint(self, graph):
         """K_n and K_p are disjoint.
 
@@ -563,7 +563,7 @@ class TestClaimsToKb:
         )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_necessary_claims_in_kn(self, graph):
         """Claims with premise_kind='necessary' go to K_n."""
         claims, justifications, stances = graph
@@ -577,7 +577,7 @@ class TestClaimsToKb:
                 )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_ordinary_claims_in_kp(self, graph):
         """Claims with premise_kind='ordinary' go to K_p."""
         claims, justifications, stances = graph
@@ -591,7 +591,7 @@ class TestClaimsToKb:
                 )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_kb_subset_of_language(self, graph):
         """K_n ∪ K_p ⊆ L.
 
@@ -612,7 +612,7 @@ class TestPreferenceConfig:
     """Property tests for T5: claim metadata -> preference orderings."""
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_premise_order_irreflexive(self, graph):
         """Premise ordering is irreflexive: no literal < itself.
 
@@ -628,7 +628,7 @@ class TestPreferenceConfig:
             )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_premise_order_transitive(self, graph):
         """Premise ordering is transitive: if a < b and b < c then a < c.
 
@@ -647,7 +647,7 @@ class TestPreferenceConfig:
                     )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_rule_order_irreflexive(self, graph):
         """Rule ordering is irreflexive.
 
@@ -670,7 +670,7 @@ class TestBuildBridgeCsaf:
     """Property tests for T6: full bridge producing a CSAF."""
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_every_claim_literal_in_language(self, graph):
         """Every active claim appears as a Literal in the CSAF language."""
         claims, justifications, stances = graph
@@ -683,7 +683,7 @@ class TestBuildBridgeCsaf:
             )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_no_attacks_means_no_defeats(self, graph):
         """If no attack stances, there should be no defeats."""
         claims, justifications, _stances = graph
@@ -694,7 +694,7 @@ class TestBuildBridgeCsaf:
         )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_no_attacks_all_claims_justified(self, graph):
         """With no attacks, all claims survive in grounded extension."""
         claims, justifications, _stances = graph
@@ -717,7 +717,7 @@ class TestBuildBridgeCsaf:
         )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_framework_is_valid_dung_af(self, graph):
         """The CSAF's framework is a well-formed Dung AF."""
         claims, justifications, stances = graph
@@ -753,7 +753,7 @@ class TestBridgeRationalityPostulates:
     """
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_sub_argument_closure(self, graph):
         """Postulate 1 — Sub-argument closure (Thm 12, p.18).
 
@@ -771,7 +771,7 @@ class TestBridgeRationalityPostulates:
                     )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_direct_consistency(self, graph):
         """Postulate 3 — Direct consistency (Thm 14, p.18).
 
@@ -801,7 +801,7 @@ class TestBridgeRationalityPostulates:
                     )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_attack_based_conflict_free(self, graph):
         """Postulate 7 — Attack-based conflict-free (Def 14, p.14).
 
@@ -817,7 +817,7 @@ class TestBridgeRationalityPostulates:
             )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_undercutting_always_defeats(self, graph):
         """Postulate 6 — Undercutting always defeats (Def 9, p.12)."""
         claims, justifications, stances = graph
@@ -830,7 +830,7 @@ class TestBridgeRationalityPostulates:
                 )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_firm_strict_in_every_complete(self, graph):
         """Postulate 5 — Firm+strict in every complete extension (Def 18)."""
         claims, justifications, stances = graph
@@ -853,7 +853,7 @@ class TestCsafToProjection:
     """Property tests for T7: CSAF -> StructuredProjection."""
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_every_argument_maps_to_claim(self, graph):
         """Every projection argument maps to a real claim_id.
 
@@ -870,7 +870,7 @@ class TestCsafToProjection:
             )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_justified_claims_subset_of_active(self, graph):
         """Justified claims are a subset of active claims."""
         claims, justifications, stances = graph
@@ -887,7 +887,7 @@ class TestCsafToProjection:
                 )
 
     @given(claim_graph())
-    @settings(max_examples=200, deadline=None)
+    @settings(deadline=None)
     def test_projection_framework_matches_csaf(self, graph):
         """The projection's Dung AF is derived from the CSAF."""
         claims, justifications, stances = graph

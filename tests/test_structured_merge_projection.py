@@ -206,7 +206,6 @@ def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_
 
 
 @settings(
-    max_examples=25,
     deadline=None,
 )
 @given(
@@ -268,7 +267,6 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
 
 
 @settings(
-    max_examples=25,
     deadline=None,
 )
 @given(
