@@ -13,6 +13,7 @@ from ast_equiv import compare as ast_compare
 
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.row_types import ParameterizationRow
+from propstore.propagation import rewrite_parameterization_symbols
 from propstore.world.types import DerivedResult, ValueResult, ValueStatus
 
 
@@ -325,8 +326,8 @@ class ActiveClaimResolver:
                 str(output_concept_id),
             )
 
-        rewritten = sympy_expr
         replacement_candidates: list[tuple[str, str]] = []
+        symbol_targets: dict[str, str] = {}
         input_index = 0
         for concept_id, aliases in alias_map.items():
             if concept_id == output_concept_id:
@@ -335,12 +336,13 @@ class ActiveClaimResolver:
                 target_symbol = f"__in_{input_index}__"
                 input_index += 1
             replacement_candidates.append((str(concept_id), target_symbol))
-            for alias in aliases:
-                rewritten = re.sub(
-                    rf"(?<![A-Za-z0-9_]){re.escape(alias)}(?![A-Za-z0-9_])",
-                    target_symbol,
-                    rewritten,
-                )
+            symbol_targets[str(concept_id)] = target_symbol
+
+        rewritten = rewrite_parameterization_symbols(
+            sympy_expr,
+            symbol_aliases={str(concept_id): aliases for concept_id, aliases in alias_map.items()},
+            symbol_targets=symbol_targets,
+        )
 
         if rewritten == sympy_expr:
             return evaluate_parameterization(

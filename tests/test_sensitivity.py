@@ -3,12 +3,17 @@
 import pytest
 import yaml
 
+from propstore.identity import derive_concept_artifact_id
 from propstore.sidecar.build import build_sidecar
 from propstore.sensitivity import SensitivityEntry, SensitivityResult, analyze_sensitivity
 from propstore.world import WorldModel
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
+
+
+def _concept_artifact(local_id: str) -> str:
+    return derive_concept_artifact_id("propstore", local_id)
 
 
 @pytest.fixture
@@ -402,21 +407,24 @@ class TestSensitivityLinear:
             override_values={"concept1": 200.0, "concept6": 0.001},
         )
         assert result is not None
-        assert result.concept_id == "concept5"
+        assert result.concept_id == _concept_artifact("concept5")
         assert len(result.entries) == 2
 
         # Both inputs should have partial derivatives
         ids = {e.input_concept_id for e in result.entries}
-        assert ids == {"concept1", "concept6"}
+        assert ids == {
+            _concept_artifact("concept1"),
+            _concept_artifact("concept6"),
+        }
 
         # Check partial derivative values:
         #   d(concept6 * concept1)/d(concept1) = concept6 = 0.001
         #   d(concept6 * concept1)/d(concept6) = concept1 = 200.0
         for entry in result.entries:
             assert entry.partial_derivative_value is not None
-            if entry.input_concept_id == "concept1":
+            if entry.input_concept_id == _concept_artifact("concept1"):
                 assert entry.partial_derivative_value == pytest.approx(0.001)
-            elif entry.input_concept_id == "concept6":
+            elif entry.input_concept_id == _concept_artifact("concept6"):
                 assert entry.partial_derivative_value == pytest.approx(200.0)
 
 
@@ -488,11 +496,11 @@ class TestSensitivityNonlinear:
         assert result.output_value == pytest.approx(18.0)  # 3^2 * 2
 
         by_id = {e.input_concept_id: e for e in result.entries}
-        assert by_id["ca"].elasticity == pytest.approx(2.0)
-        assert by_id["cb"].elasticity == pytest.approx(1.0)
+        assert by_id[_concept_artifact("ca")].elasticity == pytest.approx(2.0)
+        assert by_id[_concept_artifact("cb")].elasticity == pytest.approx(1.0)
 
         # ca should be first (higher elasticity)
-        assert result.entries[0].input_concept_id == "ca"
+        assert result.entries[0].input_concept_id == _concept_artifact("ca")
 
 
 class TestSensitivityConditionsRespected:

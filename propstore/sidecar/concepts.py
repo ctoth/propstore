@@ -14,6 +14,7 @@ from propstore.form_utils import (
 )
 from propstore.loaded import LoadedEntry
 from propstore.parameterization_groups import build_groups
+from propstore.propagation import rewrite_parameterization_symbols
 from propstore.sidecar.concept_utils import (
     concept_artifact_id,
     concept_content_hash,
@@ -22,6 +23,33 @@ from propstore.sidecar.concept_utils import (
     concept_version_id,
     resolve_concept_reference,
 )
+
+
+def _concept_symbol_candidates(data: dict) -> tuple[str, ...]:
+    seen: set[str] = set()
+    candidates: list[str] = []
+
+    def add(candidate: object) -> None:
+        if not isinstance(candidate, str) or not candidate or candidate in seen:
+            return
+        seen.add(candidate)
+        candidates.append(candidate)
+
+    add(data.get("id"))
+    add(data.get("canonical_name"))
+    for logical_id in data.get("logical_ids", []) or []:
+        if not isinstance(logical_id, dict):
+            continue
+        add(logical_id.get("value"))
+        namespace = logical_id.get("namespace")
+        value = logical_id.get("value")
+        if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+            add(f"{namespace}:{value}")
+    for alias in data.get("aliases", []) or []:
+        if not isinstance(alias, dict):
+            continue
+        add(alias.get("name"))
+    return tuple(candidates)
 
 
 def populate_form_algebra(
@@ -34,11 +62,13 @@ def populate_form_algebra(
         return
 
     id_to_form: dict[str, str] = {}
+    id_to_symbols: dict[str, tuple[str, ...]] = {}
     for concept in concepts:
         concept_id = concept_artifact_id(concept.data)
         form_name = concept.data.get("form")
         if concept_id and form_name:
             id_to_form[concept_id] = form_name
+            id_to_symbols[concept_id] = _concept_symbol_candidates(concept.data)
 
     seen: set[tuple] = set()
 
@@ -70,15 +100,23 @@ def populate_form_algebra(
             operation = ""
             if sympy_str:
                 try:
-                    import sympy as sp
-
-                    parsed = sp.sympify(sympy_str)
-                    substitutions = {}
-                    for input_id in inputs:
-                        substitutions[sp.Symbol(input_id)] = sp.Symbol(id_to_form[input_id])
-                    substitutions[sp.Symbol(concept_id)] = sp.Symbol(output_form)
-                    form_expr = parsed.subs(substitutions)
-                    operation = str(form_expr)
+                    operation = rewrite_parameterization_symbols(
+                        sympy_str,
+                        symbol_aliases={
+                            concept_id: id_to_symbols.get(concept_id, ()),
+                            **{
+                                input_id: id_to_symbols.get(input_id, ())
+                                for input_id in inputs
+                            },
+                        },
+                        symbol_targets={
+                            concept_id: output_form,
+                            **{
+                                input_id: id_to_form[input_id]
+                                for input_id in inputs
+                            },
+                        },
+                    )
                 except Exception:
                     operation = sympy_str
             if not operation:
@@ -297,11 +335,7 @@ def populate_parameterization_groups(
 ) -> None:
     concept_dicts: list[dict] = []
     for concept in concepts:
-        data = dict(concept.data)
-        stored_id = data.get("id")
-        if isinstance(stored_id, str) and stored_id:
-            data["artifact_id"] = stored_id
-        concept_dicts.append(data)
+        concept_dicts.append(dict(concept.data))
     groups = build_groups(concept_dicts)
     for group_id, group_members in enumerate(sorted(groups, key=lambda group: min(group))):
         for concept_id in sorted(group_members):
