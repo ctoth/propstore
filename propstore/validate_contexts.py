@@ -1,89 +1,85 @@
-"""Context file validator and hierarchy for the propstore knowledge store.
-
-Loads knowledge/contexts/*.yaml files, validates references and structure,
-and provides a ContextHierarchy for querying inheritance, exclusion, and visibility.
-"""
+"""Context file validator and hierarchy for the propstore knowledge store."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
-
+from propstore.context_types import (
+    ContextInput,
+    LoadedContext,
+    coerce_loaded_contexts,
+)
 from propstore.validate import ValidationResult, load_yaml_entries
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from propstore.knowledge_path import KnowledgePath
 
 
-from propstore.loaded import LoadedEntry
-
-
-def load_contexts(contexts_dir: KnowledgePath | None) -> list[LoadedEntry]:
+def load_contexts(contexts_dir: KnowledgePath | None) -> list[LoadedContext]:
     """Load all context YAML files from a contexts subtree."""
-    return load_yaml_entries(contexts_dir)
+    return [
+        LoadedContext.from_loaded_entry(entry)
+        for entry in load_yaml_entries(contexts_dir)
+    ]
 
 
-def validate_contexts(contexts: list[LoadedEntry]) -> ValidationResult:
+def validate_contexts(contexts: list[ContextInput]) -> ValidationResult:
     """Validate context files for required fields, references, and cycles."""
+    typed_contexts = coerce_loaded_contexts(contexts)
     result = ValidationResult()
-    seen_ids: dict[str, str] = {}  # id -> filename
+    seen_ids: dict[str, str] = {}
     all_ids: set[str] = set()
 
-    # First pass: collect all IDs
-    for ctx in contexts:
-        cid = ctx.data.get("id")
-        if cid:
-            all_ids.add(cid)
+    for context in typed_contexts:
+        if context.record.context_id is not None:
+            all_ids.add(str(context.record.context_id))
 
-    # Second pass: validate each context
-    for ctx in contexts:
-        d = ctx.data
+    for context in typed_contexts:
+        record = context.record
+        context_id = None if record.context_id is None else str(record.context_id)
 
-        # Required fields
-        cid = d.get("id")
-        if not cid:
-            result.errors.append(f"{ctx.filename}: context missing 'id'")
+        if context_id is None:
+            result.errors.append(f"{context.filename}: context missing 'id'")
             continue
 
-        name = d.get("name")
-        if not name:
-            result.errors.append(f"{ctx.filename}: context '{cid}' missing 'name'")
+        if record.name is None:
+            result.errors.append(f"{context.filename}: context '{context_id}' missing 'name'")
 
-        # Duplicate ID check
-        if cid in seen_ids:
+        if context_id in seen_ids:
             result.errors.append(
-                f"{ctx.filename}: duplicate context ID '{cid}' "
-                f"(also in {seen_ids[cid]})")
+                f"{context.filename}: duplicate context ID '{context_id}' "
+                f"(also in {seen_ids[context_id]})"
+            )
         else:
-            seen_ids[cid] = ctx.filename
+            seen_ids[context_id] = context.filename
 
-        # Inherits reference
-        inherits = d.get("inherits")
-        if inherits and inherits not in all_ids:
+        if record.inherits is not None and str(record.inherits) not in all_ids:
             result.errors.append(
-                f"{ctx.filename}: context '{cid}' inherits nonexistent context '{inherits}'")
+                f"{context.filename}: context '{context_id}' inherits nonexistent context '{record.inherits}'"
+            )
 
-        # Excludes references
-        excludes = d.get("excludes") or []
-        for exc in excludes:
-            if exc not in all_ids:
+        for exclusion in record.excludes:
+            if str(exclusion) not in all_ids:
                 result.errors.append(
-                    f"{ctx.filename}: context '{cid}' excludes nonexistent context '{exc}'")
+                    f"{context.filename}: context '{context_id}' excludes nonexistent context '{exclusion}'"
+                )
 
-    # Cycle detection in inheritance
     parent_map: dict[str, str | None] = {}
-    for ctx in contexts:
-        cid = ctx.data.get("id")
-        if cid:
-            parent_map[cid] = ctx.data.get("inherits")
+    for context in typed_contexts:
+        if context.record.context_id is None:
+            continue
+        parent_map[str(context.record.context_id)] = (
+            None if context.record.inherits is None else str(context.record.inherits)
+        )
 
-    for cid in parent_map:
+    for context_id in parent_map:
         visited: set[str] = set()
-        current = cid
+        current = context_id
         while current is not None:
             if current in visited:
                 result.errors.append(
-                    f"Inheritance cycle detected involving context '{cid}'")
+                    f"Inheritance cycle detected involving context '{context_id}'"
+                )
                 break
             visited.add(current)
             current = parent_map.get(current)
@@ -94,23 +90,27 @@ def validate_contexts(contexts: list[LoadedEntry]) -> ValidationResult:
 class ContextHierarchy:
     """Query interface over a set of validated contexts."""
 
-    def __init__(self, contexts: list[LoadedEntry]) -> None:
-        self._contexts: dict[str, dict] = {}
-        self._parent: dict[str, str | None] = {}
+    def __init__(self, contexts: list[ContextInput]) -> None:
+        typed_contexts = coerce_loaded_contexts(contexts)
+        self._contexts = {
+            str(context.record.context_id): context.record
+            for context in typed_contexts
+            if context.record.context_id is not None
+        }
+        self._parent = {
+            context_id: (
+                None if record.inherits is None else str(record.inherits)
+            )
+            for context_id, record in self._contexts.items()
+        }
         self._exclusions: set[frozenset[str]] = set()
-
-        for ctx in contexts:
-            cid = ctx.data.get("id")
-            if not cid:
-                continue
-            self._contexts[cid] = ctx.data
-            self._parent[cid] = ctx.data.get("inherits")
-            for exc in ctx.data.get("excludes") or []:
-                self._exclusions.add(frozenset([cid, exc]))
+        for context_id, record in self._contexts.items():
+            for exclusion in record.excludes:
+                self._exclusions.add(frozenset([context_id, str(exclusion)]))
 
     def ancestors(self, context_id: str) -> list[str]:
         """Return ancestor chain [parent, grandparent, ...] for a context."""
-        result = []
+        result: list[str] = []
         current = self._parent.get(context_id)
         visited: set[str] = set()
         while current is not None and current not in visited:
@@ -122,13 +122,14 @@ class ContextHierarchy:
     def effective_assumptions(self, context_id: str) -> list[str]:
         """Return all assumptions for a context, including inherited ones."""
         chain = [context_id] + self.ancestors(context_id)
-        assumptions = []
-        # Collect in reverse order (root first) so child assumptions come last
-        for cid in reversed(chain):
-            ctx_data = self._contexts.get(cid, {})
-            for a in ctx_data.get("assumptions") or []:
-                if a not in assumptions:
-                    assumptions.append(a)
+        assumptions: list[str] = []
+        for chain_context_id in reversed(chain):
+            record = self._contexts.get(chain_context_id)
+            if record is None:
+                continue
+            for assumption in record.assumptions:
+                if assumption not in assumptions:
+                    assumptions.append(assumption)
         return assumptions
 
     def are_excluded(self, ctx_a: str, ctx_b: str) -> bool:
@@ -136,11 +137,7 @@ class ContextHierarchy:
         return frozenset([ctx_a, ctx_b]) in self._exclusions
 
     def is_visible(self, querying_ctx: str, claim_ctx: str) -> bool:
-        """Check if a claim in claim_ctx is visible when querying querying_ctx.
-
-        A claim is visible if claim_ctx is the querying context itself
-        or one of its ancestors.
-        """
+        """Check if a claim in claim_ctx is visible when querying querying_ctx."""
         if claim_ctx == querying_ctx:
             return True
         return claim_ctx in self.ancestors(querying_ctx)

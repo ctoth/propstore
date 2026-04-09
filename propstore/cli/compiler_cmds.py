@@ -210,7 +210,11 @@ def build(obj: dict, output: str | None, force: bool) -> None:
                 click.echo("Build aborted: context validation failed.", err=True)
                 sys.exit(EXIT_VALIDATION)
             context_files = ctx_list
-            context_ids = {c.data["id"] for c in ctx_list if c.data.get("id")}
+            context_ids = {
+                str(c.record.context_id)
+                for c in ctx_list
+                if c.record.context_id is not None
+            }
 
     # Step 2: Validate claims (if any)
     claim_files = None

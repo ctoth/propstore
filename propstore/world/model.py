@@ -295,7 +295,7 @@ class WorldModel(ArtifactStore):
             return self._context_hierarchy
         self._context_hierarchy_loaded = True
 
-        from propstore.loaded import LoadedEntry
+        from propstore.context_types import LoadedContext
         from propstore.validate_contexts import ContextHierarchy
 
         rows = self._conn.execute(
@@ -339,7 +339,11 @@ class WorldModel(ArtifactStore):
                 context["excludes"].append(exclusion)
 
         loaded_contexts = [
-            LoadedEntry(filename=context_id, source_path=None, data=data)
+            LoadedContext.from_payload(
+                filename=context_id,
+                source_path=None,
+                data=data,
+            )
             for context_id, data in contexts_by_id.items()
         ]
         self._context_hierarchy = ContextHierarchy(loaded_contexts)

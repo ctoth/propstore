@@ -442,7 +442,7 @@ def test_load_contexts_from_git_tree(tmp_path):
     from propstore.validate_contexts import load_contexts
     contexts = load_contexts(kr.tree() / "contexts")
     assert len(contexts) == 1
-    assert contexts[0].data["id"] == "ctx1"
+    assert str(contexts[0].record.context_id) == "ctx1"
     assert isinstance(contexts[0].source_path, GitKnowledgePath)
     assert contexts[0].filename == "test_context"
 

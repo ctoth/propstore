@@ -121,9 +121,9 @@ def build_sidecar(
         else None
     )
     context_ids = {
-        c.data["id"]
+        str(c.record.context_id)
         for c in (context_files or [])
-        if isinstance(c.data, dict) and c.data.get("id")
+        if c.record.context_id is not None
     }
 
     if compilation_context is None:

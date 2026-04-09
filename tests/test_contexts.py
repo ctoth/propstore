@@ -9,6 +9,7 @@ import yaml
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
+from propstore.context_types import LoadedContext
 from propstore.loaded import LoadedEntry
 from propstore.validate_contexts import (
     ContextHierarchy,
@@ -16,7 +17,7 @@ from propstore.validate_contexts import (
     validate_contexts,
 )
 from propstore.value_comparison import DEFAULT_TOLERANCE
-from tests.conftest import create_world_model_schema
+from tests.conftest import create_world_model_schema, normalize_claims_payload
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -90,13 +91,17 @@ _ASSUMPTION_POOL = [
 
 class TestLoadContexts:
     def test_load_context_files(self, tmp_path):
-        """Load context YAML files from a directory, returns list of LoadedEntry."""
+        """Load context YAML files from a directory, returns list of LoadedContext."""
         write_context(tmp_path, "ctx_foo", make_context("ctx_foo", "Foo"))
         write_context(tmp_path, "ctx_bar", make_context("ctx_bar", "Bar"))
         contexts = load_contexts(tmp_path)
         assert len(contexts) == 2
-        assert all(isinstance(c, LoadedEntry) for c in contexts)
-        ids = {c.data["id"] for c in contexts}
+        assert all(isinstance(c, LoadedContext) for c in contexts)
+        ids = {
+            str(c.record.context_id)
+            for c in contexts
+            if c.record.context_id is not None
+        }
         assert ids == {"ctx_foo", "ctx_bar"}
 
     def test_load_empty_dir(self, tmp_path):
@@ -480,7 +485,7 @@ class TestClaimContextId:
         """Validation error if claim references nonexistent context."""
         from propstore.validate_claims import validate_claims
 
-        claim_file = LoadedEntry("test", tmp_path / "test.yaml", {
+        claim_file = LoadedEntry("test", tmp_path / "test.yaml", normalize_claims_payload({
             "source": {"paper": "test"},
             "claims": [{
                 "id": "claim1",
@@ -490,7 +495,7 @@ class TestClaimContextId:
                 "context": "ctx_nonexistent",
                 "provenance": {"paper": "test", "page": 1},
             }],
-        })
+        }))
         registry = {
             "fundamental_frequency": {
                 "id": "concept1", "canonical_name": "fundamental_frequency",
@@ -505,7 +510,7 @@ class TestClaimContextId:
         """No error when claim references an existing context."""
         from propstore.validate_claims import validate_claims
 
-        claim_file = LoadedEntry("test", tmp_path / "test.yaml", {
+        claim_file = LoadedEntry("test", tmp_path / "test.yaml", normalize_claims_payload({
             "source": {"paper": "test"},
             "claims": [{
                 "id": "claim1",
@@ -515,7 +520,7 @@ class TestClaimContextId:
                 "context": "ctx_atms",
                 "provenance": {"paper": "test", "page": 1},
             }],
-        })
+        }))
         registry = {
             "fundamental_frequency": {
                 "id": "concept1", "canonical_name": "fundamental_frequency",
@@ -530,7 +535,7 @@ class TestClaimContextId:
         """A claim without context field validates fine."""
         from propstore.validate_claims import validate_claims
 
-        claim_file = LoadedEntry("test", tmp_path / "test.yaml", {
+        claim_file = LoadedEntry("test", tmp_path / "test.yaml", normalize_claims_payload({
             "source": {"paper": "test"},
             "claims": [{
                 "id": "claim1",
@@ -539,7 +544,7 @@ class TestClaimContextId:
                 "concepts": ["fundamental_frequency"],
                 "provenance": {"paper": "test", "page": 1},
             }],
-        })
+        }))
         registry = {
             "fundamental_frequency": {
                 "id": "concept1", "canonical_name": "fundamental_frequency",
@@ -1178,7 +1183,7 @@ class TestContextCLIIntegration:
         write_context(ctx_dir, "ctx_atms", make_context("ctx_atms", "ATMS"))
 
         claims_dir = ws / "knowledge" / "claims"
-        (claims_dir / "test.yaml").write_text(yaml.dump({
+        (claims_dir / "test.yaml").write_text(yaml.dump(normalize_claims_payload({
             "source": {"paper": "test"},
             "claims": [{
                 "id": "claim1",
@@ -1188,7 +1193,7 @@ class TestContextCLIIntegration:
                 "context": "ctx_atms",
                 "provenance": {"paper": "test", "page": 1},
             }],
-        }, default_flow_style=False))
+        }), default_flow_style=False))
         self._commit_workspace_paths(
             ws,
             ["contexts/ctx_atms.yaml", "claims/test.yaml"],
