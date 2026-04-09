@@ -1,0 +1,14 @@
+{
+  "title": "Relational parametricity and units of measure",
+  "authors": [
+    "A. Kennedy"
+  ],
+  "year": "1997",
+  "doi": "10.1145/263699.263761",
+  "url": "https://www.semanticscholar.org/paper/870011878e7432baa0419113fe45e422b7d7e370",
+  "pdf_url": "",
+  "bibtex": "@Article{Kennedy1997RelationalPA,\n author = {A. Kennedy},\n booktitle = {ACM-SIGACT Symposium on Principles of Programming Languages},\n pages = {442-455},\n title = {Relational parametricity and units of measure},\n year = {1997}\n}\n",
+  "venue": "ACM-SIGACT Symposium on Principles of Programming Languages",
+  "venue_type": "conference",
+  "pages": "442-455"
+}

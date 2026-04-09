@@ -1,0 +1,13 @@
+{
+  "title": "Simple Word Problems in Universal Algebras",
+  "authors": ["Donald E. Knuth", "Peter B. Bendix"],
+  "year": "1970",
+  "doi": "10.1007/978-3-642-81955-1_23",
+  "url": "https://www.semanticscholar.org/paper/94877bdf8313565b90758a5e664764139857b358",
+  "pdf_url": "https://www.cs.tufts.edu/~nr/cs257/archive/don-knuth/knuth-bendix.pdf",
+  "bibtex": "@inproceedings{Knuth1970SimpleWP,\n  author = {Donald E. Knuth and Peter B. Bendix},\n  title = {Simple Word Problems in Universal Algebras},\n  booktitle = {Computational Problems in Abstract Algebra},\n  editor = {John Leech},\n  publisher = {Pergamon Press},\n  pages = {263--297},\n  year = {1970}\n}\n",
+  "venue": "Computational Problems in Abstract Algebra",
+  "volume": "",
+  "pages": "263-297",
+  "abstract": "An algorithm is described which is capable of solving certain word problems: i.e., of deciding whether or not two words composed of variables and operators can be proved equal as a consequence of a given set of identities satisfied by the operators. Although the general word problem is well known to be unsolvable, this algorithm provides results in many interesting cases. The method is based on finding all consequences of a given set of identities, using a completion procedure."
+}

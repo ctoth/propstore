@@ -1,0 +1,14 @@
+{
+  "title": "A Nanopass Infrastructure for Compiler Education",
+  "authors": [
+    "Dipanwita Sarkar",
+    "Oscar Waddell",
+    "R. Kent Dybvig"
+  ],
+  "year": 2004,
+  "doi": "10.1145/1016848.1016878",
+  "venue": "ICFP",
+  "abstract": "Modern compilers are large, complex software systems. While courses in compiler design are common, students rarely build a complete compiler in a single course, and the compilers they do build are often poorly constructed. The problem is that writing many small compiler passes duplicates code for traversing and rewriting abstract syntax trees. The authors developed a methodology and tools for building compilers composed of fine-grained passes, described as nanopass compilers to indicate both the intended granularity of the passes and the amount of source code required to construct each pass.",
+  "source": "https://www.cs.tufts.edu/comp/150FP/archive/kent-dybvig/nanopass.pdf",
+  "semantic_scholar_id": "3fed2be47fd9021285d3cfa8b8acafb66cfd23db"
+}

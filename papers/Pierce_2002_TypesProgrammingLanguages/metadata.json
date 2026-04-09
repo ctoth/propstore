@@ -1,0 +1,13 @@
+{
+  "title": "Types and Programming Languages",
+  "authors": ["Benjamin C. Pierce"],
+  "year": "2002",
+  "doi": null,
+  "isbn": "0262162091",
+  "url": "https://www.semanticscholar.org/paper/a95f1c8288549da82f351b49609608f02f1e4ab9",
+  "pdf_url": "",
+  "bibtex": "@Book{Pierce2002TAPL,\n  author = {Benjamin C. Pierce},\n  title = {Types and Programming Languages},\n  publisher = {MIT Press},\n  year = {2002},\n  isbn = {0262162091}\n}\n",
+  "venue": "MIT Press",
+  "pages": "xxi + 623",
+  "abstract": "A comprehensive introduction to type systems and programming languages. Covers untyped systems, simple types, subtyping, recursive types, polymorphism, higher-order systems, and type reconstruction. The standard graduate textbook on type systems for programming languages."
+}
