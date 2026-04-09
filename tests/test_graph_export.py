@@ -7,11 +7,16 @@ import yaml
 
 from propstore.sidecar.build import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
+from propstore.identity import derive_concept_artifact_id
 from propstore.world import WorldModel
 from tests.conftest import create_world_model_schema
 
 
 # ── Fixtures (duplicated from test_world_model.py) ────────────────────
+
+
+def _concept_artifact(local_id: str) -> str:
+    return derive_concept_artifact_id("propstore", local_id)
 
 
 @pytest.fixture
@@ -302,7 +307,8 @@ class TestUnboundGraph:
         concept_nodes = [n for n in graph.nodes if n.node_type == "concept"]
         concept_ids = {n.id for n in concept_nodes}
         for i in range(1, 8):
-            assert f"concept{i}" in concept_ids, f"concept{i} missing from graph"
+            artifact_id = _concept_artifact(f"concept{i}")
+            assert artifact_id in concept_ids, f"{artifact_id} missing from graph"
         assert len(concept_nodes) == 7
 
     def test_unbound_graph_has_parameterization_edges(self, world):
@@ -311,15 +317,24 @@ class TestUnboundGraph:
         param_edges = [e for e in graph.edges if e.edge_type == "parameterization"]
         # concept5 has inputs [concept6, concept1]
         param_targets = {(e.source, e.target) for e in param_edges}
-        assert ("concept6", "concept5") in param_targets
-        assert ("concept1", "concept5") in param_targets
+        assert (
+            _concept_artifact("concept6"),
+            _concept_artifact("concept5"),
+        ) in param_targets
+        assert (
+            _concept_artifact("concept1"),
+            _concept_artifact("concept5"),
+        ) in param_targets
 
     def test_unbound_graph_has_relationship_edges(self, world):
         """concept1->concept4 broader edge exists."""
         graph = build_knowledge_graph(world)
         rel_edges = [e for e in graph.edges if e.edge_type == "relationship"]
         rel_pairs = {(e.source, e.target) for e in rel_edges}
-        assert ("concept1", "concept4") in rel_pairs
+        assert (
+            _concept_artifact("concept1"),
+            _concept_artifact("concept4"),
+        ) in rel_pairs
 
     def test_unbound_graph_has_stance_edges(self, world):
         """claim2->claim1 rebuts edge exists."""
@@ -389,7 +404,7 @@ class TestGroupScoping:
         # Find which group_id contains concept5
         row = world._conn.execute(
             "SELECT group_id FROM parameterization_group WHERE concept_id = ?",
-            ("concept5",),
+            (_concept_artifact("concept5"),),
         ).fetchone()
         assert row is not None, "concept5 should be in a parameterization group"
         gid = row["group_id"]
@@ -400,9 +415,9 @@ class TestGroupScoping:
 
         # concept5, concept6, concept1, concept7 should be in the group
         # (connected via parameterization)
-        assert "concept5" in concept_ids
+        assert _concept_artifact("concept5") in concept_ids
         # Concepts outside the group should be excluded
-        assert "concept3" not in concept_ids
+        assert _concept_artifact("concept3") not in concept_ids
 
 
 class TestSerialization:
@@ -412,7 +427,7 @@ class TestSerialization:
         dot = graph.to_dot()
         assert "digraph" in dot
         # Should contain at least one node reference
-        assert "concept1" in dot
+        assert _concept_artifact("concept1") in dot
         # Should contain edge declarations (->)
         assert "->" in dot
 
@@ -439,7 +454,7 @@ class TestConflictedClaims:
         concept1_claims = [
             n for n in graph.nodes
             if n.node_type == "claim"
-            and n.metadata.get("concept_id") == "concept1"
+            and n.metadata.get("concept_id") == _concept_artifact("concept1")
         ]
         assert len(concept1_claims) > 0
         for claim_node in concept1_claims:

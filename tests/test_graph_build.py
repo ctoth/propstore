@@ -7,7 +7,12 @@ import pytest
 import yaml
 
 from propstore.sidecar.build import build_sidecar
+from propstore.identity import derive_concept_artifact_id
 from propstore.world import WorldModel
+
+
+def _concept_artifact(local_id: str) -> str:
+    return derive_concept_artifact_id("propstore", local_id)
 
 
 @pytest.fixture
@@ -154,10 +159,10 @@ def test_build_compiled_world_graph_preserves_sidecar_rows(graph_build_world) ->
     graph = build_compiled_world_graph(graph_build_world)
 
     assert {concept.concept_id for concept in graph.concepts} == {
-        "concept1",
-        "concept2",
-        "concept3",
-        "concept4",
+        _concept_artifact("concept1"),
+        _concept_artifact("concept2"),
+        _concept_artifact("concept3"),
+        _concept_artifact("concept4"),
     }
     assert {claim.claim_id for claim in graph.claims} == {
         "claim_mass",
@@ -180,8 +185,11 @@ def test_build_compiled_world_graph_preserves_sidecar_rows(graph_build_world) ->
     assert graph.parameterizations == (
         graph.parameterizations[0],
     )
-    assert graph.parameterizations[0].output_concept_id == "concept3"
-    assert graph.parameterizations[0].input_concept_ids == ("concept1", "concept2")
+    assert graph.parameterizations[0].output_concept_id == _concept_artifact("concept3")
+    assert graph.parameterizations[0].input_concept_ids == (
+        _concept_artifact("concept1"),
+        _concept_artifact("concept2"),
+    )
     assert {graph.conflicts[0].left_claim_id, graph.conflicts[0].right_claim_id} == {
         "claim_force_a",
         "claim_force_b",
