@@ -51,6 +51,17 @@ def build_cel_registry(concept_registry: dict[str, dict]) -> dict[str, ConceptIn
     return build_cel_registry_from_concept_map(concept_registry)
 
 
+STANDARD_SYNTHETIC_BINDING_NAMES = (
+    "source",
+    "domain",
+    "source_kind",
+    "origin_type",
+    "name",
+    "framework",
+    "variant",
+)
+
+
 def build_cel_registry_from_loaded(concepts: list[LoadedEntry]) -> dict[str, ConceptInfo]:
     """Build a CEL registry from a list of LoadedEntry objects.
 
@@ -201,6 +212,25 @@ def synthetic_category_concept(
         category_values=[value for value in values if isinstance(value, str)],
         category_extensible=extensible,
     )
+
+
+def with_standard_synthetic_bindings(
+    registry: Mapping[str, ConceptInfo],
+) -> dict[str, ConceptInfo]:
+    """Augment a registry with standard non-concept CEL binding dimensions."""
+    synthetic_concepts = [
+        synthetic_category_concept(
+            concept_id=f"ps:concept:__{canonical_name}__",
+            canonical_name=canonical_name,
+            values=(),
+            extensible=True,
+        )
+        for canonical_name in STANDARD_SYNTHETIC_BINDING_NAMES
+        if canonical_name not in registry
+    ]
+    if not synthetic_concepts:
+        return dict(registry)
+    return with_synthetic_concepts(registry, synthetic_concepts)
 
 
 @dataclass
