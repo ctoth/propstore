@@ -341,8 +341,7 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
                   revision_conflicts: tuple[str, ...], revision_operator: str | None) -> None:
     """Run (materialize) a worldline. Creates it first if it doesn't exist."""
     from propstore.world import WorldModel
-    from propstore.worldline import WorldlineDefinition
-    from propstore.worldline_runner import run_worldline
+    from propstore.worldline import WorldlineDefinition, run_worldline
 
     repo: Repository = obj["repo"]
     git = repo.git

@@ -1,7 +1,7 @@
-"""Red-phase tests for worldline_runner silent exception swallowing.
+"""Red-phase tests for worldline runner silent exception swallowing.
 
-Audit findings F1.4 and F1.5: bare ``except Exception`` blocks at
-worldline_runner.py:179 and :266 silently swallow sensitivity-analysis
+Audit findings F1.4 and F1.5: bare ``except Exception`` blocks in the
+worldline runner silently swallow sensitivity-analysis
 and argumentation-capture failures.  The caller receives empty/None
 results with no indication that an error occurred.
 
@@ -24,8 +24,8 @@ from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStra
 from propstore.worldline import (
     WorldlineDefinition,
     WorldlineInputs,
+    run_worldline,
 )
-from propstore.worldline_runner import run_worldline
 
 
 # ── helpers ──────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ class _FakeBound:
 
 
 class TestSensitivityErrorVisibility:
-    """F1.4 — worldline_runner.py:179 swallows sensitivity failures."""
+    """F1.4 — the worldline runner surfaces sensitivity failures explicitly."""
 
     def test_sensitivity_failure_produces_error_indicator(self):
         """When analyze_sensitivity raises, the result must carry an
@@ -147,8 +147,8 @@ class TestSensitivityErrorVisibility:
         world._bound = fake_bound
 
         with (
-            patch("propstore.worldline_runner._resolve_concept_name", return_value="concept:output_qty"),
-            patch("propstore.worldline_runner._resolve_target", return_value=derived_entry),
+            patch("propstore.worldline.runner._resolve_concept_name", return_value="concept:output_qty"),
+            patch("propstore.worldline.runner._resolve_target", return_value=derived_entry),
             patch(
                 "propstore.sensitivity.analyze_sensitivity",
                 side_effect=RuntimeError("boom — sensitivity engine crashed"),
@@ -161,7 +161,7 @@ class TestSensitivityErrorVisibility:
         # indicator so the caller knows the analysis was attempted and failed.
         assert result.sensitivity is not None, (
             "sensitivity is None — the exception was silently swallowed "
-            "(F1.4: bare except Exception at worldline_runner.py:179)"
+            "(F1.4: sensitivity failure was swallowed)"
         )
         # The error indicator could be a dict with an error key, or a
         # dedicated field — we check for either pattern.
@@ -179,7 +179,7 @@ class TestSensitivityErrorVisibility:
 
 
 class TestArgumentationErrorVisibility:
-    """F1.5 — worldline_runner.py:266 swallows argumentation failures."""
+    """F1.5 — the worldline runner surfaces argumentation failures explicitly."""
 
     def test_argumentation_failure_produces_error_indicator(self):
         """When argumentation capture raises, the result must carry an
@@ -201,8 +201,8 @@ class TestArgumentationErrorVisibility:
         world._bound = fake_bound
 
         with (
-            patch("propstore.worldline_runner._resolve_concept_name", return_value="concept:output_qty"),
-            patch("propstore.worldline_runner._resolve_target", return_value={
+            patch("propstore.worldline.runner._resolve_concept_name", return_value="concept:output_qty"),
+            patch("propstore.worldline.runner._resolve_target", return_value={
                 "status": "determined", "value": 42.0, "source": "claim",
             }),
         ):
@@ -212,7 +212,7 @@ class TestArgumentationErrorVisibility:
         # Expected (fixed) behaviour: explicit error indicator.
         assert result.argumentation is not None, (
             "argumentation is None — the exception was silently swallowed "
-            "(F1.5: bare except Exception at worldline_runner.py:266)"
+            "(F1.5: argumentation failure was swallowed)"
         )
         if isinstance(result.argumentation, dict):
             has_error = any(

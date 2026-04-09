@@ -441,7 +441,7 @@ class TestWorldlineRunner:
     def test_run_produces_results(self, physics_world):
         """Running a worldline populates results."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         wl = WorldlineDefinition.from_dict({
             "id": "test_run",
@@ -455,7 +455,7 @@ class TestWorldlineRunner:
     def test_run_with_override_derives_value(self, physics_world):
         """Override mass=10 + claim g=9.807 → derives force≈98.07."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         wl = WorldlineDefinition.from_dict({
             "id": "test_derive",
@@ -474,7 +474,7 @@ class TestWorldlineRunner:
     def test_run_records_dependencies(self, physics_world):
         """Dependencies list all claims that contributed to results."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         wl = WorldlineDefinition.from_dict({
             "id": "test_deps",
@@ -490,7 +490,7 @@ class TestWorldlineRunner:
     def test_run_partial_results(self, physics_world):
         """Targets that can't be determined get status=underspecified."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         wl = WorldlineDefinition.from_dict({
             "id": "test_partial",
@@ -504,7 +504,7 @@ class TestWorldlineRunner:
     def test_run_override_precedence(self, physics_world):
         """Override value takes precedence over claims."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         # mass has a claim (mass_5kg = 5.0), but override says 99.0
         wl = WorldlineDefinition.from_dict({
@@ -519,7 +519,7 @@ class TestWorldlineRunner:
     def test_run_deterministic(self, physics_world):
         """Running the same definition twice produces identical results."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         wl = WorldlineDefinition.from_dict({
             "id": "test_det",
@@ -537,7 +537,7 @@ class TestWorldlineRunner:
     def test_all_targets_in_results(self, physics_world):
         """Every target appears in results, even if underspecified (P10)."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         targets = ["force", "kinetic_energy", "acceleration"]
         wl = WorldlineDefinition.from_dict({
@@ -552,7 +552,7 @@ class TestWorldlineRunner:
     def test_derived_value_accuracy(self, physics_world):
         """Derived values match SymPy evaluation of formula + inputs (P9)."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
         from sympy.parsing.sympy_parser import parse_expr
 
         wl = WorldlineDefinition.from_dict({
@@ -575,7 +575,7 @@ class TestWorldlineRunner:
     def test_run_uses_world_context_scope(self):
         """inputs.environment.context_id is passed as bind environment context, not as a fake binding."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         class FakeBound:
             def __init__(self, context_id):
@@ -645,7 +645,7 @@ class TestWorldlineRunner:
     def test_run_records_transitive_dependencies(self, chained_physics_world):
         """Two-hop derivations include the upstream claim dependency."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         wl = WorldlineDefinition.from_dict({
             "id": "test_transitive_deps",
@@ -673,7 +673,7 @@ class TestWorldlineStaleness:
     def test_fresh_worldline_not_stale(self, physics_world):
         """Immediately after run, worldline is not stale."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         wl = WorldlineDefinition.from_dict({
             "id": "test_fresh",
@@ -687,7 +687,7 @@ class TestWorldlineStaleness:
     def test_all_targets_present_after_run(self, physics_world):
         """After running, every target has a result entry."""
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         wl = WorldlineDefinition.from_dict({
             "id": "test_targets_present",
@@ -704,7 +704,7 @@ class TestWorldlineDependencyLiveness:
         """A resolved result must stay live to all candidate claims, not just the winner."""
         from propstore.world.types import DerivedResult, ValueResult
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         class FakeBound:
             def __init__(self, claims):
@@ -776,7 +776,7 @@ class TestWorldlineDependencyLiveness:
         from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
         from propstore.world.types import DerivedResult, ValueResult
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         class FakeBound:
             def __init__(self, claims):
@@ -890,7 +890,7 @@ class TestWorldlineDependencyLiveness:
         """Context-scoped worldlines must become stale when that context resolves differently."""
         from propstore.world.types import DerivedResult, ValueResult
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         class FakeBound:
             def __init__(self, context_id, active):
@@ -957,7 +957,7 @@ class TestWorldlineDependencyLiveness:
         """Worldline materialization should not require a private SQLite connection."""
         from propstore.world.types import DerivedResult, ValueResult
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         class MinimalBound:
             def __init__(self):
@@ -1102,7 +1102,7 @@ class TestSemanticCorePhase7Worldlines:
     ):
         from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         world, active_graph = self._graph_only_world()
 
@@ -1170,7 +1170,7 @@ class TestSemanticCorePhase7Worldlines:
     ):
         from propstore.core.results import AnalyzerResult, ClaimProjection
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         world, active_graph = self._graph_only_world()
 
@@ -1262,7 +1262,7 @@ class TestSemanticCorePhase7Worldlines:
         monkeypatch,
     ):
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         world, active_graph = self._graph_only_world()
         calls: list[dict] = []
@@ -1324,7 +1324,7 @@ class TestSemanticCorePhase7Worldlines:
         link: str,
     ):
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         world, active_graph = self._graph_only_world()
         calls: list[dict] = []
@@ -1382,7 +1382,7 @@ class TestSemanticCorePhase7Worldlines:
     ):
         from propstore.dung import ArgumentationFramework
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         class _Bound:
             def __init__(self):
@@ -1476,7 +1476,7 @@ class TestSemanticCorePhase7Worldlines:
     ):
         from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
         from propstore.worldline import WorldlineDefinition, WorldlineResult
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         world, active_graph = self._graph_only_world()
 
@@ -1548,7 +1548,7 @@ class TestWorldlineFailureModes:
         """Algorithm-only targets should preserve the claim payload instead of returning value=None."""
         from propstore.world.types import DerivedResult, ValueResult
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         class FakeBound:
             def __init__(self):
@@ -1610,7 +1610,7 @@ class TestWorldlineFailureModes:
         """Engine failures should not be reported as ordinary underspecification."""
         from propstore.world.types import DerivedResult, ValueResult
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         class FakeBound:
             def __init__(self):
@@ -1656,7 +1656,7 @@ class TestSilentExceptionLogging:
         import logging
         from unittest.mock import patch, MagicMock
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         # Minimal fake world that returns a "derived" target
         class FakeValueResult:
@@ -1697,9 +1697,9 @@ class TestSilentExceptionLogging:
             "targets": ["target"],
         })
 
-        with caplog.at_level(logging.WARNING, logger="propstore.worldline_runner"):
+        with caplog.at_level(logging.WARNING, logger="propstore.worldline.runner"):
             with patch(
-                "propstore.worldline_runner.analyze_sensitivity",
+                "propstore.worldline.runner.analyze_sensitivity",
                 side_effect=RuntimeError("sensitivity kaboom"),
                 create=True,
             ):
@@ -1722,7 +1722,7 @@ class TestSilentExceptionLogging:
         import logging
         from unittest.mock import patch
         from propstore.worldline import WorldlineDefinition
-        from propstore.worldline_runner import run_worldline
+        from propstore.worldline import run_worldline
 
         class FakeValueResult:
             status = "no_claims"
@@ -1770,7 +1770,7 @@ class TestSilentExceptionLogging:
             },
         })
 
-        with caplog.at_level(logging.WARNING, logger="propstore.worldline_runner"):
+        with caplog.at_level(logging.WARNING, logger="propstore.worldline.runner"):
             result = run_worldline(wl, FakeWorld())
 
         # The worldline should still succeed
@@ -2190,7 +2190,7 @@ class TestWorldlineCLIFlags:
 
         monkeypatch.setattr("propstore.cli.worldline_cmds.WorldModel", _FakeWorldModel, raising=False)
         monkeypatch.setattr("propstore.world.WorldModel", _FakeWorldModel)
-        monkeypatch.setattr("propstore.worldline_runner.run_worldline", fake_run_worldline)
+        monkeypatch.setattr("propstore.worldline.run_worldline", fake_run_worldline)
 
         @click.group()
         @click.pass_context

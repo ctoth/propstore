@@ -10,8 +10,7 @@ from __future__ import annotations
 import pytest
 
 from propstore.world.types import DerivedResult, ValueResult
-from propstore.worldline import WorldlineDefinition
-from propstore.worldline_runner import run_worldline
+from propstore.worldline import WorldlineDefinition, run_worldline
 
 
 # ── Shared fakes ─────────────────────────────────────────────────────
@@ -41,7 +40,7 @@ class FakeBound:
 class FakeWorld:
     """Minimal WorldModel stub with two conflicting claims and stances.
 
-    Provides the interface that worldline_runner.run_worldline() requires:
+    Provides the interface that worldline.run_worldline() requires:
     bind, resolve_concept, get_concept, get_claim, has_table, stances_between.
     """
 

@@ -19,8 +19,7 @@ from propstore.world.bound import BoundWorld
 from propstore.core.labels import Label, compile_environment_assumptions
 from propstore.world.resolution import resolve
 from propstore.world.types import Environment, ReasoningBackend, ResolutionStrategy
-from propstore.worldline import WorldlineDefinition
-from propstore.worldline_runner import run_worldline
+from propstore.worldline import WorldlineDefinition, run_worldline
 
 
 class _ExactMatchSolver:

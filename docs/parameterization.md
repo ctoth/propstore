@@ -151,4 +151,4 @@ The `pks worldline run` command also integrates parameterization: for any target
 
 ## References
 
-- Martins 1983 -- override semantics: context-local hypotheses that supersede stored beliefs without competing with them. Referenced in `propstore/worldline_runner.py`.
+- Martins 1983 -- override semantics: context-local hypotheses that supersede stored beliefs without competing with them. Referenced in `propstore/worldline/runner.py`.

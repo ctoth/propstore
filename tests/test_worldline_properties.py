@@ -17,8 +17,7 @@ from hypothesis import strategies as st
 
 from propstore.sidecar.build import build_sidecar
 from propstore.world import HypotheticalWorld, WorldModel
-from propstore.worldline import WorldlineDefinition
-from propstore.worldline_runner import run_worldline
+from propstore.worldline import WorldlineDefinition, run_worldline
 
 
 # ── Fixtures ────────────────────────────────────────────────────────

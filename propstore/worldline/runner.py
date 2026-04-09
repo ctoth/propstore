@@ -1,0 +1,212 @@
+"""Worldline materialization engine."""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
+from propstore.core.id_types import ContextId
+from propstore.worldline.argumentation import capture_argumentation_state
+from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
+from propstore.worldline.hashing import compute_worldline_content_hash
+from propstore.worldline.interfaces import HasEnvironment, WorldlineStore
+from propstore.worldline.resolution import (
+    ResolutionContext,
+    concept_name as _concept_name,
+    display_claim_id as _display_claim_id,
+    pre_resolve_conflicts as _pre_resolve_conflicts,
+    resolve_concept_name as _resolve_concept_name,
+    resolve_target as _resolve_target,
+)
+from propstore.worldline.revision_capture import capture_revision_state
+from propstore.worldline.trace import ResolutionTrace
+
+logger = logging.getLogger(__name__)
+
+
+def run_worldline(
+    definition: WorldlineDefinition,
+    world: WorldlineStore,
+) -> WorldlineResult:
+    from propstore.world import ResolutionStrategy
+
+    environment = definition.inputs.environment
+    bindings = dict(environment.bindings)
+    context_id = environment.context_id
+    overrides = dict(definition.inputs.overrides)
+    policy = definition.policy
+    strategy = policy.strategy
+    bound = world.bind(environment, policy=policy)
+
+    override_concept_ids: dict[str, float | str] = {}
+    for name, value in overrides.items():
+        concept_id = _resolve_concept_name(world, name)
+        if concept_id is not None:
+            override_concept_ids[concept_id] = value
+
+    trace = ResolutionTrace()
+    for key, value in bindings.items():
+        trace.record_binding(key, value)
+    for name, value in overrides.items():
+        trace.record_override(name, value)
+
+    target_map: dict[str, str] = {}
+    for target in definition.targets:
+        concept_id = _resolve_concept_name(world, target)
+        if concept_id is not None:
+            target_map[target] = concept_id
+
+    resolution_context = ResolutionContext(
+        query_world=bound,
+        world=world,
+        override_values=override_concept_ids,
+        policy=policy,
+    )
+
+    if strategy is not None:
+        _pre_resolve_conflicts(resolution_context, target_map, trace)
+
+    values: dict[str, dict[str, Any]] = {}
+    for target_name, concept_id in target_map.items():
+        values[target_name] = _resolve_target(
+            resolution_context,
+            concept_id,
+            target_name,
+            trace,
+        )
+
+    for target in definition.targets:
+        if target not in values:
+            values[target] = {
+                "status": "underspecified",
+                "reason": f"concept '{target}' not found in knowledge base",
+            }
+
+    sensitivity_results = _capture_sensitivity(
+        world,
+        bound,
+        target_map,
+        values,
+        override_concept_ids,
+    )
+
+    argumentation_state: dict[str, Any] | None = None
+    stance_dependencies: list[str] = []
+    if strategy == ResolutionStrategy.ARGUMENTATION:
+        try:
+            argumentation_state, stance_dependencies, active_ids = capture_argumentation_state(
+                bound,
+                world,
+                definition,
+            )
+            if argumentation_state is not None:
+                trace.dependency_claims.update(active_ids)
+        except Exception as exc:
+            logger.warning("argumentation capture failed", exc_info=True)
+            argumentation_state = {
+                "status": "error",
+                "error": f"argumentation capture failed: {exc}",
+            }
+
+    revision_state: dict[str, Any] | None = None
+    if definition.revision is not None:
+        try:
+            revision_state = capture_revision_state(bound, definition.revision)
+        except Exception as exc:
+            logger.warning("revision capture failed", exc_info=True)
+            revision_state = {
+                "operation": definition.revision.operation,
+                "status": "error",
+                "error": f"revision capture failed: {exc}",
+            }
+
+    dependencies = {
+        "claims": sorted(
+            _display_claim_id(world, str(claim_id)) or str(claim_id)
+            for claim_id in trace.dependency_claims
+        ),
+        "stances": stance_dependencies,
+        "contexts": _context_dependencies(bound, context_id),
+    }
+    content_hash = compute_worldline_content_hash(
+        values=values,
+        steps=trace.steps,
+        dependencies=dependencies,
+        sensitivity=sensitivity_results,
+        argumentation=argumentation_state,
+        revision=revision_state,
+    )
+
+    return WorldlineResult(
+        computed=datetime.now(timezone.utc).isoformat(),
+        content_hash=content_hash,
+        values=values,
+        steps=trace.steps,
+        dependencies=dependencies,
+        sensitivity=sensitivity_results,
+        argumentation=argumentation_state,
+        revision=revision_state,
+    )
+
+
+def _capture_sensitivity(
+    world: WorldlineStore,
+    bound: Any,
+    target_map: dict[str, str],
+    values: dict[str, dict[str, Any]],
+    override_concept_ids: dict[str, float | str],
+) -> dict[str, Any] | None:
+    sensitivity_results: dict[str, Any] | None = None
+    float_overrides = {
+        str(concept_id): float(value)
+        for concept_id, value in override_concept_ids.items()
+        if isinstance(value, (int, float))
+    }
+    for target_name, concept_id in target_map.items():
+        value = values.get(target_name, {})
+        if value.get("status") != "derived":
+            continue
+        try:
+            from propstore.sensitivity import analyze_sensitivity
+
+            result = analyze_sensitivity(
+                world,
+                concept_id,
+                bound,
+                override_values=float_overrides,
+            )
+            if result is not None and result.entries:
+                if sensitivity_results is None:
+                    sensitivity_results = {}
+                sensitivity_results[target_name] = [
+                    {
+                        "input": _concept_name(world, entry.input_concept_id),
+                        "elasticity": entry.elasticity,
+                        "partial_derivative": entry.partial_derivative_value,
+                    }
+                    for entry in result.entries
+                    if entry.elasticity is not None
+                ]
+        except Exception as exc:
+            logger.warning("sensitivity analysis failed for %s", target_name, exc_info=True)
+            if sensitivity_results is None:
+                sensitivity_results = {}
+            sensitivity_results[target_name] = {
+                "error": f"sensitivity analysis failed: {exc}",
+            }
+    return sensitivity_results
+
+
+def _context_dependencies(
+    bound: Any,
+    context_id: ContextId | None,
+) -> list[str]:
+    if not context_id:
+        return []
+
+    dependencies = [str(context_id)]
+    if isinstance(bound, HasEnvironment):
+        for assumption in bound._environment.effective_assumptions:
+            dependencies.append(f"assumption:{assumption}")
+    return dependencies
