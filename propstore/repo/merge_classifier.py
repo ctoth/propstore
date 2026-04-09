@@ -252,7 +252,17 @@ def _classify_pair(
         },
     )
 
-    records = detect_conflicts([left_file, right_file], concept_registry={})
+    try:
+        records = detect_conflicts([left_file, right_file], concept_registry={})
+    except Exception as exc:
+        from propstore.z3_conditions import Z3TranslationError
+
+        if isinstance(exc, Z3TranslationError):
+            left_conditions = sorted(left_claim.get("conditions") or [])
+            right_conditions = sorted(right_claim.get("conditions") or [])
+            if left_conditions != right_conditions:
+                return _DiffKind.PHI_NODE
+        raise
 
     for record in records:
         if record.warning_class in (

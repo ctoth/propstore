@@ -186,6 +186,23 @@ def with_synthetic_concepts(
     return result
 
 
+def synthetic_category_concept(
+    *,
+    concept_id: str,
+    canonical_name: str,
+    values: Sequence[str],
+    extensible: bool,
+) -> ConceptInfo:
+    """Build a synthetic category concept for CEL-only runtime state."""
+    return ConceptInfo(
+        id=concept_id,
+        canonical_name=canonical_name,
+        kind=KindType.CATEGORY,
+        category_values=[value for value in values if isinstance(value, str)],
+        category_extensible=extensible,
+    )
+
+
 @dataclass
 class CelError:
     expression: str
