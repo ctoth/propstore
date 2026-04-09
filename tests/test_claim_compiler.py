@@ -171,3 +171,58 @@ def test_prepare_claim_insert_row_matches_for_raw_and_semantic_claims(tmp_path):
     )
 
     assert semantic_row == raw_row
+
+
+def test_compile_claim_files_rejects_raw_id_only_claims(tmp_path):
+    knowledge = tmp_path / "knowledge"
+    claims_dir = knowledge / "claims"
+    concepts_dir = knowledge / "concepts"
+    forms_dir = knowledge / "forms"
+    claims_dir.mkdir(parents=True)
+    concepts_dir.mkdir()
+    forms_dir.mkdir()
+
+    (forms_dir / "frequency.yaml").write_text(yaml.dump({
+        "name": "frequency",
+        "kind": "quantity",
+        "unit_symbol": "Hz",
+    }))
+
+    concepts = normalize_concept_payloads([{
+        "id": "concept1",
+        "canonical_name": "fundamental_frequency",
+        "status": "accepted",
+        "definition": "F0",
+        "domain": "speech",
+        "form": "frequency",
+    }], default_domain="speech")
+    (concepts_dir / "fundamental_frequency.yaml").write_text(
+        yaml.dump(concepts[0], default_flow_style=False)
+    )
+
+    payload = {
+        "source": {"paper": "paper"},
+        "claims": [
+            {
+                "id": "claim1",
+                "type": "parameter",
+                "concept": concepts[0]["artifact_id"],
+                "value": 200.0,
+                "unit": "Hz",
+                "provenance": {"paper": "paper", "page": 1},
+            }
+        ],
+    }
+    (claims_dir / "paper.yaml").write_text(yaml.dump(payload, default_flow_style=False))
+
+    files = load_claim_files(claims_dir)
+    context = build_compilation_context_from_paths(
+        concepts_dir,
+        forms_dir,
+        claim_files=files,
+    )
+    bundle = compile_claim_files(files, context)
+
+    assert not bundle.ok
+    messages = [diagnostic.message for diagnostic in bundle.diagnostics if diagnostic.is_error]
+    assert any("raw 'id' input" in message for message in messages)
