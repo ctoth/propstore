@@ -7,18 +7,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from propstore.core.id_types import ContextId, to_context_id
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.loaded import LoadedEntry
 
 
 @dataclass(frozen=True)
 class ContextRecord:
-    context_id: str | None
+    context_id: ContextId | None
     name: str | None
     description: str | None = None
-    inherits: str | None = None
+    inherits: ContextId | None = None
     assumptions: tuple[str, ...] = ()
-    excludes: tuple[str, ...] = ()
+    excludes: tuple[ContextId, ...] = ()
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {}
@@ -89,7 +90,11 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
     payload = {} if data is None else dict(data)
 
     raw_context_id = payload.get("id")
-    context_id = raw_context_id if isinstance(raw_context_id, str) and raw_context_id else None
+    context_id = (
+        to_context_id(raw_context_id)
+        if isinstance(raw_context_id, str) and raw_context_id
+        else None
+    )
 
     raw_name = payload.get("name")
     name = raw_name if isinstance(raw_name, str) and raw_name else None
@@ -102,7 +107,11 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
     )
 
     raw_inherits = payload.get("inherits")
-    inherits = raw_inherits if isinstance(raw_inherits, str) and raw_inherits else None
+    inherits = (
+        to_context_id(raw_inherits)
+        if isinstance(raw_inherits, str) and raw_inherits
+        else None
+    )
 
     assumptions = tuple(
         assumption
@@ -116,7 +125,7 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
     )
 
     excludes = tuple(
-        exclusion
+        to_context_id(exclusion)
         for exclusion in (
             payload.get("excludes")
             if isinstance(payload.get("excludes"), Sequence)
