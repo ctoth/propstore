@@ -232,6 +232,7 @@ class TestCategoryTypeChecking:
         errors = check_cel_expression("task == 'reading'", registry)
         warnings = [e for e in errors if e.is_warning]
         assert len(warnings) >= 1
+        assert not any(not e.is_warning for e in errors)
         assert any("value" in e.message.lower() and "not in" in e.message.lower()
                     for e in warnings)
 
@@ -247,6 +248,7 @@ class TestCategoryTypeChecking:
         errors = check_cel_expression("task in ['speech', 'reading']", registry)
         warnings = [e for e in errors if e.is_warning]
         assert len(warnings) >= 1
+        assert not any(not e.is_warning for e in errors)
 
     def test_in_value_not_in_set_non_extensible_error(self, registry):
         errors = check_cel_expression("vowel_type in ['front', 'nasal']", registry)
@@ -429,6 +431,57 @@ def test_structural_always_errors(val):
     errors = check_cel_expression(expr, registry)
     hard_errors = [e for e in errors if not e.is_warning]
     assert len(hard_errors) >= 1
+
+
+@given(
+    val=st.text(
+        min_size=1,
+        max_size=12,
+        alphabet=st.characters(whitelist_categories=("L", "N")),
+    )
+)
+@settings(max_examples=40)
+def test_open_category_undeclared_literals_are_warnings_only(val):
+    assume(val not in {"speech", "singing", "whisper"})
+    registry = {
+        "task": ConceptInfo(
+            "concept30",
+            "task",
+            KindType.CATEGORY,
+            category_values=["speech", "singing", "whisper"],
+            category_extensible=True,
+        )
+    }
+
+    errors = check_cel_expression(f"task == '{val}'", registry)
+
+    assert errors
+    assert all(error.is_warning for error in errors)
+
+
+@given(
+    val=st.text(
+        min_size=1,
+        max_size=12,
+        alphabet=st.characters(whitelist_categories=("L", "N")),
+    )
+)
+@settings(max_examples=40)
+def test_closed_category_undeclared_literals_are_hard_errors(val):
+    assume(val not in {"front", "back", "central"})
+    registry = {
+        "vowel_type": ConceptInfo(
+            "concept32",
+            "vowel_type",
+            KindType.CATEGORY,
+            category_values=["front", "back", "central"],
+            category_extensible=False,
+        )
+    }
+
+    errors = check_cel_expression(f"vowel_type == '{val}'", registry)
+
+    assert any(not error.is_warning for error in errors)
 
 
 # ── build_cel_registry tests ─────────────────────────────────────────
