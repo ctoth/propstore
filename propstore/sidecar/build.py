@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
-    legacy_concept_registry_for_context,
+    concept_registry_for_context,
     normalize_loaded_concepts,
 )
 from propstore.compiler.passes import compile_claim_files

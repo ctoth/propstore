@@ -12,7 +12,7 @@ from propstore.cel_checker import check_cel_expression
 from propstore.compiler.context import (
     CompilationContext,
     _build_claim_lookup,
-    legacy_concept_registry_for_context,
+    concept_registry_for_context,
 )
 from propstore.compiler.diagnostics import SemanticDiagnostic
 from propstore.compiler.ir import (
@@ -324,7 +324,7 @@ def compile_claim_files(
     normalized_claim_files = _normalize_claim_entries(claim_files)
     claim_lookup = _build_claim_lookup(normalized_claim_files)
     effective_context = replace(context, claim_lookup=claim_lookup)
-    legacy_concept_registry = legacy_concept_registry_for_context(effective_context)
+    concept_registry = concept_registry_for_context(effective_context)
 
     diagnostics: list[SemanticDiagnostic] = []
     semantic_files: list[SemanticClaimFile] = []
@@ -543,7 +543,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    legacy_concept_registry,
+                    concept_registry,
                     per_claim,
                 )
             elif ctype == "equation":
@@ -551,7 +551,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    legacy_concept_registry,
+                    concept_registry,
                     per_claim,
                 )
             elif ctype == "observation":
@@ -559,7 +559,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    legacy_concept_registry,
+                    concept_registry,
                     per_claim,
                 )
             elif ctype == "model":
@@ -567,7 +567,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    legacy_concept_registry,
+                    concept_registry,
                     per_claim,
                 )
             elif ctype == "measurement":
@@ -575,7 +575,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    legacy_concept_registry,
+                    concept_registry,
                     per_claim,
                 )
             elif ctype == "algorithm":
@@ -583,7 +583,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    legacy_concept_registry,
+                    concept_registry,
                     per_claim,
                 )
             elif ctype in ("mechanism", "comparison", "limitation"):
@@ -591,7 +591,7 @@ def compile_claim_files(
                     semantic_claim.resolved_claim,
                     cid,
                     normalized_file.filename,
-                    legacy_concept_registry,
+                    concept_registry,
                     per_claim,
                     claim_type=ctype,
                 )

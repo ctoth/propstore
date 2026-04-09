@@ -28,8 +28,8 @@ from propstore.compiler.context import (
     CompilationContext,
     build_compilation_context_from_paths as build_claim_compilation_context_from_paths,
     build_compilation_context_from_repo as build_claim_compilation_context_from_repo,
-    build_legacy_concept_registry_from_paths,
-    compilation_context_from_legacy_registry,
+    build_concept_registry_from_paths,
+    compilation_context_from_concept_registry,
 )
 from propstore.compiler.passes import compile_claim_files
 from propstore.resources import load_resource_json
@@ -231,7 +231,7 @@ def validate_claims(
     context = (
         concept_registry
         if isinstance(concept_registry, CompilationContext)
-        else compilation_context_from_legacy_registry(
+        else compilation_context_from_concept_registry(
             concept_registry,
             claim_files=claim_files,
             context_ids=context_ids,
@@ -744,6 +744,6 @@ def build_concept_registry(repo: Repository | None) -> dict[str, dict]:
     if repo is None:
         return {}
     context = build_claim_compilation_context_from_repo(repo)
-    from propstore.compiler.context import legacy_concept_registry_for_context
+    from propstore.compiler.context import concept_registry_for_context
 
-    return legacy_concept_registry_for_context(context)
+    return concept_registry_for_context(context)
