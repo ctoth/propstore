@@ -6,9 +6,7 @@ import hashlib
 
 from propstore.identity import (
     compute_concept_version_id,
-    derive_concept_artifact_id,
     format_logical_id,
-    normalize_logical_value,
     primary_logical_id,
 )
 
@@ -37,33 +35,23 @@ def concept_logical_ids(concept: dict) -> list[dict[str, str]]:
                 normalized.append({"namespace": namespace, "value": value})
         if normalized:
             return normalized
-
-    legacy_value = concept.get("id")
-    if not isinstance(legacy_value, str) or not legacy_value:
-        legacy_value = concept.get("canonical_name")
-    if not isinstance(legacy_value, str) or not legacy_value:
-        legacy_value = "concept"
-    return [{"namespace": "legacy", "value": normalize_logical_value(legacy_value)}]
+    return []
 
 
 def concept_primary_logical_id(concept: dict) -> str | None:
     primary = primary_logical_id(concept)
     if isinstance(primary, str) and primary:
         return primary
-    return format_logical_id(concept_logical_ids(concept)[0])
+    logical_ids = concept_logical_ids(concept)
+    if logical_ids:
+        return format_logical_id(logical_ids[0])
+    return None
 
 
 def concept_artifact_id(concept: dict) -> str | None:
     artifact_id = concept.get("artifact_id")
     if isinstance(artifact_id, str) and artifact_id:
         return artifact_id
-    legacy_id = concept.get("id")
-    if isinstance(legacy_id, str) and legacy_id:
-        return legacy_id
-    primary = concept_primary_logical_id(concept)
-    if isinstance(primary, str) and ":" in primary:
-        namespace, value = primary.split(":", 1)
-        return derive_concept_artifact_id(namespace, value)
     return None
 
 
@@ -71,9 +59,14 @@ def concept_version_id(concept: dict) -> str | None:
     version_id = concept.get("version_id")
     if isinstance(version_id, str) and version_id:
         return version_id
+    if concept_artifact_id(concept) is None:
+        return None
+    logical_ids = concept_logical_ids(concept)
+    if not logical_ids:
+        return None
     canonical = dict(concept)
     canonical["artifact_id"] = concept_artifact_id(concept)
-    canonical["logical_ids"] = concept_logical_ids(concept)
+    canonical["logical_ids"] = logical_ids
     return compute_concept_version_id(canonical)
 
 
