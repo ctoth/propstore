@@ -352,7 +352,6 @@ def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
 @settings(
     max_examples=25,
     deadline=None,
-    suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
 @given(
     left_ids=st.lists(
@@ -369,7 +368,6 @@ def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
     ),
 )
 def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
-    tmp_path: Path,
     left_ids: list[str],
     right_ids: list[str],
 ):
@@ -377,7 +375,7 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
 
     assume(set(left_ids).isdisjoint(right_ids))
 
-    kr = KnowledgeRepo.init(tmp_path / f"knowledge_{uuid4().hex}")
+    kr = KnowledgeRepo.init_memory()
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/property_preserve"
     create_branch(kr, branch_name, source_commit=base_sha)

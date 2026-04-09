@@ -19,7 +19,7 @@ from typing import Any
 
 import yaml
 from dulwich.objects import Blob, Tree, Commit
-from dulwich.repo import Repo
+from dulwich.repo import BaseRepo, MemoryRepo, Repo
 
 _CONCEPT_ID_RE = re.compile(r"^concept(\d+)$")
 
@@ -104,13 +104,13 @@ class KnowledgeRepo:
     (e.g., ``"concepts/foo.yaml"``).
     """
 
-    def __init__(self, dulwich_repo: Repo, root: Path) -> None:
+    def __init__(self, dulwich_repo: BaseRepo, root: Path | None = None) -> None:
         self._repo = dulwich_repo
         self._root = root
         self._branch_meta: dict[str, dict[str, str | int]] = {}
 
     @property
-    def root(self) -> Path:
+    def root(self) -> Path | None:
         return self._root
 
     def primary_branch_name(self) -> str:
@@ -160,6 +160,17 @@ class KnowledgeRepo:
         # Commit .gitignore as the initial commit
         kr.commit_files({".gitignore": _GITIGNORE_CONTENT.encode("utf-8")}, "Initialize knowledge repository")
         kr.sync_worktree()
+        return kr
+
+    @classmethod
+    def init_memory(cls) -> KnowledgeRepo:
+        """Create an in-memory KnowledgeRepo (no filesystem). For testing."""
+        repo = MemoryRepo()
+        kr = cls(repo)
+        kr.commit_files(
+            {".gitignore": _GITIGNORE_CONTENT.encode("utf-8")},
+            "Initialize knowledge repository",
+        )
         return kr
 
     @classmethod
@@ -300,7 +311,10 @@ class KnowledgeRepo:
 
         Creates/updates files to match git state, removes files that
         are no longer in the tree (excluding .git/).
+        No-op for in-memory repos (no filesystem to sync to).
         """
+        if self._root is None:
+            return
         try:
             head = self._repo.head()
         except KeyError:

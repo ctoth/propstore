@@ -40,8 +40,13 @@ valid_filename = st.from_regex(r"[a-z][a-z0-9_]{0,20}", fullmatch=True).map(
 valid_path = st.tuples(valid_subdir, valid_filename).map(lambda t: f"{t[0]}/{t[1]}")
 
 
-def _make_repo() -> tuple[KnowledgeRepo, Path]:
-    """Create a fresh KnowledgeRepo in a temp directory."""
+def _make_repo() -> KnowledgeRepo:
+    """Create a fresh in-memory KnowledgeRepo."""
+    return KnowledgeRepo.init_memory()
+
+
+def _make_disk_repo() -> tuple[KnowledgeRepo, Path]:
+    """Create a fresh KnowledgeRepo on disk (for worktree/filesystem tests)."""
     tmpdir = tempfile.mkdtemp()
     root = Path(tmpdir) / "knowledge"
     repo = KnowledgeRepo.init(root)
@@ -51,11 +56,11 @@ def _make_repo() -> tuple[KnowledgeRepo, Path]:
 # ── Property 1: Roundtrip preservation ──────────────────────────────
 
 
-@settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=50, deadline=None)
 @given(path=valid_path, content=yaml_bytes)
 def test_roundtrip_preservation(path: str, content: bytes) -> None:
     """commit_files then read_file returns data byte-for-byte."""
-    repo, _ = _make_repo()
+    repo = _make_repo()
     repo.commit_files({path: content}, f"add {path}")
     assert repo.read_file(path) == content
 
@@ -63,11 +68,11 @@ def test_roundtrip_preservation(path: str, content: bytes) -> None:
 # ── Property 2: Listing completeness ────────────────────────────────
 
 
-@settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=50, deadline=None)
 @given(subdir=valid_subdir, filenames=st.lists(valid_filename, min_size=1, max_size=5, unique=True))
 def test_listing_completeness(subdir: str, filenames: list[str]) -> None:
     """Committed files appear in list_dir(subdir)."""
-    repo, _ = _make_repo()
+    repo = _make_repo()
     content = b"x: 1\n"
     changes = {f"{subdir}/{fn}": content for fn in filenames}
     repo.commit_files(changes, f"add files to {subdir}")
@@ -79,11 +84,11 @@ def test_listing_completeness(subdir: str, filenames: list[str]) -> None:
 # ── Property 3: Delete semantics ────────────────────────────────────
 
 
-@settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=50, deadline=None)
 @given(path=valid_path, content=yaml_bytes)
 def test_delete_semantics(path: str, content: bytes) -> None:
     """After commit_deletes, read_file raises FileNotFoundError."""
-    repo, _ = _make_repo()
+    repo = _make_repo()
     repo.commit_files({path: content}, f"add {path}")
     repo.commit_deletes([path], f"delete {path}")
     try:
@@ -96,7 +101,7 @@ def test_delete_semantics(path: str, content: bytes) -> None:
 # ── Property 4: Batch atomicity ─────────────────────────────────────
 
 
-@settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=50, deadline=None)
 @given(
     add_path=valid_path,
     add_content=yaml_bytes,
@@ -107,7 +112,7 @@ def test_batch_atomicity(
     add_path: str, add_content: bytes, del_path: str, del_content: bytes
 ) -> None:
     """commit_batch produces one commit; adds present, deletes gone."""
-    repo, _ = _make_repo()
+    repo = _make_repo()
     # Pre-commit the file to be deleted
     repo.commit_files({del_path: del_content}, "setup")
     initial_count = len(repo.log(max_count=10000))
@@ -144,7 +149,7 @@ def test_batch_atomicity(
 @given(path=valid_path, content=yaml_bytes)
 def test_worktree_fidelity(path: str, content: bytes) -> None:
     """After sync_worktree, on-disk files match git tree byte-for-byte."""
-    repo, root = _make_repo()
+    repo, root = _make_disk_repo()
     repo.commit_files({path: content}, f"add {path}")
     repo.sync_worktree()
     disk_path = root / path.replace("/", os.sep)
@@ -159,7 +164,7 @@ def test_worktree_fidelity(path: str, content: bytes) -> None:
 @given(subdir=valid_subdir, filename=valid_filename, content=yaml_bytes)
 def test_knowledge_path_equivalence(subdir: str, filename: str, content: bytes) -> None:
     """GitKnowledgePath and FilesystemKnowledgePath produce same output after sync."""
-    repo, root = _make_repo()
+    repo, root = _make_disk_repo()
     path = f"{subdir}/{filename}"
     repo.commit_files({path: content}, f"add {path}")
     repo.sync_worktree()
@@ -186,13 +191,13 @@ def test_knowledge_path_equivalence(subdir: str, filename: str, content: bytes) 
 # ── Property 7: History monotonicity ────────────────────────────────
 
 
-@settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=30, deadline=None)
 @given(
     paths=st.lists(valid_path, min_size=2, max_size=5, unique=True),
 )
 def test_history_monotonicity(paths: list[str]) -> None:
     """After N commits, log has N entries and head_sha changes each time."""
-    repo, _ = _make_repo()
+    repo = _make_repo()
     # init creates 1 commit
     shas = [repo.head_sha()]
 
@@ -215,7 +220,7 @@ def test_history_monotonicity(paths: list[str]) -> None:
 @given(path=valid_path, content=yaml_bytes)
 def test_idempotent_sync(path: str, content: bytes) -> None:
     """sync_worktree called twice produces same filesystem state."""
-    repo, root = _make_repo()
+    repo, root = _make_disk_repo()
     repo.commit_files({path: content}, f"add {path}")
 
     repo.sync_worktree()
@@ -243,7 +248,7 @@ def _snapshot_dir(root: Path) -> dict[str, bytes]:
 # ── Property 9: Commit message preservation ─────────────────────────
 
 
-@settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=50, deadline=None)
 @given(
     path=valid_path,
     content=yaml_bytes,
@@ -255,7 +260,7 @@ def _snapshot_dir(root: Path) -> dict[str, bytes]:
 )
 def test_commit_message_preservation(path: str, content: bytes, msg: str) -> None:
     """Message passed to commit_files appears in log output."""
-    repo, _ = _make_repo()
+    repo = _make_repo()
     repo.commit_files({path: content}, msg)
     history = repo.log(max_count=1)
     assert len(history) >= 1
@@ -265,12 +270,11 @@ def test_commit_message_preservation(path: str, content: bytes, msg: str) -> Non
 # ── Property 10: Path normalization ─────────────────────────────────
 
 
-@settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=30, deadline=None)
 @given(subdir=valid_subdir, name=valid_filename, content=yaml_bytes)
-def test_path_normalization(subdir: str, name: str, content: bytes, tmp_path_factory) -> None:
+def test_path_normalization(subdir: str, name: str, content: bytes) -> None:
     """Paths with backslashes are normalized internally."""
-    root = tmp_path_factory.mktemp("repo")
-    kr = KnowledgeRepo.init(root)
+    kr = _make_repo()
 
     posix_path = f"{subdir}/{name}"
     backslash_path = f"{subdir}\\{name}"
@@ -296,8 +300,7 @@ class KnowledgeRepoMachine(RuleBasedStateMachine):
 
     @initialize()
     def init_repo(self) -> None:
-        self.tmpdir = tempfile.mkdtemp()
-        self.repo = KnowledgeRepo.init(Path(self.tmpdir) / "knowledge")
+        self.repo = KnowledgeRepo.init_memory()
         self.commit_count = 1  # init creates .gitignore commit
         self.model = {}
 
@@ -354,5 +357,4 @@ TestKnowledgeRepo.settings = settings(
     max_examples=20,
     stateful_step_count=10,
     deadline=None,
-    suppress_health_check=[HealthCheck.too_slow],
 )

@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 import yaml
-from uuid import uuid4
-from hypothesis import HealthCheck, given, settings
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.repo import KnowledgeRepo
@@ -48,10 +47,6 @@ def _obs_claim(cid: str, statement: str) -> dict:
         "sample_size": 10,
         "provenance": {"paper": "test_paper", "page": 1},
     }
-
-
-def _hypothesis_repo_root(tmp_path, suffix: str):
-    return tmp_path / f"{suffix}_{uuid4().hex}"
 
 
 def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
@@ -211,7 +206,6 @@ def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_
 @settings(
     max_examples=25,
     deadline=None,
-    suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
 @given(
     extra_targets=st.lists(
@@ -222,14 +216,9 @@ def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_
     )
 )
 def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
-    tmp_path,
     extra_targets: list[str],
 ):
-    repo_root = _hypothesis_repo_root(
-        tmp_path,
-        "knowledge_out_scope_" + "_".join(extra_targets),
-    )
-    kr = KnowledgeRepo.init(repo_root)
+    kr = KnowledgeRepo.init_memory()
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/out_of_scope"
     create_branch(kr, branch_name, source_commit=base_sha)
@@ -279,25 +268,16 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
 @settings(
     max_examples=25,
     deadline=None,
-    suppress_health_check=[HealthCheck.function_scoped_fixture],
 )
 @given(
     claim_order=st.permutations(("claim_a", "claim_b", "claim_c")),
     stance_order=st.permutations(("claim_b", "claim_c")),
 )
 def test_branch_structured_summary_is_order_invariant(
-    tmp_path,
     claim_order: tuple[str, ...],
     stance_order: tuple[str, ...],
 ):
-    repo_root = _hypothesis_repo_root(
-        tmp_path,
-        "knowledge_order_"
-        + "_".join(claim_order)
-        + "__"
-        + "_".join(stance_order),
-    )
-    kr = KnowledgeRepo.init(repo_root)
+    kr = KnowledgeRepo.init_memory()
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/order_invariant"
     create_branch(kr, branch_name, source_commit=base_sha)
