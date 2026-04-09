@@ -12,21 +12,14 @@ observed concept values rather than full belief-base model semantics.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from itertools import product
 from collections.abc import Mapping
 from typing import Any
 
 from propstore.cel_checker import (
-    ASTNode,
-    BinaryOpNode,
     CelError,
-    InNode,
-    LiteralNode,
-    NameNode,
-    TernaryNode,
-    UnaryOpNode,
     check_cel_expression,
-    parse_cel,
     scope_cel_registry,
 )
 from propstore.world.types import (
@@ -160,58 +153,6 @@ def _cel_bindings(
     return bindings
 
 
-def _eval_cel_ast(node: ASTNode, bindings: Mapping[str, Any]) -> Any:
-    if isinstance(node, LiteralNode):
-        return node.value
-    if isinstance(node, NameNode):
-        if node.name not in bindings:
-            raise ValueError(f"Undefined concept: '{node.name}'")
-        return bindings[node.name]
-    if isinstance(node, UnaryOpNode):
-        operand = _eval_cel_ast(node.operand, bindings)
-        if node.op == "!":
-            return not operand
-        if node.op == "-":
-            return -operand
-        raise ValueError(f"Unknown CEL unary operator: {node.op}")
-    if isinstance(node, BinaryOpNode):
-        left = _eval_cel_ast(node.left, bindings)
-        right = _eval_cel_ast(node.right, bindings)
-        if node.op == "&&":
-            return bool(left) and bool(right)
-        if node.op == "||":
-            return bool(left) or bool(right)
-        if node.op == "+":
-            return left + right
-        if node.op == "-":
-            return left - right
-        if node.op == "*":
-            return left * right
-        if node.op == "/":
-            return left / right
-        if node.op == "<":
-            return left < right
-        if node.op == ">":
-            return left > right
-        if node.op == "<=":
-            return left <= right
-        if node.op == ">=":
-            return left >= right
-        if node.op == "==":
-            return left == right
-        if node.op == "!=":
-            return left != right
-        raise ValueError(f"Unknown CEL binary operator: {node.op}")
-    if isinstance(node, InNode):
-        expr = _eval_cel_ast(node.expr, bindings)
-        return expr in [_eval_cel_ast(value, bindings) for value in node.values]
-    if isinstance(node, TernaryNode):
-        condition = _eval_cel_ast(node.condition, bindings)
-        branch = node.true_branch if condition else node.false_branch
-        return _eval_cel_ast(branch, bindings)
-    raise TypeError(f"Unsupported CEL AST node: {type(node)}")
-
-
 def _validate_cel_constraint(constraint: IntegrityConstraint) -> dict[str, Any]:
     if not constraint.cel:
         raise ValueError("CEL integrity constraint requires a non-empty cel expression")
@@ -223,17 +164,11 @@ def _validate_cel_constraint(constraint: IntegrityConstraint) -> dict[str, Any]:
     return registry
 
 
-def _eval_cel_constraint_bruteforce(
-    assignment: MergeAssignment,
-    constraint: IntegrityConstraint,
-) -> bool:
-    registry = _validate_cel_constraint(constraint)
-    bindings = _cel_bindings(assignment, constraint, registry)
-    expr = constraint.cel
-    if expr is None:
-        raise ValueError("CEL integrity constraint requires a non-empty cel expression")
-    ast = parse_cel(expr)
-    return bool(_eval_cel_ast(ast, bindings))
+@dataclass(frozen=True)
+class _CompiledConstraint:
+    kind: IntegrityConstraintKind
+    concept_ids: tuple[str, ...]
+    holds: Any
 
 
 def _eval_cel_constraint_z3(
@@ -253,58 +188,108 @@ def _eval_cel_constraint_z3(
     return solver.is_condition_satisfied(expr, bindings)
 
 
-def _eval_cel_constraint(
-    assignment: MergeAssignment,
+def _compile_cel_constraint(
     constraint: IntegrityConstraint,
-) -> bool:
-    return _eval_cel_constraint_z3(assignment, constraint)
+) -> _CompiledConstraint:
+    registry = _validate_cel_constraint(constraint)
+    expr = constraint.cel
+    if expr is None:
+        raise ValueError("CEL integrity constraint requires a non-empty cel expression")
+    try:
+        from propstore.z3_conditions import Z3ConditionSolver
+    except ImportError as exc:
+        raise RuntimeError("Z3 is required for CEL IC-merge evaluation") from exc
+    solver = Z3ConditionSolver(registry)
+
+    def _holds(assignment: MergeAssignment) -> bool:
+        bindings = _cel_bindings(assignment, constraint, registry)
+        return solver.is_condition_satisfied(expr, bindings)
+
+    return _CompiledConstraint(
+        kind=constraint.kind,
+        concept_ids=constraint.concept_ids,
+        holds=_holds,
+    )
 
 
-def _constraint_holds(
-    assignment: MergeAssignment,
-    constraint: IntegrityConstraint,
-) -> bool:
-    scoped_values = _constraint_scope_values(assignment, constraint)
-
+def _compile_constraint(constraint: IntegrityConstraint) -> _CompiledConstraint:
     if constraint.kind == IntegrityConstraintKind.RANGE:
         lower = constraint.metadata.get("lower")
         upper = constraint.metadata.get("upper")
-        for value in scoped_values.values():
-            try:
-                numeric = float(value)
-            except (TypeError, ValueError):
-                return False
-            if lower is not None and numeric < float(lower):
-                return False
-            if upper is not None and numeric > float(upper):
-                return False
-        return True
+
+        def _holds(assignment: MergeAssignment) -> bool:
+            scoped_values = _constraint_scope_values(assignment, constraint)
+            for value in scoped_values.values():
+                try:
+                    numeric = float(value)
+                except (TypeError, ValueError):
+                    return False
+                if lower is not None and numeric < float(lower):
+                    return False
+                if upper is not None and numeric > float(upper):
+                    return False
+            return True
+
+        return _CompiledConstraint(
+            kind=constraint.kind,
+            concept_ids=constraint.concept_ids,
+            holds=_holds,
+        )
 
     if constraint.kind == IntegrityConstraintKind.CATEGORY:
         allowed_values = tuple(constraint.metadata.get("allowed_values", ()))
         extensible = bool(constraint.metadata.get("extensible", False))
-        if extensible:
-            return True
-        for value in scoped_values.values():
-            if value not in allowed_values:
-                return False
-        return True
+
+        def _holds(assignment: MergeAssignment) -> bool:
+            if extensible:
+                return True
+            scoped_values = _constraint_scope_values(assignment, constraint)
+            return all(value in allowed_values for value in scoped_values.values())
+
+        return _CompiledConstraint(
+            kind=constraint.kind,
+            concept_ids=constraint.concept_ids,
+            holds=_holds,
+        )
 
     if constraint.kind == IntegrityConstraintKind.CEL:
-        return _eval_cel_constraint(assignment, constraint)
+        return _compile_cel_constraint(constraint)
 
     if constraint.kind == IntegrityConstraintKind.CUSTOM:
         predicate = constraint.metadata.get("predicate")
         if not callable(predicate):
             raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
-        return bool(predicate(scoped_values))
+
+        def _holds(assignment: MergeAssignment) -> bool:
+            scoped_values = _constraint_scope_values(assignment, constraint)
+            return bool(predicate(scoped_values))
+
+        return _CompiledConstraint(
+            kind=constraint.kind,
+            concept_ids=constraint.concept_ids,
+            holds=_holds,
+        )
 
     raise ValueError(f"Unsupported integrity constraint kind: {constraint.kind}")
 
 
+def _compile_constraints(
+    constraints: tuple[IntegrityConstraint, ...] | list[IntegrityConstraint],
+) -> tuple[_CompiledConstraint, ...]:
+    return tuple(_compile_constraint(constraint) for constraint in constraints)
+
+
+def _constraint_holds(
+    assignment: MergeAssignment,
+    constraint: _CompiledConstraint,
+) -> bool:
+    return bool(constraint.holds(assignment))
+
+
 def assignment_satisfies_mu(problem: ICMergeProblem, assignment: MergeAssignment) -> bool:
     """Whether an assignment satisfies every integrity constraint in the problem."""
-    return all(_constraint_holds(assignment, constraint) for constraint in problem.constraints)
+    compiled_constraints = _compile_constraints(problem.constraints)
+    return all(_constraint_holds(assignment, constraint) for constraint in compiled_constraints)
 
 
 def _score_assignment(
@@ -337,10 +322,11 @@ def _score_assignment(
 def solve_ic_merge(problem: ICMergeProblem) -> ICMergeResult:
     """Solve one assignment-level IC-merge problem over the declared concept domain."""
     candidates = enumerate_candidate_assignments(problem)
+    compiled_constraints = _compile_constraints(problem.constraints)
     admissible = tuple(
         candidate
         for candidate in candidates
-        if assignment_satisfies_mu(problem, candidate)
+        if all(_constraint_holds(candidate, constraint) for constraint in compiled_constraints)
     )
     if not admissible:
         return ICMergeResult(
