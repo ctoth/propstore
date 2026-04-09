@@ -17,7 +17,6 @@ from propstore.cel_checker import ConceptInfo, KindType
 import propstore.repo as repo_api
 from propstore.repo.ic_merge import (
     MergeOperator,
-    _eval_cel_constraint_bruteforce,
     _eval_cel_constraint_z3,
     assignment_satisfies_mu,
     enumerate_candidate_assignments,
@@ -35,6 +34,85 @@ from propstore.world.types import (
 )
 
 ic_merge_module = importlib.import_module("propstore.repo.ic_merge")
+
+
+def _eval_cel_ast_oracle(node, bindings):
+    from propstore.cel_checker import (
+        BinaryOpNode,
+        InNode,
+        LiteralNode,
+        NameNode,
+        TernaryNode,
+        UnaryOpNode,
+    )
+
+    if isinstance(node, LiteralNode):
+        return node.value
+    if isinstance(node, NameNode):
+        if node.name not in bindings:
+            raise ValueError(f"Undefined concept: '{node.name}'")
+        return bindings[node.name]
+    if isinstance(node, UnaryOpNode):
+        operand = _eval_cel_ast_oracle(node.operand, bindings)
+        if node.op == "!":
+            return not operand
+        if node.op == "-":
+            return -operand
+        raise ValueError(f"Unknown CEL unary operator: {node.op}")
+    if isinstance(node, BinaryOpNode):
+        left = _eval_cel_ast_oracle(node.left, bindings)
+        right = _eval_cel_ast_oracle(node.right, bindings)
+        if node.op == "&&":
+            return bool(left) and bool(right)
+        if node.op == "||":
+            return bool(left) or bool(right)
+        if node.op == "+":
+            return left + right
+        if node.op == "-":
+            return left - right
+        if node.op == "*":
+            return left * right
+        if node.op == "/":
+            return left / right
+        if node.op == "<":
+            return left < right
+        if node.op == ">":
+            return left > right
+        if node.op == "<=":
+            return left <= right
+        if node.op == ">=":
+            return left >= right
+        if node.op == "==":
+            return left == right
+        if node.op == "!=":
+            return left != right
+        raise ValueError(f"Unknown CEL binary operator: {node.op}")
+    if isinstance(node, InNode):
+        expr = _eval_cel_ast_oracle(node.expr, bindings)
+        return expr in [_eval_cel_ast_oracle(value, bindings) for value in node.values]
+    if isinstance(node, TernaryNode):
+        condition = _eval_cel_ast_oracle(node.condition, bindings)
+        branch = node.true_branch if condition else node.false_branch
+        return _eval_cel_ast_oracle(branch, bindings)
+    raise TypeError(f"Unsupported CEL AST node: {type(node)}")
+
+
+def _eval_cel_constraint_bruteforce_oracle(assignment, constraint) -> bool:
+    from propstore.cel_checker import check_cel_expression, parse_cel, scope_cel_registry
+
+    if not constraint.cel:
+        raise ValueError("CEL integrity constraint requires a non-empty cel expression")
+    registry = scope_cel_registry(constraint.metadata["registry"], constraint.concept_ids)
+    errors = check_cel_expression(constraint.cel, registry)
+    hard_errors = [error for error in errors if not error.is_warning]
+    if hard_errors:
+        raise ValueError("; ".join(error.message for error in hard_errors))
+    bindings = {
+        canonical_name: assignment.value_for(info.id)
+        for canonical_name, info in registry.items()
+    }
+    ast = parse_cel(constraint.cel)
+    return bool(_eval_cel_ast_oracle(ast, bindings))
 
 # ── Strategies ──────────────────────────────────────────────────────
 
@@ -659,14 +737,22 @@ class TestAssignmentLevelICMerge:
             for winner in result.winners
         )
 
-    def test_default_cel_path_uses_z3_not_bruteforce(self, monkeypatch):
-        monkeypatch.setattr(
-            ic_merge_module,
-            "_eval_cel_constraint_bruteforce",
-            lambda assignment, constraint: (_ for _ in ()).throw(
-                AssertionError("bruteforce CEL oracle should not be the default path")
-            ),
-        )
+    def test_duplicate_production_cel_runtime_is_removed(self):
+        assert not hasattr(ic_merge_module, "_eval_cel_ast")
+        assert not hasattr(ic_merge_module, "_eval_cel_constraint_bruteforce")
+
+    def test_cel_constraints_reuse_one_solver_per_problem(self, monkeypatch):
+        import propstore.z3_conditions as z3_conditions
+
+        real_solver = z3_conditions.Z3ConditionSolver
+        init_count = 0
+
+        class CountingSolver(real_solver):
+            def __init__(self, registry):
+                nonlocal init_count
+                init_count += 1
+                super().__init__(registry)
+
         problem = ICMergeProblem(
             concept_ids=("x", "y"),
             sources=(
@@ -690,9 +776,11 @@ class TestAssignmentLevelICMerge:
             operator=MergeOperator.SIGMA,
         )
 
+        monkeypatch.setattr(z3_conditions, "Z3ConditionSolver", CountingSolver)
         result = solve_ic_merge(problem)
 
         assert result.winners
+        assert init_count == 1
 
     @given(
         st.lists(
@@ -827,7 +915,7 @@ class TestAssignmentLevelICMerge:
         constraint = problem.constraints[0]
 
         for assignment in enumerate_candidate_assignments(problem):
-            assert _eval_cel_constraint_z3(assignment, constraint) == _eval_cel_constraint_bruteforce(
+            assert _eval_cel_constraint_z3(assignment, constraint) == _eval_cel_constraint_bruteforce_oracle(
                 assignment,
                 constraint,
             )
@@ -1336,3 +1424,5 @@ class TestPublicApiHonesty:
         assert "scalar helper" not in module_doc.lower()
         assert not hasattr(ic_merge_module, "_scalar_ic_merge")
         assert not hasattr(ic_merge_module, "_scalar_profile_problem")
+        assert not hasattr(ic_merge_module, "_eval_cel_ast")
+        assert not hasattr(ic_merge_module, "_eval_cel_constraint_bruteforce")
