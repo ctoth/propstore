@@ -51,6 +51,7 @@ strict = [
 ]
 
 [tool.pytest.ini_options]
+# Hypothesis profiles: HYPOTHESIS_PROFILE=overnight for thorough runs (see tests/conftest.py)
 timeout = 300
 timeout_method = "thread"
 
