@@ -8,7 +8,7 @@ from collections import deque
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from propstore.cel_checker import ConceptInfo, KindType
+from propstore.cel_checker import ConceptInfo, KindType, build_cel_registry_from_rows
 from propstore.core.id_types import to_concept_id
 from propstore.core.labels import compile_environment_assumptions
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
@@ -264,28 +264,19 @@ class WorldModel(ArtifactStore):
     def _build_registry(self) -> dict[str, ConceptInfo]:
         if self._registry is not None:
             return self._registry
-        registry: dict[str, ConceptInfo] = {}
         rows = self._conn.execute(
             "SELECT id, canonical_name, kind_type, form_parameters FROM concept"
         ).fetchall()
-        for row in rows:
-            canonical = row["canonical_name"]
-            kind = _KIND_TYPE_MAP.get(row["kind_type"], KindType.QUANTITY)
-            cat_values: list[str] = []
-            cat_extensible = True
-            fp = row["form_parameters"]
-            if fp:
-                params = json.loads(fp)
-                if isinstance(params, dict):
-                    cat_values = params.get("values", [])
-                    cat_extensible = params.get("extensible", True)
-            registry[canonical] = ConceptInfo(
-                id=row["id"],
-                canonical_name=canonical,
-                kind=kind,
-                category_values=cat_values,
-                category_extensible=cat_extensible,
-            )
+        normalized_rows = [
+            {
+                "id": row["id"],
+                "canonical_name": row["canonical_name"],
+                "kind_type": row["kind_type"],
+                "form_parameters": row["form_parameters"],
+            }
+            for row in rows
+        ]
+        registry = build_cel_registry_from_rows(normalized_rows)
         self._registry = registry
         return registry
 
