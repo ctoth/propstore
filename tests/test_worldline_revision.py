@@ -112,8 +112,7 @@ class _RevisionWorld:
 
 
 def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
-    from propstore.worldline import WorldlineDefinition
-    from propstore.worldline_runner import run_worldline
+    from propstore.worldline import WorldlineDefinition, run_worldline
 
     base, entrenchment = _base_with_shared_support()
     one_shot_result = revise(
@@ -124,9 +123,9 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     )
     bound = _RevisionBound(one_shot_result=one_shot_result)
 
-    monkeypatch.setattr("propstore.worldline_runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
+    monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
     monkeypatch.setattr(
-        "propstore.worldline_runner._resolve_target",
+        "propstore.worldline.runner._resolve_target",
         lambda *args, **kwargs: {"status": "determined", "value": 1.0},
     )
 
@@ -158,8 +157,7 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
 
 
 def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> None:
-    from propstore.worldline import WorldlineDefinition
-    from propstore.worldline_runner import run_worldline
+    from propstore.worldline import WorldlineDefinition, run_worldline
 
     base, entrenchment, _ = _history_sensitive_base()
     state = make_epistemic_state(base, entrenchment)
@@ -179,9 +177,9 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     )
     bound = _RevisionBound(iterated_result=iterated_result)
 
-    monkeypatch.setattr("propstore.worldline_runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
+    monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
     monkeypatch.setattr(
-        "propstore.worldline_runner._resolve_target",
+        "propstore.worldline.runner._resolve_target",
         lambda *args, **kwargs: {"status": "determined", "value": 1.0},
     )
 
@@ -213,8 +211,7 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
 
 
 def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> None:
-    from propstore.worldline import WorldlineDefinition
-    from propstore.worldline_runner import run_worldline
+    from propstore.worldline import WorldlineDefinition, run_worldline
 
     base, entrenchment, _ = _history_sensitive_base()
     merge_state = make_epistemic_state(
@@ -229,9 +226,9 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
         merge_error=ValueError("iterated revision is undefined at a merge point; use an explicit merge path"),
     )
 
-    monkeypatch.setattr("propstore.worldline_runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
+    monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
     monkeypatch.setattr(
-        "propstore.worldline_runner._resolve_target",
+        "propstore.worldline.runner._resolve_target",
         lambda *args, **kwargs: {"status": "determined", "value": 1.0},
     )
 

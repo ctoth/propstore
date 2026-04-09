@@ -23,8 +23,7 @@ from propstore.world.types import (
     RenderPolicy,
     ResolutionStrategy,
 )
-from propstore.worldline import WorldlineDefinition
-from propstore.worldline_runner import run_worldline
+from propstore.worldline import WorldlineDefinition, run_worldline
 
 from tests.atms_helpers import _ExactMatchSolver, _LeafHierarchy, _OverlapSolver
 

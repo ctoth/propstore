@@ -1,6 +1,6 @@
 """Shared utilities for walking parameterization graphs.
 
-Used by worldline_runner (pre-resolve conflicts) and param_conflicts
+Used by worldline resolution (pre-resolve conflicts) and param_conflicts
 (transitive conflict detection). Both need to find all concepts
 reachable via parameterization edges from a set of starting concepts.
 """

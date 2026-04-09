@@ -1,0 +1,322 @@
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from propstore.core.id_types import ClaimId, to_claim_id
+from propstore.core.labels import Label, SupportQuality
+from propstore.core.row_types import StanceRow, coerce_stance_row
+from propstore.core.environment import StanceStore
+from propstore.world.types import (
+    ClaimSupportView,
+    HasATMSEngine,
+    RenderPolicy,
+    coerce_queryable_assumptions,
+    validate_backend_semantics,
+)
+from propstore.worldline.definition import WorldlineDefinition
+from propstore.worldline.interfaces import HasActiveGraph, WorldlineBoundView, WorldlineStore
+
+
+def capture_argumentation_state(
+    bound: WorldlineBoundView,
+    world: WorldlineStore,
+    definition: WorldlineDefinition,
+) -> tuple[dict[str, Any] | None, list[str], set[ClaimId]]:
+    from propstore.world import ReasoningBackend
+
+    active = bound.active_claims()
+    active_ids = {
+        to_claim_id(claim_id)
+        for claim in active
+        if (claim_id := claim.get("id"))
+    }
+    active_graph = bound._active_graph if isinstance(bound, HasActiveGraph) else None
+    reasoning_backend = definition.policy.reasoning_backend
+    _, normalized_semantics = validate_backend_semantics(
+        reasoning_backend,
+        definition.policy.semantics,
+    )
+
+    argumentation_state: dict[str, Any] | None = None
+    if (
+        reasoning_backend == ReasoningBackend.CLAIM_GRAPH
+        and world.has_table("relation_edge")
+    ):
+        argumentation_state = _capture_claim_graph(
+            world,
+            active_ids,
+            active_graph,
+            definition.policy,
+            normalized_semantics,
+        )
+    elif (
+        reasoning_backend == ReasoningBackend.ASPIC
+        and world.has_table("relation_edge")
+    ):
+        argumentation_state = _capture_aspic(
+            bound,
+            world,
+            active,
+            active_ids,
+            active_graph,
+            definition.policy,
+            normalized_semantics,
+        )
+    elif reasoning_backend == ReasoningBackend.ATMS:
+        argumentation_state = _capture_atms(bound, definition.policy)
+    elif (
+        reasoning_backend == ReasoningBackend.PRAF
+        and world.has_table("relation_edge")
+    ):
+        argumentation_state = _capture_praf(
+            world,
+            active_ids,
+            active_graph,
+            definition.policy,
+            normalized_semantics,
+        )
+
+    stance_dependencies: list[str] = []
+    if argumentation_state is not None and argumentation_state.get("backend") != "atms":
+        stance_dependencies = active_stance_dependencies(bound, world, active_ids)
+
+    return argumentation_state, stance_dependencies, active_ids
+
+
+def _capture_claim_graph(
+    world: WorldlineStore,
+    active_ids: set[ClaimId],
+    active_graph: Any,
+    policy: RenderPolicy,
+    normalized_semantics: Any,
+) -> dict[str, Any] | None:
+    justified_claims: frozenset[ClaimId] | None = None
+    if active_graph is not None:
+        from propstore.core.analyzers import (
+            analyze_claim_graph,
+            shared_analyzer_input_from_active_graph,
+        )
+
+        analyzer_result = analyze_claim_graph(
+            shared_analyzer_input_from_active_graph(
+                active_graph,
+                comparison=policy.comparison,
+            ),
+            semantics=normalized_semantics,
+        )
+        if len(analyzer_result.extensions) == 1:
+            justified_claims = frozenset(
+                to_claim_id(claim_id)
+                for claim_id in analyzer_result.extensions[0].accepted_claim_ids
+            )
+    else:
+        from propstore.claim_graph import compute_claim_graph_justified_claims
+
+        current = compute_claim_graph_justified_claims(
+            world,
+            {str(claim_id) for claim_id in active_ids},
+            semantics=normalized_semantics,
+            comparison=policy.comparison,
+        )
+        if isinstance(current, frozenset):
+            justified_claims = frozenset(
+                to_claim_id(claim_id)
+                for claim_id in current
+            )
+
+    if justified_claims is None:
+        return None
+    defeated = active_ids - justified_claims
+    return {
+        "justified": sorted(justified_claims),
+        "defeated": sorted(defeated),
+    }
+
+
+def _capture_aspic(
+    bound: WorldlineBoundView,
+    world: WorldlineStore,
+    active: list[dict[str, Any]],
+    active_ids: set[ClaimId],
+    active_graph: Any,
+    policy: RenderPolicy,
+    normalized_semantics: Any,
+) -> dict[str, Any] | None:
+    from propstore.world import ReasoningBackend
+    from propstore.structured_projection import (
+        build_structured_projection,
+        compute_structured_justified_arguments,
+    )
+
+    support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
+    if isinstance(bound, ClaimSupportView):
+        for claim in active:
+            claim_id = claim.get("id")
+            if claim_id:
+                support_metadata[claim_id] = bound.claim_support(claim)
+
+    projection = build_structured_projection(
+        world,
+        active,
+        support_metadata=support_metadata,
+        comparison=policy.comparison,
+        link=policy.link,
+        active_graph=active_graph,
+    )
+    justified_arguments = compute_structured_justified_arguments(
+        projection,
+        semantics=normalized_semantics,
+        backend=ReasoningBackend.ASPIC,
+    )
+    if not isinstance(justified_arguments, frozenset):
+        return None
+
+    justified_claim_ids = {
+        to_claim_id(projection.argument_to_claim_id[arg_id])
+        for arg_id in justified_arguments
+    }
+    defeated = active_ids - justified_claim_ids
+    return {
+        "backend": "aspic",
+        "justified": sorted(justified_claim_ids),
+        "defeated": sorted(defeated),
+    }
+
+
+def _capture_atms(
+    bound: WorldlineBoundView,
+    policy: RenderPolicy,
+) -> dict[str, Any] | None:
+    if not isinstance(bound, HasATMSEngine):
+        return None
+    return bound.atms_engine().argumentation_state(
+        queryables=coerce_queryable_assumptions(policy.future_queryables),
+        future_limit=policy.future_limit or 8,
+    )
+
+
+def _capture_praf(
+    world: WorldlineStore,
+    active_ids: set[ClaimId],
+    active_graph: Any,
+    policy: RenderPolicy,
+    normalized_semantics: Any,
+) -> dict[str, Any]:
+    praf_strategy = policy.praf_strategy or "auto"
+    praf_mc_epsilon = policy.praf_mc_epsilon or 0.01
+    praf_mc_confidence = policy.praf_mc_confidence or 0.95
+    praf_treewidth_cutoff = policy.praf_treewidth_cutoff or 12
+    praf_mc_seed = policy.praf_mc_seed
+
+    if active_graph is not None:
+        from propstore.core.analyzers import (
+            analyze_praf,
+            shared_analyzer_input_from_active_graph,
+        )
+
+        analyzer_result = analyze_praf(
+            shared_analyzer_input_from_active_graph(
+                active_graph,
+                comparison=policy.comparison or "elitist",
+            ),
+            semantics=normalized_semantics,
+            strategy=praf_strategy,
+            query_kind="argument_acceptance",
+            inference_mode="credulous",
+            mc_epsilon=praf_mc_epsilon,
+            mc_confidence=praf_mc_confidence,
+            treewidth_cutoff=praf_treewidth_cutoff,
+            rng_seed=praf_mc_seed,
+        )
+        metadata = dict(analyzer_result.metadata)
+        acceptance_probs = dict(metadata["acceptance_probs"])
+        strategy_used = metadata["strategy_used"]
+        samples = metadata["samples"]
+        confidence_interval_half = metadata["confidence_interval_half"]
+    else:
+        from propstore.praf import build_praf, compute_praf_acceptance
+
+        praf = build_praf(
+            world,
+            {str(claim_id) for claim_id in active_ids},
+            comparison=policy.comparison or "elitist",
+        )
+        result = compute_praf_acceptance(
+            praf,
+            semantics=normalized_semantics,
+            strategy=praf_strategy,
+            query_kind="argument_acceptance",
+            inference_mode="credulous",
+            mc_epsilon=praf_mc_epsilon,
+            mc_confidence=praf_mc_confidence,
+            treewidth_cutoff=praf_treewidth_cutoff,
+            rng_seed=praf_mc_seed,
+        )
+        acceptance_probs = dict(result.acceptance_probs or {})
+        strategy_used = result.strategy_used
+        samples = result.samples
+        confidence_interval_half = result.confidence_interval_half
+
+    return {
+        "backend": "praf",
+        "acceptance_probs": acceptance_probs,
+        "strategy_used": strategy_used,
+        "samples": samples,
+        "confidence_interval_half": confidence_interval_half,
+        "semantics": normalized_semantics.value,
+    }
+
+
+def _stance_dependency_key(row: StanceRow) -> str:
+    return json.dumps(
+        row.to_dict(),
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    )
+
+
+def active_stance_dependencies(
+    bound: WorldlineBoundView,
+    world: WorldlineStore,
+    active_ids: set[ClaimId],
+) -> list[str]:
+    active_graph = bound._active_graph if isinstance(bound, HasActiveGraph) else None
+    graph_relation_types = {
+        "rebuts",
+        "undercuts",
+        "undermines",
+        "supersedes",
+        "supports",
+        "explains",
+    }
+
+    if active_graph is not None:
+        stance_rows: list[StanceRow] = []
+        for edge in active_graph.compiled.relations:
+            if edge.relation_type not in graph_relation_types:
+                continue
+            if (
+                to_claim_id(edge.source_id) not in active_ids
+                or to_claim_id(edge.target_id) not in active_ids
+            ):
+                continue
+            stance_rows.append(
+                StanceRow.from_mapping(
+                    {
+                        "claim_id": edge.source_id,
+                        "target_claim_id": edge.target_id,
+                        "stance_type": edge.relation_type,
+                        **dict(edge.attributes),
+                    }
+                )
+            )
+        return sorted(_stance_dependency_key(row) for row in stance_rows)
+
+    if isinstance(world, StanceStore) and world.has_table("relation_edge"):
+        return sorted(
+            _stance_dependency_key(coerce_stance_row(row))
+            for row in world.stances_between({str(claim_id) for claim_id in active_ids})
+        )
+    return []

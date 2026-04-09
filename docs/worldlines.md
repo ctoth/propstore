@@ -6,7 +6,7 @@ The name comes from physics: a worldline is a path through a space parameterized
 
 Grounded in: de Kleer 1986 (ATMS labels as assumption-indexed beliefs), Martins 1983 (belief spaces).
 
-Source: `propstore/worldline.py` (data model), `propstore/worldline_runner.py` (materialization engine), `propstore/cli/worldline_cmds.py` (CLI).
+Source: `propstore/worldline/definition.py` (data model), `propstore/worldline/runner.py` (materialization engine), `propstore/cli/worldline_cmds.py` (CLI).
 
 ## Concepts
 
@@ -39,7 +39,7 @@ Every materialized worldline tracks four kinds of dependencies:
 - **Context dependencies** -- the context ID and effective assumptions that scoped the query, prefixed with `assumption:`.
 - **Derivation trace** -- an ordered list of resolution steps, each recording the concept name, resolved value, source type (`binding`, `override`, `claim`, `resolved`, `derived`, `error`, `underspecified`), and optional metadata (claim ID, formula, strategy, reason).
 
-For derived targets, the engine also traces input provenance recursively (`propstore/worldline_runner.py:_trace_input_source`), building a nested `inputs_used` dict that records where each derived input came from.
+For derived targets, the engine also traces input provenance recursively (`propstore/worldline/resolution.py:trace_input_source`), building a nested `inputs_used` dict that records where each derived input came from.
 
 ### Staleness detection
 
@@ -191,7 +191,7 @@ The argumentation state captured in the worldline result varies by backend:
 
 ## The materialization engine
 
-The engine (`propstore/worldline_runner.py:run_worldline`) executes in 7 phases:
+The engine (`propstore/worldline/runner.py:run_worldline`) executes in 7 phases:
 
 ### Phase 1: Build query environment
 
@@ -203,7 +203,7 @@ Override concept names are resolved to concept IDs. Overrides are passed as `ove
 
 ### Phase 3: Resolve each target
 
-For each target concept, run the 5-step cascade (override, direct claim, conflict resolution, derivation, chain query). Before this main pass, the pre-resolution step (`propstore/worldline_runner.py:_pre_resolve_conflicts`) walks the parameterization graph to resolve conflicted inputs.
+For each target concept, run the 5-step cascade (override, direct claim, conflict resolution, derivation, chain query). Before this main pass, the pre-resolution step (`propstore/worldline/resolution.py:pre_resolve_conflicts`) walks the parameterization graph to resolve conflicted inputs.
 
 ### Phase 4: Sensitivity analysis
 
