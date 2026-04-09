@@ -86,9 +86,9 @@ def list_contexts(obj: dict) -> None:
         return
 
     for context in contexts:
-        data = context.data
-        cid = data.get("id", context.filename)
-        desc = data.get("description", "")
-        inherits = data.get("inherits")
+        record = context.record
+        cid = context.filename if record.context_id is None else str(record.context_id)
+        desc = record.description or ""
+        inherits = None if record.inherits is None else str(record.inherits)
         suffix = f" (inherits {inherits})" if inherits else ""
         click.echo(f"  {cid}{suffix} — {desc}")

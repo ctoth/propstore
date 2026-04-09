@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Sequence
 
-from propstore.loaded import LoadedEntry
+from propstore.context_types import LoadedContext, coerce_loaded_contexts
 
 SCHEMA_VERSION = 1
 SIDECAR_META_KEY = "sidecar"
@@ -201,33 +201,34 @@ def create_context_tables(conn: sqlite3.Connection) -> None:
 
 def populate_contexts(
     conn: sqlite3.Connection,
-    contexts: Sequence[LoadedEntry],
+    contexts: Sequence[LoadedContext],
 ) -> None:
+    typed_contexts = coerce_loaded_contexts(contexts)
     exclusion_pairs: list[tuple[str, str]] = []
-    for context in contexts:
-        data = context.data
-        context_id = data.get("id")
-        if not context_id:
+    for context in typed_contexts:
+        record = context.record
+        if record.context_id is None:
             continue
+        context_id = str(record.context_id)
 
         conn.execute(
             "INSERT INTO context (id, name, description, inherits) VALUES (?, ?, ?, ?)",
             (
                 context_id,
-                data.get("name", ""),
-                data.get("description"),
-                data.get("inherits"),
+                record.name or "",
+                record.description,
+                None if record.inherits is None else str(record.inherits),
             ),
         )
 
-        for seq, assumption in enumerate(data.get("assumptions") or [], 1):
+        for seq, assumption in enumerate(record.assumptions, 1):
             conn.execute(
                 "INSERT INTO context_assumption (context_id, assumption_cel, seq) VALUES (?, ?, ?)",
                 (context_id, assumption, seq),
             )
 
-        for exclusion in data.get("excludes") or []:
-            exclusion_pairs.append((context_id, exclusion))
+        for exclusion in record.excludes:
+            exclusion_pairs.append((context_id, str(exclusion)))
 
     for context_a, context_b in exclusion_pairs:
         conn.execute(
