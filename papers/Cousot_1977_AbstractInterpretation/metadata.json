@@ -1,0 +1,14 @@
+{
+  "title": "Abstract interpretation: a unified lattice model for static analysis of programs by construction or approximation of fixpoints",
+  "authors": [
+    "Patrick Cousot",
+    "Radhia Cousot"
+  ],
+  "year": 1977,
+  "doi": "10.1145/512950.512973",
+  "venue": "POPL",
+  "url": "https://dl.acm.org/doi/10.1145/512950.512973",
+  "pdf_url": "https://www.di.ens.fr/~cousot/publications.www/CousotCousot-POPL-77-ACM-p238--252-1977.pdf",
+  "abstract": "A program denotes computations in some universe of objects. Abstract interpretation of programs consists in using that denotation to describe computations in another universe of abstract objects, so that the results of abstract execution give some information on the actual computations. An abstract interpretation is systematic and can be formalized by the use of a Galois connection between the concrete and abstract domains.",
+  "source": "direct_download"
+}
