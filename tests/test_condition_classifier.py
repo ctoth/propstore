@@ -1,5 +1,6 @@
-"""Tests for condition_classifier exception handling."""
+"""Tests for condition classification semantics and exception handling."""
 from unittest.mock import patch
+
 import pytest
 from propstore.condition_classifier import _try_z3_classify
 from propstore.conflict_detector.models import ConflictClass
@@ -9,6 +10,51 @@ def _make_registry():
     """Minimal CEL registry for testing."""
     from propstore.cel_checker import ConceptInfo, KindType
     return {"freq": ConceptInfo(id="freq", canonical_name="freq", kind=KindType.QUANTITY)}
+
+
+def _make_open_category_registry():
+    from propstore.cel_checker import ConceptInfo, KindType
+
+    return {
+        "task": ConceptInfo(
+            id="task",
+            canonical_name="task",
+            kind=KindType.CATEGORY,
+            category_values=["speech", "singing"],
+            category_extensible=True,
+        )
+    }
+
+
+class TestConditionClassificationSemantics:
+    def test_open_category_undeclared_literals_are_disjoint(self):
+        from propstore.z3_conditions import Z3ConditionSolver
+
+        registry = _make_open_category_registry()
+        solver = Z3ConditionSolver(registry)
+
+        result = _try_z3_classify(
+            ["task == 'yodel'"],
+            ["task == 'speech'"],
+            registry,
+            solver=solver,
+        )
+
+        assert result == ConflictClass.PHI_NODE
+
+    def test_unknown_name_remains_hard_error(self):
+        from propstore.z3_conditions import Z3ConditionSolver, Z3TranslationError
+
+        registry = _make_open_category_registry()
+        solver = Z3ConditionSolver(registry)
+
+        with pytest.raises(Z3TranslationError, match="Undefined concept|Unknown concept"):
+            _try_z3_classify(
+                ["missing == 'yodel'"],
+                ["task == 'speech'"],
+                registry,
+                solver=solver,
+            )
 
 
 class TestZ3ExceptionHandling:

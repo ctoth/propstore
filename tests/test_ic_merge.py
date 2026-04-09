@@ -575,7 +575,7 @@ class TestAssignmentLevelICMerge:
         with pytest.raises(ValueError, match="Undefined concept"):
             solve_ic_merge(problem)
 
-    def test_unsupported_translated_cel_fails_explicitly(self):
+    def test_open_category_constraint_allows_undeclared_literal(self):
         extensible_category_registry = {
             "task": ConceptInfo(
                 id="task",
@@ -592,6 +592,10 @@ class TestAssignmentLevelICMerge:
                     source_id="s1",
                     assignment=MergeAssignment(values={"task": "speech"}),
                 ),
+                MergeSource(
+                    source_id="s2",
+                    assignment=MergeAssignment(values={"task": "yodel"}),
+                ),
             ),
             constraints=(
                 IntegrityConstraint(
@@ -604,8 +608,56 @@ class TestAssignmentLevelICMerge:
             operator=MergeOperator.SIGMA,
         )
 
-        with pytest.raises(ValueError, match="Value 'yodel' not in value set"):
-            solve_ic_merge(problem)
+        result = solve_ic_merge(problem)
+
+        assert result.winners == (
+            MergeAssignment(values={"task": "yodel"}),
+        )
+
+    def test_open_category_inequality_does_not_collapse_to_closed_domain(self):
+        extensible_category_registry = {
+            "task": ConceptInfo(
+                id="task",
+                canonical_name="task",
+                kind=KindType.CATEGORY,
+                category_values=["speech", "singing"],
+                category_extensible=True,
+            )
+        }
+        problem = ICMergeProblem(
+            concept_ids=("task",),
+            sources=(
+                MergeSource(
+                    source_id="s1",
+                    assignment=MergeAssignment(values={"task": "speech"}),
+                ),
+                MergeSource(
+                    source_id="s2",
+                    assignment=MergeAssignment(values={"task": "singing"}),
+                ),
+                MergeSource(
+                    source_id="s3",
+                    assignment=MergeAssignment(values={"task": "yodel"}),
+                ),
+            ),
+            constraints=(
+                IntegrityConstraint(
+                    kind=IntegrityConstraintKind.CEL,
+                    concept_ids=("task",),
+                    cel="task != 'speech'",
+                    metadata={"registry": extensible_category_registry},
+                ),
+            ),
+            operator=MergeOperator.SIGMA,
+        )
+
+        result = solve_ic_merge(problem)
+
+        assert result.admissible_count == 2
+        assert all(
+            winner.value_for("task") in {"singing", "yodel"}
+            for winner in result.winners
+        )
 
     def test_default_cel_path_uses_z3_not_bruteforce(self, monkeypatch):
         monkeypatch.setattr(

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import pytest
+from hypothesis import assume, given, settings
+from hypothesis import strategies as st
 
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 from propstore.conflict_detector import (
@@ -50,18 +52,18 @@ class TestStrictZ3Requirements:
                 ["F1/F0 > 2.0"],
             )
 
-    def test_untranslatable_conditions_raise(self):
-        from propstore.z3_conditions import Z3ConditionSolver, Z3TranslationError
+    def test_open_category_undeclared_literals_do_not_raise(self):
+        from propstore.z3_conditions import Z3ConditionSolver
 
         registry = _make_cel_registry()
         solver = Z3ConditionSolver(registry)
-        with pytest.raises(Z3TranslationError):
-            _classify_conditions(
-                ["task == 'dancing'"],
-                ["task == 'speech'"],
-                registry,
-                solver=solver,
-            )
+        result = _classify_conditions(
+            ["task == 'dancing'"],
+            ["task == 'speech'"],
+            registry,
+            solver=solver,
+        )
+        assert result == ConflictClass.PHI_NODE
 
 
 # ── Z3 module tests ──────────────────────────────────────────────────
@@ -101,6 +103,7 @@ def _make_cel_registry():
             canonical_name="task",
             kind=KindType.CATEGORY,
             category_values=["speech", "singing", "whisper"],
+            category_extensible=True,
         ),
         "voiced": ConceptInfo(
             id="concept4",
@@ -148,6 +151,40 @@ class TestZ3Disjointness:
         assert not solver.are_disjoint(
             ["task == 'speech'"],
             ["task == 'speech'"],
+        )
+
+    def test_open_category_undeclared_literal_is_not_disjoint_from_matching_equality(self):
+        registry = _make_cel_registry()
+        solver = Z3ConditionSolver(registry)
+        assert not solver.are_disjoint(
+            ["task != 'speech'"],
+            ["task == 'dancing'"],
+        )
+
+    @given(
+        left=st.text(
+            min_size=1,
+            max_size=12,
+            alphabet=st.characters(whitelist_categories=("L", "N")),
+        ),
+        right=st.text(
+            min_size=1,
+            max_size=12,
+            alphabet=st.characters(whitelist_categories=("L", "N")),
+        ),
+    )
+    @settings(max_examples=40, deadline=None)
+    def test_distinct_open_category_literals_are_disjoint(self, left, right):
+        assume(left not in {"speech", "singing", "whisper"})
+        assume(right not in {"speech", "singing", "whisper"})
+        assume(left != right)
+
+        registry = _make_cel_registry()
+        solver = Z3ConditionSolver(registry)
+
+        assert solver.are_disjoint(
+            [f"task == '{left}'"],
+            [f"task == '{right}'"],
         )
 
     def test_boolean_disjoint(self):
@@ -238,6 +275,14 @@ class TestZ3InOperator:
         assert not solver.are_disjoint(
             ["task in ['speech', 'singing']"],
             ["task == 'singing'"],
+        )
+
+    def test_open_category_in_list_accepts_undeclared_literal(self):
+        registry = _make_cel_registry()
+        solver = Z3ConditionSolver(registry)
+        assert not solver.are_disjoint(
+            ["task in ['speech', 'dancing']"],
+            ["task == 'dancing'"],
         )
 
 
@@ -357,6 +402,29 @@ class TestZ3Equivalence:
             ["!(fundamental_frequency <= 100)"],
             ["fundamental_frequency > 100"],
         )
+
+    def test_open_category_inequality_is_not_closed_domain_equivalent(self):
+        registry = _make_cel_registry()
+        solver = Z3ConditionSolver(registry)
+        assert not solver.are_equivalent(
+            ["task != 'speech'"],
+            ["task in ['singing', 'whisper']"],
+        )
+
+
+@z3_only
+class TestUnknownNames:
+    def test_unknown_concept_name_is_hard_error(self):
+        from propstore.z3_conditions import Z3TranslationError
+
+        registry = _make_cel_registry()
+        solver = Z3ConditionSolver(registry)
+
+        with pytest.raises(Z3TranslationError, match="Undefined concept|Unknown concept"):
+            solver.are_disjoint(
+                ["missing > 0"],
+                ["fundamental_frequency > 100"],
+            )
 
 
 @z3_only
