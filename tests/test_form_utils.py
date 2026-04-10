@@ -338,3 +338,78 @@ class TestFormCacheClearing:
         assert fd_b is not None
         assert fd_a.unit_symbol == "Hz"
         assert fd_b.unit_symbol == "kHz"
+
+
+class TestClinicalTimeUnits:
+    """Clinical papers use d, wk, mo, yr — these must be accepted by the time form."""
+
+    @pytest.fixture
+    def time_form(self, forms_dir):
+        _form_cache.pop((str(forms_dir), "time"), None)
+        fd = load_form(forms_dir, "time")
+        assert fd is not None
+        return fd
+
+    def test_day_is_allowed_unit(self, time_form):
+        assert "d" in time_form.allowed_units
+
+    def test_week_is_allowed_unit(self, time_form):
+        assert "wk" in time_form.allowed_units
+
+    def test_month_is_allowed_unit(self, time_form):
+        assert "mo" in time_form.allowed_units
+
+    def test_year_is_allowed_unit(self, time_form):
+        assert "yr" in time_form.allowed_units
+
+    def test_day_converts_to_seconds(self, time_form):
+        """1 d -> 86400 s."""
+        result = normalize_to_si(1.0, "d", time_form)
+        assert result == pytest.approx(86400.0)
+
+    def test_week_converts_to_seconds(self, time_form):
+        """1 wk -> 604800 s."""
+        result = normalize_to_si(1.0, "wk", time_form)
+        assert result == pytest.approx(604800.0)
+
+    def test_month_converts_to_seconds(self, time_form):
+        """1 mo -> 2592000 s (30 days)."""
+        result = normalize_to_si(1.0, "mo", time_form)
+        assert result == pytest.approx(2592000.0)
+
+    def test_year_converts_to_seconds(self, time_form):
+        """1 yr -> 31557600 s (365.25 days)."""
+        result = normalize_to_si(1.0, "yr", time_form)
+        assert result == pytest.approx(31557600.0)
+
+    def test_month_roundtrip(self, time_form):
+        """6 mo -> si -> 6 mo."""
+        si = normalize_to_si(6.0, "mo", time_form)
+        back = from_si(si, "mo", time_form)
+        assert back == pytest.approx(6.0)
+
+    def test_year_roundtrip(self, time_form):
+        """2 yr -> si -> 2 yr."""
+        si = normalize_to_si(2.0, "yr", time_form)
+        back = from_si(si, "yr", time_form)
+        assert back == pytest.approx(2.0)
+
+    def test_pint_alias_mo_resolves(self):
+        """mo -> month in _PINT_ALIASES for defense-in-depth."""
+        from propstore.form_utils import _PINT_ALIASES
+        assert _PINT_ALIASES.get("mo") == "month"
+
+    def test_pint_alias_yr_resolves(self):
+        """yr -> year in _PINT_ALIASES for defense-in-depth."""
+        from propstore.form_utils import _PINT_ALIASES
+        assert _PINT_ALIASES.get("yr") == "year"
+
+    def test_pint_alias_wk_resolves(self):
+        """wk -> week in _PINT_ALIASES for defense-in-depth."""
+        from propstore.form_utils import _PINT_ALIASES
+        assert _PINT_ALIASES.get("wk") == "week"
+
+    def test_pint_alias_d_resolves(self):
+        """d -> day in _PINT_ALIASES for defense-in-depth."""
+        from propstore.form_utils import _PINT_ALIASES
+        assert _PINT_ALIASES.get("d") == "day"

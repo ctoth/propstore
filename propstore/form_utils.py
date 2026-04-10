@@ -20,7 +20,15 @@ from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 ureg = pint.UnitRegistry()
 
 # Map propstore unit symbols to pint-recognized names
-_PINT_ALIASES: dict[str, str] = {"°C": "degC", "°F": "degF", "µ": "u"}
+_PINT_ALIASES: dict[str, str] = {
+    "°C": "degC",
+    "°F": "degF",
+    "µ": "u",
+    "d": "day",
+    "wk": "week",
+    "mo": "month",
+    "yr": "year",
+}
 
 
 def _pint_unit(unit_str: str) -> str:
@@ -210,12 +218,16 @@ def normalize_to_si(value: float, unit: str | None, form: FormDefinition) -> flo
         raise ValueError(
             f"Cannot convert '{unit}' for dimensionless form '{form.name}'"
         )
-    # Use explicit conversions for logarithmic (pint can't handle these)
+    # Use explicit conversions when available (preferred over pint)
     if unit in form.conversions:
         conv = form.conversions[unit]
         if conv.type == "logarithmic":
             return conv.reference * conv.base ** (value / conv.divisor)
-    # Fall through to pint for multiplicative, affine, and auto-prefix units
+        if conv.type == "multiplicative":
+            return value * conv.multiplier
+        if conv.type == "affine":
+            return value * conv.multiplier + conv.offset
+    # Fall through to pint for auto-prefix units and anything not explicitly listed
     try:
         q = ureg.Quantity(value, _pint_unit(unit))
         return q.to(_pint_unit(form.unit_symbol)).magnitude
@@ -233,12 +245,16 @@ def from_si(si_value: float, unit: str | None, form: FormDefinition) -> float:
         raise ValueError(
             f"Cannot convert to '{unit}' for dimensionless form '{form.name}'"
         )
-    # Use explicit conversions for logarithmic (pint can't handle these)
+    # Use explicit conversions when available (preferred over pint)
     if unit in form.conversions:
         conv = form.conversions[unit]
         if conv.type == "logarithmic":
             return conv.divisor * math.log(si_value / conv.reference, conv.base)
-    # Fall through to pint for multiplicative, affine, and auto-prefix units
+        if conv.type == "multiplicative":
+            return si_value / conv.multiplier
+        if conv.type == "affine":
+            return (si_value - conv.offset) / conv.multiplier
+    # Fall through to pint for auto-prefix units and anything not explicitly listed
     try:
         q = ureg.Quantity(si_value, _pint_unit(form.unit_symbol))
         return q.to(_pint_unit(unit)).magnitude
