@@ -15,7 +15,6 @@ from itertools import product
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import msgspec
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, dims_of_expr, DimensionalError
 
@@ -44,26 +43,6 @@ from propstore.diagnostics import ValidationResult
 if TYPE_CHECKING:
     from propstore.knowledge_path import KnowledgePath
 
-
-def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict]]:
-    """Load all .yaml files from a directory, sorted by filename.
-
-    Returns a list of (stem, filepath, data) tuples.
-    Empty YAML files produce an empty dict.
-    """
-    results: list[tuple[str, Path, dict]] = []
-    for entry in sorted(directory.iterdir()):
-        if entry.is_file() and entry.suffix == ".yaml":
-            raw = entry.read_bytes()
-            if raw.strip():
-                decoded = msgspec.yaml.decode(raw)
-                if not isinstance(decoded, dict):
-                    raise ValueError(f"{entry}: expected a YAML mapping")
-                data = decoded
-            else:
-                data = {}
-            results.append((entry.stem, entry, data if data else {}))
-    return results
 
 
 VALID_RELATIONSHIP_TYPES = frozenset([
