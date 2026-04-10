@@ -53,7 +53,6 @@ from propstore.validate import (
     ValidationResult,
     load_concepts,
     load_yaml_dir,
-    load_yaml_entries,
 )
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS

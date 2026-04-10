@@ -6,7 +6,8 @@ from pathlib import Path
 
 import yaml
 
-from propstore.claim_documents import ClaimLogicalIdDocument, ClaimSourceDocument, ProvenanceDocument
+from propstore.claim_documents import ClaimLogicalIdDocument, ClaimSourceDocument
+from propstore.source_documents import SourceProvenanceDocument
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value, decode_document_path
 from propstore.identity import (
@@ -246,7 +247,10 @@ def commit_source_claim_proposal(
     if unit is not None:
         claim_payload["unit"] = unit
     if page is not None:
-        claim_payload["provenance"] = ProvenanceDocument(paper=normalize_source_slug(source_name), page=page)
+        claim_payload["provenance"] = SourceProvenanceDocument(
+            paper=normalize_source_slug(source_name),
+            page=page,
+        )
 
     claims.append(
         convert_document_value(

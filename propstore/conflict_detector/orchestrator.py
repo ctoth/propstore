@@ -5,7 +5,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_documents import LoadedClaimFile
+from propstore.claim_documents import (
+    ClaimFileInput,
+    LoadedClaimFile,
+    claim_file_claim_payloads,
+    claim_file_default_source_paper,
+)
 from propstore.cel_checker import (
     build_cel_registry,
     synthetic_category_concept,
@@ -23,7 +28,7 @@ if TYPE_CHECKING:
 
 
 def detect_conflicts(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[ClaimFileInput],
     concept_registry: dict[str, dict],
     context_hierarchy: ContextHierarchy | None = None,
 ) -> list[ConflictRecord]:
@@ -32,10 +37,18 @@ def detect_conflicts(
     cel_registry = build_cel_registry(concept_registry)
     # Inject a synthetic 'source' category so Z3 treats source conditions
     # as enum comparisons and recognizes different papers as disjoint.
-    source_names = sorted({
-        cf.source_paper or cf.filename
-        for cf in claim_files
-    })
+    source_name_set: set[str] = set()
+    for claim_file in claim_files:
+        default_source = claim_file_default_source_paper(claim_file)
+        if isinstance(default_source, str) and default_source:
+            source_name_set.add(default_source)
+        if not isinstance(claim_file, LoadedClaimFile):
+            continue
+        for claim in claim_file_claim_payloads(claim_file):
+            source_paper = claim.get("source_paper")
+            if isinstance(source_paper, str) and source_paper:
+                source_name_set.add(source_paper)
+    source_names = sorted(source_name_set)
     synthetic_concepts = [
         synthetic_category_concept(
             concept_id="ps:concept:__source__",

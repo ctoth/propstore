@@ -19,12 +19,12 @@ from .context import (
 from .models import ConflictClass, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.claim_documents import LoadedClaimFile
+    from propstore.claim_documents import ClaimFileInput
     from propstore.validate_contexts import ContextHierarchy
 
 
 def detect_conflicts(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[ClaimFileInput],
     concept_registry: dict[str, dict],
     context_hierarchy: ContextHierarchy | None = None,
 ) -> list[ConflictRecord]:
@@ -38,7 +38,7 @@ def detect_conflicts(
 
 
 def detect_transitive_conflicts(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[ClaimFileInput],
     concept_registry: dict[str, dict],
     *,
     context_hierarchy: ContextHierarchy | None = None,
