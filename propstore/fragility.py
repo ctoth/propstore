@@ -19,11 +19,33 @@ from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Any
 
+from propstore.world.types import QueryableAssumption
+
 
 class FragilityWarning(UserWarning):
     """Warning emitted when fragility analysis encounters a recoverable error."""
 
     pass
+
+
+def _parameterizations_to_queryables(
+    parameterizations: Any,
+) -> list[QueryableAssumption]:
+    """Convert ATMS parameterization rows to QueryableAssumption objects.
+
+    Handles ParameterizationRow objects, Mappings, and anything with a
+    conditions_cel attribute. Skips entries without a usable CEL expression.
+    """
+    result: list[QueryableAssumption] = []
+    for p in parameterizations:
+        cel: str | None = None
+        if hasattr(p, "conditions_cel"):
+            cel = p.conditions_cel
+        elif isinstance(p, dict) and "conditions_cel" in p:
+            cel = p["conditions_cel"]
+        if cel is not None:
+            result.append(QueryableAssumption.from_cel(cel))
+    return result
 
 
 @dataclass(frozen=True)
@@ -339,7 +361,9 @@ def _atms_interaction_detection(
         try:
             engine = bound.atms_engine()
             if queryables is None:
-                queryables = list(engine._all_parameterizations)
+                queryables = _parameterizations_to_queryables(
+                    engine._all_parameterizations
+                )
         except Exception:
             pass
 
@@ -358,7 +382,7 @@ def _atms_interaction_detection(
     # Build mapping: target_id -> queryable CELs that match
     target_queryables: dict[str, list] = {}
     for t in scored:
-        matching = [q for q in queryables if t.target_id in str(q)]
+        matching = [q for q in queryables if t.target_id in q.cel]
         target_queryables[t.target_id] = matching
 
     # For each concept in the epistemic details, get stability witnesses
@@ -477,7 +501,7 @@ def _find_target_for_queryable(
     """Find which target a queryable CEL belongs to."""
     for t in targets:
         for tq in target_queryables.get(t.target_id, []):
-            if str(tq) == qcel:
+            if tq.cel == qcel:
                 return t.target_id
     return None
 
@@ -943,7 +967,9 @@ def _epistemic_dimension(
     try:
         atms = bound.atms_engine()
         if queryables is None:
-            queryables = list(atms._all_parameterizations)
+            queryables = _parameterizations_to_queryables(
+                atms._all_parameterizations
+            )
         if not queryables:
             return None, None
 
