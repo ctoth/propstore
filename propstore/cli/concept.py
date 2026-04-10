@@ -843,7 +843,7 @@ def link(
 @click.argument("query")
 @click.pass_obj
 def search(obj: dict, query: str) -> None:
-    """Search concepts by name, definition, or alias."""
+    """Search concepts via the FTS5 index over canonical_name, aliases, definition, and CEL conditions."""
     repo: Repository = obj["repo"]
     sidecar = repo.sidecar_path
 
