@@ -117,24 +117,6 @@ def _maybe_schema_float(value: object) -> object:
         return value
 
 
-def load_claim_files(claims_dir: KnowledgePath | None) -> list[LoadedClaimFile]:
-    """Load all claim YAML files from a claims subtree."""
-    if claims_dir is None or not claims_dir.is_dir():
-        return []
-    knowledge_root = claims_dir.parent if claims_dir.name else claims_dir
-    return [
-        LoadedClaimFile.from_loaded_document(
-            load_document(
-                entry,
-                ClaimsFileDocument,
-                knowledge_root=knowledge_root,
-            )
-        )
-        for entry in claims_dir.iterdir()
-        if entry.is_file() and entry.suffix == ".yaml"
-    ]
-
-
 
 
 # Logical claim IDs are always namespaced ``namespace:value`` handles.

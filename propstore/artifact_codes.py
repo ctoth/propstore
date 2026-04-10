@@ -137,7 +137,7 @@ def attach_source_artifact_codes(
 
 
 def _load_claim_index(tree: KnowledgePath) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
-    from propstore.validate_claims import load_claim_files
+    from propstore.claim_documents import load_claim_files
 
     claims_root = tree / "claims"
     if not claims_root.exists():

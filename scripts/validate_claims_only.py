@@ -1,6 +1,7 @@
 """Validate claims files only (skip form validation)."""
 from pathlib import Path
-from propstore.validate_claims import load_claim_files, validate_claims
+from propstore.claim_documents import load_claim_files
+from propstore.validate_claims import validate_claims
 from propstore.cli.repository import Repository
 
 root = Path(".")

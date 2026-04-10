@@ -122,11 +122,16 @@ def show(obj: dict, claim_id: str) -> None:
 @click.pass_obj
 def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
+    from propstore.claim_documents import load_claim_files
     from propstore.validate_claims import (
         build_concept_registry_from_paths,
-        load_claim_files,
         validate_claims,
     )
+
+
+
+
+
 
     repo: Repository = obj["repo"]
     claims_root = coerce_knowledge_path(Path(claims_path)) if claims_path else repo.tree() / "claims"
@@ -229,7 +234,8 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
 def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None:
     """Detect and report claim conflicts."""
     from propstore.conflict_detector import ConflictClass, detect_conflicts
-    from propstore.validate_claims import build_concept_registry, load_claim_files
+    from propstore.claim_documents import load_claim_files
+    from propstore.validate_claims import build_concept_registry
 
     repo: Repository = obj["repo"]
     claims_root = repo.tree() / "claims"
@@ -468,9 +474,8 @@ def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool
 @click.option("--embedding-model", default=None, help="Embedding model for similarity")
 @click.option("--top-k", default=5, type=int, help="Number of similar claims to classify")
 @click.option("--concurrency", default=20, type=int, help="Max concurrent LLM calls")
-@click.option("--second-pass-threshold", default=0.75, type=float, help="Distance threshold for second-pass NLI")
 @click.pass_obj
-def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concurrency, second_pass_threshold):
+def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concurrency):
     """Classify epistemic relationships between similar claims via LLM.
 
     Uses embedding similarity to pick top-k candidates per claim, then calls
@@ -500,8 +505,7 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
 
         if claim_id and not relate_all_flag:
             # Single claim
-            stances = relate_claim(conn, claim_id, model, embedding_model, top_k,
-                                   second_pass_threshold=second_pass_threshold)
+            stances = relate_claim(conn, claim_id, model, embedding_model, top_k)
 
             if stances:
                 commit_sha, relpaths = commit_stance_proposals(
@@ -524,7 +528,7 @@ def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concur
                     click.echo(f"  {done}/{total} claims processed", err=True)
 
             result = relate_all_fn(conn, model, embedding_model, top_k, concurrency=concurrency,
-                                   on_progress=progress, second_pass_threshold=second_pass_threshold)
+                                   on_progress=progress)
 
             stances_by_claim = result.get("stances_by_claim", {})
             if stances_by_claim:
