@@ -1,4 +1,10 @@
-"""pks claim — subcommands for claim validation and conflict detection."""
+"""pks claim — subcommands for inspecting, validating, and relating claims.
+
+Exposes show (display a single claim), validate / validate-file
+(CEL type-checking over one or many claim files), conflicts (detect
+parameter conflicts), compare (algorithm claim equivalence), embed
+(litellm embeddings), similar (embedding nearest-neighbour search),
+and relate (LLM-assisted epistemic relationship classification)."""
 from __future__ import annotations
 
 import sys
