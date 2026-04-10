@@ -35,7 +35,7 @@ from propstore.form_utils import load_form_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.cli.repository import Repository
 from propstore.core.concepts import load_concepts
-from propstore.validate import validate_concepts
+from propstore.validate_concepts import validate_concepts
 from propstore.claim_documents import load_claim_files
 from propstore.compiler.passes import validate_claims
 

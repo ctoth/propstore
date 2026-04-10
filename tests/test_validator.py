@@ -20,7 +20,7 @@ import yaml
 from propstore.document_schema import DocumentSchemaError
 from propstore.core.concepts import LoadedConcept, parse_concept_record
 from propstore.core.concepts import load_concepts
-from propstore.validate import validate_concepts
+from propstore.validate_concepts import validate_concepts
 from tests.conftest import (
     attach_concept_version_id,
     make_concept_identity,
@@ -869,7 +869,7 @@ class TestSympyExceptNarrowing:
         write_concept(concept_dir, "concept_c.yaml", c3)
 
         # Monkeypatch verify_expr to raise a programming error
-        import propstore.validate as val_mod
+        import propstore.validate_concepts as val_mod
 
         def _boom(*args, **kwargs):
             raise NameError("undefined_variable_bug")

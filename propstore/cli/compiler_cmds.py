@@ -106,7 +106,7 @@ def validate(obj: dict) -> None:
     """Validate all concepts and claims. Runs CEL type-checking."""
     from propstore.compiler.context import build_compilation_context_from_repo
     from propstore.core.concepts import load_concepts
-    from propstore.validate import validate_concepts
+    from propstore.validate_concepts import validate_concepts
     from propstore.claim_documents import load_claim_files
     from propstore.compiler.passes import validate_claims
 
@@ -191,7 +191,7 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     from propstore.compiler.passes import compile_claim_files
     from propstore.sidecar.build import build_sidecar
     from propstore.core.concepts import load_concepts
-    from propstore.validate import validate_concepts
+    from propstore.validate_concepts import validate_concepts
     from propstore.claim_documents import load_claim_files
 
     repo: Repository = obj["repo"]
