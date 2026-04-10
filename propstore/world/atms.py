@@ -144,8 +144,15 @@ class _ATMSBoundLike(Protocol):
 
 
 @dataclass(frozen=True)
-class ATMSAssumptionPayload:
+class ATMSAssumptionNode:
+    node_id: str
     assumption: AssumptionRef
+    label: Label = field(default_factory=Label)
+    justification_ids: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def kind(self) -> str:
+        return "assumption"
 
     @property
     def cel(self) -> str:
@@ -153,8 +160,15 @@ class ATMSAssumptionPayload:
 
 
 @dataclass(frozen=True)
-class ATMSClaimPayload:
+class ATMSClaimNode:
+    node_id: str
     claim: ActiveClaim
+    label: Label = field(default_factory=Label)
+    justification_ids: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def kind(self) -> str:
+        return "claim"
 
     @property
     def claim_id(self) -> str:
@@ -170,23 +184,33 @@ class ATMSClaimPayload:
 
 
 @dataclass(frozen=True)
-class ATMSDerivedPayload:
+class ATMSDerivedNode:
+    node_id: str
     concept_id: str
     value: float | str
     parameterization_index: int
     formula: str | None = None
-
-
-ATMSNodePayload = ATMSAssumptionPayload | ATMSClaimPayload | ATMSDerivedPayload
-
-
-@dataclass(frozen=True)
-class ATMSNode:
-    node_id: str
-    kind: str
-    payload: ATMSNodePayload
     label: Label = field(default_factory=Label)
     justification_ids: tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def kind(self) -> str:
+        return "derived"
+
+
+ATMSNode = ATMSAssumptionNode | ATMSClaimNode | ATMSDerivedNode
+
+
+def _is_assumption_node(node: ATMSNode) -> TypeGuard[ATMSAssumptionNode]:
+    return isinstance(node, ATMSAssumptionNode)
+
+
+def _is_claim_node(node: ATMSNode) -> TypeGuard[ATMSClaimNode]:
+    return isinstance(node, ATMSClaimNode)
+
+
+def _is_derived_node(node: ATMSNode) -> TypeGuard[ATMSDerivedNode]:
+    return isinstance(node, ATMSDerivedNode)
 
 
 @dataclass(frozen=True)
@@ -282,54 +306,32 @@ def _conflict_witness_to_row(conflict: ConflictWitness) -> ConflictRow:
     )
 
 
-def _node_claim_payload(node: ATMSNode) -> ATMSClaimPayload | None:
-    payload = node.payload
-    return payload if isinstance(payload, ATMSClaimPayload) else None
-
-
-def _node_assumption_payload(node: ATMSNode) -> ATMSAssumptionPayload | None:
-    payload = node.payload
-    return payload if isinstance(payload, ATMSAssumptionPayload) else None
-
-
-def _node_derived_payload(node: ATMSNode) -> ATMSDerivedPayload | None:
-    payload = node.payload
-    return payload if isinstance(payload, ATMSDerivedPayload) else None
-
-
 def _node_claim(node: ATMSNode) -> ActiveClaim | None:
-    payload = _node_claim_payload(node)
-    return None if payload is None else payload.claim
+    return node.claim if _is_claim_node(node) else None
 
 
 def _node_claim_id(node: ATMSNode) -> str | None:
-    payload = _node_claim_payload(node)
-    return None if payload is None else payload.claim_id
+    return node.claim_id if _is_claim_node(node) else None
 
 
 def _node_concept_id(node: ATMSNode) -> str | None:
-    claim_payload = _node_claim_payload(node)
-    if claim_payload is not None:
-        return claim_payload.concept_id
-    derived_payload = _node_derived_payload(node)
-    if derived_payload is not None:
-        return derived_payload.concept_id
+    if _is_claim_node(node):
+        return node.concept_id
+    if _is_derived_node(node):
+        return node.concept_id
     return None
 
 
 def _node_value(node: ATMSNode) -> float | str | None:
-    claim_payload = _node_claim_payload(node)
-    if claim_payload is not None:
-        return claim_payload.value
-    derived_payload = _node_derived_payload(node)
-    if derived_payload is not None:
-        return derived_payload.value
+    if _is_claim_node(node):
+        return node.value
+    if _is_derived_node(node):
+        return node.value
     return None
 
 
 def _node_assumption(node: ATMSNode) -> AssumptionRef | None:
-    payload = _node_assumption_payload(node)
-    return None if payload is None else payload.assumption
+    return node.assumption if _is_assumption_node(node) else None
 
 
 def _extend_environment(
@@ -1186,10 +1188,9 @@ class ATMSEngine:
             key=lambda item: item.assumption_id,
         ):
             node_id = f"assumption:{assumption.assumption_id}"
-            node = ATMSNode(
+            node = ATMSAssumptionNode(
                 node_id=node_id,
-                kind="assumption",
-                payload=ATMSAssumptionPayload(assumption=assumption),
+                assumption=assumption,
                 label=Label.singleton(assumption),
             )
             self._nodes[node_id] = node
@@ -1199,10 +1200,9 @@ class ATMSEngine:
         for claim in sorted(self._runtime.active_claims(), key=lambda row: str(row.claim_id)):
             claim_id = str(claim.claim_id)
             node_id = f"claim:{claim_id}"
-            self._nodes[node_id] = ATMSNode(
+            self._nodes[node_id] = ATMSClaimNode(
                 node_id=node_id,
-                kind="claim",
-                payload=ATMSClaimPayload(claim=claim),
+                claim=claim,
             )
             self._claim_node_ids[claim_id] = node_id
 
@@ -1293,15 +1293,12 @@ class ATMSEngine:
 
                 derived_node_id = self._derived_node_id(output_concept_id, derived_value)
                 if derived_node_id not in self._nodes:
-                    self._nodes[derived_node_id] = ATMSNode(
+                    self._nodes[derived_node_id] = ATMSDerivedNode(
                         node_id=derived_node_id,
-                        kind="derived",
-                        payload=ATMSDerivedPayload(
-                            concept_id=output_concept_id,
-                            value=derived_value,
-                            parameterization_index=index,
-                            formula=param.formula,
-                        ),
+                        concept_id=output_concept_id,
+                        value=derived_value,
+                        parameterization_index=index,
+                        formula=param.formula,
                     )
 
                 for condition_antecedent_ids in condition_antecedents:
