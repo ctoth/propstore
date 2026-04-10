@@ -37,11 +37,14 @@ def _maybe_float(value: object) -> float | None:
     return None
 
 
-def _format_value_with_si(claim: Mapping[str, object]) -> str:
-    """Format a claim's value with optional SI normalization.
+def _format_value_with_si(claim: Mapping[str, object], wm: WorldModel | None = None) -> str:
+    """Format a claim's value, appending its SI normalization when it differs.
 
     Returns e.g. ``value=0.2 kHz (SI: 200.0 Hz)`` when the stored unit
     differs from the canonical SI unit, or ``value=200.0 Hz`` when they match.
+    The canonical unit is resolved from the claim's concept via *wm*; if *wm*
+    is not supplied (or the concept has no unit_symbol), the SI value is shown
+    without a unit label.
     """
     value = claim.get("value")
     unit = claim.get("unit")
@@ -54,7 +57,19 @@ def _format_value_with_si(claim: Mapping[str, object]) -> str:
         and numeric_value_si is not None
         and numeric_value_si != numeric_value
     ):
-        return f"value={value} {unit} (SI: {value_si} Hz)"
+        canonical_unit = ""
+        if wm is not None:
+            concept_id = claim.get("concept_id")
+            if isinstance(concept_id, str):
+                concept = wm.get_concept(concept_id)
+                if concept is not None:
+                    from propstore.core.row_types import coerce_concept_row
+
+                    canonical_unit = str(
+                        coerce_concept_row(concept).attributes.get("unit_symbol") or ""
+                    )
+        si_label = f"{value_si} {canonical_unit}".rstrip()
+        return f"value={value} {unit} (SI: {si_label})"
     if isinstance(unit, str):
         return f"value={value} {unit}"
     return f"value={value}"
@@ -450,7 +465,7 @@ def world_query(obj: dict, concept_id: str) -> None:
             click.echo("  (no claims)")
         for c in claims:
             conds = c.get("conditions_cel") or "[]"
-            val_part = _format_value_with_si(c)
+            val_part = _format_value_with_si(c, wm)
             click.echo(f"  {_world_claim_display_id(c)}: {c['type']} {val_part} conditions={conds}")
 
 
@@ -487,15 +502,17 @@ def world_bind(obj: dict, args: tuple[str, ...]) -> None:
             resolved = _resolve_world_target(wm, query_concept)
             result = bound.value_of(resolved)
             click.echo(f"{_world_concept_display_id(wm, resolved)}: {result.status}")
-            for c in result.claims:
-                val_part = _format_value_with_si(c)
+            for active_claim in result.claims:
+                c = active_claim.row.to_dict()
+                val_part = _format_value_with_si(c, wm)
                 click.echo(f"  {_world_claim_display_id(c)}: {val_part} source={c.get('source_paper')}")
         else:
             active = bound.active_claims()
             click.echo(f"Active claims: {len(active)}")
-            for c in active:
+            for active_claim in active:
+                c = active_claim.row.to_dict()
                 conds = c.get("conditions_cel") or "[]"
-                val_part = _format_value_with_si(c)
+                val_part = _format_value_with_si(c, wm)
                 click.echo(
                     f"  {_world_claim_display_id(c)}: {_world_concept_display_id(wm, str(c.get('concept_id', '?')))} "
                     f"{val_part} conditions={conds}")
