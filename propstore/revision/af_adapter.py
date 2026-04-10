@@ -5,6 +5,14 @@ from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
+from propstore.core.row_types import (
+    ConflictRow,
+    ConflictRowInput,
+    StanceRow,
+    StanceRowInput,
+    coerce_conflict_row,
+    coerce_stance_row,
+)
 from propstore.revision.state import EpistemicState
 from propstore.core.labels import Label, SupportQuality
 
@@ -19,12 +27,12 @@ class RevisionArgumentationView:
 
 @runtime_checkable
 class _StanceStore(Protocol):
-    def stances_between(self, claim_ids: set[str]) -> Sequence[Mapping[str, Any]]: ...
+    def stances_between(self, claim_ids: set[str]) -> Sequence[StanceRowInput]: ...
 
 
 @runtime_checkable
 class _ConflictStore(Protocol):
-    def conflicts(self) -> Sequence[Mapping[str, Any]]: ...
+    def conflicts(self) -> Sequence[ConflictRowInput]: ...
 
 
 @runtime_checkable
@@ -65,26 +73,29 @@ class RevisionArgumentationStore:
             if claim_id in requested
         }
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+    def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
         requested = self._active_claim_ids & {str(claim_id) for claim_id in claim_ids}
         if not isinstance(self._backing_store, _StanceStore):
             return []
-        return [
-            dict(row)
-            for row in self._backing_store.stances_between(set(requested))
-            if row.get("claim_id") in requested
-            and row.get("target_claim_id") in requested
-        ]
+        result: list[StanceRow] = []
+        for row_input in self._backing_store.stances_between(set(requested)):
+            row = coerce_stance_row(row_input)
+            if str(row.claim_id) in requested and str(row.target_claim_id) in requested:
+                result.append(row)
+        return result
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self) -> list[ConflictRow]:
         if not isinstance(self._backing_store, _ConflictStore):
             return []
-        return [
-            dict(row)
-            for row in self._backing_store.conflicts()
-            if row.get("claim_a_id") in self._active_claim_ids
-            and row.get("claim_b_id") in self._active_claim_ids
-        ]
+        result: list[ConflictRow] = []
+        for row_input in self._backing_store.conflicts():
+            row = coerce_conflict_row(row_input)
+            if (
+                str(row.claim_a_id) in self._active_claim_ids
+                and str(row.claim_b_id) in self._active_claim_ids
+            ):
+                result.append(row)
+        return result
 
     def has_table(self, name: str) -> bool:
         if not isinstance(self._backing_store, _TableStore):

@@ -5,7 +5,11 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.core.id_types import AssumptionId
-from propstore.revision.explanation_types import EntrenchmentReason, coerce_entrenchment_reason
+from propstore.revision.explanation_types import (
+    EntrenchmentReason,
+    coerce_entrenchment_reason,
+    _coerce_override_priority,
+)
 from propstore.revision.state import BeliefBase
 
 
@@ -54,8 +58,8 @@ def compute_entrenchment(
         reasons[atom.atom_id] = EntrenchmentReason(
             override_priority=(
                 None
-                if override is None or override.get("priority") is None
-                else int(override.get("priority"))
+                if override is None
+                else _coerce_override_priority(override.get("priority"))
             ),
             override_key=override_key,
             support_count=support_count,

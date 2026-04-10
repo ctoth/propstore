@@ -148,7 +148,7 @@ def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_suppo
     )
 
     assert report.ranked_atom_ids[0] == "claim:claim_override_target"
-    assert report.reasons["claim:claim_override_target"]["override"] == "critical"
+    assert report.reasons["claim:claim_override_target"].override_priority == "critical"
 
 
 def test_bound_world_revision_phase1_delegates_to_revision_package() -> None:
