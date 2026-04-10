@@ -339,7 +339,15 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
                   praf_seed: int | None, revision_operation: str | None,
                   revision_atom: str | None, revision_target: str | None,
                   revision_conflicts: tuple[str, ...], revision_operator: str | None) -> None:
-    """Run (materialize) a worldline. Creates it first if it doesn't exist."""
+    """Run (materialize) a worldline, loading its saved definition if present.
+
+    If a worldline file with NAME already exists, this command loads it and
+    materializes it as-is — all CLI options (--bind, --with, --target,
+    --strategy, --context, reasoning flags, revision flags) are ignored in
+    that case. CLI options are only consulted when NAME does not yet exist,
+    in which case they are used to construct and persist a fresh definition
+    before the first materialization.
+    """
     from propstore.world import WorldModel
     from propstore.worldline import WorldlineDefinition, run_worldline
 
