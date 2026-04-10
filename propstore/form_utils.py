@@ -15,6 +15,7 @@ import pint
 from propstore.cel_checker import KindType
 from propstore.document_schema import DocumentSchemaError, DocumentStruct, decode_document_path
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
+from propstore.diagnostics import ValidationResult
 from propstore.resources import load_resource_json
 
 # Module-level unit registry for pint conversions
@@ -441,13 +442,13 @@ def allowed_units_from_form_definition(form_definition: FormDocument) -> set[str
     return allowed
 
 
-def validate_form_files(forms_dir: Path | KnowledgePath) -> list[str]:
+def validate_form_files(forms_dir: Path | KnowledgePath) -> ValidationResult:
     """Validate all form YAML files against the typed document schema."""
 
-    errors: list[str] = []
+    result = ValidationResult()
     forms_root = coerce_knowledge_path(forms_dir)
     if not forms_root.exists():
-        return errors
+        return result
 
     for entry in forms_root.iterdir():
         if not entry.is_file() or entry.suffix != ".yaml":
@@ -456,24 +457,24 @@ def validate_form_files(forms_dir: Path | KnowledgePath) -> list[str]:
         try:
             document = decode_document_path(entry, FormDocument)
         except DocumentSchemaError as exc:
-            errors.append(str(exc))
+            result.errors.append(str(exc))
             continue
 
         dims = document.dimensions
         is_dimless = document.dimensionless
         has_unit = document.unit_symbol is not None
         if dims is not None and len(dims) > 0 and is_dimless:
-            errors.append(
+            result.errors.append(
                 f"{entry.stem}: non-empty dimensions conflicts with "
                 f"dimensionless=true")
         if dims is not None and len(dims) == 0 and not is_dimless and has_unit:
-            errors.append(
+            result.errors.append(
                 f"{entry.stem}: empty dimensions conflicts with "
                 f"dimensionless=false for a quantity with unit_symbol")
 
         if document.name != entry.stem:
-            errors.append(
+            result.errors.append(
                 f"{entry.stem}: 'name' field ('{document.name}') does not match "
                 f"filename '{entry.stem}'")
 
-    return errors
+    return result

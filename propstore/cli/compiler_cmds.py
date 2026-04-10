@@ -134,8 +134,8 @@ def validate(obj: dict) -> None:
     # Validate form schema files
     from propstore.form_utils import validate_form_files
 
-    form_errors = validate_form_files(tree / "forms")
-    for e in form_errors:
+    form_result = validate_form_files(tree / "forms")
+    for e in form_result.errors:
         click.echo(f"ERROR (form): {e}", err=True)
 
     concept_result = validate_concepts(
@@ -170,7 +170,28 @@ def validate(obj: dict) -> None:
                 click.echo(f"ERROR: {e}", err=True)
             claim_error_count = len(claim_result.errors)
 
-    total_errors = len(concept_result.errors) + claim_error_count + len(form_errors)
+    # Contexts (if directory exists)
+    context_error_count = 0
+    if (tree / "contexts").exists():
+        from propstore.validate_contexts import load_contexts, validate_contexts
+        try:
+            ctx_list = load_contexts(tree / "contexts")
+        except DocumentSchemaError as exc:
+            click.echo(f"ERROR (context): {exc}", err=True)
+            click.echo("Validation FAILED: 1 error(s)", err=True)
+            sys.exit(EXIT_VALIDATION)
+        if ctx_list:
+            ctx_result = validate_contexts(ctx_list)
+            for w in ctx_result.warnings:
+                click.echo(f"WARNING (context): {w}", err=True)
+            for e in ctx_result.errors:
+                click.echo(f"ERROR (context): {e}", err=True)
+            context_error_count = len(ctx_result.errors)
+
+    total_errors = (
+        len(concept_result.errors) + claim_error_count
+        + len(form_result.errors) + context_error_count
+    )
 
     if total_errors == 0:
         click.echo(
@@ -217,9 +238,9 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     # Step 0: Validate form schema files
     from propstore.form_utils import validate_form_files
 
-    form_errors = validate_form_files(tree / "forms")
-    if form_errors:
-        for e in form_errors:
+    form_result = validate_form_files(tree / "forms")
+    if not form_result.ok:
+        for e in form_result.errors:
             click.echo(f"ERROR (form): {e}", err=True)
         click.echo("Build aborted: form validation failed.", err=True)
         sys.exit(EXIT_VALIDATION)

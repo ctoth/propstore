@@ -150,10 +150,10 @@ class TestDimensionsValidationLogic:
             "dimensionless": True,
             "dimensions": {"T": -1},
         })
-        errors = validate_form_files(tmp_path)
-        assert len(errors) > 0
+        result = validate_form_files(tmp_path)
+        assert len(result.errors) > 0
         # At least one error should mention the conflict
-        combined = " ".join(errors)
+        combined = " ".join(result.errors)
         assert "dimension" in combined.lower()
 
     def test_empty_dimensions_but_not_dimensionless_quantity_fails(
@@ -170,9 +170,9 @@ class TestDimensionsValidationLogic:
             "unit_symbol": "Hz",
             "dimensions": {},
         })
-        errors = validate_form_files(tmp_path)
-        assert len(errors) > 0
-        combined = " ".join(errors)
+        result = validate_form_files(tmp_path)
+        assert len(result.errors) > 0
+        combined = " ".join(result.errors)
         assert "dimension" in combined.lower()
 
     def test_valid_form_passes_validation(self, tmp_path: Path) -> None:
@@ -183,8 +183,8 @@ class TestDimensionsValidationLogic:
             "unit_symbol": "Hz",
             "dimensions": {"T": -1},
         })
-        errors = validate_form_files(tmp_path)
-        assert errors == []
+        result = validate_form_files(tmp_path)
+        assert result.ok
 
     def test_no_dimensions_field_passes_validation(self, tmp_path: Path) -> None:
         """Backward compat: form without dimensions field still passes."""
@@ -193,8 +193,8 @@ class TestDimensionsValidationLogic:
             "dimensionless": False,
             "unit_symbol": "Pa",
         })
-        errors = validate_form_files(tmp_path)
-        assert errors == []
+        result = validate_form_files(tmp_path)
+        assert result.ok
 
 
 class TestFormDefinitionDimensions:
