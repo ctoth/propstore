@@ -315,6 +315,26 @@ class TestProbabilityWeightedEpistemic:
         )
         assert result == 0.0
 
+    def test_weights_without_indices_emits_warning(self):
+        """probability_weights without witness_indices emits FragilityWarning."""
+        import warnings as _warnings
+        from propstore.fragility import FragilityWarning
+
+        witnesses = [{"future_idx": 0}, {"future_idx": 2}]
+        with _warnings.catch_warnings(record=True) as w:
+            _warnings.simplefilter("always")
+            result = weighted_epistemic_score(
+                witnesses, 4,
+                probability_weights=[0.25, 0.25, 0.25, 0.25],
+                witness_indices=None,
+            )
+        # Should still return a valid float (unweighted fallback)
+        assert result == pytest.approx(0.5)
+        # Should have emitted exactly one FragilityWarning
+        fragility_warnings = [x for x in w if issubclass(x.category, FragilityWarning)]
+        assert len(fragility_warnings) == 1
+        assert "witness_indices" in str(fragility_warnings[0].message)
+
 
 # ── Phase 2: Interaction detection ───────────────────────────────────
 

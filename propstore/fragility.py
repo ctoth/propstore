@@ -270,6 +270,13 @@ def weighted_epistemic_score(
         raw = len(witnesses) / max(consistent_future_count, 1)
     elif total_weight := sum(probability_weights):
         if witness_indices is None:
+            warnings.warn(
+                "probability_weights provided without witness_indices; "
+                "falling back to uniform weighting. To use weighted scoring, "
+                "provide both probability_weights and witness_indices.",
+                FragilityWarning,
+                stacklevel=2,
+            )
             raw = len(witnesses) / max(consistent_future_count, 1)
         else:
             witness_weight = sum(probability_weights[i] for i in witness_indices)
