@@ -6,6 +6,7 @@ from typing import Any
 
 from propstore.revision.explanation_types import RevisionExplanation
 from propstore.revision.snapshot_types import EpistemicStateSnapshot
+from propstore.revision.state import AssumptionAtomPayload, BeliefAtom, ClaimAtomPayload
 
 
 @dataclass(frozen=True)
@@ -47,8 +48,32 @@ class RevisionAtomRef:
             data["value"] = self.value
         return data
 
-    def to_revision_input(self) -> dict[str, Any]:
-        return self.to_dict()
+    def to_revision_input(self) -> BeliefAtom:
+        if self.kind == "claim":
+            if self.claim_id is None:
+                raise ValueError("Claim revision atom requires a claim_id")
+            return BeliefAtom(
+                atom_id=self.resolved_atom_id() or f"claim:{self.claim_id}",
+                kind="claim",
+                payload=ClaimAtomPayload.from_input(
+                    {
+                        "id": self.claim_id,
+                        "artifact_id": self.claim_id,
+                        "value": self.value,
+                    }
+                ),
+            )
+        if self.kind == "assumption":
+            if self.assumption_id is None:
+                raise ValueError("Assumption revision atom requires an assumption_id")
+            return BeliefAtom(
+                atom_id=self.resolved_atom_id() or f"assumption:{self.assumption_id}",
+                kind="assumption",
+                payload=AssumptionAtomPayload(
+                    assumption_id=self.assumption_id,
+                ),
+            )
+        raise ValueError(f"Unsupported revision atom kind: {self.kind}")
 
     def resolved_atom_id(self) -> str | None:
         if self.atom_id:

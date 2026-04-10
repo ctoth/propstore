@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.id_types import AssumptionId, ContextId, to_assumption_ids, to_context_id
 from propstore.core.labels import AssumptionRef, Label
 from propstore.revision.explanation_types import (
@@ -12,6 +13,87 @@ from propstore.revision.explanation_types import (
     coerce_entrenchment_reason,
     coerce_revision_atom_detail,
 )
+
+
+@dataclass(frozen=True)
+class ClaimAtomPayload:
+    claim: ActiveClaim
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "claim", coerce_active_claim(self.claim))
+
+    @classmethod
+    def from_input(cls, claim: ActiveClaimInput) -> ClaimAtomPayload:
+        return cls(claim=coerce_active_claim(claim))
+
+    @property
+    def claim_id(self) -> str:
+        return str(self.claim.claim_id)
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.claim.to_dict()
+
+
+@dataclass(frozen=True)
+class AssumptionAtomPayload:
+    assumption_id: str
+    cel: str | None = None
+    kind: str | None = None
+    source: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "assumption_id": self.assumption_id,
+        }
+        if self.cel is not None:
+            data["cel"] = self.cel
+        if self.kind is not None:
+            data["kind"] = self.kind
+        if self.source is not None:
+            data["source"] = self.source
+        return data
+
+
+BeliefAtomPayload = ClaimAtomPayload | AssumptionAtomPayload
+
+
+def coerce_claim_atom_payload(payload: ClaimAtomPayload | ActiveClaimInput) -> ClaimAtomPayload:
+    if isinstance(payload, ClaimAtomPayload):
+        return payload
+    return ClaimAtomPayload(claim=coerce_active_claim(payload))
+
+
+def coerce_assumption_atom_payload(
+    payload: AssumptionAtomPayload | AssumptionRef | Mapping[str, Any],
+) -> AssumptionAtomPayload:
+    if isinstance(payload, AssumptionAtomPayload):
+        return payload
+    if isinstance(payload, AssumptionRef):
+        return AssumptionAtomPayload(
+            assumption_id=str(payload.assumption_id),
+            cel=payload.cel,
+            kind=payload.kind,
+            source=payload.source,
+        )
+    assumption_id = payload.get("assumption_id") or payload.get("id")
+    if assumption_id is None:
+        raise ValueError("Assumption atom payload requires 'assumption_id' or 'id'")
+    return AssumptionAtomPayload(
+        assumption_id=str(assumption_id),
+        cel=None if payload.get("cel") is None else str(payload.get("cel")),
+        kind=None if payload.get("kind") is None else str(payload.get("kind")),
+        source=None if payload.get("source") is None else str(payload.get("source")),
+    )
+
+
+def claim_atom_payload(atom: BeliefAtom) -> ClaimAtomPayload | None:
+    payload = atom.payload
+    return payload if isinstance(payload, ClaimAtomPayload) else None
+
+
+def assumption_atom_payload(atom: BeliefAtom) -> AssumptionAtomPayload | None:
+    payload = atom.payload
+    return payload if isinstance(payload, AssumptionAtomPayload) else None
 
 
 @dataclass(frozen=True)
@@ -35,11 +117,17 @@ class RevisionScope:
 class BeliefAtom:
     atom_id: str
     kind: str
-    payload: Mapping[str, Any]
+    payload: BeliefAtomPayload
     label: Label | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "payload", dict(self.payload))
+        if self.kind == "claim":
+            object.__setattr__(self, "payload", coerce_claim_atom_payload(self.payload))
+            return
+        if self.kind == "assumption":
+            object.__setattr__(self, "payload", coerce_assumption_atom_payload(self.payload))
+            return
+        raise ValueError(f"Unsupported belief atom kind: {self.kind}")
 
 
 @dataclass(frozen=True)

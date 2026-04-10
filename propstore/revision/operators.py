@@ -8,35 +8,39 @@ from typing import Any
 from propstore.core.id_types import AssumptionId
 from propstore.revision.entrenchment import EntrenchmentReport
 from propstore.revision.explanation_types import RevisionAtomDetail
-from propstore.revision.state import BeliefAtom, BeliefBase, RevisionResult
+from propstore.revision.state import (
+    AssumptionAtomPayload,
+    BeliefAtom,
+    BeliefBase,
+    ClaimAtomPayload,
+    RevisionResult,
+    assumption_atom_payload,
+    claim_atom_payload,
+)
 
 
 def _claim_input_candidates(atom: BeliefAtom) -> tuple[str, ...]:
+    payload = claim_atom_payload(atom)
+    if payload is None:
+        return ()
+
+    claim = payload.claim
     candidates: list[str] = []
 
-    payload_id = atom.payload.get("id")
-    if payload_id:
-        candidates.append(str(payload_id))
-    artifact_id = atom.payload.get("artifact_id")
-    if artifact_id:
-        candidates.append(str(artifact_id))
+    candidates.append(str(claim.claim_id))
+    if claim.artifact_id:
+        candidates.append(str(claim.artifact_id))
 
-    logical_id = atom.payload.get("logical_id") or atom.payload.get("primary_logical_id")
+    logical_id = claim.primary_logical_id
     if isinstance(logical_id, str) and logical_id:
         candidates.append(logical_id)
         if ":" in logical_id:
             candidates.append(logical_id.split(":", 1)[1])
 
-    logical_ids = atom.payload.get("logical_ids")
-    if isinstance(logical_ids, Sequence):
-        for entry in logical_ids:
-            if not isinstance(entry, Mapping):
-                continue
-            namespace = entry.get("namespace")
-            value = entry.get("value")
-            if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
-                candidates.append(f"{namespace}:{value}")
-                candidates.append(value)
+    for entry in claim.logical_ids:
+        if entry.namespace and entry.value:
+            candidates.append(f"{entry.namespace}:{entry.value}")
+            candidates.append(entry.value)
 
     if atom.atom_id.startswith("claim:"):
         candidates.append(atom.atom_id)
@@ -72,14 +76,27 @@ def normalize_revision_input(
         if not claim_id:
             raise ValueError("Claim revision input requires 'id' or 'claim_id'")
         atom_id = str(revision_input.get("atom_id") or f"claim:{claim_id}")
-        return BeliefAtom(atom_id=atom_id, kind="claim", payload=dict(revision_input))
+        return BeliefAtom(
+            atom_id=atom_id,
+            kind="claim",
+            payload=ClaimAtomPayload.from_input(revision_input),
+        )
 
     if kind == "assumption":
         assumption_id = revision_input.get("assumption_id") or revision_input.get("id")
         if not assumption_id:
             raise ValueError("Assumption revision input requires 'assumption_id' or 'id'")
         atom_id = str(revision_input.get("atom_id") or f"assumption:{assumption_id}")
-        return BeliefAtom(atom_id=atom_id, kind="assumption", payload=dict(revision_input))
+        return BeliefAtom(
+            atom_id=atom_id,
+            kind="assumption",
+            payload=AssumptionAtomPayload(
+                assumption_id=str(assumption_id),
+                cel=None if revision_input.get("cel") is None else str(revision_input.get("cel")),
+                kind=None if revision_input.get("kind") is None else str(revision_input.get("kind")),
+                source=None if revision_input.get("source") is None else str(revision_input.get("source")),
+            ),
+        )
 
     raise ValueError(f"Unsupported revision input kind: {kind}")
 
@@ -243,7 +260,8 @@ def _find_existing_atom(base: BeliefBase, revision_input: str) -> BeliefAtom | N
             return atom
         if atom.kind == "claim" and revision_input in _claim_input_candidates(atom):
             return atom
-        if atom.kind == "assumption" and atom.payload.get("assumption_id") == revision_input:
+        payload = assumption_atom_payload(atom)
+        if atom.kind == "assumption" and payload is not None and payload.assumption_id == revision_input:
             return atom
     return None
 

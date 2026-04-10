@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from propstore.revision.snapshot_types import epistemic_state_snapshot
+from propstore.revision.state import BeliefAtom
 from propstore.worldline.revision_types import (
     RevisionAtomRef,
     WorldlineRevisionResult,
@@ -63,7 +64,7 @@ def _revision_result_payload(bound: Any, result: Any) -> WorldlineRevisionResult
     )
 
 
-def _revision_atom_input(atom: RevisionAtomRef | None) -> dict[str, Any] | None:
+def _revision_atom_input(atom: RevisionAtomRef | None) -> BeliefAtom | None:
     if atom is None:
         return None
     return atom.to_revision_input()
