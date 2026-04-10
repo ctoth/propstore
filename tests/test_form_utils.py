@@ -55,6 +55,24 @@ class TestFormDefinitionLoading:
         fd = load_form(forms_dir, "")
         assert fd is None
 
+    def test_load_form_rejects_unknown_document_fields(self, tmp_path):
+        form_path = tmp_path / "strict_form.yaml"
+        form_path.write_text(
+            yaml.dump(
+                {
+                    "name": "strict_form",
+                    "dimensionless": True,
+                    "mystery": "nope",
+                },
+                default_flow_style=False,
+                sort_keys=False,
+            ),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(ValueError, match="mystery"):
+            load_form(tmp_path, "strict_form")
+
 
 class TestUnitConversionMultiplicative:
     def test_unit_conversion_multiplicative(self, freq_form):
@@ -306,8 +324,12 @@ class TestFormCacheClearing:
         forms_a.mkdir(parents=True)
         forms_b.mkdir(parents=True)
 
-        (forms_a / "frequency.yaml").write_text(yaml.dump({"name": "frequency", "unit_symbol": "Hz"}))
-        (forms_b / "frequency.yaml").write_text(yaml.dump({"name": "frequency", "unit_symbol": "kHz"}))
+        (forms_a / "frequency.yaml").write_text(
+            yaml.dump({"name": "frequency", "dimensionless": False, "unit_symbol": "Hz"})
+        )
+        (forms_b / "frequency.yaml").write_text(
+            yaml.dump({"name": "frequency", "dimensionless": False, "unit_symbol": "kHz"})
+        )
 
         fd_a = load_form_path(FilesystemKnowledgePath(forms_a), "frequency")
         fd_b = load_form_path(FilesystemKnowledgePath(forms_b), "frequency")

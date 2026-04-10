@@ -83,6 +83,29 @@
       "additionalProperties": {
         "type": "integer"
       }
+    },
+    "extra_units": {
+      "type": "array",
+      "description": "Additional domain-specific units exposed for dimensional analysis.",
+      "items": {
+        "type": "object",
+        "required": ["symbol"],
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "dimensions": {
+            "type": "object",
+            "propertyNames": {
+              "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+            },
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false

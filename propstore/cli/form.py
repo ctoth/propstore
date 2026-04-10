@@ -9,7 +9,8 @@ import yaml
 
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.cli.repository import Repository
-from propstore.form_utils import load_all_forms_path, load_form_path
+from propstore.document_schema import DocumentSchemaError
+from propstore.form_utils import load_all_forms_path, load_form_definition, load_form_path
 from propstore.validate import load_concepts
 
 
@@ -318,14 +319,15 @@ def validate(obj: dict, name: str | None) -> None:
 
     form_names: set[str] = set()
     for path in paths:
-        data = yaml.safe_load(path.read_bytes())
-        if not isinstance(data, dict):
-            errors.append(f"{path.name}: not a valid YAML mapping")
+        try:
+            document = load_form_definition(forms_tree, path.stem)
+        except DocumentSchemaError as exc:
+            errors.append(str(exc))
             continue
-        form_name = data.get("name")
-        if not isinstance(form_name, str) or not form_name:
-            errors.append(f"{path.name}: missing or invalid 'name' field")
+        if document is None:
+            errors.append(f"{path.name}: form document missing")
             continue
+        form_name = document.name
         if form_name != path.stem:
             errors.append(f"{path.name}: name '{form_name}' does not match filename")
         form_names.add(form_name)

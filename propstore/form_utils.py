@@ -9,13 +9,12 @@ from pathlib import Path
 from collections.abc import Sequence
 from typing import Any
 
-import jsonschema
+import msgspec
 import pint
-import yaml
 
 from propstore.cel_checker import KindType
+from propstore.document_schema import DocumentSchemaError, DocumentStruct, decode_document_path
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
-from propstore.resources import load_resource_json
 
 # Module-level unit registry for pint conversions
 ureg = pint.UnitRegistry()
@@ -42,6 +41,14 @@ class UnitConversion:
     reference: float = 1.0
 
 
+@dataclass(frozen=True)
+class ExtraUnitDefinition:
+    """Additional unit metadata declared on a form."""
+
+    symbol: str
+    dimensions: dict[str, int]
+
+
 @dataclass
 class FormDefinition:
     """Structured representation of a loaded form YAML file."""
@@ -50,10 +57,39 @@ class FormDefinition:
     unit_symbol: str | None = None
     allowed_units: set[str] = field(default_factory=set)
     is_dimensionless: bool = False
-    parameters: dict = field(default_factory=dict)
+    parameters: dict[str, Any] = field(default_factory=dict)
     dimensions: dict[str, int] | None = None
-    extra_units: list[dict[str, Any]] = field(default_factory=list)
+    extra_units: tuple[ExtraUnitDefinition, ...] = ()
     conversions: dict[str, UnitConversion] = field(default_factory=dict)
+
+
+class FormAlternativeDocument(DocumentStruct):
+    unit: str
+    type: str
+    multiplier: float = 1.0
+    offset: float = 0.0
+    base: float = 10.0
+    divisor: float = 1.0
+    reference: float = 1.0
+
+
+class FormExtraUnitDocument(DocumentStruct):
+    symbol: str
+    dimensions: dict[str, int] = msgspec.field(default_factory=dict)
+
+
+class FormDocument(DocumentStruct):
+    name: str
+    dimensionless: bool
+    base: str | None = None
+    unit_symbol: str | None = None
+    qudt: str | None = None
+    parameters: dict[str, Any] = msgspec.field(default_factory=dict)
+    common_alternatives: tuple[FormAlternativeDocument, ...] = ()
+    kind: str | None = None
+    note: str | None = None
+    dimensions: dict[str, int] | None = None
+    extra_units: tuple[FormExtraUnitDocument, ...] = ()
 
 
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
@@ -62,9 +98,6 @@ _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
 def clear_form_cache() -> None:
     """Clear the module-level form cache, forcing reload from disk on next access."""
     _form_cache.clear()
-    # Also clear schema cache if it exists
-    global _form_schema_cache
-    _form_schema_cache = None
 
 
 def _path_cache_key(forms_dir: Path | KnowledgePath) -> str:
@@ -81,16 +114,10 @@ _KIND_MAP = {
 }
 
 
-def parse_form(form_name: str, data: object) -> FormDefinition | None:
-    """Parse a form definition dict into a FormDefinition.
+def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
+    """Parse a typed form document into a FormDefinition."""
 
-    Pure function — no filesystem access. Returns None if *data* is not a dict.
-    """
-    if not isinstance(data, dict):
-        return None
-
-    # Prefer explicit kind from YAML; fall back to name-based heuristic
-    raw_kind = data.get("kind")
+    raw_kind = data.kind
     if isinstance(raw_kind, str):
         kind = _KIND_MAP.get(raw_kind, KindType.QUANTITY)
     else:
@@ -98,60 +125,39 @@ def parse_form(form_name: str, data: object) -> FormDefinition | None:
         if kind is None:
             kind = KindType.QUANTITY
 
-    unit_symbol = data.get("unit_symbol")
-    if unit_symbol is not None and not isinstance(unit_symbol, str):
-        unit_symbol = None
+    unit_symbol = data.unit_symbol
     # Treat explicit null as None
     if unit_symbol is None or unit_symbol == "":
         unit_symbol = None
 
     allowed = allowed_units_from_form_definition(data)
 
-    parameters = data.get("parameters", {}) or {}
+    parameters = dict(data.parameters)
 
-    # Read explicit dimensionless field; fall back to base == "ratio" heuristic
-    _explicit = data.get("dimensionless")
-    if isinstance(_explicit, bool):
-        is_dimensionless = _explicit
-    else:
-        is_dimensionless = (
-            data.get("base") == "ratio"
-            or (unit_symbol is None and kind == KindType.QUANTITY
-                and form_name not in ("structural",))
+    is_dimensionless = data.dimensionless
+
+    dimensions = None if data.dimensions is None else dict(data.dimensions)
+
+    extra_units = tuple(
+        ExtraUnitDefinition(
+            symbol=entry.symbol,
+            dimensions=dict(entry.dimensions),
         )
+        for entry in data.extra_units
+    )
+    for entry in extra_units:
+        allowed.add(entry.symbol)
 
-    # Read dimensions field (dict of SI dimension symbol -> integer exponent)
-    raw_dims = data.get("dimensions")
-    dimensions: dict[str, int] | None = None
-    if isinstance(raw_dims, dict):
-        dimensions = {str(k): int(v) for k, v in raw_dims.items()}
-
-    # Read extra_units and add their symbols to allowed_units
-    extra_units: list[dict[str, Any]] = []
-    raw_extra = data.get("extra_units")
-    if isinstance(raw_extra, list):
-        for entry in raw_extra:
-            if isinstance(entry, dict) and isinstance(entry.get("symbol"), str):
-                extra_units.append(entry)
-                allowed.add(entry["symbol"])
-
-    # Build UnitConversion objects from common_alternatives
     conversions: dict[str, UnitConversion] = {}
-    for alt in data.get("common_alternatives", []) or []:
-        if not isinstance(alt, dict):
-            continue
-        unit = alt.get("unit")
-        if not isinstance(unit, str) or not unit:
-            continue
-        conv_type = alt.get("type", "multiplicative")
-        conversions[unit] = UnitConversion(
-            unit=unit,
-            type=conv_type,
-            multiplier=float(alt.get("multiplier", 1.0)),
-            offset=float(alt.get("offset", 0.0)),
-            base=float(alt.get("base", 10.0)),
-            divisor=float(alt.get("divisor", 1.0)),
-            reference=float(alt.get("reference", 1.0)),
+    for alt in data.common_alternatives:
+        conversions[alt.unit] = UnitConversion(
+            unit=alt.unit,
+            type=alt.type,
+            multiplier=float(alt.multiplier),
+            offset=float(alt.offset),
+            base=float(alt.base),
+            divisor=float(alt.divisor),
+            reference=float(alt.reference),
         )
 
     return FormDefinition(
@@ -182,8 +188,11 @@ def load_form(forms_dir: Path | KnowledgePath, form_name: str | None) -> FormDef
     if not form_path.exists():
         _form_cache[cache_key] = None
         return None
-    data = yaml.safe_load(form_path.read_bytes())
-    result = parse_form(form_name, data)
+    document = load_form_definition(forms_root, form_name)
+    if document is None:
+        _form_cache[cache_key] = None
+        return None
+    result = parse_form(form_name, document)
     _form_cache[cache_key] = result
     return result
 
@@ -370,94 +379,69 @@ def kind_value_from_form_name(form: str | None) -> str:
     return kind.value
 
 
-def load_form_definition(forms_dir: Path | KnowledgePath, form_name: str | None) -> dict[str, Any]:
-    """Load a form definition YAML file if present."""
+def load_form_definition(
+    forms_dir: Path | KnowledgePath,
+    form_name: str | None,
+) -> FormDocument | None:
+    """Load a typed form document YAML file if present."""
+
     if not isinstance(form_name, str) or not form_name:
-        return {}
+        return None
     form_path = coerce_knowledge_path(forms_dir) / f"{form_name}.yaml"
     if not form_path.exists():
-        return {}
-    data = yaml.safe_load(form_path.read_bytes())
-    return data if isinstance(data, dict) else {}
+        return None
+    return decode_document_path(form_path, FormDocument)
 
 
-def allowed_units_from_form_definition(form_definition: dict[str, Any]) -> set[str]:
-    """Extract allowed unit symbols from a form definition."""
+def allowed_units_from_form_definition(form_definition: FormDocument) -> set[str]:
+    """Extract allowed unit symbols from a typed form document."""
+
     allowed: set[str] = set()
 
-    unit_symbol = form_definition.get("unit_symbol")
-    if isinstance(unit_symbol, str) and unit_symbol:
+    unit_symbol = form_definition.unit_symbol
+    if unit_symbol:
         allowed.add(unit_symbol)
 
-    for alt in form_definition.get("common_alternatives", []) or []:
-        if not isinstance(alt, dict):
-            continue
-        unit = alt.get("unit")
-        if isinstance(unit, str) and unit:
-            allowed.add(unit)
+    for alt in form_definition.common_alternatives:
+        if alt.unit:
+            allowed.add(alt.unit)
 
     return allowed
 
 
-# ── Form file schema validation ──────────────────────────────────────
-
-_form_schema_cache: dict | None = None
-
-
-def _load_form_schema() -> dict:
-    """Load the form JSON Schema, caching the result."""
-    global _form_schema_cache
-    if _form_schema_cache is None:
-        schema = load_resource_json("schemas/form.schema.json")
-        if not isinstance(schema, dict):
-            raise TypeError("schemas/form.schema.json must decode to a JSON object")
-        _form_schema_cache = schema
-    assert _form_schema_cache is not None
-    return _form_schema_cache
-
-
 def validate_form_files(forms_dir: Path | KnowledgePath) -> list[str]:
-    """Validate all form YAML files against the form JSON Schema.
+    """Validate all form YAML files against the typed document schema."""
 
-    Returns a list of error strings (empty means all valid).
-    """
     errors: list[str] = []
     forms_root = coerce_knowledge_path(forms_dir)
     if not forms_root.exists():
         return errors
 
-    schema = _load_form_schema()
-
     for entry in forms_root.iterdir():
         if not entry.is_file() or entry.suffix != ".yaml":
             continue
-        data = yaml.safe_load(entry.read_bytes())
-        if not isinstance(data, dict):
-            errors.append(f"{entry.stem}: form file is not a YAML mapping")
-            continue
-        try:
-            jsonschema.validate(data, schema)
-        except jsonschema.ValidationError as e:
-            errors.append(f"{entry.stem}: {e.message}")
 
-        # Cross-check: dimensions vs dimensionless consistency
-        dims = data.get("dimensions")
-        is_dimless = data.get("dimensionless", False)
-        has_unit = data.get("unit_symbol") is not None
-        if isinstance(dims, dict) and len(dims) > 0 and is_dimless is True:
+        try:
+            document = decode_document_path(entry, FormDocument)
+        except DocumentSchemaError as exc:
+            errors.append(str(exc))
+            continue
+
+        dims = document.dimensions
+        is_dimless = document.dimensionless
+        has_unit = document.unit_symbol is not None
+        if dims is not None and len(dims) > 0 and is_dimless:
             errors.append(
                 f"{entry.stem}: non-empty dimensions conflicts with "
                 f"dimensionless=true")
-        if isinstance(dims, dict) and len(dims) == 0 and is_dimless is False and has_unit:
+        if dims is not None and len(dims) == 0 and not is_dimless and has_unit:
             errors.append(
                 f"{entry.stem}: empty dimensions conflicts with "
                 f"dimensionless=false for a quantity with unit_symbol")
 
-        # Cross-check: name field must match filename
-        name = data.get("name")
-        if name != entry.stem:
+        if document.name != entry.stem:
             errors.append(
-                f"{entry.stem}: 'name' field ('{name}') does not match "
+                f"{entry.stem}: 'name' field ('{document.name}') does not match "
                 f"filename '{entry.stem}'")
 
     return errors
