@@ -10,6 +10,12 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.core.row_types import (
+    coerce_concept_row,
+    coerce_parameterization_row,
+    coerce_relationship_row,
+    coerce_stance_row,
+)
 from propstore.world import ArtifactStore, BeliefSpace
 
 
@@ -150,18 +156,19 @@ def build_knowledge_graph(
 
     # ---- 1. Concept nodes ----
     concept_rows = world.all_concepts()
-    for row in concept_rows:
-        cid = row["id"]
+    for row_input in concept_rows:
+        row = coerce_concept_row(row_input)
+        cid = str(row.concept_id)
         if allowed_concept_ids is not None and cid not in allowed_concept_ids:
             continue
         graph.nodes.append(GraphNode(
             id=cid,
-            label=row["canonical_name"],
+            label=row.canonical_name,
             node_type="concept",
             metadata={
-                "form": row["form"],
-                "status": row["status"],
-                "domain": row["domain"],
+                "form": row.form,
+                "status": row.status,
+                "domain": row.domain,
             },
         ))
         node_ids.add(cid)
@@ -209,11 +216,12 @@ def build_knowledge_graph(
         node_ids.add(claim_id)
 
     # ---- 3. Parameterization edges ----
-    for row_d in world.all_parameterizations():
-        output_id = row_d["output_concept_id"]
+    for row_input in world.all_parameterizations():
+        row = coerce_parameterization_row(row_input)
+        output_id = str(row.output_concept_id)
         if output_id not in node_ids:
             continue
-        input_ids = json.loads(row_d["concept_ids"])
+        input_ids = json.loads(row.concept_ids)
         for iid in input_ids:
             if iid not in node_ids:
                 continue
@@ -222,35 +230,37 @@ def build_knowledge_graph(
                 target=output_id,
                 edge_type="parameterization",
                 metadata={
-                    "formula": row_d.get("formula"),
-                    "exactness": row_d.get("exactness"),
+                    "formula": row.formula,
+                    "exactness": row.exactness,
                 },
             ))
 
     # ---- 4. Relationship edges ----
-    for row in world.all_relationships():
-        src = row["source_id"]
-        tgt = row["target_id"]
+    for row_input in world.all_relationships():
+        row = coerce_relationship_row(row_input)
+        src = row.source_id
+        tgt = row.target_id
         if src not in node_ids or tgt not in node_ids:
             continue
         graph.edges.append(GraphEdge(
             source=src,
             target=tgt,
             edge_type="relationship",
-            metadata={"type": row["type"]},
+            metadata={"type": row.relation_type},
         ))
 
     # ---- 5. Stance edges ----
-    for row in world.all_claim_stances():
-        cid = _display_claim_id_from_store(world, row["claim_id"])
-        tid = _display_claim_id_from_store(world, row["target_claim_id"])
+    for row_input in world.all_claim_stances():
+        row = coerce_stance_row(row_input)
+        cid = _display_claim_id_from_store(world, row.claim_id)
+        tid = _display_claim_id_from_store(world, row.target_claim_id)
         if cid not in node_ids or tid not in node_ids:
             continue
         graph.edges.append(GraphEdge(
             source=cid,
             target=tid,
             edge_type="stance",
-            metadata={"stance_type": row["stance_type"]},
+            metadata={"stance_type": row.stance_type},
         ))
 
     # ---- 6. Claim-of edges ----

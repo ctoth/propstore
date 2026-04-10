@@ -16,6 +16,13 @@ from propstore.cel_checker import (
 )
 from propstore.core.id_types import to_concept_id
 from propstore.core.labels import compile_environment_assumptions
+from propstore.core.row_types import (
+    ConceptRow,
+    ConflictRow,
+    ParameterizationRow,
+    RelationshipRow,
+    StanceRow,
+)
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 
 if TYPE_CHECKING:
@@ -511,7 +518,10 @@ class WorldModel(ArtifactStore):
 
     def concept_names(self) -> dict[str, str]:
         """Return ``{concept_id: canonical_name}`` for all concepts."""
-        return {c["id"]: c["canonical_name"] for c in self.all_concepts()}
+        return {
+            str(concept.concept_id): concept.canonical_name
+            for concept in self.all_concepts()
+        }
 
     def get_claim(self, claim_id: str) -> dict | None:
         resolved_claim_id = self.resolve_claim(claim_id) or claim_id
@@ -634,7 +644,7 @@ class WorldModel(ArtifactStore):
         )
         return {row["id"]: row for row in rows}
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+    def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
         if not claim_ids:
             return []
         resolved_ids = {
@@ -670,9 +680,9 @@ class WorldModel(ArtifactStore):
             """,  # noqa: S608
             list(resolved_ids) + list(resolved_ids),
         ).fetchall()
-        return [dict(row) for row in rows]
+        return [StanceRow.from_mapping(dict(row)) for row in rows]
 
-    def conflicts(self, concept_id: str | None = None) -> list[dict]:
+    def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
         if concept_id is not None:
             rows = self._conn.execute(
                 """
@@ -690,17 +700,17 @@ class WorldModel(ArtifactStore):
                 FROM conflict_witness
                 """
             ).fetchall()
-        return [dict(r) for r in rows]
+        return [ConflictRow.from_mapping(dict(row)) for row in rows]
 
-    def all_concepts(self) -> list[dict]:
+    def all_concepts(self) -> list[ConceptRow]:
         rows = self._conn.execute("SELECT * FROM concept").fetchall()
-        return [dict(row) for row in rows]
+        return [ConceptRow.from_mapping(dict(row)) for row in rows]
 
-    def all_parameterizations(self) -> list[dict]:
+    def all_parameterizations(self) -> list[ParameterizationRow]:
         rows = self._conn.execute("SELECT * FROM parameterization").fetchall()
-        return [dict(row) for row in rows]
+        return [ParameterizationRow.from_mapping(dict(row)) for row in rows]
 
-    def all_relationships(self) -> list[dict]:
+    def all_relationships(self) -> list[RelationshipRow]:
         rows = self._conn.execute(
             """
             SELECT source_id, relation_type AS type, target_id, conditions_cel, note
@@ -708,9 +718,9 @@ class WorldModel(ArtifactStore):
             WHERE source_kind = 'concept' AND target_kind = 'concept'
             """
         ).fetchall()
-        return [dict(row) for row in rows]
+        return [RelationshipRow.from_mapping(dict(row)) for row in rows]
 
-    def all_claim_stances(self) -> list[dict]:
+    def all_claim_stances(self) -> list[StanceRow]:
         rows = self._conn.execute(
             """
             SELECT
@@ -735,7 +745,7 @@ class WorldModel(ArtifactStore):
             WHERE source_kind = 'claim' AND target_kind = 'claim'
             """
         ).fetchall()
-        return [dict(row) for row in rows]
+        return [StanceRow.from_mapping(dict(row)) for row in rows]
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
         rows = self._conn.execute(
@@ -852,16 +862,22 @@ class WorldModel(ArtifactStore):
 
     # ── Parameterization queries ─────────────────────────────────────
 
-    def _parameterizations_for(self, concept_id: str) -> list[dict]:
+    def _parameterizations_for(self, concept_id: str) -> list[ParameterizationRow]:
         """Get parameterization rows where output_concept_id matches."""
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
         rows = self._conn.execute(
             "SELECT * FROM parameterization WHERE output_concept_id = ?",
             (resolved_concept_id,),
         ).fetchall()
-        return [dict(r) for r in rows]
+        return [
+            ParameterizationRow.from_mapping(
+                dict(row),
+                output_concept_id=resolved_concept_id,
+            )
+            for row in rows
+        ]
 
-    def parameterizations_for(self, concept_id: str) -> list[dict]:
+    def parameterizations_for(self, concept_id: str) -> list[ParameterizationRow]:
         return self._parameterizations_for(concept_id)
 
     def compiled_graph(self):
@@ -917,9 +933,9 @@ class WorldModel(ArtifactStore):
 
     # ── Stance graph ─────────────────────────────────────────────────
 
-    def explain(self, claim_id: str) -> list[dict]:
+    def explain(self, claim_id: str) -> list[StanceRow]:
         """Walk normalized claim relation edges breadth-first from claim_id."""
-        result: list[dict] = []
+        result: list[StanceRow] = []
         visited: set[str] = set()
         queue: deque[str] = deque([claim_id])
         visited.add(claim_id)
@@ -952,9 +968,9 @@ class WorldModel(ArtifactStore):
                 (current,),
             ).fetchall()
             for row in rows:
-                stance = dict(row)
+                stance = StanceRow.from_mapping(dict(row))
                 result.append(stance)
-                target = stance["target_claim_id"]
+                target = str(stance.target_claim_id)
                 if target not in visited:
                     visited.add(target)
                     queue.append(target)

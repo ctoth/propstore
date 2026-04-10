@@ -45,6 +45,12 @@ from propstore.core.labels import (
     merge_labels,
     SupportQuality,
 )
+from propstore.core.row_types import (
+    ConflictRowInput,
+    ParameterizationRowInput,
+    coerce_conflict_row,
+    coerce_parameterization_row,
+)
 from propstore.world.types import (
     ATMSConceptFutureStatusEntry,
     ATMSConceptInterventionPlan,
@@ -93,13 +99,13 @@ class _ATMSRuntimeLike(Protocol):
     def active_graph(self) -> ActiveWorldGraph: ...
 
     @property
-    def all_parameterizations(self) -> Callable[[], list[dict[str, Any]]]: ...
+    def all_parameterizations(self) -> Callable[[], list[ParameterizationRowInput]]: ...
 
     @property
     def active_claims(self) -> Callable[[], list[dict[str, Any]]]: ...
 
     @property
-    def conflicts(self) -> Callable[[], list[dict[str, Any]]]: ...
+    def conflicts(self) -> Callable[[], list[ConflictRowInput]]: ...
 
     @property
     def is_param_compatible(self) -> Callable[[str | None], bool]: ...
@@ -154,9 +160,9 @@ class ATMSJustification:
 class _ATMSRuntime:
     environment: Environment
     active_graph: ActiveWorldGraph
-    all_parameterizations: Callable[[], list[dict[str, Any]]]
+    all_parameterizations: Callable[[], list[ParameterizationRowInput]]
     active_claims: Callable[[], list[dict[str, Any]]]
-    conflicts: Callable[[], list[dict[str, Any]]]
+    conflicts: Callable[[], list[ConflictRowInput]]
     is_param_compatible: Callable[[str | None], bool]
     claim_support: Callable[[dict[str, Any]], tuple[Label | None, SupportQuality]]
     concept_status: Callable[[str], str]
@@ -296,17 +302,17 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
             if claim_id in compiled_claims
         ]
 
-    def _conflicts() -> list[dict[str, Any]]:
+    def _conflicts() -> list[ConflictRowInput]:
         active_ids = set(active_graph.active_claim_ids)
         return [
-            _conflict_witness_to_row(conflict)
+            coerce_conflict_row(_conflict_witness_to_row(conflict))
             for conflict in active_graph.compiled.conflicts
             if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
         ]
 
-    def _all_parameterizations() -> list[dict[str, Any]]:
+    def _all_parameterizations() -> list[ParameterizationRowInput]:
         return [
-            _parameterization_edge_to_row(edge)
+            coerce_parameterization_row(_parameterization_edge_to_row(edge))
             for edge in active_graph.compiled.parameterizations
         ]
 
@@ -1175,22 +1181,23 @@ class ATMSEngine:
         added = False
         provider_ids_by_concept = self._provider_node_ids_by_concept()
 
-        for index, param in enumerate(self._all_parameterizations):
-            if not self._runtime.is_param_compatible(param.get("conditions_cel")):
+        for index, param_input in enumerate(self._all_parameterizations):
+            param = coerce_parameterization_row(param_input)
+            if not self._runtime.is_param_compatible(param.conditions_cel):
                 continue
 
             condition_antecedents = self._exact_antecedent_sets(
-                param.get("conditions_cel"),
+                param.conditions_cel,
             )
             if not condition_antecedents:
                 continue
 
-            output_concept_id = param["output_concept_id"]
-            sympy_expr = param.get("sympy")
+            output_concept_id = str(param.output_concept_id)
+            sympy_expr = param.sympy
             if not sympy_expr:
                 continue
 
-            input_ids = json.loads(param["concept_ids"])
+            input_ids = json.loads(param.concept_ids)
             effective_inputs = [concept_id for concept_id in input_ids if concept_id != output_concept_id]
             input_provider_sets = [provider_ids_by_concept.get(concept_id, ()) for concept_id in effective_inputs]
             if any(not provider_ids for provider_ids in input_provider_sets):
@@ -1214,7 +1221,7 @@ class ATMSEngine:
                             "concept_id": output_concept_id,
                             "value": derived_value,
                             "parameterization_index": index,
-                            "formula": param.get("formula"),
+                            "formula": param.formula,
                         },
                     )
 
@@ -1233,11 +1240,10 @@ class ATMSEngine:
         provenance: dict[EnvironmentKey, list[ATMSNogoodProvenanceDetail]] = defaultdict(list)
         for environment, details in self._nogood_provenance.items():
             provenance[environment].extend(details)
-        for conflict in self._runtime.conflicts():
-            claim_a = conflict.get("claim_a_id")
-            claim_b = conflict.get("claim_b_id")
-            if not claim_a or not claim_b:
-                continue
+        for conflict_input in self._runtime.conflicts():
+            conflict = coerce_conflict_row(conflict_input)
+            claim_a = str(conflict.claim_a_id)
+            claim_b = str(conflict.claim_b_id)
 
             label_a = self.claim_label(claim_a)
             label_b = self.claim_label(claim_b)
@@ -1251,8 +1257,8 @@ class ATMSEngine:
                     provenance[nogood_environment].append({
                         "claim_a_id": claim_a,
                         "claim_b_id": claim_b,
-                        "concept_id": conflict.get("concept_id"),
-                        "warning_class": conflict.get("warning_class"),
+                        "concept_id": conflict.concept_id,
+                        "warning_class": conflict.warning_class,
                         "environment_a": list(env_a.assumption_ids),
                         "environment_b": list(env_b.assumption_ids),
                     })
@@ -1284,13 +1290,13 @@ class ATMSEngine:
             for concept_id, node_ids in providers.items()
         }
 
-    def _sorted_parameterizations(self) -> list[dict]:
+    def _sorted_parameterizations(self) -> list[ParameterizationRowInput]:
         return sorted(
             self._runtime.all_parameterizations(),
             key=lambda row: (
-                row.get("output_concept_id") or "",
-                row.get("formula") or "",
-                row.get("sympy") or "",
+                str(coerce_parameterization_row(row).output_concept_id),
+                coerce_parameterization_row(row).formula or "",
+                coerce_parameterization_row(row).sympy or "",
             ),
         )
 
