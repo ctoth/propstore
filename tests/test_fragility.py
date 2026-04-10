@@ -1006,21 +1006,27 @@ class TestTier2Discovery:
         t = FragilityTarget(
             target_id="unmeasured_concept",
             target_kind="concept",
-            description="No measurements — input to 2 parameterizations",
-            fragility=1.0,
+            description="Unscored discovery — input to 2 parameterizations, no claims",
+            fragility=0.0,
             cost_tier=3,
-            epistemic_roi=1.0/3,
+            epistemic_roi=None,
         )
         assert t.target_kind == "concept"
         assert t.cost_tier == 3
-        assert t.fragility == 1.0
+        assert t.fragility == 0.0
 
-    def test_discovered_targets_max_fragility(self):
-        """Unknown concepts have maximum fragility (total ignorance)."""
+    def test_discovered_targets_zero_fragility(self):
+        """Unknown concepts have fragility=0.0 (unscored, not 1.0).
+
+        Jøsang 2001 p.8: vacuous opinion represents total ignorance,
+        not maximum fragility. The project principle "honest ignorance
+        over fabricated confidence" forbids assigning 1.0 to unmeasured
+        concepts.
+        """
         from propstore.fragility import FragilityTarget
         t = FragilityTarget(target_id="x", target_kind="concept",
-                           description="test", fragility=1.0)
-        assert t.fragility == 1.0
+                           description="test", fragility=0.0)
+        assert t.fragility == 0.0
 
     def test_discovery_tier_parameter(self):
         """rank_fragility accepts discovery_tier parameter."""
@@ -1057,6 +1063,63 @@ class TestTier2Discovery:
         assert "viscosity" in ids
         # Should NOT include density (it has claims)
         assert "density" not in ids
+
+    def test_discover_assigns_zero_fragility_not_one(self):
+        """_discover_tier2_concepts assigns fragility=0.0 (unscored), not 1.0.
+
+        Jøsang 2001 p.8: vacuous opinion = total ignorance, not max fragility.
+        """
+        from unittest.mock import MagicMock
+        from propstore.fragility import _discover_tier2_concepts
+
+        mock_bound = MagicMock()
+        mock_bound._store.concept_ids.return_value = ["density"]
+        mock_bound._store.parameterizations_for.return_value = [
+            {"concept_ids": '["viscosity"]'}
+        ]
+        mock_bound.active_claims.return_value = []
+
+        result = _discover_tier2_concepts(mock_bound)
+        assert len(result) >= 1
+        for t in result:
+            assert t.fragility == 0.0, f"Expected 0.0 (unscored), got {t.fragility}"
+            assert t.epistemic_roi is None, "ROI should be None without a fragility score"
+            assert "unscored" in t.description.lower(), "Description should indicate unscored"
+
+    def test_rank_fragility_separates_tier2_into_discoveries(self):
+        """rank_fragility with discovery_tier=2 puts tier-2 in discoveries, not targets."""
+        from unittest.mock import MagicMock, patch
+        from propstore.fragility import rank_fragility, FragilityTarget
+
+        mock_bound = MagicMock()
+
+        # _derived_concepts returns one real concept
+        # _discover_tier2_concepts returns one discovery
+        discovery = FragilityTarget(
+            target_id="unknown_concept",
+            target_kind="concept",
+            description="Unscored discovery — input to 1 parameterizations, no claims",
+            fragility=0.0,
+            cost_tier=3,
+            epistemic_roi=None,
+        )
+
+        with patch("propstore.fragility._derived_concepts", return_value=["c1"]), \
+             patch("propstore.fragility._parametric_dimension", return_value=(0.5, {"detail": True})), \
+             patch("propstore.fragility._epistemic_dimension", return_value=(0.3, {"detail": True})), \
+             patch("propstore.fragility._conflict_dimension", return_value=(0.2, {"detail": True})), \
+             patch("propstore.fragility._discover_tier2_concepts", return_value=[discovery]):
+
+            report = rank_fragility(mock_bound, discovery_tier=2)
+
+            # Scored target should be in targets
+            target_ids = [t.target_id for t in report.targets]
+            assert "c1" in target_ids
+
+            # Discovery should be in discoveries, NOT targets
+            discovery_ids = [t.target_id for t in report.discoveries]
+            assert "unknown_concept" in discovery_ids
+            assert "unknown_concept" not in target_ids
 
     def test_sort_by_roi(self):
         """rank_fragility accepts sort_by parameter."""
