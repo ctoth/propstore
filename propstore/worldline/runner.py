@@ -28,6 +28,7 @@ from propstore.worldline.resolution import (
     resolve_target as _resolve_target,
 )
 from propstore.worldline.revision_capture import capture_revision_state
+from propstore.worldline.revision_types import WorldlineRevisionState
 from propstore.worldline.trace import ResolutionTrace
 
 logger = logging.getLogger(__name__)
@@ -118,17 +119,17 @@ def run_worldline(
                 error=f"argumentation capture failed: {exc}",
             )
 
-    revision_state: dict[str, Any] | None = None
+    revision_state: WorldlineRevisionState | None = None
     if definition.revision is not None:
         try:
             revision_state = capture_revision_state(bound, definition.revision)
         except Exception as exc:
             logger.warning("revision capture failed", exc_info=True)
-            revision_state = {
-                "operation": definition.revision.operation,
-                "status": "error",
-                "error": f"revision capture failed: {exc}",
-            }
+            revision_state = WorldlineRevisionState(
+                operation=definition.revision.operation,
+                status="error",
+                error=f"revision capture failed: {exc}",
+            )
 
     dependencies = WorldlineDependencies(
         claims=tuple(sorted(

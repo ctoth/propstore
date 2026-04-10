@@ -21,6 +21,7 @@ from propstore.worldline.result_types import (
 from propstore.worldline.revision_types import (
     RevisionAtomRef,
     RevisionConflictSelection,
+    WorldlineRevisionState,
 )
 
 
@@ -91,7 +92,7 @@ class WorldlineResult:
     dependencies: WorldlineDependencies = field(default_factory=WorldlineDependencies)
     sensitivity: WorldlineSensitivityReport | None = None
     argumentation: WorldlineArgumentationState | None = None
-    revision: dict[str, Any] | None = None
+    revision: WorldlineRevisionState | None = None
 
     def __post_init__(self) -> None:
         self.values = {
@@ -105,6 +106,8 @@ class WorldlineResult:
             self.sensitivity = WorldlineSensitivityReport.from_mapping(self.sensitivity)
         if self.argumentation is not None and not isinstance(self.argumentation, WorldlineArgumentationState):
             self.argumentation = WorldlineArgumentationState.from_mapping(self.argumentation)
+        if self.revision is not None and not isinstance(self.revision, WorldlineRevisionState):
+            self.revision = WorldlineRevisionState.from_mapping(self.revision)
 
     @classmethod
     def from_dict(cls, data: dict | None) -> WorldlineResult | None:
@@ -126,7 +129,9 @@ class WorldlineResult:
             dependencies=WorldlineDependencies.from_mapping(data.get("dependencies")),
             sensitivity=WorldlineSensitivityReport.from_mapping(data.get("sensitivity")),
             argumentation=WorldlineArgumentationState.from_mapping(data.get("argumentation")),
-            revision=data.get("revision"),
+            revision=WorldlineRevisionState.from_mapping(
+                data.get("revision") if isinstance(data.get("revision"), dict) else None
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -145,7 +150,7 @@ class WorldlineResult:
         if self.argumentation is not None:
             data["argumentation"] = self.argumentation.to_dict()
         if self.revision is not None:
-            data["revision"] = self.revision
+            data["revision"] = self.revision.to_dict()
         return data
 
 

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from dataclasses import replace
 
 from propstore.revision.entrenchment import EntrenchmentReport
 from propstore.revision.explanation_types import EntrenchmentReason
 from propstore.revision.operators import normalize_revision_input, revise
+from propstore.revision.snapshot_types import epistemic_state_snapshot
 from propstore.revision.state import BeliefBase, EpistemicState, RevisionEpisode, RevisionResult
 
 
@@ -97,21 +97,7 @@ def iterated_revise(
 
 def epistemic_state_payload(state: EpistemicState) -> dict:
     """Return a JSON-friendly payload for persistence or replay tooling."""
-    payload = asdict(state)
-    payload["accepted_atom_ids"] = list(state.accepted_atom_ids)
-    payload["ranked_atom_ids"] = list(state.ranked_atom_ids)
-    payload["ranking"] = dict(state.ranking)
-    payload["history"] = [
-        {
-            **episode_payload,
-            "target_atom_ids": list(episode.target_atom_ids),
-            "accepted_atom_ids": list(episode.accepted_atom_ids),
-            "rejected_atom_ids": list(episode.rejected_atom_ids),
-            "incision_set": list(episode.incision_set),
-        }
-        for episode, episode_payload in zip(state.history, payload["history"], strict=False)
-    ]
-    return payload
+    return epistemic_state_snapshot(state).to_dict()
 
 
 def _entrenchment_from_state(state: EpistemicState) -> EntrenchmentReport:
