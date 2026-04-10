@@ -3,7 +3,29 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import msgspec
 import yaml
+
+
+def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict]]:
+    """Load all .yaml files from a directory, sorted by filename.
+
+    Returns a list of (stem, filepath, data) tuples.
+    Empty YAML files produce an empty dict.
+    """
+    results: list[tuple[str, Path, dict]] = []
+    for entry in sorted(directory.iterdir()):
+        if entry.is_file() and entry.suffix == ".yaml":
+            raw = entry.read_bytes()
+            if raw.strip():
+                decoded = msgspec.yaml.decode(raw)
+                if not isinstance(decoded, dict):
+                    raise ValueError(f"{entry}: expected a YAML mapping")
+                data = decoded
+            else:
+                data = {}
+            results.append((entry.stem, entry, data if data else {}))
+    return results
 
 
 def write_yaml_file(path: Path, data: dict) -> None:

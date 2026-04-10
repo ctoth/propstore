@@ -11,13 +11,8 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from propstore.cli.repository import Repository
-    from propstore.knowledge_path import KnowledgePath
+from typing import Any
 
 import jsonschema
 import bridgman
@@ -31,9 +26,6 @@ from propstore.claim_documents import (
 )
 from propstore.compiler.context import (
     CompilationContext,
-    build_compilation_context_from_paths as build_claim_compilation_context_from_paths,
-    build_compilation_context_from_repo as build_claim_compilation_context_from_repo,
-    build_concept_registry_from_paths,
     compilation_context_from_concept_registry,
 )
 from propstore.compiler.passes import compile_claim_files
@@ -48,12 +40,7 @@ from propstore.identity import (
     format_logical_id,
     normalize_claim_file_payload,
 )
-from propstore.knowledge_path import coerce_knowledge_path
 from propstore.diagnostics import ValidationResult
-from propstore.validate import (
-    load_concepts,
-    load_yaml_dir,
-)
 
 from ast_equiv import parse_algorithm, extract_names, AlgorithmParseError, KNOWN_BUILTINS
 
@@ -63,14 +50,13 @@ from propstore.cel_checker import (
     build_cel_registry,
     check_cel_expression,
 )
-from propstore.core.concepts import LoadedConcept, normalize_loaded_concepts
+from propstore.core.concepts import LoadedConcept
 from propstore.form_utils import (
     FormDefinition,
     json_safe,
     load_form_path,
 )
 from propstore.stances import VALID_STANCE_TYPES
-from propstore.loaded import LoadedEntry
 
 
 _claim_schema_cache: dict | None = None
@@ -117,20 +103,6 @@ def _maybe_schema_float(value: object) -> object:
         return value
 
 
-
-
-# Logical claim IDs are always namespaced ``namespace:value`` handles.
-_LOGICAL_CLAIM_ID_RE = re.compile(
-    r"^(?P<namespace>[A-Za-z0-9][A-Za-z0-9._-]*):(?P<value>[A-Za-z0-9][A-Za-z0-9._/-]*)$"
-)
-
-
-def parse_claim_id(cid: str) -> tuple[str | None, str]:
-    """Split a logical claim ID into ``(namespace, local_id)``."""
-    match = _LOGICAL_CLAIM_ID_RE.match(cid)
-    if match is None:
-        return None, cid
-    return match.group("namespace"), match.group("value")
 
 
 def _validate_logical_ids(
@@ -694,79 +666,3 @@ def _validate_algorithm(
                     f"name '{name}' not declared in variables")
 
 
-def build_concept_registry_from_paths(
-    concepts_dir: Path | KnowledgePath,
-    forms_dir: Path | KnowledgePath,
-) -> dict[str, dict]:
-    """Load concepts and build a registry keyed by ID, canonical_name, and aliases.
-
-    Claims can reference concepts by any of these keys.
-    All keys point to the same enriched concept data dict.
-    """
-    concepts_root = coerce_knowledge_path(concepts_dir)
-    forms_root = coerce_knowledge_path(forms_dir)
-    concepts = load_concepts(concepts_root)
-    return build_authored_concept_registry(concepts, forms_root)
-
-
-def build_authored_concept_registry(
-    concepts: list[LoadedEntry] | list[LoadedConcept],
-    forms_dir: Path | KnowledgePath,
-    *,
-    require_form_definition: bool = True,
-) -> dict[str, dict]:
-    """Build the canonical authored-concept lookup used by validators/builders."""
-    forms_root = coerce_knowledge_path(forms_dir)
-    typed_concepts = (
-        concepts
-        if all(isinstance(concept, LoadedConcept) for concept in concepts)
-        else normalize_loaded_concepts(concepts)
-    )
-    registry: dict[str, dict] = {}
-    for concept in typed_concepts:
-        record = concept.record
-        enriched = record.to_payload()
-        cid = str(record.artifact_id)
-        enriched["_storage_id"] = cid
-        # Load structured form definition
-        form_def = load_form_path(forms_root, record.form)
-        if record.form:
-            if form_def is None:
-                if require_form_definition:
-                    raise ValueError(
-                        f"concept '{cid}' references missing form definition '{record.form}'"
-                    )
-            else:
-                enriched["_form_definition"] = form_def
-        # Index by concept ID
-        registry[cid] = enriched
-        if concept.source_local_id and concept.source_local_id not in registry:
-            registry[concept.source_local_id] = enriched
-        # Index by canonical_name (claims can reference concepts by name)
-        canonical = record.canonical_name
-        if canonical not in registry:
-            registry[canonical] = enriched
-        for logical_id in record.logical_ids:
-            if logical_id.formatted not in registry:
-                registry[logical_id.formatted] = enriched
-            if logical_id.value not in registry:
-                registry[logical_id.value] = enriched
-        # Index by aliases
-        for alias in record.aliases:
-            if alias.name not in registry:
-                registry[alias.name] = enriched
-    return registry
-
-
-def build_concept_registry(repo: Repository | None) -> dict[str, dict]:
-    """Load concepts and build {concept_id: concept_data} mapping.
-
-    Args:
-        repo: A Repository object providing the semantic tree.
-    """
-    if repo is None:
-        return {}
-    context = build_claim_compilation_context_from_repo(repo)
-    from propstore.compiler.context import concept_registry_for_context
-
-    return concept_registry_for_context(context)

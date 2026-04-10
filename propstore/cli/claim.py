@@ -123,10 +123,8 @@ def show(obj: dict, claim_id: str) -> None:
 def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> None:
     """Validate all claim files."""
     from propstore.claim_documents import load_claim_files
-    from propstore.validate_claims import (
-        build_concept_registry_from_paths,
-        validate_claims,
-    )
+    from propstore.compiler.context import build_concept_registry_from_paths
+    from propstore.validate_claims import validate_claims
 
 
 
@@ -184,10 +182,8 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
 @click.pass_obj
 def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
     """Validate a single claims YAML file."""
-    from propstore.validate_claims import (
-        build_concept_registry_from_paths,
-        validate_single_claim_file,
-    )
+    from propstore.compiler.context import build_concept_registry_from_paths
+    from propstore.validate_claims import validate_single_claim_file
 
     repo: Repository = obj["repo"]
     concepts_override = Path(concepts_path) if concepts_path else None
@@ -235,7 +231,7 @@ def conflicts(obj: dict, concept: str | None, warning_class: str | None) -> None
     """Detect and report claim conflicts."""
     from propstore.conflict_detector import ConflictClass, detect_conflicts
     from propstore.claim_documents import load_claim_files
-    from propstore.validate_claims import build_concept_registry
+    from propstore.compiler.context import build_concept_registry
 
     repo: Repository = obj["repo"]
     claims_root = repo.tree() / "claims"

@@ -258,3 +258,63 @@ def build_concept_registry_from_paths(
 ) -> dict[str, dict[str, Any]]:
     context = build_compilation_context_from_paths(concepts_dir, forms_dir)
     return concept_registry_for_context(context)
+
+
+def build_concept_registry(repo: Repository | None) -> dict[str, dict[str, Any]]:
+    """Load concepts and build {concept_id: concept_data} mapping.
+
+    Args:
+        repo: A Repository object providing the semantic tree.
+    """
+    if repo is None:
+        return {}
+    context = build_compilation_context_from_repo(repo)
+    return concept_registry_for_context(context)
+
+
+def build_authored_concept_registry(
+    concepts: list[Any] | list[LoadedConcept],
+    forms_dir: Path | KnowledgePath,
+    *,
+    require_form_definition: bool = True,
+) -> dict[str, dict[str, Any]]:
+    """Build the canonical authored-concept lookup used by validators/builders."""
+    from propstore.core.concepts import normalize_loaded_concepts
+    from propstore.form_utils import load_form_path
+
+    forms_root = coerce_knowledge_path(forms_dir)
+    typed_concepts = (
+        concepts
+        if all(isinstance(concept, LoadedConcept) for concept in concepts)
+        else normalize_loaded_concepts(concepts)
+    )
+    registry: dict[str, dict[str, Any]] = {}
+    for concept in typed_concepts:
+        record = concept.record
+        enriched = record.to_payload()
+        cid = str(record.artifact_id)
+        enriched["_storage_id"] = cid
+        form_def = load_form_path(forms_root, record.form)
+        if record.form:
+            if form_def is None:
+                if require_form_definition:
+                    raise ValueError(
+                        f"concept '{cid}' references missing form definition '{record.form}'"
+                    )
+            else:
+                enriched["_form_definition"] = form_def
+        registry[cid] = enriched
+        if concept.source_local_id and concept.source_local_id not in registry:
+            registry[concept.source_local_id] = enriched
+        canonical = record.canonical_name
+        if canonical not in registry:
+            registry[canonical] = enriched
+        for logical_id in record.logical_ids:
+            if logical_id.formatted not in registry:
+                registry[logical_id.formatted] = enriched
+            if logical_id.value not in registry:
+                registry[logical_id.value] = enriched
+        for alias in record.aliases:
+            if alias.name not in registry:
+                registry[alias.name] = enriched
+    return registry

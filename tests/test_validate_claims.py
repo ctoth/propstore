@@ -19,8 +19,8 @@ from propstore.identity import derive_concept_artifact_id
 from propstore.document_schema import DocumentSchemaError
 from propstore.loaded import LoadedEntry
 from propstore.claim_documents import load_claim_files
+from propstore.identity import parse_claim_id
 from propstore.validate_claims import (
-    parse_claim_id,
     validate_claims,
     validate_single_claim_file,
 )
@@ -1126,7 +1126,7 @@ class TestFormAwareUnitValidation:
     def _make_registry_with_forms(self, tmp_path):
         """Build a concept registry with form definitions available on disk."""
         from propstore.cli.repository import Repository
-        from propstore.validate_claims import build_concept_registry
+        from propstore.compiler.context import build_concept_registry
 
         knowledge = tmp_path / "knowledge"
         repo = Repository.init(knowledge)
