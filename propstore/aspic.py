@@ -1113,13 +1113,21 @@ def compute_defeats(
     Returns:
         Frozenset of Attack instances that succeed as defeats.
     """
-    defeats: set[Attack] = set()
+    argument_list = tuple(arguments)
+    argument_index = {arg: idx for idx, arg in enumerate(argument_list)}
+    defeat_keys: set[tuple[int, int, int, str]] = set()
 
     for atk in attacks:
+        key = (
+            argument_index[atk.attacker],
+            argument_index[atk.target],
+            argument_index[atk.target_sub],
+            atk.kind,
+        )
         if _is_preference_independent_attack(atk, system):
             # Undercutting and directional-contrary attacks always succeed
             # (Modgil & Prakken 2018, Def 9, p.12).
-            defeats.add(atk)
+            defeat_keys.add(key)
         elif atk.attacker == atk.target:
             # Self-attacks always succeed as defeats. An argument that
             # attacks itself is already self-conflicted; the preference
@@ -1129,14 +1137,22 @@ def compute_defeats(
             # the argument ordering (Def 22, p.22): A ⊁ A, and by
             # extension no argument can be "defeated by itself" in a
             # way that preferences could prevent.
-            defeats.add(atk)
+            defeat_keys.add(key)
         else:
             # Rebutting or undermining: defeat iff attacker is NOT
             # strictly weaker than the targeted sub-argument (Def 9, p.12)
             if not _strictly_weaker(atk.attacker, atk.target_sub, pref, kb):
-                defeats.add(atk)
+                defeat_keys.add(key)
 
-    return frozenset(defeats)
+    return frozenset(
+        Attack(
+            attacker=argument_list[attacker_idx],
+            target=argument_list[target_idx],
+            target_sub=argument_list[target_sub_idx],
+            kind=kind,
+        )
+        for attacker_idx, target_idx, target_sub_idx, kind in defeat_keys
+    )
 
 
 # ── Complete Structured Argumentation Framework ──────────────────
