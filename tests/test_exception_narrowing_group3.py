@@ -72,7 +72,7 @@ class TestCliHelpersYamlParsing:
         concept_dir.mkdir()
         (concept_dir / "c1.yaml").write_text("id: concept1\n")
 
-        with patch("propstore.cli.helpers.yaml.safe_load", side_effect=RuntimeError("boom")):
+        with patch("propstore.cli.helpers.decode_document_path", side_effect=RuntimeError("boom")):
             from propstore.cli.helpers import _scan_max_concept_id
             with pytest.raises(RuntimeError, match="boom"):
                 _scan_max_concept_id(concept_dir)
