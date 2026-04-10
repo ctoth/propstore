@@ -421,6 +421,17 @@ def sub(a: Argument) -> frozenset[Argument]:
 
 
 @functools.cache
+def all_concs(a: Argument) -> frozenset[Literal]:
+    """All conclusions reachable in the sub-argument tree."""
+    if isinstance(a, PremiseArg):
+        return frozenset({a.premise})
+    conclusions: set[Literal] = {a.rule.consequent}
+    for sub_arg in a.sub_args:
+        conclusions.update(all_concs(sub_arg))
+    return frozenset(conclusions)
+
+
+@functools.cache
 def top_rule(a: Argument) -> Rule | None:
     """Top-level rule. None for PremiseArg. Modgil & Prakken 2018, Def 5."""
     if isinstance(a, PremiseArg):
@@ -539,18 +550,13 @@ def build_arguments(
     # Index: conclusion literal -> set of arguments with that conclusion
     conc_index: dict[Literal, set[Argument]] = {}
 
-    consistency_cache: dict[frozenset[Literal], bool] = {}
-
     def _add(arg: Argument) -> bool:
         """Add argument to set and index. Returns True if new."""
-        premises = prem(arg)
-        if premises not in consistency_cache:
-            consistency_cache[premises] = is_c_consistent(
-                premises,
-                system.strict_rules,
-                system.contrariness,
-            )
-        if not consistency_cache[premises]:
+        if not is_c_consistent(
+            prem(arg),
+            system.strict_rules,
+            system.contrariness,
+        ):
             return False
         if arg in all_args:
             return False
@@ -565,15 +571,6 @@ def build_arguments(
         _add(PremiseArg(premise=lit, is_axiom=True))
     for lit in kb.premises:
         _add(PremiseArg(premise=lit, is_axiom=False))
-
-    def _all_concs(arg: Argument) -> frozenset[Literal]:
-        """All conclusions reachable in the sub-argument tree."""
-        if isinstance(arg, PremiseArg):
-            return frozenset({arg.premise})
-        conclusions: set[Literal] = {arg.rule.consequent}
-        for sub_arg in arg.sub_args:
-            conclusions.update(_all_concs(sub_arg))
-        return frozenset(conclusions)
 
     # Step 2-3: Iterate until fixpoint
     all_rules = list(system.strict_rules | system.defeasible_rules)
@@ -603,7 +600,7 @@ def build_arguments(
                 # appearing in a sub-argument would create a cycle.
                 combo_concs: set[Literal] = set()
                 for sub_arg in combo:
-                    combo_concs.update(_all_concs(sub_arg))
+                    combo_concs.update(all_concs(sub_arg))
                 if rule.consequent in combo_concs:
                     continue
 
