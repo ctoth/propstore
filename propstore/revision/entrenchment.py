@@ -5,13 +5,25 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.core.id_types import AssumptionId
+from propstore.revision.explanation_types import EntrenchmentReason, coerce_entrenchment_reason
 from propstore.revision.state import BeliefBase
 
 
 @dataclass(frozen=True)
 class EntrenchmentReport:
     ranked_atom_ids: tuple[str, ...]
-    reasons: Mapping[str, dict[str, Any]] = field(default_factory=dict)
+    reasons: Mapping[str, EntrenchmentReason] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "ranked_atom_ids", tuple(str(atom_id) for atom_id in self.ranked_atom_ids))
+        object.__setattr__(
+            self,
+            "reasons",
+            {
+                str(atom_id): coerce_entrenchment_reason(reason)
+                for atom_id, reason in self.reasons.items()
+            },
+        )
 
 
 def compute_entrenchment(
@@ -27,7 +39,7 @@ def compute_entrenchment(
     """
     override_map = {str(k): dict(v) for k, v in (overrides or {}).items()}
     scored: list[tuple[int, int, str]] = []
-    reasons: dict[str, dict[str, Any]] = {}
+    reasons: dict[str, EntrenchmentReason] = {}
 
     for atom in base.atoms:
         override_rank, override_key, override = _match_override(atom, base, override_map)
@@ -39,12 +51,16 @@ def compute_entrenchment(
         )
 
         scored.append((override_rank, -support_count, atom.atom_id))
-        reasons[atom.atom_id] = {
-            "override": override.get("priority") if override is not None else None,
-            "override_key": override_key,
-            "support_count": support_count,
-            "essential_support": _essential_support_ids(bound, atom.atom_id),
-        }
+        reasons[atom.atom_id] = EntrenchmentReason(
+            override_priority=(
+                None
+                if override is None or override.get("priority") is None
+                else int(override.get("priority"))
+            ),
+            override_key=override_key,
+            support_count=support_count,
+            essential_support=tuple(_essential_support_ids(bound, atom.atom_id)),
+        )
 
     scored.sort()
     return EntrenchmentReport(

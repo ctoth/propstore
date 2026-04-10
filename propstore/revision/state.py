@@ -6,6 +6,12 @@ from typing import Any
 
 from propstore.core.id_types import AssumptionId, ContextId, to_assumption_ids, to_context_id
 from propstore.core.labels import AssumptionRef, Label
+from propstore.revision.explanation_types import (
+    EntrenchmentReason,
+    RevisionAtomDetail,
+    coerce_entrenchment_reason,
+    coerce_revision_atom_detail,
+)
 
 
 @dataclass(frozen=True)
@@ -31,6 +37,9 @@ class BeliefAtom:
     kind: str
     payload: Mapping[str, Any]
     label: Label | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "payload", dict(self.payload))
 
 
 @dataclass(frozen=True)
@@ -68,7 +77,20 @@ class RevisionResult:
     accepted_atom_ids: tuple[str, ...]
     rejected_atom_ids: tuple[str, ...]
     incision_set: tuple[str, ...] = field(default_factory=tuple)
-    explanation: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
+        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
+        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self,
+            "explanation",
+            {
+                str(atom_id): coerce_revision_atom_detail(detail)
+                for atom_id, detail in self.explanation.items()
+            },
+        )
 
 
 @dataclass(frozen=True)
@@ -79,7 +101,21 @@ class RevisionEpisode:
     accepted_atom_ids: tuple[str, ...] = field(default_factory=tuple)
     rejected_atom_ids: tuple[str, ...] = field(default_factory=tuple)
     incision_set: tuple[str, ...] = field(default_factory=tuple)
-    explanation: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    explanation: Mapping[str, RevisionAtomDetail] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
+        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
+        object.__setattr__(self, "rejected_atom_ids", tuple(str(atom_id) for atom_id in self.rejected_atom_ids))
+        object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
+        object.__setattr__(
+            self,
+            "explanation",
+            {
+                str(atom_id): coerce_revision_atom_detail(detail)
+                for atom_id, detail in self.explanation.items()
+            },
+        )
 
 
 @dataclass(frozen=True)
@@ -89,5 +125,23 @@ class EpistemicState:
     accepted_atom_ids: tuple[str, ...]
     ranked_atom_ids: tuple[str, ...]
     ranking: Mapping[str, int] = field(default_factory=dict)
-    entrenchment_reasons: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    entrenchment_reasons: Mapping[str, EntrenchmentReason] = field(default_factory=dict)
     history: tuple[RevisionEpisode, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
+        object.__setattr__(self, "ranked_atom_ids", tuple(str(atom_id) for atom_id in self.ranked_atom_ids))
+        object.__setattr__(
+            self,
+            "ranking",
+            {str(atom_id): int(rank) for atom_id, rank in self.ranking.items()},
+        )
+        object.__setattr__(
+            self,
+            "entrenchment_reasons",
+            {
+                str(atom_id): coerce_entrenchment_reason(reason)
+                for atom_id, reason in self.entrenchment_reasons.items()
+            },
+        )
+        object.__setattr__(self, "history", tuple(self.history))

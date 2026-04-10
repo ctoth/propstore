@@ -7,6 +7,7 @@ from typing import Any
 
 from propstore.core.id_types import AssumptionId
 from propstore.revision.entrenchment import EntrenchmentReport
+from propstore.revision.explanation_types import RevisionAtomDetail
 from propstore.revision.state import BeliefAtom, BeliefBase, RevisionResult
 
 
@@ -94,7 +95,7 @@ def expand(base: BeliefBase, atom: BeliefAtom | str | Mapping[str, Any]) -> Revi
     )
     explanation = dict(stabilized.explanation)
     if atom.atom_id in stabilized.accepted_atom_ids:
-        explanation[atom.atom_id] = {"reason": "expanded"}
+        explanation[atom.atom_id] = RevisionAtomDetail(reason="expanded")
     return RevisionResult(
         revised_base=stabilized.revised_base,
         accepted_atom_ids=stabilized.accepted_atom_ids,
@@ -163,7 +164,7 @@ def stabilize_belief_base(
     active_base = base
     forced = set(forced_rejections)
     incised = tuple(incision_set)
-    explanation: dict[str, dict[str, object]] = {}
+    explanation: dict[str, RevisionAtomDetail] = {}
     all_rejected: set[str] = set()
 
     while True:
@@ -176,7 +177,10 @@ def stabilize_belief_base(
                 round_rejected.add(atom_id)
                 explanation.setdefault(
                     atom_id,
-                    {"reason": "incised", "incision_set": incised},
+                    RevisionAtomDetail(
+                        reason="incised",
+                        incision_set=incised,
+                    ),
                 )
                 continue
 
@@ -184,7 +188,10 @@ def stabilize_belief_base(
                 round_rejected.add(atom_id)
                 explanation.setdefault(
                     atom_id,
-                    {"reason": "contracted", "incision_set": incised},
+                    RevisionAtomDetail(
+                        reason="contracted",
+                        incision_set=incised,
+                    ),
                 )
                 continue
 
@@ -194,11 +201,11 @@ def stabilize_belief_base(
                     round_rejected.add(atom_id)
                     explanation.setdefault(
                         atom_id,
-                        {
-                            "reason": "support_lost",
-                            "incision_set": incised,
-                            "support_sets": support_sets,
-                        },
+                        RevisionAtomDetail(
+                            reason="support_lost",
+                            incision_set=incised,
+                            support_sets=tuple(support_sets),
+                        ),
                     )
                     continue
 

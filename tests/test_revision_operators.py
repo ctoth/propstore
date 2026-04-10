@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 
 from propstore.revision.entrenchment import EntrenchmentReport
+from propstore.revision.explanation_types import EntrenchmentReason
 from propstore.revision.state import BeliefAtom, BeliefBase, RevisionScope
 
 
@@ -42,9 +43,9 @@ def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport]:
             "assumption:shared_weak",
         ),
         reasons={
-            "assumption:a_strong": {"support_count": 3},
-            "assumption:b_medium": {"support_count": 2},
-            "assumption:shared_weak": {"support_count": 1},
+            "assumption:a_strong": EntrenchmentReason(support_count=3),
+            "assumption:b_medium": EntrenchmentReason(support_count=2),
+            "assumption:shared_weak": EntrenchmentReason(support_count=1),
         },
     )
     return base, entrenchment
@@ -62,9 +63,9 @@ def test_contract_uses_support_sensitive_incision_and_cascades_support_loss() ->
     assert "claim:legacy" in result.rejected_atom_ids
     assert "claim:dependent" in result.rejected_atom_ids
     assert "claim:independent" in result.accepted_atom_ids
-    assert result.explanation["claim:legacy"]["reason"] == "support_lost"
-    assert result.explanation["claim:dependent"]["reason"] == "support_lost"
-    assert result.explanation["claim:dependent"]["incision_set"] == ("assumption:shared_weak",)
+    assert result.explanation["claim:legacy"].reason == "support_lost"
+    assert result.explanation["claim:dependent"].reason == "support_lost"
+    assert result.explanation["claim:dependent"].incision_set == ("assumption:shared_weak",)
 
 
 def test_expand_adds_atom_without_mutating_input_base() -> None:
@@ -188,7 +189,7 @@ def test_stabilize_belief_base_applies_support_loss_cascade_from_incision_set() 
     assert "claim:legacy" in result.rejected_atom_ids
     assert "claim:dependent" in result.rejected_atom_ids
     assert "claim:independent" in result.accepted_atom_ids
-    assert result.explanation["claim:legacy"]["reason"] == "support_lost"
+    assert result.explanation["claim:legacy"].reason == "support_lost"
 
 
 def test_stabilize_belief_base_is_idempotent_on_stable_result() -> None:
