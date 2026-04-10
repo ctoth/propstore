@@ -90,7 +90,7 @@ from propstore.world.types import (
 )
 
 if TYPE_CHECKING:
-    from propstore.validate_contexts import ContextHierarchy
+    from propstore.context_hierarchy import ContextHierarchy
     from propstore.world.bound import BoundWorld
 
 

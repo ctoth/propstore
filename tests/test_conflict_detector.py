@@ -882,7 +882,7 @@ class TestTransitiveContextSemantics:
         revealing the actual PARAM_CONFLICT.
         """
         from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.validate_contexts import ContextHierarchy
+        from propstore.context_hierarchy import ContextHierarchy
 
         concept_out = make_concept_identity(
             "concept_out",
@@ -972,7 +972,7 @@ class TestTransitiveContextSemantics:
         Two contexts with no hierarchy relationship (not excluded, not visible)
         should let condition analysis decide, not silently classify as phi-node.
         """
-        from propstore.validate_contexts import ContextHierarchy
+        from propstore.context_hierarchy import ContextHierarchy
 
         claims = [
             make_parameter_claim(

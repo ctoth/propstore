@@ -11,8 +11,8 @@ from hypothesis import strategies as st
 
 from propstore.context_types import LoadedContext
 from propstore.loaded import LoadedEntry
+from propstore.context_hierarchy import ContextHierarchy
 from propstore.validate_contexts import (
-    ContextHierarchy,
     load_contexts,
     validate_contexts,
 )

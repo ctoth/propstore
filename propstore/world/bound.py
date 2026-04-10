@@ -59,7 +59,7 @@ from propstore.world.types import (
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
     from propstore.fragility import FragilityReport
-    from propstore.validate_contexts import ContextHierarchy
+    from propstore.context_hierarchy import ContextHierarchy
     from propstore.world.atms import ATMSEngine
 
 @runtime_checkable

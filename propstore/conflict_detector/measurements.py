@@ -18,7 +18,7 @@ from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.cel_checker import ConceptInfo
-    from propstore.validate_contexts import ContextHierarchy
+    from propstore.context_hierarchy import ContextHierarchy
 
 
 def detect_measurement_conflicts(
