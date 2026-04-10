@@ -4,7 +4,7 @@ from dataclasses import replace
 
 from propstore.revision.iterated import epistemic_state_payload, make_epistemic_state
 from propstore.revision.operators import revise
-from propstore.revision.state import BeliefAtom, RevisionScope
+from propstore.revision.state import ClaimAtom, RevisionScope
 from tests.test_revision_iterated import _history_sensitive_base
 from tests.test_revision_operators import _base_with_shared_support
 
@@ -186,9 +186,9 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     call_operation, call_atom, call_conflicts, call_operator = bound.calls[0]
     assert call_operation == "revise"
     assert call_atom.atom_id == "claim:synthetic"
-    assert call_atom.kind == "claim"
-    assert call_atom.payload.claim_id == "synthetic"
-    assert call_atom.payload.claim.value == 9.0
+    assert isinstance(call_atom, ClaimAtom)
+    assert call_atom.claim_id == "synthetic"
+    assert call_atom.claim.value == 9.0
     assert call_conflicts == {"claim:synthetic": ("claim:legacy",)}
     assert call_operator is None
 
@@ -247,9 +247,9 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     call_operation, call_atom, call_conflicts, call_operator = bound.calls[0]
     assert call_operation == "iterated_revise"
     assert call_atom.atom_id == "claim:new"
-    assert call_atom.kind == "claim"
-    assert call_atom.payload.claim_id == "new"
-    assert call_atom.payload.claim.value == 9.0
+    assert isinstance(call_atom, ClaimAtom)
+    assert call_atom.claim_id == "new"
+    assert call_atom.claim.value == 9.0
     assert call_conflicts == {"claim:new": ("claim:legacy",)}
     assert call_operator == "restrained"
 

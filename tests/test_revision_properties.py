@@ -4,7 +4,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.revision.operators import normalize_revision_input
-from propstore.revision.state import BeliefAtom, BeliefBase, RevisionScope
+from propstore.revision.state import BeliefBase, ClaimAtom, RevisionScope
 
 
 _ident = st.text(
@@ -22,10 +22,9 @@ def test_normalize_revision_input_resolves_existing_claim_atom_by_all_user_handl
 ) -> None:
     artifact_id = "ps:claim:0123456789abcdef"
     logical_id = f"{namespace}:{value}"
-    atom = BeliefAtom(
+    atom = ClaimAtom(
         atom_id=f"claim:{value}",
-        kind="claim",
-        payload={
+        claim={
             "id": artifact_id,
             "logical_id": logical_id,
             "logical_ids": [{"namespace": namespace, "value": value}],

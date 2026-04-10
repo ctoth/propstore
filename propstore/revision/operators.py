@@ -9,22 +9,21 @@ from propstore.core.id_types import AssumptionId
 from propstore.revision.entrenchment import EntrenchmentReport
 from propstore.revision.explanation_types import RevisionAtomDetail
 from propstore.revision.state import (
-    AssumptionAtomPayload,
     BeliefAtom,
     BeliefBase,
-    ClaimAtomPayload,
+    AssumptionAtom,
+    ClaimAtom,
     RevisionResult,
-    assumption_atom_payload,
-    claim_atom_payload,
+    is_assumption_atom,
+    is_claim_atom,
 )
 
 
 def _claim_input_candidates(atom: BeliefAtom) -> tuple[str, ...]:
-    payload = claim_atom_payload(atom)
-    if payload is None:
+    if not is_claim_atom(atom):
         return ()
 
-    claim = payload.claim
+    claim = atom.claim
     candidates: list[str] = []
 
     candidates.append(str(claim.claim_id))
@@ -61,7 +60,7 @@ def normalize_revision_input(
     revision_input: BeliefAtom | str | Mapping[str, Any],
 ) -> BeliefAtom:
     """Normalize a user-facing revision input into a BeliefAtom."""
-    if isinstance(revision_input, BeliefAtom):
+    if isinstance(revision_input, (ClaimAtom, AssumptionAtom)):
         return revision_input
 
     if isinstance(revision_input, str):
@@ -76,27 +75,14 @@ def normalize_revision_input(
         if not claim_id:
             raise ValueError("Claim revision input requires 'id' or 'claim_id'")
         atom_id = str(revision_input.get("atom_id") or f"claim:{claim_id}")
-        return BeliefAtom(
-            atom_id=atom_id,
-            kind="claim",
-            payload=ClaimAtomPayload.from_input(revision_input),
-        )
+        return ClaimAtom(atom_id=atom_id, claim=revision_input)
 
     if kind == "assumption":
         assumption_id = revision_input.get("assumption_id") or revision_input.get("id")
         if not assumption_id:
             raise ValueError("Assumption revision input requires 'assumption_id' or 'id'")
         atom_id = str(revision_input.get("atom_id") or f"assumption:{assumption_id}")
-        return BeliefAtom(
-            atom_id=atom_id,
-            kind="assumption",
-            payload=AssumptionAtomPayload(
-                assumption_id=str(assumption_id),
-                cel=None if revision_input.get("cel") is None else str(revision_input.get("cel")),
-                kind=None if revision_input.get("kind") is None else str(revision_input.get("kind")),
-                source=None if revision_input.get("source") is None else str(revision_input.get("source")),
-            ),
-        )
+        return AssumptionAtom(atom_id=atom_id, assumption=revision_input)
 
     raise ValueError(f"Unsupported revision input kind: {kind}")
 
@@ -212,7 +198,7 @@ def stabilize_belief_base(
                 )
                 continue
 
-            if atom.kind == "claim":
+            if is_claim_atom(atom):
                 support_sets = active_base.support_sets.get(atom_id, ())
                 if support_sets and not _has_surviving_support(support_sets, incised):
                     round_rejected.add(atom_id)
@@ -249,7 +235,7 @@ def _normalize_targets(
     base: BeliefBase,
     targets: str | BeliefAtom | Mapping[str, Any] | Sequence[str | BeliefAtom | Mapping[str, Any]],
 ) -> tuple[str, ...]:
-    if isinstance(targets, (str, BeliefAtom, Mapping)):
+    if isinstance(targets, (str, ClaimAtom, AssumptionAtom, Mapping)):
         return (normalize_revision_input(base, targets).atom_id,)
     return tuple(normalize_revision_input(base, target).atom_id for target in targets)
 
@@ -258,10 +244,9 @@ def _find_existing_atom(base: BeliefBase, revision_input: str) -> BeliefAtom | N
     for atom in base.atoms:
         if atom.atom_id == revision_input:
             return atom
-        if atom.kind == "claim" and revision_input in _claim_input_candidates(atom):
+        if is_claim_atom(atom) and revision_input in _claim_input_candidates(atom):
             return atom
-        payload = assumption_atom_payload(atom)
-        if atom.kind == "assumption" and payload is not None and payload.assumption_id == revision_input:
+        if is_assumption_atom(atom) and atom.assumption.assumption_id == revision_input:
             return atom
     return None
 
@@ -312,7 +297,7 @@ def _forced_rejections_for_targets(
         if atom is None:
             forced.append(target_id)
             continue
-        if atom.kind != "claim":
+        if not is_claim_atom(atom):
             forced.append(target_id)
             continue
         if not base.support_sets.get(target_id):

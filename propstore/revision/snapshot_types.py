@@ -12,15 +12,15 @@ from propstore.revision.explanation_types import (
     coerce_revision_atom_detail,
 )
 from propstore.revision.state import (
-    AssumptionAtomPayload,
     BeliefAtom,
     BeliefBase,
-    ClaimAtomPayload,
     EpistemicState,
+    AssumptionAtom,
+    ClaimAtom,
     RevisionEpisode,
     RevisionScope,
-    assumption_atom_payload,
-    claim_atom_payload,
+    is_assumption_atom,
+    is_claim_atom,
 )
 
 
@@ -103,36 +103,29 @@ def _scope_to_dict(scope: RevisionScope) -> dict[str, Any]:
 def _belief_atom_from_mapping(data: Mapping[str, Any]) -> BeliefAtom:
     kind = str(data.get("kind") or "")
     payload_data = data.get("payload")
-    return BeliefAtom(
-        atom_id=str(data.get("atom_id") or ""),
-        kind=kind,
-        payload=(
-            ClaimAtomPayload.from_input(payload_data)
-            if kind == "claim" and isinstance(payload_data, Mapping)
-            else AssumptionAtomPayload(
-                assumption_id=str(payload_data.get("assumption_id") or payload_data.get("id") or ""),
-                cel=None if not isinstance(payload_data, Mapping) or payload_data.get("cel") is None else str(payload_data.get("cel")),
-                kind=None if not isinstance(payload_data, Mapping) or payload_data.get("kind") is None else str(payload_data.get("kind")),
-                source=None if not isinstance(payload_data, Mapping) or payload_data.get("source") is None else str(payload_data.get("source")),
-            )
-        ),
-        label=_label_from_mapping(data.get("label") if isinstance(data.get("label"), Mapping) else None),
-    )
+    atom_id = str(data.get("atom_id") or "")
+    label = _label_from_mapping(data.get("label") if isinstance(data.get("label"), Mapping) else None)
+    if kind == "claim":
+        if not isinstance(payload_data, Mapping):
+            raise ValueError("Claim atom snapshot requires mapping payload")
+        return ClaimAtom(atom_id=atom_id, claim=payload_data, label=label)
+    if kind == "assumption":
+        if not isinstance(payload_data, Mapping):
+            raise ValueError("Assumption atom snapshot requires mapping payload")
+        return AssumptionAtom(atom_id=atom_id, assumption=payload_data, label=label)
+    raise ValueError(f"Unsupported belief atom snapshot kind: {kind}")
 
 
 def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
-    claim_payload = claim_atom_payload(atom)
-    assumption_payload = assumption_atom_payload(atom)
     data: dict[str, Any] = {
         "atom_id": atom.atom_id,
-        "kind": atom.kind,
-        "payload": (
-            claim_payload.to_dict()
-            if claim_payload is not None
-            else {}
-            if assumption_payload is None
-            else assumption_payload.to_dict()
-        ),
+        "kind": "claim" if is_claim_atom(atom) else "assumption",
+        "payload": atom.claim.to_dict() if is_claim_atom(atom) else {
+            "assumption_id": atom.assumption.assumption_id,
+            "cel": atom.assumption.cel,
+            "kind": atom.assumption.kind,
+            "source": atom.assumption.source,
+        },
     }
     label = _label_to_dict(atom.label)
     if label is not None:
