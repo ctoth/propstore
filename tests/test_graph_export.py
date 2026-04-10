@@ -9,7 +9,7 @@ from propstore.sidecar.build import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
 from propstore.identity import derive_concept_artifact_id
 from propstore.world import WorldModel
-from tests.conftest import create_world_model_schema, normalize_claims_payload
+from tests.conftest import create_world_model_schema, normalize_claims_payload, normalize_concept_payloads
 
 
 # ── Fixtures (duplicated from test_world_model.py) ────────────────────
@@ -31,13 +31,20 @@ def concept_dir(tmp_path):
 
     forms_dir = knowledge / "forms"
     forms_dir.mkdir()
+    dimensionless_forms = {"category", "structural", "duration_ratio"}
     for form_name in ("frequency", "category", "structural", "duration_ratio",
                       "pressure", "time"):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name}, default_flow_style=False))
+            yaml.dump(
+                {"name": form_name, "dimensionless": form_name in dimensionless_forms},
+                default_flow_style=False,
+            ))
 
     def write(name, data):
-        (concepts_path / f"{name}.yaml").write_text(yaml.dump(data, default_flow_style=False))
+        normalized = normalize_concept_payloads([data], default_domain="speech")[0]
+        (concepts_path / f"{name}.yaml").write_text(
+            yaml.dump(normalized, default_flow_style=False)
+        )
 
     write("fundamental_frequency", {
         "id": "concept1",

@@ -23,6 +23,7 @@ from tests.conftest import (
     make_parameter_claim,
     make_concept_registry,
     normalize_claims_payload,
+    normalize_concept_payloads,
 )
 
 
@@ -74,11 +75,12 @@ def concept_dir(tmp_path):
     forms_dir.mkdir()
     for form_name in ("frequency", "pressure"):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name}, default_flow_style=False))
+            yaml.dump({"name": form_name, "dimensionless": False}, default_flow_style=False))
 
     def write(name, data):
+        normalized = normalize_concept_payloads([data], default_domain="speech")[0]
         (concepts_path / f"{name}.yaml").write_text(
-            yaml.dump(data, default_flow_style=False))
+            yaml.dump(normalized, default_flow_style=False))
 
     write("fundamental_frequency", {
         "id": "concept1",
@@ -297,17 +299,18 @@ class TestClaimNotesProperties:
             forms_dir = knowledge / "forms"
             forms_dir.mkdir(exist_ok=True)
             (forms_dir / "frequency.yaml").write_text(
-                yaml.dump({"name": "frequency"}, default_flow_style=False))
+                yaml.dump({"name": "frequency", "dimensionless": False}, default_flow_style=False))
 
-            (concepts_path / "fundamental_frequency.yaml").write_text(
-                yaml.dump({
+            concept_payload = normalize_concept_payloads([{
                     "id": "concept1",
                     "canonical_name": "fundamental_frequency",
                     "status": "accepted",
                     "definition": "F0",
                     "domain": "speech",
                     "form": "frequency",
-                }, default_flow_style=False))
+                }], default_domain="speech")[0]
+            (concepts_path / "fundamental_frequency.yaml").write_text(
+                yaml.dump(concept_payload, default_flow_style=False))
 
             claims_dir = knowledge / "claims"
             claims_dir.mkdir(exist_ok=True)

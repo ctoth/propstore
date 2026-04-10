@@ -9,8 +9,7 @@ import yaml
 from propstore.sidecar.build import build_sidecar
 from propstore.identity import derive_concept_artifact_id
 from propstore.world import WorldModel
-from tests.conftest import normalize_claims_payload
-from tests.conftest import normalize_claims_payload
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -35,7 +34,7 @@ def graph_build_world(tmp_path):
         "mass": {"name": "mass", "kind": "quantity", "dimensionless": False},
         "acceleration": {"name": "acceleration", "kind": "quantity", "dimensionless": False},
         "force": {"name": "force", "kind": "quantity", "dimensionless": False},
-        "category": {"name": "category", "kind": "category"},
+        "category": {"name": "category", "kind": "category", "dimensionless": True},
     }.items():
         (forms_dir / f"{form_name}.yaml").write_text(
             yaml.dump(form_data, default_flow_style=False),
@@ -89,8 +88,9 @@ def graph_build_world(tmp_path):
     }
 
     for name, payload in concept_payloads.items():
+        normalized = normalize_concept_payloads([payload], default_domain="physics")[0]
         (concepts_dir / f"{name}.yaml").write_text(
-            yaml.dump(payload, default_flow_style=False),
+            yaml.dump(normalized, default_flow_style=False),
             encoding="utf-8",
         )
 

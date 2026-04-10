@@ -19,6 +19,7 @@ import yaml
 from propstore.sidecar.build import build_sidecar
 from propstore.form_utils import dims_signature
 from propstore.identity import derive_concept_artifact_id
+from tests.conftest import normalize_concept_payloads
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -34,8 +35,9 @@ def _write_form(forms_dir: Path, name: str, **kwargs) -> None:
 
 def _write_concept(concepts_dir: Path, filename: str, data: dict) -> None:
     """Write a concept YAML file."""
+    normalized = normalize_concept_payloads([data])[0]
     (concepts_dir / f"{filename}.yaml").write_text(
-        yaml.dump(data, default_flow_style=False, sort_keys=False)
+        yaml.dump(normalized, default_flow_style=False, sort_keys=False)
     )
 
 

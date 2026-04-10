@@ -8,13 +8,12 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
-from tests.conftest import normalize_claims_payload
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
 
 def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
                   form: str = "frequency", **extra: object) -> dict:
     data: dict = {
-        "id": cid,
         "canonical_name": name,
         "status": status,
         "definition": f"Test definition for {name}.",
@@ -23,7 +22,7 @@ def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
         "form": form,
     }
     data.update(extra)
-    return data
+    return normalize_concept_payloads([{"id": cid, **data}], default_domain=domain)[0]
 
 
 def _write_concept(concepts_dir: Path, name: str, data: dict) -> Path:

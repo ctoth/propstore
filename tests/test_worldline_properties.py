@@ -18,7 +18,7 @@ from hypothesis import strategies as st
 from propstore.sidecar.build import build_sidecar
 from propstore.world import HypotheticalWorld, WorldModel
 from propstore.worldline import WorldlineDefinition, run_worldline
-from tests.conftest import normalize_claims_payload
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
 
 # ── Fixtures ────────────────────────────────────────────────────────
@@ -56,8 +56,9 @@ def property_kb(tmp_path_factory):
             yaml.dump(data, f)
 
     def write_concept(name, data):
+        normalized = normalize_concept_payloads([data])[0]
         with open(concepts_dir / f"{name}.yaml", "w") as f:
-            yaml.dump(data, f, default_flow_style=False)
+            yaml.dump(normalized, f, default_flow_style=False)
 
     write_concept("mass", {
         "id": "concept1", "canonical_name": "mass",
