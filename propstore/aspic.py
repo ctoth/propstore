@@ -614,6 +614,223 @@ def build_arguments(
     return frozenset(all_args)
 
 
+def _contraries_of(
+    literal: Literal,
+    contrariness: ContrarinessFn,
+    language: frozenset[Literal],
+) -> frozenset[Literal]:
+    """Find all literals that conflict with the given literal.
+
+    Returns every literal in L that is contradictory to or a contrary of
+    the given literal — i.e., every phi such that phi in bar(literal).
+
+    Modgil & Prakken 2018, Def 1 (p.8): bar maps each formula to its
+    contraries and contradictories.
+    """
+    result: set[Literal] = set()
+    for other in language:
+        if contrariness.is_contradictory(other, literal) or contrariness.is_contrary(
+            other, literal
+        ):
+            result.add(other)
+    return frozenset(result)
+
+
+def build_arguments_for(
+    system: ArgumentationSystem,
+    kb: KnowledgeBase,
+    goal: Literal,
+    *,
+    include_attackers: bool = True,
+    max_depth: int = 10,
+) -> frozenset[Argument]:
+    """Goal-directed argument construction for a specific conclusion.
+
+    Backward chaining from goal through rules to premises.
+    Constructs only arguments relevant to the queried conclusion,
+    rather than enumerating all possible arguments.
+
+    Modgil & Prakken 2018, Def 5 (pp.9-10): same argument structure
+    as build_arguments(), but constructed top-down.
+
+    The algorithm:
+    1. Base case: if goal is in kb.axioms or kb.premises, create PremiseArg
+    2. Recursive case: find all rules whose consequent matches goal,
+       recursively build arguments for each antecedent, combine into
+       StrictArg or DefeasibleArg
+    3. If include_attackers: build arguments for contraries of goal
+       to enable attack computation on the result
+    4. Only c-consistent arguments are kept
+    5. Depth-limited to prevent infinite recursion through rule cycles
+
+    The existing compute_attacks() and compute_defeats() work unchanged
+    on the resulting argument set.
+
+    References:
+        Toni (2014): ABA backward chaining from claims to assumptions.
+        Besnard & Hunter (2001, Def 6.1, p.215): argument trees rooted
+            at a specific conclusion.
+        de Kleer (1986, p.214): ATMS applies to consequent reasoning.
+
+    Args:
+        system: The argumentation system (L, contrariness, R_s, R_d).
+        kb: The knowledge base (K_n, K_p).
+        goal: The literal to build arguments for.
+        include_attackers: If True, also build arguments for contraries
+            of goal and of intermediate conclusions, enabling attack
+            computation on the result. Default True.
+        max_depth: Maximum recursion depth to prevent infinite loops
+            through rule cycles. Default 10.
+
+    Returns:
+        Frozenset of all c-consistent arguments relevant to the goal.
+    """
+    import itertools
+
+    all_rules = list(system.strict_rules | system.defeasible_rules)
+
+    # Memoization cache: literal -> frozenset of arguments concluding it
+    memo: dict[Literal, frozenset[Argument]] = {}
+    # Track literals currently being resolved to detect cycles
+    in_progress: set[Literal] = set()
+
+    def _build_backward(
+        target: Literal, depth: int
+    ) -> frozenset[Argument]:
+        """Recursively build arguments for a target literal."""
+        if depth > max_depth:
+            return frozenset()
+
+        if target in memo:
+            return memo[target]
+
+        # Cycle detection: if we're already resolving this literal
+        # higher in the call stack, return empty to break the cycle.
+        # ASPIC+ arguments are finite trees (Def 5); cycles are not
+        # valid arguments.
+        if target in in_progress:
+            return frozenset()
+
+        in_progress.add(target)
+        args: set[Argument] = set()
+
+        # Base case: target is a premise or axiom
+        if target in kb.axioms:
+            p = PremiseArg(premise=target, is_axiom=True)
+            if is_c_consistent(
+                prem(p), system.strict_rules, system.contrariness
+            ):
+                args.add(p)
+        if target in kb.premises:
+            p = PremiseArg(premise=target, is_axiom=False)
+            if is_c_consistent(
+                prem(p), system.strict_rules, system.contrariness
+            ):
+                args.add(p)
+
+        # Recursive case: find rules whose consequent matches target
+        for rule in all_rules:
+            if rule.consequent != target:
+                continue
+
+            # Build arguments for each antecedent
+            ante_arg_sets: list[tuple[Argument, ...]] = []
+            skip = False
+            for ante_lit in rule.antecedents:
+                ante_args = _build_backward(ante_lit, depth + 1)
+                if not ante_args:
+                    skip = True
+                    break
+                ante_arg_sets.append(tuple(ante_args))
+            if skip:
+                continue
+
+            # Enumerate combinations via Cartesian product
+            for combo in itertools.product(*ante_arg_sets):
+                # Acyclicity: the rule's consequent must not already
+                # appear as a conclusion in any sub-argument tree.
+                # Same check as build_arguments() line 596-604.
+                combo_concs: set[Literal] = set()
+                for sub_arg in combo:
+                    combo_concs.update(all_concs(sub_arg))
+                if rule.consequent in combo_concs:
+                    continue
+
+                if rule.kind == "strict":
+                    new_arg = StrictArg(sub_args=combo, rule=rule)
+                else:
+                    new_arg = DefeasibleArg(sub_args=combo, rule=rule)
+
+                # c-consistency check
+                if is_c_consistent(
+                    prem(new_arg),
+                    system.strict_rules,
+                    system.contrariness,
+                ):
+                    args.add(new_arg)
+
+        result = frozenset(args)
+        in_progress.discard(target)
+        memo[target] = result
+        return result
+
+    # Build arguments for the goal
+    goal_args = _build_backward(goal, 0)
+
+    if not include_attackers:
+        return goal_args
+
+    # Build arguments for contraries of goal to enable attack discovery.
+    # Also recurse into contraries of conclusions appearing in
+    # sub-arguments, so that undermining and undercutting attacks
+    # can be found too.
+    all_relevant: set[Argument] = set(goal_args)
+
+    # Collect all literals that appear as conclusions in goal arguments
+    target_literals: set[Literal] = set()
+    for arg in goal_args:
+        for s in sub(arg):
+            target_literals.add(conc(s))
+            # For undercutting: if s has a defeasible top rule with a name,
+            # we need arguments concluding the contrary of Literal(name, False)
+            tr = top_rule(s)
+            if tr is not None and tr.kind == "defeasible" and tr.name is not None:
+                name_lit = Literal(tr.name, False)
+                target_literals.add(name_lit)
+
+    # Build attacker arguments for each target literal's contraries
+    attacker_targets: set[Literal] = set()
+    for lit in target_literals:
+        for contrary_lit in _contraries_of(
+            lit, system.contrariness, system.language
+        ):
+            attacker_targets.add(contrary_lit)
+
+    for atk_target in attacker_targets:
+        attacker_args = _build_backward(atk_target, 0)
+        all_relevant.update(attacker_args)
+
+    # Second pass: also find attackers of the attacker arguments
+    # (for reinstatement / counter-attack computation)
+    second_pass_targets: set[Literal] = set()
+    for arg in all_relevant - goal_args:
+        for s in sub(arg):
+            second_pass_targets.add(conc(s))
+            tr = top_rule(s)
+            if tr is not None and tr.kind == "defeasible" and tr.name is not None:
+                name_lit = Literal(tr.name, False)
+                second_pass_targets.add(name_lit)
+
+    for lit in second_pass_targets:
+        for contrary_lit in _contraries_of(
+            lit, system.contrariness, system.language
+        ):
+            counter_args = _build_backward(contrary_lit, 0)
+            all_relevant.update(counter_args)
+
+    return frozenset(all_relevant)
+
+
 # ── Attack determination ─────────────────────────────────────────
 
 
