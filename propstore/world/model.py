@@ -490,7 +490,7 @@ class WorldModel(ArtifactStore):
             normalized_rows.append(data)
         return normalized_rows
 
-    def get_concept(self, concept_id: str) -> dict | None:
+    def get_concept(self, concept_id: str) -> ConceptRow | None:
         row = self._conn.execute("SELECT * FROM concept WHERE id = ?", (concept_id,)).fetchone()
         if row is None:
             resolved = self.resolve_concept(concept_id)
@@ -509,12 +509,12 @@ class WorldModel(ArtifactStore):
         else:
             data["logical_ids"] = []
         data["logical_id"] = data.get("primary_logical_id")
-        return data
+        return ConceptRow.from_mapping(data)
 
     def concept_name(self, concept_id: str) -> str | None:
         """Return the canonical name for a concept, or None if not found."""
         concept = self.get_concept(concept_id)
-        return concept["canonical_name"] if concept else None
+        return concept.canonical_name if concept else None
 
     def concept_names(self) -> dict[str, str]:
         """Return ``{concept_id: canonical_name}`` for all concepts."""

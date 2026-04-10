@@ -387,13 +387,16 @@ def _resolve_world_target(wm, target: str) -> str:
 
 
 def _world_concept_display_id(wm, concept_id: str) -> str:
+    from propstore.core.row_types import coerce_concept_row
+
     concept = wm.get_concept(concept_id)
     if concept is None:
         return concept_id
-    logical_id = concept.get("primary_logical_id")
+    row = coerce_concept_row(concept)
+    logical_id = row.primary_logical_id
     if isinstance(logical_id, str) and logical_id:
         return logical_id
-    return str(concept.get("id") or concept_id)
+    return str(row.concept_id or concept_id)
 
 
 def _world_claim_display_id(claim: Mapping[str, object]) -> str:
@@ -432,8 +435,12 @@ def world_query(obj: dict, concept_id: str) -> None:
         if concept is None:
             click.echo(f"Unknown concept: {concept_id}", err=True)
             sys.exit(1)
+        from propstore.core.row_types import coerce_concept_row
 
-        click.echo(f"{concept['canonical_name']} ({_world_concept_display_id(wm, resolved)})")
+        click.echo(
+            f"{coerce_concept_row(concept).canonical_name} "
+            f"({_world_concept_display_id(wm, resolved)})"
+        )
         claims = wm.claims_for(resolved)
         if not claims:
             click.echo("  (no claims)")
@@ -1618,7 +1625,12 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                     concept_id_val = c.get("concept_id")
                     if concept_id_val:
                         concept = wm.get_concept(concept_id_val)
-                        cname = concept.get("canonical_name", concept_id_val) if concept else concept_id_val
+                        if concept is None:
+                            cname = concept_id_val
+                        else:
+                            from propstore.core.row_types import coerce_concept_row
+
+                            cname = coerce_concept_row(concept).canonical_name
                         if value is not None:
                             label = f"{cid}: {cname} = {value}"
                         else:
@@ -1691,7 +1703,9 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             if concept_id:
                 concept = wm.get_concept(concept_id)
                 if concept:
-                    cname = concept.get("canonical_name", concept_id)
+                    from propstore.core.row_types import coerce_concept_row
+
+                    cname = coerce_concept_row(concept).canonical_name
             if ctype == "parameter" and value is not None:
                 return f"{cid}: {cname} = {value}"
             if ctype == "equation":
@@ -1831,7 +1845,12 @@ def world_chain(obj: dict, concept_id: str, args: tuple[str, ...],
         def _label(cid: str) -> str:
             """Return 'conceptN (canonical_name)' or just the id if no name."""
             c = wm.get_concept(cid)
-            name = c.get("canonical_name", "") if c else ""
+            if c is None:
+                name = ""
+            else:
+                from propstore.core.row_types import coerce_concept_row
+
+                name = coerce_concept_row(c).canonical_name
             display_id = _world_concept_display_id(wm, cid)
             return f"{display_id} ({name})" if name else display_id
 
