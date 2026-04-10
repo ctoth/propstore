@@ -62,6 +62,7 @@ parameterization_relationships:
 | `category` | voice_quality_type, language | Equality and `in` checks against value sets |
 | `boolean` | is_voiced | Boolean logic |
 | `structural` | voice_source | Cannot appear in CEL expressions |
+| `timepoint` | valid_from, valid_until | Numeric comparisons (epoch seconds); automatic interval ordering constraints; not valid for parameterization/dimensional algebra |
 
 ## Forms
 

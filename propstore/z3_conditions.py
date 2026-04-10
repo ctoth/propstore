@@ -372,7 +372,17 @@ class Z3ConditionSolver:
         return constraints
 
     def _add_temporal_constraints(self, solver: z3.Solver) -> None:
-        """Add temporal ordering constraints to a solver instance."""
+        """Inject well-formedness ordering into a solver before checking.
+
+        Adds ``from_var <= until_var`` for every matched TIMEPOINT interval
+        pair discovered by ``_temporal_ordering_constraints()``.  Called by
+        ``are_disjoint``, ``are_equivalent``, and ``is_condition_satisfied``
+        so that inverted intervals (e.g. valid_from=300, valid_until=100)
+        are always treated as UNSAT.
+
+        See Allen 1983 for the interval semantics and McCarthy 1993 for
+        temporal context specialization.
+        """
         for constraint in self._temporal_ordering_constraints():
             solver.add(constraint)
 
