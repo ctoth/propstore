@@ -15,7 +15,7 @@ Phase 2: Conflict topology scoring (Hamming distance on hypothetical extensions)
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from itertools import combinations
 from typing import Any
 
@@ -832,20 +832,7 @@ def rank_fragility(
             )
         cost = assign_cost_tier(t)
         roi = t.fragility / cost if cost else None
-        targets.append(FragilityTarget(
-            target_id=t.target_id,
-            target_kind=t.target_kind,
-            description=t.description,
-            parametric_score=t.parametric_score,
-            epistemic_score=t.epistemic_score,
-            conflict_score=t.conflict_score,
-            fragility=t.fragility,
-            cost_tier=cost,
-            epistemic_roi=roi,
-            parametric_detail=t.parametric_detail,
-            epistemic_detail=t.epistemic_detail,
-            conflict_detail=t.conflict_detail,
-        ))
+        targets.append(replace(t, cost_tier=cost, epistemic_roi=roi))
 
     # Tier 2 discovery: find concepts with no claims (separate from scored targets)
     discoveries: tuple[FragilityTarget, ...] = ()
