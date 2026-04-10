@@ -20,6 +20,7 @@ should normally enter through `propstore.structured_projection`.
 from __future__ import annotations
 
 import statistics
+from dataclasses import dataclass
 from collections.abc import Sequence
 from typing import Any
 
@@ -34,8 +35,10 @@ from propstore.aspic import (
     PremiseArg,
     StrictArg,
     DefeasibleArg,
+    Argument,
     Attack,
     build_arguments,
+    build_arguments_for,
     compute_attacks,
     compute_defeats,
     conc,
@@ -551,6 +554,123 @@ def build_bridge_csaf(
         framework=framework,
         arg_to_id=arg_to_id,
         id_to_arg=id_to_arg,
+    )
+
+
+# ── Goal-directed query ────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class ClaimQueryResult:
+    """Result of a goal-directed query for a specific claim.
+
+    Combines backward-chaining argument construction with attack/defeat
+    computation to answer "what is the argumentation status of this claim?"
+
+    Attributes:
+        claim_id: The queried claim identifier.
+        goal: The Literal corresponding to the claim.
+        arguments_for: Arguments whose conclusion is the goal literal.
+        arguments_against: Arguments whose conclusion is contrary to the goal.
+        attacks: All attacks among the relevant arguments.
+        defeats: Defeat pairs after preference filtering.
+    """
+
+    claim_id: str
+    goal: Literal
+    arguments_for: frozenset[Argument]
+    arguments_against: frozenset[Argument]
+    attacks: frozenset[Attack]
+    defeats: frozenset[tuple[Argument, Argument]]
+
+
+def query_claim(
+    claim_id: str,
+    active_claims: list[ActiveClaimInput],
+    justifications: list[CanonicalJustification],
+    stances: Sequence[StanceRowInput],
+    *,
+    comparison: str = "elitist",
+    link: str = "last",
+    max_depth: int = 10,
+) -> ClaimQueryResult:
+    """Goal-directed query for a specific claim's argumentation status.
+
+    Instead of building the full CSAF (all arguments for all claims),
+    this constructs only the arguments relevant to the queried claim
+    using backward chaining, then computes attacks and defeats on
+    that focused subset.
+
+    Uses the same T1-T5 translation pipeline as build_bridge_csaf(),
+    but replaces the exhaustive build_arguments() call with the
+    goal-directed build_arguments_for().
+
+    Args:
+        claim_id: The claim to query.
+        active_claims: List of claim dicts (same as build_bridge_csaf).
+        justifications: List of CanonicalJustification objects.
+        stances: List of stance dicts.
+        comparison: Preference comparison mode ("elitist" or "democratic").
+        link: Preference link principle ("last" or "weakest").
+        max_depth: Maximum backward chaining depth. Default 10.
+
+    Returns:
+        ClaimQueryResult with arguments for/against, attacks, and defeats.
+
+    Raises:
+        KeyError: If claim_id is not found among active_claims.
+    """
+    # T1-T5: same pipeline as build_bridge_csaf
+    normalized_claims = coerce_active_claims(active_claims)
+    lits = claims_to_literals(normalized_claims)
+
+    if claim_id not in lits:
+        raise KeyError(f"Claim {claim_id!r} not found in active claims")
+
+    goal = lits[claim_id]
+
+    strict_rules, defeasible_rules = justifications_to_rules(justifications, lits)
+    contrariness = stances_to_contrariness(stances, lits, defeasible_rules)
+    kb = claims_to_kb(normalized_claims, justifications, lits)
+    language = _build_language(lits, strict_rules, defeasible_rules, kb)
+    closed_strict = transposition_closure(strict_rules, language, contrariness)
+    language = _build_language(lits, closed_strict, defeasible_rules, kb)
+
+    pref = build_preference_config(
+        normalized_claims, lits, defeasible_rules,
+        comparison=comparison, link=link,
+    )
+
+    system = ArgumentationSystem(
+        language=language,
+        contrariness=contrariness,
+        strict_rules=closed_strict,
+        defeasible_rules=defeasible_rules,
+    )
+
+    # Goal-directed argument construction
+    arguments = build_arguments_for(
+        system, kb, goal,
+        include_attackers=True,
+        max_depth=max_depth,
+    )
+
+    # Compute attacks and defeats on the focused subset
+    attacks = compute_attacks(arguments, system)
+    defeat_attacks = compute_defeats(attacks, arguments, system, kb, pref)
+    defeat_pairs = frozenset((atk.attacker, atk.target) for atk in defeat_attacks)
+
+    # Partition into for/against
+    args_for = frozenset(a for a in arguments if conc(a) == goal)
+    args_against = frozenset(a for a in arguments if conc(a) != goal)
+
+    return ClaimQueryResult(
+        claim_id=claim_id,
+        goal=goal,
+        arguments_for=args_for,
+        arguments_against=args_against,
+        attacks=attacks,
+        defeats=defeat_pairs,
     )
 
 
