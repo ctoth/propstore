@@ -21,6 +21,7 @@ import yaml
 
 from propstore.cli.helpers import EXIT_VALIDATION, open_world_model
 from propstore.cli.repository import Repository
+from propstore.document_schema import DocumentSchemaError
 from propstore.identity import (
     primary_logical_id,
 )
@@ -117,7 +118,12 @@ def validate(obj: dict) -> None:
         click.echo("No concept files found.")
         return
 
-    concepts = load_concepts(concepts_root)
+    try:
+        concepts = load_concepts(concepts_root)
+    except DocumentSchemaError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        click.echo("Validation FAILED: 1 error(s)", err=True)
+        sys.exit(EXIT_VALIDATION)
     if not concepts:
         click.echo("No concept files found.")
         return
@@ -145,7 +151,12 @@ def validate(obj: dict) -> None:
     claim_file_count = 0
     claims_root = tree / "claims"
     if claims_root.exists():
-        files = load_claim_files(claims_root)
+        try:
+            files = load_claim_files(claims_root)
+        except DocumentSchemaError as exc:
+            click.echo(f"ERROR: {exc}", err=True)
+            click.echo("Validation FAILED: 1 error(s)", err=True)
+            sys.exit(EXIT_VALIDATION)
         claim_file_count = len(files)
         if files:
             context = build_compilation_context_from_repo(repo, claim_files=files)
@@ -189,7 +200,12 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         click.echo("No concept files found.")
         return
 
-    concepts = load_concepts(concepts_root)
+    try:
+        concepts = load_concepts(concepts_root)
+    except DocumentSchemaError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        click.echo("Build aborted: schema validation failed.", err=True)
+        sys.exit(EXIT_VALIDATION)
     if not concepts:
         click.echo("No concept files found.")
         return
@@ -221,7 +237,12 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     context_files = None
     context_ids: set[str] = set()
     if (tree / "contexts").exists():
-        ctx_list = load_contexts(tree / "contexts")
+        try:
+            ctx_list = load_contexts(tree / "contexts")
+        except DocumentSchemaError as exc:
+            click.echo(f"ERROR (context): {exc}", err=True)
+            click.echo("Build aborted: context validation failed.", err=True)
+            sys.exit(EXIT_VALIDATION)
         if ctx_list:
             ctx_result = validate_contexts(ctx_list)
             for w in ctx_result.warnings:
@@ -247,7 +268,12 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     )
     claim_bundle = None
     if (tree / "claims").exists():
-        files = load_claim_files(tree / "claims")
+        try:
+            files = load_claim_files(tree / "claims")
+        except DocumentSchemaError as exc:
+            click.echo(f"ERROR: {exc}", err=True)
+            click.echo("Build aborted: claim validation failed.", err=True)
+            sys.exit(EXIT_VALIDATION)
         if files:
             compilation_context = build_compilation_context_from_paths(
                 tree / "concepts",

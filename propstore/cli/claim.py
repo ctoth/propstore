@@ -14,6 +14,7 @@ import click
 
 from propstore.cli.helpers import EXIT_ERROR, EXIT_VALIDATION
 from propstore.cli.repository import Repository
+from propstore.document_schema import DocumentSchemaError
 from propstore.knowledge_path import coerce_knowledge_path
 
 
@@ -139,11 +140,6 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
         click.echo(f"ERROR: Concepts directory '{concepts_root.as_posix()}' does not exist", err=True)
         sys.exit(EXIT_ERROR)
 
-    files = load_claim_files(claims_root)
-    if not files:
-        click.echo("No claim files found.")
-        return
-
     forms_root = (
         coerce_knowledge_path(concepts_override.parent / "forms")
         if concepts_override is not None
@@ -152,7 +148,17 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
     if not forms_root.exists():
         forms_root = repo.tree() / "forms"
 
-    registry = build_concept_registry_from_paths(concepts_root, forms_root)
+    try:
+        files = load_claim_files(claims_root)
+        registry = build_concept_registry_from_paths(concepts_root, forms_root)
+    except DocumentSchemaError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        click.echo("Validation FAILED: 1 error(s)", err=True)
+        sys.exit(EXIT_VALIDATION)
+    if not files:
+        click.echo("No claim files found.")
+        return
+
     result = validate_claims(files, registry)
 
     for w in result.warnings:
@@ -194,8 +200,13 @@ def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
     if not forms_root.exists():
         forms_root = repo.tree() / "forms"
 
-    registry = build_concept_registry_from_paths(concepts_root, forms_root)
-    result = validate_single_claim_file(filepath, registry)
+    try:
+        registry = build_concept_registry_from_paths(concepts_root, forms_root)
+        result = validate_single_claim_file(filepath, registry)
+    except DocumentSchemaError as exc:
+        click.echo(f"ERROR: {exc}", err=True)
+        click.echo(f"FAILED: {filepath.name} (1 error(s))", err=True)
+        sys.exit(EXIT_VALIDATION)
 
     for w in result.warnings:
         click.echo(f"WARNING: {w}", err=True)

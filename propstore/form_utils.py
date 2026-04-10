@@ -15,6 +15,7 @@ import pint
 from propstore.cel_checker import KindType
 from propstore.document_schema import DocumentSchemaError, DocumentStruct, decode_document_path
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
+from propstore.resources import load_resource_json
 
 # Module-level unit registry for pint conversions
 ureg = pint.UnitRegistry()
@@ -101,11 +102,23 @@ class FormDocument(DocumentStruct):
 
 
 _form_cache: dict[tuple[str, str], FormDefinition | None] = {}
+_form_schema_cache: dict[str, Any] | None = None
 
 
 def clear_form_cache() -> None:
     """Clear the module-level form cache, forcing reload from disk on next access."""
     _form_cache.clear()
+
+
+def _load_form_schema() -> dict[str, Any]:
+    """Load the packaged form JSON schema, caching the result."""
+    global _form_schema_cache
+    if _form_schema_cache is None:
+        schema = load_resource_json("schemas/form.schema.json")
+        if not isinstance(schema, dict):
+            raise TypeError("schemas/form.schema.json must decode to a JSON object")
+        _form_schema_cache = schema
+    return _form_schema_cache
 
 
 def _path_cache_key(forms_dir: Path | KnowledgePath) -> str:

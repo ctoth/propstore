@@ -39,8 +39,8 @@ def test_compute_entrenchment_source_override_outranks_default_ordering() -> Non
     )
 
     assert report.ranked_atom_ids[0] == "claim:claim_beta"
-    assert report.reasons["claim:claim_beta"]["override"] == "preferred-source"
-    assert report.reasons["claim:claim_beta"]["override_key"] == "source:paper_beta"
+    assert report.reasons["claim:claim_beta"].override_priority == "preferred-source"
+    assert report.reasons["claim:claim_beta"].override_key == "source:paper_beta"
 
 
 def test_compute_entrenchment_kind_override_can_promote_assumptions() -> None:
@@ -81,8 +81,8 @@ def test_compute_entrenchment_kind_override_can_promote_assumptions() -> None:
     )
 
     assert report.ranked_atom_ids[0] == "assumption:env:x_eq_1"
-    assert report.reasons["assumption:env:x_eq_1"]["override"] == "protect-assumptions"
-    assert report.reasons["assumption:env:x_eq_1"]["override_key"] == "kind:assumption"
+    assert report.reasons["assumption:env:x_eq_1"].override_priority == "protect-assumptions"
+    assert report.reasons["assumption:env:x_eq_1"].override_key == "kind:assumption"
 
 
 def test_revision_modules_do_not_import_ic_merge() -> None:
@@ -98,4 +98,3 @@ def test_revision_modules_do_not_import_ic_merge() -> None:
             elif isinstance(node, ast.ImportFrom) and node.module is not None:
                 imports.append(node.module)
         assert "propstore.repo.ic_merge" not in imports
-
