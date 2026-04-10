@@ -491,7 +491,7 @@ class TestContextSidecar:
 class TestClaimContextId:
     def test_claim_context_must_exist(self, tmp_path):
         """Validation error if claim references nonexistent context."""
-        from propstore.validate_claims import validate_claims
+        from propstore.compiler.passes import validate_claims
 
         claim_file = LoadedEntry("test", tmp_path / "test.yaml", normalize_claims_payload({
             "source": {"paper": "test"},
@@ -516,7 +516,7 @@ class TestClaimContextId:
 
     def test_claim_context_valid_reference(self, tmp_path):
         """No error when claim references an existing context."""
-        from propstore.validate_claims import validate_claims
+        from propstore.compiler.passes import validate_claims
 
         claim_file = LoadedEntry("test", tmp_path / "test.yaml", normalize_claims_payload({
             "source": {"paper": "test"},
@@ -541,7 +541,7 @@ class TestClaimContextId:
 
     def test_claim_without_context_ok(self, tmp_path):
         """A claim without context field validates fine."""
-        from propstore.validate_claims import validate_claims
+        from propstore.compiler.passes import validate_claims
 
         claim_file = LoadedEntry("test", tmp_path / "test.yaml", normalize_claims_payload({
             "source": {"paper": "test"},

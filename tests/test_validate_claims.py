@@ -20,7 +20,7 @@ from propstore.document_schema import DocumentSchemaError
 from propstore.loaded import LoadedEntry
 from propstore.claim_documents import load_claim_files
 from propstore.identity import parse_claim_id
-from propstore.validate_claims import (
+from propstore.compiler.passes import (
     validate_claims,
     validate_single_claim_file,
 )

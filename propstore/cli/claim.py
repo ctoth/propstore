@@ -124,7 +124,7 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
     """Validate all claim files."""
     from propstore.claim_documents import load_claim_files
     from propstore.compiler.context import build_concept_registry_from_paths
-    from propstore.validate_claims import validate_claims
+    from propstore.compiler.passes import validate_claims
 
 
 
@@ -183,7 +183,7 @@ def validate(obj: dict, claims_path: str | None, concepts_path: str | None) -> N
 def validate_file(obj: dict, filepath: Path, concepts_path: str | None) -> None:
     """Validate a single claims YAML file."""
     from propstore.compiler.context import build_concept_registry_from_paths
-    from propstore.validate_claims import validate_single_claim_file
+    from propstore.compiler.passes import validate_single_claim_file
 
     repo: Repository = obj["repo"]
     concepts_override = Path(concepts_path) if concepts_path else None

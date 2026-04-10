@@ -1,7 +1,7 @@
 import json
 
 import propstore.form_utils as form_utils
-import propstore.validate_claims as validate_claims
+import propstore.compiler.claim_checks as claim_checks
 from propstore.resources import resource_exists
 
 
@@ -12,8 +12,8 @@ def test_packaged_schema_resources_exist():
 
 
 def test_claim_schema_loads_from_packaged_resources():
-    validate_claims._claim_schema_cache = None
-    schema = validate_claims._load_claim_schema()
+    claim_checks._claim_schema_cache = None
+    schema = claim_checks._load_claim_schema()
     assert isinstance(schema, dict)
     assert "$defs" in schema
     assert "ClaimFile" in json.dumps(schema)

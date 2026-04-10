@@ -247,7 +247,7 @@ def test_merge_commit_valid_claims(tmp_path):
     merge_sha = create_merge_commit(kr, "master", branch_name)
 
     from propstore.claim_documents import load_claim_files
-    from propstore.validate_claims import validate_claims
+    from propstore.compiler.passes import validate_claims
 
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     result = validate_claims(
