@@ -30,7 +30,7 @@ common_alternatives:
 | `dimensionless` | boolean | yes | Whether this form has no physical dimensions |
 | `unit_symbol` | string | no | SI unit symbol (e.g. `Hz`, `N`, `K`) |
 | `dimensions` | dict | no | SI base dimension exponents |
-| `kind` | enum | no | `quantity`, `category`, `boolean`, or `structural` |
+| `kind` | enum | no | `quantity`, `category`, `boolean`, `structural`, or `timepoint` |
 | `common_alternatives` | list | no | Unit conversions (see below) |
 | `extra_units` | list | no | Domain-specific units not in pint |
 
@@ -45,6 +45,70 @@ The schema enforces `additionalProperties: false` -- no extra fields are permitt
 - **ratio** -- minimal: just `name: ratio`, no dimensions, no unit_symbol (treated as dimensionless by heuristic)
 
 Dimensionless forms (ratio, score, amplitude_ratio, boolean, category, etc.) have no physical dimensions and do not participate in unit conversion.
+
+## Temporal Forms (Timepoint)
+
+The `timepoint` kind represents temporal positions as epoch seconds (UTC). It is semantically distinct from `quantity`: both map to `z3.Real` for constraint solving, but timepoints are not valid for parameterization or dimensional algebra (you cannot derive a temperature from a timepoint via bridgman).
+
+The shipped `timepoint.yaml` form:
+
+```yaml
+name: timepoint
+kind: timepoint
+dimensionless: true
+```
+
+### Authoring temporal concepts
+
+Define concepts with `form: timepoint`. By convention, interval endpoints use `_from` / `_until` suffixes:
+
+```yaml
+canonical_name: valid_from
+form: timepoint
+
+canonical_name: valid_until
+form: timepoint
+```
+
+### Temporal CEL conditions on claims
+
+Use standard CEL numeric comparisons to scope claims temporally:
+
+```
+valid_from >= 1609459200
+valid_until <= 1640995200
+```
+
+These constrain the claim's validity to the year 2021 (epoch seconds). Temporal conditions compose freely with non-temporal conditions (`temperature > 300 && valid_from >= 1609459200`).
+
+### Temporal conditions on contexts (McCarthy's specialize-time)
+
+Following McCarthy (1993), temporal specialization is context specialization. A context with temporal conditions narrows the time window in which its propositions hold:
+
+```yaml
+conditions:
+  - "valid_from >= 1609459200"
+  - "valid_until <= 1640995200"
+```
+
+This is equivalent to McCarthy's `ist(specialize-time(c, 2021), p)` -- the proposition `p` holds in context `c` restricted to the year 2021.
+
+### Automatic interval ordering
+
+When the CEL registry contains TIMEPOINT concepts forming an interval pair (names ending in `_from` and `_until` with a matching prefix), the Z3 solver automatically adds `from_var <= until_var`. This prevents nonsensical inverted intervals (e.g. `valid_from=300, valid_until=100`) and is required for correct disjointness detection.
+
+The detection is prefix-based, so custom interval pairs like `experiment_from` / `experiment_until` get the same constraint automatically.
+
+### Temporal disjointness (Allen 1983)
+
+Two claims with non-overlapping temporal scopes are non-conflicting. The Z3 solver detects this via UNSAT of the conjunction:
+
+- Claim A: `valid_from >= 100 && valid_until <= 200`
+- Claim B: `valid_from >= 300 && valid_until <= 400`
+
+These are disjoint because no assignment can satisfy both condition sets while maintaining `valid_from <= valid_until`. This encodes Allen's `before` relation (`e1 < s2`) as Z3 real arithmetic.
+
+See [conflict-detection.md](conflict-detection.md) for full details on Z3 disjointness checking.
 
 ## Dimensional Signatures
 

@@ -60,6 +60,7 @@ Each concept's kind determines its Z3 representation:
 | Concept kind | Z3 type | Notes |
 |-------------|---------|-------|
 | `QUANTITY` | `z3.Real` | Numeric conditions become real arithmetic |
+| `TIMEPOINT` | `z3.Real` | Same Z3 backing as QUANTITY; semantically distinct (epoch seconds). Interval pairs (`_from`/`_until`) get automatic ordering constraints |
 | closed `CATEGORY` | `z3.EnumSort` | `extensible: false`; declared values are the full domain |
 | open `CATEGORY` | `z3.String` | `extensible: true`; undeclared literals remain semantically valid |
 | `BOOLEAN` | `z3.Bool` | Boolean conditions map directly |
@@ -87,6 +88,17 @@ If both hold, the conditions are equivalent -- claims under equivalent condition
 ### Division-by-zero guards
 
 When translating division expressions, the solver collects non-zero guards (`right != 0`) and conjoins them into the final Z3 expression. Without this, Z3 would treat `x/0` as an uninterpreted total function, producing unsound results.
+
+### Temporal disjointness
+
+When TIMEPOINT concepts form interval pairs (names ending in `_from` and `_until` with a matching prefix, e.g. `valid_from`/`valid_until`), the solver automatically injects `from_var <= until_var` as a well-formedness constraint before every satisfiability check. This has two effects:
+
+1. **Inverted intervals are UNSAT.** Conditions requiring `valid_from >= 300` and `valid_until <= 100` are internally inconsistent because 300 <= 100 is false.
+2. **Non-overlapping intervals are disjoint.** Two claims scoped to `[100, 200]` and `[300, 400]` via `valid_from >= 100 && valid_until <= 200` and `valid_from >= 300 && valid_until <= 400` are detected as disjoint because no assignment satisfies both with valid ordering.
+
+This implements Allen's (1983) interval algebra `before` relation (`e1 < s2`) as Z3 real arithmetic constraints. Temporal conditions compose with non-temporal conditions: if either temporal scope or quantity scope is disjoint, the conjunction is disjoint.
+
+Prefix-matching detection is automatic, so user-defined interval pairs (e.g. `experiment_from`/`experiment_until`) get the same constraint without configuration.
 
 ### Equivalence classes
 
