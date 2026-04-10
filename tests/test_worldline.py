@@ -24,7 +24,7 @@ from propstore.repo import KnowledgeRepo
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
-from tests.conftest import normalize_claims_payload
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -147,7 +147,7 @@ def physics_knowledge(tmp_path_factory):
 
     def write_concept(name, data):
         with open(concepts_dir / f"{name}.yaml", "w") as f:
-            yaml.dump(data, f, default_flow_style=False)
+            yaml.dump(normalize_concept_payloads([data])[0], f, default_flow_style=False)
 
     write_concept("mass", {
         "id": "concept1", "canonical_name": "mass",
@@ -263,7 +263,7 @@ def chained_physics_knowledge(tmp_path_factory):
 
     def write_concept(name, data):
         with open(concepts_dir / f"{name}.yaml", "w", encoding="utf-8") as f:
-            yaml.dump(data, f, default_flow_style=False)
+            yaml.dump(normalize_concept_payloads([data])[0], f, default_flow_style=False)
 
     write_concept("mass", {
         "id": "concept1", "canonical_name": "mass",
