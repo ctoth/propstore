@@ -6,8 +6,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import msgspec
 import yaml
 
+from propstore.document_schema import DocumentStruct, decode_document_path
+from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
 from propstore.world.types import Environment, RenderPolicy
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
@@ -25,12 +28,180 @@ from propstore.worldline.revision_types import (
 )
 
 
+class WorldlineAssumptionDocument(DocumentStruct):
+    assumption_id: str
+    kind: str
+    source: str
+    cel: str
+
+
+class WorldlineInputsDocument(DocumentStruct):
+    bindings: dict[str, Any] = msgspec.field(default_factory=dict)
+    context_id: str | None = None
+    effective_assumptions: tuple[str, ...] = ()
+    assumptions: tuple[WorldlineAssumptionDocument, ...] = ()
+    overrides: dict[str, float | str] = msgspec.field(default_factory=dict)
+
+
+class WorldlinePolicyDocument(DocumentStruct):
+    reasoning_backend: str | None = None
+    strategy: str | None = None
+    semantics: str | None = None
+    comparison: str | None = None
+    link: str | None = None
+    decision_criterion: str | None = None
+    pessimism_index: float | None = None
+    show_uncertainty_interval: bool | None = None
+    praf_strategy: str | None = None
+    praf_mc_epsilon: float | None = None
+    praf_mc_confidence: float | None = None
+    praf_treewidth_cutoff: int | None = None
+    praf_mc_seed: int | None = None
+    merge_operator: str | None = None
+    branch_filter: tuple[str, ...] | None = None
+    branch_weights: dict[str, float] | None = None
+    integrity_constraints: tuple[dict[str, Any], ...] = ()
+    future_queryables: tuple[str, ...] = ()
+    future_limit: int | None = None
+    overrides: dict[str, str] = msgspec.field(default_factory=dict)
+    concept_strategies: dict[str, str] = msgspec.field(default_factory=dict)
+
+
+class WorldlineVariableRefDocument(DocumentStruct):
+    name: str | None = None
+    symbol: str | None = None
+    concept_id: str | None = None
+    value: str | None = None
+
+
+class WorldlineInputSourceDocument(DocumentStruct):
+    source: str
+    value: float | str | None = None
+    claim_id: str | None = None
+    formula: str | None = None
+    reason: str | None = None
+    strategy: str | None = None
+    inputs_used: dict[str, WorldlineInputSourceDocument] = msgspec.field(default_factory=dict)
+
+
+class WorldlineTargetValueDocument(DocumentStruct):
+    status: str
+    value: float | str | None = None
+    source: str | None = None
+    reason: str | None = None
+    claim_id: str | None = None
+    winning_claim_id: str | None = None
+    claim_type: str | None = None
+    statement: str | None = None
+    expression: str | None = None
+    body: str | None = None
+    name: str | None = None
+    canonical_ast: str | None = None
+    variables: tuple[WorldlineVariableRefDocument, ...] | dict[str, str] = ()
+    formula: str | None = None
+    strategy: str | None = None
+    inputs_used: dict[str, WorldlineInputSourceDocument] = msgspec.field(default_factory=dict)
+
+
+class WorldlineStepDocument(DocumentStruct):
+    concept: str
+    source: str
+    value: float | str | None = None
+    claim_id: str | None = None
+    strategy: str | None = None
+    reason: str | None = None
+    formula: str | None = None
+
+
+class WorldlineDependenciesDocument(DocumentStruct):
+    claims: tuple[str, ...] = ()
+    stances: tuple[str, ...] = ()
+    contexts: tuple[str, ...] = ()
+
+
+class WorldlineRevisionAtomDocument(DocumentStruct):
+    kind: str = "claim"
+    id: str | None = None
+    atom_id: str | None = None
+    value: float | str | None = None
+
+
+class WorldlineRevisionQueryDocument(DocumentStruct):
+    operation: str
+    atom: WorldlineRevisionAtomDocument | None = None
+    target: str | None = None
+    conflicts: dict[str, tuple[str, ...]] = msgspec.field(default_factory=dict)
+    operator: str | None = None
+
+
+class WorldlineRevisionResultDocument(DocumentStruct):
+    accepted_atom_ids: tuple[str, ...] = ()
+    rejected_atom_ids: tuple[str, ...] = ()
+    incision_set: tuple[str, ...] = ()
+    explanation: dict[str, Any] | None = None
+
+
+class WorldlineRevisionStateDocument(DocumentStruct):
+    operation: str
+    input_atom_id: str | None = None
+    target_atom_ids: tuple[str, ...] = ()
+    result: WorldlineRevisionResultDocument | None = None
+    state: dict[str, Any] | None = None
+    status: str | None = None
+    error: str | None = None
+
+
+class WorldlineResultDocument(DocumentStruct):
+    computed: str
+    content_hash: str
+    values: dict[str, WorldlineTargetValueDocument]
+    dependencies: WorldlineDependenciesDocument
+    steps: tuple[WorldlineStepDocument, ...] = ()
+    sensitivity: dict[str, Any] | None = None
+    argumentation: dict[str, Any] | None = None
+    revision: WorldlineRevisionStateDocument | None = None
+
+
+class WorldlineDefinitionDocument(DocumentStruct):
+    id: str
+    targets: tuple[str, ...]
+    name: str = ""
+    created: str = ""
+    inputs: WorldlineInputsDocument | None = None
+    policy: WorldlinePolicyDocument | None = None
+    revision: WorldlineRevisionQueryDocument | None = None
+    results: WorldlineResultDocument | None = None
+
+
 @dataclass
 class WorldlineInputs:
     """The input specification for a worldline query."""
 
     environment: Environment = field(default_factory=Environment)
     overrides: dict[str, float | str] = field(default_factory=dict)
+
+    @classmethod
+    def from_document(cls, data: WorldlineInputsDocument | None) -> WorldlineInputs:
+        if data is None:
+            return cls()
+        environment_payload = {
+            "bindings": dict(data.bindings),
+            "context_id": data.context_id,
+            "effective_assumptions": list(data.effective_assumptions),
+            "assumptions": [
+                {
+                    "assumption_id": item.assumption_id,
+                    "kind": item.kind,
+                    "source": item.source,
+                    "cel": item.cel,
+                }
+                for item in data.assumptions
+            ],
+        }
+        return cls(
+            environment=Environment.from_dict(environment_payload),
+            overrides=dict(data.overrides),
+        )
 
     @classmethod
     def from_dict(cls, data: dict | None) -> WorldlineInputs:
@@ -55,6 +226,36 @@ class WorldlineRevisionQuery:
     target: str | None = None
     conflicts: RevisionConflictSelection = field(default_factory=RevisionConflictSelection)
     operator: str | None = None
+
+    @classmethod
+    def from_document(
+        cls,
+        data: WorldlineRevisionQueryDocument | None,
+    ) -> WorldlineRevisionQuery | None:
+        if data is None:
+            return None
+        atom = None
+        if data.atom is not None:
+            atom = RevisionAtomRef.from_mapping(
+                {
+                    "kind": data.atom.kind,
+                    "id": data.atom.id,
+                    "atom_id": data.atom.atom_id,
+                    "value": data.atom.value,
+                }
+            )
+        return cls(
+            operation=data.operation,
+            atom=atom,
+            target=data.target,
+            conflicts=RevisionConflictSelection(
+                {
+                    atom_id: tuple(target_ids)
+                    for atom_id, target_ids in data.conflicts.items()
+                }
+            ),
+            operator=data.operator,
+        )
 
     @classmethod
     def from_dict(cls, data: dict | None) -> WorldlineRevisionQuery | None:
@@ -108,6 +309,33 @@ class WorldlineResult:
             self.argumentation = WorldlineArgumentationState.from_mapping(self.argumentation)
         if self.revision is not None and not isinstance(self.revision, WorldlineRevisionState):
             self.revision = WorldlineRevisionState.from_mapping(self.revision)
+
+    @classmethod
+    def from_document(cls, data: WorldlineResultDocument | None) -> WorldlineResult | None:
+        if data is None:
+            return None
+        return cls(
+            computed=data.computed,
+            content_hash=data.content_hash,
+            values={
+                str(target_name): WorldlineTargetValue.from_mapping(
+                    msgspec.to_builtins(value)
+                )
+                for target_name, value in data.values.items()
+            },
+            steps=tuple(
+                WorldlineStep.from_mapping(msgspec.to_builtins(step))
+                for step in data.steps
+            ),
+            dependencies=WorldlineDependencies.from_mapping(
+                msgspec.to_builtins(data.dependencies)
+            ),
+            sensitivity=WorldlineSensitivityReport.from_mapping(data.sensitivity),
+            argumentation=WorldlineArgumentationState.from_mapping(data.argumentation),
+            revision=WorldlineRevisionState.from_mapping(
+                None if data.revision is None else msgspec.to_builtins(data.revision)
+            ),
+        )
 
     @classmethod
     def from_dict(cls, data: dict | None) -> WorldlineResult | None:
@@ -168,6 +396,31 @@ class WorldlineDefinition:
     results: WorldlineResult | None = None
 
     @classmethod
+    def from_document(cls, data: WorldlineDefinitionDocument) -> WorldlineDefinition:
+        if not data.targets:
+            raise ValueError("Worldline definition requires 'targets'")
+
+        policy_payload = None
+        if data.policy is not None:
+            raw_policy = msgspec.to_builtins(data.policy)
+            policy_payload = {
+                key: value
+                for key, value in raw_policy.items()
+                if value not in (None, (), {})
+            }
+
+        return cls(
+            id=data.id,
+            name=data.name,
+            created=data.created,
+            inputs=WorldlineInputs.from_document(data.inputs),
+            policy=RenderPolicy.from_dict(policy_payload),
+            targets=list(data.targets),
+            revision=WorldlineRevisionQuery.from_document(data.revision),
+            results=WorldlineResult.from_document(data.results),
+        )
+
+    @classmethod
     def from_dict(cls, data: dict[str, Any]) -> WorldlineDefinition:
         if "id" not in data:
             raise ValueError("Worldline definition requires 'id'")
@@ -187,12 +440,12 @@ class WorldlineDefinition:
         )
 
     @classmethod
-    def from_file(cls, path: Path) -> WorldlineDefinition:
-        with open(path, encoding="utf-8") as handle:
-            data = yaml.safe_load(handle)
-        if not isinstance(data, dict):
-            raise ValueError(f"Worldline file {path} is not a YAML mapping")
-        return cls.from_dict(data)
+    def from_file(cls, path: Path | KnowledgePath) -> WorldlineDefinition:
+        document = decode_document_path(
+            coerce_knowledge_path(path),
+            WorldlineDefinitionDocument,
+        )
+        return cls.from_document(document)
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"id": self.id}

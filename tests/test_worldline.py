@@ -376,6 +376,26 @@ class TestWorldlineDefinition:
         wl = WorldlineDefinition.from_file(worldline_yaml_file)
         assert wl.id == "test_wl_1"
 
+    def test_worldline_definition_from_file_rejects_unknown_fields(self, tmp_path):
+        from propstore.worldline import WorldlineDefinition
+
+        path = tmp_path / "worldlines" / "bad.yaml"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            yaml.safe_dump(
+                {
+                    "id": "bad",
+                    "targets": ["force"],
+                    "mystery": "nope",
+                },
+                sort_keys=False,
+            ),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(ValueError, match="mystery"):
+            WorldlineDefinition.from_file(path)
+
     def test_worldline_definition_roundtrip(self, worldline_yaml_question):
         """Save → load → save produces equivalent data."""
         from propstore.worldline import WorldlineDefinition
