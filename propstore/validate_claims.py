@@ -416,11 +416,19 @@ def _validate_parameter(
 
     _validate_value_fields(claim, cid, filename, "parameter", result)
 
+    # Look up form definition before checking unit so we can auto-fill dimensionless.
+    form_def: FormDefinition | None = None
+    if concept_data is not None:
+        form_def = concept_data.get("_form_definition")
+
     unit = claim.get("unit")
     if not unit:
-        result.errors.append(f"{filename}: parameter claim '{cid}' missing 'unit'")
-    elif concept_data is not None:
-        form_def: FormDefinition | None = concept_data.get("_form_definition")
+        if form_def is not None and form_def.is_dimensionless:
+            claim["unit"] = "1"
+            unit = "1"
+        else:
+            result.errors.append(f"{filename}: parameter claim '{cid}' missing 'unit'")
+    if unit and concept_data is not None:
         if form_def is None:
             result.errors.append(
                 f"{filename}: parameter claim '{cid}' concept '{concept}' "

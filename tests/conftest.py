@@ -685,6 +685,14 @@ def make_concept_registry():
             "definition": "Task type",
             "domain": "speech",
         },
+        {
+            "id": "concept4",
+            "canonical_name": "hazard_ratio",
+            "form": "ratio",
+            "status": "accepted",
+            "definition": "Ratio of hazard rates",
+            "domain": "speech",
+        },
     ], default_domain="speech")
     registry: dict[str, dict] = {}
     form_definitions = {
@@ -703,6 +711,11 @@ def make_concept_registry():
         "category": FormDefinition(
             name="category",
             kind=KindType.CATEGORY,
+            is_dimensionless=True,
+        ),
+        "ratio": FormDefinition(
+            name="ratio",
+            kind=KindType.QUANTITY,
             is_dimensionless=True,
         ),
     }
