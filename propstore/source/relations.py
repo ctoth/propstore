@@ -16,6 +16,7 @@ from .common import (
     source_branch_name,
 )
 from propstore.source_documents import (
+    ExtractionProvenanceDocument,
     SourceJustificationDocument,
     SourceJustificationsDocument,
     SourceProvenanceDocument,
@@ -71,13 +72,34 @@ def normalize_source_justifications_payload(
     return SourceJustificationsDocument(
         source=data.source,
         justifications=tuple(normalized_justifications),
+        produced_by=data.produced_by,
     )
 
 
-def commit_source_justifications_batch(repo: Repository, source_name: str, justifications_file: Path) -> str:
+def commit_source_justifications_batch(
+    repo: Repository,
+    source_name: str,
+    justifications_file: Path,
+    *,
+    reader: str | None = None,
+    method: str | None = None,
+) -> str:
+    from datetime import datetime
+
     local_to_artifact, _logical_to_artifact, _artifact_ids = load_source_claim_index(repo, source_name)
+    raw = decode_document_path(justifications_file, SourceJustificationsDocument)
+    if reader is not None:
+        raw = SourceJustificationsDocument(
+            source=raw.source,
+            justifications=raw.justifications,
+            produced_by=ExtractionProvenanceDocument(
+                reader=reader,
+                method=method,
+                timestamp=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            ),
+        )
     normalized = normalize_source_justifications_payload(
-        decode_document_path(justifications_file, SourceJustificationsDocument),
+        raw,
         local_to_artifact=local_to_artifact,
     )
     return commit_source_file(
@@ -116,13 +138,34 @@ def normalize_source_stances_payload(
     return SourceStancesDocument(
         source=data.source,
         stances=tuple(normalized_stances),
+        produced_by=data.produced_by,
     )
 
 
-def commit_source_stances_batch(repo: Repository, source_name: str, stances_file: Path) -> str:
+def commit_source_stances_batch(
+    repo: Repository,
+    source_name: str,
+    stances_file: Path,
+    *,
+    reader: str | None = None,
+    method: str | None = None,
+) -> str:
+    from datetime import datetime
+
     local_to_artifact, _logical_to_artifact, _artifact_ids = load_source_claim_index(repo, source_name)
+    raw = decode_document_path(stances_file, SourceStancesDocument)
+    if reader is not None:
+        raw = SourceStancesDocument(
+            source=raw.source,
+            stances=raw.stances,
+            produced_by=ExtractionProvenanceDocument(
+                reader=reader,
+                method=method,
+                timestamp=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            ),
+        )
     normalized = normalize_source_stances_payload(
-        decode_document_path(stances_file, SourceStancesDocument),
+        raw,
         local_to_artifact=local_to_artifact,
     )
     return commit_source_file(

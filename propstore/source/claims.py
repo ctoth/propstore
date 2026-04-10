@@ -25,7 +25,7 @@ from .common import (
     source_branch_name,
     source_tag_uri,
 )
-from propstore.source_documents import SourceClaimDocument, SourceClaimsDocument
+from propstore.source_documents import ExtractionProvenanceDocument, SourceClaimDocument, SourceClaimsDocument
 
 
 def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -> str:
@@ -131,6 +131,7 @@ def normalize_source_claims_payload(
         SourceClaimsDocument(
             source=data.source,
             claims=tuple(normalized_claims),
+            produced_by=data.produced_by,
         ),
         local_to_canonical,
     )
@@ -181,9 +182,28 @@ def load_primary_branch_claim_index(repo: Repository) -> tuple[dict[str, str], s
     return logical_to_artifact, artifact_ids
 
 
-def commit_source_claims_batch(repo: Repository, source_name: str, claims_file: Path) -> str:
+def commit_source_claims_batch(
+    repo: Repository,
+    source_name: str,
+    claims_file: Path,
+    *,
+    reader: str | None = None,
+    method: str | None = None,
+) -> str:
+    from datetime import datetime
+
     source_doc = load_source_document(repo, source_name)
     raw = decode_document_path(claims_file, SourceClaimsDocument)
+    if reader is not None:
+        raw = SourceClaimsDocument(
+            source=raw.source,
+            claims=raw.claims,
+            produced_by=ExtractionProvenanceDocument(
+                reader=reader,
+                method=method,
+                timestamp=datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            ),
+        )
     validate_source_claim_concepts(repo, source_name, raw)
     normalized, _ = normalize_source_claims_payload(
         raw,
