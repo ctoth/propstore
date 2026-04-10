@@ -8,7 +8,7 @@ import click
 
 from propstore.cli.repository import Repository
 from propstore.provenance import stamp_file
-from propstore.source.document_models import SourceConceptFormParametersDocument
+from propstore.source_documents import SourceConceptFormParametersDocument
 from propstore.source import (
     commit_source_claim_proposal,
     commit_source_claims_batch,
@@ -94,6 +94,7 @@ def write_metadata(obj: dict, name: str, file_path: Path) -> None:
 @click.option("--name", "concept_name", required=True)
 @click.option("--definition", required=True)
 @click.option("--form", "form_name", required=True)
+@click.option("--values", default=None, help="Comma-separated values (required for category concepts)")
 @click.option("--closed", is_flag=True, default=False, help="Declare category value set as exhaustive (extensible: false)")
 @click.pass_obj
 def propose_concept(
@@ -102,14 +103,23 @@ def propose_concept(
     concept_name: str,
     definition: str,
     form_name: str,
+    values: str | None,
     closed: bool,
 ) -> None:
     if closed and form_name != "category":
         raise click.ClickException("--closed is only valid with --form=category")
+    if values is not None and form_name != "category":
+        raise click.ClickException("--values is only valid with --form=category")
     repo: Repository = obj["repo"]
     try:
         form_parameters: SourceConceptFormParametersDocument | None = None
-        if closed:
+        if values is not None:
+            value_list = tuple(v.strip() for v in values.split(",") if v.strip())
+            form_parameters = SourceConceptFormParametersDocument(
+                values=value_list,
+                extensible=False if closed else None,
+            )
+        elif closed:
             form_parameters = SourceConceptFormParametersDocument(extensible=False)
         info = commit_source_concept_proposal(
             repo,

@@ -139,6 +139,8 @@ def resolve_source_concept_promotions(repo: Repository, source_name: str) -> tup
         }
         if raw_entry.aliases:
             concept_doc["aliases"] = [alias.to_payload() for alias in raw_entry.aliases]
+        if raw_entry.form_parameters is not None:
+            concept_doc["form_parameters"] = raw_entry.form_parameters.to_payload()
         if parameterization_relationships:
             concept_doc["parameterization_relationships"] = parameterization_relationships
         concept_doc["version_id"] = compute_concept_version_id(concept_doc)
