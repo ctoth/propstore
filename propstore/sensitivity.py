@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.row_types import coerce_parameterization_row
 from propstore.propagation import parse_cached, rewrite_parameterization_symbols
 
 
@@ -79,25 +80,26 @@ def analyze_sensitivity(
     )
     lookup_concept_id = to_concept_id(resolved_concept_id or str(requested_concept_id))
 
-    params = world.parameterizations_for(str(lookup_concept_id))
-    if not params:
+    raw_params = world.parameterizations_for(str(lookup_concept_id))
+    if not raw_params:
         return None
+    params = [coerce_parameterization_row(param) for param in raw_params]
 
     # Find first compatible parameterization
     param = None
     for p in params:
-        if bound.is_param_compatible(p.get("conditions_cel")):
+        if bound.is_param_compatible(p.conditions_cel):
             param = p
             break
 
     if param is None:
         return None
 
-    sympy_str = param.get("sympy")
+    sympy_str = param.sympy
     if not sympy_str:
         return None
 
-    input_ids = json.loads(param["concept_ids"])
+    input_ids = json.loads(param.concept_ids)
     effective_inputs = [to_concept_id(iid) for iid in input_ids if iid != lookup_concept_id]
 
     if not effective_inputs:
@@ -108,7 +110,7 @@ def analyze_sensitivity(
         if not callable(getter):
             return ()
         concept = getter(str(resolved_id))
-        if not isinstance(concept, Mapping):
+        if concept is None:
             return ()
 
         seen: set[str] = set()
@@ -120,8 +122,14 @@ def analyze_sensitivity(
             seen.add(candidate)
             candidates.append(candidate)
 
-        add(concept.get("canonical_name"))
-        logical_ids = concept.get("logical_ids")
+        if isinstance(concept, Mapping):
+            add(concept.get("canonical_name"))
+            logical_ids = concept.get("logical_ids")
+        else:
+            add(getattr(concept, "canonical_name", None))
+            parsed_logical_ids = getattr(concept, "parsed_logical_ids", None)
+            logical_ids = parsed_logical_ids() if callable(parsed_logical_ids) else None
+            add(getattr(concept, "primary_logical_id", None))
         if isinstance(logical_ids, list):
             for entry in logical_ids:
                 if not isinstance(entry, Mapping):
@@ -248,7 +256,7 @@ def analyze_sensitivity(
 
     return SensitivityResult(
         concept_id=lookup_concept_id,
-        formula=param.get("formula", sympy_str),
+        formula=param.formula or sympy_str,
         entries=entries,
         input_values=input_values,
         output_value=output_value,
