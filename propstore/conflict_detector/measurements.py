@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from propstore.claim_documents import LoadedClaimFile
 from propstore.condition_classifier import classify_conditions as _classify_conditions
-from propstore.loaded import LoadedEntry
 from propstore.value_comparison import (
     value_str as _value_str,
     values_compatible as _values_compatible,
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 def detect_measurement_conflicts(
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
     cel_registry: dict[str, ConceptInfo],
     *,
     context_hierarchy: ContextHierarchy | None = None,

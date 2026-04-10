@@ -16,6 +16,7 @@ import pytest
 import yaml
 
 from propstore.identity import derive_concept_artifact_id
+from propstore.document_schema import DocumentSchemaError
 from propstore.loaded import LoadedEntry
 from propstore.validate_claims import (
     load_claim_files,
@@ -384,10 +385,8 @@ class TestProvenanceErrors:
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        assert not result.ok
-        assert any("page" in e.lower() for e in result.errors)
+        with pytest.raises(DocumentSchemaError, match="page"):
+            load_claim_files(claims_dir)
 
 
 # ── Parameter claim errors ───────────────────────────────────────────
@@ -625,12 +624,8 @@ class TestStanceGraphIntegrity:
         ])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        assert not result.ok
-        assert any(
-            "target_justification_id" in error for error in result.errors
-        )
+        with pytest.raises(DocumentSchemaError, match="target_justification_id"):
+            load_claim_files(claims_dir)
 
     def test_inline_conditions_differ_must_be_string(self, claims_dir):
         data = make_claim_file_data([
@@ -649,12 +644,8 @@ class TestStanceGraphIntegrity:
         ])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        assert not result.ok
-        assert any(
-            "conditions_differ" in error for error in result.errors
-        )
+        with pytest.raises(DocumentSchemaError, match="conditions_differ"):
+            load_claim_files(claims_dir)
 
     def test_inline_resolution_must_be_mapping(self, claims_dir):
         data = make_claim_file_data([
@@ -673,12 +664,8 @@ class TestStanceGraphIntegrity:
         ])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        assert not result.ok
-        assert any(
-            "resolution" in error for error in result.errors
-        )
+        with pytest.raises(DocumentSchemaError, match="resolution"):
+            load_claim_files(claims_dir)
 
     def test_inline_resolution_method_required(self, claims_dir):
         data = make_claim_file_data([
@@ -700,12 +687,8 @@ class TestStanceGraphIntegrity:
         ])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        assert not result.ok
-        assert any(
-            "resolution" in error and "method" in error for error in result.errors
-        )
+        with pytest.raises(DocumentSchemaError, match="method"):
+            load_claim_files(claims_dir)
 
 
 class TestDraftArtifactBoundary:
@@ -1135,22 +1118,22 @@ class TestFormAwareUnitValidation:
         forms_dir = knowledge / "forms"
 
         import yaml as _yaml
-        _yaml.dump({"name": "frequency", "unit_symbol": "Hz",
+        _yaml.dump({"name": "frequency", "dimensionless": False, "unit_symbol": "Hz",
                      "dimensions": {"T": -1}},
                     (forms_dir / "frequency.yaml").open("w"))
-        _yaml.dump({"name": "pressure", "unit_symbol": "Pa",
+        _yaml.dump({"name": "pressure", "dimensionless": False, "unit_symbol": "Pa",
                      "dimensions": {"M": 1, "L": -1, "T": -2},
                      "common_alternatives": [{"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}]},
                     (forms_dir / "pressure.yaml").open("w"))
-        _yaml.dump({"name": "duration_ratio", "base": "ratio",
+        _yaml.dump({"name": "duration_ratio", "dimensionless": True, "base": "ratio",
                      "dimensions": {},
                      "parameters": {"numerator": "duration", "denominator": "duration"}},
                     (forms_dir / "duration_ratio.yaml").open("w"))
-        _yaml.dump({"name": "level", "unit_symbol": "dB",
+        _yaml.dump({"name": "level", "dimensionless": True, "unit_symbol": "dB",
                      "dimensions": {},
                      "parameters": {"scale": "dB", "reference": None}},
                     (forms_dir / "level.yaml").open("w"))
-        _yaml.dump({"name": "category", "parameters": {"values": [], "extensible": False}},
+        _yaml.dump({"name": "category", "dimensionless": True, "parameters": {"values": [], "extensible": False}},
                     (forms_dir / "category.yaml").open("w"))
 
         # Create concepts directory
@@ -1313,28 +1296,20 @@ class TestEmptyClaimFiles:
         assert result.ok, f"Unexpected errors: {result.errors}"
 
     def test_null_claims_validates(self, claims_dir):
-        """claims: null (None) should pass validation without errors."""
+        """claims: null now fails at the document boundary."""
         data = {"source": make_source(), "claims": None}
         write_claim_file(claims_dir, "null_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        # Should either pass or give a clear error, not crash
-        # Based on code: `claims = data.get("claims", [])` -> None
-        # Then `if not isinstance(claims, list)` -> error
-        # This is expected behavior: null claims is not a list
-        assert not result.ok or result.ok  # either outcome is acceptable, no crash
+        with pytest.raises(DocumentSchemaError, match="claims"):
+            load_claim_files(claims_dir)
 
     def test_missing_claims_key_errors(self, claims_dir):
-        """File with no 'claims' key should error (schema requires it), not crash."""
+        """File with no 'claims' key now fails at the document boundary."""
         data = {"source": make_source()}
         write_claim_file(claims_dir, "no_claims.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        # JSON Schema requires 'claims' field
-        assert not result.ok
-        assert any("claims" in e.lower() for e in result.errors)
+        with pytest.raises(DocumentSchemaError, match="claims"):
+            load_claim_files(claims_dir)
 
     def test_empty_claims_mixed_with_valid(self, claims_dir):
         """An empty claim file alongside a valid one should both validate."""
@@ -1564,9 +1539,8 @@ class TestValidateSingleFile:
         data = make_claim_file_data([claim])
         filepath = write_claim_file(tmp_path, "test.yaml", data)
 
-        result = validate_single_claim_file(filepath, make_concept_registry())
-        assert not result.ok
-        assert any("page" in e.lower() for e in result.errors)
+        with pytest.raises(DocumentSchemaError, match="page"):
+            validate_single_claim_file(filepath, make_concept_registry())
 
     def test_catches_missing_variables_on_equation(self, claims_dir, tmp_path):
         claim = {
@@ -1758,12 +1732,8 @@ class TestNonNumericBounds:
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        assert not result.ok
-        assert any("non-numeric lower_bound" in e for e in result.errors), (
-            f"Expected non-numeric lower_bound error, got: {result.errors}"
-        )
+        with pytest.raises(DocumentSchemaError, match="lower_bound"):
+            load_claim_files(claims_dir)
 
     def test_non_numeric_upper_bound(self, claims_dir):
         claim = make_parameter_claim(
@@ -1773,12 +1743,8 @@ class TestNonNumericBounds:
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        assert not result.ok
-        assert any("non-numeric upper_bound" in e for e in result.errors), (
-            f"Expected non-numeric upper_bound error, got: {result.errors}"
-        )
+        with pytest.raises(DocumentSchemaError, match="upper_bound"):
+            load_claim_files(claims_dir)
 
     def test_non_numeric_uncertainty(self, claims_dir):
         claim = make_parameter_claim(
@@ -1788,14 +1754,10 @@ class TestNonNumericBounds:
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        assert not result.ok
-        assert any("non-numeric uncertainty" in e for e in result.errors), (
-            f"Expected non-numeric uncertainty error, got: {result.errors}"
-        )
+        with pytest.raises(DocumentSchemaError, match="uncertainty"):
+            load_claim_files(claims_dir)
 
-    def test_numeric_string_bounds_still_pass(self, claims_dir):
+    def test_numeric_string_bounds_fail_at_document_boundary(self, claims_dir):
         claim = make_parameter_claim(
             "claim1", "concept1", 440.0, "Hz",
             lower_bound="430.5", upper_bound="450.5",
@@ -1803,6 +1765,5 @@ class TestNonNumericBounds:
         data = make_claim_file_data([claim])
         write_claim_file(claims_dir, "test_paper.yaml", data)
 
-        files = load_claim_files(claims_dir)
-        result = validate_claims(files, make_concept_registry())
-        assert result.ok, f"Unexpected errors: {result.errors}"
+        with pytest.raises(DocumentSchemaError, match="lower_bound"):
+            load_claim_files(claims_dir)

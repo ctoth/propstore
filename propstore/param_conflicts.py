@@ -14,10 +14,10 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from propstore.claim_documents import LoadedClaimFile
 from propstore.conflict_detector.collectors import _collect_parameter_claims
 from propstore.conflict_detector.context import _claim_context, _classify_pair_context
 from propstore.conflict_detector.models import ConflictClass, ConflictRecord
-from propstore.loaded import LoadedEntry
 from propstore.value_comparison import (
     DEFAULT_TOLERANCE,
     extract_interval as _extract_interval,
@@ -177,7 +177,7 @@ def _detect_param_conflicts(
     records: list[ConflictRecord],
     by_concept: dict[str, list[dict]],
     concept_registry: dict[str, dict],
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
     *,
     forms: dict[str, FormDefinition] | None = None,
 ) -> None:
@@ -290,7 +290,7 @@ def _detect_param_conflicts(
 
 
 def detect_transitive_conflicts(
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict[str, dict],
     *,
     context_hierarchy: ContextHierarchy | None = None,

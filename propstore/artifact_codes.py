@@ -150,12 +150,10 @@ def _load_claim_index(tree: KnowledgePath) -> tuple[dict[str, dict[str, Any]], d
     claim_to_source_slug: dict[str, str] = {}
     for claim_file in load_claim_files(claims_root):
         source_slug = claim_file.filename
-        for claim in claim_file.data.get("claims", []) or []:
-            if not isinstance(claim, dict):
-                continue
-            claim_id = claim.get("artifact_id")
+        for claim in claim_file.claims:
+            claim_id = claim.artifact_id
             if isinstance(claim_id, str) and claim_id:
-                claims_by_id[claim_id] = copy.deepcopy(claim)
+                claims_by_id[claim_id] = copy.deepcopy(claim.to_payload())
                 claim_to_source_slug[claim_id] = source_slug
     return claims_by_id, claim_to_source_slug
 

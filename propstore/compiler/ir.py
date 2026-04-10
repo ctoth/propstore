@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.claim_documents import LoadedClaimFile
 from propstore.compiler.diagnostics import SemanticDiagnostic, diagnostics_to_validation_result
-from propstore.loaded import LoadedEntry
 from propstore.validate import ValidationResult
 
 
@@ -52,8 +52,8 @@ class SemanticClaim:
 class SemanticClaimFile:
     """Semantic view of a single authored claim file."""
 
-    loaded_entry: LoadedEntry
-    normalized_entry: LoadedEntry
+    loaded_entry: LoadedClaimFile
+    normalized_entry: LoadedClaimFile
     claims: tuple[SemanticClaim, ...] = ()
 
 
@@ -62,7 +62,7 @@ class ClaimCompilationBundle:
     """The result of compiling authored claim files into semantic IR."""
 
     context: Any
-    normalized_claim_files: tuple[LoadedEntry, ...]
+    normalized_claim_files: tuple[LoadedClaimFile, ...]
     semantic_files: tuple[SemanticClaimFile, ...]
     diagnostics: tuple[SemanticDiagnostic, ...] = field(default_factory=tuple)
 

@@ -172,19 +172,13 @@ def load_primary_branch_claim_index(repo: Repository) -> tuple[dict[str, str], s
     logical_to_artifact: dict[str, str] = {}
     artifact_ids: set[str] = set()
     for claim_file in load_claim_files(claims_root):
-        for claim in claim_file.data.get("claims", []) or []:
-            if not isinstance(claim, dict):
-                continue
-            artifact_id = claim.get("artifact_id")
+        for claim in claim_file.claims:
+            artifact_id = claim.artifact_id
             if not isinstance(artifact_id, str) or not artifact_id:
                 continue
             artifact_ids.add(artifact_id)
-            for logical_id in claim.get("logical_ids") or []:
-                if not isinstance(logical_id, dict):
-                    continue
-                formatted = format_logical_id(logical_id)
-                if formatted:
-                    logical_to_artifact[formatted] = artifact_id
+            for logical_id in claim.logical_ids:
+                logical_to_artifact[logical_id.formatted] = artifact_id
     return logical_to_artifact, artifact_ids
 
 

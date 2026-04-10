@@ -241,11 +241,8 @@ def _load_branch_claims(claims_root: KnowledgePath) -> list[dict[str, Any]]:
 
     active_claims: list[dict[str, Any]] = []
     for claim_file in load_claim_files(claims_root):
-        for claim in claim_file.data.get("claims", []):
-            if not isinstance(claim, dict):
-                active_claims.append(claim)
-                continue
-            normalized = dict(claim)
+        for claim in claim_file.claims:
+            normalized = claim.to_payload()
             artifact_id = _optional_string(normalized.get("artifact_id"))
             if artifact_id is not None and "id" not in normalized:
                 normalized["id"] = artifact_id

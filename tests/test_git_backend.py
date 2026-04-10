@@ -404,6 +404,7 @@ def test_load_claim_files_from_git_tree(tmp_path):
     """load_claim_files() works from a committed git-backed knowledge path."""
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
     claim_data = {
+        "source": {"paper": "test"},
         "claims": [
             {
                 "id": "claim1",

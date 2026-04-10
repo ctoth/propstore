@@ -10,6 +10,7 @@ from pathlib import Path
 import click
 import yaml
 
+from propstore.claim_documents import LoadedClaimFile
 from propstore.source import (
     align_sources,
     decide_alignment,
@@ -614,11 +615,14 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
             source_path = claim_file.source_path
             if source_path is None:
                 raise click.ClickException(f"claim file '{claim_file.filename}' does not have a source path")
-            updated_claim_files.append(type(claim_file)(
-                filename=claim_file.filename,
-                source_path=source_path,
-                data=claim_data,
-            ))
+            updated_claim_files.append(
+                LoadedClaimFile.from_payload(
+                    filename=claim_file.filename,
+                    source_path=source_path,
+                    knowledge_root=claim_file.knowledge_root,
+                    data=claim_data,
+                )
+            )
         concept_registry = _build_concept_registry(
             updated_concepts,
             forms_root=repo.tree() / "forms",

@@ -11,6 +11,7 @@ import yaml
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
+from propstore.document_schema import DocumentSchemaError
 from propstore.sidecar.build import _content_hash, build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from tests.conftest import (
@@ -1005,7 +1006,7 @@ class TestClaimTable:
         claim_data = _normalize_claim_concept_refs(claim_data)
         (claims_dir / "range_paper.yaml").write_text(yaml.dump(claim_data, default_flow_style=False))
 
-        with pytest.raises(TypeError):
+        with pytest.raises(DocumentSchemaError, match="value"):
             build_sidecar(knowledge_reader, sidecar_path, force=True)
 
     def test_proper_bounds_without_value(self, concept_dir, knowledge_reader, sidecar_path):

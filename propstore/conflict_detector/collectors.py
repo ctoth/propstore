@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 
+from propstore.claim_documents import LoadedClaimFile
 from propstore.equation_comparison import equation_signature
-from propstore.loaded import LoadedEntry
 
 
 def _ensure_claim_id_alias(claim: dict) -> dict:
@@ -21,7 +21,7 @@ def _ensure_claim_id_alias(claim: dict) -> dict:
     return claim
 
 
-def _inject_source_condition(claim: dict, cf: LoadedEntry) -> dict:
+def _inject_source_condition(claim: dict, cf: LoadedClaimFile) -> dict:
     """Add a synthetic ``source == '<paper>'`` condition to a claim.
 
     Every claim is inherently parameterized by its source paper.  Without
@@ -30,7 +30,7 @@ def _inject_source_condition(claim: dict, cf: LoadedEntry) -> dict:
     different studies.  Injecting the source as a condition lets Z3
     recognize them as disjoint.
     """
-    source_paper = (cf.data.get("source") or {}).get("paper") or cf.filename
+    source_paper = cf.source_paper or cf.filename
     if not source_paper:
         return claim
     source_cond = f"source == '{source_paper}'"
@@ -43,11 +43,12 @@ def _inject_source_condition(claim: dict, cf: LoadedEntry) -> dict:
 
 
 def _collect_measurement_claims(
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
 ) -> dict[tuple[str, str], list[dict]]:
     by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for cf in claim_files:
-        for claim in cf.data.get("claims", []):
+        for claim_document in cf.claims:
+            claim = claim_document.to_payload()
             if (
                 claim.get("type") == "measurement"
                 and claim.get("target_concept")
@@ -61,11 +62,12 @@ def _collect_measurement_claims(
 
 
 def _collect_parameter_claims(
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
 ) -> dict[str, list[dict]]:
     by_concept: dict[str, list[dict]] = defaultdict(list)
     for cf in claim_files:
-        for claim in cf.data.get("claims", []):
+        for claim_document in cf.claims:
+            claim = claim_document.to_payload()
             if claim.get("type") == "parameter" and claim.get("concept"):
                 claim = _ensure_claim_id_alias(claim)
                 claim = _inject_source_condition(claim, cf)
@@ -74,11 +76,12 @@ def _collect_parameter_claims(
 
 
 def _collect_equation_claims(
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
 ) -> dict[tuple[str, tuple[str, ...]], list[dict]]:
     by_signature: dict[tuple[str, tuple[str, ...]], list[dict]] = defaultdict(list)
     for cf in claim_files:
-        for claim in cf.data.get("claims", []):
+        for claim_document in cf.claims:
+            claim = claim_document.to_payload()
             if claim.get("type") != "equation":
                 continue
             claim = _ensure_claim_id_alias(claim)
@@ -91,11 +94,12 @@ def _collect_equation_claims(
 
 
 def _collect_algorithm_claims(
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
 ) -> dict[str, list[dict]]:
     by_concept: dict[str, list[dict]] = defaultdict(list)
     for cf in claim_files:
-        for claim in cf.data.get("claims", []):
+        for claim_document in cf.claims:
+            claim = claim_document.to_payload()
             if claim.get("type") != "algorithm":
                 continue
             claim = _ensure_claim_id_alias(claim)

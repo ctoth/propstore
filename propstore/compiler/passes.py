@@ -8,6 +8,7 @@ from typing import Any, Mapping
 
 import jsonschema
 
+from propstore.claim_documents import ClaimDocument, LoadedClaimFile
 from propstore.cel_checker import check_cel_expression
 from propstore.compiler.context import (
     CompilationContext,
@@ -27,7 +28,6 @@ from propstore.identity import (
     CLAIM_VERSION_ID_RE,
     compute_claim_version_id,
 )
-from propstore.loaded import LoadedEntry
 from propstore.validate import ValidationResult
 
 
@@ -100,29 +100,19 @@ def _resolve_concept_reference(
 def _claim_match_kind(
     raw_text: str,
     resolved_id: str,
-    normalized_claim_files: list[LoadedEntry],
+    normalized_claim_files: list[LoadedClaimFile],
 ) -> tuple[str | None, str | None]:
     if raw_text == resolved_id:
         return "artifact_id", raw_text
     for claim_file in normalized_claim_files:
-        claims = claim_file.data.get("claims")
-        if not isinstance(claims, list):
-            continue
-        for claim in claims:
-            if not isinstance(claim, dict) or claim.get("artifact_id") != resolved_id:
+        for claim in claim_file.claims:
+            if claim.artifact_id != resolved_id:
                 continue
-            logical_ids = claim.get("logical_ids")
-            if isinstance(logical_ids, list):
-                for entry in logical_ids:
-                    if not isinstance(entry, dict):
-                        continue
-                    namespace = entry.get("namespace")
-                    value = entry.get("value")
-                    if isinstance(namespace, str) and isinstance(value, str):
-                        if f"{namespace}:{value}" == raw_text:
-                            return "logical_id", raw_text
-                        if value == raw_text:
-                            return "logical_value", raw_text
+            for logical_id in claim.logical_ids:
+                if logical_id.formatted == raw_text:
+                    return "logical_id", raw_text
+                if logical_id.value == raw_text:
+                    return "logical_value", raw_text
             break
     return None, None
 
@@ -130,7 +120,7 @@ def _claim_match_kind(
 def _resolve_claim_reference(
     claim_ref: object,
     claim_lookup: Mapping[str, tuple[str, ...]],
-    normalized_claim_files: list[LoadedEntry],
+    normalized_claim_files: list[LoadedClaimFile],
 ) -> ResolvedReference | None:
     if not isinstance(claim_ref, str) or not claim_ref:
         return None
@@ -155,29 +145,29 @@ def _resolve_claim_reference(
 
 
 def _bind_claim(
-    claim: dict[str, Any],
+    claim: ClaimDocument,
     *,
     filename: str,
     source_paper: str,
     context: CompilationContext,
     claim_lookup: Mapping[str, tuple[str, ...]],
-    normalized_claim_files: list[LoadedEntry],
+    normalized_claim_files: list[LoadedClaimFile],
 ) -> SemanticClaim:
-    resolved_claim = copy.deepcopy(claim)
+    authored_claim = claim.to_payload()
+    resolved_claim = copy.deepcopy(authored_claim)
 
-    concept_ref = _resolve_concept_reference(claim.get("concept"), context)
+    concept_ref = _resolve_concept_reference(claim.concept, context)
     if concept_ref is not None and concept_ref.resolved_id is not None:
         resolved_claim["concept"] = concept_ref.resolved_id
 
-    target_concept_ref = _resolve_concept_reference(claim.get("target_concept"), context)
+    target_concept_ref = _resolve_concept_reference(claim.target_concept, context)
     if target_concept_ref is not None and target_concept_ref.resolved_id is not None:
         resolved_claim["target_concept"] = target_concept_ref.resolved_id
 
     concept_refs: list[ResolvedReference] = []
-    concepts = claim.get("concepts")
-    if isinstance(concepts, list):
+    if claim.concepts:
         rewritten_concepts: list[object] = []
-        for concept_value in concepts:
+        for concept_value in claim.concepts:
             concept_binding = _resolve_concept_reference(concept_value, context)
             if concept_binding is not None:
                 concept_refs.append(concept_binding)
@@ -187,31 +177,36 @@ def _bind_claim(
         resolved_claim["concepts"] = rewritten_concepts
 
     variable_refs: list[ResolvedReference] = []
-    variables = claim.get("variables")
-    if isinstance(variables, list):
-        rewritten_variables: list[object] = []
-        for variable in variables:
-            if not isinstance(variable, dict):
-                rewritten_variables.append(variable)
-                continue
-            updated = dict(variable)
-            binding = _resolve_concept_reference(updated.get("concept"), context)
-            if binding is not None:
-                variable_refs.append(binding)
-                updated["concept"] = binding.resolved_id or binding.raw_text
-            rewritten_variables.append(updated)
-        resolved_claim["variables"] = rewritten_variables
+    if claim.variables:
+        if isinstance(claim.variables, dict):
+            rewritten_variables: dict[str, object] = {}
+            for variable_name, concept_value in claim.variables.items():
+                binding = _resolve_concept_reference(concept_value, context)
+                if binding is not None:
+                    variable_refs.append(binding)
+                    rewritten_variables[variable_name] = (
+                        binding.resolved_id or binding.raw_text
+                    )
+                else:
+                    rewritten_variables[variable_name] = concept_value
+            resolved_claim["variables"] = rewritten_variables
+        else:
+            rewritten_variables_list: list[object] = []
+            for variable in claim.variables:
+                updated = variable.to_payload()
+                binding = _resolve_concept_reference(variable.concept, context)
+                if binding is not None:
+                    variable_refs.append(binding)
+                    updated["concept"] = binding.resolved_id or binding.raw_text
+                rewritten_variables_list.append(updated)
+            resolved_claim["variables"] = rewritten_variables_list
 
     parameter_refs: list[ResolvedReference] = []
-    parameters = claim.get("parameters")
-    if isinstance(parameters, list):
+    if claim.parameters:
         rewritten_parameters: list[object] = []
-        for parameter in parameters:
-            if not isinstance(parameter, dict):
-                rewritten_parameters.append(parameter)
-                continue
-            updated = dict(parameter)
-            binding = _resolve_concept_reference(updated.get("concept"), context)
+        for parameter in claim.parameters:
+            updated = parameter.to_payload()
+            binding = _resolve_concept_reference(parameter.concept, context)
             if binding is not None:
                 parameter_refs.append(binding)
                 updated["concept"] = binding.resolved_id or binding.raw_text
@@ -219,16 +214,12 @@ def _bind_claim(
         resolved_claim["parameters"] = rewritten_parameters
 
     semantic_stances: list[SemanticStance] = []
-    stances = claim.get("stances")
-    if isinstance(stances, list):
+    if claim.stances:
         rewritten_stances: list[object] = []
-        for stance in stances:
-            if not isinstance(stance, dict):
-                rewritten_stances.append(stance)
-                continue
-            updated = dict(stance)
+        for stance in claim.stances:
+            updated = stance.to_payload()
             target_ref = _resolve_claim_reference(
-                updated.get("target"),
+                stance.target,
                 claim_lookup,
                 normalized_claim_files,
             )
@@ -243,9 +234,9 @@ def _bind_claim(
     return SemanticClaim(
         filename=filename,
         source_paper=source_paper,
-        artifact_id=claim.get("artifact_id") if isinstance(claim.get("artifact_id"), str) else None,
-        claim_type=claim.get("type") if isinstance(claim.get("type"), str) else None,
-        authored_claim=copy.deepcopy(claim),
+        artifact_id=claim.artifact_id if isinstance(claim.artifact_id, str) else None,
+        claim_type=claim.type if isinstance(claim.type, str) else None,
+        authored_claim=authored_claim,
         resolved_claim=resolved_claim,
         concept_ref=concept_ref,
         target_concept_ref=target_concept_ref,
@@ -257,7 +248,7 @@ def _bind_claim(
 
 
 def compile_claim_files(
-    claim_files: list[LoadedEntry],
+    claim_files: list[LoadedClaimFile],
     context: CompilationContext,
     *,
     context_ids: set[str] | None = None,
@@ -288,13 +279,8 @@ def compile_claim_files(
     seen_logical_ids: dict[str, str] = {}
     all_artifact_ids: set[str] = set()
     for claim_file in normalized_claim_files:
-        claims = claim_file.data.get("claims")
-        if not isinstance(claims, list):
-            continue
-        for claim in claims:
-            if not isinstance(claim, dict):
-                continue
-            artifact_id = claim.get("artifact_id")
+        for claim in claim_file.claims:
+            artifact_id = claim.artifact_id
             if isinstance(artifact_id, str) and artifact_id:
                 all_artifact_ids.add(artifact_id)
 
@@ -305,7 +291,7 @@ def compile_claim_files(
         semantic_claims: list[SemanticClaim] = []
         data = normalized_file.data
 
-        if data.get("stage") == "draft":
+        if normalized_file.stage == "draft":
             file_diagnostics.append(
                 SemanticDiagnostic(
                     level="error",
@@ -338,60 +324,11 @@ def compile_claim_files(
                 )
             )
 
-        if "claims" not in data:
-            file_diagnostics.append(
-                SemanticDiagnostic(
-                    level="error",
-                    message=f"{normalized_file.filename}: missing required 'claims' key",
-                )
-            )
-            diagnostics.extend(file_diagnostics)
-            semantic_files.append(
-                SemanticClaimFile(
-                    loaded_entry=original_file,
-                    normalized_entry=normalized_file,
-                    claims=tuple(),
-                )
-            )
-            continue
+        source_paper = normalized_file.source_paper
 
-        claims = data.get("claims")
-        if not isinstance(claims, list):
-            file_diagnostics.append(
-                SemanticDiagnostic(
-                    level="error",
-                    message=f"{normalized_file.filename}: 'claims' must be a list",
-                )
-            )
-            diagnostics.extend(file_diagnostics)
-            semantic_files.append(
-                SemanticClaimFile(
-                    loaded_entry=original_file,
-                    normalized_entry=normalized_file,
-                    claims=tuple(),
-                )
-            )
-            continue
-
-        source = data.get("source")
-        source_paper = (
-            source.get("paper")
-            if isinstance(source, dict) and isinstance(source.get("paper"), str)
-            else normalized_file.filename
-        )
-
-        for claim in claims:
-            if not isinstance(claim, dict):
-                file_diagnostics.append(
-                    SemanticDiagnostic(
-                        level="error",
-                        message=f"{normalized_file.filename}: claim must be a dict",
-                    )
-                )
-                continue
-
-            raw_id = claim.get("id")
-            artifact_id = claim.get("artifact_id")
+        for claim in normalized_file.claims:
+            raw_id = claim.id
+            artifact_id = claim.artifact_id
             if isinstance(raw_id, str) and raw_id and not artifact_id:
                 file_diagnostics.append(
                     SemanticDiagnostic(
@@ -407,7 +344,7 @@ def compile_claim_files(
             semantic_claim = _bind_claim(
                 claim,
                 filename=normalized_file.filename,
-                source_paper=str(source_paper),
+                source_paper=source_paper,
                 context=effective_context,
                 claim_lookup=claim_lookup,
                 normalized_claim_files=normalized_claim_files,

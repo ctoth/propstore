@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import yaml
 
-from propstore.loaded import LoadedEntry
+from propstore.claim_documents import LoadedClaimFile
 from propstore.knowledge_path import KnowledgePath
 from propstore.sidecar.claim_utils import (
     claim_reference_map_from_conn,
@@ -193,7 +193,7 @@ def populate_authored_justifications_from_files(
 
 def populate_claims(
     conn: sqlite3.Connection,
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict | None = None,
     *,
     form_registry: dict | None = None,
@@ -229,11 +229,12 @@ def populate_claims(
                 )
     else:
         for claim_file in claim_files:
-            source_paper = claim_file.data.get("source", {}).get("paper", claim_file.filename)
-            for claim in claim_file.data.get("claims", []):
+            source_paper = claim_file.source_paper or claim_file.filename
+            for claim in claim_file.claims:
+                authored_claim = claim.to_payload()
                 claim_seq += 1
                 row = prepare_claim_insert_row(
-                    claim,
+                    authored_claim,
                     source_paper,
                     claim_seq=claim_seq,
                     concept_registry=concept_registry,
@@ -242,7 +243,7 @@ def populate_claims(
                 insert_claim_row(conn, row)
                 deferred_stances.extend(
                     extract_deferred_stance_rows(
-                        claim,
+                        authored_claim,
                         claim_reference_map,
                         source_paper=source_paper,
                     )
@@ -254,7 +255,7 @@ def populate_claims(
 
 def populate_conflicts(
     conn: sqlite3.Connection,
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict,
     context_hierarchy=None,
 ) -> None:
@@ -290,16 +291,16 @@ def populate_conflicts(
         )
 
 
-def build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[LoadedEntry]) -> None:
+def build_claim_fts_index(conn: sqlite3.Connection, claim_files: Sequence[LoadedClaimFile]) -> None:
     """Build the FTS5 index over claim statements, conditions, and expressions."""
     for claim_file in claim_files:
-        for claim in claim_file.data.get("claims", []):
-            claim_id = claim.get("artifact_id")
+        for claim in claim_file.claims:
+            claim_id = claim.artifact_id
             if not isinstance(claim_id, str) or not claim_id:
                 continue
-            statement = claim.get("statement", "") or ""
-            expression = claim.get("expression", "") or ""
-            conditions = claim.get("conditions", []) or []
+            statement = claim.statement or ""
+            expression = claim.expression or ""
+            conditions = list(claim.conditions)
             conditions_text = " ".join(conditions)
 
             conn.execute(

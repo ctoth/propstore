@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Sequence
 
 from ast_equiv import canonical_dump
 
+from propstore.claim_documents import LoadedClaimFile
 from propstore.form_utils import FormDefinition, normalize_to_si
 from propstore.identity import (
     compute_claim_version_id,
@@ -20,7 +21,6 @@ from propstore.identity import (
     normalize_logical_value,
     primary_logical_id,
 )
-from propstore.loaded import LoadedEntry
 from propstore.sidecar.concept_utils import resolve_concept_reference
 from propstore.stances import VALID_STANCE_TYPES
 
@@ -167,19 +167,14 @@ def claim_reference_map_from_conn(conn: sqlite3.Connection) -> dict[str, str]:
     return reference_map
 
 
-def collect_claim_reference_map(claim_files: Sequence[LoadedEntry]) -> dict[str, str]:
+def collect_claim_reference_map(claim_files: Sequence[LoadedClaimFile]) -> dict[str, str]:
     claim_reference_map: dict[str, str] = {}
     for claim_file in claim_files:
-        source_paper = claim_file.data.get("source", {}).get("paper", claim_file.filename)
-        claims = claim_file.data.get("claims", [])
-        if not isinstance(claims, list):
-            continue
-        for claim in claims:
-            if not isinstance(claim, dict):
-                continue
-            claim_id = claim.get("artifact_id")
+        source_paper = claim_file.source_paper or claim_file.filename
+        for claim in claim_file.claims:
+            claim_id = claim.artifact_id
             if not isinstance(claim_id, str) or not claim_id:
-                raw_id = claim.get("id")
+                raw_id = claim.id
                 if isinstance(raw_id, str) and raw_id:
                     claim_id = derive_claim_artifact_id(
                         str(source_paper),
@@ -188,33 +183,17 @@ def collect_claim_reference_map(claim_files: Sequence[LoadedEntry]) -> dict[str,
             if isinstance(claim_id, str) and claim_id:
                 claim_reference_map[claim_id] = claim_id
 
-            raw_id = claim.get("id")
+            raw_id = claim.id
             if isinstance(raw_id, str) and raw_id and isinstance(claim_id, str) and claim_id:
                 claim_reference_map[raw_id] = claim_id
                 claim_reference_map[
                     f"{normalize_identity_namespace(str(source_paper))}:{normalize_logical_value(raw_id)}"
                 ] = claim_id
 
-            logical_ids = claim.get("logical_ids")
-            if not isinstance(logical_ids, list):
-                logical_ids = []
-            for logical_id in logical_ids:
-                if not isinstance(logical_id, dict):
-                    continue
-                namespace = logical_id.get("namespace")
-                value = logical_id.get("value")
-                if (
-                    isinstance(namespace, str)
-                    and namespace
-                    and isinstance(value, str)
-                    and value
-                    and isinstance(claim_id, str)
-                    and claim_id
-                ):
-                    formatted = format_logical_id(logical_id)
-                    if formatted:
-                        claim_reference_map[formatted] = claim_id
-                    claim_reference_map[value] = claim_id
+            for logical_id in claim.logical_ids:
+                if isinstance(claim_id, str) and claim_id:
+                    claim_reference_map[logical_id.formatted] = claim_id
+                    claim_reference_map[logical_id.value] = claim_id
     return claim_reference_map
 
 

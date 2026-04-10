@@ -138,10 +138,8 @@ def _claim_candidate_key(claim: dict[str, Any]) -> dict[str, Any]:
 def _index_claims(claim_files) -> dict[str, _IndexedClaim]:
     index: dict[str, _IndexedClaim] = {}
     for claim_file in claim_files:
-        for claim in claim_file.data.get("claims", []):
-            if not isinstance(claim, dict):
-                continue
-            indexed = _indexed_claim(claim)
+        for claim in claim_file.claims:
+            indexed = _indexed_claim(claim.to_payload())
             if indexed is not None:
                 index[indexed.artifact_id] = indexed
     return index
