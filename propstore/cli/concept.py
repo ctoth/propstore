@@ -520,7 +520,14 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
 @click.option("--dry-run", is_flag=True)
 @click.pass_obj
 def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
-    """Rename a concept (updates canonical_name and filename)."""
+    """Rename a concept, cascading the new name through dependent CEL conditions.
+
+    Updates canonical_name, filename, logical_ids, and artifact_id, then
+    rewrites CEL condition expressions in every other concept and every
+    claim file that references the old name. Re-validates concepts and
+    claims before committing; aborts with a non-zero exit code if validation
+    fails. The commit is a batch that adds the new file and deletes the old.
+    """
     repo: Repository = obj["repo"]
     git = _require_git(repo)
     concept_entry = _find_concept_entry(repo, concept_id)
