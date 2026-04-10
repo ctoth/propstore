@@ -78,7 +78,16 @@
       "type": "object",
       "description": "Base dimension exponents. Keys are dimension symbols (e.g. L, M, T for physics; Currency, Quantity for economics); values are integer exponents. Any string key is valid — the dimension basis is domain-defined.",
       "propertyNames": {
-        "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+        "allOf": [
+          {
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+          },
+          {
+            "not": {
+              "pattern": "[\\r\\n\\u2028\\u2029]"
+            }
+          }
+        ]
       },
       "additionalProperties": {
         "type": "integer"
@@ -97,7 +106,16 @@
           "dimensions": {
             "type": "object",
             "propertyNames": {
-              "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+              "allOf": [
+                {
+                  "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+                },
+                {
+                  "not": {
+                    "pattern": "[\\r\\n\\u2028\\u2029]"
+                  }
+                }
+              ]
             },
             "additionalProperties": {
               "type": "integer"
