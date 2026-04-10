@@ -8,6 +8,7 @@ import click
 
 from propstore.cli.repository import Repository
 from propstore.provenance import stamp_file
+from propstore.source.document_models import SourceConceptFormParametersDocument
 from propstore.source import (
     commit_source_claim_proposal,
     commit_source_claims_batch,
@@ -107,9 +108,9 @@ def propose_concept(
         raise click.ClickException("--closed is only valid with --form=category")
     repo: Repository = obj["repo"]
     try:
-        form_parameters: dict | None = None
+        form_parameters: SourceConceptFormParametersDocument | None = None
         if closed:
-            form_parameters = {"extensible": False}
+            form_parameters = SourceConceptFormParametersDocument(extensible=False)
         info = commit_source_concept_proposal(
             repo,
             name,
@@ -120,14 +121,14 @@ def propose_concept(
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    status = info.get("status", "proposed")
+    status = info.status or "proposed"
     if status == "linked":
-        match = info.get("registry_match", {})
-        canonical = match.get("canonical_name", concept_name)
-        artifact_id = match.get("artifact_id", "")
+        match = info.registry_match
+        canonical = concept_name if match is None or match.canonical_name is None else match.canonical_name
+        artifact_id = "" if match is None else match.artifact_id
         click.echo(f"Linked '{concept_name}' \u2192 existing '{canonical}' ({artifact_id})")
     else:
-        click.echo(f"Proposed new concept '{concept_name}' (form: {info.get('form', form_name)})")
+        click.echo(f"Proposed new concept '{concept_name}' (form: {info.form or form_name})")
 
 
 @source.command("propose-claim")
@@ -166,7 +167,7 @@ def propose_claim(
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    artifact_id = entry.get("artifact_id", "")
+    artifact_id = "" if entry.artifact_id is None else entry.artifact_id
     click.echo(f"Proposed claim '{claim_id}' (type: {claim_type}, artifact: {artifact_id})")
 
 
@@ -201,8 +202,8 @@ def propose_justification(
         )
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
-    resolved_premises = ", ".join(entry.get("premises", premises_list))
-    resolved_conclusion = entry.get("conclusion", conclusion)
+    resolved_premises = ", ".join(entry.premises or tuple(premises_list))
+    resolved_conclusion = entry.conclusion or conclusion
     click.echo(f"Proposed justification '{just_id}' ({rule_kind}: {resolved_premises} \u2192 {resolved_conclusion})")
 
 

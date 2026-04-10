@@ -60,18 +60,17 @@ class ClaimSourceDocument(DocumentStruct):
 
 
 class ProvenanceDocument(DocumentStruct):
-    paper: str
     page: int
+    paper: str | None = None
     figure: str | None = None
     quote_fragment: str | None = None
     section: str | None = None
     table: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "paper": self.paper,
-            "page": self.page,
-        }
+        payload: dict[str, Any] = {"page": self.page}
+        if self.paper is not None:
+            payload["paper"] = self.paper
         if self.figure is not None:
             payload["figure"] = self.figure
         if self.quote_fragment is not None:

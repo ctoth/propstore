@@ -8,6 +8,7 @@ from propstore.identity import derive_concept_artifact_id
 from propstore.parameterization_groups import build_groups
 
 from .common import normalize_source_slug
+from .document_models import SourceConceptsDocument
 
 
 def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
@@ -78,52 +79,45 @@ def primary_branch_concept_match(repo: Repository, handle: str) -> dict[str, str
 
 def projected_source_concepts(
     repo: Repository,
-    concepts_doc: dict[str, Any],
+    concepts_doc: SourceConceptsDocument | None,
 ) -> tuple[list[dict[str, Any]], set[str]]:
     _concepts_by_artifact, primary_handle_to_artifact = load_primary_branch_concepts(repo)
     projected: list[dict[str, Any]] = []
     local_handle_to_artifact: dict[str, str] = {}
     parameterized_artifacts: set[str] = set()
+    concept_entries = () if concepts_doc is None else concepts_doc.concepts
 
-    for entry in concepts_doc.get("concepts", []) or []:
-        if not isinstance(entry, dict):
-            continue
-        registry_match = entry.get("registry_match")
+    for entry in concept_entries:
+        registry_match = entry.registry_match
         artifact_id: str | None = None
-        if isinstance(registry_match, dict):
-            matched = registry_match.get("artifact_id")
-            if isinstance(matched, str) and matched:
-                artifact_id = matched
+        if registry_match is not None and registry_match.artifact_id:
+            artifact_id = registry_match.artifact_id
         if artifact_id is None:
             for key in ("local_name", "proposed_name"):
-                handle = entry.get(key)
+                handle = getattr(entry, key)
                 if isinstance(handle, str) and handle in primary_handle_to_artifact:
                     artifact_id = primary_handle_to_artifact[handle]
                     break
-        handle_seed = str(entry.get("proposed_name") or entry.get("local_name") or "concept")
+        handle_seed = str(entry.proposed_name or entry.local_name or "concept")
         if artifact_id is None:
             artifact_id = derive_concept_artifact_id("propstore", normalize_source_slug(handle_seed))
 
         projected_entry = {
             "artifact_id": artifact_id,
             "canonical_name": handle_seed,
-            "form": str(entry.get("form") or "structural"),
+            "form": str(entry.form or "structural"),
             "parameterization_relationships": [],
         }
         projected.append(projected_entry)
         for key in ("local_name", "proposed_name"):
-            handle = entry.get(key)
+            handle = getattr(entry, key)
             if isinstance(handle, str) and handle:
                 local_handle_to_artifact[handle] = artifact_id
 
-    for projected_entry, raw_entry in zip(projected, concepts_doc.get("concepts", []) or [], strict=False):
-        if not isinstance(raw_entry, dict):
-            continue
+    for projected_entry, raw_entry in zip(projected, concept_entries, strict=False):
         params: list[dict[str, Any]] = []
-        for param in raw_entry.get("parameterization_relationships", []) or []:
-            if not isinstance(param, dict):
-                continue
-            resolved = copy.deepcopy(param)
+        for param in raw_entry.parameterization_relationships:
+            resolved = copy.deepcopy(param.to_payload())
             inputs: list[str] = []
             for input_ref in resolved.get("inputs", []) or []:
                 if not isinstance(input_ref, str) or not input_ref:
@@ -211,7 +205,7 @@ def parameterization_group_merge_preview(
 
 def preview_source_parameterization_group_merges(
     repo: Repository,
-    concepts_doc: dict[str, Any],
+    concepts_doc: SourceConceptsDocument | None,
 ) -> list[dict[str, Any]]:
     primary_branch_concepts = load_primary_branch_concept_docs(repo)
     projected_concepts, parameterized_artifacts = projected_source_concepts(repo, concepts_doc)
