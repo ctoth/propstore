@@ -8,10 +8,18 @@ from typing import Any
 import yaml
 
 from propstore.cli.repository import Repository
+from propstore.document_schema import decode_document_bytes
 from propstore.identity import compute_concept_version_id, derive_concept_artifact_id
 from propstore.repo.branch import branch_head, create_branch
 from propstore.repo.merge_framework import PartialArgumentationFramework
 from propstore.repo.paf_queries import credulously_accepted_arguments, skeptically_accepted_arguments
+from propstore.source_alignment_documents import (
+    AlignmentArgumentDocument,
+    AlignmentDecisionDocument,
+    AlignmentFrameworkDocument,
+    AlignmentQueriesDocument,
+    ConceptAlignmentArtifactDocument,
+)
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 
 from .common import load_document_from_branch, load_source_document
@@ -49,7 +57,7 @@ def build_alignment_artifact(
     proposals: list[dict[str, Any]],
     *,
     authority: str = DEFAULT_URI_AUTHORITY,
-) -> dict[str, Any]:
+) -> ConceptAlignmentArtifactDocument:
     enriched: list[dict[str, Any]] = []
     id_counts: Counter[str] = Counter()
     for proposal in proposals:
@@ -105,31 +113,45 @@ def build_alignment_artifact(
         for operator in ("sum", "max", "leximax")
     }
 
-    return {
-        "kind": "concept_alignment_framework",
-        "id": cluster_id,
-        "sources": [str(argument["source"]) for argument in enriched],
-        "arguments": enriched,
-        "framework": {
-            "attacks": attacks,
-            "ignorance": ignorance,
-            "non_attacks": non_attacks,
-        },
-        "queries": {
-            "skeptical_acceptance": skeptical,
-            "credulous_acceptance": credulous,
-            "operator_scores": operator_scores,
-        },
-        "decision": {
-            "status": "open",
-            "accepted": [],
-            "rejected": [],
-            "promoted_concept": None,
-        },
-    }
+    return ConceptAlignmentArtifactDocument(
+        kind="concept_alignment_framework",
+        id=cluster_id,
+        sources=tuple(str(argument["source"]) for argument in enriched),
+        arguments=tuple(
+            AlignmentArgumentDocument(
+                id=str(argument["id"]),
+                source=str(argument["source"]),
+                local_handle=str(argument["local_handle"]),
+                proposed_name=str(argument["proposed_name"]),
+                proposed_uri=str(argument["proposed_uri"]),
+                definition=str(argument["definition"]),
+                form=str(argument["form"]),
+            )
+            for argument in enriched
+        ),
+        framework=AlignmentFrameworkDocument(
+            attacks=tuple(tuple(pair) for pair in attacks),
+            ignorance=tuple(tuple(pair) for pair in ignorance),
+            non_attacks=tuple(tuple(pair) for pair in non_attacks),
+        ),
+        queries=AlignmentQueriesDocument(
+            skeptical_acceptance=tuple(skeptical),
+            credulous_acceptance=tuple(credulous),
+            operator_scores=operator_scores,
+        ),
+        decision=AlignmentDecisionDocument(
+            status="open",
+            accepted=(),
+            rejected=(),
+            promoted_concept=None,
+        ),
+    )
 
 
-def align_sources(repo: Repository, source_branches: list[str]) -> dict[str, Any]:
+def align_sources(
+    repo: Repository,
+    source_branches: list[str],
+) -> ConceptAlignmentArtifactDocument:
     proposals: list[dict[str, Any]] = []
     for branch in source_branches:
         concepts_doc = load_document_from_branch(repo, branch, "concepts.yaml", SourceConceptsDocument)
@@ -149,9 +171,15 @@ def align_sources(repo: Repository, source_branches: list[str]) -> dict[str, Any
     artifact = build_alignment_artifact(proposals, authority=repo.uri_authority)
     if branch_head(repo.git, CONCEPT_PROPOSAL_BRANCH) is None:
         create_branch(repo.git, CONCEPT_PROPOSAL_BRANCH)
-    slug = artifact["id"].split(":", 1)[1]
+    slug = artifact.id.split(":", 1)[1]
     repo.git.commit_batch(
-        adds={f"merge/concepts/{slug}.yaml": yaml.safe_dump(artifact, sort_keys=False, allow_unicode=True).encode("utf-8")},
+        adds={
+            f"merge/concepts/{slug}.yaml": yaml.safe_dump(
+                artifact.to_payload(),
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
         deletes=[],
         message=f"Align concepts for {slug}",
         branch=CONCEPT_PROPOSAL_BRANCH,
@@ -159,59 +187,90 @@ def align_sources(repo: Repository, source_branches: list[str]) -> dict[str, Any
     return artifact
 
 
-def load_alignment_artifact(repo: Repository, cluster_id: str) -> tuple[str, dict[str, Any]]:
+def load_alignment_artifact(
+    repo: Repository,
+    cluster_id: str,
+) -> tuple[str, ConceptAlignmentArtifactDocument]:
     slug = cluster_id.split(":", 1)[1] if ":" in cluster_id else cluster_id
     tip = branch_head(repo.git, CONCEPT_PROPOSAL_BRANCH)
     if tip is None:
         raise FileNotFoundError(cluster_id)
     try:
-        artifact = yaml.safe_load(repo.git.read_file(f"merge/concepts/{slug}.yaml", commit=tip)) or {}
+        artifact = decode_document_bytes(
+            repo.git.read_file(f"merge/concepts/{slug}.yaml", commit=tip),
+            ConceptAlignmentArtifactDocument,
+            source=f"{CONCEPT_PROPOSAL_BRANCH}:merge/concepts/{slug}.yaml",
+        )
     except FileNotFoundError as exc:
         raise FileNotFoundError(cluster_id) from exc
     return slug, artifact
 
 
-def save_alignment_artifact(repo: Repository, slug: str, artifact: dict[str, Any], *, message: str) -> str:
+def save_alignment_artifact(
+    repo: Repository,
+    slug: str,
+    artifact: ConceptAlignmentArtifactDocument,
+    *,
+    message: str,
+) -> str:
     return repo.git.commit_batch(
-        adds={f"merge/concepts/{slug}.yaml": yaml.safe_dump(artifact, sort_keys=False, allow_unicode=True).encode("utf-8")},
+        adds={
+            f"merge/concepts/{slug}.yaml": yaml.safe_dump(
+                artifact.to_payload(),
+                sort_keys=False,
+                allow_unicode=True,
+            ).encode("utf-8")
+        },
         deletes=[],
         message=message,
         branch=CONCEPT_PROPOSAL_BRANCH,
     )
 
 
-def decide_alignment(repo: Repository, cluster_id: str, *, accept: list[str], reject: list[str]) -> dict[str, Any]:
+def decide_alignment(
+    repo: Repository,
+    cluster_id: str,
+    *,
+    accept: list[str],
+    reject: list[str],
+) -> ConceptAlignmentArtifactDocument:
     slug, artifact = load_alignment_artifact(repo, cluster_id)
     updated = copy.deepcopy(artifact)
-    updated["decision"]["accepted"] = accept
-    updated["decision"]["rejected"] = reject
-    updated["decision"]["status"] = "decided"
+    updated.decision = AlignmentDecisionDocument(
+        status="decided",
+        accepted=tuple(accept),
+        rejected=tuple(reject),
+        promoted_concept=artifact.decision.promoted_concept,
+    )
     save_alignment_artifact(repo, slug, updated, message=f"Decide concept alignment {cluster_id}")
     return updated
 
 
-def promote_alignment(repo: Repository, cluster_id: str) -> dict[str, Any]:
+def promote_alignment(
+    repo: Repository,
+    cluster_id: str,
+) -> ConceptAlignmentArtifactDocument:
     slug, artifact = load_alignment_artifact(repo, cluster_id)
-    accepted = list(artifact.get("decision", {}).get("accepted", []))
+    accepted = list(artifact.decision.accepted)
     if not accepted:
         raise ValueError(f"No accepted alternatives recorded for {cluster_id}")
     accepted_id = accepted[0]
     selected = None
-    for argument in artifact.get("arguments", []):
-        if isinstance(argument, dict) and argument.get("id") == accepted_id:
+    for argument in artifact.arguments:
+        if argument.id == accepted_id:
             selected = argument
             break
     if selected is None:
         raise ValueError(f"Accepted alternative {accepted_id!r} not found")
 
-    canonical_name = str(selected["proposed_name"])
+    canonical_name = selected.proposed_name
     local_handle = alignment_slug(canonical_name)
     concept_doc = {
         "canonical_name": canonical_name,
         "status": "accepted",
-        "definition": str(selected.get("definition") or ""),
+        "definition": selected.definition,
         "domain": "source",
-        "form": str(selected.get("form") or "structural"),
+        "form": selected.form or "structural",
         "artifact_id": derive_concept_artifact_id("propstore", local_handle),
         "logical_ids": [
             {"namespace": "source", "value": local_handle},
@@ -227,7 +286,11 @@ def promote_alignment(repo: Repository, cluster_id: str) -> dict[str, Any]:
     )
     repo.git.sync_worktree()
     updated = copy.deepcopy(artifact)
-    updated["decision"]["promoted_concept"] = concept_tag_uri(local_handle, authority=repo.uri_authority)
-    updated["decision"]["status"] = "promoted"
+    updated.decision = AlignmentDecisionDocument(
+        status="promoted",
+        accepted=artifact.decision.accepted,
+        rejected=artifact.decision.rejected,
+        promoted_concept=concept_tag_uri(local_handle, authority=repo.uri_authority),
+    )
     save_alignment_artifact(repo, slug, updated, message=f"Record concept promotion {cluster_id}")
     return updated

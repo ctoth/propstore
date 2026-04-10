@@ -92,7 +92,7 @@ def test_alignment_builder_emits_mutual_attacks_for_same_name_different_definiti
             },
         ]
     )
-    attacks = {tuple(pair) for pair in artifact["framework"]["attacks"]}
+    attacks = {tuple(pair) for pair in artifact.framework.attacks}
     assert ("alt_local_a", "alt_local_b") in attacks
     assert ("alt_local_b", "alt_local_a") in attacks
 

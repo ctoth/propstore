@@ -1014,7 +1014,7 @@ def show(obj: dict, concept_id_or_name: str) -> None:
             sys.exit(EXIT_ERROR)
         click.echo(
             yaml.dump(
-                artifact,
+                artifact.to_payload(),
                 default_flow_style=False,
                 sort_keys=False,
                 allow_unicode=True,
@@ -1044,7 +1044,7 @@ def align_cmd(obj: dict, first_source: str, extra_sources: tuple[str, ...]) -> N
     """Build and persist a concept-alignment artifact from source branches."""
     repo: Repository = obj["repo"]
     artifact = align_sources(repo, [first_source, *extra_sources])
-    click.echo(f"Created {artifact['id']}")
+    click.echo(f"Created {artifact.id}")
 
 
 @concept.command("query")
@@ -1061,14 +1061,17 @@ def query_alignment(obj: dict, cluster_id: str, mode: str, operator: str | None)
         click.echo(f"ERROR: Concept alignment '{cluster_id}' not found", err=True)
         sys.exit(EXIT_ERROR)
 
-    queries = artifact.get("queries", {})
     if operator is not None:
-        scores = queries.get("operator_scores", {}).get(operator, {})
+        scores = artifact.queries.operator_scores.get(operator, {})
         for argument_id, score in sorted(scores.items()):
             click.echo(f"{argument_id}\t{score}")
         return
 
-    accepted = queries.get(f"{mode}_acceptance", [])
+    accepted = (
+        artifact.queries.skeptical_acceptance
+        if mode == "skeptical"
+        else artifact.queries.credulous_acceptance
+    )
     for argument_id in accepted:
         click.echo(argument_id)
 
@@ -1082,7 +1085,7 @@ def decide_cmd(obj: dict, cluster_id: str, accepted: tuple[str, ...], rejected: 
     """Persist accepted and rejected alternatives for an alignment artifact."""
     repo: Repository = obj["repo"]
     updated = decide_alignment(repo, cluster_id, accept=list(accepted), reject=list(rejected))
-    click.echo(f"Updated {updated['id']}")
+    click.echo(f"Updated {updated.id}")
 
 
 @concept.command("promote")
@@ -1096,7 +1099,7 @@ def promote_cmd(obj: dict, cluster_id: str) -> None:
     except ValueError as exc:
         click.echo(f"ERROR: {exc}", err=True)
         sys.exit(EXIT_ERROR)
-    click.echo(f"Promoted {updated['id']}")
+    click.echo(f"Promoted {updated.id}")
 
 
 # ── concept embed ────────────────────────────────────────────────────
