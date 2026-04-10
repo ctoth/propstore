@@ -492,7 +492,7 @@ class BoundWorld(BeliefSpace):
         result,
         *,
         overrides: Mapping[str, Mapping[str, Any]] | None = None,
-    ) -> dict[str, Any]:
+    ):
         """Render the default explanation payload for a revision result."""
         from propstore.revision.explain import build_revision_explanation
 

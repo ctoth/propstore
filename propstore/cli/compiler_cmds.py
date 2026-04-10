@@ -661,23 +661,23 @@ def _emit_revision_result(result) -> None:
     click.echo(f"Incision set: {', '.join(result.incision_set) if result.incision_set else '(none)'}")
 
 
-def _emit_revision_explanation(explanation: dict) -> None:
-    click.echo(f"Accepted ({len(explanation['accepted_atom_ids'])} atoms):")
-    for atom_id in explanation["accepted_atom_ids"]:
+def _emit_revision_explanation(explanation) -> None:
+    click.echo(f"Accepted ({len(explanation.accepted_atom_ids)} atoms):")
+    for atom_id in explanation.accepted_atom_ids:
         click.echo(f"  {atom_id}")
 
-    click.echo(f"Rejected ({len(explanation['rejected_atom_ids'])} atoms):")
-    for atom_id in explanation["rejected_atom_ids"]:
+    click.echo(f"Rejected ({len(explanation.rejected_atom_ids)} atoms):")
+    for atom_id in explanation.rejected_atom_ids:
         click.echo(f"  {atom_id}")
 
-    incision = explanation["incision_set"]
+    incision = explanation.incision_set
     click.echo(f"Incision set: {', '.join(incision) if incision else '(none)'}")
     click.echo("Atoms:")
-    for atom_id, detail in explanation["atoms"].items():
-        line = f"  {atom_id}: status={detail['status']} reason={detail['reason']}"
-        ranking = detail.get("ranking")
-        if isinstance(ranking, dict):
-            line += f" support_count={ranking.get('support_count', 0)}"
+    for atom_id, detail in explanation.atoms.items():
+        line = f"  {atom_id}: status={detail.status} reason={detail.reason}"
+        ranking = detail.ranking
+        if ranking is not None:
+            line += f" support_count={ranking.support_count or 0}"
         click.echo(line)
 
 
@@ -762,10 +762,10 @@ def world_revision_entrenchment(obj: dict, args: tuple[str, ...]) -> None:
 
         click.echo(f"Entrenchment ({len(report.ranked_atom_ids)} atoms)")
         for rank, atom_id in enumerate(report.ranked_atom_ids, start=1):
-            reason = report.reasons.get(atom_id, {})
-            support_count = reason.get("support_count", 0)
-            essential_support = reason.get("essential_support") or []
-            override = reason.get("override")
+            reason = report.reasons.get(atom_id)
+            support_count = 0 if reason is None or reason.support_count is None else reason.support_count
+            essential_support = () if reason is None else reason.essential_support
+            override = None if reason is None else reason.override_priority
             click.echo(
                 f"  {rank}. {atom_id} "
                 f"support_count={support_count} "

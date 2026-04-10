@@ -5,6 +5,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from propstore.revision.entrenchment import EntrenchmentReport
+from propstore.revision.explanation_types import EntrenchmentReason
 from propstore.revision.operators import contract
 from propstore.revision.state import BeliefAtom, BeliefBase, RevisionEpisode, RevisionScope
 from tests.test_revision_operators import _base_with_shared_support
@@ -34,7 +35,7 @@ def test_advance_epistemic_state_uses_revision_result_as_next_state() -> None:
         ranked_atom_ids=tuple(
             atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
         ),
-        reasons=entrenchment.reasons,
+        reasons=dict(entrenchment.reasons),
     )
 
     next_state = advance_epistemic_state(
@@ -65,7 +66,7 @@ def test_epistemic_state_is_serializable_via_dataclass_payload() -> None:
         ranked_atom_ids=tuple(
             atom_id for atom_id in entrenchment.ranked_atom_ids if atom_id in result.accepted_atom_ids
         ),
-        reasons=entrenchment.reasons,
+        reasons=dict(entrenchment.reasons),
     )
 
     next_state = advance_epistemic_state(
@@ -126,8 +127,8 @@ def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, Entrenchm
             "claim:legacy",
         ),
         reasons={
-            "assumption:left_path": {"support_count": 2},
-            "assumption:right_path": {"support_count": 2},
+            "assumption:left_path": EntrenchmentReason(support_count=2),
+            "assumption:right_path": EntrenchmentReason(support_count=2),
         },
     )
     right_first = EntrenchmentReport(
@@ -139,8 +140,8 @@ def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, Entrenchm
             "claim:legacy",
         ),
         reasons={
-            "assumption:left_path": {"support_count": 2},
-            "assumption:right_path": {"support_count": 2},
+            "assumption:left_path": EntrenchmentReason(support_count=2),
+            "assumption:right_path": EntrenchmentReason(support_count=2),
         },
     )
     return base, left_first, right_first
