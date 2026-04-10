@@ -168,21 +168,21 @@ class TestParamConflictsSympy:
             "id": "ca",
             "concept": "a",
             "type": "measurement",
-            "value": [2.0],
+            "value": 2.0,
             "conditions": [],
         }
         input_claim_b = {
             "id": "cb",
             "concept": "b",
             "type": "measurement",
-            "value": [3.0],
+            "value": 3.0,
             "conditions": [],
         }
         derived_claim = {
             "id": "cd",
             "concept": "derived",
             "type": "measurement",
-            "value": [10.0],
+            "value": 10.0,
             "conditions": [],
         }
 

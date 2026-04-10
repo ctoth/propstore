@@ -94,15 +94,25 @@ def test_tokenizer_compound_expression(name_a, name_b, op_a, op_b, val_a, val_b)
 
 def _make_parameter_claim(claim_id, concept_id, value, unit="Hz", conditions=None):
     """Build a minimal parameter claim dict for testing."""
-    return {
+    claim = {
         "id": claim_id,
         "type": "parameter",
         "concept": concept_id,
-        "value": value if isinstance(value, list) else [value],
         "unit": unit,
         "conditions": conditions or [],
         "provenance": {"paper": "test", "page": 1},
     }
+    if isinstance(value, list):
+        if len(value) == 1:
+            claim["value"] = value[0]
+        elif len(value) == 2:
+            claim["lower_bound"] = value[0]
+            claim["upper_bound"] = value[1]
+        else:
+            raise ValueError(f"unsupported test value list shape: {value!r}")
+    else:
+        claim["value"] = value
+    return claim
 
 
 def _make_claim_file(claims, filename="test_paper"):

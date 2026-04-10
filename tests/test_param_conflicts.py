@@ -54,9 +54,9 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
     concept2_id, concept2 = _concept("concept2", form="quantity")
     concept3_id, concept3 = _concept("concept3", form="quantity")
     by_concept = {
-        concept1_id: [{"id": "claim_a", "value": [10.0], "conditions": []}],
-        concept2_id: [{"id": "claim_b", "value": [9.807], "conditions": []}],
-        concept3_id: [{"id": "claim_c", "value": [99.0], "conditions": []}],
+        concept1_id: [{"id": "claim_a", "value": 10.0, "conditions": []}],
+        concept2_id: [{"id": "claim_b", "value": 9.807, "conditions": []}],
+        concept3_id: [{"id": "claim_c", "value": 99.0, "conditions": []}],
     }
     concept_registry = {
         concept1_id: concept1,
@@ -106,7 +106,7 @@ def test_same_value_different_units_no_conflict():
             {"id": "claim_hz", "value": 200.0, "unit": "Hz", "conditions": []},
             {"id": "claim_khz", "value": 0.2, "unit": "kHz", "conditions": []},
         ],
-        freq_output_id: [{"id": "claim_out", "value": [100.0], "conditions": []}],
+        freq_output_id: [{"id": "claim_out", "value": 100.0, "conditions": []}],
     }
     concept_registry = {
         freq_input_id: freq_input,
@@ -143,7 +143,7 @@ def test_different_value_different_units_conflict():
         freq_input_id: [
             {"id": "claim_khz", "value": 0.5, "unit": "kHz", "conditions": []},
         ],
-        freq_output_id: [{"id": "claim_out", "value": [100.0], "conditions": []}],
+        freq_output_id: [{"id": "claim_out", "value": 100.0, "conditions": []}],
     }
     concept_registry = {
         freq_input_id: freq_input,
