@@ -56,7 +56,7 @@ def coerce_revision_atom_detail(detail: RevisionAtomDetailInput) -> RevisionAtom
 
 @dataclass(frozen=True)
 class EntrenchmentReason:
-    override_priority: int | None = None
+    override_priority: int | str | None = None
     override_key: str | None = None
     support_count: int | None = None
     essential_support: tuple[AssumptionId, ...] = ()
@@ -70,12 +70,9 @@ class EntrenchmentReason:
     def from_mapping(cls, data: Mapping[str, Any] | None) -> EntrenchmentReason:
         if not data:
             return cls()
+        raw_override_priority = data.get("override_priority", data.get("override"))
         return cls(
-            override_priority=(
-                None
-                if data.get("override_priority") is None and data.get("override") is None
-                else int(data.get("override_priority", data.get("override")))
-            ),
+            override_priority=_coerce_override_priority(raw_override_priority),
             override_key=None if data.get("override_key") is None else str(data.get("override_key")),
             support_count=(
                 None if data.get("support_count") is None else int(data.get("support_count"))
@@ -118,6 +115,18 @@ def coerce_entrenchment_reason(reason: EntrenchmentReasonInput) -> EntrenchmentR
     if isinstance(reason, EntrenchmentReason):
         return reason
     return EntrenchmentReason.from_mapping(reason)
+
+
+def _coerce_override_priority(value: Any) -> int | str | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return str(value)
 
 
 @dataclass(frozen=True)
