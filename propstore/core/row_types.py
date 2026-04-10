@@ -305,6 +305,21 @@ class ClaimRow:
                 logical_ids.append(LogicalId(namespace=namespace, value=value))
 
         nested_source = row_map.get("source") if isinstance(row_map.get("source"), Mapping) else None
+        quality_trust = (
+            SourceTrust.from_mapping(
+                {"quality": row_map.get("source_quality_json") or row_map.get("source_quality_opinion")}
+            )
+            if row_map.get("source_quality_json") is not None
+            or row_map.get("source_quality_opinion") is not None
+            else None
+        )
+        derived_from_trust = (
+            SourceTrust.from_mapping(
+                {"derived_from": row_map.get("source_derived_from_json")}
+            )
+            if row_map.get("source_derived_from_json") is not None
+            else None
+        )
         flat_source = ClaimSource(
             source_id=(None if row_map.get("source_id") is None else str(row_map["source_id"])),
             kind=(None if row_map.get("source_kind") is None else str(row_map["source_kind"])),
@@ -337,16 +352,12 @@ class ClaimRow:
                     if row_map.get("source_prior_base_rate") is None
                     else float(row_map["source_prior_base_rate"])
                 ),
-                quality=SourceTrust.from_mapping(
-                    {"quality": row_map.get("source_quality_json") or row_map.get("source_quality_opinion")}
-                ).quality
-                if row_map.get("source_quality_json") is not None or row_map.get("source_quality_opinion") is not None
-                else None,
-                derived_from=SourceTrust.from_mapping(
-                    {"derived_from": row_map.get("source_derived_from_json")}
-                ).derived_from
-                if row_map.get("source_derived_from_json") is not None
-                else (),
+                quality=None if quality_trust is None else quality_trust.quality,
+                derived_from=(
+                    ()
+                    if derived_from_trust is None
+                    else derived_from_trust.derived_from
+                ),
             ),
         )
         source = ClaimSource.from_mapping(nested_source, slug=flat_source.slug)
