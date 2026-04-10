@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
     concept_registry_for_context,
-    normalize_loaded_concepts,
 )
 from propstore.compiler.passes import compile_claim_files
 from propstore.form_utils import FormDefinition, load_all_forms_path
@@ -107,7 +106,7 @@ def build_sidecar(
             return False
 
     form_registry = load_all_forms_path(knowledge_root / "forms")
-    concepts = normalize_loaded_concepts(load_concepts(knowledge_root / "concepts"))
+    concepts = load_concepts(knowledge_root / "concepts")
     claim_files = (
         load_claim_files(knowledge_root / "claims")
         if (knowledge_root / "claims").exists()

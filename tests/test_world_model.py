@@ -151,10 +151,18 @@ def concept_dir(tmp_path):
 
     forms_dir = knowledge / "forms"
     forms_dir.mkdir()
+    dimensionless_forms = {"category", "structural", "duration_ratio"}
     for form_name in ("frequency", "category", "structural", "duration_ratio",
                       "pressure", "time"):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name}, default_flow_style=False))
+            yaml.dump(
+                {
+                    "name": form_name,
+                    "dimensionless": form_name in dimensionless_forms,
+                },
+                default_flow_style=False,
+            )
+        )
 
     def write(name, data):
         normalized = normalize_concept_payloads(
@@ -263,6 +271,7 @@ def concept_dir(tmp_path):
             "inputs": ["concept5"],
             "exactness": "exact",
             "source": "test",
+            "bidirectional": False,
             "conditions": ["task == 'speech'"],
         }],
     })
@@ -639,7 +648,7 @@ class TestUnboundQueries:
         forms_dir = knowledge / "forms"
         forms_dir.mkdir()
         (forms_dir / "frequency.yaml").write_text(
-            yaml.dump({"name": "frequency"}, default_flow_style=False)
+            yaml.dump({"name": "frequency", "dimensionless": False}, default_flow_style=False)
         )
 
         concept_payload = normalize_concept_payloads([{
@@ -695,7 +704,7 @@ class TestUnboundQueries:
         forms_dir = knowledge / "forms"
         forms_dir.mkdir()
         (forms_dir / "frequency.yaml").write_text(
-            yaml.dump({"name": "frequency"}, default_flow_style=False)
+            yaml.dump({"name": "frequency", "dimensionless": False}, default_flow_style=False)
         )
 
         concept_payload = normalize_concept_payloads([{
@@ -1738,7 +1747,7 @@ class TestTransitiveConsistency:
         from propstore.validate import load_concepts
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+        concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
         records = detect_transitive_conflicts(claim_files, concept_registry)
 
         # concept7 = 2 * concept5, concept5 = concept6 * concept1
@@ -1807,7 +1816,7 @@ class TestTransitiveConsistency:
         from propstore.validate import load_concepts
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+        concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
         records = detect_transitive_conflicts(claim_files, concept_registry)
         for r in records:
             assert r.derivation_chain is not None
@@ -1820,7 +1829,7 @@ class TestTransitiveConsistency:
         from propstore.loaded import LoadedEntry
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+        concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
 
         # Create modified claim_files where claim11 has compatible value
         modified_files = []
@@ -1855,7 +1864,7 @@ class TestTransitiveConsistency:
         from propstore.validate import load_concepts
 
         concepts = load_concepts(concept_dir)
-        concept_registry = {c.data["id"]: c.data for c in concepts if c.data.get("id")}
+        concept_registry = {str(c.record.artifact_id): c.data for c in concepts}
         records = detect_transitive_conflicts(claim_files, concept_registry)
 
         # All conflicts should have conditions (since parameterizations have conditions)
@@ -1958,9 +1967,17 @@ def algo_concept_dir(tmp_path):
 
     forms_dir = knowledge / "forms"
     forms_dir.mkdir()
+    dimensionless_forms = {"category", "structural", "algorithm"}
     for form_name in ("frequency", "category", "structural", "algorithm"):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name}, default_flow_style=False))
+            yaml.dump(
+                {
+                    "name": form_name,
+                    "dimensionless": form_name in dimensionless_forms,
+                },
+                default_flow_style=False,
+            )
+        )
 
     def write(name, data):
         normalized = normalize_concept_payloads(

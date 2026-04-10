@@ -381,14 +381,13 @@ def test_knowledge_path_equivalence(tmp_path):
 def test_load_concepts_from_git_tree(tmp_path):
     """load_concepts() works from a committed git-backed knowledge path."""
     kr = KnowledgeRepo.init(tmp_path / "knowledge")
-    concept_data = {
-        "id": "concept1",
-        "canonical_name": "test_concept",
-        "status": "proposed",
-        "definition": "A test concept",
-        "domain": "testing",
-        "form": "scalar",
-    }
+    concept_data = _concept_payload(
+        "concept1",
+        "test_concept",
+        domain="testing",
+        form="scalar",
+        definition="A test concept",
+    )
     kr.commit_files({
         "concepts/test_concept.yaml": yaml.dump(concept_data).encode(),
     }, "add concept")
@@ -396,7 +395,7 @@ def test_load_concepts_from_git_tree(tmp_path):
     from propstore.validate import load_concepts
     concepts = load_concepts(kr.tree() / "concepts")
     assert len(concepts) == 1
-    assert concepts[0].data["id"] == "concept1"
+    assert concepts[0].record.primary_logical_id == "testing:test_concept"
     assert isinstance(concepts[0].source_path, GitKnowledgePath)
     assert concepts[0].filename == "test_concept"
 
@@ -659,14 +658,16 @@ def test_form_remove_uses_committed_head_for_reference_checks(tmp_path):
             "dimensionless": False,
             "unit_symbol": "Hz",
         }).encode("utf-8"),
-        "concepts/fundamental_frequency.yaml": yaml.dump({
-            "id": "concept1",
-            "canonical_name": "fundamental_frequency",
-            "status": "accepted",
-            "definition": "Frequency concept",
-            "domain": "speech",
-            "form": "frequency",
-        }).encode("utf-8"),
+        "concepts/fundamental_frequency.yaml": yaml.dump(
+            _concept_payload(
+                "concept1",
+                "fundamental_frequency",
+                domain="speech",
+                form="frequency",
+                status="accepted",
+                definition="Frequency concept",
+            )
+        ).encode("utf-8"),
     }, "Seed form and concept")
     git.sync_worktree()
     (root / "concepts" / "fundamental_frequency.yaml").unlink()

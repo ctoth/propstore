@@ -194,9 +194,17 @@ def concept_dir(tmp_path):
     # Create form definition files
     forms_dir = knowledge / "forms"
     forms_dir.mkdir()
+    dimensionless_forms = {"category", "structural", "duration_ratio"}
     for form_name in ("frequency", "category", "structural", "duration_ratio", "pressure"):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name}, default_flow_style=False))
+            yaml.dump(
+                {
+                    "name": form_name,
+                    "dimensionless": form_name in dimensionless_forms,
+                },
+                default_flow_style=False,
+            )
+        )
 
     def write(name, data):
         normalized = normalize_concept_payloads(
@@ -1408,16 +1416,16 @@ class TestConceptFormMetadata:
         """Write real form definitions for the test concepts."""
         forms_dir = concept_dir.parent / "forms"
         forms_dir.mkdir(exist_ok=True)
-        yaml.dump({"name": "frequency", "unit_symbol": "Hz"},
+        yaml.dump({"name": "frequency", "dimensionless": False, "unit_symbol": "Hz"},
                   (forms_dir / "frequency.yaml").open("w"))
-        yaml.dump({"name": "pressure", "unit_symbol": "Pa",
+        yaml.dump({"name": "pressure", "dimensionless": False, "unit_symbol": "Pa",
                    "common_alternatives": [{"unit": "cmH2O", "type": "multiplicative", "multiplier": 98.0665}]},
                   (forms_dir / "pressure.yaml").open("w"))
-        yaml.dump({"name": "category", "parameters": {"values": [], "extensible": False}},
+        yaml.dump({"name": "category", "dimensionless": True, "parameters": {"values": [], "extensible": False}},
                   (forms_dir / "category.yaml").open("w"))
-        yaml.dump({"name": "structural", "note": "Non-measurable organizing concepts."},
+        yaml.dump({"name": "structural", "dimensionless": True, "note": "Non-measurable organizing concepts."},
                   (forms_dir / "structural.yaml").open("w"))
-        yaml.dump({"name": "duration_ratio", "base": "ratio",
+        yaml.dump({"name": "duration_ratio", "dimensionless": True, "base": "ratio",
                    "parameters": {"numerator": "duration", "denominator": "duration"}},
                   (forms_dir / "duration_ratio.yaml").open("w"))
 
@@ -1794,6 +1802,7 @@ class TestFormAlgebraDimVerified:
         }, default_flow_style=False))
         (forms_dir / "frequency.yaml").write_text(yaml.dump({
             "name": "frequency",
+            "dimensionless": False,
             "dimensions": {"T": -1},
         }, default_flow_style=False))
 
@@ -1812,6 +1821,7 @@ class TestFormAlgebraDimVerified:
                 "inputs": ["concept1"],
                 "exactness": "exact",
                 "source": "definition",
+                "bidirectional": False,
             }],
         }], default_domain="speech")[0]
         (concepts_path / "period.yaml").write_text(yaml.dump(period_payload, default_flow_style=False))
@@ -1844,6 +1854,7 @@ class TestClaimValueSI:
             {
                 "name": "frequency",
                 "kind": "quantity",
+                "dimensionless": False,
                 "unit_symbol": "Hz",
                 "dimensions": {"T": -1},
                 "common_alternatives": [
@@ -1853,10 +1864,17 @@ class TestClaimValueSI:
             (forms_dir / "frequency.yaml").open("w"),
         )
         # Ensure other forms still exist (minimal stubs)
+        dimensionless_forms = {"category", "structural", "duration_ratio"}
         for form_name in ("category", "structural", "duration_ratio", "pressure"):
             path = forms_dir / f"{form_name}.yaml"
             if not path.exists():
-                yaml.dump({"name": form_name}, path.open("w"))
+                yaml.dump(
+                    {
+                        "name": form_name,
+                        "dimensionless": form_name in dimensionless_forms,
+                    },
+                    path.open("w"),
+                )
         # Clear form cache so new YAML is picked up
         from propstore.form_utils import _form_cache
         _form_cache.clear()

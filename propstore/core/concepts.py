@@ -7,6 +7,9 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+import msgspec
+
+from propstore.document_schema import DocumentStruct
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
 from propstore.identity import (
     compute_concept_version_id,
@@ -15,13 +18,74 @@ from propstore.identity import (
     normalize_logical_value,
 )
 from propstore.knowledge_path import KnowledgePath
-from propstore.loaded import LoadedEntry
+from propstore.loaded import LoadedDocument, LoadedEntry
 
 
 def _string_list(value: object) -> tuple[str, ...]:
     if not isinstance(value, Sequence) or isinstance(value, str):
         return ()
     return tuple(item for item in value if isinstance(item, str) and item)
+
+
+class ConceptLogicalIdDocument(DocumentStruct):
+    namespace: str
+    value: str
+
+
+class ConceptAliasDocument(DocumentStruct):
+    name: str
+    source: str | None = None
+    note: str | None = None
+
+
+class ConceptRelationshipDocument(DocumentStruct):
+    type: str
+    target: str
+    source: str | None = None
+    conditions: tuple[str, ...] = ()
+    note: str | None = None
+
+
+class ConceptFormParametersDocument(DocumentStruct):
+    construction: str | None = None
+    extensible: bool | None = None
+    note: str | None = None
+    reference: str | None = None
+    values: tuple[str, ...] | None = None
+
+
+class ParameterizationRelationshipDocument(DocumentStruct):
+    formula: str
+    inputs: tuple[str, ...]
+    exactness: str
+    source: str
+    bidirectional: bool
+    sympy: str | None = None
+    conditions: tuple[str, ...] = ()
+    note: str | None = None
+    canonical_claim: str | None = None
+    fit_statistics: str | None = None
+
+
+class ConceptDocument(DocumentStruct):
+    artifact_id: str
+    logical_ids: tuple[ConceptLogicalIdDocument, ...]
+    version_id: str
+    canonical_name: str
+    status: str
+    definition: str
+    form: str
+    aliases: tuple[ConceptAliasDocument, ...] = ()
+    created_date: str | None = None
+    definition_source: str | None = None
+    domain: str | None = None
+    form_parameters: ConceptFormParametersDocument | None = None
+    last_modified: str | None = None
+    notes: str | None = None
+    parameterization_relationships: tuple[ParameterizationRelationshipDocument, ...] = ()
+    range: tuple[float, float] | None = None
+    relationships: tuple[ConceptRelationshipDocument, ...] = ()
+    replaced_by: str | None = None
 
 @dataclass(frozen=True)
 class ConceptAlias:
@@ -99,6 +163,7 @@ class ConceptRecord:
     logical_ids: tuple[LogicalId, ...]
     version_id: str
     domain: str | None = None
+    definition_source: str | None = None
     form_parameters: dict[str, Any] | None = None
     range: tuple[float, float] | None = None
     aliases: tuple[ConceptAlias, ...] = ()
@@ -107,6 +172,7 @@ class ConceptRecord:
     replaced_by: ConceptId | None = None
     created_date: str | None = None
     last_modified: str | None = None
+    notes: str | None = None
 
     @property
     def primary_logical_id(self) -> str | None:
@@ -134,6 +200,9 @@ class ConceptRecord:
         return tuple(keys)
 
     def to_payload(self) -> dict[str, Any]:
+        form_parameters = None
+        if self.form_parameters is not None:
+            form_parameters = msgspec.to_builtins(self.form_parameters)
         payload: dict[str, Any] = {
             "artifact_id": str(self.artifact_id),
             "canonical_name": self.canonical_name,
@@ -145,8 +214,10 @@ class ConceptRecord:
         }
         if self.domain is not None:
             payload["domain"] = self.domain
-        if self.form_parameters:
-            payload["form_parameters"] = copy.deepcopy(self.form_parameters)
+        if self.definition_source is not None:
+            payload["definition_source"] = self.definition_source
+        if form_parameters:
+            payload["form_parameters"] = form_parameters
         if self.range is not None:
             payload["range"] = [self.range[0], self.range[1]]
         if self.aliases:
@@ -167,6 +238,8 @@ class ConceptRecord:
             payload["created_date"] = self.created_date
         if self.last_modified is not None:
             payload["last_modified"] = self.last_modified
+        if self.notes is not None:
+            payload["notes"] = self.notes
         return payload
 
 
@@ -177,6 +250,10 @@ class LoadedConcept:
     knowledge_root: KnowledgePath | None
     record: ConceptRecord
     source_local_id: str | None = None
+
+    @property
+    def data(self) -> dict[str, Any]:
+        return self.record.to_payload()
 
     def to_loaded_entry(self) -> LoadedEntry:
         return LoadedEntry(
@@ -371,6 +448,11 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
         logical_ids=tuple(logical_ids),
         version_id=version_id,
         domain=normalized.get("domain") if isinstance(normalized.get("domain"), str) else None,
+        definition_source=(
+            normalized.get("definition_source")
+            if isinstance(normalized.get("definition_source"), str)
+            else None
+        ),
         form_parameters=parsed_form_parameters,
         range=parsed_range,
         aliases=tuple(aliases),
@@ -379,6 +461,70 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
         replaced_by=parsed_replaced_by,
         created_date=normalized.get("created_date") if isinstance(normalized.get("created_date"), str) else None,
         last_modified=normalized.get("last_modified") if isinstance(normalized.get("last_modified"), str) else None,
+        notes=normalized.get("notes") if isinstance(normalized.get("notes"), str) else None,
+    )
+
+
+def parse_concept_record_document(data: ConceptDocument) -> ConceptRecord:
+    form_parameters = None
+    if data.form_parameters is not None:
+        form_parameters = {
+            key: list(value) if isinstance(value, tuple) else value
+            for key, value in msgspec.to_builtins(data.form_parameters).items()
+            if value is not None
+        }
+
+    return ConceptRecord(
+        artifact_id=to_concept_id(data.artifact_id),
+        canonical_name=data.canonical_name,
+        status=data.status,
+        definition=data.definition,
+        form=data.form,
+        logical_ids=tuple(
+            LogicalId(namespace=entry.namespace, value=entry.value)
+            for entry in data.logical_ids
+        ),
+        version_id=data.version_id,
+        domain=data.domain,
+        definition_source=data.definition_source,
+        form_parameters=form_parameters,
+        range=None if data.range is None else (float(data.range[0]), float(data.range[1])),
+        aliases=tuple(
+            ConceptAlias(name=alias.name, source=alias.source, note=alias.note)
+            for alias in data.aliases
+        ),
+        relationships=tuple(
+            ConceptRelationship(
+                relationship_type=relationship.type,
+                target=to_concept_id(relationship.target),
+                conditions=tuple(relationship.conditions),
+                note=relationship.note,
+            )
+            for relationship in data.relationships
+        ),
+        parameterizations=tuple(
+            ParameterizationSpec(
+                inputs=tuple(to_concept_id(value) for value in parameterization.inputs),
+                formula=parameterization.formula,
+                sympy=parameterization.sympy,
+                exactness=parameterization.exactness,
+                conditions=tuple(parameterization.conditions),
+                source=parameterization.source,
+                bidirectional=parameterization.bidirectional,
+                canonical_claim=(
+                    None
+                    if parameterization.canonical_claim is None
+                    else to_claim_id(parameterization.canonical_claim)
+                ),
+            )
+            for parameterization in data.parameterization_relationships
+        ),
+        replaced_by=(
+            None if data.replaced_by is None else to_concept_id(data.replaced_by)
+        ),
+        created_date=data.created_date,
+        last_modified=data.last_modified,
+        notes=data.notes,
     )
 
 
@@ -455,37 +601,18 @@ def rewrite_concept_payload_refs(
     return rewritten
 
 
-def normalize_loaded_concepts(concepts: Sequence[LoadedEntry]) -> list[LoadedConcept]:
-    normalized_entries: list[tuple[LoadedEntry, dict[str, Any]]] = []
-    concept_ref_map: dict[str, str] = {}
-
-    for concept in concepts:
-        normalized = normalize_concept_payload(concept.data)
-        parsed = parse_concept_record(normalized)
-        source_local_id = concept.data.get("id")
-        source_local_value = source_local_id if isinstance(source_local_id, str) and source_local_id else None
-        for key in concept_reference_keys(parsed, source_local_id=source_local_value):
-            concept_ref_map.setdefault(key, str(parsed.artifact_id))
-        normalized_entries.append((concept, normalized))
-
-    rewritten_entries: list[LoadedConcept] = []
-    for concept, normalized in normalized_entries:
-        rewritten = rewrite_concept_payload_refs(
-            normalized,
-            concept_ref_map=concept_ref_map,
+def normalize_loaded_concepts(
+    concepts: Sequence[LoadedDocument[ConceptDocument]],
+) -> list[LoadedConcept]:
+    return [
+        LoadedConcept(
+            filename=concept.filename,
+            source_path=concept.source_path,
+            knowledge_root=concept.knowledge_root,
+            record=parse_concept_record_document(concept.document),
         )
-        parsed = parse_concept_record(rewritten)
-        source_local_id = concept.data.get("id")
-        rewritten_entries.append(
-            LoadedConcept(
-                filename=concept.filename,
-                source_path=concept.source_path,
-                knowledge_root=concept.knowledge_root,
-                record=parsed,
-                source_local_id=source_local_id if isinstance(source_local_id, str) and source_local_id else None,
-            )
-        )
-    return rewritten_entries
+        for concept in concepts
+    ]
 
 
 def concept_payload_registry(
