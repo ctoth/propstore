@@ -292,7 +292,7 @@ def build_merge_framework(
     branch_b: str,
 ) -> RepoMergeFramework:
     """Build the direct repository merge object for two branches."""
-    from propstore.validate_claims import load_claim_files
+    from propstore.claim_documents import load_claim_files
 
     base_sha = merge_base(kr, branch_a, branch_b)
     left_sha = branch_head(kr, branch_a)

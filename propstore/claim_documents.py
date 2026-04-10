@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from propstore.document_schema import (
     DocumentStruct,
     convert_document_value,
+    load_document,
 )
 from propstore.knowledge_path import KnowledgePath
 from propstore.loaded import LoadedDocument, LoadedEntry
@@ -473,3 +474,21 @@ def claim_payload_source_paper(
     if isinstance(source_paper, str) and source_paper:
         return source_paper
     return claim_file_default_source_paper(claim_file)
+
+
+def load_claim_files(claims_dir: KnowledgePath | None) -> list[LoadedClaimFile]:
+    """Load all claim YAML files from a claims subtree."""
+    if claims_dir is None or not claims_dir.is_dir():
+        return []
+    knowledge_root = claims_dir.parent if claims_dir.name else claims_dir
+    return [
+        LoadedClaimFile.from_loaded_document(
+            load_document(
+                entry,
+                ClaimsFileDocument,
+                knowledge_root=knowledge_root,
+            )
+        )
+        for entry in claims_dir.iterdir()
+        if entry.is_file() and entry.suffix == ".yaml"
+    ]

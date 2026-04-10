@@ -158,7 +158,7 @@ def load_source_claim_index(repo: Repository, source_name: str) -> tuple[dict[st
 
 
 def load_primary_branch_claim_index(repo: Repository) -> tuple[dict[str, str], set[str]]:
-    from propstore.validate_claims import load_claim_files
+    from propstore.claim_documents import load_claim_files
 
     primary_tip = repo.git.branch_sha(repo.git.primary_branch_name())
     if primary_tip is None:

@@ -18,8 +18,8 @@ import yaml
 from propstore.identity import derive_concept_artifact_id
 from propstore.document_schema import DocumentSchemaError
 from propstore.loaded import LoadedEntry
+from propstore.claim_documents import load_claim_files
 from propstore.validate_claims import (
-    load_claim_files,
     parse_claim_id,
     validate_claims,
     validate_single_claim_file,
