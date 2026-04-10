@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -12,9 +13,9 @@ DEFAULT_TOLERANCE = 1e-9
 
 def extract_interval(claim: dict) -> tuple[float, float, float] | None:
     """Extract (center, lower, upper) from a claim's named value fields."""
-    value = claim.get("value")
-    lower_bound = claim.get("lower_bound")
-    upper_bound = claim.get("upper_bound")
+    value = _claim_field(claim, "value")
+    lower_bound = _claim_field(claim, "lower_bound")
+    upper_bound = _claim_field(claim, "upper_bound")
 
     if value is not None and not isinstance(value, list) and lower_bound is not None and upper_bound is not None:
         return (float(value), float(lower_bound), float(upper_bound))
@@ -95,8 +96,8 @@ def values_compatible(
             # Unit-aware normalisation when form metadata is available
             if forms is not None and concept_form is not None and concept_form in forms:
                 form_def = forms[concept_form]
-                unit_a = claim_a.get("unit")
-                unit_b = claim_b.get("unit")
+                unit_a = _claim_field(claim_a, "unit")
+                unit_b = _claim_field(claim_b, "unit")
                 if unit_a is not None or unit_b is not None:
                     interval_a = _normalize_interval(interval_a, unit_a, form_def)
                     interval_b = _normalize_interval(interval_b, unit_b, form_def)
@@ -117,8 +118,15 @@ def value_str(value, claim: dict | None = None) -> str:
             center, lo, hi = interval
             if abs(hi - lo) < DEFAULT_TOLERANCE:
                 return str(center)
-            v = claim.get("value")
+            v = _claim_field(claim, "value")
             if v is not None and not isinstance(v, list):
                 return f"{v} [{lo}, {hi}]"
             return f"[{lo}, {hi}]"
     return str(value)
+
+
+def _claim_field(claim: object, key: str) -> Any:
+    getter = getattr(claim, "get", None)
+    if callable(getter):
+        return getter(key)
+    return getattr(claim, key, None)

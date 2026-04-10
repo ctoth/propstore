@@ -32,7 +32,7 @@ def equation_signature(claim: dict) -> tuple[str, tuple[str, ...]] | None:
     Returns (dependent_concept, (sorted independent concepts...)) or None
     if the claim doesn't have the expected variable structure.
     """
-    variables = claim.get("variables")
+    variables = _claim_field(claim, "variables")
     if not isinstance(variables, list):
         return None
 
@@ -74,7 +74,7 @@ def canonicalize_equation(claim: dict) -> str | None:
     except ImportError:
         return None
 
-    variables = claim.get("variables")
+    variables = _claim_field(claim, "variables")
     if not isinstance(variables, list):
         return None
 
@@ -89,7 +89,7 @@ def canonicalize_equation(claim: dict) -> str | None:
     if not symbol_map:
         return None
 
-    explicit_sympy = claim.get("sympy")
+    explicit_sympy = _claim_field(claim, "sympy")
     if isinstance(explicit_sympy, str) and explicit_sympy.strip():
         text = explicit_sympy.strip().replace("^", "**")
         try:
@@ -102,7 +102,7 @@ def canonicalize_equation(claim: dict) -> str | None:
         except (SympifyError, SyntaxError, TypeError, ValueError):
             pass
 
-    expression = claim.get("expression")
+    expression = _claim_field(claim, "expression")
     if not isinstance(expression, str) or "=" not in expression:
         return None
 
@@ -128,3 +128,10 @@ def canonicalize_equation(claim: dict) -> str | None:
         return None
     diff_expr: Any = lhs - rhs
     return str(simplify(diff_expr))
+
+
+def _claim_field(claim: object, key: str) -> Any:
+    getter = getattr(claim, "get", None)
+    if callable(getter):
+        return getter(key)
+    return getattr(claim, key, None)

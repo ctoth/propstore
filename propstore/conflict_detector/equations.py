@@ -11,7 +11,7 @@ from propstore.equation_comparison import canonicalize_equation
 
 from .collectors import _collect_equation_claims
 from .context import _append_context_classified_record, _claim_context
-from .models import ConflictRecord
+from .models import ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.cel_checker import ConceptInfo
@@ -42,15 +42,15 @@ def detect_equation_conflicts(
                 if canonical_a is None or canonical_b is None or canonical_a == canonical_b:
                     continue
 
-                conditions_a = sorted(claim_a.get("conditions") or [])
-                conditions_b = sorted(claim_b.get("conditions") or [])
-                value_a = claim_a.get("expression") or claim_a.get("sympy") or canonical_a
-                value_b = claim_b.get("expression") or claim_b.get("sympy") or canonical_b
+                conditions_a = sorted(claim_a.conditions)
+                conditions_b = sorted(claim_b.conditions)
+                value_a = claim_a.expression or claim_a.sympy or canonical_a
+                value_b = claim_b.expression or claim_b.sympy or canonical_b
                 if _append_context_classified_record(
                     records,
                     concept_id=dependent_concept,
-                    claim_a_id=claim_a["id"],
-                    claim_b_id=claim_b["id"],
+                    claim_a_id=claim_a.claim_id,
+                    claim_b_id=claim_b.claim_id,
                     conditions_a=conditions_a,
                     conditions_b=conditions_b,
                     value_a=value_a,
@@ -62,8 +62,8 @@ def detect_equation_conflicts(
                     continue
                 records.append(ConflictRecord(
                     concept_id=dependent_concept,
-                    claim_a_id=claim_a["id"],
-                    claim_b_id=claim_b["id"],
+                    claim_a_id=claim_a.claim_id,
+                    claim_b_id=claim_b.claim_id,
                     warning_class=_classify_conditions(
                         conditions_a,
                         conditions_b,

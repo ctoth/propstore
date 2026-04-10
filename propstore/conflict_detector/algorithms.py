@@ -12,7 +12,7 @@ from propstore.condition_classifier import classify_conditions as _classify_cond
 
 from .collectors import _collect_algorithm_claims
 from .context import _append_context_classified_record, _claim_context
-from .models import ConflictRecord
+from .models import ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.cel_checker import ConceptInfo
@@ -36,8 +36,8 @@ def detect_algorithm_conflicts(
             for j in range(i + 1, len(claims)):
                 claim_a = claims[i]
                 claim_b = claims[j]
-                body_a = claim_a.get("body", "")
-                body_b = claim_b.get("body", "")
+                body_a = claim_a.body or ""
+                body_b = claim_b.body or ""
                 if not body_a or not body_b:
                     continue
 
@@ -46,23 +46,28 @@ def detect_algorithm_conflicts(
                 try:
                     result = ast_compare(body_a, bindings_a, body_b, bindings_b)
                 except (ValueError, SyntaxError) as exc:
-                    logging.warning("ast_compare failed for %s vs %s: %s", claim_a.get("id"), claim_b.get("id"), exc)
+                    logging.warning(
+                        "ast_compare failed for %s vs %s: %s",
+                        claim_a.claim_id,
+                        claim_b.claim_id,
+                        exc,
+                    )
                     continue
                 if result.equivalent and result.tier <= 2:
                     continue
 
-                conditions_a = sorted(claim_a.get("conditions") or [])
-                conditions_b = sorted(claim_b.get("conditions") or [])
+                conditions_a = sorted(claim_a.conditions)
+                conditions_b = sorted(claim_b.conditions)
                 derivation_chain = f"similarity:{result.similarity:.3f} tier:{result.tier}"
                 if _append_context_classified_record(
                     records,
                     concept_id=concept_id,
-                    claim_a_id=claim_a["id"],
-                    claim_b_id=claim_b["id"],
+                    claim_a_id=claim_a.claim_id,
+                    claim_b_id=claim_b.claim_id,
                     conditions_a=conditions_a,
                     conditions_b=conditions_b,
-                    value_a=f"algorithm:{claim_a['id']}",
-                    value_b=f"algorithm:{claim_b['id']}",
+                    value_a=f"algorithm:{claim_a.claim_id}",
+                    value_b=f"algorithm:{claim_b.claim_id}",
                     context_a=_claim_context(claim_a),
                     context_b=_claim_context(claim_b),
                     context_hierarchy=context_hierarchy,
@@ -71,8 +76,8 @@ def detect_algorithm_conflicts(
                     continue
                 records.append(ConflictRecord(
                     concept_id=concept_id,
-                    claim_a_id=claim_a["id"],
-                    claim_b_id=claim_b["id"],
+                    claim_a_id=claim_a.claim_id,
+                    claim_b_id=claim_b.claim_id,
                     warning_class=_classify_conditions(
                         conditions_a,
                         conditions_b,
@@ -81,21 +86,18 @@ def detect_algorithm_conflicts(
                     ),
                     conditions_a=conditions_a,
                     conditions_b=conditions_b,
-                    value_a=f"algorithm:{claim_a['id']}",
-                    value_b=f"algorithm:{claim_b['id']}",
+                    value_a=f"algorithm:{claim_a.claim_id}",
+                    value_b=f"algorithm:{claim_b.claim_id}",
                     derivation_chain=derivation_chain,
                 ))
 
     return records
 
 
-def _bindings_for_algorithm_claim(claim: dict) -> dict[str, str]:
+def _bindings_for_algorithm_claim(claim: ConflictClaim) -> dict[str, str]:
     bindings: dict[str, str] = {}
-    for var in claim.get("variables", []):
-        if not isinstance(var, dict):
-            continue
-        name = var.get("name") or var.get("symbol")
-        concept = var.get("concept")
-        if name and concept:
-            bindings[name] = concept
+    for variable in claim.variables:
+        name = variable.name or variable.symbol
+        if name and variable.concept_id:
+            bindings[name] = variable.concept_id
     return bindings
