@@ -94,7 +94,13 @@ def _format_dims_col(dimensions: dict[str, int] | None, is_dimensionless: bool) 
 @click.argument("name")
 @click.pass_obj
 def show(obj: dict, name: str) -> None:
-    """Show full form definition YAML, plus algebra if sidecar exists."""
+    """Show a form definition: raw YAML, unit conversions, and sidecar-derived algebra.
+
+    Prints the form YAML, then a list of any declared unit conversions
+    (multiplicative, affine, or logarithmic), and — if a sidecar has been
+    built — appends the form algebra entries (decompositions derived from
+    concept parameterizations, and forms that use this one).
+    """
     repo: Repository = obj["repo"]
     forms_tree = repo.tree() / "forms"
     path = forms_tree / f"{name}.yaml"
