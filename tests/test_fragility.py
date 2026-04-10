@@ -696,7 +696,11 @@ class TestEpistemicWiring:
         mock_bound = MagicMock()
         mock_atms = MagicMock()
         mock_bound.atms_engine.return_value = mock_atms
-        mock_atms._all_parameterizations = ["p1", "p2"]
+        mock_p1 = MagicMock()
+        mock_p1.conditions_cel = "x == 1"
+        mock_p2 = MagicMock()
+        mock_p2.conditions_cel = "y == 2"
+        mock_atms._all_parameterizations = [mock_p1, mock_p2]
         mock_atms.concept_stability.return_value = {
             "witnesses": [{"idx": 0}, {"idx": 1}],
             "consistent_future_count": 5,
@@ -974,6 +978,8 @@ class TestCostTiers:
         # By fragility: expensive wins (0.9 > 0.6)
         # By ROI: cheap wins (0.6 > 0.3)
         assert expensive.fragility > cheap.fragility
+        assert cheap.epistemic_roi is not None
+        assert expensive.epistemic_roi is not None
         assert cheap.epistemic_roi > expensive.epistemic_roi
 
 
