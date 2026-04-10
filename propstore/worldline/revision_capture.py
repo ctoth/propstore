@@ -2,74 +2,77 @@ from __future__ import annotations
 
 from typing import Any
 
+from propstore.revision.snapshot_types import epistemic_state_snapshot
+from propstore.worldline.revision_types import (
+    RevisionAtomRef,
+    WorldlineRevisionResult,
+    WorldlineRevisionState,
+)
 
-def capture_revision_state(bound: Any, revision_query: Any) -> dict[str, Any]:
-    from propstore.revision.iterated import epistemic_state_payload
-
+def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevisionState:
     operation = revision_query.operation
     if operation == "expand":
-        result = bound.expand(revision_query.atom)
-        return {
-            "operation": operation,
-            "input_atom_id": _query_atom_id(revision_query.atom),
-            "target_atom_ids": [],
-            "result": _revision_result_payload(result),
-        }
+        result = bound.expand(_revision_atom_input(revision_query.atom))
+        return WorldlineRevisionState(
+            operation=operation,
+            input_atom_id=_query_atom_id(revision_query.atom),
+            target_atom_ids=(),
+            result=_revision_result_payload(bound, result),
+        )
     if operation == "contract":
         result = bound.contract(revision_query.target)
-        return {
-            "operation": operation,
-            "input_atom_id": None,
-            "target_atom_ids": _query_target_atom_ids(revision_query.target),
-            "result": _revision_result_payload(result),
-        }
+        return WorldlineRevisionState(
+            operation=operation,
+            input_atom_id=None,
+            target_atom_ids=tuple(_query_target_atom_ids(revision_query.target)),
+            result=_revision_result_payload(bound, result),
+        )
     if operation == "revise":
-        result = bound.revise(revision_query.atom, conflicts=revision_query.conflicts)
-        return {
-            "operation": operation,
-            "input_atom_id": _query_atom_id(revision_query.atom),
-            "target_atom_ids": _query_conflict_target_atom_ids(revision_query),
-            "result": _revision_result_payload(result),
-        }
+        result = bound.revise(
+            _revision_atom_input(revision_query.atom),
+            conflicts=revision_query.conflicts.to_revision_input(),
+        )
+        return WorldlineRevisionState(
+            operation=operation,
+            input_atom_id=_query_atom_id(revision_query.atom),
+            target_atom_ids=tuple(_query_conflict_target_atom_ids(revision_query)),
+            result=_revision_result_payload(bound, result),
+        )
     if operation == "iterated_revise":
         result, state = bound.iterated_revise(
-            revision_query.atom,
-            conflicts=revision_query.conflicts,
+            _revision_atom_input(revision_query.atom),
+            conflicts=revision_query.conflicts.to_revision_input(),
             operator=revision_query.operator or "restrained",
         )
-        return {
-            "operation": operation,
-            "input_atom_id": _query_atom_id(revision_query.atom),
-            "target_atom_ids": _query_conflict_target_atom_ids(revision_query),
-            "result": _revision_result_payload(result),
-            "state": epistemic_state_payload(state),
-        }
+        return WorldlineRevisionState(
+            operation=operation,
+            input_atom_id=_query_atom_id(revision_query.atom),
+            target_atom_ids=tuple(_query_conflict_target_atom_ids(revision_query)),
+            result=_revision_result_payload(bound, result),
+            state=epistemic_state_snapshot(state),
+        )
     raise ValueError(f"Unknown revision operation: {operation}")
 
 
-def _revision_result_payload(result: Any) -> dict[str, Any]:
-    return {
-        "accepted_atom_ids": list(result.accepted_atom_ids),
-        "rejected_atom_ids": list(result.rejected_atom_ids),
-        "incision_set": list(result.incision_set),
-        "explanation": dict(result.explanation),
-    }
+def _revision_result_payload(bound: Any, result: Any) -> WorldlineRevisionResult:
+    return WorldlineRevisionResult(
+        accepted_atom_ids=tuple(result.accepted_atom_ids),
+        rejected_atom_ids=tuple(result.rejected_atom_ids),
+        incision_set=tuple(result.incision_set),
+        explanation=bound.revision_explain(result),
+    )
 
 
-def _query_atom_id(atom: dict[str, Any] | None) -> str | None:
-    if not atom:
+def _revision_atom_input(atom: RevisionAtomRef | None) -> dict[str, Any] | None:
+    if atom is None:
         return None
-    kind = str(atom.get("kind") or "claim")
-    if kind == "claim":
-        claim_id = atom.get("id") or atom.get("claim_id")
-        if claim_id:
-            return f"claim:{claim_id}"
-    if kind == "assumption":
-        assumption_id = atom.get("assumption_id") or atom.get("id")
-        if assumption_id:
-            return f"assumption:{assumption_id}"
-    atom_id = atom.get("atom_id")
-    return str(atom_id) if atom_id else None
+    return atom.to_revision_input()
+
+
+def _query_atom_id(atom: RevisionAtomRef | None) -> str | None:
+    if atom is None:
+        return None
+    return atom.resolved_atom_id()
 
 
 def _query_target_atom_ids(target: Any) -> list[str]:
@@ -86,7 +89,7 @@ def _query_conflict_target_atom_ids(revision_query: Any) -> list[str]:
     input_atom_id = _query_atom_id(revision_query.atom)
     if input_atom_id is None:
         return []
-    targets = revision_query.conflicts.get(input_atom_id, ())
+    targets = revision_query.conflicts.targets_for(input_atom_id)
     return [
         target if ":" in target else f"claim:{target}"
         for target in targets

@@ -533,19 +533,19 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
 
     if wl.results.revision:
         revision = wl.results.revision
-        click.echo(f"Revision result: {revision.get('operation', '?')}")
-        if revision.get("input_atom_id"):
-            click.echo(f"Input atom: {revision['input_atom_id']}")
-        target_atom_ids = revision.get("target_atom_ids") or []
+        click.echo(f"Revision result: {revision.operation or '?'}")
+        if revision.input_atom_id:
+            click.echo(f"Input atom: {revision.input_atom_id}")
+        target_atom_ids = revision.target_atom_ids
         if target_atom_ids:
             click.echo(f"Target atoms: {', '.join(target_atom_ids)}")
-        if revision.get("error"):
-            click.echo(f"Revision error: {revision['error']}")
-        result_payload = revision.get("result") or {}
-        rejected = result_payload.get("rejected_atom_ids") or []
+        if revision.error:
+            click.echo(f"Revision error: {revision.error}")
+        result_payload = revision.result
+        rejected = () if result_payload is None else result_payload.rejected_atom_ids
         if rejected:
             click.echo(f"Rejected atoms: {', '.join(rejected)}")
-        accepted = result_payload.get("accepted_atom_ids") or []
+        accepted = () if result_payload is None else result_payload.accepted_atom_ids
         if accepted:
             click.echo(f"Accepted atoms: {', '.join(accepted)}")
 

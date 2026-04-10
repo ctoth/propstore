@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
-from typing import Any
 
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
@@ -12,6 +11,7 @@ from propstore.worldline.result_types import (
     WorldlineStep,
     WorldlineTargetValue,
 )
+from propstore.worldline.revision_types import WorldlineRevisionState
 
 
 def compute_worldline_content_hash(
@@ -21,7 +21,7 @@ def compute_worldline_content_hash(
     dependencies: WorldlineDependencies,
     sensitivity: WorldlineSensitivityReport | None,
     argumentation: WorldlineArgumentationState | None,
-    revision: dict[str, Any] | None,
+    revision: WorldlineRevisionState | None,
 ) -> str:
     """Compute a deterministic fingerprint for materialized worldline content."""
     payload = {
@@ -33,7 +33,7 @@ def compute_worldline_content_hash(
         "dependencies": dependencies.to_dict(),
         "sensitivity": None if sensitivity is None else sensitivity.to_dict(),
         "argumentation": None if argumentation is None else argumentation.to_dict(),
-        "revision": revision,
+        "revision": None if revision is None else revision.to_dict(),
     }
     encoded = json.dumps(
         payload,

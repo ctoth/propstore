@@ -24,7 +24,8 @@ def test_worldline_definition_roundtrip_preserves_revision_query_block() -> None
 
     assert definition.revision is not None
     assert definition.revision.operation == "revise"
-    assert definition.revision.atom == {"kind": "claim", "id": "synthetic", "value": 9.0}
+    assert definition.revision.atom is not None
+    assert definition.revision.atom.to_dict() == {"kind": "claim", "id": "synthetic", "value": 9.0}
     assert definition.to_dict()["revision"]["conflicts"] == {"claim:synthetic": ["legacy"]}
 
 
@@ -45,50 +46,72 @@ def test_worldline_result_roundtrip_preserves_revision_payload() -> None:
                 "accepted_atom_ids": ["claim:synthetic"],
                 "rejected_atom_ids": ["claim:legacy"],
                 "incision_set": ["assumption:shared_weak"],
-                "explanation": {"claim:legacy": {"reason": "support_lost"}},
+                "explanation": {
+                    "accepted_atom_ids": ["claim:synthetic"],
+                    "rejected_atom_ids": ["claim:legacy"],
+                    "incision_set": ["assumption:shared_weak"],
+                    "atoms": {
+                        "claim:legacy": {
+                            "status": "rejected",
+                            "reason": "support_lost",
+                        }
+                    },
+                },
             },
         },
     })
 
     assert result is not None
     assert result.revision is not None
-    assert result.revision["operation"] == "revise"
+    assert result.revision.operation == "revise"
     assert result.to_dict()["revision"]["result"]["rejected_atom_ids"] == ["claim:legacy"]
 
 
 def test_compute_worldline_content_hash_changes_when_revision_payload_changes() -> None:
     from propstore.worldline import compute_worldline_content_hash
+    from propstore.worldline.result_types import WorldlineDependencies, WorldlineTargetValue
+    from propstore.worldline.revision_types import WorldlineRevisionResult, WorldlineRevisionState
 
     left = compute_worldline_content_hash(
-        values={"target": {"status": "determined", "value": 1.0}},
-        steps=[],
-        dependencies={"claims": [], "stances": [], "contexts": []},
+        values={"target": WorldlineTargetValue(status="determined", value=1.0)},
+        steps=(),
+        dependencies=WorldlineDependencies(),
         sensitivity=None,
         argumentation=None,
-        revision={
-            "operation": "revise",
-            "result": {"accepted_atom_ids": ["claim:new"]},
-        },
+        revision=WorldlineRevisionState(
+            operation="revise",
+            result=WorldlineRevisionResult(accepted_atom_ids=("claim:new",)),
+        ),
     )
     right = compute_worldline_content_hash(
-        values={"target": {"status": "determined", "value": 1.0}},
-        steps=[],
-        dependencies={"claims": [], "stances": [], "contexts": []},
+        values={"target": WorldlineTargetValue(status="determined", value=1.0)},
+        steps=(),
+        dependencies=WorldlineDependencies(),
         sensitivity=None,
         argumentation=None,
-        revision={
-            "operation": "revise",
-            "result": {"accepted_atom_ids": ["claim:other"]},
-        },
+        revision=WorldlineRevisionState(
+            operation="revise",
+            result=WorldlineRevisionResult(accepted_atom_ids=("claim:other",)),
+        ),
     )
 
     assert left != right
 
 
 class _RevisionBound:
-    def __init__(self, *, one_shot_result=None, iterated_result=None, merge_error: Exception | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        one_shot_result=None,
+        one_shot_explanation=None,
+        iterated_result=None,
+        iterated_explanation=None,
+        merge_error: Exception | None = None,
+    ) -> None:
         self.one_shot_result = one_shot_result
+        self.one_shot_explanation = one_shot_explanation
         self.iterated_result = iterated_result
+        self.iterated_explanation = iterated_explanation
         self.merge_error = merge_error
         self.calls: list[tuple[str, object, object, object]] = []
 
@@ -102,6 +125,13 @@ class _RevisionBound:
             raise self.merge_error
         return self.iterated_result
 
+    def revision_explain(self, result):
+        if result is self.one_shot_result:
+            return self.one_shot_explanation
+        if self.iterated_result is not None and result is self.iterated_result[0]:
+            return self.iterated_explanation
+        raise AssertionError("unexpected revision result")
+
 
 class _RevisionWorld:
     def __init__(self, bound: _RevisionBound) -> None:
@@ -112,7 +142,9 @@ class _RevisionWorld:
 
 
 def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
+    from propstore.revision.explain import build_revision_explanation
     from propstore.worldline import WorldlineDefinition, run_worldline
+    from propstore.worldline.result_types import WorldlineTargetValue
 
     base, entrenchment = _base_with_shared_support()
     one_shot_result = revise(
@@ -121,12 +153,15 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
         entrenchment=entrenchment,
         conflicts={"claim:synthetic": ("claim:legacy",)},
     )
-    bound = _RevisionBound(one_shot_result=one_shot_result)
+    bound = _RevisionBound(
+        one_shot_result=one_shot_result,
+        one_shot_explanation=build_revision_explanation(one_shot_result, entrenchment=entrenchment),
+    )
 
     monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
     monkeypatch.setattr(
         "propstore.worldline.runner._resolve_target",
-        lambda *args, **kwargs: {"status": "determined", "value": 1.0},
+        lambda *args, **kwargs: WorldlineTargetValue(status="determined", value=1.0),
     )
 
     result = run_worldline(
@@ -143,21 +178,24 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     )
 
     assert result.revision is not None
-    assert result.revision["operation"] == "revise"
-    assert result.revision["result"]["accepted_atom_ids"] == list(one_shot_result.accepted_atom_ids)
-    assert result.revision["result"]["rejected_atom_ids"] == list(one_shot_result.rejected_atom_ids)
+    assert result.revision.operation == "revise"
+    assert result.revision.result is not None
+    assert result.revision.result.accepted_atom_ids == one_shot_result.accepted_atom_ids
+    assert result.revision.result.rejected_atom_ids == one_shot_result.rejected_atom_ids
     assert bound.calls == [
         (
             "revise",
             {"kind": "claim", "id": "synthetic", "value": 9.0},
-            {"claim:synthetic": ["claim:legacy"]},
+            {"claim:synthetic": ("claim:legacy",)},
             None,
         )
     ]
 
 
 def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> None:
+    from propstore.revision.explain import build_revision_explanation
     from propstore.worldline import WorldlineDefinition, run_worldline
+    from propstore.worldline.result_types import WorldlineTargetValue
 
     base, entrenchment, _ = _history_sensitive_base()
     state = make_epistemic_state(base, entrenchment)
@@ -175,12 +213,15 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
             ranking={"claim:new": 0, "claim:left_dependent": 1},
         ),
     )
-    bound = _RevisionBound(iterated_result=iterated_result)
+    bound = _RevisionBound(
+        iterated_result=iterated_result,
+        iterated_explanation=build_revision_explanation(iterated_result[0], entrenchment=entrenchment),
+    )
 
     monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
     monkeypatch.setattr(
         "propstore.worldline.runner._resolve_target",
-        lambda *args, **kwargs: {"status": "determined", "value": 1.0},
+        lambda *args, **kwargs: WorldlineTargetValue(status="determined", value=1.0),
     )
 
     result = run_worldline(
@@ -198,13 +239,14 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     )
 
     assert result.revision is not None
-    assert result.revision["operation"] == "iterated_revise"
-    assert result.revision["state"] == epistemic_state_payload(iterated_result[1])
+    assert result.revision.operation == "iterated_revise"
+    assert result.revision.state is not None
+    assert result.revision.state.to_dict() == epistemic_state_payload(iterated_result[1])
     assert bound.calls == [
         (
             "iterated_revise",
             {"kind": "claim", "id": "new", "value": 9.0},
-            {"claim:new": ["claim:legacy"]},
+            {"claim:new": ("claim:legacy",)},
             "restrained",
         )
     ]
@@ -212,6 +254,7 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
 
 def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> None:
     from propstore.worldline import WorldlineDefinition, run_worldline
+    from propstore.worldline.result_types import WorldlineTargetValue
 
     base, entrenchment, _ = _history_sensitive_base()
     merge_state = make_epistemic_state(
@@ -229,7 +272,7 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
     monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
     monkeypatch.setattr(
         "propstore.worldline.runner._resolve_target",
-        lambda *args, **kwargs: {"status": "determined", "value": 1.0},
+        lambda *args, **kwargs: WorldlineTargetValue(status="determined", value=1.0),
     )
 
     result = run_worldline(
@@ -247,4 +290,5 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
     )
 
     assert result.revision is not None
-    assert "merge point" in result.revision["error"]
+    assert result.revision.error is not None
+    assert "merge point" in result.revision.error
