@@ -15,7 +15,7 @@ from itertools import product
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import yaml
+import msgspec
 from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, dims_of_expr, DimensionalError
 
@@ -43,8 +43,6 @@ from propstore.core.concepts import (
 if TYPE_CHECKING:
     from propstore.knowledge_path import KnowledgePath
 
-from propstore.loaded import LoadedEntry
-
 
 @dataclass
 class ValidationResult:
@@ -65,31 +63,15 @@ def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict]]:
     results: list[tuple[str, Path, dict]] = []
     for entry in sorted(directory.iterdir()):
         if entry.is_file() and entry.suffix == ".yaml":
-            with open(entry, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
+            raw = entry.read_bytes()
+            if raw.strip():
+                decoded = msgspec.yaml.decode(raw)
+                if not isinstance(decoded, dict):
+                    raise ValueError(f"{entry}: expected a YAML mapping")
+                data = decoded
+            else:
+                data = {}
             results.append((entry.stem, entry, data if data else {}))
-    return results
-
-
-def load_yaml_entries(root: KnowledgePath | None) -> list[LoadedEntry]:
-    """Load all YAML entries from a knowledge-tree subtree."""
-    if root is None:
-        return []
-    if not root.is_dir():
-        return []
-    results: list[LoadedEntry] = []
-    knowledge_root = root.parent if root.name else root
-    for entry in root.iterdir():
-        if entry.is_file() and entry.suffix == ".yaml":
-            data = yaml.safe_load(entry.read_bytes())
-            results.append(
-                LoadedEntry(
-                    filename=entry.stem,
-                    source_path=entry,
-                    knowledge_root=knowledge_root,
-                    data=data if data else {},
-                )
-            )
     return results
 
 

@@ -1,8 +1,6 @@
 """Canonical concept dataclasses and boundary conversions."""
 
 from __future__ import annotations
-
-import copy
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -25,6 +23,28 @@ def _string_list(value: object) -> tuple[str, ...]:
     if not isinstance(value, Sequence) or isinstance(value, str):
         return ()
     return tuple(item for item in value if isinstance(item, str) and item)
+
+
+def _yaml_builtin(value: object) -> object:
+    if isinstance(value, msgspec.Struct):
+        return _yaml_builtin(msgspec.to_builtins(value))
+    if isinstance(value, Mapping):
+        return {
+            key: _yaml_builtin(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, tuple):
+        return [_yaml_builtin(item) for item in value]
+    if isinstance(value, list):
+        return [_yaml_builtin(item) for item in value]
+    return value
+
+
+def _mapping_to_builtin_dict(value: object) -> dict[str, Any] | None:
+    builtins_value = _yaml_builtin(value)
+    if not isinstance(builtins_value, dict):
+        return None
+    return builtins_value
 
 
 class ConceptLogicalIdDocument(DocumentStruct):
@@ -68,13 +88,13 @@ class ParameterizationRelationshipDocument(DocumentStruct):
 
 
 class ConceptDocument(DocumentStruct):
-    artifact_id: str
-    logical_ids: tuple[ConceptLogicalIdDocument, ...]
-    version_id: str
     canonical_name: str
     status: str
     definition: str
     form: str
+    artifact_id: str | None = None
+    logical_ids: tuple[ConceptLogicalIdDocument, ...] = ()
+    version_id: str | None = None
     aliases: tuple[ConceptAliasDocument, ...] = ()
     created_date: str | None = None
     definition_source: str | None = None
@@ -94,6 +114,7 @@ class ConceptIdScanDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=
     id: str | None = None
     artifact_id: str | None = None
     logical_ids: tuple[ConceptLogicalIdDocument, ...] = ()
+
 
 @dataclass(frozen=True)
 class ConceptAlias:
@@ -208,9 +229,7 @@ class ConceptRecord:
         return tuple(keys)
 
     def to_payload(self) -> dict[str, Any]:
-        form_parameters = None
-        if self.form_parameters is not None:
-            form_parameters = msgspec.to_builtins(self.form_parameters)
+        form_parameters = _mapping_to_builtin_dict(self.form_parameters)
         payload: dict[str, Any] = {
             "artifact_id": str(self.artifact_id),
             "canonical_name": self.canonical_name,
@@ -224,7 +243,7 @@ class ConceptRecord:
             payload["domain"] = self.domain
         if self.definition_source is not None:
             payload["definition_source"] = self.definition_source
-        if form_parameters:
+        if form_parameters is not None:
             payload["form_parameters"] = form_parameters
         if self.range is not None:
             payload["range"] = [self.range[0], self.range[1]]
@@ -276,7 +295,7 @@ def normalize_concept_payload(data: Mapping[str, Any]) -> dict[str, Any]:
     normalized = dict(data)
 
     local_seed = str(
-        normalized.get("id")
+        normalized.pop("id", None)
         or normalized.get("canonical_name")
         or normalized.get("artifact_id")
         or "concept"
@@ -438,7 +457,7 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
             parsed_range = (float(start), float(end))
 
     form_parameters = normalized.get("form_parameters")
-    parsed_form_parameters = copy.deepcopy(form_parameters) if isinstance(form_parameters, Mapping) else None
+    parsed_form_parameters = _mapping_to_builtin_dict(form_parameters)
 
     replaced_by = normalized.get("replaced_by")
     parsed_replaced_by = (
@@ -473,67 +492,92 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
     )
 
 
-def parse_concept_record_document(data: ConceptDocument) -> ConceptRecord:
-    form_parameters = None
-    if data.form_parameters is not None:
-        form_parameters = {
-            key: list(value) if isinstance(value, tuple) else value
-            for key, value in msgspec.to_builtins(data.form_parameters).items()
-            if value is not None
-        }
-
-    return ConceptRecord(
-        artifact_id=to_concept_id(data.artifact_id),
-        canonical_name=data.canonical_name,
-        status=data.status,
-        definition=data.definition,
-        form=data.form,
-        logical_ids=tuple(
-            LogicalId(namespace=entry.namespace, value=entry.value)
+def concept_document_to_payload(data: ConceptDocument) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "canonical_name": data.canonical_name,
+        "status": data.status,
+        "definition": data.definition,
+        "form": data.form,
+    }
+    if data.artifact_id is not None:
+        payload["artifact_id"] = data.artifact_id
+    if data.logical_ids:
+        payload["logical_ids"] = [
+            {"namespace": entry.namespace, "value": entry.value}
             for entry in data.logical_ids
-        ),
-        version_id=data.version_id,
-        domain=data.domain,
-        definition_source=data.definition_source,
-        form_parameters=form_parameters,
-        range=None if data.range is None else (float(data.range[0]), float(data.range[1])),
-        aliases=tuple(
-            ConceptAlias(name=alias.name, source=alias.source, note=alias.note)
+        ]
+    if data.version_id is not None:
+        payload["version_id"] = data.version_id
+    if data.aliases:
+        payload["aliases"] = [
+            {
+                key: value
+                for key, value in {
+                    "name": alias.name,
+                    "source": alias.source,
+                    "note": alias.note,
+                }.items()
+                if value is not None
+            }
             for alias in data.aliases
-        ),
-        relationships=tuple(
-            ConceptRelationship(
-                relationship_type=relationship.type,
-                target=to_concept_id(relationship.target),
-                conditions=tuple(relationship.conditions),
-                note=relationship.note,
-            )
-            for relationship in data.relationships
-        ),
-        parameterizations=tuple(
-            ParameterizationSpec(
-                inputs=tuple(to_concept_id(value) for value in parameterization.inputs),
-                formula=parameterization.formula,
-                sympy=parameterization.sympy,
-                exactness=parameterization.exactness,
-                conditions=tuple(parameterization.conditions),
-                source=parameterization.source,
-                bidirectional=parameterization.bidirectional,
-                canonical_claim=(
-                    None
-                    if parameterization.canonical_claim is None
-                    else to_claim_id(parameterization.canonical_claim)
-                ),
-            )
+        ]
+    if data.created_date is not None:
+        payload["created_date"] = data.created_date
+    if data.definition_source is not None:
+        payload["definition_source"] = data.definition_source
+    if data.domain is not None:
+        payload["domain"] = data.domain
+    form_parameters = _mapping_to_builtin_dict(data.form_parameters)
+    if form_parameters is not None:
+        payload["form_parameters"] = form_parameters
+    if data.last_modified is not None:
+        payload["last_modified"] = data.last_modified
+    if data.notes is not None:
+        payload["notes"] = data.notes
+    if data.parameterization_relationships:
+        payload["parameterization_relationships"] = [
+            {
+                key: value
+                for key, value in {
+                    "inputs": list(parameterization.inputs),
+                    "formula": parameterization.formula,
+                    "exactness": parameterization.exactness,
+                    "source": parameterization.source,
+                    "bidirectional": parameterization.bidirectional,
+                    "sympy": parameterization.sympy,
+                    "conditions": list(parameterization.conditions),
+                    "note": parameterization.note,
+                    "canonical_claim": parameterization.canonical_claim,
+                    "fit_statistics": parameterization.fit_statistics,
+                }.items()
+                if value not in (None, [])
+            }
             for parameterization in data.parameterization_relationships
-        ),
-        replaced_by=(
-            None if data.replaced_by is None else to_concept_id(data.replaced_by)
-        ),
-        created_date=data.created_date,
-        last_modified=data.last_modified,
-        notes=data.notes,
-    )
+        ]
+    if data.range is not None:
+        payload["range"] = [data.range[0], data.range[1]]
+    if data.relationships:
+        payload["relationships"] = [
+            {
+                key: value
+                for key, value in {
+                    "type": relationship.type,
+                    "target": relationship.target,
+                    "source": relationship.source,
+                    "conditions": list(relationship.conditions),
+                    "note": relationship.note,
+                }.items()
+                if value not in (None, [])
+            }
+            for relationship in data.relationships
+        ]
+    if data.replaced_by is not None:
+        payload["replaced_by"] = data.replaced_by
+    return payload
+
+
+def parse_concept_record_document(data: ConceptDocument) -> ConceptRecord:
+    return parse_concept_record(concept_document_to_payload(data))
 
 
 def concept_reference_keys(
@@ -612,15 +656,34 @@ def rewrite_concept_payload_refs(
 def normalize_loaded_concepts(
     concepts: Sequence[LoadedDocument[ConceptDocument]],
 ) -> list[LoadedConcept]:
-    return [
-        LoadedConcept(
-            filename=concept.filename,
-            source_path=concept.source_path,
-            knowledge_root=concept.knowledge_root,
-            record=parse_concept_record_document(concept.document),
+    raw_to_artifact: dict[str, str] = {}
+    pending: list[tuple[LoadedDocument[ConceptDocument], dict[str, Any], str | None]] = []
+
+    for concept in concepts:
+        payload = concept_document_to_payload(concept.document)
+        raw_id = payload.get("id") if isinstance(payload.get("id"), str) else None
+        normalized = normalize_concept_payload(payload)
+        artifact_id = normalized.get("artifact_id")
+        if raw_id is not None and isinstance(artifact_id, str):
+            raw_to_artifact[raw_id] = artifact_id
+        pending.append((concept, normalized, raw_id))
+
+    normalized_concepts: list[LoadedConcept] = []
+    for concept, normalized, raw_id in pending:
+        rewritten = rewrite_concept_payload_refs(
+            normalized,
+            concept_ref_map=raw_to_artifact,
         )
-        for concept in concepts
-    ]
+        normalized_concepts.append(
+            LoadedConcept(
+                filename=concept.filename,
+                source_path=concept.source_path,
+                knowledge_root=concept.knowledge_root,
+                record=parse_concept_record(rewritten),
+                source_local_id=raw_id,
+            )
+        )
+    return normalized_concepts
 
 
 def concept_payload_registry(
