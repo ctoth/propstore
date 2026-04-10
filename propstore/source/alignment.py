@@ -14,7 +14,8 @@ from propstore.repo.merge_framework import PartialArgumentationFramework
 from propstore.repo.paf_queries import credulously_accepted_arguments, skeptically_accepted_arguments
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 
-from .common import load_yaml_from_branch
+from .common import load_document_from_branch, load_source_document
+from .document_models import SourceConceptsDocument
 
 
 CONCEPT_PROPOSAL_BRANCH = "proposal/concepts"
@@ -131,20 +132,18 @@ def build_alignment_artifact(
 def align_sources(repo: Repository, source_branches: list[str]) -> dict[str, Any]:
     proposals: list[dict[str, Any]] = []
     for branch in source_branches:
-        concepts_doc = load_yaml_from_branch(repo, branch, "concepts.yaml") or {}
-        source_doc = load_yaml_from_branch(repo, branch, "source.yaml") or {}
+        concepts_doc = load_document_from_branch(repo, branch, "concepts.yaml", SourceConceptsDocument)
         branch_source_name = branch.split("/", 1)[1] if "/" in branch else branch
-        source_uri = str(source_doc.get("id") or source_tag_uri(branch_source_name, authority=repo.uri_authority))
-        for entry in concepts_doc.get("concepts", []) or []:
-            if not isinstance(entry, dict):
-                continue
+        source_doc = load_source_document(repo, branch_source_name)
+        source_uri = str(source_doc.id or source_tag_uri(branch_source_name, authority=repo.uri_authority))
+        for entry in (() if concepts_doc is None else concepts_doc.concepts):
             proposals.append(
                 {
                     "source": source_uri,
-                    "local_handle": str(entry.get("local_name") or entry.get("proposed_name") or "concept"),
-                    "proposed_name": str(entry.get("proposed_name") or entry.get("local_name") or "concept"),
-                    "definition": str(entry.get("definition") or ""),
-                    "form": str(entry.get("form") or "structural"),
+                    "local_handle": str(entry.local_name or entry.proposed_name or "concept"),
+                    "proposed_name": str(entry.proposed_name or entry.local_name or "concept"),
+                    "definition": str(entry.definition or ""),
+                    "form": str(entry.form or "structural"),
                 }
             )
     artifact = build_alignment_artifact(proposals, authority=repo.uri_authority)
@@ -162,9 +161,13 @@ def align_sources(repo: Repository, source_branches: list[str]) -> dict[str, Any
 
 def load_alignment_artifact(repo: Repository, cluster_id: str) -> tuple[str, dict[str, Any]]:
     slug = cluster_id.split(":", 1)[1] if ":" in cluster_id else cluster_id
-    artifact = load_yaml_from_branch(repo, CONCEPT_PROPOSAL_BRANCH, f"merge/concepts/{slug}.yaml")
-    if artifact is None:
+    tip = branch_head(repo.git, CONCEPT_PROPOSAL_BRANCH)
+    if tip is None:
         raise FileNotFoundError(cluster_id)
+    try:
+        artifact = yaml.safe_load(repo.git.read_file(f"merge/concepts/{slug}.yaml", commit=tip)) or {}
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(cluster_id) from exc
     return slug, artifact
 
 

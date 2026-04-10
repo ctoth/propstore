@@ -2,33 +2,36 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from propstore.cli.repository import Repository
+from propstore.document_schema import convert_document_value
+from propstore.source.common import load_source_metadata, normalize_source_slug
+from propstore.source.document_models import SourceDocument
 
 
-def _source_bindings(source_doc: dict[str, Any]) -> dict[str, Any]:
-    bindings: dict[str, Any] = {}
-    kind = source_doc.get("kind")
-    if isinstance(kind, str) and kind:
-        bindings["source_kind"] = kind
+def _source_bindings(
+    source_doc: SourceDocument,
+    metadata: dict[str, object] | None = None,
+) -> dict[str, str | int | float | bool]:
+    bindings: dict[str, str | int | float | bool] = {}
+    if source_doc.kind:
+        bindings["source_kind"] = source_doc.kind
 
-    metadata = source_doc.get("metadata")
+    for key, value in source_doc.metadata.to_payload().items():
+        if isinstance(value, (str, int, float, bool)):
+            bindings[key] = value
+
     if isinstance(metadata, dict):
         for key, value in metadata.items():
             if isinstance(value, (str, int, float, bool)):
                 bindings[key] = value
 
-    origin = source_doc.get("origin")
-    if isinstance(origin, dict):
-        origin_type = origin.get("type")
-        if isinstance(origin_type, str) and origin_type:
-            bindings["origin_type"] = origin_type
+    if source_doc.origin.type:
+        bindings["origin_type"] = source_doc.origin.type
     return bindings
 
 
-def derive_source_trust(repo: Repository, source_doc: dict[str, Any]) -> dict[str, Any]:
-    updated = dict(source_doc)
+def derive_source_trust(repo: Repository, source_doc: SourceDocument) -> SourceDocument:
+    updated = source_doc.to_payload()
     trust = dict(updated.get("trust") or {})
     quality = dict(trust.get("quality") or {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5})
     derived_from = list(trust.get("derived_from") or [])
@@ -39,15 +42,17 @@ def derive_source_trust(repo: Repository, source_doc: dict[str, Any]) -> dict[st
         trust["quality"] = quality
         trust["derived_from"] = derived_from
         updated["trust"] = trust
-        return updated
+        return convert_document_value(updated, SourceDocument, source="source trust calibration")
 
     from propstore.world import WorldModel
 
     wm = WorldModel(repo)
     try:
+        source_name = normalize_source_slug(source_doc.metadata.name)
+        source_metadata = load_source_metadata(repo, source_name)
         bindings = {
             key: value
-            for key, value in _source_bindings(updated).items()
+            for key, value in _source_bindings(source_doc, source_metadata).items()
             if wm.resolve_concept(key) is not None
         }
         concept_id = wm.resolve_concept("source_trust_base_rate") or wm.resolve_concept("base_replication_rate")
@@ -56,7 +61,7 @@ def derive_source_trust(repo: Repository, source_doc: dict[str, Any]) -> dict[st
             trust["quality"] = quality
             trust["derived_from"] = derived_from
             updated["trust"] = trust
-            return updated
+            return convert_document_value(updated, SourceDocument, source="source trust calibration")
 
         result = wm.chain_query(concept_id, **bindings)
         resolved = result.result
@@ -70,10 +75,10 @@ def derive_source_trust(repo: Repository, source_doc: dict[str, Any]) -> dict[st
             claims = list(getattr(resolved, "claims", []) or [])
             if claims:
                 claim = claims[0]
-                value = claim.get("value")
+                value = getattr(claim, "value", None)
                 if isinstance(value, (int, float)):
                     resolved_prior = float(value)
-                    claim_id = claim.get("artifact_id") or claim.get("id")
+                    claim_id = getattr(claim, "artifact_id", None) or getattr(claim, "id", None)
                     if isinstance(claim_id, str) and claim_id:
                         resolved_from = [claim_id]
 
@@ -87,4 +92,4 @@ def derive_source_trust(repo: Repository, source_doc: dict[str, Any]) -> dict[st
     trust["quality"] = quality
     trust["derived_from"] = derived_from
     updated["trust"] = trust
-    return updated
+    return convert_document_value(updated, SourceDocument, source="source trust calibration")

@@ -3,13 +3,29 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TypeVar
 
 import yaml
 
 from propstore.cli.repository import Repository
+from propstore.document_schema import decode_document_bytes
 from propstore.repo.branch import branch_head, create_branch
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
+
+from .document_models import (
+    SourceClaimsDocument,
+    SourceConceptsDocument,
+    SourceDocument,
+    SourceFinalizeReportDocument,
+    SourceMetadataDocument,
+    SourceOriginDocument,
+    SourceJustificationsDocument,
+    SourceStancesDocument,
+    SourceTrustDocument,
+    SourceTrustQualityDocument,
+)
+
+TDocument = TypeVar("TDocument")
 
 
 def utc_now() -> str:
@@ -38,63 +54,60 @@ def initial_source_document(
     origin_type: str,
     origin_value: str,
     content_file: Path | None = None,
-) -> dict[str, Any]:
-    return {
-        "id": source_tag_uri(repo, name),
-        "kind": kind,
-        "origin": {
-            "type": origin_type,
-            "value": origin_value,
-            "retrieved": utc_now(),
-            "content_ref": ni_uri_for_file(content_file) if content_file is not None else None,
-        },
-        "trust": {
-            "prior_base_rate": 0.5,
-            "quality": {
-                "b": 0.0,
-                "d": 0.0,
-                "u": 1.0,
-                "a": 0.5,
-            },
-            "derived_from": [],
-        },
-        "metadata": {
-            "name": normalize_source_slug(name),
-        },
-    }
+) -> SourceDocument:
+    return SourceDocument(
+        id=source_tag_uri(repo, name),
+        kind=kind,
+        origin=SourceOriginDocument(
+            type=origin_type,
+            value=origin_value,
+            retrieved=utc_now(),
+            content_ref=ni_uri_for_file(content_file) if content_file is not None else None,
+        ),
+        trust=SourceTrustDocument(
+            prior_base_rate=0.5,
+            quality=SourceTrustQualityDocument(
+                b=0.0,
+                d=0.0,
+                u=1.0,
+                a=0.5,
+            ),
+            derived_from=(),
+        ),
+        metadata=SourceMetadataDocument(name=normalize_source_slug(name)),
+    )
 
 
-def load_yaml_from_branch(
+def load_document_from_branch(
     repo: Repository,
     branch: str,
     relpath: str,
-) -> dict[str, Any] | None:
+    document_type: type[TDocument],
+) -> TDocument | None:
     tip = branch_head(repo.git, branch)
     if tip is None:
         return None
     try:
-        return yaml.safe_load(repo.git.read_file(relpath, commit=tip)) or {}
+        return decode_document_bytes(
+            repo.git.read_file(relpath, commit=tip),
+            document_type,
+            source=f"{branch}:{relpath}",
+        )
     except FileNotFoundError:
         return None
 
 
-def load_branch_yaml(
-    repo: Repository,
-    name: str,
-    relpath: str,
-) -> dict[str, Any] | None:
-    return load_yaml_from_branch(repo, source_branch_name(name), relpath)
-
-
-def write_yaml(
+def write_document(
     repo: Repository,
     *,
     branch: str,
     relpath: str,
-    data: dict[str, Any],
+    document: object,
     message: str,
 ) -> str:
-    payload = yaml.safe_dump(data, sort_keys=False, allow_unicode=True).encode("utf-8")
+    if not hasattr(document, "to_payload"):
+        raise TypeError(f"{relpath} document must define to_payload()")
+    payload = yaml.safe_dump(document.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8")
     return repo.git.commit_batch(adds={relpath: payload}, deletes=[], message=message, branch=branch)
 
 
@@ -136,11 +149,11 @@ def init_source_branch(
         origin_value=origin_value,
         content_file=content_file,
     )
-    write_yaml(
+    write_document(
         repo,
         branch=branch,
         relpath="source.yaml",
-        data=source_doc,
+        document=source_doc,
         message=f"Initialize source {normalize_source_slug(name)}",
     )
     return branch
@@ -168,9 +181,52 @@ def commit_source_metadata(repo: Repository, name: str, metadata_file: Path) -> 
     )
 
 
-def load_source_document(repo: Repository, name: str) -> dict[str, Any]:
+def load_source_metadata(repo: Repository, name: str) -> dict[str, object] | None:
     branch = source_branch_name(name)
     tip = branch_head(repo.git, branch)
     if tip is None:
+        return None
+    try:
+        raw = repo.git.read_file("metadata.json", commit=tip)
+    except FileNotFoundError:
+        return None
+    return json.loads(raw)
+
+
+def load_source_document(repo: Repository, name: str) -> dict[str, Any]:
+    branch = source_branch_name(name)
+    document = load_document_from_branch(repo, branch, "source.yaml", SourceDocument)
+    if document is None:
         raise ValueError(f"Source branch {branch!r} does not exist")
-    return yaml.safe_load(repo.git.read_file("source.yaml", commit=tip)) or {}
+    return document
+
+
+def load_source_concepts_document(repo: Repository, name: str) -> SourceConceptsDocument | None:
+    return load_document_from_branch(repo, source_branch_name(name), "concepts.yaml", SourceConceptsDocument)
+
+
+def load_source_claims_document(repo: Repository, name: str) -> SourceClaimsDocument | None:
+    return load_document_from_branch(repo, source_branch_name(name), "claims.yaml", SourceClaimsDocument)
+
+
+def load_source_justifications_document(repo: Repository, name: str) -> SourceJustificationsDocument | None:
+    return load_document_from_branch(
+        repo,
+        source_branch_name(name),
+        "justifications.yaml",
+        SourceJustificationsDocument,
+    )
+
+
+def load_source_stances_document(repo: Repository, name: str) -> SourceStancesDocument | None:
+    return load_document_from_branch(repo, source_branch_name(name), "stances.yaml", SourceStancesDocument)
+
+
+def load_source_finalize_report(repo: Repository, name: str) -> SourceFinalizeReportDocument | None:
+    slug = normalize_source_slug(name)
+    return load_document_from_branch(
+        repo,
+        source_branch_name(name),
+        f"merge/finalize/{slug}.yaml",
+        SourceFinalizeReportDocument,
+    )

@@ -11,7 +11,16 @@ from propstore.cli.repository import Repository
 from propstore.identity import compute_claim_version_id, compute_concept_version_id, derive_concept_artifact_id
 
 from .claims import load_primary_branch_claim_index, load_source_claim_index
-from .common import load_branch_yaml, load_source_document, normalize_source_slug, source_branch_name
+from .common import (
+    load_source_claims_document,
+    load_source_concepts_document,
+    load_source_document,
+    load_source_finalize_report,
+    load_source_justifications_document,
+    load_source_stances_document,
+    normalize_source_slug,
+    source_branch_name,
+)
 from .registry import load_primary_branch_concepts
 
 
@@ -52,35 +61,33 @@ def rewrite_claim_concept_refs(
 
 
 def resolve_source_concept_promotions(repo: Repository, source_name: str) -> tuple[dict[str, str], dict[str, bytes]]:
-    concepts_doc = load_branch_yaml(repo, source_name, "concepts.yaml") or {}
+    concepts_doc = load_source_concepts_document(repo, source_name)
     concepts_by_artifact, handle_to_artifact = load_primary_branch_concepts(repo)
     mapping: dict[str, str] = {}
     concept_adds: dict[str, bytes] = {}
-    new_concepts: list[tuple[dict[str, Any], str, str]] = []
+    new_concepts: list[tuple[object, str, str]] = []
     seen_new_artifacts: dict[str, str] = {}
 
-    for entry in concepts_doc.get("concepts", []) or []:
-        if not isinstance(entry, dict):
-            continue
-        registry_match = entry.get("registry_match")
-        if isinstance(registry_match, dict):
-            artifact_id = registry_match.get("artifact_id")
+    for entry in (() if concepts_doc is None else concepts_doc.concepts):
+        registry_match = entry.registry_match
+        if registry_match is not None:
+            artifact_id = registry_match.artifact_id
             if isinstance(artifact_id, str) and artifact_id:
                 for key in ("local_name", "proposed_name"):
-                    handle = entry.get(key)
+                    handle = getattr(entry, key)
                     if isinstance(handle, str) and handle:
                         mapping[handle] = artifact_id
                 continue
         matched_artifact_id: str | None = None
         for key in ("local_name", "proposed_name"):
-            handle = entry.get(key)
+            handle = getattr(entry, key)
             if isinstance(handle, str) and handle in handle_to_artifact:
                 matched_artifact_id = handle_to_artifact[handle]
                 mapping[handle] = matched_artifact_id
         if matched_artifact_id is not None:
             continue
 
-        handle_seed = str(entry.get("proposed_name") or entry.get("local_name") or "concept").strip()
+        handle_seed = str(entry.proposed_name or entry.local_name or "concept").strip()
         slug = normalize_source_slug(handle_seed)
         artifact_id = derive_concept_artifact_id("propstore", slug)
         existing = concepts_by_artifact.get(artifact_id)
@@ -92,18 +99,16 @@ def resolve_source_concept_promotions(repo: Repository, source_name: str) -> tup
                 f"Cannot promote source {source_name!r}; ambiguous concept mappings: {handle_seed}, {prior_handle}"
             )
         seen_new_artifacts[artifact_id] = handle_seed
-        new_concepts.append((copy.deepcopy(entry), artifact_id, slug))
+        new_concepts.append((entry, artifact_id, slug))
         for key in ("local_name", "proposed_name"):
-            handle = entry.get(key)
+            handle = getattr(entry, key)
             if isinstance(handle, str) and handle:
                 mapping[handle] = artifact_id
 
     for raw_entry, artifact_id, slug in new_concepts:
         parameterization_relationships: list[dict[str, Any]] = []
-        for relationship in raw_entry.get("parameterization_relationships", []) or []:
-            if not isinstance(relationship, dict):
-                continue
-            normalized_relationship = copy.deepcopy(relationship)
+        for relationship in raw_entry.parameterization_relationships:
+            normalized_relationship = relationship.to_payload()
             normalized_inputs: list[str] = []
             for input_ref in normalized_relationship.get("inputs", []) or []:
                 if not isinstance(input_ref, str) or not input_ref:
@@ -121,20 +126,19 @@ def resolve_source_concept_promotions(repo: Repository, source_name: str) -> tup
             parameterization_relationships.append(normalized_relationship)
 
         concept_doc: dict[str, Any] = {
-            "canonical_name": str(raw_entry.get("proposed_name") or raw_entry.get("local_name") or slug).strip(),
+            "canonical_name": str(raw_entry.proposed_name or raw_entry.local_name or slug).strip(),
             "status": "accepted",
-            "definition": str(raw_entry.get("definition") or "").strip(),
+            "definition": str(raw_entry.definition or "").strip(),
             "domain": "source",
-            "form": str(raw_entry.get("form") or "structural").strip(),
+            "form": str(raw_entry.form or "structural").strip(),
             "artifact_id": artifact_id,
             "logical_ids": [
                 {"namespace": "source", "value": slug},
                 {"namespace": "propstore", "value": slug},
             ],
         }
-        aliases = raw_entry.get("aliases")
-        if isinstance(aliases, list) and aliases:
-            concept_doc["aliases"] = copy.deepcopy(aliases)
+        if raw_entry.aliases:
+            concept_doc["aliases"] = [alias.to_payload() for alias in raw_entry.aliases]
         if parameterization_relationships:
             concept_doc["parameterization_relationships"] = parameterization_relationships
         concept_doc["version_id"] = compute_concept_version_id(concept_doc)
@@ -147,28 +151,26 @@ def resolve_source_concept_promotions(repo: Repository, source_name: str) -> tup
     return mapping, concept_adds
 
 
-def load_finalize_report(repo: Repository, source_name: str) -> dict[str, Any] | None:
-    return load_branch_yaml(repo, source_name, f"merge/finalize/{normalize_source_slug(source_name)}.yaml")
+def load_finalize_report(repo: Repository, source_name: str):
+    return load_source_finalize_report(repo, source_name)
 
 
 def promote_source_branch(repo: Repository, source_name: str) -> str:
     report = load_finalize_report(repo, source_name)
-    if not isinstance(report, dict) or report.get("status") != "ready":
+    if report is None or report.status != "ready":
         raise ValueError(f"Source {source_name!r} must be finalized successfully before promotion")
 
     slug = normalize_source_slug(source_name)
     source_doc = load_source_document(repo, source_name)
-    claims_doc = load_branch_yaml(repo, source_name, "claims.yaml") or {}
-    justifications_doc = load_branch_yaml(repo, source_name, "justifications.yaml") or {}
-    stances_doc = load_branch_yaml(repo, source_name, "stances.yaml") or {}
+    claims_doc = load_source_claims_document(repo, source_name)
+    justifications_doc = load_source_justifications_document(repo, source_name)
+    stances_doc = load_source_stances_document(repo, source_name)
     concept_map, promoted_concept_files = resolve_source_concept_promotions(repo, source_name)
     unresolved_concepts: set[str] = set()
 
     promoted_claims = [
-        rewrite_claim_concept_refs(claim, concept_map, unresolved=unresolved_concepts)
-        if isinstance(claim, dict)
-        else claim
-        for claim in claims_doc.get("claims", []) or []
+        rewrite_claim_concept_refs(claim.to_payload(), concept_map, unresolved=unresolved_concepts)
+        for claim in (() if claims_doc is None else claims_doc.claims)
     ]
     if unresolved_concepts:
         formatted = ", ".join(sorted(unresolved_concepts))
@@ -179,13 +181,11 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
 
     promoted_stance_files: dict[str, bytes] = {}
     promoted_stances: list[dict[str, Any]] = []
-    for stance in stances_doc.get("stances", []) or []:
-        if not isinstance(stance, dict):
-            continue
-        source_claim = stance.get("source_claim")
+    for stance in (() if stances_doc is None else stances_doc.stances):
+        source_claim = stance.source_claim
         if not isinstance(source_claim, str) or not source_claim:
             raise ValueError("stance source_claim must be normalized before promotion")
-        target = stance.get("target")
+        target = stance.target
         if not isinstance(target, str) or not target:
             raise ValueError("stance target must be a non-empty string")
         if target in local_to_artifact:
@@ -196,27 +196,41 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
             target = primary_logical_to_artifact[target]
         elif target not in primary_artifact_ids and not target.startswith("ps:claim:"):
             raise ValueError(f"Unresolved promoted stance target: {target}")
-        normalized = copy.deepcopy(stance)
+        normalized = stance.to_payload()
         normalized["target"] = target
         promoted_stances.append(normalized)
 
     promoted_claims_doc = {
-        "source": claims_doc.get("source") or {"paper": slug},
+        "source": (
+            {"paper": slug}
+            if claims_doc is None or claims_doc.source is None
+            else claims_doc.source.to_payload()
+        ),
         "claims": promoted_claims,
     }
-    source_doc, promoted_claims_doc, justifications_doc, promoted_stances_doc = attach_source_artifact_codes(
-        source_doc,
+    promoted_source_doc, promoted_claims_doc, promoted_justifications_doc, promoted_stances_doc = attach_source_artifact_codes(
+        source_doc.to_payload(),
         promoted_claims_doc,
-        justifications_doc,
+        None if justifications_doc is None else justifications_doc.to_payload(),
         {"stances": promoted_stances},
     )
     promoted_claims = promoted_claims_doc.get("claims", []) or []
+    promoted_source_paper = (
+        str(promoted_claims_doc.get("source", {}).get("paper") or slug)
+        if isinstance(promoted_claims_doc.get("source"), dict)
+        else slug
+    )
 
     source_only_fields = {"id", "source_local_id", "artifact_code"}
     for claim in promoted_claims:
         if isinstance(claim, dict):
             for field in source_only_fields:
                 claim.pop(field, None)
+            provenance = claim.get("provenance")
+            if isinstance(provenance, dict) and not isinstance(provenance.get("paper"), str):
+                updated_provenance = dict(provenance)
+                updated_provenance["paper"] = promoted_source_paper
+                claim["provenance"] = updated_provenance
             claim["version_id"] = compute_claim_version_id(claim)
     promoted_claims_doc["claims"] = promoted_claims
 
@@ -241,16 +255,16 @@ def promote_source_branch(repo: Repository, source_name: str) -> str:
         ).encode("utf-8")
 
     adds = {
-        f"sources/{slug}.yaml": yaml.safe_dump(source_doc, sort_keys=False, allow_unicode=True).encode("utf-8"),
+        f"sources/{slug}.yaml": yaml.safe_dump(promoted_source_doc, sort_keys=False, allow_unicode=True).encode("utf-8"),
         f"claims/{slug}.yaml": yaml.safe_dump(promoted_claims_doc, sort_keys=False, allow_unicode=True).encode(
             "utf-8"
         ),
     }
     adds.update(promoted_concept_files)
 
-    if justifications_doc.get("justifications"):
+    if promoted_justifications_doc.get("justifications"):
         adds[f"justifications/{slug}.yaml"] = yaml.safe_dump(
-            justifications_doc,
+            promoted_justifications_doc,
             sort_keys=False,
             allow_unicode=True,
         ).encode("utf-8")

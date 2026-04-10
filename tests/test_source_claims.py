@@ -9,7 +9,9 @@ from hypothesis import strategies as st
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
+from propstore.document_schema import convert_document_value
 from propstore.source import normalize_source_claims_payload
+from propstore.source.document_models import SourceClaimsDocument
 
 
 @given(
@@ -39,8 +41,16 @@ def test_normalized_source_claim_ids_are_content_stable(local_id_a: str, local_i
         "provenance": {"page": 1},
     }
 
-    payload_a = {"source": {"paper": "demo"}, "claims": [claim_a]}
-    payload_b = {"source": {"paper": "demo"}, "claims": [claim_b]}
+    payload_a = convert_document_value(
+        {"source": {"paper": "demo"}, "claims": [claim_a]},
+        SourceClaimsDocument,
+        source="test payload a",
+    )
+    payload_b = convert_document_value(
+        {"source": {"paper": "demo"}, "claims": [claim_b]},
+        SourceClaimsDocument,
+        source="test payload b",
+    )
 
     normalized_a, _ = normalize_source_claims_payload(
         payload_a,
@@ -53,12 +63,12 @@ def test_normalized_source_claim_ids_are_content_stable(local_id_a: str, local_i
         source_namespace="demo",
     )
 
-    first_a = normalized_a["claims"][0]
-    first_b = normalized_b["claims"][0]
-    assert first_a["artifact_id"] == first_b["artifact_id"]
-    assert first_a["logical_ids"][0] == first_b["logical_ids"][0]
-    assert first_a["source_local_id"] == local_id_a
-    assert first_b["source_local_id"] == local_id_b
+    first_a = normalized_a.claims[0]
+    first_b = normalized_b.claims[0]
+    assert first_a.artifact_id == first_b.artifact_id
+    assert first_a.logical_ids[0].to_payload() == first_b.logical_ids[0].to_payload()
+    assert first_a.source_local_id == local_id_a
+    assert first_b.source_local_id == local_id_b
 
 
 def test_source_add_claim_batch_normalizes_claims(tmp_path: Path) -> None:

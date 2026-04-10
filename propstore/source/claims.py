@@ -1,33 +1,34 @@
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
 from pathlib import Path
-from typing import Any
 
 import yaml
 
+from propstore.claim_documents import ClaimLogicalIdDocument, ClaimSourceDocument, ProvenanceDocument
 from propstore.cli.repository import Repository
+from propstore.document_schema import convert_document_value, decode_document_path
 from propstore.identity import (
     compute_claim_version_id,
     derive_claim_artifact_id,
-    format_logical_id,
     normalize_logical_value,
 )
 
 from .common import (
     commit_source_file,
+    load_source_claims_document,
+    load_source_concepts_document,
     load_source_document,
-    load_yaml_from_branch,
     normalize_source_slug,
     source_branch_name,
     source_tag_uri,
 )
+from .document_models import SourceClaimDocument, SourceClaimsDocument
 
 
-def stable_claim_logical_value(claim: dict[str, Any], *, source_uri: str) -> str:
-    canonical = copy.deepcopy(claim)
+def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -> str:
+    canonical = claim.to_payload()
     canonical.pop("id", None)
     canonical.pop("artifact_id", None)
     canonical.pop("version_id", None)
@@ -44,50 +45,36 @@ def stable_claim_logical_value(claim: dict[str, Any], *, source_uri: str) -> str
 
 
 def source_concept_handles(repo: Repository, source_name: str) -> set[str]:
-    concepts_doc = load_yaml_from_branch(repo, source_branch_name(source_name), "concepts.yaml") or {}
     handles: set[str] = set()
-    for entry in concepts_doc.get("concepts", []) or []:
-        if not isinstance(entry, dict):
-            continue
-        for key in ("local_name", "proposed_name"):
-            value = entry.get(key)
-            if isinstance(value, str) and value:
-                handles.add(value)
+    concepts_doc = load_source_concepts_document(repo, source_name)
+    if concepts_doc is None:
+        return handles
+    for entry in concepts_doc.concepts:
+        if entry.local_name:
+            handles.add(entry.local_name)
+        if entry.proposed_name:
+            handles.add(entry.proposed_name)
     return handles
 
 
-def iter_claim_concept_refs(claim: dict[str, Any]) -> list[str]:
+def iter_claim_concept_refs(claim: SourceClaimDocument) -> list[str]:
     refs: list[str] = []
-    for field in ("concept", "target_concept"):
-        value = claim.get(field)
+    for value in (claim.concept, claim.target_concept):
         if isinstance(value, str):
             refs.append(value)
-    concepts = claim.get("concepts")
-    if isinstance(concepts, list):
-        refs.extend(value for value in concepts if isinstance(value, str))
-    variables = claim.get("variables")
-    if isinstance(variables, list):
-        for entry in variables:
-            if isinstance(entry, dict):
-                value = entry.get("concept")
-                if isinstance(value, str):
-                    refs.append(value)
-    parameters = claim.get("parameters")
-    if isinstance(parameters, list):
-        for entry in parameters:
-            if isinstance(entry, dict):
-                value = entry.get("concept")
-                if isinstance(value, str):
-                    refs.append(value)
+    refs.extend(claim.concepts)
+    variables = claim.variables
+    if isinstance(variables, tuple):
+        refs.extend(variable.concept for variable in variables if isinstance(variable.concept, str))
+    parameters = claim.parameters
+    refs.extend(parameter.concept for parameter in parameters if isinstance(parameter.concept, str))
     return refs
 
 
-def validate_source_claim_concepts(repo: Repository, source_name: str, data: dict[str, Any]) -> None:
+def validate_source_claim_concepts(repo: Repository, source_name: str, data: SourceClaimsDocument) -> None:
     known_handles = source_concept_handles(repo, source_name)
     unknown: set[str] = set()
-    for claim in data.get("claims", []) or []:
-        if not isinstance(claim, dict):
-            continue
+    for claim in data.claims:
         for concept_ref in iter_claim_concept_refs(claim):
             if concept_ref.startswith("ps:concept:") or concept_ref.startswith("tag:"):
                 continue
@@ -99,61 +86,72 @@ def validate_source_claim_concepts(repo: Repository, source_name: str, data: dic
 
 
 def normalize_source_claims_payload(
-    data: dict[str, Any],
+    data: SourceClaimsDocument,
     *,
     source_uri: str,
     source_namespace: str,
-) -> tuple[dict[str, Any], dict[str, str]]:
-    normalized_data = dict(data)
-    normalized_claims: list[Any] = []
+) -> tuple[SourceClaimsDocument, dict[str, str]]:
+    normalized_claims: list[SourceClaimDocument] = []
     local_to_canonical: dict[str, str] = {}
     namespace = normalize_source_slug(source_namespace)
 
-    for claim in list(normalized_data.get("claims", [])):
-        if not isinstance(claim, dict):
-            normalized_claims.append(claim)
-            continue
-        normalized = copy.deepcopy(claim)
-        raw_id = normalized.get("id")
-        stable_value = stable_claim_logical_value(normalized, source_uri=source_uri)
+    for index, claim in enumerate(data.claims, start=1):
+        normalized = claim.to_payload()
+        raw_local_id = claim.source_local_id or claim.id
+        stable_value = stable_claim_logical_value(claim, source_uri=source_uri)
         normalized["id"] = stable_value
-        logical_ids = [{"namespace": namespace, "value": stable_value}]
-        if isinstance(raw_id, str) and raw_id:
-            normalized["source_local_id"] = raw_id
-            local_to_canonical[raw_id] = stable_value
-            local_value = normalize_logical_value(raw_id)
+        normalized.pop("artifact_code", None)
+        logical_ids = [ClaimLogicalIdDocument(namespace=namespace, value=stable_value)]
+        if isinstance(raw_local_id, str) and raw_local_id:
+            normalized["source_local_id"] = raw_local_id
+            local_to_canonical[raw_local_id] = stable_value
+            local_value = normalize_logical_value(raw_local_id)
             if local_value != stable_value:
-                logical_ids.append({"namespace": namespace, "value": local_value})
+                logical_ids.append(ClaimLogicalIdDocument(namespace=namespace, value=local_value))
+        else:
+            normalized.pop("source_local_id", None)
         normalized["logical_ids"] = logical_ids
         normalized["artifact_id"] = derive_claim_artifact_id(namespace, stable_value)
-        normalized["version_id"] = compute_claim_version_id(normalized)
-        normalized_claims.append(normalized)
+        normalized["version_id"] = compute_claim_version_id(
+            {
+                **normalized,
+                "logical_ids": [logical_id.to_payload() for logical_id in logical_ids],
+            }
+        )
+        normalized_claims.append(
+            convert_document_value(
+                normalized,
+                SourceClaimDocument,
+                source=f"{source_namespace}:claims[{index}]",
+            )
+        )
 
-    normalized_data["claims"] = normalized_claims
-    return normalized_data, local_to_canonical
+    return (
+        SourceClaimsDocument(
+            source=data.source,
+            claims=tuple(normalized_claims),
+        ),
+        local_to_canonical,
+    )
 
 
 def load_source_claim_index(repo: Repository, source_name: str) -> tuple[dict[str, str], dict[str, str], set[str]]:
-    claims_doc = load_yaml_from_branch(repo, source_branch_name(source_name), "claims.yaml") or {}
     local_to_artifact: dict[str, str] = {}
     logical_to_artifact: dict[str, str] = {}
     artifact_ids: set[str] = set()
-    for claim in claims_doc.get("claims", []) or []:
-        if not isinstance(claim, dict):
-            continue
-        artifact_id = claim.get("artifact_id")
-        if not isinstance(artifact_id, str) or not artifact_id:
+    claims_doc = load_source_claims_document(repo, source_name)
+    if claims_doc is None:
+        return local_to_artifact, logical_to_artifact, artifact_ids
+    for claim in claims_doc.claims:
+        artifact_id = claim.artifact_id
+        if artifact_id is None:
             continue
         artifact_ids.add(artifact_id)
-        local_id = claim.get("source_local_id")
-        if isinstance(local_id, str) and local_id:
+        local_id = claim.source_local_id
+        if local_id:
             local_to_artifact[local_id] = artifact_id
-        for logical_id in claim.get("logical_ids") or []:
-            if not isinstance(logical_id, dict):
-                continue
-            formatted = format_logical_id(logical_id)
-            if formatted:
-                logical_to_artifact[formatted] = artifact_id
+        for logical_id in claim.logical_ids:
+            logical_to_artifact[logical_id.formatted] = artifact_id
     return local_to_artifact, logical_to_artifact, artifact_ids
 
 
@@ -184,18 +182,18 @@ def load_primary_branch_claim_index(repo: Repository) -> tuple[dict[str, str], s
 
 def commit_source_claims_batch(repo: Repository, source_name: str, claims_file: Path) -> str:
     source_doc = load_source_document(repo, source_name)
-    raw = yaml.safe_load(claims_file.read_text(encoding="utf-8")) or {}
+    raw = decode_document_path(claims_file, SourceClaimsDocument)
     validate_source_claim_concepts(repo, source_name, raw)
     normalized, _ = normalize_source_claims_payload(
         raw,
-        source_uri=str(source_doc.get("id") or source_tag_uri(repo, source_name)),
+        source_uri=source_doc.id or source_tag_uri(repo, source_name),
         source_namespace=normalize_source_slug(source_name),
     )
     return commit_source_file(
         repo,
         source_name,
         relpath="claims.yaml",
-        content=yaml.safe_dump(normalized, sort_keys=False, allow_unicode=True).encode("utf-8"),
+        content=yaml.safe_dump(normalized.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8"),
         message=f"Write claims for {normalize_source_slug(source_name)}",
     )
 
@@ -211,46 +209,60 @@ def commit_source_claim_proposal(
     value: float | None = None,
     unit: str | None = None,
     page: int | None = None,
-) -> dict[str, Any]:
+) -> SourceClaimDocument:
     branch = source_branch_name(source_name)
     source_doc = load_source_document(repo, source_name)
-    existing = load_yaml_from_branch(repo, branch, "claims.yaml") or {"claims": []}
-    claims = list(existing.get("claims", []) or [])
+    existing = load_source_claims_document(repo, source_name) or SourceClaimsDocument(
+        source=ClaimSourceDocument(paper=normalize_source_slug(source_name)),
+        claims=(),
+    )
+    claims = list(existing.claims)
 
     norm_keys = {"source_local_id", "logical_ids", "artifact_id", "version_id"}
-    restored: list[dict[str, Any]] = []
+    restored: list[SourceClaimDocument] = []
     for claim in claims:
-        if not isinstance(claim, dict):
-            restored.append(claim)
+        if claim.source_local_id == claim_id or claim.id == claim_id:
             continue
-        if claim.get("source_local_id") == claim_id or claim.get("id") == claim_id:
-            continue
-        restored_claim = {key: value for key, value in claim.items() if key not in norm_keys}
-        local_id = claim.get("source_local_id")
+        restored_claim = {key: value for key, value in claim.to_payload().items() if key not in norm_keys}
+        local_id = claim.source_local_id
         if local_id:
             restored_claim["id"] = local_id
-        restored.append(restored_claim)
+        restored.append(
+            convert_document_value(
+                restored_claim,
+                SourceClaimDocument,
+                source=f"{branch}:claims proposal {claim_id}",
+            )
+        )
     claims = restored
 
-    claim: dict[str, Any] = {"id": claim_id, "type": claim_type}
+    claim_payload: dict[str, object] = {"id": claim_id, "type": claim_type}
     if statement is not None:
-        claim["statement"] = statement
+        claim_payload["statement"] = statement
     if concept is not None:
-        claim["concept"] = concept
+        claim_payload["concept"] = concept
     if value is not None:
-        claim["value"] = value
+        claim_payload["value"] = value
     if unit is not None:
-        claim["unit"] = unit
+        claim_payload["unit"] = unit
     if page is not None:
-        claim["provenance"] = {"page": page}
+        claim_payload["provenance"] = ProvenanceDocument(paper=normalize_source_slug(source_name), page=page)
 
-    claims.append(claim)
-    data: dict[str, Any] = dict(existing)
-    data["claims"] = claims
+    claims.append(
+        convert_document_value(
+            claim_payload,
+            SourceClaimDocument,
+            source=f"{branch}:claims proposal {claim_id}",
+        )
+    )
+    data = SourceClaimsDocument(
+        source=existing.source or ClaimSourceDocument(paper=normalize_source_slug(source_name)),
+        claims=tuple(claims),
+    )
 
     normalized, _ = normalize_source_claims_payload(
         data,
-        source_uri=str(source_doc.get("id") or source_tag_uri(repo, source_name)),
+        source_uri=source_doc.id or source_tag_uri(repo, source_name),
         source_namespace=normalize_source_slug(source_name),
     )
 
@@ -258,11 +270,11 @@ def commit_source_claim_proposal(
         repo,
         source_name,
         relpath="claims.yaml",
-        content=yaml.safe_dump(normalized, sort_keys=False, allow_unicode=True).encode("utf-8"),
+        content=yaml.safe_dump(normalized.to_payload(), sort_keys=False, allow_unicode=True).encode("utf-8"),
         message=f"Propose claim for {normalize_source_slug(source_name)}",
     )
 
-    for entry in normalized.get("claims", []):
-        if isinstance(entry, dict) and entry.get("source_local_id") == claim_id:
+    for entry in normalized.claims:
+        if entry.source_local_id == claim_id:
             return entry
-    return normalized["claims"][-1]
+    return normalized.claims[-1]

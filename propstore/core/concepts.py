@@ -55,11 +55,11 @@ class ConceptFormParametersDocument(DocumentStruct):
 
 
 class ParameterizationRelationshipDocument(DocumentStruct):
-    formula: str
     inputs: tuple[str, ...]
-    exactness: str
-    source: str
-    bidirectional: bool
+    formula: str | None = None
+    exactness: str | None = None
+    source: str | None = None
+    bidirectional: bool | None = None
     sympy: str | None = None
     conditions: tuple[str, ...] = ()
     note: str | None = None
