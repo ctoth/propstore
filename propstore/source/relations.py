@@ -15,7 +15,7 @@ from .common import (
     normalize_source_slug,
     source_branch_name,
 )
-from .document_models import (
+from propstore.source_documents import (
     SourceJustificationDocument,
     SourceJustificationsDocument,
     SourceProvenanceDocument,

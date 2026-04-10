@@ -12,7 +12,7 @@ from propstore.document_schema import decode_document_bytes
 from propstore.repo.branch import branch_head, create_branch
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
-from .document_models import (
+from propstore.source_documents import (
     SourceClaimsDocument,
     SourceConceptsDocument,
     SourceDocument,

@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import sqlite3
 
-import yaml
-
+from propstore.document_schema import decode_document_path
 from propstore.knowledge_path import KnowledgePath
+from propstore.source_documents import SourceDocument
 
 
 def populate_sources(conn: sqlite3.Connection, knowledge_root: KnowledgePath) -> None:
@@ -18,26 +18,24 @@ def populate_sources(conn: sqlite3.Connection, knowledge_root: KnowledgePath) ->
     for entry in sources_root.iterdir():
         if not entry.is_file() or entry.suffix != ".yaml":
             continue
-        source_doc = yaml.safe_load(entry.read_text(encoding="utf-8")) or {}
-        if not isinstance(source_doc, dict):
-            continue
-        origin = source_doc.get("origin") if isinstance(source_doc.get("origin"), dict) else {}
-        trust = source_doc.get("trust") if isinstance(source_doc.get("trust"), dict) else {}
+        source_doc = decode_document_path(entry, SourceDocument)
+        origin = source_doc.origin
+        trust = source_doc.trust
         conn.execute(
             "INSERT INTO source (slug, source_id, kind, origin_type, origin_value, origin_retrieved, "
             "origin_content_ref, prior_base_rate, quality_json, derived_from_json, artifact_code) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 entry.stem,
-                str(source_doc.get("id") or entry.stem),
-                str(source_doc.get("kind") or "source"),
-                origin.get("type"),
-                origin.get("value"),
-                origin.get("retrieved"),
-                origin.get("content_ref"),
-                trust.get("prior_base_rate"),
-                json.dumps(trust.get("quality")) if trust.get("quality") is not None else None,
-                json.dumps(trust.get("derived_from")) if trust.get("derived_from") is not None else None,
-                source_doc.get("artifact_code"),
+                str(source_doc.id or entry.stem),
+                str(source_doc.kind or "source"),
+                origin.type,
+                origin.value,
+                origin.retrieved,
+                origin.content_ref,
+                trust.prior_base_rate,
+                None if trust.quality is None else json.dumps(trust.quality.to_payload()),
+                None if not trust.derived_from else json.dumps(list(trust.derived_from)),
+                source_doc.artifact_code,
             ),
         )

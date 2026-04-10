@@ -19,15 +19,16 @@ from propstore.document_schema import DocumentStruct
 class SourceOriginDocument(DocumentStruct):
     type: str
     value: str
-    retrieved: str
+    retrieved: str | None = None
     content_ref: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "type": self.type,
             "value": self.value,
-            "retrieved": self.retrieved,
         }
+        if self.retrieved is not None:
+            payload["retrieved"] = self.retrieved
         if self.content_ref is not None:
             payload["content_ref"] = self.content_ref
         return payload
@@ -49,16 +50,18 @@ class SourceTrustQualityDocument(DocumentStruct):
 
 
 class SourceTrustDocument(DocumentStruct):
-    prior_base_rate: float | int
-    quality: SourceTrustQualityDocument
+    prior_base_rate: float | int | None = None
+    quality: SourceTrustQualityDocument | None = None
     derived_from: tuple[str, ...] = ()
 
     def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "prior_base_rate": self.prior_base_rate,
-            "quality": self.quality.to_payload(),
-            "derived_from": list(self.derived_from),
-        }
+        payload: dict[str, Any] = {}
+        if self.prior_base_rate is not None:
+            payload["prior_base_rate"] = self.prior_base_rate
+        if self.quality is not None:
+            payload["quality"] = self.quality.to_payload()
+        if self.derived_from:
+            payload["derived_from"] = list(self.derived_from)
         return payload
 
 
@@ -74,7 +77,7 @@ class SourceDocument(DocumentStruct):
     kind: str
     origin: SourceOriginDocument
     trust: SourceTrustDocument
-    metadata: SourceMetadataDocument
+    metadata: SourceMetadataDocument | None = None
     artifact_code: str | None = None
 
     def to_payload(self) -> dict[str, Any]:
@@ -83,8 +86,9 @@ class SourceDocument(DocumentStruct):
             "kind": self.kind,
             "origin": self.origin.to_payload(),
             "trust": self.trust.to_payload(),
-            "metadata": self.metadata.to_payload(),
         }
+        if self.metadata is not None:
+            payload["metadata"] = self.metadata.to_payload()
         if self.artifact_code is not None:
             payload["artifact_code"] = self.artifact_code
         return payload

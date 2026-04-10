@@ -7,12 +7,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-import yaml
-
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
 from propstore.core.row_types import StanceRow
+from propstore.document_schema import decode_document_path
 from propstore.dung import ArgumentationFramework
 from propstore.knowledge_path import KnowledgePath
+from propstore.stance_documents import StanceFileDocument
 from propstore.structured_projection import StructuredProjection, build_structured_projection
 
 
@@ -270,14 +270,12 @@ def _file_stance_rows(stances_root: KnowledgePath) -> list[StanceRow]:
     for entry in stances_root.iterdir():
         if not entry.is_file() or entry.suffix != ".yaml":
             continue
-        data = yaml.safe_load(entry.read_bytes()) or {}
-        source_claim = _optional_string(data.get("source_claim"))
+        data = decode_document_path(entry, StanceFileDocument)
+        source_claim = _optional_string(data.source_claim)
         if source_claim is None:
             continue
-        for stance in data.get("stances", []) or []:
-            if not isinstance(stance, dict):
-                continue
-            row = _stance_row_from_mapping(to_claim_id(source_claim), stance)
+        for stance in data.stances:
+            row = _stance_row_from_mapping(to_claim_id(source_claim), stance.to_payload())
             if row is not None:
                 rows.append(row)
     return rows

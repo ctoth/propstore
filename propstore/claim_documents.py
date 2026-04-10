@@ -203,6 +203,7 @@ class StanceDocument(DocumentStruct):
 
 class ClaimDocument(DocumentStruct):
     artifact_id: str | None = None
+    artifact_code: str | None = None
     logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
     version_id: str | None = None
     type: str | None = None
@@ -212,6 +213,7 @@ class ClaimDocument(DocumentStruct):
     concept: str | None = None
     concepts: tuple[str, ...] = ()
     conditions: tuple[str, ...] = ()
+    confidence: float | int | None = None
     context: str | None = None
     equations: tuple[str, ...] = ()
     expression: str | None = None
@@ -246,6 +248,8 @@ class ClaimDocument(DocumentStruct):
         payload: dict[str, Any] = {}
         if self.artifact_id is not None:
             payload["artifact_id"] = self.artifact_id
+        if self.artifact_code is not None:
+            payload["artifact_code"] = self.artifact_code
         if self.logical_ids:
             payload["logical_ids"] = [logical_id.to_payload() for logical_id in self.logical_ids]
         if self.version_id is not None:
@@ -264,6 +268,8 @@ class ClaimDocument(DocumentStruct):
             payload["concepts"] = list(self.concepts)
         if self.conditions:
             payload["conditions"] = list(self.conditions)
+        if self.confidence is not None:
+            payload["confidence"] = self.confidence
         if self.context is not None:
             payload["context"] = self.context
         if self.equations:
