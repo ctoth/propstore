@@ -400,11 +400,13 @@ def _world_concept_display_id(wm, concept_id: str) -> str:
 
 
 def _world_claim_display_id(claim: Mapping[str, object]) -> str:
-    logical_id = claim.get("logical_id") or claim.get("primary_logical_id")
+    from propstore.core.row_types import coerce_claim_row
+
+    row = coerce_claim_row(claim)
+    logical_id = row.primary_logical_id
     if isinstance(logical_id, str) and logical_id:
         return logical_id
-    claim_id = claim.get("id")
-    return str(claim_id) if claim_id is not None else "?"
+    return str(row.claim_id)
 
 
 @world.command("status")
@@ -441,7 +443,9 @@ def world_query(obj: dict, concept_id: str) -> None:
             f"{coerce_concept_row(concept).canonical_name} "
             f"({_world_concept_display_id(wm, resolved)})"
         )
-        claims = wm.claims_for(resolved)
+        from propstore.core.row_types import coerce_claim_row
+
+        claims = [coerce_claim_row(claim).to_dict() for claim in wm.claims_for(resolved)]
         if not claims:
             click.echo("  (no claims)")
         for c in claims:
@@ -506,7 +510,10 @@ def world_explain(obj: dict, claim_id: str) -> None:
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
-        claim = wm.get_claim(claim_id)
+        from propstore.core.row_types import coerce_claim_row
+
+        claim_input = wm.get_claim(claim_id)
+        claim = None if claim_input is None else coerce_claim_row(claim_input).to_dict()
         if claim is None:
             click.echo(f"Unknown claim: {claim_id}", err=True)
             sys.exit(1)
@@ -544,7 +551,9 @@ def world_algorithms(obj: dict, stage: str | None, concept: str | None) -> None:
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         # Fetch all algorithm claims
-        all_claims = wm.claims_for(None)
+        from propstore.core.row_types import coerce_claim_row
+
+        all_claims = [coerce_claim_row(claim).to_dict() for claim in wm.claims_for(None)]
         algos = [c for c in all_claims if c.get("type") == "algorithm"]
 
     if stage:

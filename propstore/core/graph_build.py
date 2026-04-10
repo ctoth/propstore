@@ -31,6 +31,7 @@ from propstore.core.graph_types import (
     RelationEdge,
 )
 from propstore.core.row_types import (
+    coerce_claim_row,
     coerce_concept_row,
     coerce_conflict_row,
     coerce_parameterization_row,
@@ -104,42 +105,27 @@ def _claim_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
     )
 
 
-def _display_claim_id_from_row(row: Mapping[str, Any]) -> str:
-    logical_id = row.get("logical_id") or row.get("primary_logical_id")
+def _display_claim_id_from_row(row_input) -> str:
+    row = coerce_claim_row(row_input)
+    logical_id = row.primary_logical_id
     if isinstance(logical_id, str) and logical_id:
         return logical_id.split(":", 1)[1] if ":" in logical_id else logical_id
 
-    logical_ids = row.get("logical_ids")
-    if isinstance(logical_ids, list):
-        for entry in logical_ids:
-            if not isinstance(entry, Mapping):
-                continue
-            value = entry.get("value")
-            if isinstance(value, str) and value:
-                return value
+    for entry in row.parsed_logical_ids():
+        if not isinstance(entry, Mapping):
+            continue
+        value = entry.get("value")
+        if isinstance(value, str) and value:
+            return value
 
-    logical_ids_json = row.get("logical_ids_json")
-    if isinstance(logical_ids_json, str) and logical_ids_json:
-        try:
-            loaded = json.loads(logical_ids_json)
-        except json.JSONDecodeError:
-            loaded = []
-        if isinstance(loaded, list):
-            for entry in loaded:
-                if not isinstance(entry, Mapping):
-                    continue
-                value = entry.get("value")
-                if isinstance(value, str) and value:
-                    return value
-
-    return str(row["id"])
+    return str(row.claim_id)
 
 
 def _display_claim_id(store, claim_id: str) -> str:
     getter = getattr(store, "get_claim", None)
     if callable(getter):
         row = getter(claim_id)
-        if isinstance(row, Mapping):
+        if row is not None:
             return _display_claim_id_from_row(row)
     return str(claim_id)
 
@@ -185,7 +171,10 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         coerce_concept_row(row)
         for row in store.all_concepts()
     ]
-    claim_rows = store.claims_for(None)
+    claim_rows = [
+        coerce_claim_row(row)
+        for row in store.claims_for(None)
+    ]
     relationship_rows = (
         [
             coerce_relationship_row(row)
@@ -210,9 +199,8 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         ]
     elif isinstance(store, StanceStore):
         claim_ids = {
-            str(row["id"])
+            str(row.claim_id)
             for row in claim_rows
-            if row.get("id") is not None
         }
         claim_stance_rows = [
             coerce_stance_row(row)
@@ -236,29 +224,28 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
     )
 
     claim_display_ids = {
-            str(row["id"]): (
+            str(row.claim_id): (
                 _display_claim_id_from_row(row)
             if prefer_logical_claim_ids
-            else str(row["id"])
+            else str(row.claim_id)
         )
         for row in claim_rows
-        if row.get("id") is not None
     }
 
     claims = tuple(
         sorted(
             (
                 ClaimNode(
-                    claim_id=to_claim_id(claim_display_ids[str(row["id"])]),
-                    concept_id=to_concept_id(row.get("concept_id") or row.get("target_concept") or ""),
-                    claim_type=str(row.get("type") or "unknown"),
-                    scalar_value=row.get("value"),
+                    claim_id=to_claim_id(claim_display_ids[str(row.claim_id)]),
+                    concept_id=to_concept_id(str(row.concept_id or row.target_concept or "")),
+                    claim_type=str(row.claim_type or "unknown"),
+                    scalar_value=row.value,
                     provenance=_row_provenance(
-                        row,
+                        row.to_dict(),
                         source_table="claim",
-                        source_id=claim_display_ids[str(row["id"])],
+                        source_id=claim_display_ids[str(row.claim_id)],
                     ),
-                    attributes=_claim_attributes(row),
+                    attributes=_claim_attributes(row.to_dict()),
                 )
                 for row in claim_rows
             )
@@ -291,19 +278,19 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
             (
                 RelationEdge(
                     source_id=claim_display_ids.get(
-                        stance.claim_id,
+                        str(stance.claim_id),
                         (
-                            _display_claim_id(store, stance.claim_id)
+                            _display_claim_id(store, str(stance.claim_id))
                             if prefer_logical_claim_ids
-                            else stance.claim_id
+                            else str(stance.claim_id)
                         ),
                     ),
                     target_id=claim_display_ids.get(
-                        stance.target_claim_id,
+                        str(stance.target_claim_id),
                         (
-                            _display_claim_id(store, stance.target_claim_id)
+                            _display_claim_id(store, str(stance.target_claim_id))
                             if prefer_logical_claim_ids
-                            else stance.target_claim_id
+                            else str(stance.target_claim_id)
                         ),
                     ),
                     relation_type=stance.stance_type,
@@ -311,8 +298,8 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                         stance.to_dict(),
                         source_table="relation_edge",
                         source_id=(
-                            f"{claim_display_ids.get(stance.claim_id, (_display_claim_id(store, stance.claim_id) if prefer_logical_claim_ids else stance.claim_id))}->"
-                            f"{claim_display_ids.get(stance.target_claim_id, (_display_claim_id(store, stance.target_claim_id) if prefer_logical_claim_ids else stance.target_claim_id))}:{stance.stance_type}"
+                            f"{claim_display_ids.get(str(stance.claim_id), (_display_claim_id(store, str(stance.claim_id)) if prefer_logical_claim_ids else str(stance.claim_id)))}->"
+                            f"{claim_display_ids.get(str(stance.target_claim_id), (_display_claim_id(store, str(stance.target_claim_id)) if prefer_logical_claim_ids else str(stance.target_claim_id)))}:{stance.stance_type}"
                         ),
                     ),
                     attributes=tuple(stance.attributes.items()),
@@ -359,19 +346,19 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
             (
                 ConflictWitness(
                     left_claim_id=claim_display_ids.get(
-                        conflict.claim_a_id,
+                        str(conflict.claim_a_id),
                         (
-                            _display_claim_id(store, conflict.claim_a_id)
+                            _display_claim_id(store, str(conflict.claim_a_id))
                             if prefer_logical_claim_ids
-                            else conflict.claim_a_id
+                            else str(conflict.claim_a_id)
                         ),
                     ),
                     right_claim_id=claim_display_ids.get(
-                        conflict.claim_b_id,
+                        str(conflict.claim_b_id),
                         (
-                            _display_claim_id(store, conflict.claim_b_id)
+                            _display_claim_id(store, str(conflict.claim_b_id))
                             if prefer_logical_claim_ids
-                            else conflict.claim_b_id
+                            else str(conflict.claim_b_id)
                         ),
                     ),
                     kind=str(conflict.warning_class or conflict.conflict_class or "conflict"),

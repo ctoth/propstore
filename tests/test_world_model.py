@@ -16,6 +16,7 @@ import pytest
 import yaml
 
 from propstore.core.row_types import (
+    coerce_claim_row,
     coerce_concept_row,
     coerce_conflict_row,
     coerce_stance_row,
@@ -524,8 +525,8 @@ class TestUnboundQueries:
     def test_get_claim(self, world):
         c = world.get_claim(_claim_artifact("test_paper_alpha", "claim1"))
         assert c is not None
-        assert c["type"] == "parameter"
-        assert c["concept_id"] == CONCEPT1_ID
+        assert c.claim_type == "parameter"
+        assert c.concept_id == CONCEPT1_ID
 
     def test_get_claim_missing(self, world):
         assert world.get_claim("nonexistent") is None
@@ -573,11 +574,12 @@ class TestUnboundQueries:
         wm = WorldModel(repo)
         claim = wm.get_claim(_claim_artifact("alpha_source", "claim_slug"))
         assert claim is not None
-        assert claim["source_slug"] == "alpha_source"
-        assert claim["source_paper"] == "Alpha Paper"
-        assert claim["source"]["id"] == "source-alpha"
-        assert claim["source"]["origin"]["type"] == "doi"
-        assert claim["source"]["origin"]["value"] == "10.1000/example"
+        claim_data = claim.to_dict()
+        assert claim.source_slug == "alpha_source"
+        assert claim.source_paper == "Alpha Paper"
+        assert claim_data["source"]["id"] == "source-alpha"
+        assert claim_data["source"]["origin"]["type"] == "doi"
+        assert claim_data["source"]["origin"]["value"] == "10.1000/example"
         wm.close()
 
     def test_resolve_alias(self, world):
@@ -589,7 +591,7 @@ class TestUnboundQueries:
 
     def test_claims_for(self, world):
         claims = world.claims_for("fundamental_frequency")
-        ids = {c["id"] for c in claims}
+        ids = {str(c.claim_id) for c in claims}
         assert ids == {
             _claim_artifact("test_paper_alpha", "claim1"),
             _claim_artifact("test_paper_alpha", "claim2"),
@@ -651,7 +653,7 @@ class TestUnboundQueries:
 
         wm = WorldModel(repo)
         try:
-            assert [claim["id"] for claim in wm.claims_for("fundamental_frequency")] == [
+            assert [str(claim.claim_id) for claim in wm.claims_for("fundamental_frequency")] == [
                 make_claim_identity("claim1", namespace="paper")["artifact_id"]
             ]
             assert wm.bind().value_of("fundamental_frequency").status == "determined"
@@ -707,7 +709,7 @@ class TestUnboundQueries:
 
         wm = WorldModel(repo)
         try:
-            assert [claim["id"] for claim in wm.claims_for("F0")] == [
+            assert [str(claim.claim_id) for claim in wm.claims_for("F0")] == [
                 make_claim_identity("claim1", namespace="paper")["artifact_id"]
             ]
             assert wm.bind().value_of("F0").status == "determined"
@@ -743,7 +745,7 @@ class TestUnboundQueries:
         wm = WorldModel(_Repo())
         try:
             claims = wm.claims_for("concept2")
-            assert [claim["id"] for claim in claims] == ["measurement1"]
+            assert [str(claim.claim_id) for claim in claims] == ["measurement1"]
 
             active = wm.bind().active_claims("concept2")
             assert [claim["id"] for claim in active] == ["measurement1"]
@@ -778,8 +780,8 @@ class TestUnboundQueries:
 
         wm = WorldModel(_Repo())
         try:
-            assert [claim["id"] for claim in wm.claims_for("concept2")] == ["measurement1"]
-            assert [claim["id"] for claim in wm.claims_for("concept2")] == ["measurement1"]
+            assert [str(claim.claim_id) for claim in wm.claims_for("concept2")] == ["measurement1"]
+            assert [str(claim.claim_id) for claim in wm.claims_for("concept2")] == ["measurement1"]
         finally:
             wm.close()
 
@@ -1598,7 +1600,7 @@ class TestHypothesisProperties:
             assert _claim_artifact("test_paper_alpha", "claim5") in active_ids, f"claim5 not active under {binding}"
 
     def test_partitioning(self, world):
-        all_claims = {c["id"] for c in world.claims_for(None)}
+        all_claims = {str(c.claim_id) for c in world.claims_for(None)}
         for binding in [{}, {"task": "speech"}, {"task": "singing"}, {"task": "whisper"}]:
             bound = world.bind(**binding)
             active = {c["id"] for c in bound.active_claims()}
@@ -2573,6 +2575,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         bound = world.bind(task="speech")
         restored_claim = world.get_claim("claim2")
         assert restored_claim is not None
+        restored = coerce_claim_row(restored_claim)
 
         hypo = HypotheticalWorld(
             bound,
@@ -2580,10 +2583,10 @@ class TestSemanticCorePhase6HypotheticalDeltas:
             add=[
                 SyntheticClaim(
                     id="claim2",
-                    concept_id=restored_claim["concept_id"],
-                    type=restored_claim.get("type") or "parameter",
-                    value=restored_claim["value"],
-                    conditions=json.loads(restored_claim["conditions_cel"]),
+                    concept_id=str(restored.concept_id),
+                    type=restored.claim_type or "parameter",
+                    value=restored.value,
+                    conditions=json.loads(restored.conditions_cel or "[]"),
                 ),
             ],
         )

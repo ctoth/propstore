@@ -8,6 +8,7 @@ from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.core.row_types import coerce_claim_row
 from propstore.opinion import Opinion, discount, from_probability
 from propstore.praf import p_arg_from_claim
 from propstore.sidecar.build import build_sidecar
@@ -277,6 +278,7 @@ def test_world_model_claim_rows_include_calibrated_source_prior(tmp_path: Path) 
         wm.close()
 
     assert claim is not None
-    assert claim["source"]["trust"]["prior_base_rate"] == pytest.approx(0.36)
-    assert p_arg_from_claim(claim) == Opinion.vacuous(a=0.36)
+    claim_data = coerce_claim_row(claim).to_dict()
+    assert claim_data["source"]["trust"]["prior_base_rate"] == pytest.approx(0.36)
+    assert p_arg_from_claim(claim_data) == Opinion.vacuous(a=0.36)
 
