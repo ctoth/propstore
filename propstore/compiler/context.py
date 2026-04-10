@@ -17,7 +17,7 @@ from propstore.core.concepts import (
 )
 from propstore.form_utils import FormDefinition, load_all_forms_path
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
-from propstore.validate import load_concepts
+from propstore.core.concepts import load_concepts
 
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository

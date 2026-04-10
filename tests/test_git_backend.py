@@ -392,7 +392,7 @@ def test_load_concepts_from_git_tree(tmp_path):
         "concepts/test_concept.yaml": yaml.dump(concept_data).encode(),
     }, "add concept")
 
-    from propstore.validate import load_concepts
+    from propstore.core.concepts import load_concepts
     concepts = load_concepts(kr.tree() / "concepts")
     assert len(concepts) == 1
     assert concepts[0].record.primary_logical_id == "testing:test_concept"
@@ -419,7 +419,7 @@ def test_load_claim_files_from_git_tree(tmp_path):
         "claims/test_claims.yaml": yaml.dump(claim_data).encode(),
     }, "add claims")
 
-    from propstore.validate_claims import load_claim_files
+    from propstore.claim_documents import load_claim_files
     claim_files = load_claim_files(kr.tree() / "claims")
     assert len(claim_files) == 1
     assert claim_files[0].data["claims"][0]["id"] == "claim1"
