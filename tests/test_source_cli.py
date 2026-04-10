@@ -464,6 +464,169 @@ def test_propose_concept_rejects_invalid_form(tmp_path: Path) -> None:
     assert "structural" in result.output
 
 
+def test_propose_concept_category_with_values(tmp_path: Path) -> None:
+    """propose-concept --values should store values in form_parameters for category concepts."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+
+    _seed_forms(repo, ["category"])
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--name", "color",
+            "--definition", "A color category.",
+            "--form", "category",
+            "--values", "red,green,blue",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Proposed new concept" in result.output
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    stored = yaml.safe_load(repo.git.read_file("concepts.yaml", commit=branch_tip))
+    concept = stored["concepts"][0]
+    assert concept["local_name"] == "color"
+    assert concept["form"] == "category"
+    assert concept["form_parameters"]["values"] == ["red", "green", "blue"]
+
+
+def test_propose_concept_category_with_values_and_closed(tmp_path: Path) -> None:
+    """--values combined with --closed should set both values and extensible: false."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+
+    _seed_forms(repo, ["category"])
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--name", "status",
+            "--definition", "A status category.",
+            "--form", "category",
+            "--values", "active,inactive",
+            "--closed",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+
+    branch_tip = repo.git.branch_sha("source/demo")
+    stored = yaml.safe_load(repo.git.read_file("concepts.yaml", commit=branch_tip))
+    concept = stored["concepts"][0]
+    assert concept["form_parameters"]["values"] == ["active", "inactive"]
+    assert concept["form_parameters"]["extensible"] is False
+
+
+def test_propose_concept_values_rejected_for_non_category(tmp_path: Path) -> None:
+    """--values on a non-category form should error."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+
+    _seed_forms(repo, ["scalar"])
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--name", "temperature",
+            "--definition", "A temperature measurement.",
+            "--form", "scalar",
+            "--values", "hot,cold",
+        ],
+    )
+
+    assert result.exit_code != 0, result.output
+    assert "only valid with --form=category" in result.output
+
+
+def test_propose_concept_category_without_values_still_works(tmp_path: Path) -> None:
+    """Category concept without --values should still be accepted (backwards compatible)."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+
+    _seed_forms(repo, ["category"])
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--name", "mood",
+            "--definition", "A mood category.",
+            "--form", "category",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Proposed new concept" in result.output
+
+
+def test_propose_concept_values_survive_finalize_and_promote(tmp_path: Path) -> None:
+    """Values set via propose-concept should survive finalize and promote to master."""
+    repo = Repository.init(tmp_path / "knowledge")
+    runner = CliRunner()
+
+    _seed_forms(repo, ["category"])
+
+    init_result = _init_source(runner, repo)
+    assert init_result.exit_code == 0, init_result.output
+
+    propose_result = runner.invoke(
+        cli,
+        [
+            "-C", str(repo.root),
+            "source", "propose-concept", "demo",
+            "--name", "severity",
+            "--definition", "Severity levels.",
+            "--form", "category",
+            "--values", "low,medium,high",
+            "--closed",
+        ],
+    )
+    assert propose_result.exit_code == 0, propose_result.output
+
+    finalize_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "finalize", "demo"],
+    )
+    assert finalize_result.exit_code == 0, finalize_result.output
+
+    promote_result = runner.invoke(
+        cli,
+        ["-C", str(repo.root), "source", "promote", "demo"],
+    )
+    assert promote_result.exit_code == 0, promote_result.output
+
+    # Check that the concept landed on master with values intact
+    master_tip = repo.git.branch_sha("master")
+    concept_files = repo.git.list_dir("concepts", commit=master_tip)
+    severity_file = [f for f in concept_files if "severity" in f]
+    assert severity_file, f"No severity concept file found on master. Files: {concept_files}"
+    concept_data = yaml.safe_load(repo.git.read_file(f"concepts/{severity_file[0]}", commit=master_tip))
+    assert "form_parameters" in concept_data
+    assert concept_data["form_parameters"]["values"] == ["low", "medium", "high"]
+    assert concept_data["form_parameters"]["extensible"] is False
+
+
 def test_add_concepts_batch_rejects_invalid_form(tmp_path: Path) -> None:
     """add-concepts --batch should reject a YAML file with an invalid form name."""
     repo = Repository.init(tmp_path / "knowledge")
