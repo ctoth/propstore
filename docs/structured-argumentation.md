@@ -209,6 +209,91 @@ pks worldline run my-worldline
 
 Extension semantics (grounded, preferred, stable) work identically to the claim-graph backend. The difference is in how the Dung AF is constructed: the `aspic` backend builds it from recursive ASPIC+ arguments with formal preference defeat, rather than from flat claim-row heuristics.
 
+## Goal-Directed Query (Backward Chaining)
+
+The exhaustive `build_arguments()` constructs every possible argument from the knowledge base and rules. For large claim graphs where only one claim's status matters, this is wasteful. `build_arguments_for()` provides goal-directed backward chaining: given a specific conclusion literal, it constructs only the arguments relevant to that conclusion.
+
+### Algorithm
+
+The backward chaining algorithm in `build_arguments_for()` (`propstore/aspic.py`) works top-down from the goal:
+
+1. **Base case**: If the goal literal is in K_n (axioms) or K_p (premises), create a `PremiseArg`.
+2. **Recursive case**: Find all rules whose consequent matches the goal. For each rule, recursively build arguments for every antecedent. Combine sub-arguments via Cartesian product into `StrictArg` or `DefeasibleArg`.
+3. **Attacker discovery** (when `include_attackers=True`): Build arguments for contraries of the goal and of all intermediate conclusions in the goal's argument tree — including rule-name literals for undercutting. A second pass finds counter-attackers for reinstatement.
+4. **Cycle detection**: An `in_progress` set tracks literals currently being resolved. If a literal is encountered again during its own resolution, the recursion returns empty — ASPIC+ arguments are finite trees (Def 5), so cycles are not valid arguments.
+5. **Depth limiting**: `max_depth` (default 10) prevents infinite chains through long rule sequences.
+6. **Memoization**: Results are cached per literal within a single call, avoiding exponential blowup on diamond-shaped rule graphs.
+7. **c-consistency**: The same `is_c_consistent()` filter as forward construction is applied to every candidate argument.
+
+The result uses the same `PremiseArg`/`StrictArg`/`DefeasibleArg` types as `build_arguments()`. The existing `compute_attacks()` and `compute_defeats()` work unchanged on the result.
+
+References: Toni (2014) for ABA backward chaining from claims to assumptions. Besnard & Hunter (2001, Def 6.1, p.215) for argument trees rooted at a specific conclusion. Odekerken (2023) for queryable-driven stability analysis as a complementary technique.
+
+### Correctness Invariant
+
+The fundamental correctness property: **goal-directed arguments are a subset of exhaustive arguments**.
+
+```
+build_arguments_for(system, kb, goal, include_attackers=False) ⊆ build_arguments(system, kb)
+```
+
+Additionally, backward chaining is **complete for the goal literal**: every exhaustive argument whose conclusion is the goal also appears in the goal-directed result. Together these mean the backward result contains *exactly* the exhaustive arguments concluding the goal, plus their sub-arguments.
+
+These properties are verified by Hypothesis property-based tests over randomly generated ASPIC+ systems (`tests/test_backward_chaining.py`).
+
+### Bridge-Level Integration: `query_claim()`
+
+`query_claim()` in `propstore/aspic_bridge.py` provides the claim-graph-level integration. It runs the same T1-T5 translation pipeline as `build_bridge_csaf()`, then replaces the exhaustive `build_arguments()` with `build_arguments_for()` for the queried claim.
+
+```python
+from propstore.aspic_bridge import query_claim
+
+result = query_claim(
+    claim_id="claim_42",
+    active_claims=active_claims,
+    justifications=justifications,
+    stances=stances,
+)
+
+# Result fields:
+result.claim_id          # "claim_42"
+result.goal              # Literal(atom="claim_42", negated=False)
+result.arguments_for     # frozenset of arguments concluding the goal
+result.arguments_against # frozenset of arguments concluding contraries
+result.attacks           # frozenset of Attack objects among relevant arguments
+result.defeats           # frozenset of (attacker, target) pairs after preferences
+```
+
+`ClaimQueryResult` partitions the relevant arguments into `arguments_for` (conclusion matches the goal) and `arguments_against` (all other relevant arguments, including attackers). Attacks and defeats are computed on this focused subset using the same `compute_attacks()` / `compute_defeats()` functions as the full CSAF path.
+
+### Relationship to ATMS
+
+Backward chaining and the ATMS backend answer different questions:
+
+- **Backward chaining** answers "what arguments support or attack this specific claim?" — it constructs the local argument structure.
+- **ATMS stability/relevance** answers "will this claim's status change under future observations?" — it tracks assumption dependencies.
+
+They are complementary. Use `query_claim()` to understand the argumentation structure around a claim. Use `atms-stability` and `atms-relevance` to understand how robust that status is under uncertainty.
+
+### Architecture
+
+```
+query_claim()  ──────────────────────> T1-T5 translation (same as build_bridge_csaf)
+  │                                    │
+  └── build_arguments_for(goal) ◄──────┘  (replaces build_arguments)
+        │
+        ├── _build_backward(goal, 0)        backward chaining from goal
+        ├── _contraries_of(goal, ...)       find contrary literals
+        ├── _build_backward(contraries, 0)  attacker discovery
+        └── _build_backward(counter, 0)     counter-attacker discovery
+        │
+        ▼
+      compute_attacks() / compute_defeats()  (unchanged)
+        │
+        ▼
+      ClaimQueryResult { arguments_for, arguments_against, attacks, defeats }
+```
+
 ## Known Limitations
 
 - **Rule ordering always empty**: `build_preference_config()` sets `rule_order=frozenset()`. Only premise ordering derived from metadata strength vectors has discriminating power. This means two arguments using different defeasible rules but identical premises are preference-incomparable.

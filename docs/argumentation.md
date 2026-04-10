@@ -25,6 +25,10 @@ The bridge layer (`claim_graph.py`) converts raw stances into a Dung AF:
 
 propstore ships multiple reasoning backends at different abstraction levels. The **claim-graph** backend builds a Dung AF over active claim rows using heuristic metadata for preferences. The **structured-projection** and **aspic** backends delegate to `aspic_bridge.py` for full ASPIC+ argument construction (recursive PremiseArg/StrictArg/DefeasibleArg, three-type attack determination per Modgil & Prakken 2018 Def 8, last-link/weakest-link preference defeat per Defs 19-21). See [Structured Argumentation](structured-argumentation.md) for full details. The **praf** backend adds probabilistic argument/defeat acceptance via MC sampling (Li et al. 2012) with Agresti-Coull stopping, DF-QuAD gradual semantics (Freedman et al. 2025), and optional COH enforcement (Hunter & Thimm 2017). See [Probabilistic Argumentation](probabilistic-argumentation.md) for full details. The **atms** backend provides label propagation and bounded replay over the active belief space (de Kleer 1986).
 
+## Goal-directed queries
+
+For querying the argumentation status of a single claim without building the full CSAF, use `query_claim()` from `propstore/aspic_bridge.py`. This uses backward chaining to construct only the arguments relevant to a specific conclusion. See [Structured Argumentation — Goal-Directed Query](structured-argumentation.md#goal-directed-query-backward-chaining) for details.
+
 ## Conflict detection
 
 See [Conflict Detection](conflict-detection.md) for full details.
