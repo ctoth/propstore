@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import ArtifactStore, ParameterizationLookupStore
-from propstore.core.row_types import coerce_concept_row
+from propstore.core.row_types import coerce_claim_row, coerce_concept_row
 from propstore.world.types import DerivedResult, RenderPolicy
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
 from propstore.worldline.trace import ResolutionTrace
@@ -44,18 +43,11 @@ def display_claim_id(world: ArtifactStore, claim_id: str | None) -> str | None:
     getter = getattr(world, "get_claim", None)
     if callable(getter):
         claim = getter(claim_id)
-        if isinstance(claim, Mapping):
-            logical_id = claim.get("logical_id") or claim.get("primary_logical_id")
-            if isinstance(logical_id, str) and logical_id:
-                return logical_id.split(":", 1)[1] if ":" in logical_id else logical_id
-            logical_ids = claim.get("logical_ids")
-            if isinstance(logical_ids, list):
-                for entry in logical_ids:
-                    if not isinstance(entry, Mapping):
-                        continue
-                    value = entry.get("value")
-                    if isinstance(value, str) and value:
-                        return value
+        if claim is not None:
+            row = coerce_claim_row(claim)
+            logical_value = row.primary_logical_value
+            if isinstance(logical_value, str) and logical_value:
+                return logical_value
     return claim_id
 
 

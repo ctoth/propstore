@@ -63,6 +63,7 @@ from propstore.probabilistic_relations import (
     ProbabilisticRelation,
     relation_from_row,
 )
+from propstore.core.row_types import ClaimRow, ClaimRowInput, coerce_claim_row
 
 @dataclass(frozen=True)
 class ProbabilisticAF:
@@ -125,8 +126,8 @@ class PrAFResult:
             )
 
 
-def p_arg_from_claim(claim: dict) -> Opinion:
-    """Hook: derive P_A from a claim dict.
+def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion:
+    """Hook: derive P_A from a claim row or legacy claim dict.
 
     Legacy fallback: Opinion.dogmatic_true() when no structured calibration
     fields are present.
@@ -136,6 +137,42 @@ def p_arg_from_claim(claim: dict) -> Opinion:
     2. claim evidence -> from_probability(p, n, a=prior) when present
     3. source-quality discount -> discount(trust, claim_opinion) when present
     """
+    if isinstance(claim, ClaimRow):
+        source_trust = None if claim.source is None else claim.source.trust
+        prior_base_rate = (
+            None if source_trust is None else source_trust.prior_base_rate
+        )
+        claim_probability = claim.attributes.get("claim_probability")
+        effective_sample_size = claim.attributes.get("effective_sample_size", claim.sample_size)
+        if claim_probability is None and claim.attributes.get("confidence") is not None:
+            claim_probability = claim.attributes.get("confidence")
+        quality_opinion = None if source_trust is None else source_trust.quality
+
+        has_structured_fields = (
+            prior_base_rate is not None
+            or claim_probability is not None
+            or quality_opinion is not None
+        )
+        if not has_structured_fields:
+            return Opinion.dogmatic_true()
+
+        prior = 0.5 if prior_base_rate is None else float(prior_base_rate)
+        omega_prior = Opinion.vacuous(a=prior)
+        if claim_probability is not None and effective_sample_size is not None:
+            omega_claim = from_probability(float(claim_probability), float(effective_sample_size), prior)
+        else:
+            omega_claim = omega_prior
+        if quality_opinion is None:
+            return omega_claim
+        return discount(quality_opinion, omega_claim)
+
+    if not isinstance(claim, dict):
+        try:
+            claim = coerce_claim_row(claim)
+        except Exception:
+            return Opinion.dogmatic_true()
+        return p_arg_from_claim(claim)
+
     if not isinstance(claim, dict):
         return Opinion.dogmatic_true()
 

@@ -7,11 +7,18 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.core.claim_values import (
+    ClaimProvenance,
+    ClaimSource,
+    SourceOrigin,
+    SourceTrust,
+)
 from propstore.core.id_types import (
     ClaimId,
     ConceptId,
     ContextId,
     JustificationId,
+    LogicalId,
     to_claim_id,
     to_concept_id,
     to_context_id,
@@ -172,8 +179,7 @@ class ClaimRow:
     claim_type: str | None = None
     concept_id: ConceptId | None = None
     target_concept: ConceptId | None = None
-    primary_logical_id: str | None = None
-    logical_ids_json: str | None = None
+    logical_ids: tuple[LogicalId, ...] = field(default_factory=tuple)
     version_id: str | None = None
     seq: int | None = None
     value: Any = None
@@ -199,19 +205,8 @@ class ClaimRow:
     canonical_ast: str | None = None
     variables_json: str | None = None
     stage: str | None = None
-    source_slug: str | None = None
-    source_paper: str | None = None
-    source_id: str | None = None
-    source_kind: str | None = None
-    source_origin_type: str | None = None
-    source_origin_value: str | None = None
-    source_origin_retrieved: str | None = None
-    source_origin_content_ref: str | None = None
-    source_prior_base_rate: float | None = None
-    source_quality_json: str | None = None
-    source_derived_from_json: str | None = None
-    provenance_page: int | None = None
-    provenance_json: str | None = None
+    source: ClaimSource | None = None
+    provenance: ClaimProvenance | None = None
     value_si: float | None = None
     lower_bound_si: float | None = None
     upper_bound_si: float | None = None
@@ -232,8 +227,8 @@ class ClaimRow:
             "target_concept",
             "primary_logical_id",
             "logical_id",
-            "logical_ids_json",
             "logical_ids",
+            "logical_ids_json",
             "version_id",
             "seq",
             "value",
@@ -260,6 +255,7 @@ class ClaimRow:
             "variables_json",
             "stage",
             "source_slug",
+            "source_quality_opinion",
             "source_paper",
             "source_id",
             "source_kind",
@@ -269,7 +265,6 @@ class ClaimRow:
             "source_origin_content_ref",
             "source_prior_base_rate",
             "source_quality_json",
-            "source_quality_opinion",
             "source_derived_from_json",
             "provenance_page",
             "provenance_json",
@@ -284,48 +279,106 @@ class ClaimRow:
             for key, value in row_map.items()
             if key not in known and value is not None
         }
-        source = row_map.get("source")
-        source_origin = source.get("origin") if isinstance(source, Mapping) else None
-        source_trust = source.get("trust") if isinstance(source, Mapping) else None
-        logical_ids_json = row_map.get("logical_ids_json")
-        if logical_ids_json is None and isinstance(row_map.get("logical_ids"), list):
-            logical_ids_json = json.dumps(row_map["logical_ids"])
-        source_quality_json = row_map.get("source_quality_json")
-        if source_quality_json is None:
-            quality = row_map.get("source_quality_opinion")
-            if quality is None and isinstance(source_trust, Mapping):
-                quality = source_trust.get("quality")
-            if isinstance(quality, Mapping):
-                source_quality_json = json.dumps(dict(quality))
-        source_derived_from_json = row_map.get("source_derived_from_json")
-        if source_derived_from_json is None and isinstance(source_trust, Mapping):
-            derived_from = source_trust.get("derived_from")
-            if isinstance(derived_from, list):
-                source_derived_from_json = json.dumps(derived_from)
         artifact_id = row_map.get("artifact_id", row_map.get("id"))
         if artifact_id is None:
             raise KeyError("id")
-        source_id = row_map.get("source_id")
-        if source_id is None and isinstance(source, Mapping):
-            source_id = source.get("id")
-        source_kind = row_map.get("source_kind")
-        if source_kind is None and isinstance(source, Mapping):
-            source_kind = source.get("kind")
-        source_origin_type = row_map.get("source_origin_type")
-        if source_origin_type is None and isinstance(source_origin, Mapping):
-            source_origin_type = source_origin.get("type")
-        source_origin_value = row_map.get("source_origin_value")
-        if source_origin_value is None and isinstance(source_origin, Mapping):
-            source_origin_value = source_origin.get("value")
-        source_origin_retrieved = row_map.get("source_origin_retrieved")
-        if source_origin_retrieved is None and isinstance(source_origin, Mapping):
-            source_origin_retrieved = source_origin.get("retrieved")
-        source_origin_content_ref = row_map.get("source_origin_content_ref")
-        if source_origin_content_ref is None and isinstance(source_origin, Mapping):
-            source_origin_content_ref = source_origin.get("content_ref")
-        source_prior_base_rate = row_map.get("source_prior_base_rate")
-        if source_prior_base_rate is None and isinstance(source_trust, Mapping):
-            source_prior_base_rate = source_trust.get("prior_base_rate")
+        logical_id_entries = row_map.get("logical_ids")
+        logical_ids_json = row_map.get("logical_ids_json")
+        if logical_id_entries is None and isinstance(logical_ids_json, str) and logical_ids_json:
+            try:
+                logical_id_entries = json.loads(logical_ids_json)
+            except json.JSONDecodeError:
+                logical_id_entries = None
+        logical_ids: list[LogicalId] = []
+        if isinstance(logical_id_entries, list):
+            for entry in logical_id_entries:
+                if not isinstance(entry, Mapping):
+                    continue
+                namespace = entry.get("namespace")
+                value = entry.get("value")
+                if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
+                    logical_ids.append(LogicalId(namespace=namespace, value=value))
+        primary_logical_id = row_map.get("primary_logical_id", row_map.get("logical_id"))
+        if not logical_ids and isinstance(primary_logical_id, str) and ":" in primary_logical_id:
+            namespace, value = primary_logical_id.split(":", 1)
+            if namespace and value:
+                logical_ids.append(LogicalId(namespace=namespace, value=value))
+
+        nested_source = row_map.get("source") if isinstance(row_map.get("source"), Mapping) else None
+        flat_source = ClaimSource(
+            source_id=(None if row_map.get("source_id") is None else str(row_map["source_id"])),
+            kind=(None if row_map.get("source_kind") is None else str(row_map["source_kind"])),
+            slug=(None if row_map.get("source_slug") is None else str(row_map["source_slug"])),
+            origin=SourceOrigin(
+                origin_type=(
+                    None
+                    if row_map.get("source_origin_type") is None
+                    else str(row_map["source_origin_type"])
+                ),
+                value=(
+                    None
+                    if row_map.get("source_origin_value") is None
+                    else str(row_map["source_origin_value"])
+                ),
+                retrieved=(
+                    None
+                    if row_map.get("source_origin_retrieved") is None
+                    else str(row_map["source_origin_retrieved"])
+                ),
+                content_ref=(
+                    None
+                    if row_map.get("source_origin_content_ref") is None
+                    else str(row_map["source_origin_content_ref"])
+                ),
+            ),
+            trust=SourceTrust(
+                prior_base_rate=(
+                    None
+                    if row_map.get("source_prior_base_rate") is None
+                    else float(row_map["source_prior_base_rate"])
+                ),
+                quality=SourceTrust.from_mapping(
+                    {"quality": row_map.get("source_quality_json") or row_map.get("source_quality_opinion")}
+                ).quality
+                if row_map.get("source_quality_json") is not None or row_map.get("source_quality_opinion") is not None
+                else None,
+                derived_from=SourceTrust.from_mapping(
+                    {"derived_from": row_map.get("source_derived_from_json")}
+                ).derived_from
+                if row_map.get("source_derived_from_json") is not None
+                else (),
+            ),
+        )
+        source = ClaimSource.from_mapping(nested_source, slug=flat_source.slug)
+        if source is None and not flat_source.is_empty:
+            source = ClaimSource(
+                source_id=flat_source.source_id,
+                kind=flat_source.kind,
+                slug=flat_source.slug,
+                origin=None if flat_source.origin is None or flat_source.origin.is_empty else flat_source.origin,
+                trust=None if flat_source.trust is None or flat_source.trust.is_empty else flat_source.trust,
+            )
+        elif source is not None:
+            source = ClaimSource(
+                source_id=source.source_id if source.source_id is not None else flat_source.source_id,
+                kind=source.kind if source.kind is not None else flat_source.kind,
+                slug=source.slug if source.slug is not None else flat_source.slug,
+                origin=source.origin if source.origin is not None else (
+                    None if flat_source.origin is None or flat_source.origin.is_empty else flat_source.origin
+                ),
+                trust=source.trust if source.trust is not None else (
+                    None if flat_source.trust is None or flat_source.trust.is_empty else flat_source.trust
+                ),
+            )
+        provenance = ClaimProvenance.from_components(
+            paper=(
+                None if row_map.get("source_paper") is None else str(row_map["source_paper"])
+            ),
+            page=(
+                None if row_map.get("provenance_page") is None else int(row_map["provenance_page"])
+            ),
+            provenance_json=row_map.get("provenance_json"),
+        )
         return cls(
             claim_id=to_claim_id(row_map["id"]),
             artifact_id=str(artifact_id),
@@ -342,12 +395,7 @@ class ClaimRow:
                 if row_map.get("target_concept") is None
                 else to_concept_id(row_map["target_concept"])
             ),
-            primary_logical_id=(
-                None
-                if row_map.get("primary_logical_id", row_map.get("logical_id")) is None
-                else str(row_map.get("primary_logical_id", row_map.get("logical_id")))
-            ),
-            logical_ids_json=None if logical_ids_json is None else str(logical_ids_json),
+            logical_ids=tuple(logical_ids),
             version_id=None if row_map.get("version_id") is None else str(row_map["version_id"]),
             seq=None if row_map.get("seq") is None else int(row_map["seq"]),
             value=row_map.get("value"),
@@ -403,39 +451,8 @@ class ClaimRow:
                 None if row_map.get("variables_json") is None else str(row_map["variables_json"])
             ),
             stage=None if row_map.get("stage") is None else str(row_map["stage"]),
-            source_slug=None if row_map.get("source_slug") is None else str(row_map["source_slug"]),
-            source_paper=(
-                None if row_map.get("source_paper") is None else str(row_map["source_paper"])
-            ),
-            source_id=None if source_id is None else str(source_id),
-            source_kind=None if source_kind is None else str(source_kind),
-            source_origin_type=(
-                None if source_origin_type is None else str(source_origin_type)
-            ),
-            source_origin_value=(
-                None if source_origin_value is None else str(source_origin_value)
-            ),
-            source_origin_retrieved=(
-                None if source_origin_retrieved is None else str(source_origin_retrieved)
-            ),
-            source_origin_content_ref=(
-                None if source_origin_content_ref is None else str(source_origin_content_ref)
-            ),
-            source_prior_base_rate=(
-                None if source_prior_base_rate is None else float(source_prior_base_rate)
-            ),
-            source_quality_json=(
-                None if source_quality_json is None else str(source_quality_json)
-            ),
-            source_derived_from_json=(
-                None if source_derived_from_json is None else str(source_derived_from_json)
-            ),
-            provenance_page=(
-                None if row_map.get("provenance_page") is None else int(row_map["provenance_page"])
-            ),
-            provenance_json=(
-                None if row_map.get("provenance_json") is None else str(row_map["provenance_json"])
-            ),
+            source=source,
+            provenance=provenance,
             value_si=None if row_map.get("value_si") is None else float(row_map["value_si"]),
             lower_bound_si=(
                 None if row_map.get("lower_bound_si") is None else float(row_map["lower_bound_si"])
@@ -449,74 +466,53 @@ class ClaimRow:
             attributes=attributes,
         )
 
-    def parsed_logical_ids(self) -> list[dict[str, Any]]:
-        if not self.logical_ids_json:
-            return []
-        try:
-            loaded = json.loads(self.logical_ids_json)
-        except json.JSONDecodeError:
-            return []
-        return loaded if isinstance(loaded, list) else []
-
-    def parsed_source_quality(self) -> Mapping[str, Any] | None:
-        if not self.source_quality_json:
+    @property
+    def primary_logical_id(self) -> str | None:
+        if not self.logical_ids:
             return None
-        try:
-            loaded = json.loads(self.source_quality_json)
-        except json.JSONDecodeError:
-            return None
-        return dict(loaded) if isinstance(loaded, Mapping) else None
+        return self.logical_ids[0].formatted
 
-    def parsed_source_derived_from(self) -> list[Any]:
-        if not self.source_derived_from_json:
-            return []
-        try:
-            loaded = json.loads(self.source_derived_from_json)
-        except json.JSONDecodeError:
-            return []
-        return loaded if isinstance(loaded, list) else []
-
-    def source_dict(self) -> dict[str, Any] | None:
-        if not any(
-            value is not None
-            for value in (
-                self.source_id,
-                self.source_kind,
-                self.source_origin_type,
-                self.source_origin_value,
-                self.source_origin_retrieved,
-                self.source_origin_content_ref,
-                self.source_prior_base_rate,
-                self.source_quality_json,
-                self.source_derived_from_json,
-            )
-        ):
+    @property
+    def primary_logical_value(self) -> str | None:
+        if not self.logical_ids:
             return None
-        quality = self.parsed_source_quality()
-        return {
-            "id": self.source_id,
-            "kind": self.source_kind,
-            "origin": {
-                "type": self.source_origin_type,
-                "value": self.source_origin_value,
-                "retrieved": self.source_origin_retrieved,
-                "content_ref": self.source_origin_content_ref,
-            },
-            "trust": {
-                "prior_base_rate": self.source_prior_base_rate,
-                "quality": quality,
-                "derived_from": self.parsed_source_derived_from(),
-            },
-        }
+        return self.logical_ids[0].value
+
+    @property
+    def source_paper(self) -> str | None:
+        return None if self.provenance is None else self.provenance.paper
+
+    @property
+    def provenance_page(self) -> int | None:
+        return None if self.provenance is None else self.provenance.page
+
+    @property
+    def source_slug(self) -> str | None:
+        return None if self.source is None else self.source.slug
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "id": self.claim_id,
             "artifact_id": self.artifact_id,
         }
+        logical_ids_payload = [logical_id.to_payload() for logical_id in self.logical_ids]
+        logical_ids_json = json.dumps(logical_ids_payload) if logical_ids_payload else None
+        source_dict = None if self.source is None or self.source.is_empty else self.source.to_dict()
+        provenance_json = None if self.provenance is None else self.provenance.to_json()
+        provenance_page = None if self.provenance is None else self.provenance.page
+        source_paper = None if self.provenance is None else self.provenance.paper
+        source_quality = (
+            None
+            if self.source is None or self.source.trust is None
+            else self.source.trust.quality_dict()
+        )
+        source_derived_from = (
+            None
+            if self.source is None or self.source.trust is None or not self.source.trust.derived_from
+            else json.dumps(list(self.source.trust.derived_from))
+        )
         optional_fields = {
             "primary_logical_id": self.primary_logical_id,
-            "logical_ids_json": self.logical_ids_json,
             "version_id": self.version_id,
             "seq": self.seq,
             "type": self.claim_type,
@@ -545,19 +541,41 @@ class ClaimRow:
             "canonical_ast": self.canonical_ast,
             "variables_json": self.variables_json,
             "stage": self.stage,
-            "source_slug": self.source_slug,
-            "source_paper": self.source_paper,
-            "source_id": self.source_id,
-            "source_kind": self.source_kind,
-            "source_origin_type": self.source_origin_type,
-            "source_origin_value": self.source_origin_value,
-            "source_origin_retrieved": self.source_origin_retrieved,
-            "source_origin_content_ref": self.source_origin_content_ref,
-            "source_prior_base_rate": self.source_prior_base_rate,
-            "source_quality_json": self.source_quality_json,
-            "source_derived_from_json": self.source_derived_from_json,
-            "provenance_page": self.provenance_page,
-            "provenance_json": self.provenance_json,
+            "source_slug": None if self.source is None else self.source.slug,
+            "source_paper": source_paper,
+            "source_id": None if self.source is None else self.source.source_id,
+            "source_kind": None if self.source is None else self.source.kind,
+            "source_origin_type": (
+                None
+                if self.source is None or self.source.origin is None
+                else self.source.origin.origin_type
+            ),
+            "source_origin_value": (
+                None
+                if self.source is None or self.source.origin is None
+                else self.source.origin.value
+            ),
+            "source_origin_retrieved": (
+                None
+                if self.source is None or self.source.origin is None
+                else self.source.origin.retrieved
+            ),
+            "source_origin_content_ref": (
+                None
+                if self.source is None or self.source.origin is None
+                else self.source.origin.content_ref
+            ),
+            "source_prior_base_rate": (
+                None
+                if self.source is None or self.source.trust is None
+                else self.source.trust.prior_base_rate
+            ),
+            "source_quality_json": (
+                None if source_quality is None else json.dumps(source_quality)
+            ),
+            "source_derived_from_json": source_derived_from,
+            "provenance_page": provenance_page,
+            "provenance_json": provenance_json,
             "value_si": self.value_si,
             "lower_bound_si": self.lower_bound_si,
             "upper_bound_si": self.upper_bound_si,
@@ -567,13 +585,11 @@ class ClaimRow:
             if value is not None:
                 data[key] = value
         data["logical_id"] = self.primary_logical_id
-        data["logical_ids"] = self.parsed_logical_ids()
-        source = self.source_dict()
-        if source is not None:
-            data["source"] = source
-            quality = source["trust"].get("quality")
-            if quality is not None:
-                data["source_quality_opinion"] = quality
+        data["logical_ids"] = logical_ids_payload
+        if source_dict is not None:
+            data["source"] = source_dict
+        if source_quality is not None:
+            data["source_quality_opinion"] = source_quality
         data.update(self.attributes)
         return data
 
