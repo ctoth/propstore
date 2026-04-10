@@ -50,6 +50,7 @@ _KIND_TYPE_MAP = {
     "boolean": KindType.BOOLEAN,
     "structural": KindType.STRUCTURAL,
     "quantity": KindType.QUANTITY,
+    "timepoint": KindType.TIMEPOINT,
 }
 
 _REQUIRED_SCHEMA: dict[str, set[str]] = {

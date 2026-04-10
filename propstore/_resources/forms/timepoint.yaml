@@ -1,0 +1,9 @@
+name: timepoint
+kind: timepoint
+dimensionless: true
+note: >
+  Temporal position as epoch seconds (UTC). Semantically distinct from quantity
+  for validation and UI — backed by z3.Real for constraint solving. Supports
+  CEL conditions like valid_from >= 1609459200 and temporal disjointness
+  checking via Z3. Following McCarthy 1993: temporal specialization is context
+  specialization.
