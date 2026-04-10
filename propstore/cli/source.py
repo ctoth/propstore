@@ -267,11 +267,13 @@ def add_concepts(obj: dict, name: str, batch_file: Path) -> None:
 @source.command("add-claim")
 @click.argument("name")
 @click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--reader", required=False, help="Who extracted these claims (human name or model ID)")
+@click.option("--method", required=False, help="Extraction method (skill name, 'manual', etc.)")
 @click.pass_obj
-def add_claim(obj: dict, name: str, batch_file: Path) -> None:
+def add_claim(obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None) -> None:
     repo: Repository = obj["repo"]
     try:
-        commit_source_claims_batch(repo, name, batch_file)
+        commit_source_claims_batch(repo, name, batch_file, reader=reader, method=method)
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(f"Wrote claims to {source_branch_name(name)}")
@@ -281,11 +283,13 @@ def add_claim(obj: dict, name: str, batch_file: Path) -> None:
 @source.command("add-justification")
 @click.argument("name")
 @click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--reader", required=False, help="Who extracted these justifications (human name or model ID)")
+@click.option("--method", required=False, help="Extraction method (skill name, 'manual', etc.)")
 @click.pass_obj
-def add_justification(obj: dict, name: str, batch_file: Path) -> None:
+def add_justification(obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None) -> None:
     repo: Repository = obj["repo"]
     try:
-        commit_source_justifications_batch(repo, name, batch_file)
+        commit_source_justifications_batch(repo, name, batch_file, reader=reader, method=method)
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(f"Wrote justifications to {source_branch_name(name)}")
@@ -295,11 +299,13 @@ def add_justification(obj: dict, name: str, batch_file: Path) -> None:
 @source.command("add-stance")
 @click.argument("name")
 @click.option("--batch", "batch_file", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--reader", required=False, help="Who extracted these stances (human name or model ID)")
+@click.option("--method", required=False, help="Extraction method (skill name, 'manual', etc.)")
 @click.pass_obj
-def add_stance(obj: dict, name: str, batch_file: Path) -> None:
+def add_stance(obj: dict, name: str, batch_file: Path, reader: str | None, method: str | None) -> None:
     repo: Repository = obj["repo"]
     try:
-        commit_source_stances_batch(repo, name, batch_file)
+        commit_source_stances_batch(repo, name, batch_file, reader=reader, method=method)
     except ValueError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(f"Wrote stances to {source_branch_name(name)}")
@@ -356,6 +362,10 @@ def stamp_provenance(
     skill_name: str,
     plugin_version: str | None,
 ) -> None:
-    """Stamp extraction provenance onto a pipeline artifact."""
+    """Stamp extraction provenance onto a pipeline artifact.
+
+    DEPRECATED: Use --reader/--method flags on add-claim, add-justification,
+    add-stance instead. Provenance is now stored on the source branch directly.
+    """
     stamp_file(file_path, agent=agent, skill=skill_name, plugin_version=plugin_version)
     click.echo(f"Stamped provenance on {file_path}")

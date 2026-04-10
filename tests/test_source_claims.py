@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 
 import yaml
@@ -9,7 +10,7 @@ from hypothesis import strategies as st
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
-from propstore.document_schema import convert_document_value
+from propstore.document_schema import convert_document_value, decode_document_path
 from propstore.source import normalize_source_claims_payload
 from propstore.source_documents import SourceClaimsDocument
 
@@ -315,3 +316,30 @@ def test_promoted_claims_conform_to_master_schema(tmp_path: Path) -> None:
             f"Promoted claim carries source-branch-only fields: {source_only_present}. "
             f"These must be stripped during promotion to conform to the claim JSON schema."
         )
+
+
+def test_claims_document_produced_by_roundtrip(tmp_path: Path) -> None:
+    """produced_by field survives decode -> to_payload round-trip."""
+    claims_yaml = tmp_path / "claims.yaml"
+    claims_yaml.write_text(textwrap.dedent("""\
+        source:
+          paper: test_paper
+        produced_by:
+          reader: "test-agent"
+          method: "manual"
+        claims:
+          - id: claim1
+            type: observation
+            statement: "Test claim"
+            concepts: []
+            provenance:
+              paper: test_paper
+              page: 1
+    """))
+    doc = decode_document_path(claims_yaml, SourceClaimsDocument)
+    assert doc.produced_by is not None
+    assert doc.produced_by.reader == "test-agent"
+    assert doc.produced_by.method == "manual"
+    payload = doc.to_payload()
+    assert "produced_by" in payload
+    assert payload["produced_by"]["reader"] == "test-agent"
