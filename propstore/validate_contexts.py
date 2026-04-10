@@ -9,7 +9,7 @@ from propstore.context_types import (
     coerce_loaded_contexts,
 )
 from propstore.document_schema import load_document
-from propstore.validate import ValidationResult
+from propstore.diagnostics import ValidationResult
 
 from typing import TYPE_CHECKING
 

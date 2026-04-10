@@ -15,7 +15,7 @@ from propstore.compiler.context import (
     _build_claim_lookup,
     concept_registry_for_context,
 )
-from propstore.compiler.diagnostics import SemanticDiagnostic
+from propstore.diagnostics import SemanticDiagnostic, ValidationResult
 from propstore.compiler.ir import (
     ClaimCompilationBundle,
     ResolvedReference,
@@ -28,7 +28,6 @@ from propstore.identity import (
     CLAIM_VERSION_ID_RE,
     compute_claim_version_id,
 )
-from propstore.validate import ValidationResult
 
 
 def _diagnostics_from_validation_result(

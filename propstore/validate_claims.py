@@ -49,8 +49,8 @@ from propstore.identity import (
     normalize_claim_file_payload,
 )
 from propstore.knowledge_path import coerce_knowledge_path
+from propstore.diagnostics import ValidationResult
 from propstore.validate import (
-    ValidationResult,
     load_concepts,
     load_yaml_dir,
 )

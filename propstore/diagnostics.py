@@ -1,10 +1,18 @@
-"""Structured diagnostics for claim compilation."""
+"""Shared diagnostic types for validation and compilation."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from propstore.validate import ValidationResult
+
+@dataclass
+class ValidationResult:
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return len(self.errors) == 0
 
 
 @dataclass(frozen=True)
