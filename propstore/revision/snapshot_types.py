@@ -11,7 +11,17 @@ from propstore.revision.explanation_types import (
     coerce_entrenchment_reason,
     coerce_revision_atom_detail,
 )
-from propstore.revision.state import BeliefAtom, BeliefBase, EpistemicState, RevisionEpisode, RevisionScope
+from propstore.revision.state import (
+    AssumptionAtomPayload,
+    BeliefAtom,
+    BeliefBase,
+    ClaimAtomPayload,
+    EpistemicState,
+    RevisionEpisode,
+    RevisionScope,
+    assumption_atom_payload,
+    claim_atom_payload,
+)
 
 
 def _environment_key_from_mapping(data: Mapping[str, Any]) -> EnvironmentKey:
@@ -91,19 +101,38 @@ def _scope_to_dict(scope: RevisionScope) -> dict[str, Any]:
 
 
 def _belief_atom_from_mapping(data: Mapping[str, Any]) -> BeliefAtom:
+    kind = str(data.get("kind") or "")
+    payload_data = data.get("payload")
     return BeliefAtom(
         atom_id=str(data.get("atom_id") or ""),
-        kind=str(data.get("kind") or ""),
-        payload=dict(data.get("payload") or {}),
+        kind=kind,
+        payload=(
+            ClaimAtomPayload.from_input(payload_data)
+            if kind == "claim" and isinstance(payload_data, Mapping)
+            else AssumptionAtomPayload(
+                assumption_id=str(payload_data.get("assumption_id") or payload_data.get("id") or ""),
+                cel=None if not isinstance(payload_data, Mapping) or payload_data.get("cel") is None else str(payload_data.get("cel")),
+                kind=None if not isinstance(payload_data, Mapping) or payload_data.get("kind") is None else str(payload_data.get("kind")),
+                source=None if not isinstance(payload_data, Mapping) or payload_data.get("source") is None else str(payload_data.get("source")),
+            )
+        ),
         label=_label_from_mapping(data.get("label") if isinstance(data.get("label"), Mapping) else None),
     )
 
 
 def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
+    claim_payload = claim_atom_payload(atom)
+    assumption_payload = assumption_atom_payload(atom)
     data: dict[str, Any] = {
         "atom_id": atom.atom_id,
         "kind": atom.kind,
-        "payload": dict(atom.payload),
+        "payload": (
+            claim_payload.to_dict()
+            if claim_payload is not None
+            else {}
+            if assumption_payload is None
+            else assumption_payload.to_dict()
+        ),
     }
     label = _label_to_dict(atom.label)
     if label is not None:

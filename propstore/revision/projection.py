@@ -4,7 +4,7 @@ from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import AssumptionId, to_claim_id
 from propstore.core.labels import SupportQuality
 
-from propstore.revision.state import BeliefAtom, BeliefBase, RevisionScope
+from propstore.revision.state import BeliefAtom, BeliefBase, ClaimAtomPayload, RevisionScope
 
 
 def _claim_atom_id(claim: ActiveClaim) -> str | None:
@@ -62,7 +62,7 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
             BeliefAtom(
                 atom_id=atom_id,
                 kind="claim",
-                payload=claim.to_dict(),
+                payload=ClaimAtomPayload.from_input(claim),
                 label=label,
             )
         )

@@ -136,8 +136,8 @@ def test_normalize_revision_input_builds_synthetic_claim_atoms() -> None:
 
     assert atom.atom_id == "claim:new"
     assert atom.kind == "claim"
-    assert atom.payload["id"] == "new"
-    assert atom.payload["value"] == 3.0
+    assert atom.payload.claim_id == "new"
+    assert atom.payload.claim.value == 3.0
 
 
 def test_normalize_revision_input_builds_assumption_atoms() -> None:
@@ -156,8 +156,8 @@ def test_normalize_revision_input_builds_assumption_atoms() -> None:
 
     assert atom.atom_id == "assumption:queryable:extra"
     assert atom.kind == "assumption"
-    assert atom.payload["assumption_id"] == "queryable:extra"
-    assert atom.payload["cel"] == "x == 2"
+    assert atom.payload.assumption_id == "queryable:extra"
+    assert atom.payload.cel == "x == 2"
 
 
 def test_expand_accepts_synthetic_claim_mapping_via_adapter() -> None:

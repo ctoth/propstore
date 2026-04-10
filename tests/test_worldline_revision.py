@@ -182,14 +182,15 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     assert result.revision.result is not None
     assert result.revision.result.accepted_atom_ids == one_shot_result.accepted_atom_ids
     assert result.revision.result.rejected_atom_ids == one_shot_result.rejected_atom_ids
-    assert bound.calls == [
-        (
-            "revise",
-            {"kind": "claim", "id": "synthetic", "value": 9.0},
-            {"claim:synthetic": ("claim:legacy",)},
-            None,
-        )
-    ]
+    assert len(bound.calls) == 1
+    call_operation, call_atom, call_conflicts, call_operator = bound.calls[0]
+    assert call_operation == "revise"
+    assert call_atom.atom_id == "claim:synthetic"
+    assert call_atom.kind == "claim"
+    assert call_atom.payload.claim_id == "synthetic"
+    assert call_atom.payload.claim.value == 9.0
+    assert call_conflicts == {"claim:synthetic": ("claim:legacy",)}
+    assert call_operator is None
 
 
 def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> None:
@@ -242,14 +243,15 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     assert result.revision.operation == "iterated_revise"
     assert result.revision.state is not None
     assert result.revision.state.to_dict() == epistemic_state_payload(iterated_result[1])
-    assert bound.calls == [
-        (
-            "iterated_revise",
-            {"kind": "claim", "id": "new", "value": 9.0},
-            {"claim:new": ("claim:legacy",)},
-            "restrained",
-        )
-    ]
+    assert len(bound.calls) == 1
+    call_operation, call_atom, call_conflicts, call_operator = bound.calls[0]
+    assert call_operation == "iterated_revise"
+    assert call_atom.atom_id == "claim:new"
+    assert call_atom.kind == "claim"
+    assert call_atom.payload.claim_id == "new"
+    assert call_atom.payload.claim.value == 9.0
+    assert call_conflicts == {"claim:new": ("claim:legacy",)}
+    assert call_operator == "restrained"
 
 
 def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> None:

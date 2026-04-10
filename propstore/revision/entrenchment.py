@@ -10,7 +10,7 @@ from propstore.revision.explanation_types import (
     coerce_entrenchment_reason,
     _coerce_override_priority,
 )
-from propstore.revision.state import BeliefBase
+from propstore.revision.state import BeliefBase, claim_atom_payload
 
 
 @dataclass(frozen=True)
@@ -107,15 +107,16 @@ def _match_override(
 
 
 def _override_source_ids(atom) -> tuple[str, ...]:
-    payload = dict(atom.payload)
-    nested_source = payload.get("source")
-    provenance = payload.get("provenance")
+    payload = claim_atom_payload(atom)
+    if payload is None:
+        return ()
+
+    source = payload.claim.source
+    provenance = payload.claim.provenance
     candidates = (
-        payload.get("source_paper"),
-        payload.get("source_id"),
-        nested_source.get("paper") if isinstance(nested_source, Mapping) else None,
-        nested_source.get("id") if isinstance(nested_source, Mapping) else None,
-        provenance.get("paper") if isinstance(provenance, Mapping) else None,
-        provenance.get("source_id") if isinstance(provenance, Mapping) else None,
+        payload.claim.source_paper,
+        None if source is None else source.source_id,
+        None if source is None else source.slug,
+        None if provenance is None else provenance.paper,
     )
     return tuple(str(value) for value in candidates if value)

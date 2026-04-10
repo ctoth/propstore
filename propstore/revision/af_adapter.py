@@ -15,6 +15,7 @@ from propstore.core.row_types import (
 )
 from propstore.revision.state import EpistemicState
 from propstore.core.labels import Label, SupportQuality
+from propstore.revision.state import claim_atom_payload
 
 
 @dataclass(frozen=True)
@@ -120,12 +121,12 @@ def project_epistemic_state_argumentation_view(
     for atom in state.base.atoms:
         if atom.atom_id not in accepted_set or atom.kind != "claim":
             continue
-        claim_id = _claim_id(atom)
-        if claim_id is None:
+        payload = claim_atom_payload(atom)
+        if payload is None:
             continue
-        claim = dict(atom.payload)
-        claim["id"] = claim_id
-        active_claims.append(coerce_active_claim(claim))
+        claim = payload.claim
+        claim_id = str(claim.claim_id)
+        active_claims.append(claim)
         if atom.label is not None:
             support_metadata[claim_id] = (atom.label, SupportQuality.EXACT)
 
@@ -140,9 +141,9 @@ def project_epistemic_state_argumentation_view(
 
 
 def _claim_id(atom) -> str | None:
-    payload_id = atom.payload.get("id")
-    if payload_id:
-        return str(payload_id)
+    payload = claim_atom_payload(atom)
+    if payload is not None:
+        return payload.claim_id
     prefix, _, suffix = atom.atom_id.partition(":")
     if prefix == "claim" and suffix:
         return suffix
