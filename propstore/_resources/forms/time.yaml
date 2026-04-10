@@ -14,3 +14,15 @@ common_alternatives:
 - unit: h
   type: multiplicative
   multiplier: 3600
+- unit: d
+  type: multiplicative
+  multiplier: 86400
+- unit: wk
+  type: multiplicative
+  multiplier: 604800
+- unit: mo
+  type: multiplicative
+  multiplier: 2592000
+- unit: yr
+  type: multiplicative
+  multiplier: 31557600
