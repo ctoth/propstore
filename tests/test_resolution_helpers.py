@@ -6,6 +6,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from propstore.dung import ArgumentationFramework
 from propstore.world.resolution import (
@@ -15,6 +16,16 @@ from propstore.world.resolution import (
 )
 from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy, ValueResult
 from propstore.world.types import IntegrityConstraint, IntegrityConstraintKind
+
+
+def _active_claim(claim_id: str, *, concept_id: str = "concept1", value: float = 1.0) -> ActiveClaim:
+    return ActiveClaim.from_mapping(
+        {
+            "id": claim_id,
+            "concept_id": concept_id,
+            "value": value,
+        }
+    )
 
 
 class _World:
@@ -181,8 +192,8 @@ def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> 
     )
 
     winner, reason = _resolve_claim_graph_argumentation(
-        [{"id": "claim_a"}, {"id": "claim_b"}],
-        [{"id": "claim_a"}, {"id": "claim_b"}],
+        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
+        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
         _World(),
         semantics="preferred",
     )
@@ -206,8 +217,8 @@ def test_claim_graph_resolution_distinguishes_no_stable_extension(monkeypatch) -
     )
 
     winner, reason = _resolve_claim_graph_argumentation(
-        [{"id": "claim_a"}, {"id": "claim_b"}],
-        [{"id": "claim_a"}, {"id": "claim_b"}],
+        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
+        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
         _World(),
         semantics="stable",
     )
@@ -237,8 +248,8 @@ def test_structured_resolution_distinguishes_skeptical_failure(monkeypatch) -> N
     )
 
     winner, reason = _resolve_structured_argumentation(
-        [{"id": "claim_a"}, {"id": "claim_b"}],
-        [{"id": "claim_a"}, {"id": "claim_b"}],
+        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
+        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
         _View(),
         _World(),
         semantics="preferred",
@@ -372,8 +383,8 @@ def test_structured_resolution_grounded_uses_plain_grounded_extension(monkeypatc
     )
 
     winner, reason = _resolve_structured_argumentation(
-        [{"id": "claim_a"}],
-        [{"id": "claim_a"}, {"id": "claim_b"}],
+        [_active_claim("claim_a")],
+        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
         _View(),
         _World(),
         semantics="grounded",
