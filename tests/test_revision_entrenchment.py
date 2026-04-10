@@ -5,7 +5,7 @@ from pathlib import Path
 
 from propstore.core.labels import AssumptionRef, Label
 from propstore.revision.entrenchment import compute_entrenchment
-from propstore.revision.state import BeliefAtom, BeliefBase, RevisionScope
+from propstore.revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
 
 
 class _BoundStub:
@@ -17,16 +17,14 @@ def test_compute_entrenchment_source_override_outranks_default_ordering() -> Non
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            BeliefAtom(
+            ClaimAtom(
                 atom_id="claim:claim_alpha",
-                kind="claim",
-                payload={"id": "claim_alpha", "source_paper": "paper_alpha"},
+                claim={"id": "claim_alpha", "source_paper": "paper_alpha"},
                 label=Label.empty(),
             ),
-            BeliefAtom(
+            ClaimAtom(
                 atom_id="claim:claim_beta",
-                kind="claim",
-                payload={"id": "claim_beta", "source_paper": "paper_beta"},
+                claim={"id": "claim_beta", "source_paper": "paper_beta"},
                 label=Label.empty(),
             ),
         ),
@@ -47,21 +45,18 @@ def test_compute_entrenchment_kind_override_can_promote_assumptions() -> None:
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            BeliefAtom(
+            ClaimAtom(
                 atom_id="claim:claim_alpha",
-                kind="claim",
-                payload={"id": "claim_alpha"},
+                claim={"id": "claim_alpha"},
                 label=Label.empty(),
             ),
-            BeliefAtom(
+            AssumptionAtom(
                 atom_id="assumption:env:x_eq_1",
-                kind="assumption",
-                payload={
+                assumption={
                     "assumption_id": "env:x_eq_1",
                     "cel": "x == 1",
                     "kind": "binding",
                 },
-                label=None,
             ),
         ),
         assumptions=(

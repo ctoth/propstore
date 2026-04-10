@@ -10,7 +10,7 @@ from propstore.revision.explanation_types import (
     coerce_entrenchment_reason,
     _coerce_override_priority,
 )
-from propstore.revision.state import BeliefBase, claim_atom_payload
+from propstore.revision.state import BeliefBase, is_assumption_atom, is_claim_atom
 
 
 @dataclass(frozen=True)
@@ -97,7 +97,7 @@ def _match_override(
     if context_id:
         candidates.append((1, f"context:{context_id}"))
 
-    candidates.append((2, f"kind:{atom.kind}"))
+    candidates.append((2, "kind:assumption" if is_assumption_atom(atom) else "kind:claim"))
 
     for rank, key in candidates:
         override = override_map.get(key)
@@ -107,14 +107,13 @@ def _match_override(
 
 
 def _override_source_ids(atom) -> tuple[str, ...]:
-    payload = claim_atom_payload(atom)
-    if payload is None:
+    if not is_claim_atom(atom):
         return ()
 
-    source = payload.claim.source
-    provenance = payload.claim.provenance
+    source = atom.claim.source
+    provenance = atom.claim.provenance
     candidates = (
-        payload.claim.source_paper,
+        atom.claim.source_paper,
         None if source is None else source.source_id,
         None if source is None else source.slug,
         None if provenance is None else provenance.paper,

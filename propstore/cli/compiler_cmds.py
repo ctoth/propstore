@@ -777,6 +777,8 @@ def _emit_iterated_revision(result, previous_state, next_state, *, operator: str
 @click.pass_obj
 def world_revision_base(obj: dict, args: tuple[str, ...]) -> None:
     """Show the current revision-facing belief base for a scoped world."""
+    from propstore.revision.state import is_claim_atom
+
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
         bindings, _ = _parse_bindings(args)
@@ -785,7 +787,16 @@ def world_revision_base(obj: dict, args: tuple[str, ...]) -> None:
 
         click.echo(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
         for atom in base.atoms:
-            payload = atom.payload.to_dict()
+            payload = (
+                atom.claim.to_dict()
+                if is_claim_atom(atom)
+                else {
+                    "assumption_id": atom.assumption.assumption_id,
+                    "cel": atom.assumption.cel,
+                    "kind": atom.assumption.kind,
+                    "source": atom.assumption.source,
+                }
+            )
             details = _format_revision_payload(payload)
             atom_display_id = _revision_atom_display_id(atom.atom_id, payload=payload)
             if details:

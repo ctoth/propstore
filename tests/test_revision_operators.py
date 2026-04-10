@@ -5,19 +5,19 @@ from pathlib import Path
 
 from propstore.revision.entrenchment import EntrenchmentReport
 from propstore.revision.explanation_types import EntrenchmentReason
-from propstore.revision.state import BeliefAtom, BeliefBase, RevisionScope
+from propstore.revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionScope
 
 
 def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport]:
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            BeliefAtom("assumption:a_strong", "assumption", {"assumption_id": "a_strong"}),
-            BeliefAtom("assumption:b_medium", "assumption", {"assumption_id": "b_medium"}),
-            BeliefAtom("assumption:shared_weak", "assumption", {"assumption_id": "shared_weak"}),
-            BeliefAtom("claim:legacy", "claim", {"id": "legacy"}),
-            BeliefAtom("claim:dependent", "claim", {"id": "dependent"}),
-            BeliefAtom("claim:independent", "claim", {"id": "independent"}),
+            AssumptionAtom("assumption:a_strong", {"assumption_id": "a_strong"}),
+            AssumptionAtom("assumption:b_medium", {"assumption_id": "b_medium"}),
+            AssumptionAtom("assumption:shared_weak", {"assumption_id": "shared_weak"}),
+            ClaimAtom("claim:legacy", {"id": "legacy"}),
+            ClaimAtom("claim:dependent", {"id": "dependent"}),
+            ClaimAtom("claim:independent", {"id": "independent"}),
         ),
         support_sets={
             "claim:legacy": (
@@ -72,7 +72,7 @@ def test_expand_adds_atom_without_mutating_input_base() -> None:
     from propstore.revision.operators import expand
 
     base, _ = _base_with_shared_support()
-    new_atom = BeliefAtom("claim:new", "claim", {"id": "new"})
+    new_atom = ClaimAtom("claim:new", {"id": "new"})
 
     result = expand(base, new_atom)
 
@@ -85,7 +85,7 @@ def test_revise_matches_operational_levi_identity() -> None:
     from propstore.revision.operators import contract, expand, revise
 
     base, entrenchment = _base_with_shared_support()
-    new_atom = BeliefAtom("claim:new", "claim", {"id": "new"})
+    new_atom = ClaimAtom("claim:new", {"id": "new"})
     conflicts = {"claim:new": ("claim:legacy",)}
 
     revised = revise(
@@ -117,7 +117,7 @@ def test_normalize_revision_input_resolves_existing_claim_ids() -> None:
     atom = normalize_revision_input(base, "legacy")
 
     assert atom.atom_id == "claim:legacy"
-    assert atom.kind == "claim"
+    assert isinstance(atom, ClaimAtom)
 
 
 def test_normalize_revision_input_builds_synthetic_claim_atoms() -> None:
@@ -135,9 +135,9 @@ def test_normalize_revision_input_builds_synthetic_claim_atoms() -> None:
     )
 
     assert atom.atom_id == "claim:new"
-    assert atom.kind == "claim"
-    assert atom.payload.claim_id == "new"
-    assert atom.payload.claim.value == 3.0
+    assert isinstance(atom, ClaimAtom)
+    assert atom.claim_id == "new"
+    assert atom.claim.value == 3.0
 
 
 def test_normalize_revision_input_builds_assumption_atoms() -> None:
@@ -155,9 +155,9 @@ def test_normalize_revision_input_builds_assumption_atoms() -> None:
     )
 
     assert atom.atom_id == "assumption:queryable:extra"
-    assert atom.kind == "assumption"
-    assert atom.payload.assumption_id == "queryable:extra"
-    assert atom.payload.cel == "x == 2"
+    assert isinstance(atom, AssumptionAtom)
+    assert atom.assumption.assumption_id == "queryable:extra"
+    assert atom.assumption.cel == "x == 2"
 
 
 def test_expand_accepts_synthetic_claim_mapping_via_adapter() -> None:

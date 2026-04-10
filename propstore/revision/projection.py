@@ -4,7 +4,7 @@ from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import AssumptionId, to_claim_id
 from propstore.core.labels import SupportQuality
 
-from propstore.revision.state import BeliefAtom, BeliefBase, ClaimAtomPayload, RevisionScope
+from propstore.revision.state import BeliefBase, ClaimAtom, RevisionScope
 
 
 def _claim_atom_id(claim: ActiveClaim) -> str | None:
@@ -28,7 +28,7 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
 
     V1 includes only claims with exact ATMS-reconstructible support.
     """
-    atoms: list[BeliefAtom] = []
+    atoms: list[ClaimAtom] = []
     supporting_assumption_ids: set[AssumptionId] = set()
     support_sets: dict[str, tuple[tuple[AssumptionId, ...], ...]] = {}
     essential_support: dict[str, tuple[AssumptionId, ...]] = {}
@@ -58,14 +58,7 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
             if essential is not None
             else ()
         )
-        atoms.append(
-            BeliefAtom(
-                atom_id=atom_id,
-                kind="claim",
-                payload=ClaimAtomPayload.from_input(claim),
-                label=label,
-            )
-        )
+        atoms.append(ClaimAtom(atom_id=atom_id, claim=claim, label=label))
 
     scope = RevisionScope(
         bindings=dict(bound._environment.bindings),

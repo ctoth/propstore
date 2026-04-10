@@ -7,7 +7,7 @@ from pathlib import Path
 from propstore.revision.entrenchment import EntrenchmentReport
 from propstore.revision.explanation_types import EntrenchmentReason
 from propstore.revision.operators import contract
-from propstore.revision.state import BeliefAtom, BeliefBase, RevisionEpisode, RevisionScope
+from propstore.revision.state import AssumptionAtom, BeliefBase, ClaimAtom, RevisionEpisode, RevisionScope
 from tests.test_revision_operators import _base_with_shared_support
 
 
@@ -101,11 +101,11 @@ def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, Entrenchm
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            BeliefAtom("assumption:left_path", "assumption", {"assumption_id": "left_path"}),
-            BeliefAtom("assumption:right_path", "assumption", {"assumption_id": "right_path"}),
-            BeliefAtom("claim:legacy", "claim", {"id": "legacy"}),
-            BeliefAtom("claim:left_dependent", "claim", {"id": "left_dependent"}),
-            BeliefAtom("claim:right_dependent", "claim", {"id": "right_dependent"}),
+            AssumptionAtom("assumption:left_path", {"assumption_id": "left_path"}),
+            AssumptionAtom("assumption:right_path", {"assumption_id": "right_path"}),
+            ClaimAtom("claim:legacy", {"id": "legacy"}),
+            ClaimAtom("claim:left_dependent", {"id": "left_dependent"}),
+            ClaimAtom("claim:right_dependent", {"id": "right_dependent"}),
         ),
         support_sets={
             "claim:legacy": (("assumption:left_path", "assumption:right_path"),),
