@@ -240,7 +240,7 @@ def log_cmd(ctx, count, branch_name, show_files, output_format):
 @click.argument("commit", required=False, default=None)
 @click.pass_context
 def diff_cmd(ctx, commit):
-    """Show files changed between HEAD and COMMIT (or HEAD vs parent)."""
+    """Show files changed in COMMIT vs its parent (defaults to HEAD)."""
     repo = ctx.obj["repo"]
     git = repo.git
     if git is None:
