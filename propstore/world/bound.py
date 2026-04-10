@@ -10,7 +10,12 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from propstore.core.activation import is_claim_mapping_active
 from propstore.core.environment import ArtifactStore, ConceptCatalogStore
 from propstore.core.id_types import ConceptId, to_context_id
-from propstore.core.row_types import coerce_conflict_row, coerce_parameterization_row
+from propstore.core.row_types import (
+    coerce_concept_row,
+    coerce_conflict_row,
+    coerce_parameterization_row,
+    coerce_stance_row,
+)
 from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,
@@ -59,13 +64,13 @@ class _ContextHierarchyLoader(Protocol):
 
 def _concept_registry_for_store(world) -> dict[str, dict]:
     registry: dict[str, dict] = {}
-    for concept in world.all_concepts():
-        cdata = dict(concept)
-        cid = cdata["id"]
-        form_parameters = cdata.get("form_parameters")
-        if isinstance(form_parameters, str):
+    for concept_input in world.all_concepts():
+        concept = coerce_concept_row(concept_input)
+        cdata = concept.to_dict()
+        cid = str(concept.concept_id)
+        if concept.form_parameters is not None:
             try:
-                cdata["form_parameters"] = json.loads(form_parameters)
+                cdata["form_parameters"] = json.loads(concept.form_parameters)
             except json.JSONDecodeError:
                 cdata["form_parameters"] = {}
         params = world.parameterizations_for(cid)
@@ -331,12 +336,11 @@ class BoundWorld(BeliefSpace):
         else:
             concept = next(
                 (
-                    dict(entry)
+                    coerce_concept_row(entry).to_dict()
                     for entry in self._store.all_concepts()
-                    if isinstance(entry, dict)
-                    and (
-                        entry.get("id") == str(concept_id)
-                        or entry.get("canonical_name") == str(concept_id)
+                    if (
+                        str(coerce_concept_row(entry).concept_id) == str(concept_id)
+                        or coerce_concept_row(entry).canonical_name == str(concept_id)
                     )
                 ),
                 None,
@@ -925,10 +929,11 @@ class BoundWorld(BeliefSpace):
 
         full_chain = self._store.explain(resolved_claim_id)
         result = []
-        for s in full_chain:
-            target = self._store.get_claim(s["target_claim_id"])
+        for stance_input in full_chain:
+            stance = coerce_stance_row(stance_input)
+            target = self._store.get_claim(stance.target_claim_id)
             if target is not None and self.is_active(target):
-                result.append(s)
+                result.append(stance.to_dict())
         return result
 
     def _attach_value_label(self, result: ValueResult) -> ValueResult:

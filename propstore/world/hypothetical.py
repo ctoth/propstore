@@ -26,8 +26,10 @@ from propstore.core.graph_types import (
     GraphDelta,
 )
 from propstore.core.row_types import (
+    coerce_concept_row,
     coerce_conflict_row,
     coerce_parameterization_row,
+    coerce_relationship_row,
     coerce_stance_row,
 )
 from propstore.world.bound import BoundWorld, _recomputed_conflicts
@@ -89,28 +91,23 @@ def _compiled_graph_for_bound(base: BoundWorld) -> CompiledWorldGraph | None:
 class _ParameterizationCatalogAdapter:
     base: ArtifactStore
 
-    def all_concepts(self) -> list[dict]:
-        return [dict(concept) for concept in self.base.all_concepts()]
+    def all_concepts(self):
+        return list(self.base.all_concepts())
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
         return [dict(claim) for claim in self.base.claims_for(concept_id)]
 
-    def conflicts(self) -> list[dict]:
-        return [dict(conflict) for conflict in self.base.conflicts()]
+    def conflicts(self):
+        return list(self.base.conflicts())
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
-        return [
-            dict(stance)
-            for stance in self.base.stances_between(claim_ids)
-        ]
+    def stances_between(self, claim_ids: set[str]):
+        return list(self.base.stances_between(claim_ids))
 
     def all_parameterizations(self) -> list[dict[str, Any]]:
         seen: set[tuple[object, ...]] = set()
         rows: list[dict[str, Any]] = []
-        for concept in self.base.all_concepts():
-            concept_id = concept.get("id")
-            if not isinstance(concept_id, str):
-                continue
+        for concept_input in self.base.all_concepts():
+            concept_id = str(coerce_concept_row(concept_input).concept_id)
             for row_input in self.base.parameterizations_for(concept_id):
                 row = coerce_parameterization_row(
                     row_input,
@@ -199,14 +196,17 @@ class _GraphOverlayStore:
         getter = getattr(self._base, "get_concept", None)
         if callable(getter):
             concept = getter(concept_id)
-            return None if concept is None else dict(concept)
+            if concept is None:
+                return None
+            if isinstance(concept, Mapping):
+                return dict(concept)
+            return coerce_concept_row(concept).to_dict()
         if not hasattr(self._base, "all_concepts"):
             return None
-        for concept in self._base.all_concepts():
-            if not isinstance(concept, dict):
-                continue
-            if concept.get("id") == concept_id or concept.get("canonical_name") == concept_id:
-                return dict(concept)
+        for concept_input in self._base.all_concepts():
+            concept = coerce_concept_row(concept_input)
+            if str(concept.concept_id) == concept_id or concept.canonical_name == concept_id:
+                return concept.to_dict()
         return None
 
     def get_claim(self, claim_id: str) -> dict | None:
@@ -232,8 +232,8 @@ class _GraphOverlayStore:
             return resolver(name)
         return None
 
-    def all_concepts(self) -> list[dict]:
-        return [dict(concept) for concept in self._base.all_concepts()]
+    def all_concepts(self):
+        return list(self._base.all_concepts())
 
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
@@ -252,25 +252,25 @@ class _GraphOverlayStore:
             if claim_id in claim_ids
         }
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+    def stances_between(self, claim_ids: set[str]):
         return [
-            dict(stance)
+            stance
             for stance in self._stances
-            if stance.get("claim_id") in claim_ids
-            and stance.get("target_claim_id") in claim_ids
+            if coerce_stance_row(stance).claim_id in claim_ids
+            and coerce_stance_row(stance).target_claim_id in claim_ids
         ]
 
-    def conflicts(self) -> list[dict]:
-        return [dict(conflict) for conflict in self._conflicts]
+    def conflicts(self):
+        return list(self._conflicts)
 
-    def all_parameterizations(self) -> list[dict]:
-        return [dict(row) for row in self._base.all_parameterizations()]
+    def all_parameterizations(self):
+        return list(self._base.all_parameterizations())
 
-    def all_relationships(self) -> list[dict]:
-        return [dict(row) for row in self._base.all_relationships()]
+    def all_relationships(self):
+        return list(self._base.all_relationships())
 
-    def all_claim_stances(self) -> list[dict]:
-        return [dict(stance) for stance in self._stances]
+    def all_claim_stances(self):
+        return list(self._stances)
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
         return set(self._base.concept_ids_for_group(group_id))
@@ -311,17 +311,17 @@ class _GraphOverlayStore:
     def stats(self) -> dict:
         return dict(self._base.stats())
 
-    def parameterizations_for(self, concept_id: str) -> list[dict]:
-        return [dict(row) for row in self._base.parameterizations_for(concept_id)]
+    def parameterizations_for(self, concept_id: str):
+        return list(self._base.parameterizations_for(concept_id))
 
     def explain(self, claim_id: str) -> list[dict]:
         if claim_id not in self._claims_by_id:
             return []
         active_ids = set(self._claims_by_id)
         return [
-            dict(stance)
-            for stance in self._base.explain(claim_id)
-            if stance.get("target_claim_id") in active_ids
+            stance.to_dict()
+            for stance_input in self._base.explain(claim_id)
+            if (stance := coerce_stance_row(stance_input)).target_claim_id in active_ids
         ]
 
     def compiled_graph(self) -> CompiledWorldGraph:

@@ -31,8 +31,10 @@ from propstore.core.graph_types import (
     RelationEdge,
 )
 from propstore.core.row_types import (
+    coerce_concept_row,
     coerce_conflict_row,
     coerce_parameterization_row,
+    coerce_relationship_row,
     coerce_stance_row,
 )
 
@@ -179,10 +181,16 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
     if not isinstance(store, ConflictStore):
         raise TypeError("build_compiled_world_graph requires conflicts()")
 
-    concept_rows = store.all_concepts()
+    concept_rows = [
+        coerce_concept_row(row)
+        for row in store.all_concepts()
+    ]
     claim_rows = store.claims_for(None)
     relationship_rows = (
-        store.all_relationships()
+        [
+            coerce_relationship_row(row)
+            for row in store.all_relationships()
+        ]
         if isinstance(store, RelationshipCatalogStore)
         else []
     )
@@ -217,19 +225,19 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
 
     concepts = tuple(
         ConceptNode(
-            concept_id=to_concept_id(row["id"]),
-            canonical_name=str(row["canonical_name"]),
-            status=(None if row.get("status") is None else str(row["status"])),
-            form=(None if row.get("form") is None else str(row["form"])),
-            kind_type=(None if row.get("kind_type") is None else str(row["kind_type"])),
-            attributes=_concept_attributes(row),
+            concept_id=row.concept_id,
+            canonical_name=row.canonical_name,
+            status=row.status,
+            form=row.form,
+            kind_type=row.kind_type,
+            attributes=_concept_attributes(row.to_dict()),
         )
         for row in concept_rows
     )
 
     claim_display_ids = {
-        str(row["id"]): (
-            _display_claim_id_from_row(row)
+            str(row["id"]): (
+                _display_claim_id_from_row(row)
             if prefer_logical_claim_ids
             else str(row["id"])
         )
@@ -261,15 +269,18 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         sorted(
             (
                 RelationEdge(
-                    source_id=str(row["source_id"]),
-                    target_id=str(row["target_id"]),
-                    relation_type=str(row["type"]),
+                    source_id=row.source_id,
+                    target_id=row.target_id,
+                    relation_type=row.relation_type,
                     provenance=_row_provenance(
-                        row,
+                        row.to_dict(),
                         source_table="relationship",
-                        source_id=f"{row['source_id']}->{row['target_id']}:{row['type']}",
+                        source_id=f"{row.source_id}->{row.target_id}:{row.relation_type}",
                     ),
-                    attributes=_relation_attributes(row, known={"source_id", "target_id", "type"}),
+                    attributes=_relation_attributes(
+                        row.to_dict(),
+                        known={"source_id", "target_id", "type"},
+                    ),
                 )
                 for row in relationship_rows
             )

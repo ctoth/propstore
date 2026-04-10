@@ -9,7 +9,7 @@ from propstore.sidecar.build import build_sidecar
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
 from propstore.identity import derive_concept_artifact_id
 from propstore.world import WorldModel
-from tests.conftest import create_world_model_schema
+from tests.conftest import create_world_model_schema, normalize_claims_payload
 
 
 # ── Fixtures (duplicated from test_world_model.py) ────────────────────
@@ -158,7 +158,7 @@ def claim_files(concept_dir):
     claims_dir = concept_dir.parent / "claims"
     claims_dir.mkdir(exist_ok=True)
 
-    alpha = {
+    alpha = normalize_claims_payload({
         "source": {"paper": "test_paper_alpha"},
         "claims": [
             {
@@ -226,9 +226,9 @@ def claim_files(concept_dir):
                 "provenance": {"paper": "test_paper_alpha", "page": 25},
             },
         ],
-    }
+    })
 
-    beta = {
+    beta = normalize_claims_payload({
         "source": {"paper": "test_paper_beta"},
         "claims": [
             {
@@ -281,7 +281,7 @@ def claim_files(concept_dir):
                 "provenance": {"paper": "test_paper_beta", "page": 22},
             },
         ],
-    }
+    })
 
     (claims_dir / "test_paper_alpha.yaml").write_text(yaml.dump(alpha, default_flow_style=False))
     (claims_dir / "test_paper_beta.yaml").write_text(yaml.dump(beta, default_flow_style=False))

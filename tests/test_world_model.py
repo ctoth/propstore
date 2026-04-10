@@ -15,6 +15,7 @@ import sqlite3
 import pytest
 import yaml
 
+from propstore.core.row_types import coerce_conflict_row, coerce_stance_row
 from propstore.sidecar.build import build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from tests.conftest import create_world_model_schema, make_claim_identity
@@ -781,7 +782,10 @@ class TestUnboundQueries:
     def test_conflicts(self, world):
         conflicts = world.conflicts()
         assert len(conflicts) >= 1
-        assert all("warning_class" in c for c in conflicts)
+        assert all(
+            coerce_conflict_row(conflict).warning_class is not None
+            for conflict in conflicts
+        )
 
     def test_search(self, world):
         results = world.search("frequency")
@@ -801,8 +805,9 @@ class TestExplain:
     def test_explain_returns_stance_chain(self, world):
         chain = world.explain(_claim_artifact("test_paper_alpha", "claim2"))
         assert len(chain) >= 1
-        assert chain[0]["target_claim_id"] == _claim_artifact("test_paper_alpha", "claim1")
-        assert chain[0]["stance_type"] == "rebuts"
+        first = coerce_stance_row(chain[0])
+        assert first.target_claim_id == _claim_artifact("test_paper_alpha", "claim1")
+        assert first.stance_type == "rebuts"
 
     def test_explain_no_stances(self, world):
         chain = world.explain(_claim_artifact("test_paper_alpha", "claim1"))
@@ -1606,7 +1611,8 @@ class TestHypothesisProperties:
 
     def test_unbound_conflicts_match_build_time(self, world):
         world_conflict_pairs = {
-            (c["claim_a_id"], c["claim_b_id"]) for c in world.conflicts()
+            (conflict.claim_a_id, conflict.claim_b_id)
+            for conflict in (coerce_conflict_row(row) for row in world.conflicts())
         }
         bound_conflict_pairs = {
             (c["claim_a_id"], c["claim_b_id"]) for c in world.bind().conflicts()
