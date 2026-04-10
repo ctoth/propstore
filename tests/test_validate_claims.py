@@ -443,6 +443,22 @@ class TestParameterClaimErrors:
         assert not result.ok
         assert any("unit" in e.lower() for e in result.errors)
 
+    def test_parameter_missing_unit_dimensionless_autofill(self, claims_dir):
+        """Dimensionless forms auto-fill unit='1' when unit is missing."""
+        claim = {
+            "id": "claim1",
+            "type": "parameter",
+            "concept": "hazard_ratio",
+            "value": 0.94,
+            "provenance": {"paper": "test_paper", "page": 1},
+            # No unit field — should auto-fill '1' for dimensionless ratio form
+        }
+        data = make_claim_file_data([claim])
+        write_claim_file(claims_dir, "test.yaml", data)
+        files = load_claim_files(claims_dir)
+        result = validate_claims(files, make_concept_registry())
+        assert result.ok, f"Unexpected errors: {result.errors}"
+
     def test_parameter_missing_concept_error(self, claims_dir):
         claim = {
             "id": "claim1",
