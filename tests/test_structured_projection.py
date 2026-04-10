@@ -862,10 +862,10 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
         world,
     )
 
-    assert result.values["target"]["value"] == 1.0
+    assert result.values["target"].value == 1.0
     assert result.argumentation is not None
-    assert result.argumentation["backend"] == "aspic"
-    assert result.argumentation["justified"] == ["external_c", "target_a"]
+    assert result.argumentation.backend == "aspic"
+    assert result.argumentation.justified == ("external_c", "target_a")
 
 
 def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:

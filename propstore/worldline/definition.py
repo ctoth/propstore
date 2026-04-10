@@ -9,6 +9,19 @@ from typing import Any
 import yaml
 
 from propstore.world.types import Environment, RenderPolicy
+from propstore.worldline.result_types import (
+    WorldlineArgumentationState,
+    WorldlineDependencies,
+    WorldlineSensitivityReport,
+    WorldlineStep,
+    WorldlineTargetValue,
+    coerce_worldline_step,
+    coerce_worldline_target_value,
+)
+from propstore.worldline.revision_types import (
+    RevisionAtomRef,
+    RevisionConflictSelection,
+)
 
 
 @dataclass
@@ -37,38 +50,31 @@ class WorldlineInputs:
 @dataclass
 class WorldlineRevisionQuery:
     operation: str = ""
-    atom: dict[str, Any] | None = None
+    atom: RevisionAtomRef | None = None
     target: str | None = None
-    conflicts: dict[str, list[str]] = field(default_factory=dict)
+    conflicts: RevisionConflictSelection = field(default_factory=RevisionConflictSelection)
     operator: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict | None) -> WorldlineRevisionQuery | None:
         if not data:
             return None
-        raw_conflicts = data.get("conflicts") or {}
         return cls(
             operation=str(data.get("operation", "")),
-            atom=dict(data.get("atom") or {}) or None,
+            atom=RevisionAtomRef.from_mapping(data.get("atom")),
             target=data.get("target"),
-            conflicts={
-                str(atom_id): [str(target_id) for target_id in targets]
-                for atom_id, targets in raw_conflicts.items()
-            },
+            conflicts=RevisionConflictSelection.from_mapping(data.get("conflicts")),
             operator=data.get("operator"),
         )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"operation": self.operation}
         if self.atom is not None:
-            data["atom"] = dict(self.atom)
+            data["atom"] = self.atom.to_dict()
         if self.target is not None:
             data["target"] = self.target
-        if self.conflicts:
-            data["conflicts"] = {
-                atom_id: list(targets)
-                for atom_id, targets in self.conflicts.items()
-            }
+        if self.conflicts.targets_by_atom_id:
+            data["conflicts"] = self.conflicts.to_dict()
         if self.operator is not None:
             data["operator"] = self.operator
         return data
@@ -80,16 +86,25 @@ class WorldlineResult:
 
     computed: str = ""
     content_hash: str = ""
-    values: dict[str, dict[str, Any]] = field(default_factory=dict)
-    steps: list[dict[str, Any]] = field(default_factory=list)
-    dependencies: dict[str, list[str]] = field(default_factory=lambda: {
-        "claims": [],
-        "stances": [],
-        "contexts": [],
-    })
-    sensitivity: dict[str, Any] | None = None
-    argumentation: dict[str, Any] | None = None
+    values: dict[str, WorldlineTargetValue] = field(default_factory=dict)
+    steps: tuple[WorldlineStep, ...] = ()
+    dependencies: WorldlineDependencies = field(default_factory=WorldlineDependencies)
+    sensitivity: WorldlineSensitivityReport | None = None
+    argumentation: WorldlineArgumentationState | None = None
     revision: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        self.values = {
+            str(target_name): coerce_worldline_target_value(value)
+            for target_name, value in self.values.items()
+        }
+        self.steps = tuple(coerce_worldline_step(step) for step in self.steps)
+        if not isinstance(self.dependencies, WorldlineDependencies):
+            self.dependencies = WorldlineDependencies.from_mapping(self.dependencies)
+        if self.sensitivity is not None and not isinstance(self.sensitivity, WorldlineSensitivityReport):
+            self.sensitivity = WorldlineSensitivityReport.from_mapping(self.sensitivity)
+        if self.argumentation is not None and not isinstance(self.argumentation, WorldlineArgumentationState):
+            self.argumentation = WorldlineArgumentationState.from_mapping(self.argumentation)
 
     @classmethod
     def from_dict(cls, data: dict | None) -> WorldlineResult | None:
@@ -98,15 +113,19 @@ class WorldlineResult:
         return cls(
             computed=data.get("computed", ""),
             content_hash=data.get("content_hash", ""),
-            values=dict(data.get("values") or {}),
-            steps=list(data.get("steps") or []),
-            dependencies=data.get("dependencies") or {
-                "claims": [],
-                "stances": [],
-                "contexts": [],
+            values={
+                str(target_name): WorldlineTargetValue.from_mapping(value)
+                for target_name, value in (data.get("values") or {}).items()
+                if isinstance(value, dict)
             },
-            sensitivity=data.get("sensitivity"),
-            argumentation=data.get("argumentation"),
+            steps=tuple(
+                WorldlineStep.from_mapping(step)
+                for step in (data.get("steps") or ())
+                if isinstance(step, dict)
+            ),
+            dependencies=WorldlineDependencies.from_mapping(data.get("dependencies")),
+            sensitivity=WorldlineSensitivityReport.from_mapping(data.get("sensitivity")),
+            argumentation=WorldlineArgumentationState.from_mapping(data.get("argumentation")),
             revision=data.get("revision"),
         )
 
@@ -114,14 +133,17 @@ class WorldlineResult:
         data: dict[str, Any] = {
             "computed": self.computed,
             "content_hash": self.content_hash,
-            "values": self.values,
-            "steps": self.steps,
-            "dependencies": self.dependencies,
+            "values": {
+                target_name: target_value.to_dict()
+                for target_name, target_value in self.values.items()
+            },
+            "steps": [step.to_dict() for step in self.steps],
+            "dependencies": self.dependencies.to_dict(),
         }
         if self.sensitivity is not None:
-            data["sensitivity"] = self.sensitivity
+            data["sensitivity"] = self.sensitivity.to_dict()
         if self.argumentation is not None:
-            data["argumentation"] = self.argumentation
+            data["argumentation"] = self.argumentation.to_dict()
         if self.revision is not None:
             data["revision"] = self.revision
         return data

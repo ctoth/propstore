@@ -138,23 +138,12 @@ class TestPrafWorldlineStateCapture:
         assert result.argumentation is not None, (
             "PRAF backend produced no argumentation state"
         )
-        assert result.argumentation.get("backend") == "praf", (
-            f"Expected backend='praf', got {result.argumentation.get('backend')!r}"
+        assert result.argumentation.backend == "praf", (
+            f"Expected backend='praf', got {result.argumentation.backend!r}"
         )
-        assert "acceptance_probs" in result.argumentation, (
-            "PRAF argumentation state must include acceptance_probs "
-            "(Li et al. 2011, Eq 2: acceptance probability per argument)"
-        )
-        assert isinstance(result.argumentation["acceptance_probs"], dict)
-        assert "strategy_used" in result.argumentation, (
-            "PRAF argumentation state must report which strategy was used "
-            "(mc, exact_enum, dfquad_quad, or dfquad_baf)"
-        )
-        assert isinstance(result.argumentation["strategy_used"], str)
-        assert "semantics" in result.argumentation, (
-            "PRAF argumentation state must report the Dung semantics used"
-        )
-        assert isinstance(result.argumentation["semantics"], str)
+        assert isinstance(result.argumentation.acceptance_probs, dict)
+        assert isinstance(result.argumentation.strategy_used, str)
+        assert isinstance(result.argumentation.semantics, str)
 
     def test_praf_argumentation_state_has_acceptance_probs(self):
         """PRAF acceptance_probs must contain entries for active claims.
@@ -181,7 +170,7 @@ class TestPrafWorldlineStateCapture:
             "PRAF backend produced no argumentation state"
         )
 
-        probs = result.argumentation.get("acceptance_probs", {})
+        probs = result.argumentation.acceptance_probs
 
         # Both active claims must have acceptance probabilities
         assert "claim_a" in probs, (

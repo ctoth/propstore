@@ -11,6 +11,7 @@ from propstore.core.environment import ArtifactStore, ParameterizationLookupStor
 from propstore.core.row_types import coerce_claim_row, coerce_concept_row
 from propstore.world.types import DerivedResult, RenderPolicy
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
+from propstore.worldline.result_types import WorldlineInputSource, WorldlineTargetValue
 from propstore.worldline.trace import ResolutionTrace
 
 
@@ -53,29 +54,34 @@ def display_claim_id(world: ArtifactStore, claim_id: str | None) -> str | None:
     return claim_id
 
 
-def claim_payload(claim: ActiveClaim) -> dict[str, Any]:
-    payload: dict[str, Any] = {}
-    value = claim.value
-    if value is not None:
-        payload["value"] = value
-
-    claim_type = claim.claim_type
-    if claim_type:
-        payload["claim_type"] = claim_type
-
-    for field in ("statement", "expression", "body", "name", "canonical_ast"):
-        field_value = getattr(claim, field, None)
-        if field_value:
-            payload[field] = field_value
-
+def claim_target_value(
+    *,
+    status: str,
+    source: str,
+    claim: ActiveClaim,
+    claim_id: str | None,
+) -> WorldlineTargetValue:
+    raw_variables: Any = None
     variables_json = claim.variables_json
     if variables_json:
         try:
-            payload["variables"] = json.loads(variables_json)
+            raw_variables = json.loads(variables_json)
         except (TypeError, json.JSONDecodeError):
-            payload["variables"] = variables_json
+            raw_variables = None
 
-    return payload
+    return WorldlineTargetValue.from_mapping({
+        "status": status,
+        "source": source,
+        "claim_id": claim_id,
+        "value": claim.value,
+        "claim_type": claim.claim_type,
+        "statement": claim.statement,
+        "expression": claim.expression,
+        "body": claim.body,
+        "name": claim.name,
+        "canonical_ast": claim.canonical_ast,
+        "variables": raw_variables,
+    })
 
 
 def pre_resolve_conflicts(
@@ -131,7 +137,7 @@ def resolve_target(
     concept_id: ConceptId,
     target_name: str,
     trace: ResolutionTrace,
-) -> dict[str, Any]:
+) -> WorldlineTargetValue:
     value_result = context.query_world.value_of(concept_id)
 
     for resolver in (
@@ -161,10 +167,10 @@ def resolve_target(
         source="underspecified",
         reason=reason,
     )
-    return {
-        "status": "underspecified",
-        "reason": reason,
-    }
+    return WorldlineTargetValue(
+        status="underspecified",
+        reason=reason,
+    )
 
 
 def trace_input_source(
@@ -172,11 +178,11 @@ def trace_input_source(
     concept_id: ConceptId,
     trace: ResolutionTrace,
     seen: set[ConceptId] | None = None,
-) -> dict[str, Any]:
+) -> WorldlineInputSource:
     if seen is None:
         seen = set()
     if concept_id in seen:
-        return {"source": "cycle"}
+        return WorldlineInputSource(source="cycle")
     seen.add(concept_id)
 
     try:
@@ -190,7 +196,7 @@ def trace_input_source(
             result = resolver(context, concept_id, trace, seen, value_result)
             if result is not None:
                 return result
-        return {"source": "unknown"}
+        return WorldlineInputSource(source="unknown")
     finally:
         seen.discard(concept_id)
 
@@ -201,15 +207,15 @@ def _resolve_override_target(
     target_name: str,
     trace: ResolutionTrace,
     value_result: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineTargetValue | None:
     del target_name, trace, value_result
     if concept_id not in context.override_values:
         return None
-    return {
-        "status": "determined",
-        "value": context.override_values[concept_id],
-        "source": "override",
-    }
+    return WorldlineTargetValue(
+        status="determined",
+        value=context.override_values[concept_id],
+        source="override",
+    )
 
 
 def _resolve_claim_target(
@@ -218,7 +224,7 @@ def _resolve_claim_target(
     target_name: str,
     trace: ResolutionTrace,
     value_result: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineTargetValue | None:
     del concept_id
     if value_result.status != "determined":
         return None
@@ -228,20 +234,20 @@ def _resolve_claim_target(
         return None
     claim_id = str(claim.claim_id)
     trace.record_claim_dependency(claim_id)
-    payload = claim_payload(claim)
-    step = {"concept": target_name, "source": "claim"}
-    step.update(payload)
-    if claim_id:
-        step["claim_id"] = display_claim_id(context.world, claim_id) or claim_id
-    trace.record_step(**step)
-
-    result = {
-        "status": "determined",
-        "source": "claim",
-        "claim_id": display_claim_id(context.world, claim_id),
-    }
-    result.update(payload)
-    return result
+    display_id = display_claim_id(context.world, claim_id) or claim_id
+    target_value = claim_target_value(
+        status="determined",
+        source="claim",
+        claim=claim,
+        claim_id=display_id,
+    )
+    trace.record_step(
+        concept=target_name,
+        source="claim",
+        value=target_value.value,
+        claim_id=target_value.claim_id,
+    )
+    return target_value
 
 
 def _resolve_conflict_target(
@@ -250,7 +256,7 @@ def _resolve_conflict_target(
     target_name: str,
     trace: ResolutionTrace,
     value_result: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineTargetValue | None:
     from propstore.world import resolve
 
     if value_result.status != "conflicted" or context.policy.strategy is None:
@@ -273,18 +279,18 @@ def _resolve_conflict_target(
         strategy=resolved.strategy,
         reason=resolved.reason,
     )
-    return {
-        "status": "resolved",
-        "value": resolved.value,
-        "source": "resolved",
-        "winning_claim_id": (
+    return WorldlineTargetValue(
+        status="resolved",
+        value=resolved.value,
+        source="resolved",
+        winning_claim_id=(
             display_claim_id(context.world, resolved.winning_claim_id)
             if resolved.winning_claim_id
             else None
         ),
-        "strategy": resolved.strategy,
-        "reason": resolved.reason,
-    }
+        strategy=resolved.strategy,
+        reason=resolved.reason,
+    )
 
 
 def _resolve_derived_target(
@@ -293,7 +299,7 @@ def _resolve_derived_target(
     target_name: str,
     trace: ResolutionTrace,
     value_result: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineTargetValue | None:
     del value_result
     derived = context.query_world.derived_value(
         concept_id,
@@ -308,16 +314,15 @@ def _resolve_derived_target(
         input_name = concept_name(context.world, input_cid)
         if input_name in seen_concepts:
             continue
-        step: dict[str, Any] = {
-            "concept": input_name,
-            "value": input_info.get("value"),
-            "source": input_info.get("source", "unknown"),
-        }
-        if input_info.get("claim_id"):
-            step["claim_id"] = input_info["claim_id"]
-        if input_info.get("formula"):
-            step["formula"] = input_info["formula"]
-        trace.record_step(**step)
+        trace.record_step(
+            concept=input_name,
+            value=input_info.value,
+            source=input_info.source,
+            claim_id=input_info.claim_id,
+            strategy=input_info.strategy,
+            reason=input_info.reason,
+            formula=input_info.formula,
+        )
 
     trace.record_step(
         concept=target_name,
@@ -325,13 +330,13 @@ def _resolve_derived_target(
         source="derived",
         formula=derived.formula,
     )
-    return {
-        "status": "derived",
-        "value": derived.value,
-        "source": "derived",
-        "formula": derived.formula,
-        "inputs_used": inputs_used,
-    }
+    return WorldlineTargetValue(
+        status="derived",
+        value=derived.value,
+        source="derived",
+        formula=derived.formula,
+        inputs_used=inputs_used,
+    )
 
 
 def _resolve_chain_target(
@@ -340,7 +345,7 @@ def _resolve_chain_target(
     target_name: str,
     trace: ResolutionTrace,
     value_result: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineTargetValue | None:
     del value_result
     strategy_enum = context.policy.strategy if context.policy.strategy is not None else None
     chain_bindings = (
@@ -362,10 +367,10 @@ def _resolve_chain_target(
             source="error",
             reason=reason,
         )
-        return {
-            "status": "error",
-            "reason": reason,
-        }
+        return WorldlineTargetValue(
+            status="error",
+            reason=reason,
+        )
 
     result = chain_result.result
     chain_value: float | str | None
@@ -406,17 +411,25 @@ def _resolve_chain_target(
         formula=formula,
     )
 
-    inputs_used: dict[ConceptId, dict[str, Any]] = {}
+    inputs_used: dict[str, WorldlineInputSource] = {}
     for input_cid, input_value in input_values.items():
-        inputs_used[input_cid] = trace_input_source(context, input_cid, trace)
-        inputs_used[input_cid].setdefault("value", input_value)
-    return {
-        "status": "derived",
-        "value": chain_value,
-        "source": "derived",
-        "formula": formula,
-        "inputs_used": inputs_used,
-    }
+        input_source = trace_input_source(context, input_cid, trace)
+        inputs_used[str(input_cid)] = WorldlineInputSource(
+            source=input_source.source,
+            value=input_value if input_source.value is None else input_source.value,
+            claim_id=input_source.claim_id,
+            formula=input_source.formula,
+            reason=input_source.reason,
+            strategy=input_source.strategy,
+            inputs_used=input_source.inputs_used,
+        )
+    return WorldlineTargetValue(
+        status="derived",
+        value=chain_value,
+        source="derived",
+        formula=formula,
+        inputs_used=inputs_used,
+    )
 
 
 def _resolve_override_input(
@@ -425,14 +438,14 @@ def _resolve_override_input(
     trace: ResolutionTrace,
     seen: set[ConceptId],
     value_result: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineInputSource | None:
     del trace, seen, value_result
     if concept_id not in context.override_values:
         return None
-    return {
-        "value": context.override_values[concept_id],
-        "source": "override",
-    }
+    return WorldlineInputSource(
+        value=context.override_values[concept_id],
+        source="override",
+    )
 
 
 def _resolve_claim_input(
@@ -441,7 +454,7 @@ def _resolve_claim_input(
     trace: ResolutionTrace,
     seen: set[ConceptId],
     value_result: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineInputSource | None:
     del concept_id, seen
     if value_result.status != "determined":
         return None
@@ -450,13 +463,11 @@ def _resolve_claim_input(
         return None
     claim_id = str(claim.claim_id)
     trace.record_claim_dependency(claim_id)
-    result = {
-        "value": claim.value,
-        "source": "claim",
-    }
-    if claim_id:
-        result["claim_id"] = display_claim_id(context.world, claim_id) or claim_id
-    return result
+    return WorldlineInputSource(
+        value=claim.value,
+        source="claim",
+        claim_id=display_claim_id(context.world, claim_id) or claim_id,
+    )
 
 
 def _resolve_conflict_input(
@@ -465,7 +476,7 @@ def _resolve_conflict_input(
     trace: ResolutionTrace,
     seen: set[ConceptId],
     value_result: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineInputSource | None:
     from propstore.world import resolve
 
     del seen
@@ -482,19 +493,18 @@ def _resolve_conflict_input(
         return None
 
     trace.record_claim_dependencies(resolved.claims)
-    result = {
-        "value": resolved.value,
-        "source": "resolved",
-        "strategy": resolved.strategy,
-    }
-    if resolved.winning_claim_id:
-        result["claim_id"] = (
+    return WorldlineInputSource(
+        value=resolved.value,
+        source="resolved",
+        claim_id=(
             display_claim_id(context.world, resolved.winning_claim_id)
             or resolved.winning_claim_id
-        )
-    if resolved.reason:
-        result["reason"] = resolved.reason
-    return result
+            if resolved.winning_claim_id
+            else None
+        ),
+        strategy=resolved.strategy,
+        reason=resolved.reason,
+    )
 
 
 def _resolve_derived_input(
@@ -503,7 +513,7 @@ def _resolve_derived_input(
     trace: ResolutionTrace,
     seen: set[ConceptId],
     value_result: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineInputSource | None:
     del value_result
     derived = context.query_world.derived_value(
         concept_id,
@@ -512,40 +522,53 @@ def _resolve_derived_input(
     if derived.status != "derived" or derived.value is None:
         return None
 
-    nested_inputs: dict[ConceptId, dict[str, Any]] = {}
+    nested_inputs: dict[str, WorldlineInputSource] = {}
     for input_cid, input_value in derived.input_values.items():
         normalized_input_cid = to_concept_id(input_cid)
-        nested_inputs[normalized_input_cid] = trace_input_source(
+        input_source = trace_input_source(
             context,
             normalized_input_cid,
             trace,
             seen,
         )
-        nested_inputs[normalized_input_cid].setdefault("value", input_value)
+        nested_inputs[str(normalized_input_cid)] = WorldlineInputSource(
+            source=input_source.source,
+            value=input_value if input_source.value is None else input_source.value,
+            claim_id=input_source.claim_id,
+            formula=input_source.formula,
+            reason=input_source.reason,
+            strategy=input_source.strategy,
+            inputs_used=input_source.inputs_used,
+        )
 
-    result: dict[str, Any] = {
-        "value": derived.value,
-        "source": "derived",
-    }
-    if derived.formula:
-        result["formula"] = derived.formula
-    if nested_inputs:
-        result["inputs_used"] = nested_inputs
-    return result
+    return WorldlineInputSource(
+        value=derived.value,
+        source="derived",
+        formula=derived.formula,
+        inputs_used=nested_inputs,
+    )
 
 
 def _trace_derived_inputs(
     context: ResolutionContext,
     derived: Any,
     trace: ResolutionTrace,
-) -> dict[ConceptId, dict[str, Any]]:
-    inputs_used: dict[ConceptId, dict[str, Any]] = {}
+) -> dict[str, WorldlineInputSource]:
+    inputs_used: dict[str, WorldlineInputSource] = {}
     for input_cid, input_value in derived.input_values.items():
         normalized_input_cid = to_concept_id(input_cid)
-        inputs_used[normalized_input_cid] = trace_input_source(
+        input_source = trace_input_source(
             context,
             normalized_input_cid,
             trace,
         )
-        inputs_used[normalized_input_cid].setdefault("value", input_value)
+        inputs_used[str(normalized_input_cid)] = WorldlineInputSource(
+            source=input_source.source,
+            value=input_value if input_source.value is None else input_source.value,
+            claim_id=input_source.claim_id,
+            formula=input_source.formula,
+            reason=input_source.reason,
+            strategy=input_source.strategy,
+            inputs_used=input_source.inputs_used,
+        )
     return inputs_used
