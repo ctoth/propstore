@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import functools
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypeVar, Union
+from typing import TYPE_CHECKING, TypeAlias, TypeVar, Union
 
 if TYPE_CHECKING:
     from propstore.dung import ArgumentationFramework
@@ -158,7 +158,7 @@ class DefeasibleArg:
     rule: Rule  # must have kind == "defeasible"
 
 
-Argument = Union[PremiseArg, StrictArg, DefeasibleArg]
+Argument: TypeAlias = Union[PremiseArg, StrictArg, DefeasibleArg]
 PreferenceOrderedT = TypeVar("PreferenceOrderedT", Literal, Rule)
 
 

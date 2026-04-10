@@ -17,8 +17,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
+from propstore.core.concepts import ConceptRecord, LoadedConcept
+
 if TYPE_CHECKING:
-    from propstore.core.concepts import ConceptRecord, LoadedConcept
     from propstore.loaded import LoadedEntry
 
 
@@ -88,7 +89,7 @@ def build_cel_registry_from_concepts(
 ) -> dict[str, ConceptInfo]:
     registry: dict[str, ConceptInfo] = {}
     for concept in concepts:
-        record = concept.record if hasattr(concept, "record") else concept
+        record = concept.record if isinstance(concept, LoadedConcept) else concept
         info = concept_info_from_concept(record)
         if info is None:
             continue

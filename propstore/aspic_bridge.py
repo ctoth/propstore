@@ -65,7 +65,6 @@ from propstore.core.labels import Label, SupportQuality
 from propstore.core.environment import StanceStore
 from propstore.world.types import SupportMetadata
 
-Argument = PremiseArg | StrictArg | DefeasibleArg
 _ATTACK_TYPES = ATTACK_TYPES
 _SUPPORT_TYPES = SUPPORT_TYPES
 
@@ -93,7 +92,7 @@ def _default_support_metadata(claim: ActiveClaim) -> tuple[Label | None, Support
 # ── T1: claims -> literals ────────────────────────────────────────
 
 
-def claims_to_literals(active_claims: list[ActiveClaimInput]) -> dict[str, Literal]:
+def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[str, Literal]:
     """Map each claim to a positive Literal.
 
     T1 (proposals/aspic-bridge-spec.md): Each claim becomes
@@ -270,7 +269,7 @@ def stances_to_contrariness(
 
 
 def claims_to_kb(
-    active_claims: list[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaimInput],
     justifications: list[CanonicalJustification],
     literals: dict[str, Literal],
 ) -> KnowledgeBase:
@@ -351,7 +350,7 @@ def _transitive_closure(pairs: set[tuple[Literal, Literal]]) -> frozenset[tuple[
 
 
 def build_preference_config(
-    active_claims: list[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaimInput],
     literals: dict[str, Literal],
     defeasible_rules: frozenset[Rule],
     *,
@@ -452,7 +451,7 @@ def _build_language(
 
 
 def build_bridge_csaf(
-    active_claims: list[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaimInput],
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceRowInput],
     *,
@@ -586,7 +585,7 @@ class ClaimQueryResult:
 
 def query_claim(
     claim_id: str,
-    active_claims: list[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaimInput],
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceRowInput],
     *,
@@ -679,7 +678,7 @@ def query_claim(
 
 def csaf_to_projection(
     csaf: CSAF,
-    active_claims: list[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaimInput],
     *,
     support_metadata: SupportMetadata | None = None,
 ) -> StructuredProjection:
@@ -897,7 +896,7 @@ def _extract_justifications(
 
 def build_aspic_projection(
     store: StanceStore,
-    active_claims: list[ActiveClaimInput],
+    active_claims: Sequence[ActiveClaimInput],
     *,
     support_metadata: SupportMetadata | None = None,
     comparison: str = "elitist",
