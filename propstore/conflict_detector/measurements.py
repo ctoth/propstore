@@ -14,7 +14,7 @@ from propstore.value_comparison import (
 
 from .collectors import _collect_measurement_claims
 from .context import _append_context_classified_record, _claim_context
-from .models import ConflictClass, ConflictRecord
+from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.cel_checker import ConceptInfo
@@ -42,13 +42,13 @@ def detect_measurement_conflicts(
                 if _values_compatible(None, None, claim_a=claim_a, claim_b=claim_b):
                     continue
 
-                conditions_a = sorted(claim_a.get("conditions") or [])
-                conditions_b = sorted(claim_b.get("conditions") or [])
+                conditions_a = sorted(claim_a.conditions)
+                conditions_b = sorted(claim_b.conditions)
                 if _append_context_classified_record(
                     records,
                     concept_id=target_concept,
-                    claim_a_id=claim_a["id"],
-                    claim_b_id=claim_b["id"],
+                    claim_a_id=claim_a.claim_id,
+                    claim_b_id=claim_b.claim_id,
                     conditions_a=conditions_a,
                     conditions_b=conditions_b,
                     value_a=_value_str(None, claim=claim_a),
@@ -59,8 +59,8 @@ def detect_measurement_conflicts(
                 ):
                     continue
 
-                pop_a = claim_a.get("listener_population", "")
-                pop_b = claim_b.get("listener_population", "")
+                pop_a = claim_a.listener_population or ""
+                pop_b = claim_b.listener_population or ""
                 warning_class = (
                     ConflictClass.PHI_NODE
                     if pop_a and pop_b and pop_a != pop_b
@@ -73,8 +73,8 @@ def detect_measurement_conflicts(
                 )
                 records.append(ConflictRecord(
                     concept_id=target_concept,
-                    claim_a_id=claim_a["id"],
-                    claim_b_id=claim_b["id"],
+                    claim_a_id=claim_a.claim_id,
+                    claim_b_id=claim_b.claim_id,
                     warning_class=warning_class,
                     conditions_a=conditions_a,
                     conditions_b=conditions_b,

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from .models import ConflictClass, ConflictRecord
+from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.validate_contexts import ContextHierarchy
@@ -31,14 +31,8 @@ def _classify_pair_context(
     return None  # unrelated contexts — let condition analysis decide
 
 
-def _claim_context(claim: dict[str, Any]) -> str | None:
-    context = claim.get("context")
-    if isinstance(context, str) and context:
-        return context
-    context_id = claim.get("context_id")
-    if isinstance(context_id, str) and context_id:
-        return context_id
-    return None
+def _claim_context(claim: ConflictClaim) -> str | None:
+    return claim.context_id
 
 
 def _append_context_classified_record(

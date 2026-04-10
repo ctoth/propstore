@@ -18,6 +18,7 @@ from propstore.cel_checker import (
 )
 
 from .algorithms import detect_algorithm_conflicts
+from .collectors import _iter_conflict_claims
 from .equations import detect_equation_conflicts
 from .measurements import detect_measurement_conflicts
 from .models import ConflictRecord
@@ -42,12 +43,9 @@ def detect_conflicts(
         default_source = claim_file_default_source_paper(claim_file)
         if isinstance(default_source, str) and default_source:
             source_name_set.add(default_source)
-        if not isinstance(claim_file, LoadedClaimFile):
-            continue
-        for claim in claim_file_claim_payloads(claim_file):
-            source_paper = claim.get("source_paper")
-            if isinstance(source_paper, str) and source_paper:
-                source_name_set.add(source_paper)
+    for claim in _iter_conflict_claims(claim_files):
+        if claim.source_paper:
+            source_name_set.add(claim.source_paper)
     source_names = sorted(source_name_set)
     synthetic_concepts = [
         synthetic_category_concept(

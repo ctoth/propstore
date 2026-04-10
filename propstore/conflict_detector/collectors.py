@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import replace
 
 from propstore.claim_documents import (
     ClaimFileInput,
@@ -12,112 +13,68 @@ from propstore.claim_documents import (
 )
 from propstore.equation_comparison import equation_signature
 
-
-def _ensure_claim_id_alias(claim: dict) -> dict:
-    """Ensure downstream conflict detectors see a stable claim ``id`` key."""
-    if "id" in claim:
-        return claim
-    artifact_id = claim.get("artifact_id")
-    if isinstance(artifact_id, str) and artifact_id:
-        aliased = dict(claim)
-        aliased["id"] = artifact_id
-        return aliased
-    return claim
+from .models import ConflictClaim
 
 
-def _inject_source_condition(claim: dict, cf: ClaimFileInput) -> dict:
-    """Add a synthetic ``source == '<paper>'`` condition to a claim.
-
-    Every claim is inherently parameterized by its source paper.  Without
-    this, claims from different papers that happen to share a concept
-    (e.g. sample_size) are flagged as OVERLAP even though they describe
-    different studies.  Injecting the source as a condition lets Z3
-    recognize them as disjoint.
-    """
-    source_paper = claim_payload_source_paper(claim, cf)
-    if not source_paper:
-        return claim
-    source_cond = f"source == '{source_paper}'"
-    existing = claim.get("conditions") or []
-    if source_cond in existing:
-        return claim
-    enriched = dict(claim)
-    enriched["conditions"] = [*existing, source_cond]
-    return enriched
+def _iter_conflict_claims(claim_files: Sequence[ClaimFileInput]) -> list[ConflictClaim]:
+    claims: list[ConflictClaim] = []
+    for claim_file in claim_files:
+        for payload in claim_file_claim_payloads(claim_file):
+            claim = ConflictClaim.from_payload(payload)
+            if claim is None:
+                continue
+            source_paper = claim_payload_source_paper(payload, claim_file)
+            if source_paper:
+                claim = replace(claim, source_paper=source_paper)
+            claims.append(claim.with_source_condition())
+    return claims
 
 
 def _collect_measurement_claims(
     claim_files: Sequence[ClaimFileInput],
-) -> dict[tuple[str, str], list[dict]]:
-    by_key: dict[tuple[str, str], list[dict]] = defaultdict(list)
-    for cf in claim_files:
-        for claim in claim_file_claim_payloads(cf):
-            if (
-                claim.get("type") == "measurement"
-                and claim.get("target_concept")
-                and claim.get("measure")
-            ):
-                claim = _ensure_claim_id_alias(claim)
-                claim = _inject_source_condition(claim, cf)
-                key = (claim["target_concept"], claim["measure"])
-                by_key[key].append(claim)
+) -> dict[tuple[str, str], list[ConflictClaim]]:
+    by_key: dict[tuple[str, str], list[ConflictClaim]] = defaultdict(list)
+    for claim in _iter_conflict_claims(claim_files):
+        if claim.claim_type == "measurement" and claim.target_concept_id and claim.measure:
+            by_key[(claim.target_concept_id, claim.measure)].append(claim)
     return dict(by_key)
 
 
 def _collect_parameter_claims(
     claim_files: Sequence[ClaimFileInput],
-) -> dict[str, list[dict]]:
-    by_concept: dict[str, list[dict]] = defaultdict(list)
-    for cf in claim_files:
-        for claim in claim_file_claim_payloads(cf):
-            if claim.get("type") == "parameter" and claim.get("concept"):
-                claim = _ensure_claim_id_alias(claim)
-                claim = _inject_source_condition(claim, cf)
-                by_concept[claim["concept"]].append(claim)
+) -> dict[str, list[ConflictClaim]]:
+    by_concept: dict[str, list[ConflictClaim]] = defaultdict(list)
+    for claim in _iter_conflict_claims(claim_files):
+        if claim.claim_type == "parameter" and claim.concept_id:
+            by_concept[claim.concept_id].append(claim)
     return dict(by_concept)
 
 
 def _collect_equation_claims(
     claim_files: Sequence[ClaimFileInput],
-) -> dict[tuple[str, tuple[str, ...]], list[dict]]:
-    by_signature: dict[tuple[str, tuple[str, ...]], list[dict]] = defaultdict(list)
-    for cf in claim_files:
-        for claim in claim_file_claim_payloads(cf):
-            if claim.get("type") != "equation":
-                continue
-            claim = _ensure_claim_id_alias(claim)
-            claim = _inject_source_condition(claim, cf)
-            signature = equation_signature(claim)
-            if signature is None:
-                continue
-            by_signature[signature].append(claim)
+) -> dict[tuple[str, tuple[str, ...]], list[ConflictClaim]]:
+    by_signature: dict[tuple[str, tuple[str, ...]], list[ConflictClaim]] = defaultdict(list)
+    for claim in _iter_conflict_claims(claim_files):
+        if claim.claim_type != "equation":
+            continue
+        signature = equation_signature(claim)
+        if signature is None:
+            continue
+        by_signature[signature].append(claim)
     return dict(by_signature)
 
 
 def _collect_algorithm_claims(
     claim_files: Sequence[ClaimFileInput],
-) -> dict[str, list[dict]]:
-    by_concept: dict[str, list[dict]] = defaultdict(list)
-    for cf in claim_files:
-        for claim in claim_file_claim_payloads(cf):
-            if claim.get("type") != "algorithm":
-                continue
-            claim = _ensure_claim_id_alias(claim)
-            claim = _inject_source_condition(claim, cf)
-            declared_concept = claim.get("concept")
-            if isinstance(declared_concept, str) and declared_concept:
-                by_concept[declared_concept].append(claim)
-                continue
-            variables = claim.get("variables")
-            if not isinstance(variables, list) or not variables:
-                continue
-            first_concept = None
-            for var in variables:
-                if isinstance(var, dict):
-                    concept = var.get("concept")
-                    if isinstance(concept, str) and concept:
-                        first_concept = concept
-                        break
-            if first_concept is not None:
-                by_concept[first_concept].append(claim)
+) -> dict[str, list[ConflictClaim]]:
+    by_concept: dict[str, list[ConflictClaim]] = defaultdict(list)
+    for claim in _iter_conflict_claims(claim_files):
+        if claim.claim_type != "algorithm":
+            continue
+        if claim.concept_id is not None:
+            by_concept[claim.concept_id].append(claim)
+            continue
+        first_concept = next((variable.concept_id for variable in claim.variables), None)
+        if first_concept is not None:
+            by_concept[first_concept].append(claim)
     return dict(by_concept)

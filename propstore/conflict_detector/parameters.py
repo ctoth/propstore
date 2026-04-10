@@ -14,7 +14,7 @@ from propstore.value_comparison import (
 
 from .collectors import _collect_parameter_claims
 from .context import _append_context_classified_record, _claim_context
-from .models import ConflictClass, ConflictRecord
+from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.cel_checker import ConceptInfo
@@ -35,7 +35,7 @@ def detect_parameter_conflicts(
     *,
     context_hierarchy: ContextHierarchy | None = None,
     solver=None,
-) -> tuple[list[ConflictRecord], dict[str, list[dict]]]:
+) -> tuple[list[ConflictRecord], dict[str, list[ConflictClaim]]]:
     records: list[ConflictRecord] = []
     by_concept = _collect_parameter_claims(claim_files)
     z3_solver = solver if solver is not None else _build_z3_solver(cel_registry)
@@ -44,7 +44,7 @@ def detect_parameter_conflicts(
         if len(claims) < 2:
             continue
 
-        all_conditions = [sorted(claim.get("conditions") or []) for claim in claims]
+        all_conditions = [sorted(claim.conditions) for claim in claims]
 
         if len(claims) > 2:
             from propstore.z3_conditions import Z3TranslationError
@@ -93,7 +93,7 @@ def detect_parameter_conflicts(
 def _detect_pairwise_parameter_conflicts(
     records: list[ConflictRecord],
     concept_id: str,
-    claims: list[dict],
+    claims: list[ConflictClaim],
     all_conditions: list[list[str]],
     cel_registry: dict[str, ConceptInfo],
     *,
@@ -104,16 +104,16 @@ def _detect_pairwise_parameter_conflicts(
         for j in range(i + 1, len(claims)):
             claim_a = claims[i]
             claim_b = claims[j]
-            value_a = claim_a.get("value", [])
-            value_b = claim_b.get("value", [])
+            value_a = claim_a.value
+            value_b = claim_b.value
 
             if _values_compatible(value_a, value_b, claim_a=claim_a, claim_b=claim_b):
                 continue
             if _append_context_classified_record(
                 records,
                 concept_id=concept_id,
-                claim_a_id=claim_a["id"],
-                claim_b_id=claim_b["id"],
+                claim_a_id=claim_a.claim_id,
+                claim_b_id=claim_b.claim_id,
                 conditions_a=all_conditions[i],
                 conditions_b=all_conditions[j],
                 value_a=_value_str(value_a, claim=claim_a),
@@ -125,8 +125,8 @@ def _detect_pairwise_parameter_conflicts(
                 continue
             records.append(ConflictRecord(
                 concept_id=concept_id,
-                claim_a_id=claim_a["id"],
-                claim_b_id=claim_b["id"],
+                claim_a_id=claim_a.claim_id,
+                claim_b_id=claim_b.claim_id,
                 warning_class=_classify_conditions(
                     all_conditions[i],
                     all_conditions[j],
@@ -143,7 +143,7 @@ def _detect_pairwise_parameter_conflicts(
 def _detect_equivalent_parameter_conflicts(
     records: list[ConflictRecord],
     concept_id: str,
-    claims: list[dict],
+    claims: list[ConflictClaim],
     all_conditions: list[list[str]],
     eq_classes: list[list[int]],
     *,
@@ -155,15 +155,15 @@ def _detect_equivalent_parameter_conflicts(
                 idx_a, idx_b = group[ii], group[jj]
                 claim_a = claims[idx_a]
                 claim_b = claims[idx_b]
-                value_a = claim_a.get("value", [])
-                value_b = claim_b.get("value", [])
+                value_a = claim_a.value
+                value_b = claim_b.value
                 if _values_compatible(value_a, value_b, claim_a=claim_a, claim_b=claim_b):
                     continue
                 if _append_context_classified_record(
                     records,
                     concept_id=concept_id,
-                    claim_a_id=claim_a["id"],
-                    claim_b_id=claim_b["id"],
+                    claim_a_id=claim_a.claim_id,
+                    claim_b_id=claim_b.claim_id,
                     conditions_a=all_conditions[idx_a],
                     conditions_b=all_conditions[idx_b],
                     value_a=_value_str(value_a, claim=claim_a),
@@ -175,8 +175,8 @@ def _detect_equivalent_parameter_conflicts(
                     continue
                 records.append(ConflictRecord(
                     concept_id=concept_id,
-                    claim_a_id=claim_a["id"],
-                    claim_b_id=claim_b["id"],
+                    claim_a_id=claim_a.claim_id,
+                    claim_b_id=claim_b.claim_id,
                     warning_class=ConflictClass.CONFLICT,
                     conditions_a=all_conditions[idx_a],
                     conditions_b=all_conditions[idx_b],
@@ -188,7 +188,7 @@ def _detect_equivalent_parameter_conflicts(
 def _detect_cross_class_parameter_conflicts(
     records: list[ConflictRecord],
     concept_id: str,
-    claims: list[dict],
+    claims: list[ConflictClaim],
     all_conditions: list[list[str]],
     eq_classes: list[list[int]],
     cel_registry: dict[str, ConceptInfo],
@@ -218,15 +218,15 @@ def _detect_cross_class_parameter_conflicts(
                 for idx_b in group_j:
                     claim_a = claims[idx_a]
                     claim_b = claims[idx_b]
-                    value_a = claim_a.get("value", [])
-                    value_b = claim_b.get("value", [])
+                    value_a = claim_a.value
+                    value_b = claim_b.value
                     if _values_compatible(value_a, value_b, claim_a=claim_a, claim_b=claim_b):
                         continue
                     if _append_context_classified_record(
                         records,
                         concept_id=concept_id,
-                        claim_a_id=claim_a["id"],
-                        claim_b_id=claim_b["id"],
+                        claim_a_id=claim_a.claim_id,
+                        claim_b_id=claim_b.claim_id,
                         conditions_a=all_conditions[idx_a],
                         conditions_b=all_conditions[idx_b],
                         value_a=_value_str(value_a, claim=claim_a),
@@ -238,8 +238,8 @@ def _detect_cross_class_parameter_conflicts(
                         continue
                     records.append(ConflictRecord(
                         concept_id=concept_id,
-                        claim_a_id=claim_a["id"],
-                        claim_b_id=claim_b["id"],
+                        claim_a_id=claim_a.claim_id,
+                        claim_b_id=claim_b.claim_id,
                         warning_class=cross_class,
                         conditions_a=all_conditions[idx_a],
                         conditions_b=all_conditions[idx_b],
