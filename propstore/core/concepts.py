@@ -7,7 +7,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from propstore.core.id_types import ClaimId, ConceptId, to_claim_id, to_concept_id
+from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
 from propstore.identity import (
     compute_concept_version_id,
     derive_concept_artifact_id,
@@ -22,23 +22,6 @@ def _string_list(value: object) -> tuple[str, ...]:
     if not isinstance(value, Sequence) or isinstance(value, str):
         return ()
     return tuple(item for item in value if isinstance(item, str) and item)
-
-
-@dataclass(frozen=True)
-class LogicalId:
-    namespace: str
-    value: str
-
-    @property
-    def formatted(self) -> str:
-        return f"{self.namespace}:{self.value}"
-
-    def to_payload(self) -> dict[str, str]:
-        return {
-            "namespace": self.namespace,
-            "value": self.value,
-        }
-
 
 @dataclass(frozen=True)
 class ConceptAlias:

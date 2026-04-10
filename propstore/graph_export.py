@@ -27,17 +27,9 @@ def _claim_concept_id(claim_input) -> Any:
 
 def _display_claim_id(claim_input) -> str:
     claim = coerce_claim_row(claim_input)
-    logical_id = claim.primary_logical_id
-    if isinstance(logical_id, str) and logical_id:
-        return logical_id.split(":", 1)[1] if ":" in logical_id else logical_id
-
-    for entry in claim.parsed_logical_ids():
-        if not isinstance(entry, dict):
-            continue
-        value = entry.get("value")
-        if isinstance(value, str) and value:
-            return value
-
+    logical_value = claim.primary_logical_value
+    if isinstance(logical_value, str) and logical_value:
+        return logical_value
     return str(claim.claim_id)
 
 

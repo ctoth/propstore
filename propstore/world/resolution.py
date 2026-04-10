@@ -17,6 +17,7 @@ from propstore.cel_checker import (
     build_cel_registry_from_records,
     scope_cel_registry,
 )
+from propstore.core.claim_values import ClaimProvenance
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.form_utils import kind_type_from_form_name
 from propstore.core.labels import Label, SupportQuality
@@ -48,7 +49,7 @@ from propstore.world.types import (
 class _ResolutionClaimView:
     id: ClaimId
     value: float | str | None
-    provenance_json: str | Mapping[str, object] | None
+    provenance: ClaimProvenance | None
     sample_size: int | None
     opinion_belief: float | None
     opinion_disbelief: float | None
@@ -95,18 +96,39 @@ def _claim_optional_float(claim: Mapping[str, object], key: str) -> float | None
 
 def _claim_provenance_json(claim: Mapping[str, object]) -> str | Mapping[str, object] | None:
     provenance = claim.get("provenance_json")
-    if isinstance(provenance, str):
-        return provenance
-    if isinstance(provenance, Mapping):
+    if isinstance(provenance, str | Mapping):
         return provenance
     return None
 
 
-def _resolution_claim_view(claim: Mapping[str, object]) -> _ResolutionClaimView:
+def _claim_provenance(claim: ClaimRowInput | Mapping[str, object]) -> ClaimProvenance | None:
+    if isinstance(claim, Mapping):
+        return ClaimProvenance.from_components(
+            paper=claim.get("source_paper") if isinstance(claim.get("source_paper"), str) else None,
+            page=claim.get("provenance_page") if isinstance(claim.get("provenance_page"), int) else None,
+            provenance_json=_claim_provenance_json(claim),
+        )
+    return coerce_claim_row(claim).provenance
+
+
+def _resolution_claim_view(claim: ClaimRowInput | Mapping[str, object]) -> _ResolutionClaimView:
+    if not isinstance(claim, Mapping):
+        row = coerce_claim_row(claim)
+        return _ResolutionClaimView(
+            id=row.claim_id,
+            value=row.value if isinstance(row.value, float | int | str) and not isinstance(row.value, bool) else None,
+            provenance=row.provenance,
+            sample_size=row.sample_size,
+            opinion_belief=_claim_optional_float(row.attributes, "opinion_belief"),
+            opinion_disbelief=_claim_optional_float(row.attributes, "opinion_disbelief"),
+            opinion_uncertainty=_claim_optional_float(row.attributes, "opinion_uncertainty"),
+            opinion_base_rate=_claim_optional_float(row.attributes, "opinion_base_rate"),
+            confidence=_claim_optional_float(row.attributes, "confidence"),
+        )
     return _ResolutionClaimView(
         id=_claim_id(claim),
         value=_claim_value(claim),
-        provenance_json=_claim_provenance_json(claim),
+        provenance=_claim_provenance(claim),
         sample_size=_claim_optional_int(claim, "sample_size"),
         opinion_belief=_claim_optional_float(claim, "opinion_belief"),
         opinion_disbelief=_claim_optional_float(claim, "opinion_disbelief"),
@@ -114,10 +136,6 @@ def _resolution_claim_view(claim: Mapping[str, object]) -> _ResolutionClaimView:
         opinion_base_rate=_claim_optional_float(claim, "opinion_base_rate"),
         confidence=_claim_optional_float(claim, "confidence"),
     )
-
-
-def _claim_mapping(claim: ClaimRowInput | Mapping[str, object]) -> Mapping[str, object]:
-    return coerce_claim_row(claim).to_dict()
 
 
 def _display_claim_id(store: ArtifactStore | None, claim_id: str | None) -> str | None:
@@ -129,18 +147,10 @@ def _display_claim_id(store: ArtifactStore | None, claim_id: str | None) -> str 
     if callable(getter):
         claim = getter(claim_id)
         if claim is not None:
-            claim_map = _claim_mapping(claim)
-            logical_id = claim_map.get("logical_id") or claim_map.get("primary_logical_id")
-            if isinstance(logical_id, str) and logical_id:
-                return logical_id.split(":", 1)[1] if ":" in logical_id else logical_id
-            logical_ids = claim_map.get("logical_ids")
-            if isinstance(logical_ids, list):
-                for entry in logical_ids:
-                    if not isinstance(entry, Mapping):
-                        continue
-                    value = entry.get("value")
-                    if isinstance(value, str) and value:
-                        return value
+            row = coerce_claim_row(claim)
+            logical_value = row.primary_logical_value
+            if isinstance(logical_value, str) and logical_value:
+                return logical_value
     return claim_id
 
 
@@ -149,7 +159,7 @@ def _coerce_resolution_claim(
 ) -> _ResolutionClaimView:
     if isinstance(claim, _ResolutionClaimView):
         return claim
-    return _resolution_claim_view(_claim_mapping(claim))
+    return _resolution_claim_view(claim)
 
 
 def _resolve_recency(
@@ -164,13 +174,10 @@ def _resolve_recency(
     best_date = ""
     dated_claims: list[tuple[str, str]] = []  # (claim_id, date)
     for c in (_coerce_resolution_claim(claim) for claim in claims):
-        prov = c.provenance_json
-        if not prov:
+        provenance = c.provenance
+        if provenance is None:
             continue
-        try:
-            prov_data = json.loads(prov) if isinstance(prov, str) else prov
-        except (json.JSONDecodeError, TypeError):
-            continue
+        prov_data = provenance.to_dict()
         date = prov_data.get("date") if isinstance(prov_data, Mapping) else ""
         date = date or ""
         if isinstance(date, str) and date >= best_date:

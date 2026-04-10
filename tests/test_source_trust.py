@@ -51,6 +51,31 @@ def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
     assert p_arg_from_claim(claim) == expected
 
 
+def test_p_arg_from_claim_accepts_typed_claim_rows() -> None:
+    claim = coerce_claim_row(
+        {
+            "id": "claim-1",
+            "artifact_id": "claim-1",
+            "source": {
+                "trust": {
+                    "prior_base_rate": 0.62,
+                    "quality": {
+                        "b": 0.7,
+                        "d": 0.1,
+                        "u": 0.2,
+                        "a": 0.5,
+                    },
+                }
+            },
+            "claim_probability": 0.8,
+            "effective_sample_size": 10,
+        }
+    )
+    expected_claim = from_probability(0.8, 10, 0.62)
+    expected = discount(Opinion(0.7, 0.1, 0.2, 0.5), expected_claim)
+    assert p_arg_from_claim(claim) == expected
+
+
 def test_p_arg_from_claim_ignores_sample_size_without_calibration_payload() -> None:
     opinion = p_arg_from_claim({"sample_size": 50})
     assert opinion == Opinion.dogmatic_true()

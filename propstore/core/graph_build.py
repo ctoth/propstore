@@ -31,6 +31,7 @@ from propstore.core.graph_types import (
     RelationEdge,
 )
 from propstore.core.row_types import (
+    ClaimRow,
     coerce_claim_row,
     coerce_concept_row,
     coerce_conflict_row,
@@ -41,12 +42,20 @@ from propstore.core.row_types import (
 
 
 def _row_provenance(
-    row: Mapping[str, Any],
+    row: Mapping[str, Any] | ClaimRow,
     *,
     source_table: str,
     source_id: str | None = None,
 ) -> ProvenanceRecord | None:
     if source_table == "claim":
+        if isinstance(row, ClaimRow):
+            extras = {}
+            if row.provenance is not None:
+                extras.update(row.provenance.to_dict())
+            extras["source_table"] = source_table
+            extras["source_id"] = source_id or str(row.claim_id)
+            return ProvenanceRecord.from_mapping(extras)
+
         provenance_json = row.get("provenance_json")
         extras: dict[str, Any] = {}
         if provenance_json:
@@ -81,43 +90,50 @@ def _concept_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
 
 
 def _claim_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
-    known = {
-        "id",
-        "artifact_id",
-        "type",
-        "concept_id",
-        "target_concept",
-        "value",
-        "source_paper",
-        "provenance_page",
-        "provenance_json",
-        "content_hash",
-        "logical_id",
-        "logical_ids",
-        "logical_ids_json",
-        "primary_logical_id",
-        "version_id",
+    claim_data: dict[str, Any] = dict(row.attributes)
+    optional_fields = {
+        "seq": row.seq,
+        "lower_bound": row.lower_bound,
+        "upper_bound": row.upper_bound,
+        "uncertainty": row.uncertainty,
+        "uncertainty_type": row.uncertainty_type,
+        "sample_size": row.sample_size,
+        "unit": row.unit,
+        "conditions_cel": row.conditions_cel,
+        "statement": row.statement,
+        "expression": row.expression,
+        "sympy_generated": row.sympy_generated,
+        "sympy_error": row.sympy_error,
+        "name": row.name,
+        "measure": row.measure,
+        "listener_population": row.listener_population,
+        "methodology": row.methodology,
+        "notes": row.notes,
+        "description": row.description,
+        "auto_summary": row.auto_summary,
+        "body": row.body,
+        "canonical_ast": row.canonical_ast,
+        "variables_json": row.variables_json,
+        "stage": row.stage,
+        "value_si": row.value_si,
+        "lower_bound_si": row.lower_bound_si,
+        "upper_bound_si": row.upper_bound_si,
+        "context_id": row.context_id,
     }
-    return tuple(
-        (str(key), value)
-        for key, value in row.items()
-        if key not in known and value is not None
-    )
+    claim_data.pop("content_hash", None)
+    for key, value in optional_fields.items():
+        if value is not None:
+            claim_data[key] = value
+    if row.source is not None and not row.source.is_empty:
+        claim_data["source"] = row.source.to_dict()
+    return tuple((str(key), value) for key, value in claim_data.items() if value is not None)
 
 
 def _display_claim_id_from_row(row_input) -> str:
     row = coerce_claim_row(row_input)
-    logical_id = row.primary_logical_id
-    if isinstance(logical_id, str) and logical_id:
-        return logical_id.split(":", 1)[1] if ":" in logical_id else logical_id
-
-    for entry in row.parsed_logical_ids():
-        if not isinstance(entry, Mapping):
-            continue
-        value = entry.get("value")
-        if isinstance(value, str) and value:
-            return value
-
+    logical_value = row.primary_logical_value
+    if isinstance(logical_value, str) and logical_value:
+        return logical_value
     return str(row.claim_id)
 
 
@@ -241,11 +257,11 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     claim_type=str(row.claim_type or "unknown"),
                     scalar_value=row.value,
                     provenance=_row_provenance(
-                        row.to_dict(),
+                        row,
                         source_table="claim",
                         source_id=claim_display_ids[str(row.claim_id)],
                     ),
-                    attributes=_claim_attributes(row.to_dict()),
+                    attributes=_claim_attributes(row),
                 )
                 for row in claim_rows
             )
