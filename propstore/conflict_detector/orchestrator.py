@@ -25,7 +25,7 @@ from .models import ConflictRecord
 from .parameters import detect_parameter_conflicts
 
 if TYPE_CHECKING:
-    from propstore.validate_contexts import ContextHierarchy
+    from propstore.context_hierarchy import ContextHierarchy
 
 
 def detect_conflicts(

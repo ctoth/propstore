@@ -30,7 +30,7 @@ from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 if TYPE_CHECKING:
     from propstore.cli.repository import Repository
     from propstore.world.bound import BoundWorld
-    from propstore.validate_contexts import ContextHierarchy
+    from propstore.context_hierarchy import ContextHierarchy
 from propstore.world.resolution import resolve
 from propstore.world.types import (
     ArtifactStore,
@@ -306,7 +306,7 @@ class WorldModel(ArtifactStore):
         self._context_hierarchy_loaded = True
 
         from propstore.context_types import ContextRecord, LoadedContext
-        from propstore.validate_contexts import ContextHierarchy
+        from propstore.context_hierarchy import ContextHierarchy
 
         rows = self._conn.execute(
             "SELECT id, name, description, inherits FROM context ORDER BY id"

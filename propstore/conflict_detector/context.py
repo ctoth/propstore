@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.validate_contexts import ContextHierarchy
+    from propstore.context_hierarchy import ContextHierarchy
 
 
 def _classify_pair_context(

@@ -113,7 +113,8 @@ def build_sidecar(
         if (knowledge_root / "claims").exists()
         else None
     )
-    from propstore.validate_contexts import ContextHierarchy, load_contexts
+    from propstore.context_hierarchy import ContextHierarchy
+    from propstore.validate_contexts import load_contexts
 
     context_files = (
         load_contexts(knowledge_root / "contexts")

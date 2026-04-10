@@ -27,7 +27,7 @@ from propstore.value_comparison import (
 
 if TYPE_CHECKING:
     from propstore.form_utils import FormDefinition
-    from propstore.validate_contexts import ContextHierarchy
+    from propstore.context_hierarchy import ContextHierarchy
 
 
 def _normalize_claim_value(

@@ -20,7 +20,7 @@ from .models import ConflictClass, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.claim_documents import ClaimFileInput
-    from propstore.validate_contexts import ContextHierarchy
+    from propstore.context_hierarchy import ContextHierarchy
 
 
 def detect_conflicts(

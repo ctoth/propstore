@@ -18,7 +18,7 @@ from propstore.core.environment import Environment
 from propstore.core.labels import binding_condition_to_cel
 
 if TYPE_CHECKING:
-    from propstore.validate_contexts import ContextHierarchy
+    from propstore.context_hierarchy import ContextHierarchy
     from propstore.z3_conditions import Z3ConditionSolver
 
 
