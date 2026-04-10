@@ -4,15 +4,35 @@ from __future__ import annotations
 
 import copy
 from dataclasses import replace
+from pathlib import Path
 from typing import Any, Mapping
 
 import jsonschema
 
-from propstore.claim_documents import ClaimDocument, LoadedClaimFile
+from propstore.claim_documents import (
+    ClaimDocument,
+    ClaimFileInput,
+    ClaimsFileDocument,
+    LoadedClaimFile,
+    coerce_loaded_claim_files,
+)
 from propstore.cel_checker import check_cel_expression
+from propstore.compiler.claim_checks import (
+    _coerce_schema_numeric_strings,
+    _load_claim_schema,
+    _validate_algorithm,
+    _validate_equation,
+    _validate_logical_ids,
+    _validate_measurement,
+    _validate_model,
+    _validate_observation,
+    _validate_parameter,
+    _validate_stances,
+)
 from propstore.compiler.context import (
     CompilationContext,
     _build_claim_lookup,
+    compilation_context_from_concept_registry,
     concept_registry_for_context,
 )
 from propstore.diagnostics import SemanticDiagnostic, ValidationResult
@@ -23,26 +43,12 @@ from propstore.compiler.ir import (
     SemanticClaimFile,
     SemanticStance,
 )
+from propstore.document_schema import load_document
 from propstore.identity import (
     CLAIM_ARTIFACT_ID_RE,
     CLAIM_VERSION_ID_RE,
     compute_claim_version_id,
 )
-
-
-def _diagnostics_from_validation_result(
-    result: ValidationResult,
-) -> list[SemanticDiagnostic]:
-    diagnostics: list[SemanticDiagnostic] = []
-    diagnostics.extend(
-        SemanticDiagnostic(level="error", message=message)
-        for message in result.errors
-    )
-    diagnostics.extend(
-        SemanticDiagnostic(level="warning", message=message)
-        for message in result.warnings
-    )
-    return diagnostics
 
 
 def _concept_match_kind(
@@ -253,18 +259,6 @@ def compile_claim_files(
     context_ids: set[str] | None = None,
 ) -> ClaimCompilationBundle:
     """Run normalization, binding, and semantic validation over claim files."""
-    from propstore.validate_claims import (
-        _coerce_schema_numeric_strings,
-        _load_claim_schema,
-        _validate_algorithm,
-        _validate_equation,
-        _validate_logical_ids,
-        _validate_measurement,
-        _validate_model,
-        _validate_observation,
-        _validate_parameter,
-        _validate_stances,
-    )
     from propstore.form_utils import json_safe
 
     normalized_claim_files = list(claim_files)
@@ -319,7 +313,8 @@ def compile_claim_files(
             file_diagnostics.append(
                 SemanticDiagnostic(
                     level="error",
-                    message=f"{normalized_file.filename}: JSON Schema error: {exc.message}",
+                    message=f"JSON Schema error: {exc.message}",
+                    filename=normalized_file.filename,
                 )
             )
 
@@ -333,9 +328,10 @@ def compile_claim_files(
                     SemanticDiagnostic(
                         level="error",
                         message=(
-                            f"{normalized_file.filename}: claim uses raw 'id' input "
+                            "claim uses raw 'id' input "
                             "without canonical identity fields"
                         ),
+                        filename=normalized_file.filename,
                     )
                 )
                 continue
@@ -350,78 +346,119 @@ def compile_claim_files(
             )
             semantic_claims.append(semantic_claim)
 
-            per_claim = ValidationResult()
             cid = semantic_claim.resolved_claim.get("artifact_id")
             ctype = semantic_claim.resolved_claim.get("type")
 
             if not cid:
-                per_claim.errors.append(f"{normalized_file.filename}: claim missing 'artifact_id'")
-                file_diagnostics.extend(_diagnostics_from_validation_result(per_claim))
+                file_diagnostics.append(SemanticDiagnostic(
+                    level="error",
+                    message="claim missing 'artifact_id'",
+                    filename=normalized_file.filename,
+                ))
                 continue
 
             if cid in seen_artifact_ids:
-                per_claim.errors.append(
-                    f"{normalized_file.filename}: duplicate claim artifact_id '{cid}' "
-                    f"(also in {seen_artifact_ids[cid]})"
-                )
+                file_diagnostics.append(SemanticDiagnostic(
+                    level="error",
+                    message=(
+                        f"duplicate claim artifact_id '{cid}' "
+                        f"(also in {seen_artifact_ids[cid]})"
+                    ),
+                    filename=normalized_file.filename,
+                    artifact_id=cid,
+                ))
             else:
                 seen_artifact_ids[cid] = normalized_file.filename
 
             if "id" in semantic_claim.resolved_claim:
-                per_claim.errors.append(
-                    f"{normalized_file.filename}: claim '{cid}' uses raw 'id' input; "
-                    "use artifact_id and logical_ids"
-                )
+                file_diagnostics.append(SemanticDiagnostic(
+                    level="error",
+                    message=(
+                        f"claim '{cid}' uses raw 'id' input; "
+                        "use artifact_id and logical_ids"
+                    ),
+                    filename=normalized_file.filename,
+                    artifact_id=cid,
+                ))
 
             if not CLAIM_ARTIFACT_ID_RE.match(cid):
-                per_claim.errors.append(
-                    f"{normalized_file.filename}: claim artifact_id '{cid}' does not match "
-                    "required format ps:claim:<opaque-token>"
-                )
+                file_diagnostics.append(SemanticDiagnostic(
+                    level="error",
+                    message=(
+                        f"claim artifact_id '{cid}' does not match "
+                        "required format ps:claim:<opaque-token>"
+                    ),
+                    filename=normalized_file.filename,
+                    artifact_id=cid,
+                ))
 
             _validate_logical_ids(
                 semantic_claim.resolved_claim.get("logical_ids"),
                 filename=normalized_file.filename,
                 artifact_id=cid,
                 seen_logical_ids=seen_logical_ids,
-                result=per_claim,
+                diagnostics=file_diagnostics,
             )
 
             version_id = semantic_claim.resolved_claim.get("version_id")
             if not isinstance(version_id, str) or not CLAIM_VERSION_ID_RE.match(version_id):
-                per_claim.errors.append(
-                    f"{normalized_file.filename}: claim '{cid}' version_id must match "
-                    "sha256:<64 hex chars>"
-                )
+                file_diagnostics.append(SemanticDiagnostic(
+                    level="error",
+                    message=(
+                        f"claim '{cid}' version_id must match "
+                        "sha256:<64 hex chars>"
+                    ),
+                    filename=normalized_file.filename,
+                    artifact_id=cid,
+                ))
             else:
                 expected_version_id = compute_claim_version_id(semantic_claim.authored_claim)
                 if version_id != expected_version_id:
-                    per_claim.errors.append(
-                        f"{normalized_file.filename}: claim '{cid}' version_id mismatch "
-                        f"(expected {expected_version_id})"
-                    )
+                    file_diagnostics.append(SemanticDiagnostic(
+                        level="error",
+                        message=(
+                            f"claim '{cid}' version_id mismatch "
+                            f"(expected {expected_version_id})"
+                        ),
+                        filename=normalized_file.filename,
+                        artifact_id=cid,
+                    ))
 
             provenance = semantic_claim.resolved_claim.get("provenance")
             if not provenance or not isinstance(provenance, dict):
-                per_claim.errors.append(
-                    f"{normalized_file.filename}: claim '{cid}' missing provenance"
-                )
+                file_diagnostics.append(SemanticDiagnostic(
+                    level="error",
+                    message=f"claim '{cid}' missing provenance",
+                    filename=normalized_file.filename,
+                    artifact_id=cid,
+                ))
             else:
                 if not provenance.get("paper"):
-                    per_claim.errors.append(
-                        f"{normalized_file.filename}: claim '{cid}' provenance missing 'paper'"
-                    )
+                    file_diagnostics.append(SemanticDiagnostic(
+                        level="error",
+                        message=f"claim '{cid}' provenance missing 'paper'",
+                        filename=normalized_file.filename,
+                        artifact_id=cid,
+                    ))
                 if provenance.get("page") is None:
-                    per_claim.errors.append(
-                        f"{normalized_file.filename}: claim '{cid}' provenance missing 'page'"
-                    )
+                    file_diagnostics.append(SemanticDiagnostic(
+                        level="error",
+                        message=f"claim '{cid}' provenance missing 'page'",
+                        filename=normalized_file.filename,
+                        artifact_id=cid,
+                    ))
 
             claim_context = semantic_claim.resolved_claim.get("context")
             if claim_context and context_ids is not None and claim_context not in context_ids:
-                per_claim.errors.append(
-                    f"{normalized_file.filename}: claim '{cid}' references nonexistent "
-                    f"context '{claim_context}'"
-                )
+                file_diagnostics.append(SemanticDiagnostic(
+                    level="error",
+                    message=(
+                        f"claim '{cid}' references nonexistent "
+                        f"context '{claim_context}'"
+                    ),
+                    filename=normalized_file.filename,
+                    artifact_id=cid,
+                ))
 
             conditions = semantic_claim.resolved_claim.get("conditions")
             if conditions and isinstance(conditions, list):
@@ -434,15 +471,25 @@ def compile_claim_files(
                     )
                     for error in cel_errors:
                         if error.is_warning:
-                            per_claim.warnings.append(
-                                f"{normalized_file.filename}: claim '{cid}' CEL warning: "
-                                f"{error.message}"
-                            )
+                            file_diagnostics.append(SemanticDiagnostic(
+                                level="warning",
+                                message=(
+                                    f"claim '{cid}' CEL warning: "
+                                    f"{error.message}"
+                                ),
+                                filename=normalized_file.filename,
+                                artifact_id=cid,
+                            ))
                         else:
-                            per_claim.errors.append(
-                                f"{normalized_file.filename}: claim '{cid}' CEL error: "
-                                f"{error.message}"
-                            )
+                            file_diagnostics.append(SemanticDiagnostic(
+                                level="error",
+                                message=(
+                                    f"claim '{cid}' CEL error: "
+                                    f"{error.message}"
+                                ),
+                                filename=normalized_file.filename,
+                                artifact_id=cid,
+                            ))
 
             if ctype == "parameter":
                 _validate_parameter(
@@ -450,7 +497,7 @@ def compile_claim_files(
                     cid,
                     normalized_file.filename,
                     concept_registry,
-                    per_claim,
+                    file_diagnostics,
                 )
             elif ctype == "equation":
                 _validate_equation(
@@ -458,7 +505,7 @@ def compile_claim_files(
                     cid,
                     normalized_file.filename,
                     concept_registry,
-                    per_claim,
+                    file_diagnostics,
                 )
             elif ctype == "observation":
                 _validate_observation(
@@ -466,7 +513,7 @@ def compile_claim_files(
                     cid,
                     normalized_file.filename,
                     concept_registry,
-                    per_claim,
+                    file_diagnostics,
                 )
             elif ctype == "model":
                 _validate_model(
@@ -474,7 +521,7 @@ def compile_claim_files(
                     cid,
                     normalized_file.filename,
                     concept_registry,
-                    per_claim,
+                    file_diagnostics,
                 )
             elif ctype == "measurement":
                 _validate_measurement(
@@ -482,7 +529,7 @@ def compile_claim_files(
                     cid,
                     normalized_file.filename,
                     concept_registry,
-                    per_claim,
+                    file_diagnostics,
                 )
             elif ctype == "algorithm":
                 _validate_algorithm(
@@ -490,7 +537,7 @@ def compile_claim_files(
                     cid,
                     normalized_file.filename,
                     concept_registry,
-                    per_claim,
+                    file_diagnostics,
                 )
             elif ctype in ("mechanism", "comparison", "limitation"):
                 _validate_observation(
@@ -498,22 +545,24 @@ def compile_claim_files(
                     cid,
                     normalized_file.filename,
                     concept_registry,
-                    per_claim,
+                    file_diagnostics,
                     claim_type=ctype,
                 )
             else:
-                per_claim.errors.append(
-                    f"{normalized_file.filename}: claim '{cid}' has unrecognized type '{ctype}'"
-                )
+                file_diagnostics.append(SemanticDiagnostic(
+                    level="error",
+                    message=f"claim '{cid}' has unrecognized type '{ctype}'",
+                    filename=normalized_file.filename,
+                    artifact_id=cid,
+                ))
 
             _validate_stances(
                 semantic_claim.resolved_claim,
                 cid,
                 normalized_file.filename,
                 all_artifact_ids,
-                per_claim,
+                file_diagnostics,
             )
-            file_diagnostics.extend(_diagnostics_from_validation_result(per_claim))
 
         diagnostics.extend(file_diagnostics)
         semantic_files.append(
@@ -530,3 +579,51 @@ def compile_claim_files(
         semantic_files=tuple(semantic_files),
         diagnostics=tuple(diagnostics),
     )
+
+
+def validate_claims(
+    claim_files: list[ClaimFileInput],
+    concept_registry: dict[str, dict] | CompilationContext,
+    context_ids: set[str] | None = None,
+) -> ValidationResult:
+    """Validate claim files against schema and compiler contract.
+
+    Args:
+        claim_files: loaded claim YAML files
+        concept_registry: legacy concept registry or compilation context
+        context_ids: set of valid context IDs (if None, skip context validation)
+    """
+    typed_claim_files = coerce_loaded_claim_files(claim_files)
+    context = (
+        concept_registry
+        if isinstance(concept_registry, CompilationContext)
+        else compilation_context_from_concept_registry(
+            concept_registry,
+            claim_files=typed_claim_files,
+            context_ids=context_ids,
+        )
+    )
+    bundle = compile_claim_files(
+        typed_claim_files,
+        context,
+        context_ids=context_ids,
+    )
+    return bundle.to_validation_result()
+
+
+def validate_single_claim_file(
+    filepath: Path,
+    concept_registry: dict[str, dict],
+) -> ValidationResult:
+    """Validate a single claims YAML file.
+
+    Loads the file, wraps it in a LoadedEntry, and runs
+    validate_claims on just that one file.
+    """
+    loaded = LoadedClaimFile.from_loaded_document(
+        load_document(
+            filepath,
+            ClaimsFileDocument,
+        )
+    )
+    return validate_claims([loaded], concept_registry)

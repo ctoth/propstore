@@ -37,7 +37,7 @@ from propstore.cli.repository import Repository
 from propstore.core.concepts import load_concepts
 from propstore.validate import validate_concepts
 from propstore.claim_documents import load_claim_files
-from propstore.validate_claims import validate_claims
+from propstore.compiler.passes import validate_claims
 
 RELATIONSHIP_TYPES = (
     "broader", "narrower", "related",
