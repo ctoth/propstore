@@ -17,7 +17,11 @@ from propstore.validate_contexts import (
     validate_contexts,
 )
 from propstore.value_comparison import DEFAULT_TOLERANCE
-from tests.conftest import create_world_model_schema, normalize_claims_payload
+from tests.conftest import (
+    create_world_model_schema,
+    normalize_claims_payload,
+    normalize_concept_payloads,
+)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────
@@ -1048,11 +1052,18 @@ class TestContextCLIIntegration:
         # Write a concept
         counters = concepts / ".counters"
         (counters / "global.next").write_text("2\n")
-        (concepts / "test_concept.yaml").write_text(yaml.dump({
-            "id": "concept1", "canonical_name": "test_concept",
-            "status": "accepted", "definition": "A test concept",
-            "domain": "test", "form": "structural", "created_date": "2026-03-22",
-        }, default_flow_style=False))
+        concept_payload = normalize_concept_payloads([{
+            "id": "concept1",
+            "canonical_name": "test_concept",
+            "status": "accepted",
+            "definition": "A test concept",
+            "domain": "test",
+            "form": "structural",
+            "created_date": "2026-03-22",
+        }], default_domain="test")[0]
+        (concepts / "test_concept.yaml").write_text(
+            yaml.dump(concept_payload, default_flow_style=False)
+        )
 
         repo.git.commit_files(
             {
