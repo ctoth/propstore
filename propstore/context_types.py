@@ -7,9 +7,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from propstore.document_schema import DocumentStruct
 from propstore.core.id_types import ContextId, to_context_id
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
-from propstore.loaded import LoadedEntry
+from propstore.loaded import LoadedDocument, LoadedEntry
+
+
+class ContextDocument(DocumentStruct):
+    id: str
+    name: str
+    description: str | None = None
+    inherits: str | None = None
+    assumptions: tuple[str, ...] = ()
+    excludes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -90,6 +100,18 @@ class LoadedContext:
             data=entry.data,
         )
 
+    @classmethod
+    def from_loaded_document(
+        cls,
+        document: LoadedDocument[ContextDocument],
+    ) -> LoadedContext:
+        return cls.from_record(
+            filename=document.filename,
+            source_path=document.source_path,
+            knowledge_root=document.knowledge_root,
+            record=parse_context_record_document(document.document),
+        )
+
     def to_loaded_entry(self) -> LoadedEntry:
         return LoadedEntry(
             filename=self.filename,
@@ -158,6 +180,17 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
         inherits=inherits,
         assumptions=assumptions,
         excludes=excludes,
+    )
+
+
+def parse_context_record_document(data: ContextDocument) -> ContextRecord:
+    return ContextRecord(
+        context_id=to_context_id(data.id),
+        name=data.name,
+        description=data.description,
+        inherits=None if data.inherits is None else to_context_id(data.inherits),
+        assumptions=tuple(data.assumptions),
+        excludes=tuple(to_context_id(exclusion) for exclusion in data.excludes),
     )
 
 
