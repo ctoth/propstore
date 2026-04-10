@@ -82,6 +82,7 @@ class FragilityReport:
     world_fragility: float = 0.0
     analysis_scope: str = ""
     interactions: tuple[dict, ...] = ()  # Phase 2: pairwise interaction results
+    discoveries: tuple[FragilityTarget, ...] = ()  # Tier-2: unscored known-unknowns
 
 
 def assign_cost_tier(target: FragilityTarget) -> int:
@@ -709,12 +710,12 @@ def _discover_tier2_concepts(bound: Any) -> list[FragilityTarget]:
                 claims = []
             if not claims:
                 cost = 3
-                frag = 1.0
-                roi = frag / cost
+                frag = 0.0  # No score — unknown fragility (Jøsang 2001 vacuous)
+                roi = None  # Cannot compute ROI without fragility score
                 targets.append(FragilityTarget(
                     target_id=iid,
                     target_kind="concept",
-                    description=f"No measurements \u2014 input to {count} parameterizations",
+                    description=f"Unscored discovery — input to {count} parameterizations, no claims",
                     parametric_score=None,
                     epistemic_score=None,
                     conflict_score=None,
@@ -839,10 +840,10 @@ def rank_fragility(
             conflict_detail=t.conflict_detail,
         ))
 
-    # Tier 2 discovery: find concepts with no claims
+    # Tier 2 discovery: find concepts with no claims (separate from scored targets)
+    discoveries: tuple[FragilityTarget, ...] = ()
     if discovery_tier >= 2:
-        tier2 = _discover_tier2_concepts(bound)
-        targets.extend(tier2)
+        discoveries = tuple(_discover_tier2_concepts(bound))
 
     # Sort by chosen criterion
     if sort_by == "roi":
@@ -866,6 +867,7 @@ def rank_fragility(
         world_fragility=world_frag,
         analysis_scope=scope,
         interactions=tuple(interactions),
+        discoveries=discoveries,
     )
 
 
