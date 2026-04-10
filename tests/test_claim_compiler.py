@@ -31,6 +31,7 @@ def test_build_compilation_context_from_paths_keeps_canonical_records_and_lookup
     (forms_dir / "frequency.yaml").write_text(yaml.dump({
         "name": "frequency",
         "kind": "quantity",
+        "dimensionless": False,
         "unit_symbol": "Hz",
     }))
 
@@ -73,11 +74,13 @@ def test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stanc
     (forms_dir / "frequency.yaml").write_text(yaml.dump({
         "name": "frequency",
         "kind": "quantity",
+        "dimensionless": False,
         "unit_symbol": "Hz",
     }))
     (forms_dir / "pressure.yaml").write_text(yaml.dump({
         "name": "pressure",
         "kind": "quantity",
+        "dimensionless": False,
         "unit_symbol": "Pa",
     }))
 
@@ -186,6 +189,7 @@ def test_compile_claim_files_rejects_raw_id_only_claims(tmp_path):
     (forms_dir / "frequency.yaml").write_text(yaml.dump({
         "name": "frequency",
         "kind": "quantity",
+        "dimensionless": False,
         "unit_symbol": "Hz",
     }))
 

@@ -12,7 +12,6 @@ from propstore.core.concepts import (
     ConceptRecord,
     LoadedConcept,
     concept_reference_keys,
-    normalize_loaded_concepts as _normalize_loaded_concepts,
     parse_concept_record,
 )
 from propstore.form_utils import FormDefinition, load_all_forms_path
@@ -55,10 +54,6 @@ def _extend_lookup(
 
 def _finalize_lookup(lookup: dict[str, list[str]]) -> Mapping[str, tuple[str, ...]]:
     return MappingProxyType({key: tuple(values) for key, values in lookup.items()})
-
-
-def normalize_loaded_concepts(concepts: list[LoadedEntry]) -> list[LoadedConcept]:
-    return _normalize_loaded_concepts(concepts)
 
 
 def _build_claim_lookup(claim_files: list[LoadedEntry]) -> Mapping[str, tuple[str, ...]]:
@@ -165,7 +160,7 @@ def build_compilation_context_from_paths(
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     concepts_root = coerce_knowledge_path(concepts_dir)
-    concepts = normalize_loaded_concepts(load_concepts(concepts_root))
+    concepts = load_concepts(concepts_root)
     return build_compilation_context_from_loaded(
         concepts,
         forms_dir=forms_dir,

@@ -20,11 +20,11 @@ from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, dims_of_expr, DimensionalError
 
 from propstore.cel_checker import (
-    ConceptInfo,
     KindType,
-    build_cel_registry_from_loaded,
+    build_cel_registry_from_concepts,
     check_cel_expression,
 )
+from propstore.document_schema import load_document
 from propstore.form_utils import kind_type_from_form_name, load_form_path
 from propstore.identity import (
     CONCEPT_ARTIFACT_ID_RE,
@@ -33,6 +33,11 @@ from propstore.identity import (
     LOGICAL_VALUE_RE,
     compute_concept_version_id,
     format_logical_id,
+)
+from propstore.core.concepts import (
+    ConceptDocument,
+    LoadedConcept,
+    normalize_loaded_concepts,
 )
 
 if TYPE_CHECKING:
@@ -88,9 +93,22 @@ def load_yaml_entries(root: KnowledgePath | None) -> list[LoadedEntry]:
     return results
 
 
-def load_concepts(concepts_root: KnowledgePath | None) -> list[LoadedEntry]:
-    """Load all concept YAML files from a concept subtree."""
-    return load_yaml_entries(concepts_root)
+def load_concepts(concepts_root: KnowledgePath | None) -> list[LoadedConcept]:
+    """Load all canonical concept YAML files from a concept subtree."""
+
+    if concepts_root is None or not concepts_root.is_dir():
+        return []
+    knowledge_root = concepts_root.parent if concepts_root.name else concepts_root
+    loaded_documents = [
+        load_document(
+            entry,
+            ConceptDocument,
+            knowledge_root=knowledge_root,
+        )
+        for entry in concepts_root.iterdir()
+        if entry.is_file() and entry.suffix == ".yaml"
+    ]
+    return normalize_loaded_concepts(loaded_documents)
 
 
 VALID_RELATIONSHIP_TYPES = frozenset([
@@ -178,7 +196,7 @@ def normalize_concept_record(data: dict) -> dict:
 
 
 def validate_concepts(
-    concepts: list[LoadedEntry],
+    concepts: list[LoadedConcept],
     claims_dir: KnowledgePath | None = None,
     *,
     forms_dir: KnowledgePath | None = None,
@@ -195,11 +213,11 @@ def validate_concepts(
             ``knowledge_root / "forms"`` without guessing from local paths.
     """
     result = ValidationResult()
-    id_to_concept: dict[str, LoadedEntry] = {}
+    id_to_concept: dict[str, LoadedConcept] = {}
     seen_logical_ids: dict[str, str] = {}
-    cel_registry = build_cel_registry_from_loaded(concepts)
+    cel_registry = build_cel_registry_from_concepts(concepts)
 
-    def _forms_dir(c: LoadedEntry) -> KnowledgePath:
+    def _forms_dir(c: LoadedConcept) -> KnowledgePath:
         if forms_dir is not None:
             return forms_dir
         if c.knowledge_root is None:
@@ -219,7 +237,7 @@ def validate_concepts(
         all_claim_ids = _load_all_claim_ids(claims_dir)
 
     for c in concepts:
-        data = normalize_concept_record(c.data)
+        data = c.record.to_payload()
 
         # ── Required fields (basic) ─────────────────────────────
         cid = data.get("artifact_id")
@@ -231,11 +249,6 @@ def validate_concepts(
         if not cid:
             result.errors.append(f"{c.filename}: missing required field 'artifact_id'")
             continue
-        if "id" in data and "artifact_id" in c.data:
-            result.errors.append(
-                f"{c.filename}: concept '{cid}' uses raw 'id' input; "
-                "use artifact_id and logical_ids"
-            )
         if not name:
             result.errors.append(f"{c.filename}: missing required field 'canonical_name'")
         if not status:
@@ -342,7 +355,7 @@ def validate_concepts(
     all_ids = set(id_to_concept.keys())
 
     for c in concepts:
-        data = normalize_concept_record(c.data)
+        data = c.record.to_payload()
         cid = data.get("artifact_id", "")
         status = data.get("status")
 
@@ -355,7 +368,7 @@ def validate_concepts(
                         f"{c.filename}: replaced_by target '{replaced_by}' not found in registry")
                 else:
                     target = id_to_concept[replaced_by]
-                    if target.data.get("status") == "deprecated":
+                    if target.record.status == "deprecated":
                         result.errors.append(
                             f"{c.filename}: replaced_by target '{replaced_by}' is itself deprecated")
 
@@ -402,7 +415,7 @@ def validate_concepts(
                         f"{c.filename}: parameterization input '{input_id}' not found in registry")
                 else:
                     input_concept = id_to_concept[input_id]
-                    input_kind = kind_type_from_form_name(input_concept.data.get("form"))
+                    input_kind = kind_type_from_form_name(input_concept.record.form)
                     if input_kind and input_kind != KindType.QUANTITY:
                         result.errors.append(
                             f"{c.filename}: parameterization input '{input_id}' "
@@ -416,7 +429,7 @@ def validate_concepts(
                 for inp_id in inputs:
                     inp_c = id_to_concept.get(inp_id)
                     if inp_c is not None:
-                        inp_fd = load_form_path(forms_dir, inp_c.data.get("form"))
+                        inp_fd = load_form_path(forms_dir, inp_c.record.form)
                         if inp_fd is not None:
                             input_form_defs.append(inp_fd)
                 if len(input_form_defs) == len(inputs) and input_form_defs:
@@ -536,11 +549,10 @@ def validate_concepts(
 
     # ── Circular deprecation chains ─────────────────────────────
     for c in concepts:
-        data = c.data
-        if data.get("status") != "deprecated":
+        if c.record.status != "deprecated":
             continue
         visited = set()
-        current_id = data.get("artifact_id")
+        current_id = str(c.record.artifact_id)
         while current_id:
             if current_id in visited:
                 result.errors.append(
@@ -550,8 +562,12 @@ def validate_concepts(
             current_concept = id_to_concept.get(current_id)
             if not current_concept:
                 break
-            if current_concept.data.get("status") != "deprecated":
+            if current_concept.record.status != "deprecated":
                 break
-            current_id = current_concept.data.get("replaced_by")
+            current_id = (
+                None
+                if current_concept.record.replaced_by is None
+                else str(current_concept.record.replaced_by)
+            )
 
     return result

@@ -29,10 +29,10 @@ from propstore.identity import (
     normalize_logical_value,
     primary_logical_id,
 )
+from propstore.core.concepts import LoadedConcept, parse_concept_record
 from propstore.form_utils import load_form_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.cli.repository import Repository
-from propstore.loaded import LoadedEntry
 from propstore.validate import load_concepts, validate_concepts
 from propstore.validate_claims import load_claim_files, validate_claims
 
@@ -248,7 +248,7 @@ def _concept_display_handle(data: dict) -> str:
 
 
 def _build_concept_registry(
-    concepts: list[LoadedEntry],
+    concepts: list[LoadedConcept],
     *,
     forms_root: KnowledgePath,
 ) -> dict[str, dict]:
@@ -287,7 +287,7 @@ def _build_concept_registry(
     return registry
 
 
-def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedEntry | None:
+def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedConcept | None:
     concepts = load_concepts(_concepts_tree(repo))
     direct = _concepts_tree(repo) / f"{id_or_name}.yaml"
     if direct.exists():
@@ -431,11 +431,11 @@ def add(
 
     concepts = load_concepts(_concepts_tree(repo))
     concepts.append(
-        LoadedEntry(
+        LoadedConcept(
             filename=name,
             source_path=semantic_path,
             knowledge_root=repo.tree(),
-            data=data,
+            record=parse_concept_record(data),
         )
     )
 
@@ -485,7 +485,7 @@ def alias(obj: dict, concept_id: str, name: str, source: str, note: str | None, 
         if other_entry.data.get("canonical_name") == name:
             click.echo(
                 f"WARNING: alias '{name}' matches canonical_name of "
-                f"concept '{other_entry.data.get('id')}'", err=True)
+                f"concept '{other_entry.record.artifact_id}'", err=True)
 
     new_alias: dict[str, str] = {"name": name, "source": source}
     if note:
@@ -578,11 +578,11 @@ def rename(obj: dict, concept_id: str, name: str, dry_run: bool) -> None:
         if source_path is None:
             raise click.ClickException(f"concept '{concept_record.filename}' does not have a source path")
         updated_concepts.append(
-            type(concept_record)(
+            LoadedConcept(
                 filename=name if concept_path == filepath else concept_record.filename,
                 source_path=(source_path.parent / f"{name}.yaml") if concept_path == filepath else source_path,
                 knowledge_root=concept_record.knowledge_root,
-                data=concept_data,
+                record=parse_concept_record(concept_data),
             )
         )
 
@@ -805,11 +805,13 @@ def link(
             label=f"concept '{concept_record.filename}'",
         )
         updated_concepts.append(
-            LoadedEntry(
+            LoadedConcept(
                 filename=concept_record.filename,
                 source_path=concept_record.source_path,
                 knowledge_root=concept_record.knowledge_root,
-                data=data if concept_path == filepath else concept_record.data,
+                record=parse_concept_record(
+                    data if concept_path == filepath else concept_record.data,
+                ),
             )
         )
     validation = validate_concepts(

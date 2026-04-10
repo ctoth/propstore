@@ -263,9 +263,8 @@ def remove(obj: dict, name: str, force: bool, dry_run: bool) -> None:
     # Check for concepts that reference this form
     referencing: list[str] = []
     for concept in load_concepts(repo.tree() / "concepts"):
-        data = concept.data
-        if isinstance(data, dict) and data.get("form") == name:
-            referencing.append(f"{data.get('id', '?')} ({concept.filename})")
+        if concept.record.form == name:
+            referencing.append(f"{concept.record.artifact_id} ({concept.filename})")
 
     if referencing and not force:
         click.echo(f"ERROR: Form '{name}' is referenced by {len(referencing)} concept(s):", err=True)
@@ -339,11 +338,8 @@ def validate(obj: dict, name: str | None) -> None:
         if p.is_file() and p.suffix == ".yaml"
     }
     for concept in load_concepts(repo.tree() / "concepts"):
-        data = concept.data
-        if not isinstance(data, dict):
-            continue
-        ref = data.get("form")
-        if isinstance(ref, str) and ref and ref not in all_forms:
+        ref = concept.record.form
+        if ref and ref not in all_forms:
             errors.append(f"concept {concept.filename}: references missing form '{ref}'")
 
     if errors:

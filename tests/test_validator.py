@@ -17,7 +17,8 @@ Tests the compiler contract checks that JSON Schema can't express:
 import pytest
 import yaml
 
-from propstore.loaded import LoadedEntry
+from propstore.document_schema import DocumentSchemaError
+from propstore.core.concepts import LoadedConcept, parse_concept_record
 from propstore.validate import (
     load_concepts,
     validate_concepts,
@@ -43,12 +44,27 @@ def concept_dir(tmp_path):
     # Create form definition files alongside concepts
     forms_dir = knowledge / "forms"
     forms_dir.mkdir()
+    dimensionless_forms = {
+        "category",
+        "boolean",
+        "structural",
+        "duration_ratio",
+        "amplitude_ratio",
+        "dimensionless_compound",
+    }
     for form_name in ("frequency", "category", "boolean", "structural",
                       "duration_ratio", "pressure", "level", "time",
                       "flow", "flow_derivative", "amplitude_ratio",
                       "dimensionless_compound"):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name}, default_flow_style=False))
+            yaml.dump(
+                {
+                    "name": form_name,
+                    "dimensionless": form_name in dimensionless_forms,
+                },
+                default_flow_style=False,
+            )
+        )
 
     return concept_path
 
@@ -422,9 +438,8 @@ class TestFormValidation:
         }
         c.update(make_concept_identity("concept1", domain="speech", canonical_name="bad_concept"))
         write_concept(concept_dir, "bad_concept.yaml", c)
-        concepts = load_concepts(concept_dir)
-        result = validate_concepts(concepts)
-        assert any("form" in e.lower() for e in result.errors)
+        with pytest.raises(DocumentSchemaError, match="missing required field `form`"):
+            load_concepts(concept_dir)
 
     def test_nonexistent_form_error(self, concept_dir):
         c = {
@@ -466,9 +481,8 @@ class TestIdentityFormat:
         c["version_id"] = attach_concept_version_id(c)["version_id"]
         path = concept_dir / "test_concept.yaml"
         path.write_text(yaml.dump(c, default_flow_style=False))
-        concepts = load_concepts(concept_dir)
-        result = validate_concepts(concepts)
-        assert any("raw 'id' input" in e.lower() for e in result.errors)
+        with pytest.raises(DocumentSchemaError, match="unknown field `id`"):
+            load_concepts(concept_dir)
 
 
 # ── CEL expression validation in relationships ───────────────────────
@@ -652,6 +666,7 @@ class TestFormParameterValidation:
         forms_dir = concept_dir.parent / "forms"
         (forms_dir / "level.yaml").write_text(yaml.dump({
             "name": "level",
+            "dimensionless": False,
             "parameters": {"scale": "dB", "reference": None},
         }, default_flow_style=False))
 
@@ -669,6 +684,7 @@ class TestFormParameterValidation:
         (forms_dir / "duration_ratio.yaml").write_text(yaml.dump({
             "name": "duration_ratio",
             "base": "ratio",
+            "dimensionless": True,
             "parameters": {"numerator": "duration", "denominator": "duration"},
         }, default_flow_style=False))
 
@@ -708,6 +724,7 @@ class TestFormParameterValidation:
         forms_dir = concept_dir.parent / "forms"
         (forms_dir / "level.yaml").write_text(yaml.dump({
             "name": "level",
+            "dimensionless": False,
             "parameters": {"scale": "dB", "reference": None},
         }, default_flow_style=False))
 
@@ -726,7 +743,7 @@ class TestParameterizationFormCompatibility:
         """Output form=frequency, inputs both form=time → warning."""
         forms_dir = concept_dir.parent / "forms"
         (forms_dir / "time.yaml").write_text(yaml.dump({
-            "name": "time", "unit_symbol": "s",
+            "name": "time", "dimensionless": False, "unit_symbol": "s",
         }, default_flow_style=False))
 
         c1 = make_quantity_concept("concept1", "input_a", form="time")
@@ -751,7 +768,7 @@ class TestParameterizationFormCompatibility:
         """Output form=dimensionless_compound, mixed input forms → no warning."""
         forms_dir = concept_dir.parent / "forms"
         (forms_dir / "time.yaml").write_text(yaml.dump({
-            "name": "time", "unit_symbol": "s",
+            "name": "time", "dimensionless": False, "unit_symbol": "s",
         }, default_flow_style=False))
 
         c1 = make_quantity_concept("concept1", "input_a", form="frequency")
@@ -776,7 +793,7 @@ class TestParameterizationFormCompatibility:
         """Inputs form=time, output form=frequency → no warning (plausible)."""
         forms_dir = concept_dir.parent / "forms"
         (forms_dir / "time.yaml").write_text(yaml.dump({
-            "name": "time", "unit_symbol": "s",
+            "name": "time", "dimensionless": False, "unit_symbol": "s",
         }, default_flow_style=False))
 
         c1 = make_quantity_concept("concept1", "input_a", form="time")
@@ -868,10 +885,13 @@ class TestSympyExceptNarrowing:
 
 class TestValidatorSemanticRootContract:
     def test_manual_entries_require_explicit_forms_root(self, tmp_path):
-        concept = LoadedEntry(
+        concept = LoadedConcept(
             filename="fundamental_frequency",
             source_path=tmp_path / "knowledge" / "concepts" / "fundamental_frequency.yaml",
-            data=make_quantity_concept("concept1", "fundamental_frequency"),
+            knowledge_root=None,
+            record=parse_concept_record(
+                make_quantity_concept("concept1", "fundamental_frequency")
+            ),
         )
 
         with pytest.raises(TypeError, match="forms_dir or knowledge_root"):
