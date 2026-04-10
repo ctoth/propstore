@@ -9,11 +9,15 @@ from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import yaml
-
+from propstore.document_schema import decode_document_path
 from propstore.core.labels import Label
 from propstore.identity import canonicalize_claim_for_version
 from propstore.knowledge_path import KnowledgePath
+from propstore.source_documents import (
+    SourceDocument,
+    SourceJustificationsDocument,
+)
+from propstore.stance_documents import StanceFileDocument
 from propstore.uri import ni_uri_for_file
 
 if TYPE_CHECKING:
@@ -132,13 +136,6 @@ def attach_source_artifact_codes(
     return updated_source, updated_claims, updated_justifications, updated_stances
 
 
-def _load_yaml_from_tree(tree: KnowledgePath, relpath: str) -> dict[str, Any] | None:
-    path = tree / relpath
-    if not path.exists() or not path.is_file():
-        return None
-    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-
-
 def _load_claim_index(tree: KnowledgePath) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
     from propstore.validate_claims import load_claim_files
 
@@ -163,7 +160,7 @@ def _load_sources(tree: KnowledgePath) -> dict[str, dict[str, Any]]:
     if not sources_root.exists():
         return {}
     return {
-        entry.stem: yaml.safe_load(entry.read_text(encoding="utf-8")) or {}
+        entry.stem: decode_document_path(entry, SourceDocument).to_payload()
         for entry in sources_root.iterdir()
         if entry.is_file() and entry.suffix == ".yaml"
     }
@@ -177,10 +174,10 @@ def _load_justifications(tree: KnowledgePath) -> dict[str, list[dict[str, Any]]]
     for entry in justifications_root.iterdir():
         if not entry.is_file() or entry.suffix != ".yaml":
             continue
-        doc = yaml.safe_load(entry.read_text(encoding="utf-8")) or {}
-        for justification in doc.get("justifications", []) or []:
-            if isinstance(justification, dict) and isinstance(justification.get("conclusion"), str):
-                by_conclusion[justification["conclusion"]].append(copy.deepcopy(justification))
+        doc = decode_document_path(entry, SourceJustificationsDocument)
+        for justification in doc.justifications:
+            if isinstance(justification.conclusion, str):
+                by_conclusion[justification.conclusion].append(copy.deepcopy(justification.to_payload()))
     return by_conclusion
 
 
@@ -192,13 +189,9 @@ def _load_stances(tree: KnowledgePath) -> dict[str, list[dict[str, Any]]]:
     for entry in stances_root.iterdir():
         if not entry.is_file() or entry.suffix != ".yaml":
             continue
-        doc = yaml.safe_load(entry.read_text(encoding="utf-8")) or {}
-        source_claim = doc.get("source_claim")
-        if not isinstance(source_claim, str):
-            continue
-        for stance in doc.get("stances", []) or []:
-            if isinstance(stance, dict):
-                by_source[source_claim].append(copy.deepcopy(stance))
+        doc = decode_document_path(entry, StanceFileDocument)
+        for stance in doc.stances:
+            by_source[doc.source_claim].append(copy.deepcopy(stance.to_payload()))
     return by_source
 
 

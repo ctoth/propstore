@@ -17,11 +17,30 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-import yaml
 from dulwich.objects import Blob, Tree, Commit
 from dulwich.repo import BaseRepo, MemoryRepo, Repo
 
+from propstore.core.concepts import ConceptIdScanDocument
+from propstore.document_schema import decode_document_bytes
+
 _CONCEPT_ID_RE = re.compile(r"^concept(\d+)$")
+
+
+def _numeric_concept_id(scan_doc: ConceptIdScanDocument) -> int | None:
+    for logical_id in scan_doc.logical_ids:
+        if logical_id.namespace != "propstore":
+            continue
+        match = _CONCEPT_ID_RE.match(logical_id.value)
+        if match:
+            return int(match.group(1))
+
+    for candidate in (scan_doc.id, scan_doc.artifact_id):
+        if not isinstance(candidate, str):
+            continue
+        match = _CONCEPT_ID_RE.match(candidate)
+        if match:
+            return int(match.group(1))
+    return None
 
 
 def _normalize_path(path: str | Path) -> str:
@@ -358,25 +377,12 @@ class KnowledgeRepo:
                 continue
             try:
                 raw = self.read_file(f"concepts/{name}")
-                data = yaml.safe_load(raw)
-            except (FileNotFoundError, yaml.YAMLError):
+                data = decode_document_bytes(raw, ConceptIdScanDocument, source=f"concepts/{name}")
+            except ValueError:
                 continue
-            logical_ids = (data or {}).get("logical_ids")
-            if isinstance(logical_ids, list):
-                for entry in logical_ids:
-                    if not isinstance(entry, dict):
-                        continue
-                    namespace = entry.get("namespace")
-                    value = entry.get("value")
-                    if namespace == "propstore" and isinstance(value, str):
-                        m = _CONCEPT_ID_RE.match(value)
-                        if m:
-                            max_id = max(max_id, int(m.group(1)))
-            cid = (data or {}).get("id", "")
-            if isinstance(cid, str):
-                m = _CONCEPT_ID_RE.match(cid)
-                if m:
-                    max_id = max(max_id, int(m.group(1)))
+            numeric_id = _numeric_concept_id(data)
+            if numeric_id is not None:
+                max_id = max(max_id, numeric_id)
         return max_id + 1
 
     # ── Diff / Show ──────────────────────────────────────────────────

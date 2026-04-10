@@ -8,7 +8,7 @@ from propstore.cli.repository import Repository
 from propstore.document_schema import decode_document_path
 
 from .common import load_source_concepts_document, source_branch_name
-from .document_models import (
+from propstore.source_documents import (
     SourceConceptEntryDocument,
     SourceConceptFormParametersDocument,
     SourceConceptRegistryMatchDocument,

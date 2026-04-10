@@ -87,6 +87,14 @@ class ConceptDocument(DocumentStruct):
     relationships: tuple[ConceptRelationshipDocument, ...] = ()
     replaced_by: str | None = None
 
+
+class ConceptIdScanDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=False):
+    """Partial concept projection for ID scans over repo-controlled files."""
+
+    id: str | None = None
+    artifact_id: str | None = None
+    logical_ids: tuple[ConceptLogicalIdDocument, ...] = ()
+
 @dataclass(frozen=True)
 class ConceptAlias:
     name: str

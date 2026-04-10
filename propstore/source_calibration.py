@@ -5,7 +5,7 @@ from __future__ import annotations
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value
 from propstore.source.common import load_source_metadata, normalize_source_slug
-from propstore.source.document_models import SourceDocument
+from propstore.source_documents import SourceDocument
 
 
 def _source_bindings(
@@ -16,9 +16,10 @@ def _source_bindings(
     if source_doc.kind:
         bindings["source_kind"] = source_doc.kind
 
-    for key, value in source_doc.metadata.to_payload().items():
-        if isinstance(value, (str, int, float, bool)):
-            bindings[key] = value
+    if source_doc.metadata is not None:
+        for key, value in source_doc.metadata.to_payload().items():
+            if isinstance(value, (str, int, float, bool)):
+                bindings[key] = value
 
     if isinstance(metadata, dict):
         for key, value in metadata.items():
@@ -48,7 +49,9 @@ def derive_source_trust(repo: Repository, source_doc: SourceDocument) -> SourceD
 
     wm = WorldModel(repo)
     try:
-        source_name = normalize_source_slug(source_doc.metadata.name)
+        source_name = normalize_source_slug(
+            source_doc.metadata.name if source_doc.metadata is not None else source_doc.id
+        )
         source_metadata = load_source_metadata(repo, source_name)
         bindings = {
             key: value

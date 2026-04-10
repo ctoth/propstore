@@ -24,7 +24,7 @@ from .common import (
     source_branch_name,
     source_tag_uri,
 )
-from .document_models import SourceClaimDocument, SourceClaimsDocument
+from propstore.source_documents import SourceClaimDocument, SourceClaimsDocument
 
 
 def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -> str:

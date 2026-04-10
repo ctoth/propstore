@@ -10,7 +10,9 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import click
-import yaml
+
+from propstore.core.concepts import ConceptIdScanDocument
+from propstore.document_schema import decode_document_path
 
 
 # ── File locking (cross-platform, stdlib only) ──────────────────────
@@ -56,16 +58,21 @@ def _scan_max_concept_id(cdir: Path) -> int:
     for entry in cdir.iterdir():
         if entry.is_file() and entry.suffix == ".yaml":
             try:
-                data = yaml.safe_load(entry.read_text())
-            except yaml.YAMLError:
-                logging.warning("Failed to parse YAML in concept scan: %s", entry)
+                data = decode_document_path(entry, ConceptIdScanDocument)
+            except ValueError:
+                logging.warning("Failed to parse concept document in scan: %s", entry)
                 continue
-            cid = (data or {}).get("id", "")
-            if isinstance(cid, str) and cid.startswith("concept"):
-                try:
-                    max_id = max(max_id, int(cid[len("concept"):]))
-                except ValueError:
-                    pass
+            for logical_id in data.logical_ids:
+                if logical_id.namespace == "propstore":
+                    match = re.match(r"^concept(\d+)$", logical_id.value)
+                    if match:
+                        max_id = max(max_id, int(match.group(1)))
+            for candidate in (data.id, data.artifact_id):
+                if not isinstance(candidate, str):
+                    continue
+                match = re.match(r"^concept(\d+)$", candidate)
+                if match:
+                    max_id = max(max_id, int(match.group(1)))
     return max_id
 
 

@@ -15,7 +15,7 @@ from propstore.repo.paf_queries import credulously_accepted_arguments, skeptical
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 
 from .common import load_document_from_branch, load_source_document
-from .document_models import SourceConceptsDocument
+from propstore.source_documents import SourceConceptsDocument
 
 
 CONCEPT_PROPOSAL_BRANCH = "proposal/concepts"

@@ -7,9 +7,8 @@ import sqlite3
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-import yaml
-
 from propstore.claim_documents import LoadedClaimFile
+from propstore.document_schema import decode_document_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.sidecar.claim_utils import (
     claim_reference_map_from_conn,
@@ -21,6 +20,8 @@ from propstore.sidecar.claim_utils import (
     prepare_claim_insert_row,
     resolve_claim_reference,
 )
+from propstore.source_documents import SourceJustificationsDocument
+from propstore.stance_documents import StanceFileDocument
 from propstore.stances import VALID_STANCE_TYPES
 
 if TYPE_CHECKING:
@@ -35,7 +36,7 @@ def populate_stances_from_files(
     if not stances_root.exists():
         return 0
     stance_entries = [
-        (entry.stem, yaml.safe_load(entry.read_bytes()) or {})
+        (entry.stem, decode_document_path(entry, StanceFileDocument))
         for entry in stances_root.iterdir()
         if entry.is_file() and entry.suffix == ".yaml"
     ]
@@ -48,7 +49,7 @@ def populate_stances_from_files(
 
     for filename, data in stance_entries:
         source_claim = resolve_claim_reference(
-            data.get("source_claim", ""),
+            data.source_claim,
             claim_reference_map,
         ) or ""
         if source_claim not in valid_claims:
@@ -56,18 +57,13 @@ def populate_stances_from_files(
                 f"stance file {filename} references nonexistent source claim '{source_claim}'"
             )
 
-        stances = data.get("stances", [])
-        if not isinstance(stances, list):
-            raise ValueError(f"stance file {filename} has non-list 'stances'")
-
-        for index, stance in enumerate(stances, start=1):
-            if not isinstance(stance, dict):
-                raise ValueError(f"stance file {filename} stance #{index} must be a mapping")
+        for index, stance in enumerate(data.stances, start=1):
+            stance_payload = stance.to_payload()
             target = resolve_claim_reference(
-                stance.get("target", ""),
+                stance.target or "",
                 claim_reference_map,
             ) or ""
-            stance_type = stance.get("type", "")
+            stance_type = stance.type or ""
             if target not in valid_claims:
                 raise sqlite3.IntegrityError(
                     f"stance file {filename} references nonexistent target claim '{target}'"
@@ -78,10 +74,10 @@ def populate_stances_from_files(
                 )
 
             resolution = coerce_stance_resolution(
-                stance.get("resolution"),
+                stance_payload.get("resolution"),
                 f"stance file {filename} stance #{index}",
             )
-            conditions_differ = stance.get("conditions_differ")
+            conditions_differ = stance.conditions_differ
 
             insert_claim_stance_row(
                 conn,
@@ -89,10 +85,10 @@ def populate_stances_from_files(
                     source_claim,
                     target,
                     stance_type,
-                    stance.get("target_justification_id"),
-                    stance.get("strength"),
+                    stance.target_justification_id,
+                    stance.strength,
                     conditions_differ,
-                    stance.get("note"),
+                    stance.note,
                     resolution.get("method"),
                     resolution.get("model"),
                     resolution.get("embedding_model"),
@@ -118,7 +114,7 @@ def populate_authored_justifications_from_files(
         return 0
 
     justification_entries = [
-        (entry.stem, yaml.safe_load(entry.read_bytes()) or {})
+        (entry.stem, decode_document_path(entry, SourceJustificationsDocument))
         for entry in justifications_root.iterdir()
         if entry.is_file() and entry.suffix == ".yaml"
     ]
@@ -130,30 +126,22 @@ def populate_authored_justifications_from_files(
     count = 0
 
     for filename, data in justification_entries:
-        justifications = data.get("justifications", [])
-        if not isinstance(justifications, list):
-            raise ValueError(f"justification file {filename} has non-list 'justifications'")
-
-        for index, justification in enumerate(justifications, start=1):
-            if not isinstance(justification, dict):
-                raise ValueError(f"justification file {filename} entry #{index} must be a mapping")
-            justification_id = justification.get("id")
+        for index, justification in enumerate(data.justifications, start=1):
+            justification_payload = justification.to_payload()
+            justification_id = justification.id
             conclusion = resolve_claim_reference(
-                justification.get("conclusion"),
+                justification.conclusion,
                 claim_reference_map,
             )
-            premises = justification.get("premises") or []
             if not isinstance(justification_id, str) or not justification_id:
                 raise ValueError(f"justification file {filename} entry #{index} missing id")
             if not isinstance(conclusion, str) or conclusion not in valid_claims:
                 raise sqlite3.IntegrityError(
                     f"justification file {filename} entry #{index} references nonexistent conclusion '{conclusion}'"
                 )
-            if not isinstance(premises, list):
-                raise ValueError(f"justification file {filename} entry #{index} premises must be a list")
             resolved_premises = [
                 resolve_claim_reference(premise, claim_reference_map)
-                for premise in premises
+                for premise in justification.premises
             ]
             if any(
                 not isinstance(premise, str) or premise not in valid_claims
@@ -163,8 +151,8 @@ def populate_authored_justifications_from_files(
                     f"justification file {filename} entry #{index} references nonexistent premise"
                 )
 
-            provenance = justification.get("provenance")
-            attack_target = justification.get("attack_target")
+            provenance = justification_payload.get("provenance")
+            attack_target = justification_payload.get("attack_target")
             provenance_payload: dict[str, object] = {}
             if isinstance(provenance, dict):
                 provenance_payload.update(provenance)
@@ -178,13 +166,13 @@ def populate_authored_justifications_from_files(
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     justification_id,
-                    str(justification.get("rule_kind") or "reported_claim"),
+                    str(justification.rule_kind or "reported_claim"),
                     conclusion,
                     json.dumps(resolved_premises),
                     None,
                     None,
                     json.dumps(provenance_payload) if provenance_payload else None,
-                    str(justification.get("rule_strength") or "defeasible"),
+                    str(justification.rule_strength or "defeasible"),
                 ),
             )
             count += 1

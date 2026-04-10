@@ -18,7 +18,7 @@ from .common import (
     source_branch_name,
     source_tag_uri,
 )
-from .document_models import SourceFinalizeReportDocument
+from propstore.source_documents import SourceFinalizeReportDocument
 from .registry import preview_source_parameterization_group_merges
 
 
