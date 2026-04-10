@@ -11,7 +11,7 @@ from propstore.cli import cli
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value
 from propstore.source import normalize_source_claims_payload
-from propstore.source.document_models import SourceClaimsDocument
+from propstore.source_documents import SourceClaimsDocument
 
 
 @given(

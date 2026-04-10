@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from collections.abc import Mapping
 
 from propstore.document_schema import (
     DocumentStruct,
@@ -62,6 +63,7 @@ class ClaimSourceDocument(DocumentStruct):
 class ProvenanceDocument(DocumentStruct):
     page: int
     paper: str | None = None
+    date: str | None = None
     figure: str | None = None
     quote_fragment: str | None = None
     section: str | None = None
@@ -71,6 +73,8 @@ class ProvenanceDocument(DocumentStruct):
         payload: dict[str, Any] = {"page": self.page}
         if self.paper is not None:
             payload["paper"] = self.paper
+        if self.date is not None:
+            payload["date"] = self.date
         if self.figure is not None:
             payload["figure"] = self.figure
         if self.quote_fragment is not None:
@@ -437,3 +441,35 @@ def coerce_loaded_claim_files(
     claim_files: list[ClaimFileInput],
 ) -> list[LoadedClaimFile]:
     return [coerce_loaded_claim_file(claim_file) for claim_file in claim_files]
+
+
+def claim_file_claim_payloads(claim_file: ClaimFileInput) -> tuple[dict[str, Any], ...]:
+    if isinstance(claim_file, LoadedClaimFile):
+        return tuple(claim.to_payload() for claim in claim_file.claims)
+    raw_claims = claim_file.data.get("claims")
+    if not isinstance(raw_claims, list):
+        return ()
+    return tuple(dict(claim) for claim in raw_claims if isinstance(claim, dict))
+
+
+def claim_file_default_source_paper(claim_file: ClaimFileInput) -> str | None:
+    if isinstance(claim_file, LoadedClaimFile):
+        source_paper = claim_file.source_paper
+    else:
+        source = claim_file.data.get("source")
+        source_paper = source.get("paper") if isinstance(source, dict) else None
+    if isinstance(source_paper, str) and source_paper:
+        return source_paper
+    return None
+
+
+def claim_payload_source_paper(
+    claim: Mapping[str, Any],
+    claim_file: ClaimFileInput,
+) -> str | None:
+    if not isinstance(claim_file, LoadedClaimFile):
+        return claim_file_default_source_paper(claim_file)
+    source_paper = claim.get("source_paper")
+    if isinstance(source_paper, str) and source_paper:
+        return source_paper
+    return claim_file_default_source_paper(claim_file)
