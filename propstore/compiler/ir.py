@@ -6,8 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.claim_documents import LoadedClaimFile
-from propstore.compiler.diagnostics import SemanticDiagnostic, diagnostics_to_validation_result
-from propstore.validate import ValidationResult
+from propstore.diagnostics import SemanticDiagnostic, ValidationResult, diagnostics_to_validation_result
 
 
 @dataclass(frozen=True)

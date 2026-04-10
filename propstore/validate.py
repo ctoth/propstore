@@ -39,19 +39,10 @@ from propstore.core.concepts import (
     LoadedConcept,
     normalize_loaded_concepts,
 )
+from propstore.diagnostics import ValidationResult
 
 if TYPE_CHECKING:
     from propstore.knowledge_path import KnowledgePath
-
-
-@dataclass
-class ValidationResult:
-    errors: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-
-    @property
-    def ok(self) -> bool:
-        return len(self.errors) == 0
 
 
 def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict]]:
