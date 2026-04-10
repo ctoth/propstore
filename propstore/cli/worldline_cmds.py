@@ -422,13 +422,13 @@ def worldline_run(obj: dict, name: str, bindings: tuple[str, ...],
 
     click.echo(f"Worldline '{name}' materialized ({len(result.values)} targets)")
     for target, val in result.values.items():
-        status = val.get("status", "?")
-        value = val.get("value")
-        source = val.get("source", "")
+        status = val.status
+        value = val.value
+        source = val.source or ""
         if value is not None:
             click.echo(f"  {target}: {value} ({status}, {source})")
         else:
-            reason = val.get("reason", "")
+            reason = val.reason or ""
             click.echo(f"  {target}: {status} — {reason}")
 
 
@@ -458,11 +458,11 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
     if wl.revision is not None:
         click.echo(f"  Revision query: {wl.revision.operation}")
         if wl.revision.atom is not None:
-            click.echo(f"  Revision atom: {wl.revision.atom}")
+            click.echo(f"  Revision atom: {wl.revision.atom.to_dict()}")
         if wl.revision.target is not None:
             click.echo(f"  Revision target: {wl.revision.target}")
-        if wl.revision.conflicts:
-            click.echo(f"  Revision conflicts: {wl.revision.conflicts}")
+        if wl.revision.conflicts.targets_by_atom_id:
+            click.echo(f"  Revision conflicts: {wl.revision.conflicts.to_dict()}")
         if wl.revision.operator is not None:
             click.echo(f"  Revision operator: {wl.revision.operator}")
 
@@ -487,44 +487,47 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
 
     click.echo("Results:")
     for target, val in wl.results.values.items():
-        status = val.get("status", "?")
-        value = val.get("value")
-        source = val.get("source", "")
+        status = val.status
+        value = val.value
+        source = val.source or ""
         if value is not None:
             line = f"  {target}: {value} ({status}, {source})"
-            if val.get("formula"):
-                line += f" via {val['formula']}"
-            if val.get("winning_claim_id"):
-                line += f" [winner: {val['winning_claim_id']}]"
+            if val.formula:
+                line += f" via {val.formula}"
+            if val.winning_claim_id:
+                line += f" [winner: {val.winning_claim_id}]"
             click.echo(line)
         else:
-            reason = val.get("reason", "")
+            reason = val.reason or ""
             click.echo(f"  {target}: {status} — {reason}")
 
     if wl.results.steps:
         click.echo("Derivation trace:")
         for step in wl.results.steps:
-            source = step.get("source", "?")
-            value = step.get("value")
-            concept = step.get("concept", "?")
+            source = step.source
+            value = step.value
+            concept = step.concept
             extra = ""
-            if step.get("claim_id"):
-                extra = f" [claim: {step['claim_id']}]"
-            if step.get("formula"):
-                extra = f" via {step['formula']}"
+            if step.claim_id:
+                extra = f" [claim: {step.claim_id}]"
+            if step.formula:
+                extra = f" via {step.formula}"
             click.echo(f"  {concept} = {value} ({source}){extra}")
 
     if wl.results.sensitivity:
         click.echo("Sensitivity:")
-        for concept, entries in wl.results.sensitivity.items():
-            for entry in entries:
-                elast = entry.get("elasticity")
-                deriv = entry.get("partial_derivative")
-                inp = entry.get("input", "?")
+        for concept, outcome in wl.results.sensitivity.targets.items():
+            if outcome.error is not None:
+                click.echo(f"  {concept}: ERROR — {outcome.error}")
+                continue
+            for entry in outcome.entries:
+                elast = entry.elasticity
+                deriv = entry.partial_derivative
+                inp = entry.input_name
                 click.echo(f"  {concept}: d/d({inp}) = {deriv}, elasticity = {elast}")
 
     if wl.results.argumentation:
-        defeated = wl.results.argumentation.get("defeated", [])
+        defeated = wl.results.argumentation.defeated
         if defeated:
             click.echo(f"Defeated claims: {', '.join(defeated)}")
 
@@ -546,8 +549,8 @@ def worldline_show(obj: dict, name: str, check: bool) -> None:
         if accepted:
             click.echo(f"Accepted atoms: {', '.join(accepted)}")
 
-    if wl.results.dependencies.get("claims"):
-        click.echo(f"Dependencies: {', '.join(wl.results.dependencies['claims'])}")
+    if wl.results.dependencies.claims:
+        click.echo(f"Dependencies: {', '.join(wl.results.dependencies.claims)}")
 
 
 @worldline.command("list")
@@ -624,22 +627,22 @@ def worldline_diff(obj: dict, name_a: str, name_b: str) -> None:
     all_targets = set(wl_a.results.values.keys()) | set(wl_b.results.values.keys())
     any_diff = False
     for target in sorted(all_targets):
-        val_a = wl_a.results.values.get(target, {})
-        val_b = wl_b.results.values.get(target, {})
-        v_a = val_a.get("value")
-        v_b = val_b.get("value")
+        val_a = wl_a.results.values.get(target)
+        val_b = wl_b.results.values.get(target)
+        v_a = None if val_a is None else val_a.value
+        v_b = None if val_b is None else val_b.value
         if v_a != v_b:
             any_diff = True
-            s_a = val_a.get("status", "absent")
-            s_b = val_b.get("status", "absent")
+            s_a = "absent" if val_a is None else val_a.status
+            s_b = "absent" if val_b is None else val_b.status
             click.echo(f"  {target}: {v_a} ({s_a}) → {v_b} ({s_b})")
 
     if not any_diff:
         click.echo("  No value differences.")
 
     # Show dependency differences
-    deps_a = set(wl_a.results.dependencies.get("claims", []))
-    deps_b = set(wl_b.results.dependencies.get("claims", []))
+    deps_a = set(wl_a.results.dependencies.claims)
+    deps_b = set(wl_b.results.dependencies.claims)
     only_a = deps_a - deps_b
     only_b = deps_b - deps_a
     if only_a:

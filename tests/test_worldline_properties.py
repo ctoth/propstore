@@ -177,8 +177,8 @@ class TestSoundness:
                       bindings={"location": "earth"},
                       overrides={"mass": 10.0})
 
-        assert result.values["force"]["status"] == "derived"
-        assert "g_earth" in result.dependencies["claims"]
+        assert result.values["force"].status == "derived"
+        assert "g_earth" in result.dependencies.claims
 
         # Now remove g_earth and try again
         bound = property_world.bind(location="earth")
@@ -197,7 +197,7 @@ class TestSoundness:
                       bindings={"location": "earth"},
                       overrides={"mass": 10.0})
 
-        assert "temp_room" not in result.dependencies["claims"], (
+        assert "temp_room" not in result.dependencies.claims, (
             "temp_room is a spurious dependency of force"
         )
 
@@ -208,7 +208,7 @@ class TestSoundness:
                       bindings={"location": "earth"},
                       overrides={"mass": 10.0})
 
-        assert "dist_100" not in result.dependencies["claims"], (
+        assert "dist_100" not in result.dependencies.claims, (
             "dist_100 is a spurious dependency of force"
         )
 
@@ -219,7 +219,7 @@ class TestSoundness:
                       bindings={"location": "earth"},
                       overrides={"mass": 10.0})
 
-        assert "g_moon" not in result.dependencies["claims"], (
+        assert "g_moon" not in result.dependencies.claims, (
             "g_moon should not appear in Earth-bound force dependencies"
         )
 
@@ -247,10 +247,10 @@ class TestCompleteness:
                       bindings={"location": "earth"},
                       overrides={"mass": 10.0})
 
-        assert "g_earth" in result.dependencies["claims"]
+        assert "g_earth" in result.dependencies.claims
 
         # Verify the derived value actually used g_earth's value (9.807)
-        force_val = result.values["force"]["value"]
+        force_val = result.values["force"].value
         expected = 10.0 * 9.807  # mass * g_earth
         assert abs(force_val - expected) < 0.01, (
             f"Force {force_val} doesn't match mass*g_earth={expected}. "
@@ -271,7 +271,7 @@ class TestCompleteness:
                        targets=["force"],
                        bindings={"location": "earth"},
                        overrides={"mass": 10.0})
-        force1 = result1.values["force"]["value"]
+        force1 = result1.values["force"].value
 
         # Hypothetical: remove g_earth, add g_earth_alt=5.0
         bound = property_world.bind(location="earth")
@@ -301,7 +301,7 @@ class TestCompleteness:
                        targets=["force"],
                        bindings={"location": "earth"},
                        overrides={"mass": 10.0})
-        force1 = result1.values["force"]["value"]
+        force1 = result1.values["force"].value
 
         # Hypothetical: remove temp_room
         bound = property_world.bind(location="earth")
@@ -350,8 +350,8 @@ class TestDeterminism:
                       bindings={"location": "moon"},
                       overrides={"mass": 10.0})
 
-        f_earth = r_earth.values["force"]["value"]
-        f_moon = r_moon.values["force"]["value"]
+        f_earth = r_earth.values["force"].value
+        f_moon = r_moon.values["force"].value
         assert abs(f_earth - 98.07) < 0.1
         assert abs(f_moon - 16.25) < 0.1
         assert f_earth != f_moon
@@ -373,10 +373,10 @@ class TestOverridePrecedence:
                       overrides={"acceleration": 42.0})
 
         accel = result.values["acceleration"]
-        assert accel["value"] == 42.0, (
-            f"Override acceleration=42.0 should win, got {accel['value']}"
+        assert accel.value == 42.0, (
+            f"Override acceleration=42.0 should win, got {accel.value}"
         )
-        assert accel["source"] == "override"
+        assert accel.source == "override"
 
     def test_override_propagates_to_derivation(self, property_world):
         """Override mass feeds into F=ma derivation."""
@@ -389,8 +389,8 @@ class TestOverridePrecedence:
                    bindings={"location": "earth"},
                    overrides={"mass": 100.0})
 
-        f1 = r1.values["force"]["value"]
-        f2 = r2.values["force"]["value"]
+        f1 = r1.values["force"].value
+        f2 = r2.values["force"].value
 
         # F1 = 1.0 * 9.807 ≈ 9.807
         # F2 = 100.0 * 9.807 ≈ 980.7
@@ -414,10 +414,10 @@ class TestValueAccuracy:
                       overrides={"mass": 13.7})
 
         force = result.values["force"]
-        assert force["status"] == "derived"
+        assert force.status == "derived"
         expected = 13.7 * 9.807
-        assert abs(force["value"] - expected) < 1e-6, (
-            f"F = {force['value']}, expected m*a = {expected}"
+        assert abs(force.value - expected) < 1e-6, (
+            f"F = {force.value}, expected m*a = {expected}"
         )
 
     def test_force_on_moon(self, property_world):
@@ -428,10 +428,10 @@ class TestValueAccuracy:
                       overrides={"mass": 25.0})
 
         force = result.values["force"]
-        assert force["status"] == "derived"
+        assert force.status == "derived"
         expected = 25.0 * 1.625
-        assert abs(force["value"] - expected) < 1e-6, (
-            f"F = {force['value']}, expected m*g_moon = {expected}"
+        assert abs(force.value - expected) < 1e-6, (
+            f"F = {force.value}, expected m*g_moon = {expected}"
         )
 
 
@@ -460,15 +460,15 @@ class TestPartialHonesty:
                       overrides={"mass": 5.0})
 
         # Force: derivable (mass override + g_earth claim)
-        assert result.values["force"]["status"] == "derived"
+        assert result.values["force"].status == "derived"
 
         # Temperature: determined from direct claim
-        assert result.values["temperature"]["status"] == "determined"
+        assert result.values["temperature"].status == "determined"
 
         # Kinetic energy: underspecified (velocity has no claims/overrides)
         ke = result.values["kinetic_energy"]
-        assert ke["status"] in ("underspecified", "no_relationship"), (
-            f"KE should be underspecified without velocity, got {ke['status']}"
+        assert ke.status in ("underspecified", "no_relationship"), (
+            f"KE should be underspecified without velocity, got {ke.status}"
         )
 
     def test_underspecified_has_reason(self, property_world):
@@ -478,10 +478,10 @@ class TestPartialHonesty:
                       overrides={"mass": 5.0})
 
         ke = result.values["kinetic_energy"]
-        assert ke["status"] in ("underspecified", "no_relationship")
+        assert ke.status in ("underspecified", "no_relationship")
         # Should have some explanation
-        if ke["status"] == "underspecified":
-            assert "reason" in ke, "Underspecified result should have a reason"
+        if ke.status == "underspecified":
+            assert ke.reason is not None, "Underspecified result should have a reason"
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -573,10 +573,10 @@ class TestOverrideAlwaysWins:
             overrides={"acceleration": override_value},
         )
         accel = result.values["acceleration"]
-        assert accel["value"] == override_value, (
-            f"Override {override_value} did not win, got {accel['value']}"
+        assert accel.value == override_value, (
+            f"Override {override_value} did not win, got {accel.value}"
         )
-        assert accel["source"] == "override"
+        assert accel.source == "override"
 
     @given(
         mass_val=st.floats(
@@ -599,13 +599,13 @@ class TestOverrideAlwaysWins:
             overrides={"mass": mass_val},
         )
         force = result.values["force"]
-        assert force["status"] == "derived", (
-            f"Expected derived, got {force['status']}"
+        assert force.status == "derived", (
+            f"Expected derived, got {force.status}"
         )
         g = 9.807 if location == "earth" else 1.625
         expected = mass_val * g
-        assert abs(force["value"] - expected) < 1e-6 * (1 + abs(expected)), (
-            f"F={force['value']} != m*g={mass_val}*{g}={expected}"
+        assert abs(force.value - expected) < 1e-6 * (1 + abs(expected)), (
+            f"F={force.value} != m*g={mass_val}*{g}={expected}"
         )
 
 
@@ -636,7 +636,7 @@ class TestBindingIsolation:
         )
 
         force = result.values["force"]
-        assert force["status"] == "derived"
+        assert force.status == "derived"
 
         if location == "earth":
             expected_g = 9.807
@@ -646,13 +646,13 @@ class TestBindingIsolation:
             wrong_claim = "g_earth"
 
         expected_force = mass_val * expected_g
-        assert abs(force["value"] - expected_force) < 1e-6 * (1 + abs(expected_force)), (
-            f"Binding location={location} but force={force['value']} "
+        assert abs(force.value - expected_force) < 1e-6 * (1 + abs(expected_force)), (
+            f"Binding location={location} but force={force.value} "
             f"doesn't match m*g={mass_val}*{expected_g}={expected_force}"
         )
 
         # The wrong-location claim must NOT appear in dependencies
-        assert wrong_claim not in result.dependencies["claims"], (
+        assert wrong_claim not in result.dependencies.claims, (
             f"{wrong_claim} leaked into dependencies with location={location}"
         )
 

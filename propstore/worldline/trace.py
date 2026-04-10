@@ -4,6 +4,7 @@ from typing import Any
 
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ClaimId, to_claim_id
+from propstore.worldline.result_types import WorldlineStep
 
 
 class ResolutionTrace:
@@ -11,7 +12,7 @@ class ResolutionTrace:
 
     def __init__(self) -> None:
         self.dependency_claims: set[ClaimId] = set()
-        self.steps: list[dict[str, Any]] = []
+        self.steps: list[WorldlineStep] = []
 
     def record_binding(self, concept: str, value: Any) -> None:
         self.record_step(concept=concept, value=value, source="binding")
@@ -19,8 +20,28 @@ class ResolutionTrace:
     def record_override(self, concept: str, value: Any) -> None:
         self.record_step(concept=concept, value=value, source="override")
 
-    def record_step(self, **payload: Any) -> None:
-        self.steps.append(dict(payload))
+    def record_step(
+        self,
+        *,
+        concept: str,
+        source: str,
+        value: Any = None,
+        claim_id: str | None = None,
+        strategy: str | None = None,
+        reason: str | None = None,
+        formula: str | None = None,
+    ) -> None:
+        self.steps.append(
+            WorldlineStep(
+                concept=concept,
+                source=source,
+                value=value,
+                claim_id=claim_id,
+                strategy=strategy,
+                reason=reason,
+                formula=formula,
+            )
+        )
 
     def record_claim_dependency(self, claim_id: str | None) -> None:
         if claim_id and not claim_id.startswith("__override_"):
@@ -34,5 +55,5 @@ class ResolutionTrace:
         return {
             concept
             for step in self.steps
-            if isinstance((concept := step.get("concept")), str)
+            if isinstance((concept := step.concept), str)
         }

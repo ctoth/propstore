@@ -850,13 +850,13 @@ def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> 
 
     assert worldline.policy.reasoning_backend == ReasoningBackend.ATMS
     assert result.argumentation is not None
-    assert result.argumentation["backend"] == "atms"
-    assert result.argumentation["supported"] == ["claim_exact"]
-    assert result.argumentation["node_statuses"] == {"claim:claim_exact": "IN"}
-    assert result.argumentation["support_quality"] == {"claim_exact": "exact"}
-    assert result.argumentation["essential_support"]["claim_exact"]
-    assert result.argumentation["nogood_details"] == []
-    assert "claim_exact" in result.argumentation["status_reasons"]
+    assert result.argumentation.backend == "atms"
+    assert result.argumentation.supported == ("claim_exact",)
+    assert result.argumentation.node_statuses == {"claim:claim_exact": "IN"}
+    assert result.argumentation.support_quality == {"claim_exact": "exact"}
+    assert result.argumentation.essential_support["claim_exact"]
+    assert result.argumentation.nogood_details == ()
+    assert "claim_exact" in result.argumentation.status_reasons
 
 
 def test_atms_cli_surfaces_status_context_and_verify(monkeypatch) -> None:
@@ -1557,13 +1557,15 @@ def test_atms_worldline_future_capture_is_opt_in() -> None:
     plain_result = run_worldline(plain_worldline, world)
     future_result = run_worldline(future_worldline, world)
 
-    assert "declared_queryables" not in plain_result.argumentation
-    assert future_result.argumentation["declared_queryables"] == ["y == 2"]
-    assert future_result.argumentation["future_statuses"]["claim_future"]["could_become_in"] is True
-    assert future_result.argumentation["why_out"]["claim_future"]["candidate_queryable_cels"] == [["y == 2"]]
-    assert future_result.argumentation["stability"]["claim_future"]["stable"] is False
-    assert future_result.argumentation["relevance"]["claim_future"]["relevant_queryables"] == ["y == 2"]
-    assert future_result.argumentation["witness_futures"]["claim_future"][0]["queryable_cels"] == ["y == 2"]
+    assert plain_result.argumentation is not None
+    assert plain_result.argumentation.declared_queryables == ()
+    assert future_result.argumentation is not None
+    assert future_result.argumentation.declared_queryables == ("y == 2",)
+    assert future_result.argumentation.future_statuses["claim_future"]["could_become_in"] is True
+    assert future_result.argumentation.why_out["claim_future"]["candidate_queryable_cels"] == [["y == 2"]]
+    assert future_result.argumentation.stability["claim_future"]["stable"] is False
+    assert future_result.argumentation.relevance["claim_future"]["relevant_queryables"] == ["y == 2"]
+    assert future_result.argumentation.witness_futures["claim_future"][0]["queryable_cels"] == ["y == 2"]
 
 
 def test_was_pruned_by_nogood_detects_transitive_nogood_through_antecedent() -> None:

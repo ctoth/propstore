@@ -194,7 +194,7 @@ def analyze_sensitivity(
         # Try value_of
         vr = bound.value_of(iid)
         if vr.status == "determined":
-            val = vr.claims[0].get("value") if vr.claims else None
+            val = vr.claims[0].value if vr.claims else None
             if val is not None:
                 input_values[iid] = float(val)
                 continue

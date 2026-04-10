@@ -357,6 +357,6 @@ def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
         FakeWorld(),
     )
 
-    assert result.values["target"]["status"] == "determined"
-    assert result.values["target"]["value"] == 42.0
-    assert "label" not in result.values["target"]
+    assert result.values["target"].status == "determined"
+    assert result.values["target"].value == 42.0
+    assert "label" not in result.values["target"].to_dict()

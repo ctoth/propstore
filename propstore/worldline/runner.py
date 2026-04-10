@@ -11,6 +11,14 @@ from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
 from propstore.worldline.hashing import compute_worldline_content_hash
 from propstore.worldline.interfaces import HasEnvironment, WorldlineStore
+from propstore.worldline.result_types import (
+    WorldlineArgumentationState,
+    WorldlineDependencies,
+    WorldlineSensitivityEntry,
+    WorldlineSensitivityOutcome,
+    WorldlineSensitivityReport,
+    WorldlineTargetValue,
+)
 from propstore.worldline.resolution import (
     ResolutionContext,
     concept_name as _concept_name,
@@ -67,7 +75,7 @@ def run_worldline(
     if strategy is not None:
         _pre_resolve_conflicts(resolution_context, target_map, trace)
 
-    values: dict[str, dict[str, Any]] = {}
+    values: dict[str, WorldlineTargetValue] = {}
     for target_name, concept_id in target_map.items():
         values[target_name] = _resolve_target(
             resolution_context,
@@ -78,10 +86,10 @@ def run_worldline(
 
     for target in definition.targets:
         if target not in values:
-            values[target] = {
-                "status": "underspecified",
-                "reason": f"concept '{target}' not found in knowledge base",
-            }
+            values[target] = WorldlineTargetValue(
+                status="underspecified",
+                reason=f"concept '{target}' not found in knowledge base",
+            )
 
     sensitivity_results = _capture_sensitivity(
         world,
@@ -91,23 +99,24 @@ def run_worldline(
         override_concept_ids,
     )
 
-    argumentation_state: dict[str, Any] | None = None
+    argumentation_state: WorldlineArgumentationState | None = None
     stance_dependencies: list[str] = []
     if strategy == ResolutionStrategy.ARGUMENTATION:
         try:
-            argumentation_state, stance_dependencies, active_ids = capture_argumentation_state(
+            raw_argumentation_state, stance_dependencies, active_ids = capture_argumentation_state(
                 bound,
                 world,
                 definition,
             )
+            argumentation_state = WorldlineArgumentationState.from_mapping(raw_argumentation_state)
             if argumentation_state is not None:
                 trace.dependency_claims.update(active_ids)
         except Exception as exc:
             logger.warning("argumentation capture failed", exc_info=True)
-            argumentation_state = {
-                "status": "error",
-                "error": f"argumentation capture failed: {exc}",
-            }
+            argumentation_state = WorldlineArgumentationState(
+                status="error",
+                error=f"argumentation capture failed: {exc}",
+            )
 
     revision_state: dict[str, Any] | None = None
     if definition.revision is not None:
@@ -121,14 +130,14 @@ def run_worldline(
                 "error": f"revision capture failed: {exc}",
             }
 
-    dependencies = {
-        "claims": sorted(
+    dependencies = WorldlineDependencies(
+        claims=tuple(sorted(
             _display_claim_id(world, str(claim_id)) or str(claim_id)
             for claim_id in trace.dependency_claims
-        ),
-        "stances": stance_dependencies,
-        "contexts": _context_dependencies(bound, context_id),
-    }
+        )),
+        stances=tuple(stance_dependencies),
+        contexts=tuple(_context_dependencies(bound, context_id)),
+    )
     content_hash = compute_worldline_content_hash(
         values=values,
         steps=trace.steps,
@@ -142,7 +151,7 @@ def run_worldline(
         computed=datetime.now(timezone.utc).isoformat(),
         content_hash=content_hash,
         values=values,
-        steps=trace.steps,
+        steps=tuple(trace.steps),
         dependencies=dependencies,
         sensitivity=sensitivity_results,
         argumentation=argumentation_state,
@@ -154,18 +163,18 @@ def _capture_sensitivity(
     world: WorldlineStore,
     bound: Any,
     target_map: dict[str, str],
-    values: dict[str, dict[str, Any]],
+    values: dict[str, WorldlineTargetValue],
     override_concept_ids: dict[str, float | str],
-) -> dict[str, Any] | None:
-    sensitivity_results: dict[str, Any] | None = None
+) -> WorldlineSensitivityReport | None:
+    outcomes: dict[str, WorldlineSensitivityOutcome] = {}
     float_overrides = {
         str(concept_id): float(value)
         for concept_id, value in override_concept_ids.items()
         if isinstance(value, (int, float))
     }
     for target_name, concept_id in target_map.items():
-        value = values.get(target_name, {})
-        if value.get("status") != "derived":
+        value = values.get(target_name)
+        if value is None or value.status != "derived":
             continue
         try:
             from propstore.sensitivity import analyze_sensitivity
@@ -177,25 +186,25 @@ def _capture_sensitivity(
                 override_values=float_overrides,
             )
             if result is not None and result.entries:
-                if sensitivity_results is None:
-                    sensitivity_results = {}
-                sensitivity_results[target_name] = [
-                    {
-                        "input": _concept_name(world, entry.input_concept_id),
-                        "elasticity": entry.elasticity,
-                        "partial_derivative": entry.partial_derivative_value,
-                    }
-                    for entry in result.entries
-                    if entry.elasticity is not None
-                ]
+                outcomes[target_name] = WorldlineSensitivityOutcome(
+                    entries=tuple(
+                        WorldlineSensitivityEntry(
+                            input_name=_concept_name(world, entry.input_concept_id),
+                            elasticity=entry.elasticity,
+                            partial_derivative=entry.partial_derivative_value,
+                        )
+                        for entry in result.entries
+                        if entry.elasticity is not None
+                    )
+                )
         except Exception as exc:
             logger.warning("sensitivity analysis failed for %s", target_name, exc_info=True)
-            if sensitivity_results is None:
-                sensitivity_results = {}
-            sensitivity_results[target_name] = {
-                "error": f"sensitivity analysis failed: {exc}",
-            }
-    return sensitivity_results
+            outcomes[target_name] = WorldlineSensitivityOutcome(
+                error=f"sensitivity analysis failed: {exc}",
+            )
+    if not outcomes:
+        return None
+    return WorldlineSensitivityReport(targets=outcomes)
 
 
 def _context_dependencies(

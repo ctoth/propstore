@@ -26,6 +26,7 @@ from propstore.worldline import (
     WorldlineInputs,
     run_worldline,
 )
+from propstore.worldline.result_types import WorldlineTargetValue
 
 
 # ── helpers ──────────────────────────────────────────────────────────
@@ -136,13 +137,12 @@ class TestSensitivityErrorVisibility:
 
         # Force the target to appear as "derived" in the values dict so
         # the sensitivity analysis block at line 160 fires.
-        derived_entry = {
-            "status": "derived",
-            "value": 42.0,
-            "source": "derived",
-            "formula": "x * y",
-            "inputs_used": {},
-        }
+        derived_entry = WorldlineTargetValue(
+            status="derived",
+            value=42.0,
+            source="derived",
+            formula="x * y",
+        )
 
         world._bound = fake_bound
 
@@ -163,16 +163,10 @@ class TestSensitivityErrorVisibility:
             "sensitivity is None — the exception was silently swallowed "
             "(F1.4: sensitivity failure was swallowed)"
         )
-        # The error indicator could be a dict with an error key, or a
-        # dedicated field — we check for either pattern.
-        if isinstance(result.sensitivity, dict):
-            has_error = any(
-                "error" in str(v).lower()
-                for v in result.sensitivity.values()
-            )
-            assert has_error, (
-                "sensitivity dict exists but contains no error indicator"
-            )
+        assert any(
+            outcome.error is not None
+            for outcome in result.sensitivity.targets.values()
+        ), "sensitivity report exists but contains no error indicator"
 
 
 # ── Test 2: argumentation capture error is surfaced ──────────────────
@@ -202,9 +196,14 @@ class TestArgumentationErrorVisibility:
 
         with (
             patch("propstore.worldline.runner._resolve_concept_name", return_value="concept:output_qty"),
-            patch("propstore.worldline.runner._resolve_target", return_value={
-                "status": "determined", "value": 42.0, "source": "claim",
-            }),
+            patch(
+                "propstore.worldline.runner._resolve_target",
+                return_value=WorldlineTargetValue(
+                    status="determined",
+                    value=42.0,
+                    source="claim",
+                ),
+            ),
         ):
             result = run_worldline(definition, world)
 
@@ -214,11 +213,6 @@ class TestArgumentationErrorVisibility:
             "argumentation is None — the exception was silently swallowed "
             "(F1.5: argumentation failure was swallowed)"
         )
-        if isinstance(result.argumentation, dict):
-            has_error = any(
-                "error" in str(v).lower()
-                for v in result.argumentation.values()
-            )
-            assert has_error, (
-                "argumentation dict exists but contains no error indicator"
-            )
+        assert result.argumentation.error is not None, (
+            "argumentation state exists but contains no error indicator"
+        )

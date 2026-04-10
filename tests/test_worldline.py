@@ -422,7 +422,7 @@ class TestWorldlineDefinition:
         wl = WorldlineDefinition.from_dict(worldline_yaml_with_results)
         assert wl.results is not None
         assert "force" in wl.results.values
-        assert wl.results.values["force"]["value"] == 98.07
+        assert wl.results.values["force"].value == 98.07
 
     def test_worldline_has_no_results_initially(self, worldline_yaml_question):
         """A question-only worldline has no results."""
@@ -469,8 +469,8 @@ class TestWorldlineRunner:
         result = run_worldline(wl, physics_world)
         assert "force" in result.values
         force = result.values["force"]
-        assert force["status"] == "derived"
-        assert abs(force["value"] - 98.07) < 0.1
+        assert force.status == "derived"
+        assert abs(force.value - 98.07) < 0.1
 
     def test_run_records_dependencies(self, physics_world):
         """Dependencies list all claims that contributed to results."""
@@ -486,7 +486,7 @@ class TestWorldlineRunner:
             },
         })
         result = run_worldline(wl, physics_world)
-        assert "g_earth" in result.dependencies["claims"]
+        assert "g_earth" in result.dependencies.claims
 
     def test_run_partial_results(self, physics_world):
         """Targets that can't be determined get status=underspecified."""
@@ -500,7 +500,7 @@ class TestWorldlineRunner:
         })
         result = run_worldline(wl, physics_world)
         assert "kinetic_energy" in result.values
-        assert result.values["kinetic_energy"]["status"] in ("underspecified", "no_relationship")
+        assert result.values["kinetic_energy"].status in ("underspecified", "no_relationship")
 
     def test_run_override_precedence(self, physics_world):
         """Override value takes precedence over claims."""
@@ -514,8 +514,8 @@ class TestWorldlineRunner:
             "inputs": {"overrides": {"mass": 99.0}},
         })
         result = run_worldline(wl, physics_world)
-        assert result.values["mass"]["value"] == 99.0
-        assert result.values["mass"]["source"] == "override"
+        assert result.values["mass"].value == 99.0
+        assert result.values["mass"].source == "override"
 
     def test_run_deterministic(self, physics_world):
         """Running the same definition twice produces identical results."""
@@ -566,12 +566,15 @@ class TestWorldlineRunner:
         })
         result = run_worldline(wl, physics_world)
         force = result.values["force"]
-        if force["status"] == "derived" and force.get("formula"):
+        if force.status == "derived" and force.formula:
             # Verify value matches formula evaluation
-            inputs = {k: v["value"] for k, v in force["inputs_used"].items()}
+            inputs = {
+                key: input_source.value
+                for key, input_source in force.inputs_used.items()
+            }
             # The formula uses concept IDs, so we verify numerically
             expected = inputs.get("concept1", inputs.get("mass", 10.0)) * inputs.get("concept2", inputs.get("acceleration", 9.807))
-            assert abs(force["value"] - expected) < 1e-9
+            assert abs(force.value - expected) < 1e-9
 
     def test_run_uses_world_context_scope(self):
         """inputs.environment.context_id is passed as bind environment context, not as a fake binding."""
@@ -641,7 +644,7 @@ class TestWorldlineRunner:
         assert isinstance(world.last_environment, Environment)
         assert world.last_environment.context_id == "ctx_physics"
         assert world.last_conditions == {}
-        assert result.values["target"]["value"] == 42.0
+        assert result.values["target"].value == 42.0
 
     def test_run_records_transitive_dependencies(self, chained_physics_world):
         """Two-hop derivations include the upstream claim dependency."""
@@ -657,10 +660,10 @@ class TestWorldlineRunner:
         result = run_worldline(wl, chained_physics_world)
 
         force = result.values["force"]
-        assert force["status"] == "derived"
-        assert abs(force["value"] - 98.07) < 0.1
-        assert "g_claim" in result.dependencies["claims"]
-        assert force["inputs_used"][_concept_artifact("concept3")]["source"] == "derived"
+        assert force.status == "derived"
+        assert abs(force.value - 98.07) < 0.1
+        assert "g_claim" in result.dependencies.claims
+        assert force.inputs_used[_concept_artifact("concept3")].source == "derived"
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -768,8 +771,8 @@ class TestWorldlineDependencyLiveness:
         wl.results = result
         rerun = run_worldline(wl, changed_world)
 
-        assert rerun.values["target"]["value"] == 10.0
-        assert sorted(result.dependencies["claims"]) == ["claim_new", "claim_old"]
+        assert rerun.values["target"].value == 10.0
+        assert sorted(result.dependencies.claims) == ["claim_new", "claim_old"]
         assert wl.is_stale(changed_world)
 
     def test_argumentation_worldline_records_stance_dependencies_and_detects_staleness(self, monkeypatch):
@@ -883,8 +886,8 @@ class TestWorldlineDependencyLiveness:
         result = run_worldline(wl, original_world)
         wl.results = result
 
-        assert result.values["target"]["value"] == 10.0
-        assert result.dependencies["stances"]
+        assert result.values["target"].value == 10.0
+        assert result.dependencies.stances
         assert wl.is_stale(changed_world)
 
     def test_context_sensitive_worldline_detects_staleness_when_context_behavior_changes(self):
@@ -951,7 +954,7 @@ class TestWorldlineDependencyLiveness:
         result = run_worldline(wl, original_world)
         wl.results = result
 
-        assert result.dependencies["contexts"] == ["ctx_physics"]
+        assert result.dependencies.contexts == ("ctx_physics",)
         assert wl.is_stale(changed_world)
 
     def test_run_worldline_uses_world_interface_for_concept_lookup(self):
@@ -1003,7 +1006,7 @@ class TestWorldlineDependencyLiveness:
         })
 
         result = run_worldline(wl, MinimalWorld())
-        assert result.values["target"]["value"] == 42.0
+        assert result.values["target"].value == 42.0
 
 
 class TestSemanticCorePhase7Worldlines:
@@ -1158,12 +1161,13 @@ class TestSemanticCorePhase7Worldlines:
             world,
         )
 
-        assert result.values["target"]["value"] == 10.0
-        assert result.argumentation == {
+        assert result.values["target"].value == 10.0
+        assert result.argumentation is not None
+        assert result.argumentation.to_dict() == {
             "justified": ["claim_a"],
             "defeated": ["claim_b"],
         }
-        assert result.dependencies["stances"]
+        assert result.dependencies.stances
 
     def test_praf_worldline_capture_uses_active_graph_without_store_praf_path(
         self,
@@ -1252,11 +1256,11 @@ class TestSemanticCorePhase7Worldlines:
             world,
         )
 
-        assert result.values["target"]["value"] == 10.0
+        assert result.values["target"].value == 10.0
         assert result.argumentation is not None
-        assert result.argumentation["backend"] == "praf"
-        assert result.argumentation["acceptance_probs"] == {"claim_a": 0.75, "claim_b": 0.25}
-        assert result.dependencies["stances"]
+        assert result.argumentation.backend == "praf"
+        assert result.argumentation.acceptance_probs == {"claim_a": 0.75, "claim_b": 0.25}
+        assert result.dependencies.stances
 
     def test_worldline_aspic_capture_threads_link_to_build_aspic_projection(
         self,
@@ -1308,7 +1312,7 @@ class TestSemanticCorePhase7Worldlines:
             world,
         )
 
-        assert result.values["target"]["value"] == 10.0
+        assert result.values["target"].value == 10.0
         assert calls
         assert calls[0]["active_graph"] == active_graph
         assert calls[0]["comparison"] == "democratic"
@@ -1371,7 +1375,7 @@ class TestSemanticCorePhase7Worldlines:
                 world,
             )
 
-        assert result.values["target"]["value"] == 10.0
+        assert result.values["target"].value == 10.0
         assert calls
         assert calls[0]["active_graph"] == active_graph
         assert calls[0]["comparison"] == comparison
@@ -1468,8 +1472,8 @@ class TestSemanticCorePhase7Worldlines:
         )
 
         assert grounded.argumentation is not None
-        assert grounded.argumentation["backend"] == "aspic"
-        assert grounded.argumentation["justified"] == ["claim_a", "claim_b"]
+        assert grounded.argumentation.backend == "aspic"
+        assert grounded.argumentation.justified == ("claim_a", "claim_b")
 
     def test_graph_backed_worldline_materialization_is_stable_under_repeated_execution(
         self,
@@ -1603,9 +1607,9 @@ class TestWorldlineFailureModes:
 
         result = run_worldline(wl, FakeWorld())
 
-        assert result.values["target"]["status"] == "determined"
-        assert result.values["target"]["claim_type"] == "algorithm"
-        assert result.values["target"]["body"] == "def compute(sr, ws):\n    return sr / ws\n"
+        assert result.values["target"].status == "determined"
+        assert result.values["target"].claim_type == "algorithm"
+        assert result.values["target"].body == "def compute(sr, ws):\n    return sr / ws\n"
 
     def test_run_worldline_surfaces_chain_query_failures(self):
         """Engine failures should not be reported as ordinary underspecification."""
@@ -1645,8 +1649,8 @@ class TestWorldlineFailureModes:
 
         result = run_worldline(wl, FakeWorld())
 
-        assert result.values["target"]["status"] == "error"
-        assert "solver exploded" in result.values["target"]["reason"]
+        assert result.values["target"].status == "error"
+        assert "solver exploded" in (result.values["target"].reason or "")
 
 
 class TestSilentExceptionLogging:
@@ -1712,7 +1716,7 @@ class TestSilentExceptionLogging:
                     result = run_worldline(wl, FakeWorld())
 
         # The worldline should still succeed (sensitivity is optional)
-        assert result.values["target"]["status"] == "derived"
+        assert result.values["target"].status == "derived"
         # But a warning must have been logged
         assert any(
             "sensitivity" in rec.message.lower() for rec in caplog.records
@@ -1775,7 +1779,7 @@ class TestSilentExceptionLogging:
             result = run_worldline(wl, FakeWorld())
 
         # The worldline should still succeed
-        assert result.values["target"]["status"] == "derived"
+        assert result.values["target"].status == "derived"
         # But a warning must have been logged
         assert any(
             "argumentation" in rec.message.lower() for rec in caplog.records

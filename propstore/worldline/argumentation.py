@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from propstore.core.active_claims import ActiveClaim
+from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.id_types import ClaimId, to_claim_id
 from propstore.core.labels import Label, SupportQuality
 from propstore.core.row_types import StanceRow, coerce_stance_row
@@ -26,7 +26,7 @@ def capture_argumentation_state(
 ) -> tuple[dict[str, Any] | None, list[str], set[ClaimId]]:
     from propstore.world import ReasoningBackend
 
-    active = bound.active_claims()
+    active = coerce_active_claims(bound.active_claims())
     active_ids = {claim.claim_id for claim in active}
     active_graph = bound._active_graph if isinstance(bound, HasActiveGraph) else None
     reasoning_backend = definition.policy.reasoning_backend
