@@ -296,7 +296,13 @@ def show_cmd(ctx, commit):
 @click.argument("commit")
 @click.pass_context
 def checkout_cmd(ctx, commit):
-    """Build sidecar from a historical commit (non-destructive)."""
+    """Rebuild the sidecar from a historical commit's tree.
+
+    Leaves git state, working tree, and source YAML untouched, but
+    overwrites the on-disk sidecar at ``<repo>/sidecar/propstore.sqlite``
+    so that subsequent ``pks world`` / ``pks query`` commands see the
+    historical state until the next ``pks build``.
+    """
     from propstore.sidecar.build import build_sidecar
 
     repo = ctx.obj["repo"]
