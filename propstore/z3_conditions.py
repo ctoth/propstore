@@ -122,7 +122,7 @@ class Z3ConditionSolver:
 
     def _translate_name(self, node: NameNode) -> Any:
         info = self._require_concept(node.name)
-        if info.kind == KindType.QUANTITY:
+        if info.kind in (KindType.QUANTITY, KindType.TIMEPOINT):
             return self._get_real(node.name)
         if info.kind == KindType.BOOLEAN:
             return self._get_bool(node.name)
@@ -316,7 +316,7 @@ class Z3ConditionSolver:
 
     def _binding_to_z3(self, name: str, value: Any) -> Any:
         info = self._require_concept(name)
-        if info.kind == KindType.QUANTITY:
+        if info.kind in (KindType.QUANTITY, KindType.TIMEPOINT):
             return self._get_real(name) == z3.RealVal(value, self._ctx)
         if info.kind == KindType.BOOLEAN:
             return self._get_bool(name) == z3.BoolVal(bool(value), self._ctx)
@@ -334,22 +334,71 @@ class Z3ConditionSolver:
             f"Structural concept '{name}' cannot appear in CEL expressions"
         )
 
+    def _temporal_ordering_constraints(self) -> list[Any]:
+        """Generate valid_from <= valid_until constraints for timepoint interval pairs.
+
+        Scans the registry for TIMEPOINT concepts whose names end in ``_from``
+        and ``_until`` with a matching prefix (e.g. ``valid_from`` / ``valid_until``).
+        For each such pair, emits ``from_var <= until_var`` so that Z3 never
+        considers inverted intervals as satisfiable.
+
+        This implements the well-formedness invariant described in
+        reports/cyc-research-5-temporal-events.md §6.2: timepoints that form
+        an interval must be ordered.
+        """
+        constraints: list[Any] = []
+        from_concepts: dict[str, str] = {}  # prefix -> canonical_name
+        until_concepts: dict[str, str] = {}
+
+        for name, info in self._registry.items():
+            if info.kind != KindType.TIMEPOINT:
+                continue
+            if name.endswith("_from"):
+                from_concepts[name[: -len("_from")]] = name
+            elif name.endswith("_until"):
+                until_concepts[name[: -len("_until")]] = name
+
+        for prefix, from_name in from_concepts.items():
+            until_name = until_concepts.get(prefix)
+            if until_name is None:
+                continue
+            # Only generate constraint if both variables have been
+            # materialized (i.e., appear in conditions being checked).
+            # We eagerly create them here so the constraint is always active.
+            from_var = self._get_real(from_name)
+            until_var = self._get_real(until_name)
+            constraints.append(from_var <= until_var)
+
+        return constraints
+
+    def _add_temporal_constraints(self, solver: z3.Solver) -> None:
+        """Add temporal ordering constraints to a solver instance."""
+        for constraint in self._temporal_ordering_constraints():
+            solver.add(constraint)
+
     def is_condition_satisfied(self, condition: str, bindings: Mapping[str, Any]) -> bool:
         """Check whether one CEL condition holds under a concrete assignment."""
         expr = self._condition_to_z3(condition)
         solver = z3.Solver(ctx=self._ctx)
         solver.add(expr)
+        self._add_temporal_constraints(solver)
         for name, value in bindings.items():
             solver.add(self._binding_to_z3(name, value))
         return solver.check() == z3.sat
 
     def are_disjoint(self, conditions_a: Sequence[str], conditions_b: Sequence[str]) -> bool:
-        """Check if two condition sets are disjoint (their conjunction is UNSAT)."""
+        """Check if two condition sets are disjoint (their conjunction is UNSAT).
+
+        When TIMEPOINT interval pairs (e.g. valid_from/valid_until) are in the
+        registry, the solver automatically adds valid_from <= valid_until so
+        that inverted intervals are treated as UNSAT.
+        """
         expr_a = self._conditions_to_z3(conditions_a)
         expr_b = self._conditions_to_z3(conditions_b)
         solver = z3.Solver(ctx=self._ctx)
         solver.add(expr_a)
         solver.add(expr_b)
+        self._add_temporal_constraints(solver)
         return solver.check() == z3.unsat
 
     def are_equivalent(self, conditions_a: Sequence[str], conditions_b: Sequence[str]) -> bool:
@@ -363,6 +412,7 @@ class Z3ConditionSolver:
         s1 = z3.Solver(ctx=self._ctx)
         s1.add(expr_a)
         s1.add(z3.Not(expr_b))
+        self._add_temporal_constraints(s1)
         if s1.check() != z3.unsat:
             return False
 
@@ -370,6 +420,7 @@ class Z3ConditionSolver:
         s2 = z3.Solver(ctx=self._ctx)
         s2.add(expr_b)
         s2.add(z3.Not(expr_a))
+        self._add_temporal_constraints(s2)
         return s2.check() == z3.unsat
 
     def partition_equivalence_classes(

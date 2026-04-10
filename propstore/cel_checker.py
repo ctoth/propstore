@@ -27,6 +27,7 @@ class KindType(Enum):
     CATEGORY = "category"
     BOOLEAN = "boolean"
     STRUCTURAL = "structural"
+    TIMEPOINT = "timepoint"
 
 
 @dataclass
@@ -590,7 +591,7 @@ def _resolve_type(node: ASTNode, expr: str, registry: dict[str, ConceptInfo], er
         if info.kind == KindType.STRUCTURAL:
             errors.append(CelError(expr, f"Structural concept '{node.name}' cannot appear in CEL expressions"))
             return ExprType.UNKNOWN
-        if info.kind == KindType.QUANTITY:
+        if info.kind in (KindType.QUANTITY, KindType.TIMEPOINT):
             return ExprType.NUMERIC
         if info.kind == KindType.CATEGORY:
             return ExprType.STRING
@@ -695,8 +696,8 @@ def _check_in(node: InNode, expr: str, registry: dict[str, ConceptInfo], errors:
                             ))
         if info and info.kind == KindType.BOOLEAN:
             errors.append(CelError(expr, f"Boolean concept '{node.expr.name}' cannot be used with 'in' operator"))
-        if info and info.kind == KindType.QUANTITY:
-            # quantity in [...] is ok for numeric lists
+        if info and info.kind in (KindType.QUANTITY, KindType.TIMEPOINT):
+            # quantity/timepoint in [...] is ok for numeric lists
             for val_node in node.values:
                 if isinstance(val_node, LiteralNode) and val_node.lit_type == "string":
                     errors.append(CelError(expr, f"String literal in 'in' list for quantity concept '{node.expr.name}'"))
@@ -745,7 +746,7 @@ def _check_type_mismatch(concept_node: ASTNode, other_type: ExprType, expr: str,
     if info is None:
         return
 
-    if info.kind == KindType.QUANTITY and other_type == ExprType.STRING:
+    if info.kind in (KindType.QUANTITY, KindType.TIMEPOINT) and other_type == ExprType.STRING:
         errors.append(CelError(expr, f"Quantity concept '{concept_node.name}' compared to string literal"))
     elif info.kind == KindType.CATEGORY and other_type == ExprType.NUMERIC:
         errors.append(CelError(expr, f"Category concept '{concept_node.name}' compared to numeric literal"))

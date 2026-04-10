@@ -132,6 +132,7 @@ _KIND_MAP = {
     "category": KindType.CATEGORY,
     "boolean": KindType.BOOLEAN,
     "structural": KindType.STRUCTURAL,
+    "timepoint": KindType.TIMEPOINT,
 }
 
 
@@ -395,6 +396,8 @@ def kind_type_from_form_name(form: str | None) -> KindType | None:
         return KindType.STRUCTURAL
     if form == "boolean":
         return KindType.BOOLEAN
+    if form == "timepoint":
+        return KindType.TIMEPOINT
     return KindType.QUANTITY
 
 
