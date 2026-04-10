@@ -35,6 +35,9 @@ def show(obj: dict, claim_id: str) -> None:
         if claim_data is None:
             click.echo(f"Claim '{claim_id}' not found.", err=True)
             sys.exit(EXIT_ERROR)
+        from propstore.core.row_types import coerce_claim_row
+
+        claim_data = coerce_claim_row(claim_data).to_dict()
 
         logical_id = claim_data.get("logical_id") or claim_data.get("primary_logical_id")
         artifact_id = claim_data.get("artifact_id")
@@ -281,6 +284,10 @@ def compare(obj: dict, id_a: str, id_b: str, bindings: tuple[str, ...]) -> None:
         click.echo(f"ERROR: Claim '{id_b}' not found.", err=True)
         wm.close()
         sys.exit(EXIT_ERROR)
+    from propstore.core.row_types import coerce_claim_row
+
+    claim_a = coerce_claim_row(claim_a).to_dict()
+    claim_b = coerce_claim_row(claim_b).to_dict()
 
     body_a = claim_a.get("body")
     body_b = claim_b.get("body")

@@ -49,6 +49,7 @@ from propstore.core.environment import (
     ConflictStore,
     Environment,
 )
+from propstore.core.row_types import ClaimRowInput, coerce_claim_row
 from propstore.world.types import (
     ArgumentationSemantics,
     ReasoningBackend,
@@ -135,18 +136,19 @@ def _conflict_row_from_witness(conflict: ConflictWitness) -> dict:
     }
 
 
-def _claim_node_from_row(row: dict) -> ClaimNode:
+def _claim_node_from_row(row_input: ClaimRowInput | dict) -> ClaimNode:
+    row = coerce_claim_row(row_input)
     attributes = tuple(
         (str(key), value)
-        for key, value in row.items()
+        for key, value in row.to_dict().items()
         if key not in {"id", "concept_id", "target_concept", "type", "value"}
         and value is not None
     )
     return ClaimNode(
-        claim_id=to_claim_id(row["id"]),
-        concept_id=to_concept_id(row.get("concept_id") or row.get("target_concept") or ""),
-        claim_type=str(row.get("type") or "unknown"),
-        scalar_value=row.get("value"),
+        claim_id=to_claim_id(row.claim_id),
+        concept_id=to_concept_id(str(row.concept_id or row.target_concept or "")),
+        claim_type=str(row.claim_type or "unknown"),
+        scalar_value=row.value,
         attributes=attributes,
     )
 

@@ -17,6 +17,7 @@ from propstore.cel_checker import (
 from propstore.core.id_types import to_concept_id
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.row_types import (
+    ClaimRow,
     ConceptRow,
     ConflictRow,
     ParameterizationRow,
@@ -417,78 +418,12 @@ class WorldModel(ArtifactStore):
             LEFT JOIN source AS src ON src.slug = core.source_slug
         """
 
-    def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[dict]:
+    def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[ClaimRow]:
         rows = self._conn.execute(
             f"{self._claim_select_sql()} {where_sql}",
             params,
         ).fetchall()
-        normalized_rows: list[dict] = []
-        for row in rows:
-            data = dict(row)
-            logical_ids_json = data.get("logical_ids_json")
-            if isinstance(logical_ids_json, str) and logical_ids_json:
-                try:
-                    data["logical_ids"] = json.loads(logical_ids_json)
-                except json.JSONDecodeError:
-                    data["logical_ids"] = []
-            else:
-                data["logical_ids"] = []
-            data["logical_id"] = data.get("primary_logical_id")
-            source_id = data.get("source_id")
-            source_kind = data.get("source_kind")
-            source_origin_type = data.get("source_origin_type")
-            source_origin_value = data.get("source_origin_value")
-            source_origin_retrieved = data.get("source_origin_retrieved")
-            source_origin_content_ref = data.get("source_origin_content_ref")
-            source_prior_base_rate = data.get("source_prior_base_rate")
-            source_quality_json = data.get("source_quality_json")
-            source_derived_from_json = data.get("source_derived_from_json")
-            if any(
-                value is not None
-                for value in (
-                    source_id,
-                    source_kind,
-                    source_origin_type,
-                    source_origin_value,
-                    source_origin_retrieved,
-                    source_origin_content_ref,
-                    source_prior_base_rate,
-                    source_quality_json,
-                    source_derived_from_json,
-                )
-            ):
-                quality = None
-                if isinstance(source_quality_json, str) and source_quality_json:
-                    try:
-                        quality = json.loads(source_quality_json)
-                    except json.JSONDecodeError:
-                        quality = None
-                derived_from = []
-                if isinstance(source_derived_from_json, str) and source_derived_from_json:
-                    try:
-                        parsed = json.loads(source_derived_from_json)
-                        if isinstance(parsed, list):
-                            derived_from = parsed
-                    except json.JSONDecodeError:
-                        derived_from = []
-                data["source"] = {
-                    "id": source_id,
-                    "kind": source_kind,
-                    "origin": {
-                        "type": source_origin_type,
-                        "value": source_origin_value,
-                        "retrieved": source_origin_retrieved,
-                        "content_ref": source_origin_content_ref,
-                    },
-                    "trust": {
-                        "prior_base_rate": source_prior_base_rate,
-                        "quality": quality,
-                        "derived_from": derived_from,
-                    },
-                }
-                data["source_prior_base_rate"] = source_prior_base_rate
-            normalized_rows.append(data)
-        return normalized_rows
+        return [ClaimRow.from_mapping(dict(row)) for row in rows]
 
     def get_concept(self, concept_id: str) -> ConceptRow | None:
         row = self._conn.execute("SELECT * FROM concept WHERE id = ?", (concept_id,)).fetchone()
@@ -523,7 +458,7 @@ class WorldModel(ArtifactStore):
             for concept in self.all_concepts()
         }
 
-    def get_claim(self, claim_id: str) -> dict | None:
+    def get_claim(self, claim_id: str) -> ClaimRow | None:
         resolved_claim_id = self.resolve_claim(claim_id) or claim_id
         rows = self._claim_rows("WHERE core.id = ?", (resolved_claim_id,))
         return rows[0] if rows else None
@@ -621,7 +556,7 @@ class WorldModel(ArtifactStore):
         ).fetchone()
         return row["id"] if row else None
 
-    def claims_for(self, concept_id: str | None) -> list[dict]:
+    def claims_for(self, concept_id: str | None) -> list[ClaimRow]:
         if concept_id is None:
             return self._claim_rows("ORDER BY core.id")
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
@@ -630,7 +565,7 @@ class WorldModel(ArtifactStore):
             (resolved_concept_id, resolved_concept_id),
         )
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRow]:
         if not claim_ids:
             return {}
         resolved_ids = {

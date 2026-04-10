@@ -11,6 +11,8 @@ from propstore.core.activation import is_claim_mapping_active
 from propstore.core.environment import ArtifactStore, ConceptCatalogStore
 from propstore.core.id_types import ConceptId, to_context_id
 from propstore.core.row_types import (
+    ClaimRowInput,
+    coerce_claim_row,
     coerce_concept_row,
     coerce_conflict_row,
     coerce_parameterization_row,
@@ -118,6 +120,10 @@ def _claim_row_to_source_claim(claim: dict) -> dict:
     if claim_type == "algorithm" and claim.get("variables_json"):
         source["variables"] = json.loads(claim["variables_json"])
     return source
+
+
+def _claim_mapping(claim_input: ClaimRowInput | dict[str, Any]) -> dict[str, Any]:
+    return coerce_claim_row(claim_input).to_dict()
 
 
 def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
@@ -268,8 +274,9 @@ class BoundWorld(BeliefSpace):
             policy=policy,
         )
 
-    def is_active(self, claim: dict) -> bool:
+    def is_active(self, claim: ClaimRowInput | dict[str, Any]) -> bool:
         """Check if a claim is active under the current bindings and context."""
+        claim = _claim_mapping(claim)
         claim_id = claim.get("id")
         if claim_id is not None and self._active_claim_id_set is not None:
             if claim_id in self._active_claim_id_set:
@@ -302,23 +309,21 @@ class BoundWorld(BeliefSpace):
         return not solver.are_disjoint(self._binding_conds, conds)
 
     def active_claims(self, concept_id: str | None = None) -> list[dict]:
+        all_claims = [_claim_mapping(claim) for claim in self._store.claims_for(concept_id)]
         if self._active_claim_id_set is not None:
-            all_claims = self._store.claims_for(concept_id)
             return [
                 claim for claim in all_claims
                 if claim.get("id") in self._active_claim_id_set
             ]
-        all_claims = self._store.claims_for(concept_id)
         return [c for c in all_claims if self.is_active(c)]
 
     def inactive_claims(self, concept_id: str | None = None) -> list[dict]:
+        all_claims = [_claim_mapping(claim) for claim in self._store.claims_for(concept_id)]
         if self._inactive_claim_id_set is not None:
-            all_claims = self._store.claims_for(concept_id)
             return [
                 claim for claim in all_claims
                 if claim.get("id") in self._inactive_claim_id_set
             ]
-        all_claims = self._store.claims_for(concept_id)
         return [c for c in all_claims if not self.is_active(c)]
 
     def algorithm_for(self, concept_id: str) -> list[dict]:

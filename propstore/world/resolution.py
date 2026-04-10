@@ -20,7 +20,7 @@ from propstore.cel_checker import (
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.form_utils import kind_type_from_form_name
 from propstore.core.labels import Label, SupportQuality
-from propstore.core.row_types import ConceptRowInput, coerce_concept_row
+from propstore.core.row_types import ClaimRowInput, ConceptRowInput, coerce_claim_row, coerce_concept_row
 from propstore.world.types import (
     ArgumentationSemantics,
     ArtifactStore,
@@ -116,6 +116,10 @@ def _resolution_claim_view(claim: Mapping[str, object]) -> _ResolutionClaimView:
     )
 
 
+def _claim_mapping(claim: ClaimRowInput | Mapping[str, object]) -> Mapping[str, object]:
+    return coerce_claim_row(claim).to_dict()
+
+
 def _display_claim_id(store: ArtifactStore | None, claim_id: str | None) -> str | None:
     if claim_id is None:
         return None
@@ -124,11 +128,12 @@ def _display_claim_id(store: ArtifactStore | None, claim_id: str | None) -> str 
     getter = getattr(store, "get_claim", None)
     if callable(getter):
         claim = getter(claim_id)
-        if isinstance(claim, Mapping):
-            logical_id = claim.get("logical_id") or claim.get("primary_logical_id")
+        if claim is not None:
+            claim_map = _claim_mapping(claim)
+            logical_id = claim_map.get("logical_id") or claim_map.get("primary_logical_id")
             if isinstance(logical_id, str) and logical_id:
                 return logical_id.split(":", 1)[1] if ":" in logical_id else logical_id
-            logical_ids = claim.get("logical_ids")
+            logical_ids = claim_map.get("logical_ids")
             if isinstance(logical_ids, list):
                 for entry in logical_ids:
                     if not isinstance(entry, Mapping):
@@ -140,11 +145,11 @@ def _display_claim_id(store: ArtifactStore | None, claim_id: str | None) -> str 
 
 
 def _coerce_resolution_claim(
-    claim: _ResolutionClaimView | Mapping[str, object],
+    claim: _ResolutionClaimView | ClaimRowInput | Mapping[str, object],
 ) -> _ResolutionClaimView:
     if isinstance(claim, _ResolutionClaimView):
         return claim
-    return _resolution_claim_view(claim)
+    return _resolution_claim_view(_claim_mapping(claim))
 
 
 def _resolve_recency(

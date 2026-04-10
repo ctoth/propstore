@@ -13,6 +13,7 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.core.row_types import coerce_claim_row
 from propstore.sidecar.build import build_sidecar
 from propstore.validate_claims import load_claim_files, validate_claims
 from propstore.world import WorldModel
@@ -249,8 +250,9 @@ class TestClaimNotesSidecar:
         wm = WorldModel(_FakeRepo(sidecar_path))
         claim = wm.get_claim(make_claim_identity("claim1", namespace="wm_notes_paper")["artifact_id"])
         assert claim is not None
-        assert "notes" in claim, f"notes not in claim dict, keys: {list(claim.keys())}"
-        assert claim["notes"] == "WorldModel test note"
+        claim_data = coerce_claim_row(claim).to_dict()
+        assert "notes" in claim_data, f"notes not in claim dict, keys: {list(claim_data.keys())}"
+        assert claim_data["notes"] == "WorldModel test note"
         wm.close()
 
 

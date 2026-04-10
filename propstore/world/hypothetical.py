@@ -26,6 +26,9 @@ from propstore.core.graph_types import (
     GraphDelta,
 )
 from propstore.core.row_types import (
+    ClaimRow,
+    ClaimRowInput,
+    coerce_claim_row,
     coerce_concept_row,
     coerce_conflict_row,
     coerce_parameterization_row,
@@ -45,6 +48,10 @@ from propstore.world.types import (
 def _claim_pair(left_id: str, right_id: str) -> tuple[str, str]:
     left, right = sorted((str(left_id), str(right_id)))
     return left, right
+
+
+def _claim_mapping(claim_input: ClaimRowInput | dict[str, Any]) -> dict[str, Any]:
+    return coerce_claim_row(claim_input).to_dict()
 
 
 def _conflict_witness_from_row(row: dict) -> ConflictWitness:
@@ -94,8 +101,8 @@ class _ParameterizationCatalogAdapter:
     def all_concepts(self):
         return list(self.base.all_concepts())
 
-    def claims_for(self, concept_id: str | None) -> list[dict]:
-        return [dict(claim) for claim in self.base.claims_for(concept_id)]
+    def claims_for(self, concept_id: str | None):
+        return list(self.base.claims_for(concept_id))
 
     def conflicts(self):
         return list(self.base.conflicts())
@@ -157,19 +164,20 @@ def _claim_node_for_synthetic(
 def _synthetic_row(
     synthetic: SyntheticClaim,
     *,
-    existing_row: dict | None,
-) -> dict:
+    existing_row: ClaimRowInput | None,
+) -> ClaimRow:
     row: dict[str, Any] = (
-        dict(existing_row)
+        _claim_mapping(existing_row)
         if existing_row is not None
-        else {"id": synthetic.id}
+        else {"id": synthetic.id, "artifact_id": synthetic.id}
     )
     row["id"] = synthetic.id
+    row["artifact_id"] = row.get("artifact_id") or synthetic.id
     row["concept_id"] = synthetic.concept_id
     row["type"] = synthetic.type
     row["value"] = synthetic.value
     row["conditions_cel"] = json.dumps(synthetic.conditions) if synthetic.conditions else None
-    return row
+    return ClaimRow.from_mapping(row)
 
 
 class _GraphOverlayStore:
@@ -177,14 +185,14 @@ class _GraphOverlayStore:
         self,
         base_store: ArtifactStore,
         *,
-        claims: list[dict],
+        claims: list[ClaimRowInput],
         stances: list[dict],
         conflicts: list[dict],
         compiled: CompiledWorldGraph | None,
     ) -> None:
         self._base = base_store
-        self._claims = [dict(claim) for claim in claims]
-        self._claims_by_id = {claim["id"]: dict(claim) for claim in self._claims}
+        self._claims = [coerce_claim_row(claim) for claim in claims]
+        self._claims_by_id = {str(claim.claim_id): claim for claim in self._claims}
         self._stances = [dict(stance) for stance in stances]
         self._conflicts = [dict(conflict) for conflict in conflicts]
         self._compiled = compiled
@@ -205,10 +213,9 @@ class _GraphOverlayStore:
                 return concept
         return None
 
-    def get_claim(self, claim_id: str) -> dict | None:
+    def get_claim(self, claim_id: str) -> ClaimRow | None:
         resolved_claim_id = self.resolve_claim(claim_id) or claim_id
-        claim = self._claims_by_id.get(resolved_claim_id)
-        return None if claim is None else dict(claim)
+        return self._claims_by_id.get(resolved_claim_id)
 
     def resolve_claim(self, name: str) -> str | None:
         resolver = getattr(self._base, "resolve_claim", None)
@@ -231,19 +238,20 @@ class _GraphOverlayStore:
     def all_concepts(self):
         return list(self._base.all_concepts())
 
-    def claims_for(self, concept_id: str | None) -> list[dict]:
+    def claims_for(self, concept_id: str | None) -> list[ClaimRow]:
         if concept_id is None:
-            return [dict(claim) for claim in self._claims]
+            return list(self._claims)
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
         return [
-            dict(claim)
+            claim
             for claim in self._claims
-            if claim.get("concept_id") == resolved_concept_id or claim.get("target_concept") == resolved_concept_id
+            if str(claim.concept_id or "") == resolved_concept_id
+            or str(claim.target_concept or "") == resolved_concept_id
         ]
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRow]:
         return {
-            claim_id: dict(claim)
+            claim_id: claim
             for claim_id, claim in self._claims_by_id.items()
             if claim_id in claim_ids
         }
@@ -393,11 +401,11 @@ class HypotheticalWorld(BeliefSpace):
             self._graph_delta = None
             self._compiled_graph = None
 
-        base_claim_rows = [dict(claim) for claim in base._store.claims_for(None)]
+        base_claim_rows = [_claim_mapping(claim) for claim in base._store.claims_for(None)]
         base_claim_rows_by_id = {claim["id"]: dict(claim) for claim in base_claim_rows}
         synthetics_by_id = {synthetic.id: synthetic for synthetic in self._synthetics}
 
-        overlay_claims: list[dict] = []
+        overlay_claims: list[ClaimRow] = []
         for claim in base_claim_rows:
             claim_id = claim.get("id")
             if not isinstance(claim_id, str):
@@ -410,9 +418,9 @@ class HypotheticalWorld(BeliefSpace):
                     _synthetic_row(replacement, existing_row=claim)
                 )
             else:
-                overlay_claims.append(dict(claim))
+                overlay_claims.append(coerce_claim_row(claim))
 
-        existing_ids = {claim["id"] for claim in overlay_claims if claim.get("id") is not None}
+        existing_ids = {str(claim.claim_id) for claim in overlay_claims}
         for synthetic in self._synthetics:
             if synthetic.id in existing_ids:
                 continue
@@ -424,9 +432,8 @@ class HypotheticalWorld(BeliefSpace):
             )
 
         overlay_claim_ids = {
-            str(claim["id"])
+            str(claim.claim_id)
             for claim in overlay_claims
-            if claim.get("id") is not None
         }
         overlay_stances = (
             [
@@ -450,7 +457,10 @@ class HypotheticalWorld(BeliefSpace):
             _claim_pair(conflict["claim_a_id"], conflict["claim_b_id"])
             for conflict in overlay_conflicts
         }
-        for conflict in _recomputed_conflicts(base._store, overlay_claims):
+        for conflict in _recomputed_conflicts(
+            base._store,
+            [claim.to_dict() for claim in overlay_claims],
+        ):
             pair = _claim_pair(conflict["claim_a_id"], conflict["claim_b_id"])
             if pair in seen_conflict_pairs:
                 continue
@@ -491,7 +501,7 @@ class HypotheticalWorld(BeliefSpace):
         )
 
     def _synthetic_to_dict(self, sc: SyntheticClaim) -> dict:
-        return _synthetic_row(sc, existing_row=self._base._store.get_claim(sc.id))
+        return _synthetic_row(sc, existing_row=self._base._store.get_claim(sc.id)).to_dict()
 
     def active_claims(self, concept_id: str | None = None) -> list[dict]:
         return self._overlay.active_claims(concept_id)
@@ -540,8 +550,8 @@ class HypotheticalWorld(BeliefSpace):
             affected.add(synthetic.concept_id)
         for claim_id in self._removed_ids:
             claim = self._base._store.get_claim(claim_id)
-            if claim and claim.get("concept_id"):
-                affected.add(claim["concept_id"])
+            if claim and coerce_claim_row(claim).concept_id is not None:
+                affected.add(str(coerce_claim_row(claim).concept_id))
 
         result: dict[str, tuple[ValueResult, ValueResult]] = {}
         for concept_id in affected:
