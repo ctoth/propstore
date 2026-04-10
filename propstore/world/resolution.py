@@ -19,8 +19,6 @@ from propstore.cel_checker import (
 )
 from propstore.core.active_claims import (
     ActiveClaim,
-    ActiveClaimInput,
-    coerce_active_claim,
     coerce_active_claims,
 )
 from propstore.core.claim_values import ClaimProvenance
@@ -64,20 +62,12 @@ class _ResolutionClaimView:
     confidence: float | None
 
 
-def _claim_id(claim: ActiveClaim | Mapping[str, object]) -> ClaimId:
-    if isinstance(claim, ActiveClaim):
-        return claim.claim_id
-    claim_id = claim.get("id")
-    if not isinstance(claim_id, str) or not claim_id:
-        raise KeyError("resolution requires each claim to have a non-empty string id")
-    return to_claim_id(claim_id)
+def _claim_id(claim: ActiveClaim) -> ClaimId:
+    return claim.claim_id
 
 
-def _claim_value(claim: ActiveClaim | Mapping[str, object]) -> float | str | None:
-    if isinstance(claim, ActiveClaim):
-        value = claim.value
-    else:
-        value = claim.get("value")
+def _claim_value(claim: ActiveClaim) -> float | str | None:
+    value = claim.value
     if isinstance(value, bool):
         return None
     if isinstance(value, int | float):
@@ -87,11 +77,8 @@ def _claim_value(claim: ActiveClaim | Mapping[str, object]) -> float | str | Non
     return None
 
 
-def _claim_optional_int(claim: ActiveClaim | Mapping[str, object], key: str) -> int | None:
-    if isinstance(claim, ActiveClaim):
-        value = getattr(claim, key, claim.attributes.get(key))
-    else:
-        value = claim.get(key)
+def _claim_optional_int(claim: ActiveClaim, key: str) -> int | None:
+    value = getattr(claim, key, claim.attributes.get(key))
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -99,11 +86,8 @@ def _claim_optional_int(claim: ActiveClaim | Mapping[str, object], key: str) -> 
     return None
 
 
-def _claim_optional_float(claim: ActiveClaim | Mapping[str, object], key: str) -> float | None:
-    if isinstance(claim, ActiveClaim):
-        value = getattr(claim, key, claim.attributes.get(key))
-    else:
-        value = claim.get(key)
+def _claim_optional_float(claim: ActiveClaim, key: str) -> float | None:
+    value = getattr(claim, key, claim.attributes.get(key))
     if isinstance(value, bool):
         return None
     if isinstance(value, int | float):
@@ -111,42 +95,15 @@ def _claim_optional_float(claim: ActiveClaim | Mapping[str, object], key: str) -
     return None
 
 
-def _claim_provenance_json(claim: ActiveClaim | Mapping[str, object]) -> str | Mapping[str, object] | None:
-    if isinstance(claim, ActiveClaim):
-        return None if claim.provenance is None else claim.provenance.to_dict()
-    provenance = claim.get("provenance_json")
-    if isinstance(provenance, str | Mapping):
-        return provenance
-    return None
+def _claim_provenance_json(claim: ActiveClaim) -> str | Mapping[str, object] | None:
+    return None if claim.provenance is None else claim.provenance.to_dict()
 
 
-def _claim_provenance(claim: ActiveClaimInput | Mapping[str, object]) -> ClaimProvenance | None:
-    if isinstance(claim, ActiveClaim):
-        return claim.provenance
-    if isinstance(claim, Mapping):
-        return ClaimProvenance.from_components(
-            paper=claim.get("source_paper") if isinstance(claim.get("source_paper"), str) else None,
-            page=claim.get("provenance_page") if isinstance(claim.get("provenance_page"), int) else None,
-            provenance_json=_claim_provenance_json(claim),
-        )
-    return coerce_active_claim(claim).provenance
+def _claim_provenance(claim: ActiveClaim) -> ClaimProvenance | None:
+    return claim.provenance
 
 
-def _resolution_claim_view(claim: ActiveClaimInput | Mapping[str, object]) -> _ResolutionClaimView:
-    if isinstance(claim, ActiveClaim):
-        return _ResolutionClaimView(
-            id=claim.claim_id,
-            value=_claim_value(claim),
-            provenance=claim.provenance,
-            sample_size=claim.sample_size,
-            opinion_belief=_claim_optional_float(claim, "opinion_belief"),
-            opinion_disbelief=_claim_optional_float(claim, "opinion_disbelief"),
-            opinion_uncertainty=_claim_optional_float(claim, "opinion_uncertainty"),
-            opinion_base_rate=_claim_optional_float(claim, "opinion_base_rate"),
-            confidence=_claim_optional_float(claim, "confidence"),
-        )
-    if not isinstance(claim, Mapping):
-        return _resolution_claim_view(coerce_active_claim(claim))
+def _resolution_claim_view(claim: ActiveClaim) -> _ResolutionClaimView:
     return _ResolutionClaimView(
         id=_claim_id(claim),
         value=_claim_value(claim),
@@ -177,7 +134,7 @@ def _display_claim_id(store: ArtifactStore | None, claim_id: str | None) -> str 
 
 
 def _coerce_resolution_claim(
-    claim: _ResolutionClaimView | ActiveClaimInput | Mapping[str, object],
+    claim: _ResolutionClaimView | ActiveClaim,
 ) -> _ResolutionClaimView:
     if isinstance(claim, _ResolutionClaimView):
         return claim
@@ -185,7 +142,7 @@ def _coerce_resolution_claim(
 
 
 def _resolve_recency(
-    claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    claims: Sequence[_ResolutionClaimView | ActiveClaim],
 ) -> tuple[str | None, str | None]:
     """Pick the claim with the most recent date in provenance_json.
 
@@ -217,7 +174,7 @@ def _resolve_recency(
 
 
 def _resolve_sample_size(
-    claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    claims: Sequence[_ResolutionClaimView | ActiveClaim],
 ) -> tuple[str | None, str | None]:
     """Pick the claim with the largest sample_size.
 
@@ -436,11 +393,8 @@ def _build_global_ic_merge_problem(
     )
 
 
-def _claim_concept_id(claim: ActiveClaim | Mapping[str, object]) -> str:
-    if isinstance(claim, ActiveClaim):
-        concept_id = None if claim.concept_id is None else str(claim.concept_id)
-    else:
-        concept_id = claim.get("concept_id") if isinstance(claim, Mapping) else None
+def _claim_concept_id(claim: ActiveClaim) -> str:
+    concept_id = None if claim.concept_id is None else str(claim.concept_id)
     if not isinstance(concept_id, str) or not concept_id:
         raise KeyError("resolution requires each claim to have a non-empty string concept_id")
     return concept_id
@@ -500,8 +454,8 @@ def _resolve_ic_merge(
 
 
 def _resolve_claim_graph_argumentation(
-    target_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
-    active_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
+    active_claims: Sequence[_ResolutionClaimView | ActiveClaim],
     world: ArtifactStore,
     *,
     semantics: str = "grounded",
@@ -564,7 +518,7 @@ def _resolve_claim_graph_argumentation(
 
 
 def _resolve_structured_argumentation(
-    target_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
     active_claim_rows: list[ActiveClaim],
     view: BeliefSpace,
     world: ArtifactStore,
@@ -644,7 +598,7 @@ def _resolve_structured_argumentation(
 
 
 def _resolve_aspic_argumentation(
-    target_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
     active_claim_rows: list[ActiveClaim],
     view: BeliefSpace,
     world: ArtifactStore,
@@ -666,8 +620,8 @@ def _resolve_aspic_argumentation(
 
 
 def _resolve_praf(
-    target_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
-    active_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
+    active_claims: Sequence[_ResolutionClaimView | ActiveClaim],
     world: ArtifactStore,
     *,
     semantics: str = "grounded",
@@ -805,7 +759,7 @@ def _resolve_praf(
 
 
 def _resolve_atms_support(
-    target_claims: Sequence[_ResolutionClaimView | Mapping[str, object]],
+    target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
     view: BeliefSpace,
 ) -> tuple[str | None, str | None]:
     """Resolve by ATMS-supported status over the active belief space."""

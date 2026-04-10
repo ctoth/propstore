@@ -1437,11 +1437,12 @@ class TestConflictResolution:
 
     def test_resolve_recency_tie_returns_conflicted(self, world):
         """Two claims with identical dates → conflicted, not arbitrary winner."""
+        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_recency
 
         claims = [
-            {"id": "a", "provenance_json": '{"date": "2025-01-01"}'},
-            {"id": "b", "provenance_json": '{"date": "2025-01-01"}'},
+            ActiveClaim.from_mapping({"id": "a", "provenance_json": '{"date": "2025-01-01"}'}),
+            ActiveClaim.from_mapping({"id": "b", "provenance_json": '{"date": "2025-01-01"}'}),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id is None, (
@@ -1451,23 +1452,25 @@ class TestConflictResolution:
 
     def test_resolve_recency_tie_unique_best_still_wins(self, world):
         """One claim has strictly newest date → still resolves to winner."""
+        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_recency
 
         claims = [
-            {"id": "a", "provenance_json": '{"date": "2025-01-01"}'},
-            {"id": "b", "provenance_json": '{"date": "2024-06-01"}'},
-            {"id": "c", "provenance_json": '{"date": "2024-06-01"}'},
+            ActiveClaim.from_mapping({"id": "a", "provenance_json": '{"date": "2025-01-01"}'}),
+            ActiveClaim.from_mapping({"id": "b", "provenance_json": '{"date": "2024-06-01"}'}),
+            ActiveClaim.from_mapping({"id": "c", "provenance_json": '{"date": "2024-06-01"}'}),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id == "a"
 
     def test_resolve_sample_size_tie_returns_conflicted(self, world):
         """Two claims with identical sample_size → conflicted, not arbitrary winner."""
+        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_sample_size
 
         claims = [
-            {"id": "a", "sample_size": 50},
-            {"id": "b", "sample_size": 50},
+            ActiveClaim.from_mapping({"id": "a", "sample_size": 50}),
+            ActiveClaim.from_mapping({"id": "b", "sample_size": 50}),
         ]
         winner_id, reason = _resolve_sample_size(claims)
         assert winner_id is None, (
@@ -1477,25 +1480,29 @@ class TestConflictResolution:
 
     def test_resolve_sample_size_tie_unique_best_still_wins(self, world):
         """One claim has strictly largest sample_size → still resolves to winner."""
+        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_sample_size
 
         claims = [
-            {"id": "a", "sample_size": 100},
-            {"id": "b", "sample_size": 50},
-            {"id": "c", "sample_size": 50},
+            ActiveClaim.from_mapping({"id": "a", "sample_size": 100}),
+            ActiveClaim.from_mapping({"id": "b", "sample_size": 50}),
+            ActiveClaim.from_mapping({"id": "c", "sample_size": 50}),
         ]
         winner_id, reason = _resolve_sample_size(claims)
         assert winner_id == "a"
 
     def test_resolve_recency_tie_through_resolve_api(self, world):
         """Integration: tied dates through resolve() → conflicted status."""
+        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_recency
 
         tied_claims = [
-            {"id": "claim1", "value": 200.0,
-             "provenance_json": '{"date": "2025-01-01"}'},
-            {"id": "claim2", "value": 350.0,
-             "provenance_json": '{"date": "2025-01-01"}'},
+            ActiveClaim.from_mapping(
+                {"id": "claim1", "value": 200.0, "provenance_json": '{"date": "2025-01-01"}'}
+            ),
+            ActiveClaim.from_mapping(
+                {"id": "claim2", "value": 350.0, "provenance_json": '{"date": "2025-01-01"}'}
+            ),
         ]
         # Test the helper directly — resolve() returns "conflicted" when
         # the helper returns (None, reason)
@@ -1507,11 +1514,12 @@ class TestConflictResolution:
 
     def test_resolve_sample_size_tie_through_resolve_api(self, world):
         """Integration: tied sample_size through resolve() → conflicted status."""
+        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_sample_size
 
         tied_claims = [
-            {"id": "claim1", "value": 200.0, "sample_size": 50},
-            {"id": "claim2", "value": 350.0, "sample_size": 50},
+            ActiveClaim.from_mapping({"id": "claim1", "value": 200.0, "sample_size": 50}),
+            ActiveClaim.from_mapping({"id": "claim2", "value": 350.0, "sample_size": 50}),
         ]
         winner_id, reason = _resolve_sample_size(tied_claims)
         assert winner_id is None
@@ -2322,12 +2330,13 @@ class TestFloatEqualityBugs:
         from unittest.mock import patch, MagicMock
 
         from propstore.praf import PrAFResult
+        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_praf
 
         # Two target claims competing for the same concept
         target_claims = [
-            {"id": "claim_x", "concept_id": "concept2", "value": 800.0},
-            {"id": "claim_y", "concept_id": "concept2", "value": 810.0},
+            ActiveClaim.from_mapping({"id": "claim_x", "concept_id": "concept2", "value": 800.0}),
+            ActiveClaim.from_mapping({"id": "claim_y", "concept_id": "concept2", "value": 810.0}),
         ]
         active_claims = target_claims[:]
 
