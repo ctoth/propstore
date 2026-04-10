@@ -119,14 +119,14 @@ VALID_RELATIONSHIP_TYPES = frozenset([
 
 def _load_all_claim_ids(claims_dir: KnowledgePath | None) -> set[str]:
     """Load all claim IDs from claim YAML files in the given directory."""
+    from propstore.validate_claims import load_claim_files
+
     claim_ids: set[str] = set()
-    for claim_file in load_yaml_entries(claims_dir):
-        data = claim_file.data
-        if isinstance(data.get("claims"), list):
-            for claim in data["claims"]:
-                cid = claim.get("artifact_id")
-                if cid:
-                    claim_ids.add(cid)
+    for claim_file in load_claim_files(claims_dir):
+        for claim in claim_file.claims:
+            cid = claim.artifact_id
+            if isinstance(cid, str) and cid:
+                claim_ids.add(cid)
     return claim_ids
 
 

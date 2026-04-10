@@ -9,7 +9,6 @@ Exits nonzero on any error.
 
 from __future__ import annotations
 
-import copy
 import json
 import re
 from dataclasses import dataclass
@@ -21,9 +20,15 @@ if TYPE_CHECKING:
     from propstore.knowledge_path import KnowledgePath
 
 import jsonschema
-import yaml
 import bridgman
 
+from propstore.claim_documents import (
+    ClaimDocument,
+    ClaimFileInput,
+    ClaimsFileDocument,
+    LoadedClaimFile,
+    coerce_loaded_claim_files,
+)
 from propstore.compiler.context import (
     CompilationContext,
     build_compilation_context_from_paths as build_claim_compilation_context_from_paths,
@@ -32,6 +37,7 @@ from propstore.compiler.context import (
     compilation_context_from_concept_registry,
 )
 from propstore.compiler.passes import compile_claim_files
+from propstore.document_schema import load_document
 from propstore.resources import load_resource_json
 from propstore.identity import (
     CLAIM_ARTIFACT_ID_RE,
@@ -65,6 +71,7 @@ from propstore.form_utils import (
     load_form_path,
 )
 from propstore.stances import VALID_STANCE_TYPES
+from propstore.loaded import LoadedEntry
 
 
 _claim_schema_cache: dict | None = None
@@ -111,13 +118,22 @@ def _maybe_schema_float(value: object) -> object:
         return value
 
 
-from propstore.loaded import LoadedEntry
-
-
-
-def load_claim_files(claims_dir: KnowledgePath | None) -> list[LoadedEntry]:
+def load_claim_files(claims_dir: KnowledgePath | None) -> list[LoadedClaimFile]:
     """Load all claim YAML files from a claims subtree."""
-    return load_yaml_entries(claims_dir)
+    if claims_dir is None or not claims_dir.is_dir():
+        return []
+    knowledge_root = claims_dir.parent if claims_dir.name else claims_dir
+    return [
+        LoadedClaimFile.from_loaded_document(
+            load_document(
+                entry,
+                ClaimsFileDocument,
+                knowledge_root=knowledge_root,
+            )
+        )
+        for entry in claims_dir.iterdir()
+        if entry.is_file() and entry.suffix == ".yaml"
+    ]
 
 
 
@@ -206,18 +222,17 @@ def validate_single_claim_file(
     Loads the file, wraps it in a LoadedEntry, and runs
     validate_claims on just that one file.
     """
-    with open(filepath, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    loaded = LoadedEntry(
-        filename=filepath.stem,
-        source_path=coerce_knowledge_path(filepath),
-        data=data if data else {},
+    loaded = LoadedClaimFile.from_loaded_document(
+        load_document(
+            filepath,
+            ClaimsFileDocument,
+        )
     )
     return validate_claims([loaded], concept_registry)
 
 
 def validate_claims(
-    claim_files: list[LoadedEntry],
+    claim_files: list[ClaimFileInput],
     concept_registry: dict[str, dict] | CompilationContext,
     context_ids: set[str] | None = None,
 ) -> ValidationResult:
@@ -228,17 +243,18 @@ def validate_claims(
         concept_registry: legacy concept registry or compilation context
         context_ids: set of valid context IDs (if None, skip context validation)
     """
+    typed_claim_files = coerce_loaded_claim_files(claim_files)
     context = (
         concept_registry
         if isinstance(concept_registry, CompilationContext)
         else compilation_context_from_concept_registry(
             concept_registry,
-            claim_files=claim_files,
+            claim_files=typed_claim_files,
             context_ids=context_ids,
         )
     )
     bundle = compile_claim_files(
-        claim_files,
+        typed_claim_files,
         context,
         context_ids=context_ids,
     )
@@ -647,8 +663,25 @@ def _validate_algorithm(
             tree = None
 
     variables = claim.get("variables")
-    if not variables or not isinstance(variables, list) or len(variables) == 0:
+    if not variables:
         result.errors.append(f"{filename}: algorithm claim '{cid}' missing 'variables' (at least one required)")
+    elif isinstance(variables, dict):
+        declared_names: set[str] = set()
+        for var_name, var_concept in variables.items():
+            if isinstance(var_concept, str) and var_concept not in concept_registry and concept_registry:
+                result.errors.append(
+                    f"{filename}: algorithm claim '{cid}' variable references "
+                    f"nonexistent concept '{var_concept}'")
+            if isinstance(var_name, str) and var_name:
+                declared_names.add(var_name)
+
+        if body and tree is not None:
+            ast_names = extract_names(tree)
+            unbound = ast_names - KNOWN_BUILTINS - declared_names
+            for name in sorted(unbound):
+                result.warnings.append(
+                    f"{filename}: algorithm claim '{cid}' body references "
+                    f"name '{name}' not declared in variables")
     elif isinstance(variables, list):
         declared_names: set[str] = set()
         for var in variables:

@@ -42,13 +42,6 @@
                         "null"
                     ]
                 },
-                "context": {
-                    "description": "Optional context ID scoping this claim to a named assumption context.\n",
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
                 "equations": {
                     "description": "List of equation strings that make up this model. Required for model claims.\n",
                     "items": {

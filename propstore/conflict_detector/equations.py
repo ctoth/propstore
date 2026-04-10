@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from propstore.claim_documents import LoadedClaimFile
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 from propstore.equation_comparison import canonicalize_equation
-from propstore.loaded import LoadedEntry
 
 from .collectors import _collect_equation_claims
 from .context import _append_context_classified_record, _claim_context
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 def detect_equation_conflicts(
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
     cel_registry: dict[str, ConceptInfo],
     *,
     context_hierarchy: ContextHierarchy | None = None,

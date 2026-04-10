@@ -47,6 +47,20 @@ def decode_document_bytes(
         raise DocumentSchemaError(source, str(exc)) from exc
 
 
+def convert_document_value(
+    payload: object,
+    document_type: type[TDocument],
+    *,
+    source: str,
+) -> TDocument:
+    """Validate already-loaded Python data against a strict document schema."""
+
+    try:
+        return msgspec.convert(payload, type=document_type, strict=True)
+    except (msgspec.ValidationError, TypeError) as exc:
+        raise DocumentSchemaError(source, str(exc)) from exc
+
+
 def decode_document_path(
     path: KnowledgePath | Path,
     document_type: type[TDocument],

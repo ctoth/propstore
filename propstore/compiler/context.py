@@ -7,6 +7,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Mapping
 
+from propstore.claim_documents import LoadedClaimFile
 from propstore.cel_checker import ConceptInfo, build_cel_registry_from_concepts
 from propstore.core.concepts import (
     ConceptRecord,
@@ -15,9 +16,7 @@ from propstore.core.concepts import (
     parse_concept_record,
 )
 from propstore.form_utils import FormDefinition, load_all_forms_path
-from propstore.identity import format_logical_id
 from propstore.knowledge_path import KnowledgePath, coerce_knowledge_path
-from propstore.loaded import LoadedEntry
 from propstore.validate import load_concepts
 
 if TYPE_CHECKING:
@@ -56,28 +55,18 @@ def _finalize_lookup(lookup: dict[str, list[str]]) -> Mapping[str, tuple[str, ..
     return MappingProxyType({key: tuple(values) for key, values in lookup.items()})
 
 
-def _build_claim_lookup(claim_files: list[LoadedEntry]) -> Mapping[str, tuple[str, ...]]:
+def _build_claim_lookup(claim_files: list[LoadedClaimFile]) -> Mapping[str, tuple[str, ...]]:
     from propstore.identity import normalize_identity_namespace, normalize_logical_value
 
     lookup: dict[str, list[str]] = {}
     for claim_file in claim_files:
-        source = claim_file.data.get("source")
-        source_paper = (
-            source.get("paper")
-            if isinstance(source, dict) and isinstance(source.get("paper"), str)
-            else claim_file.filename
-        )
-        claims = claim_file.data.get("claims")
-        if not isinstance(claims, list):
-            continue
-        for claim in claims:
-            if not isinstance(claim, dict):
-                continue
-            artifact_id = claim.get("artifact_id")
+        source_paper = claim_file.source_paper or claim_file.filename
+        for claim in claim_file.claims:
+            artifact_id = claim.artifact_id
             if not isinstance(artifact_id, str) or not artifact_id:
                 continue
             _extend_lookup(lookup, artifact_id, artifact_id)
-            raw_id = claim.get("id")
+            raw_id = claim.id
             if isinstance(raw_id, str) and raw_id:
                 _extend_lookup(lookup, raw_id, artifact_id)
                 _extend_lookup(
@@ -85,18 +74,9 @@ def _build_claim_lookup(claim_files: list[LoadedEntry]) -> Mapping[str, tuple[st
                     f"{normalize_identity_namespace(str(source_paper))}:{normalize_logical_value(raw_id)}",
                     artifact_id,
                 )
-            logical_ids = claim.get("logical_ids")
-            if not isinstance(logical_ids, list):
-                continue
-            for entry in logical_ids:
-                if not isinstance(entry, dict):
-                    continue
-                formatted = format_logical_id(entry)
-                if formatted:
-                    _extend_lookup(lookup, formatted, artifact_id)
-                value = entry.get("value")
-                if isinstance(value, str) and value:
-                    _extend_lookup(lookup, value, artifact_id)
+            for logical_id in claim.logical_ids:
+                _extend_lookup(lookup, logical_id.formatted, artifact_id)
+                _extend_lookup(lookup, logical_id.value, artifact_id)
     return _finalize_lookup(lookup)
 
 
@@ -104,7 +84,7 @@ def _build_context_from_concepts(
     concepts: list[LoadedConcept],
     form_registry: dict[str, FormDefinition],
     *,
-    claim_files: list[LoadedEntry] | None,
+    claim_files: list[LoadedClaimFile] | None,
     context_ids: set[str] | None,
 ) -> CompilationContext:
     concepts_by_id: dict[str, ConceptRecord] = {}
@@ -136,7 +116,7 @@ def build_compilation_context_from_loaded(
     concepts: list[LoadedConcept],
     *,
     forms_dir: Path | KnowledgePath | None = None,
-    claim_files: list[LoadedEntry] | None = None,
+    claim_files: list[LoadedClaimFile] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     form_registry = (
@@ -156,7 +136,7 @@ def build_compilation_context_from_paths(
     concepts_dir: Path | KnowledgePath,
     forms_dir: Path | KnowledgePath,
     *,
-    claim_files: list[LoadedEntry] | None = None,
+    claim_files: list[LoadedClaimFile] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     concepts_root = coerce_knowledge_path(concepts_dir)
@@ -172,7 +152,7 @@ def build_compilation_context_from_paths(
 def build_compilation_context_from_repo(
     repo: Repository | None,
     *,
-    claim_files: list[LoadedEntry] | None = None,
+    claim_files: list[LoadedClaimFile] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     if repo is None:
@@ -192,7 +172,7 @@ def build_compilation_context_from_repo(
 def compilation_context_from_concept_registry(
     concept_registry: dict[str, dict[str, Any]],
     *,
-    claim_files: list[LoadedEntry] | None = None,
+    claim_files: list[LoadedClaimFile] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     """Adapt the old lookup-keyed concept registry into the canonical context."""

@@ -5,12 +5,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
+from propstore.claim_documents import LoadedClaimFile
 from propstore.cel_checker import (
     build_cel_registry,
     synthetic_category_concept,
     with_synthetic_concepts,
 )
-from propstore.loaded import LoadedEntry
 
 from .algorithms import detect_algorithm_conflicts
 from .equations import detect_equation_conflicts
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 def detect_conflicts(
-    claim_files: Sequence[LoadedEntry],
+    claim_files: Sequence[LoadedClaimFile],
     concept_registry: dict[str, dict],
     context_hierarchy: ContextHierarchy | None = None,
 ) -> list[ConflictRecord]:
@@ -33,7 +33,7 @@ def detect_conflicts(
     # Inject a synthetic 'source' category so Z3 treats source conditions
     # as enum comparisons and recognizes different papers as disjoint.
     source_names = sorted({
-        (cf.data.get("source") or {}).get("paper") or cf.filename
+        cf.source_paper or cf.filename
         for cf in claim_files
     })
     synthetic_concepts = [
