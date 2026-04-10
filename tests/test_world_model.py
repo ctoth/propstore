@@ -16,6 +16,8 @@ import pytest
 import yaml
 
 from propstore.core.row_types import (
+    ConflictRowInput,
+    StanceRowInput,
     coerce_claim_row,
     coerce_concept_row,
     coerce_conflict_row,
@@ -72,6 +74,16 @@ def _runtime_claim_ids(claims) -> list[str]:
 
 def _runtime_claim_id_set(claims) -> set[str]:
     return set(_runtime_claim_ids(claims))
+
+
+def _conflict_pair(conflict) -> frozenset[str]:
+    row = coerce_conflict_row(conflict)
+    return frozenset((str(row.claim_a_id), str(row.claim_b_id)))
+
+
+def _conflict_concept_id(conflict) -> str | None:
+    row = coerce_conflict_row(conflict)
+    return None if row.concept_id is None else str(row.concept_id)
 
 
 def _normalize_claim_concept_refs(payload: dict) -> dict:
@@ -1206,8 +1218,8 @@ class TestHypotheticalWorld:
         # Verify base has conflicts involving claim2
         base_conflicts = bound.conflicts(CONCEPT1_ID)
         assert any(
-            c["claim_a_id"] == _claim_artifact("test_paper_alpha", "claim2")
-            or c["claim_b_id"] == _claim_artifact("test_paper_alpha", "claim2")
+            str(c.claim_a_id) == _claim_artifact("test_paper_alpha", "claim2")
+            or str(c.claim_b_id) == _claim_artifact("test_paper_alpha", "claim2")
             for c in base_conflicts
         ), "precondition: base must have conflicts involving claim2"
 
@@ -1216,8 +1228,8 @@ class TestHypotheticalWorld:
         hypo_conflicts = hypo.conflicts(CONCEPT1_ID)
         stale = [
             c for c in hypo_conflicts
-            if c["claim_a_id"] == _claim_artifact("test_paper_alpha", "claim2")
-            or c["claim_b_id"] == _claim_artifact("test_paper_alpha", "claim2")
+            if str(c.claim_a_id) == _claim_artifact("test_paper_alpha", "claim2")
+            or str(c.claim_b_id) == _claim_artifact("test_paper_alpha", "claim2")
         ]
         assert stale == [], (
             f"conflicts() returned stale entries referencing removed claim2: {stale}"
@@ -1633,7 +1645,7 @@ class TestHypothesisProperties:
             for conflict in (coerce_conflict_row(row) for row in world.conflicts())
         }
         bound_conflict_pairs = {
-            (c["claim_a_id"], c["claim_b_id"]) for c in world.bind().conflicts()
+            (c.claim_a_id, c.claim_b_id) for c in world.bind().conflicts()
         }
         assert bound_conflict_pairs == world_conflict_pairs
 
@@ -1641,9 +1653,9 @@ class TestHypothesisProperties:
         for binding in [{"task": "speech"}, {"task": "singing"}, {"task": "whisper"}]:
             bound = world.bind(**binding)
             for conflict in bound.conflicts():
-                assert "warning_class" in conflict
-                assert "claim_a_id" in conflict
-                assert "claim_b_id" in conflict
+                assert conflict.warning_class is not None
+                assert str(conflict.claim_a_id)
+                assert str(conflict.claim_b_id)
 
     def test_determinism(self, world):
         r1 = world.bind(task="speech").active_claims()
@@ -1862,15 +1874,15 @@ class TestTransitiveConsistency:
         hypo = HypotheticalWorld(bound, add=[sc])
         conflicts = hypo.recompute_conflicts()
         # concept2 now has claim4(800), claim6(800), synth_conflict(999) → conflict
-        concept2_conflicts = [c for c in conflicts if c["concept_id"] == CONCEPT2_ID]
+        concept2_conflicts = [c for c in conflicts if _conflict_concept_id(c) == CONCEPT2_ID]
         assert len(concept2_conflicts) >= 1
         # Check schema
         for c in concept2_conflicts:
-            assert "claim_a_id" in c
-            assert "claim_b_id" in c
-            assert c["warning_class"] == "CONFLICT"
-            assert "value_a" in c
-            assert "value_b" in c
+            assert str(c.claim_a_id)
+            assert str(c.claim_b_id)
+            assert c.warning_class == "CONFLICT"
+            assert "value_a" in c.attributes
+            assert "value_b" in c.attributes
 
     def test_hypothetical_conflicts_include_recomputed_synthetic_conflicts(self, world):
         bound = world.bind(task="speech")
@@ -1883,14 +1895,8 @@ class TestTransitiveConsistency:
         conflicts = hypo.conflicts("concept2")
 
         assert any(
-            {
-                conflict["claim_a_id"],
-                conflict["claim_b_id"],
-            } == {_claim_artifact("test_paper_alpha", "claim4"), "synth_conflict"}
-            or {
-                conflict["claim_a_id"],
-                conflict["claim_b_id"],
-            } == {_claim_artifact("test_paper_beta", "claim6"), "synth_conflict"}
+            _conflict_pair(conflict) == frozenset({_claim_artifact("test_paper_alpha", "claim4"), "synth_conflict"})
+            or _conflict_pair(conflict) == frozenset({_claim_artifact("test_paper_beta", "claim6"), "synth_conflict"})
             for conflict in conflicts
         )
 
@@ -1900,18 +1906,18 @@ class TestTransitiveConsistency:
         monkeypatch.setattr(
             "propstore.world.hypothetical._recomputed_conflicts",
             lambda store, claims: [
-                {
+                coerce_conflict_row({
                     "concept_id": "concept1",
                     "claim_a_id": "claim2",
                     "claim_b_id": "claim1",
                     "warning_class": "CONFLICT",
-                }
+                })
             ],
         )
 
         conflicts = HypotheticalWorld(bound).conflicts("concept1")
         pairs = {
-            frozenset((conflict["claim_a_id"], conflict["claim_b_id"]))
+            _conflict_pair(conflict)
             for conflict in conflicts
         }
 
@@ -1924,7 +1930,7 @@ class TestTransitiveConsistency:
         # Remove claim2, claim7, claim15 → only claim1 remains → no conflict for concept1
         hypo = HypotheticalWorld(bound, remove=["claim2", "claim7", "claim15"])
         conflicts = hypo.recompute_conflicts()
-        concept1_conflicts = [c for c in conflicts if c["concept_id"] == "concept1"]
+        concept1_conflicts = [c for c in conflicts if _conflict_concept_id(c) == "concept1"]
         assert len(concept1_conflicts) == 0
 
     def test_hypothetical_recompute_empty(self, world):
@@ -1933,7 +1939,7 @@ class TestTransitiveConsistency:
         hypo = HypotheticalWorld(bound, remove=[], add=[])
         conflicts = hypo.recompute_conflicts()
         # Under singing, concept1 has only claim3(180) → determined, no conflicts
-        concept1_conflicts = [c for c in conflicts if c["concept_id"] == "concept1"]
+        concept1_conflicts = [c for c in conflicts if _conflict_concept_id(c) == "concept1"]
         assert len(concept1_conflicts) == 0
 
 
@@ -2363,7 +2369,7 @@ class TestFloatEqualityBugs:
         # Filter to only conflicts between our two synthetic claims
         fp_conflicts = [
             c for c in conflicts
-            if {c["claim_a_id"], c["claim_b_id"]} == {"synth_fp_a", "synth_fp_b"}
+            if _conflict_pair(c) == frozenset({"synth_fp_a", "synth_fp_b"})
         ]
 
         # These values differ by ~1e-15 — well within FP noise.
@@ -2544,10 +2550,10 @@ class _Phase6HypotheticalStore:
             if claim["id"] in claim_ids
         }
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+    def stances_between(self, claim_ids: set[str]) -> list[StanceRowInput]:
         return []
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self) -> list[ConflictRowInput]:
         return []
 
     def parameterizations_for(self, concept_id: str) -> list[dict]:
@@ -2556,7 +2562,7 @@ class _Phase6HypotheticalStore:
     def condition_solver(self) -> _Phase6ExactMatchSolver:
         return _Phase6ExactMatchSolver()
 
-    def explain(self, claim_id: str) -> list[dict]:
+    def explain(self, claim_id: str) -> list[StanceRowInput]:
         return []
 
     def has_table(self, name: str) -> bool:

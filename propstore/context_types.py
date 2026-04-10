@@ -46,12 +46,12 @@ class LoadedContext:
     record: ContextRecord
 
     @classmethod
-    def from_payload(
+    def from_record(
         cls,
         *,
         filename: str,
-        source_path: KnowledgePath | Path | None,
-        data: Mapping[str, Any] | None,
+        record: ContextRecord,
+        source_path: KnowledgePath | Path | None = None,
         knowledge_root: KnowledgePath | Path | None = None,
     ) -> LoadedContext:
         return cls(
@@ -62,7 +62,23 @@ class LoadedContext:
                 if knowledge_root is None
                 else coerce_knowledge_path(knowledge_root)
             ),
+            record=record,
+        )
+
+    @classmethod
+    def from_payload(
+        cls,
+        *,
+        filename: str,
+        source_path: KnowledgePath | Path | None,
+        data: Mapping[str, Any] | None,
+        knowledge_root: KnowledgePath | Path | None = None,
+    ) -> LoadedContext:
+        return cls.from_record(
+            filename=filename,
             record=parse_context_record(data),
+            source_path=source_path,
+            knowledge_root=knowledge_root,
         )
 
     @classmethod

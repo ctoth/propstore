@@ -6,6 +6,7 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.core.active_claims import ActiveClaim, coerce_active_claim
+from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from propstore.world import BoundWorld
 from propstore.core.labels import (
     EnvironmentKey,
@@ -60,13 +61,13 @@ class _ATMSStore:
     def condition_solver(self):
         return self._solver
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self) -> list[ConflictRowInput]:
         return list(self._conflicts)
 
     def all_concepts(self) -> list[dict]:
         return []
 
-    def explain(self, claim_id: str) -> list[dict]:
+    def explain(self, claim_id: str) -> list[StanceRowInput]:
         return []
 
     def get_claim(self, claim_id: str) -> dict | None:
@@ -168,7 +169,7 @@ class _GraphOnlyATMSRuntime:
             if claim_id in compiled_claims
         ]
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self) -> list[ConflictRowInput]:
         active_ids = set(self.active_graph.active_claim_ids)
         return [
             {

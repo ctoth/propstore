@@ -272,17 +272,17 @@ def build(obj: dict, output: str | None, force: bool) -> None:
         phi_node_count = 0
         real_conflict_count = 0
         for c in conflicts:
-            wc = c["warning_class"]
+            wc = c.warning_class
             if wc in ("PHI_NODE", "CONTEXT_PHI_NODE"):
-                key = f"{wc}: {c['concept_id']}"
-                phi_groups[key].add(c["claim_a_id"])
-                phi_groups[key].add(c["claim_b_id"])
+                key = f"{wc}: {c.concept_id}"
+                phi_groups[key].add(str(c.claim_a_id))
+                phi_groups[key].add(str(c.claim_b_id))
                 phi_node_count += 1
             else:
                 real_conflict_count += 1
                 click.echo(
-                    f"  {wc}: {c['concept_id']} "
-                    f"({c['claim_a_id']} vs {c['claim_b_id']})", err=True)
+                    f"  {wc}: {c.concept_id} "
+                    f"({c.claim_a_id} vs {c.claim_b_id})", err=True)
         for key, claim_ids in phi_groups.items():
             sorted_ids = sorted(claim_ids)
             click.echo(
@@ -513,30 +513,31 @@ def world_explain(obj: dict, claim_id: str) -> None:
         from propstore.core.row_types import coerce_claim_row
 
         claim_input = wm.get_claim(claim_id)
-        claim = None if claim_input is None else coerce_claim_row(claim_input).to_dict()
+        claim = None if claim_input is None else coerce_claim_row(claim_input)
         if claim is None:
             click.echo(f"Unknown claim: {claim_id}", err=True)
             sys.exit(1)
 
     claim_display_id = _world_claim_display_id(claim)
     click.echo(
-        f"{claim_display_id}: {claim['type']} "
-        f"concept={_world_concept_display_id(wm, str(claim.get('concept_id')))} "
-        f"value={claim.get('value')}"
+        f"{claim_display_id}: {claim.claim_type} "
+        f"concept={_world_concept_display_id(wm, str(claim.concept_id))} "
+        f"value={claim.value}"
     )
-    chain = wm.explain(claim.get("id") or claim_id)
+    chain = wm.explain(str(claim.claim_id))
     if not chain:
         click.echo("  (no stances)")
     for s in chain:
-        src = s['claim_id']
+        src = str(s.claim_id)
         src_claim = wm.get_claim(src)
         src_display_id = _world_claim_display_id(src_claim) if src_claim else src
-        tgt_claim = wm.get_claim(s['target_claim_id'])
-        tgt_display_id = _world_claim_display_id(tgt_claim) if tgt_claim else s['target_claim_id']
-        indent = "  " if src == claim.get("id") else "    "
+        target_claim_id = str(s.target_claim_id)
+        tgt_claim = wm.get_claim(target_claim_id)
+        tgt_display_id = _world_claim_display_id(tgt_claim) if tgt_claim else target_claim_id
+        indent = "  " if src == str(claim.claim_id) else "    "
         click.echo(
-            f"{indent}{src_display_id} {s['stance_type']} -> {tgt_display_id}"
-            f" (strength={s.get('strength')}, note={s.get('note')})")
+            f"{indent}{src_display_id} {s.stance_type} -> {tgt_display_id}"
+            f" (strength={s.attributes.get('strength')}, note={s.attributes.get('note')})")
     wm.close()
 
 
@@ -2120,6 +2121,6 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
                 click.echo(f"Found {len(conflicts)} conflict(s):")
                 for c in conflicts:
                     click.echo(
-                        f"  {c['concept_id']}: {c.get('warning_class', '?')} "
-                        f"({c['claim_a_id']} vs {c['claim_b_id']})"
+                        f"  {c.concept_id}: {c.warning_class or '?'} "
+                        f"({c.claim_a_id} vs {c.claim_b_id})"
                     )

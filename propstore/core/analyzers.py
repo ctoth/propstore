@@ -49,7 +49,14 @@ from propstore.core.environment import (
     ConflictStore,
     Environment,
 )
-from propstore.core.row_types import ClaimRowInput, coerce_claim_row
+from propstore.core.row_types import (
+    ClaimRowInput,
+    ConflictRowInput,
+    StanceRowInput,
+    coerce_claim_row,
+    coerce_conflict_row,
+    coerce_stance_row,
+)
 from propstore.world.types import (
     ArgumentationSemantics,
     ReasoningBackend,
@@ -153,38 +160,40 @@ def _claim_node_from_row(row_input: ClaimRowInput | dict) -> ClaimNode:
     )
 
 
-def _relation_edge_from_row(row: dict) -> RelationEdge:
+def _relation_edge_from_row(row: StanceRowInput) -> RelationEdge:
+    stance = coerce_stance_row(row)
     attributes = tuple(
         (str(key), value)
-        for key, value in row.items()
+        for key, value in stance.to_dict().items()
         if key not in {"claim_id", "target_claim_id", "stance_type"}
         and value is not None
     )
     return RelationEdge(
-        source_id=str(row["claim_id"]),
-        target_id=str(row["target_claim_id"]),
-        relation_type=str(row["stance_type"]),
+        source_id=str(stance.claim_id),
+        target_id=str(stance.target_claim_id),
+        relation_type=str(stance.stance_type),
         provenance=ProvenanceRecord(
             source_table="relation_edge",
             source_id=(
-                f"{row['claim_id']}->{row['target_claim_id']}:{row['stance_type']}"
+                f"{stance.claim_id}->{stance.target_claim_id}:{stance.stance_type}"
             ),
         ),
         attributes=attributes,
     )
 
 
-def _conflict_witness_from_row(row: dict) -> ConflictWitness:
-    warning_class = row.get("warning_class") or row.get("conflict_class") or "conflict"
+def _conflict_witness_from_row(row: ConflictRowInput) -> ConflictWitness:
+    conflict = coerce_conflict_row(row)
+    warning_class = conflict.warning_class or conflict.conflict_class or "conflict"
     details = tuple(
         (str(key), value)
-        for key, value in row.items()
+        for key, value in conflict.to_dict().items()
         if key not in {"claim_a_id", "claim_b_id", "warning_class", "conflict_class"}
         and value is not None
     )
     return ConflictWitness(
-        left_claim_id=to_claim_id(row["claim_a_id"]),
-        right_claim_id=to_claim_id(row["claim_b_id"]),
+        left_claim_id=to_claim_id(conflict.claim_a_id),
+        right_claim_id=to_claim_id(conflict.claim_b_id),
         kind=str(warning_class),
         details=details,
     )
@@ -205,8 +214,8 @@ def _minimal_compiled_graph(
     conflicts = tuple(
         _conflict_witness_from_row(row)
         for row in (store.conflicts() if isinstance(store, ConflictStore) else ())
-        if row.get("claim_a_id") in active_claim_ids
-        and row.get("claim_b_id") in active_claim_ids
+        if str(coerce_conflict_row(row).claim_a_id) in active_claim_ids
+        and str(coerce_conflict_row(row).claim_b_id) in active_claim_ids
     )
     return CompiledWorldGraph(
         claims=claims,

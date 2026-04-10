@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections import deque
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -14,7 +15,7 @@ from propstore.cel_checker import (
     build_cel_registry_from_rows,
     with_standard_synthetic_bindings,
 )
-from propstore.core.id_types import to_concept_id
+from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.row_types import (
     ClaimRow,
@@ -303,7 +304,7 @@ class WorldModel(ArtifactStore):
             return self._context_hierarchy
         self._context_hierarchy_loaded = True
 
-        from propstore.context_types import LoadedContext
+        from propstore.context_types import ContextRecord, LoadedContext
         from propstore.validate_contexts import ContextHierarchy
 
         rows = self._conn.execute(
@@ -313,46 +314,61 @@ class WorldModel(ArtifactStore):
             self._context_hierarchy = None
             return None
 
-        contexts_by_id: dict[str, dict[str, Any]] = {}
+        records_by_id: dict[str, ContextRecord] = {}
         for row in rows:
             context_id = row["id"]
-            contexts_by_id[context_id] = {
-                "id": context_id,
-                "name": row["name"],
-                "description": row["description"],
-                "inherits": row["inherits"],
-                "assumptions": [],
-                "excludes": [],
-            }
+            records_by_id[context_id] = ContextRecord(
+                context_id=to_context_id(context_id),
+                name=row["name"],
+                description=row["description"],
+                inherits=None if row["inherits"] is None else to_context_id(row["inherits"]),
+                assumptions=(),
+                excludes=(),
+            )
 
         assumption_rows = self._conn.execute(
             "SELECT context_id, assumption_cel FROM context_assumption "
             "ORDER BY context_id, seq"
         ).fetchall()
+        assumptions_by_id: dict[str, list[str]] = {
+            context_id: []
+            for context_id in records_by_id
+        }
         for row in assumption_rows:
-            context = contexts_by_id.get(row["context_id"])
-            if context is None:
+            context_id = row["context_id"]
+            if context_id not in assumptions_by_id:
                 continue
-            context["assumptions"].append(row["assumption_cel"])
+            assumptions_by_id[context_id].append(row["assumption_cel"])
 
         exclusion_rows = self._conn.execute(
             "SELECT context_a, context_b FROM context_exclusion ORDER BY context_a, context_b"
         ).fetchall()
+        exclusions_by_id: dict[str, list[str]] = {
+            context_id: []
+            for context_id in records_by_id
+        }
         for row in exclusion_rows:
-            context = contexts_by_id.get(row["context_a"])
-            if context is None:
+            context_id = row["context_a"]
+            if context_id not in exclusions_by_id:
                 continue
             exclusion = row["context_b"]
-            if exclusion not in context["excludes"]:
-                context["excludes"].append(exclusion)
+            if exclusion not in exclusions_by_id[context_id]:
+                exclusions_by_id[context_id].append(exclusion)
 
         loaded_contexts = [
-            LoadedContext.from_payload(
+            LoadedContext.from_record(
                 filename=context_id,
                 source_path=None,
-                data=data,
+                record=replace(
+                    record,
+                    assumptions=tuple(assumptions_by_id.get(context_id, ())),
+                    excludes=tuple(
+                        to_context_id(exclusion)
+                        for exclusion in exclusions_by_id.get(context_id, ())
+                    ),
+                ),
             )
-            for context_id, data in contexts_by_id.items()
+            for context_id, record in records_by_id.items()
         ]
         self._context_hierarchy = ContextHierarchy(loaded_contexts)
         return self._context_hierarchy

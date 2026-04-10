@@ -29,6 +29,8 @@ from propstore.core.graph_types import (
 from propstore.core.row_types import (
     ClaimRow,
     ClaimRowInput,
+    ConflictRow,
+    StanceRow,
     coerce_claim_row,
     coerce_concept_row,
     coerce_conflict_row,
@@ -51,8 +53,8 @@ def _claim_pair(left_id: str, right_id: str) -> tuple[str, str]:
     return left, right
 
 
-def _conflict_witness_from_row(row: dict) -> ConflictWitness:
-    conflict = coerce_conflict_row(row)
+def _conflict_witness_from_row(row: ConflictRow) -> ConflictWitness:
+    conflict = row
     return ConflictWitness(
         left_claim_id=conflict.claim_a_id,
         right_claim_id=conflict.claim_b_id,
@@ -183,15 +185,15 @@ class _GraphOverlayStore:
         base_store: ArtifactStore,
         *,
         claims: list[ClaimRowInput],
-        stances: list[dict],
-        conflicts: list[dict],
+        stances: list[StanceRow],
+        conflicts: list[ConflictRow],
         compiled: CompiledWorldGraph | None,
     ) -> None:
         self._base = base_store
         self._claims = [coerce_claim_row(claim) for claim in claims]
         self._claims_by_id = {str(claim.claim_id): claim for claim in self._claims}
-        self._stances = [dict(stance) for stance in stances]
-        self._conflicts = [dict(conflict) for conflict in conflicts]
+        self._stances = list(stances)
+        self._conflicts = list(conflicts)
         self._compiled = compiled
 
     def __getattr__(self, name: str):
@@ -257,8 +259,8 @@ class _GraphOverlayStore:
         return [
             stance
             for stance in self._stances
-            if coerce_stance_row(stance).claim_id in claim_ids
-            and coerce_stance_row(stance).target_claim_id in claim_ids
+            if str(stance.claim_id) in claim_ids
+            and str(stance.target_claim_id) in claim_ids
         ]
 
     def conflicts(self):
@@ -315,12 +317,12 @@ class _GraphOverlayStore:
     def parameterizations_for(self, concept_id: str):
         return list(self._base.parameterizations_for(concept_id))
 
-    def explain(self, claim_id: str) -> list[dict]:
+    def explain(self, claim_id: str) -> list[StanceRow]:
         if claim_id not in self._claims_by_id:
             return []
         active_ids = set(self._claims_by_id)
         return [
-            stance.to_dict()
+            stance
             for stance_input in self._base.explain(claim_id)
             if (stance := coerce_stance_row(stance_input)).target_claim_id in active_ids
         ]
@@ -435,7 +437,7 @@ class HypotheticalWorld(BeliefSpace):
         }
         overlay_stances = (
             [
-                coerce_stance_row(stance).to_dict()
+                coerce_stance_row(stance)
                 for stance in base._store.stances_between(overlay_claim_ids)
             ]
             if isinstance(base._store, StanceStore)
@@ -443,7 +445,7 @@ class HypotheticalWorld(BeliefSpace):
         )
 
         overlay_conflicts = [
-            conflict.to_dict()
+            conflict
             for conflict in (
                 coerce_conflict_row(conflict_input)
                 for conflict_input in base._store.conflicts()
@@ -452,14 +454,14 @@ class HypotheticalWorld(BeliefSpace):
             and conflict.claim_b_id in overlay_claim_ids
         ]
         seen_conflict_pairs = {
-            _claim_pair(conflict["claim_a_id"], conflict["claim_b_id"])
+            _claim_pair(str(conflict.claim_a_id), str(conflict.claim_b_id))
             for conflict in overlay_conflicts
         }
         for conflict in _recomputed_conflicts(
             base._store,
             [ActiveClaim.from_claim_row(claim) for claim in overlay_claims],
         ):
-            pair = _claim_pair(conflict["claim_a_id"], conflict["claim_b_id"])
+            pair = _claim_pair(str(conflict.claim_a_id), str(conflict.claim_b_id))
             if pair in seen_conflict_pairs:
                 continue
             overlay_conflicts.append(conflict)
@@ -533,13 +535,13 @@ class HypotheticalWorld(BeliefSpace):
     def is_determined(self, concept_id: str) -> bool:
         return self._overlay.is_determined(concept_id)
 
-    def conflicts(self, concept_id: str | None = None) -> list[dict]:
+    def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
         return self._overlay.conflicts(concept_id)
 
-    def explain(self, claim_id: str) -> list[dict]:
+    def explain(self, claim_id: str) -> list[StanceRow]:
         return self._overlay.explain(claim_id)
 
-    def recompute_conflicts(self) -> list[dict]:
+    def recompute_conflicts(self) -> list[ConflictRow]:
         return _recomputed_conflicts(self._overlay_store, self.active_claims())
 
     def diff(self) -> dict[str, tuple[ValueResult, ValueResult]]:

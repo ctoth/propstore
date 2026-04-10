@@ -696,9 +696,12 @@ class TestFragilityWarnings:
         import warnings
         from unittest.mock import MagicMock, patch
         from propstore.fragility import FragilityWarning, _conflict_dimension
+        from propstore.core.row_types import coerce_conflict_row
 
         mock_bound = MagicMock()
-        mock_bound.conflicts.return_value = [{"claim_a_id": "a", "claim_b_id": "b"}]
+        mock_bound.conflicts.return_value = [
+            coerce_conflict_row({"claim_a_id": "a", "claim_b_id": "b"})
+        ]
         mock_bound._active_graph = MagicMock()
 
         with warnings.catch_warnings(record=True) as w:
