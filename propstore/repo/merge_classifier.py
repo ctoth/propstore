@@ -6,14 +6,13 @@ argumentation framework over the claim alternatives that survive the merge.
 """
 from __future__ import annotations
 
-import copy
 import json
 from dataclasses import dataclass
 from enum import Enum
 from itertools import product
 from typing import TYPE_CHECKING, Any
 
-from propstore.identity import format_logical_id, primary_logical_id
+from propstore.repo.merge_claims import MergeClaim
 from propstore.repo.branch import branch_head, merge_base
 from propstore.repo.merge_framework import PartialArgumentationFramework
 
@@ -29,7 +28,7 @@ class _DiffKind(Enum):
 
 @dataclass(frozen=True)
 class _IndexedClaim:
-    raw: dict[str, Any]
+    claim: MergeClaim
     artifact_id: str
     logical_ids: tuple[str, ...]
     primary_logical_id: str | None
@@ -45,7 +44,7 @@ class MergeArgument:
     artifact_id: str
     logical_id: str | None
     concept_id: str
-    claim: dict[str, Any]
+    claim: MergeClaim
     branch_origins: tuple[str, ...]
 
 
@@ -63,32 +62,16 @@ class RepoMergeFramework:
         return {argument.claim_id: argument for argument in self.arguments}
 
 
-def _annotate_provenance(claim: dict[str, Any], branch_name: str) -> dict[str, Any]:
-    merged = copy.deepcopy(claim)
-    provenance = dict(merged.get("provenance", {}))
-    provenance["branch_origin"] = branch_name
-    merged["provenance"] = provenance
-    return merged
+def _annotate_provenance(claim: MergeClaim, branch_name: str) -> MergeClaim:
+    return MergeClaim(document=claim.document, branch_origin=branch_name)
 
 
-def _claim_artifact_id(claim: dict[str, Any]) -> str | None:
-    artifact_id = claim.get("artifact_id")
-    if isinstance(artifact_id, str) and artifact_id:
-        return artifact_id
-    return None
+def _claim_artifact_id(claim: MergeClaim) -> str | None:
+    return claim.artifact_id
 
 
-def _claim_logical_ids(claim: dict[str, Any]) -> tuple[str, ...]:
-    logical_ids = claim.get("logical_ids")
-    if not isinstance(logical_ids, list):
-        return tuple()
-    normalized = {
-        formatted
-        for entry in logical_ids
-        if isinstance(entry, dict)
-        if (formatted := format_logical_id(entry)) is not None
-    }
-    return tuple(sorted(normalized))
+def _claim_logical_ids(claim: MergeClaim) -> tuple[str, ...]:
+    return tuple(sorted(claim.logical_ids))
 
 
 def _disambiguate_id(claim_id: str, suffix: str) -> str:
@@ -96,50 +79,47 @@ def _disambiguate_id(claim_id: str, suffix: str) -> str:
     return f"{claim_id}__{safe_suffix}"
 
 
-def _extract_concept(claim: dict[str, Any]) -> str:
-    concept = claim.get("concept")
-    if isinstance(concept, str) and concept:
-        return str(concept)
-    concepts = claim.get("concepts", [])
-    if isinstance(concepts, list):
-        for candidate in concepts:
-            if isinstance(candidate, str) and candidate:
-                return candidate
-    return ""
+def _extract_concept(claim: MergeClaim) -> str:
+    return claim.concept_id
 
 
-def _indexed_claim(claim: dict[str, Any]) -> _IndexedClaim | None:
+def _indexed_claim(claim: MergeClaim) -> _IndexedClaim | None:
     artifact_id = _claim_artifact_id(claim)
     if artifact_id is None:
         return None
     return _IndexedClaim(
-        raw=claim,
+        claim=claim,
         artifact_id=artifact_id,
         logical_ids=_claim_logical_ids(claim),
-        primary_logical_id=primary_logical_id(claim),
+        primary_logical_id=claim.primary_logical_id,
         concept_id=_extract_concept(claim),
     )
 
 
-def _claim_semantic_key(claim: dict[str, Any]) -> dict[str, Any]:
+def _claim_semantic_key(claim: MergeClaim) -> dict[str, Any]:
     skip = {"artifact_id", "version_id", "provenance"}
-    return {key: value for key, value in claim.items() if key not in skip}
+    payload = claim.to_payload(include_branch_origin=False)
+    return {key: value for key, value in payload.items() if key not in skip}
 
 
-def _claims_equal(a: dict[str, Any], b: dict[str, Any]) -> bool:
+def _claims_equal(a: MergeClaim, b: MergeClaim) -> bool:
     return _claim_semantic_key(a) == _claim_semantic_key(b)
 
 
-def _claim_candidate_key(claim: dict[str, Any]) -> dict[str, Any]:
+def _claim_candidate_key(claim: MergeClaim) -> dict[str, Any]:
     skip = {"id", "artifact_id", "version_id", "provenance", "logical_ids"}
-    return {key: value for key, value in claim.items() if key not in skip}
+    payload = claim.to_payload(include_branch_origin=False)
+    return {key: value for key, value in payload.items() if key not in skip}
 
 
 def _index_claims(claim_files) -> dict[str, _IndexedClaim]:
     index: dict[str, _IndexedClaim] = {}
     for claim_file in claim_files:
         for claim in claim_file.claims:
-            indexed = _indexed_claim(claim.to_payload())
+            merge_claim = MergeClaim.from_document(claim)
+            if merge_claim is None:
+                continue
+            indexed = _indexed_claim(merge_claim)
             if indexed is not None:
                 index[indexed.artifact_id] = indexed
     return index
@@ -204,23 +184,19 @@ def _canonical_claim_groups(
 
 
 def _classify_pair(
-    left_claim: dict[str, Any],
-    right_claim: dict[str, Any],
+    left_claim: MergeClaim,
+    right_claim: MergeClaim,
 ) -> _DiffKind:
     """Classify disagreement between two concrete claim alternatives."""
     from propstore.conflict_detector import ConflictClass, detect_conflicts
     from propstore.loaded import LoadedEntry
 
     comparison_source = (
-        (left_claim.get("provenance") or {}).get("paper")
-        if isinstance(left_claim.get("provenance"), dict)
-        else None
+        left_claim.provenance_payload().get("paper")
     )
     if not isinstance(comparison_source, str) or not comparison_source:
         comparison_source = (
-            (right_claim.get("provenance") or {}).get("paper")
-            if isinstance(right_claim.get("provenance"), dict)
-            else None
+            right_claim.provenance_payload().get("paper")
         )
     if not isinstance(comparison_source, str) or not comparison_source:
         comparison_source = "merge_comparison"
@@ -234,7 +210,7 @@ def _classify_pair(
                 "extraction_model": "merge",
                 "extraction_date": "2026-01-01",
             },
-            "claims": [left_claim],
+            "claims": [left_claim.to_payload(include_branch_origin=False)],
         },
     )
     right_file = LoadedEntry(
@@ -246,7 +222,7 @@ def _classify_pair(
                 "extraction_model": "merge",
                 "extraction_date": "2026-01-01",
             },
-            "claims": [right_claim],
+            "claims": [right_claim.to_payload(include_branch_origin=False)],
         },
     )
 
@@ -256,8 +232,8 @@ def _classify_pair(
         from propstore.z3_conditions import Z3TranslationError
 
         if isinstance(exc, Z3TranslationError):
-            left_conditions = sorted(left_claim.get("conditions") or [])
-            right_conditions = sorted(right_claim.get("conditions") or [])
+            left_conditions = sorted(left_claim.document.conditions)
+            right_conditions = sorted(right_claim.document.conditions)
             if left_conditions != right_conditions:
                 return _DiffKind.PHI_NODE
         raise
@@ -292,7 +268,7 @@ def _emit_argument(
     emitted_claim_id: str | None = None,
     annotate_branch_origin: str | None = None,
 ) -> str:
-    merged_claim = copy.deepcopy(claim.raw)
+    merged_claim = claim.claim
     claim_id = emitted_claim_id or claim.artifact_id
     if annotate_branch_origin is not None:
         merged_claim = _annotate_provenance(merged_claim, annotate_branch_origin)
@@ -353,7 +329,7 @@ def build_merge_framework(
         in_base = base_claim is not None
 
         if in_left and in_right:
-            if _claims_equal(left_claim.raw, right_claim.raw):
+            if _claims_equal(left_claim.claim, right_claim.claim):
                 _emit_argument(
                     emitted,
                     claim=left_claim,
@@ -363,7 +339,7 @@ def build_merge_framework(
                 )
                 continue
 
-            if in_base and _claims_equal(left_claim.raw, base_claim.raw):
+            if in_base and _claims_equal(left_claim.claim, base_claim.claim):
                 _emit_argument(
                     emitted,
                     claim=right_claim,
@@ -373,7 +349,7 @@ def build_merge_framework(
                 )
                 continue
 
-            if in_base and _claims_equal(right_claim.raw, base_claim.raw):
+            if in_base and _claims_equal(right_claim.claim, base_claim.claim):
                 _emit_argument(
                     emitted,
                     claim=left_claim,
@@ -383,7 +359,7 @@ def build_merge_framework(
                 )
                 continue
 
-            diff_kind = _classify_pair(left_claim.raw, right_claim.raw)
+            diff_kind = _classify_pair(left_claim.claim, right_claim.claim)
             left_claim_id = _emit_argument(
                 emitted,
                 claim=left_claim,

@@ -30,7 +30,7 @@ def semantic_candidate_details(merge: RepoMergeFramework) -> list[dict]:
                     "logical_id": argument.logical_id,
                     "artifact_id": argument.artifact_id,
                     "branch_origins": list(argument.branch_origins),
-                    "source_paper": argument.claim.get("provenance", {}).get("paper"),
+                    "source_paper": argument.claim.provenance_payload().get("paper"),
                 }
                 for argument in arguments
             ],
@@ -57,7 +57,7 @@ def summarize_merge_framework(
             "logical_id": argument.logical_id,
             "concept_id": argument.concept_id,
             "branch_origins": list(argument.branch_origins),
-            "provenance": dict(argument.claim.get("provenance", {})),
+            "provenance": argument.claim.provenance_payload(),
             "skeptically_accepted": argument.claim_id in skeptical,
             "credulously_accepted": argument.claim_id in credulous,
         }

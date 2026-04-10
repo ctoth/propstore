@@ -12,6 +12,7 @@ from propstore.core.row_types import StanceRow
 from propstore.document_schema import decode_document_path
 from propstore.dung import ArgumentationFramework
 from propstore.knowledge_path import KnowledgePath
+from propstore.repo.merge_claims import MergeClaim
 from propstore.stance_documents import StanceFileDocument
 from propstore.structured_projection import StructuredProjection, build_structured_projection
 
@@ -24,16 +25,9 @@ class BranchStructuredSummary:
     content_signature: str
     relation_surface: dict[str, str]
     lossiness: tuple[str, ...]
-    active_claims: tuple[dict[str, Any], ...]
+    active_claims: tuple[MergeClaim, ...]
     stance_rows: tuple[StanceRow, ...]
     projection: StructuredProjection
-
-
-@dataclass(frozen=True)
-class _StructuredMergeClaimView:
-    raw: dict[str, Any]
-    claim_id: ClaimId
-    stances: tuple[dict[str, Any], ...]
 
 
 def _optional_string(value: object) -> str | None:
@@ -51,17 +45,6 @@ def _normalize_for_signature(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_normalize_for_signature(item) for item in value]
     return value
-
-
-def _claim_view(claim: dict[str, Any]) -> _StructuredMergeClaimView | None:
-    claim_id = _optional_string(claim.get("artifact_id"))
-    if claim_id is None:
-        return None
-    raw_stances = claim.get("stances")
-    if not isinstance(raw_stances, list):
-        return _StructuredMergeClaimView(raw=claim, claim_id=to_claim_id(claim_id), stances=tuple())
-    stances = tuple(stance for stance in raw_stances if isinstance(stance, dict))
-    return _StructuredMergeClaimView(raw=claim, claim_id=to_claim_id(claim_id), stances=stances)
 
 
 def _stance_row_from_mapping(
@@ -120,44 +103,28 @@ def _empty_projection() -> StructuredProjection:
     )
 
 
-def _summary_claim_ids(active_claims: list[dict[str, Any]]) -> tuple[str, ...]:
-    claim_ids = [
-        claim_view.claim_id
-        for claim in active_claims
-        if (claim_view := _claim_view(claim)) is not None
-    ]
-    return tuple(sorted(str(claim_id) for claim_id in claim_ids))
+def _summary_claim_ids(active_claims: list[MergeClaim]) -> tuple[str, ...]:
+    return tuple(sorted(claim.artifact_id for claim in active_claims))
 
 
-def _summary_claim_provenance(active_claims: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+def _summary_claim_provenance(active_claims: list[MergeClaim]) -> dict[str, dict[str, Any]]:
     provenance: dict[str, dict[str, Any]] = {}
     for claim in active_claims:
-        claim_view = _claim_view(claim)
-        if claim_view is None:
-            continue
-        raw_provenance = claim.get("provenance", {})
-        if isinstance(raw_provenance, dict):
-            provenance[str(claim_view.claim_id)] = {
+        raw_provenance = claim.provenance_payload()
+        provenance[claim.artifact_id] = {
                 str(key): _normalize_for_signature(value)
                 for key, value in sorted(raw_provenance.items(), key=lambda item: str(item[0]))
-            }
-        else:
-            provenance[str(claim_view.claim_id)] = {}
+        }
     return provenance
 
 
 def _summary_content_signature(
-    active_claims: list[dict[str, Any]],
+    active_claims: list[MergeClaim],
     stance_rows: list[StanceRow],
 ) -> str:
     claims_payload = []
     for claim in active_claims:
-        claim_view = _claim_view(claim)
-        if claim_view is None:
-            continue
-        claims_payload.append(
-            _normalize_for_signature(claim_view.raw)
-        )
+        claims_payload.append(_normalize_for_signature(claim.to_payload()))
     claims_payload.sort(
         key=lambda payload: str(payload.get("artifact_id", ""))
     )
@@ -212,7 +179,7 @@ def _summary_lossiness() -> tuple[str, ...]:
 
 
 def _canonical_stance_rows(
-    active_claims: list[dict[str, Any]],
+    active_claims: list[MergeClaim],
     stance_rows: list[StanceRow],
 ) -> list[StanceRow]:
     in_scope_claim_ids = {
@@ -236,28 +203,23 @@ def _canonical_stance_rows(
     return canonical_rows
 
 
-def _load_branch_claims(claims_root: KnowledgePath) -> list[dict[str, Any]]:
+def _load_branch_claims(claims_root: KnowledgePath) -> list[MergeClaim]:
     from propstore.validate_claims import load_claim_files
 
-    active_claims: list[dict[str, Any]] = []
+    active_claims: list[MergeClaim] = []
     for claim_file in load_claim_files(claims_root):
         for claim in claim_file.claims:
-            normalized = claim.to_payload()
-            artifact_id = _optional_string(normalized.get("artifact_id"))
-            if artifact_id is not None and "id" not in normalized:
-                normalized["id"] = artifact_id
-            active_claims.append(normalized)
+            merge_claim = MergeClaim.from_document(claim)
+            if merge_claim is not None:
+                active_claims.append(merge_claim)
     return active_claims
 
 
-def _inline_stance_rows(active_claims: list[dict[str, Any]]) -> list[StanceRow]:
+def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[StanceRow]:
     rows: list[StanceRow] = []
     for claim in active_claims:
-        claim_view = _claim_view(claim)
-        if claim_view is None:
-            continue
-        for stance in claim_view.stances:
-            row = _stance_row_from_mapping(claim_view.claim_id, stance)
+        for stance in claim.document.stances:
+            row = _stance_row_from_mapping(to_claim_id(claim.artifact_id), stance.to_payload())
             if row is not None:
                 rows.append(row)
     return rows
@@ -292,7 +254,10 @@ def build_branch_structured_summary(kr, branch: str) -> BranchStructuredSummary:
     claim_provenance = _summary_claim_provenance(active_claims)
     content_signature = _summary_content_signature(active_claims, stance_rows)
     if active_claims:
-        projection = build_structured_projection(_BranchSnapshotStore(stance_rows), active_claims)
+        projection = build_structured_projection(
+            _BranchSnapshotStore(stance_rows),
+            [claim.to_payload(include_id_alias=True) for claim in active_claims],
+        )
     else:
         projection = _empty_projection()
     return BranchStructuredSummary(

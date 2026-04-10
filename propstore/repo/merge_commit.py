@@ -1,7 +1,6 @@
 """Merge commit creation for propstore knowledge repositories."""
 from __future__ import annotations
 
-import copy
 import time
 from collections import Counter
 from typing import TYPE_CHECKING
@@ -59,7 +58,7 @@ def create_merge_commit(
     sorted_arguments = sorted(merge.arguments, key=lambda argument: argument.claim_id)
     artifact_counts = Counter(argument.artifact_id for argument in sorted_arguments)
     merged_claims = [
-        copy.deepcopy(argument.claim)
+        argument.claim.to_payload()
         for argument in sorted_arguments
         if artifact_counts[argument.artifact_id] == 1
     ]
