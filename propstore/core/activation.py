@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from propstore.core.active_claims import ActiveClaim
 from propstore.cel_checker import (
     synthetic_category_concept,
     with_standard_synthetic_bindings,
@@ -158,29 +158,20 @@ def is_claim_node_active(
         raise
 
 
-def is_claim_mapping_active(
-    claim: Mapping[str, Any],
+def is_active_claim_active(
+    claim: ActiveClaim,
     *,
     environment: Environment,
     solver: Z3ConditionSolver | None,
     context_hierarchy: ContextHierarchy | None = None,
 ) -> bool:
     visible_contexts = _visible_contexts(environment, context_hierarchy)
-    claim_context_id = claim.get("context_id")
+    claim_context_id = claim.context_id
     if visible_contexts is not None and claim_context_id is not None:
         if str(claim_context_id) not in visible_contexts:
             return False
 
-    raw_conditions = claim.get("conditions_cel")
-    if not raw_conditions:
-        return True
-
-    if isinstance(raw_conditions, str):
-        claim_conditions = json.loads(raw_conditions)
-    elif isinstance(raw_conditions, (list, tuple)):
-        claim_conditions = list(raw_conditions)
-    else:
-        claim_conditions = [raw_conditions]
+    claim_conditions = claim.conditions
     if not claim_conditions:
         return True
 

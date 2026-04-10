@@ -19,7 +19,10 @@ structured-argument ordering over premises and defeasible rules.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
+from typing import Any
 
+from propstore.core.active_claims import ActiveClaim
 
 def strictly_weaker(
     set_a: list[float],
@@ -61,7 +64,7 @@ def defeat_holds(
     raise ValueError(f"Unknown attack type: {attack_type}")
 
 
-def metadata_strength_vector(claim: dict) -> list[float]:
+def metadata_strength_vector(claim: ActiveClaim | Mapping[str, Any]) -> list[float]:
     """Compute a heuristic fixed-length strength vector from claim metadata.
 
     Always returns exactly 3 dimensions so that Def 19 (Modgil & Prakken
@@ -80,9 +83,14 @@ def metadata_strength_vector(claim: dict) -> list[float]:
         Modgil & Prakken 2018, Def 19: Elitist/Democratic set comparison
         requires commensurable vectors of the same dimensionality.
     """
-    sample_size = claim.get("sample_size")
-    uncertainty = claim.get("uncertainty")
-    confidence = claim.get("confidence")
+    if isinstance(claim, ActiveClaim):
+        sample_size = claim.sample_size
+        uncertainty = claim.uncertainty
+        confidence = claim.attributes.get("confidence")
+    else:
+        sample_size = claim.get("sample_size")
+        uncertainty = claim.get("uncertainty")
+        confidence = claim.get("confidence")
     return [
         math.log1p(sample_size) if sample_size and sample_size > 0 else 0.0,
         1.0 / uncertainty if uncertainty and uncertainty > 0 else 1.0,
@@ -90,7 +98,7 @@ def metadata_strength_vector(claim: dict) -> list[float]:
     ]
 
 
-def claim_strength(claim: dict) -> list[float]:
+def claim_strength(claim: ActiveClaim | Mapping[str, Any]) -> list[float]:
     """Backward-compatible alias for the metadata heuristic.
 
     This name remains for compatibility with the existing claim-graph code,

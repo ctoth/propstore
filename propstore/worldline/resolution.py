@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import ArtifactStore, ParameterizationLookupStore
 from propstore.core.row_types import coerce_claim_row, coerce_concept_row
@@ -51,22 +53,22 @@ def display_claim_id(world: ArtifactStore, claim_id: str | None) -> str | None:
     return claim_id
 
 
-def claim_payload(claim: dict[str, Any]) -> dict[str, Any]:
+def claim_payload(claim: ActiveClaim) -> dict[str, Any]:
     payload: dict[str, Any] = {}
-    value = claim.get("value")
+    value = claim.value
     if value is not None:
         payload["value"] = value
 
-    claim_type = claim.get("type")
+    claim_type = claim.claim_type
     if claim_type:
         payload["claim_type"] = claim_type
 
     for field in ("statement", "expression", "body", "name", "canonical_ast"):
-        field_value = claim.get(field)
+        field_value = getattr(claim, field, None)
         if field_value:
             payload[field] = field_value
 
-    variables_json = claim.get("variables_json")
+    variables_json = claim.variables_json
     if variables_json:
         try:
             payload["variables"] = json.loads(variables_json)
@@ -221,10 +223,11 @@ def _resolve_claim_target(
     if value_result.status != "determined":
         return None
 
-    claim = value_result.claims[0] if value_result.claims else {}
-    claim_id = claim.get("id")
-    if isinstance(claim_id, str):
-        trace.record_claim_dependency(claim_id)
+    claim = value_result.claims[0] if value_result.claims else None
+    if claim is None:
+        return None
+    claim_id = str(claim.claim_id)
+    trace.record_claim_dependency(claim_id)
     payload = claim_payload(claim)
     step = {"concept": target_name, "source": "claim"}
     step.update(payload)
@@ -235,7 +238,7 @@ def _resolve_claim_target(
     result = {
         "status": "determined",
         "source": "claim",
-        "claim_id": display_claim_id(context.world, claim_id) if claim_id else None,
+        "claim_id": display_claim_id(context.world, claim_id),
     }
     result.update(payload)
     return result
@@ -376,7 +379,7 @@ def _resolve_chain_target(
             for input_cid, value in result.input_values.items()
         }
     else:
-        chain_value = result.claims[0].get("value") if result.claims else None
+        chain_value = result.claims[0].value if result.claims else None
 
     if chain_value is None or result.status not in ("derived", "determined"):
         return None
@@ -385,9 +388,7 @@ def _resolve_chain_target(
         if chain_step.source == "claim":
             step_result = context.query_world.value_of(chain_step.concept_id)
             if step_result.claims:
-                dependency_id = step_result.claims[0].get("id")
-                if isinstance(dependency_id, str):
-                    trace.record_claim_dependency(dependency_id)
+                trace.record_claim_dependency(str(step_result.claims[0].claim_id))
 
     for chain_step in chain_result.steps:
         if chain_step.concept_id == concept_id or chain_step.source == "binding":
@@ -444,12 +445,13 @@ def _resolve_claim_input(
     del concept_id, seen
     if value_result.status != "determined":
         return None
-    claim = value_result.claims[0] if value_result.claims else {}
-    claim_id = claim.get("id")
-    if isinstance(claim_id, str):
-        trace.record_claim_dependency(claim_id)
+    claim = value_result.claims[0] if value_result.claims else None
+    if claim is None:
+        return None
+    claim_id = str(claim.claim_id)
+    trace.record_claim_dependency(claim_id)
     result = {
-        "value": claim.get("value"),
+        "value": claim.value,
         "source": "claim",
     }
     if claim_id:

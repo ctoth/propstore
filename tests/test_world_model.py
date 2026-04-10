@@ -62,6 +62,18 @@ CONCEPT6_ID = _concept_artifact("concept6")
 CONCEPT7_ID = _concept_artifact("concept7")
 
 
+def _runtime_claim_id(claim) -> str:
+    return str(claim.claim_id)
+
+
+def _runtime_claim_ids(claims) -> list[str]:
+    return [_runtime_claim_id(claim) for claim in claims]
+
+
+def _runtime_claim_id_set(claims) -> set[str]:
+    return set(_runtime_claim_ids(claims))
+
+
 def _normalize_claim_concept_refs(payload: dict) -> dict:
     normalized = normalize_claims_payload(payload)
     source = normalized.get("source")
@@ -748,7 +760,7 @@ class TestUnboundQueries:
             assert [str(claim.claim_id) for claim in claims] == ["measurement1"]
 
             active = wm.bind().active_claims("concept2")
-            assert [claim["id"] for claim in active] == ["measurement1"]
+            assert _runtime_claim_ids(active) == ["measurement1"]
         finally:
             wm.close()
 
@@ -839,7 +851,7 @@ class TestBindAndActiveClaims:
     def test_bind_speech_activates_speech_claims(self, world):
         bound = world.bind(task="speech")
         active = bound.active_claims(CONCEPT1_ID)
-        active_ids = {c["id"] for c in active}
+        active_ids = _runtime_claim_id_set(active)
         assert _claim_artifact("test_paper_alpha", "claim1") in active_ids
         assert _claim_artifact("test_paper_alpha", "claim2") in active_ids
         assert _claim_artifact("test_paper_beta", "claim7") in active_ids
@@ -849,7 +861,7 @@ class TestBindAndActiveClaims:
     def test_bind_singing_activates_singing_claims(self, world):
         bound = world.bind(task="singing")
         active = bound.active_claims(CONCEPT1_ID)
-        active_ids = {c["id"] for c in active}
+        active_ids = _runtime_claim_id_set(active)
         assert _claim_artifact("test_paper_alpha", "claim3") in active_ids
         assert _claim_artifact("test_paper_alpha", "claim1") not in active_ids
         assert _claim_artifact("test_paper_alpha", "claim2") not in active_ids
@@ -857,7 +869,7 @@ class TestBindAndActiveClaims:
     def test_bind_whisper_activates_whisper_claims(self, world):
         bound = world.bind(task="whisper")
         active = bound.active_claims(CONCEPT1_ID)
-        active_ids = {c["id"] for c in active}
+        active_ids = _runtime_claim_id_set(active)
         assert _claim_artifact("test_paper_beta", "claim9") in active_ids
         assert _claim_artifact("test_paper_alpha", "claim1") not in active_ids
         assert _claim_artifact("test_paper_alpha", "claim3") not in active_ids
@@ -865,7 +877,7 @@ class TestBindAndActiveClaims:
     def test_unconditional_claims_always_active(self, world):
         bound = world.bind(task="speech")
         active = bound.active_claims()
-        active_ids = {c["id"] for c in active}
+        active_ids = _runtime_claim_id_set(active)
         assert _claim_artifact("test_paper_alpha", "claim5") in active_ids
 
     def test_empty_bind_all_active(self, world):
@@ -876,7 +888,7 @@ class TestBindAndActiveClaims:
     def test_inactive_claims(self, world):
         bound = world.bind(task="singing")
         inactive = bound.inactive_claims(CONCEPT1_ID)
-        inactive_ids = {c["id"] for c in inactive}
+        inactive_ids = _runtime_claim_id_set(inactive)
         assert _claim_artifact("test_paper_alpha", "claim1") in inactive_ids
         assert _claim_artifact("test_paper_alpha", "claim2") in inactive_ids
         assert _claim_artifact("test_paper_beta", "claim9") in inactive_ids
@@ -884,7 +896,7 @@ class TestBindAndActiveClaims:
     def test_active_claims_all_concepts(self, world):
         bound = world.bind(task="speech")
         active = bound.active_claims()
-        active_ids = {c["id"] for c in active}
+        active_ids = _runtime_claim_id_set(active)
         assert _claim_artifact("test_paper_alpha", "claim4") in active_ids
         assert _claim_artifact("test_paper_beta", "claim6") in active_ids
 
@@ -898,7 +910,7 @@ class TestValueOf:
         assert isinstance(result, ValueResult)
         assert result.status == "determined"
         assert len(result.claims) == 1
-        assert result.claims[0]["id"] == _claim_artifact("test_paper_alpha", "claim3")
+        assert str(result.claims[0].claim_id) == _claim_artifact("test_paper_alpha", "claim3")
 
     def test_speech_conflicted(self, world):
         bound = world.bind(task="speech")
@@ -1057,7 +1069,7 @@ class TestHypotheticalWorld:
         """Removed claim absent from active_claims."""
         bound = world.bind(task="speech")
         hypo = HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
-        active_ids = {c["id"] for c in hypo.active_claims(CONCEPT1_ID)}
+        active_ids = _runtime_claim_id_set(hypo.active_claims(CONCEPT1_ID))
         assert _claim_artifact("test_paper_alpha", "claim1") not in active_ids
         assert _claim_artifact("test_paper_alpha", "claim2") in active_ids
 
@@ -1069,7 +1081,7 @@ class TestHypotheticalWorld:
             conditions=["task == 'singing'"],
         )
         hypo = HypotheticalWorld(bound, add=[sc])
-        active_ids = {c["id"] for c in hypo.active_claims(CONCEPT2_ID)}
+        active_ids = _runtime_claim_id_set(hypo.active_claims(CONCEPT2_ID))
         assert "synth1" in active_ids
         vr = hypo.value_of(CONCEPT2_ID)
         assert vr.status == "determined"
@@ -1086,7 +1098,7 @@ class TestHypotheticalWorld:
         ])
         vr = hypo.value_of(CONCEPT1_ID)
         assert vr.status == "determined"
-        assert vr.claims[0]["value"] == 200.0
+        assert vr.claims[0].value == 200.0
 
     def test_creates_conflict(self, world):
         """Add claim with different value → conflicted."""
@@ -1148,7 +1160,7 @@ class TestHypotheticalWorld:
         # value_of should see the synthetic claim
         vr = hypo.value_of(CONCEPT1_ID)
         assert vr.status == "determined"
-        assert vr.claims[0]["value"] == 500.0
+        assert vr.claims[0].value == 500.0
         # collect_known_values MUST also see the synthetic value
         known = hypo.collect_known_values([CONCEPT1_ID])
         assert known == {CONCEPT1_ID: 500.0}, (
@@ -1158,9 +1170,9 @@ class TestHypotheticalWorld:
     def test_preserves_base(self, world):
         """Base BoundWorld unchanged after hypothetical creation."""
         bound = world.bind(task="speech")
-        base_active = {c["id"] for c in bound.active_claims(CONCEPT1_ID)}
+        base_active = _runtime_claim_id_set(bound.active_claims(CONCEPT1_ID))
         HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")])
-        after_active = {c["id"] for c in bound.active_claims(CONCEPT1_ID)}
+        after_active = _runtime_claim_id_set(bound.active_claims(CONCEPT1_ID))
         assert base_active == after_active
 
     def test_diff_shows_changes(self, world):
@@ -1596,23 +1608,23 @@ class TestHypothesisProperties:
     def test_unconditional_always_active(self, world):
         for binding in [{}, {"task": "speech"}, {"task": "singing"}, {"task": "whisper"}]:
             bound = world.bind(**binding)
-            active_ids = {c["id"] for c in bound.active_claims()}
+            active_ids = _runtime_claim_id_set(bound.active_claims())
             assert _claim_artifact("test_paper_alpha", "claim5") in active_ids, f"claim5 not active under {binding}"
 
     def test_partitioning(self, world):
         all_claims = {str(c.claim_id) for c in world.claims_for(None)}
         for binding in [{}, {"task": "speech"}, {"task": "singing"}, {"task": "whisper"}]:
             bound = world.bind(**binding)
-            active = {c["id"] for c in bound.active_claims()}
-            inactive = {c["id"] for c in bound.inactive_claims()}
+            active = _runtime_claim_id_set(bound.active_claims())
+            inactive = _runtime_claim_id_set(bound.inactive_claims())
             assert active | inactive == all_claims, f"Partition violated under {binding}"
             assert active & inactive == set(), f"Overlap in partition under {binding}"
 
     def test_monotonicity(self, world):
         broad = world.bind(task="speech")
         narrow = world.bind(task="speech", fundamental_frequency=200)
-        broad_ids = {c["id"] for c in broad.active_claims()}
-        narrow_ids = {c["id"] for c in narrow.active_claims()}
+        broad_ids = _runtime_claim_id_set(broad.active_claims())
+        narrow_ids = _runtime_claim_id_set(narrow.active_claims())
         assert narrow_ids <= broad_ids
 
     def test_unbound_conflicts_match_build_time(self, world):
@@ -1636,8 +1648,8 @@ class TestHypothesisProperties:
     def test_determinism(self, world):
         r1 = world.bind(task="speech").active_claims()
         r2 = world.bind(task="speech").active_claims()
-        ids1 = sorted(c["id"] for c in r1)
-        ids2 = sorted(c["id"] for c in r2)
+        ids1 = sorted(_runtime_claim_ids(r1))
+        ids2 = sorted(_runtime_claim_ids(r2))
         assert ids1 == ids2
 
 
@@ -1667,10 +1679,10 @@ class TestCrossFeatureProperties:
     def test_hypothetical_isolation(self, world):
         """P2.5: Creating a hypothetical does not modify the base."""
         bound = world.bind(task="speech")
-        base_claims_before = sorted(c["id"] for c in bound.active_claims())
+        base_claims_before = sorted(_runtime_claim_ids(bound.active_claims()))
         sc = SyntheticClaim(id="s1", concept_id=CONCEPT1_ID, value=999.0)
         HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc])
-        base_claims_after = sorted(c["id"] for c in bound.active_claims())
+        base_claims_after = sorted(_runtime_claim_ids(bound.active_claims()))
         assert base_claims_before == base_claims_after
 
     def test_hypothetical_partitioning(self, world):
@@ -1681,8 +1693,8 @@ class TestCrossFeatureProperties:
             conditions=["task == 'speech'"],
         )
         hypo = HypotheticalWorld(bound, remove=[_claim_artifact("test_paper_alpha", "claim1")], add=[sc])
-        active = {c["id"] for c in hypo.active_claims()}
-        inactive = {c["id"] for c in hypo.inactive_claims()}
+        active = _runtime_claim_id_set(hypo.active_claims())
+        inactive = _runtime_claim_id_set(hypo.inactive_claims())
         assert active & inactive == set(), "Overlap in hypothetical partition"
         # claim1 removed, synth_p added
         assert _claim_artifact("test_paper_alpha", "claim1") not in (active | inactive)
@@ -1701,7 +1713,7 @@ class TestCrossFeatureProperties:
         bound = world.bind(task="speech")
         result = resolve(bound, "concept1", ResolutionStrategy.SAMPLE_SIZE)
         if result.status == "resolved":
-            active_ids = {c["id"] for c in bound.active_claims("concept1")}
+            active_ids = _runtime_claim_id_set(bound.active_claims("concept1"))
             assert result.winning_claim_id in active_ids
 
 
@@ -2119,7 +2131,7 @@ class TestAlgorithmWorldModel:
         """algorithm_for returns relevant algorithm claims."""
         bound = algo_world.bind(task="speech")
         algos = bound.algorithm_for("algo_concept3")
-        algo_ids = {a["id"] for a in algos}
+        algo_ids = _runtime_claim_id_set(algos)
         assert _claim_artifact("algo_paper_alpha", "algo_claim1") in algo_ids
         assert _claim_artifact("algo_paper_alpha", "algo_claim2") in algo_ids
         assert _claim_artifact("algo_paper_beta", "algo_claim3") in algo_ids
@@ -2243,10 +2255,10 @@ class TestSemanticCorePhase4Activation:
     def test_bind_builds_active_graph_with_parity_to_active_and_inactive_claims(self, world):
         bound = world.bind(task="speech")
 
-        assert tuple(sorted(c["id"] for c in bound.active_claims())) == (
+        assert tuple(sorted(_runtime_claim_ids(bound.active_claims()))) == (
             bound._active_graph.active_claim_ids
         )
-        assert tuple(sorted(c["id"] for c in bound.inactive_claims())) == (
+        assert tuple(sorted(_runtime_claim_ids(bound.inactive_claims()))) == (
             bound._active_graph.inactive_claim_ids
         )
 
@@ -2343,7 +2355,7 @@ class TestFloatEqualityBugs:
 
         # Remove all existing concept2 claims to isolate our test pair
         existing_concept2_claims = bound.active_claims("concept2")
-        remove_ids = [c["id"] for c in existing_concept2_claims]
+        remove_ids = _runtime_claim_ids(existing_concept2_claims)
 
         hypo = HypotheticalWorld(bound, remove=remove_ids, add=[sc_a, sc_b])
         conflicts = hypo.recompute_conflicts()

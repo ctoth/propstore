@@ -7,7 +7,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from propstore.core.activation import is_claim_mapping_active
+from propstore.core.activation import is_active_claim_active
+from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.environment import ArtifactStore, ConceptCatalogStore
 from propstore.core.id_types import ConceptId, to_context_id
 from propstore.core.row_types import (
@@ -97,36 +98,7 @@ def _concept_registry_for_store(world) -> dict[str, dict]:
     return registry
 
 
-def _claim_row_to_source_claim(claim: dict) -> dict:
-    source = dict(claim)
-    if claim.get("artifact_id"):
-        source["artifact_id"] = claim["artifact_id"]
-    if claim.get("version_id"):
-        source["version_id"] = claim["version_id"]
-    if "logical_ids" in claim:
-        source["logical_ids"] = claim["logical_ids"]
-    if claim.get("conditions_cel"):
-        source["conditions"] = json.loads(claim["conditions_cel"])
-    else:
-        source["conditions"] = []
-
-    claim_type = claim.get("type")
-    if claim_type == "parameter" and claim.get("concept_id"):
-        source["concept"] = claim["concept_id"]
-    if claim_type == "measurement" and claim.get("concept_id") and not claim.get("target_concept"):
-        source["target_concept"] = claim["concept_id"]
-    if claim_type == "algorithm" and claim.get("concept_id"):
-        source["concept"] = claim["concept_id"]
-    if claim_type == "algorithm" and claim.get("variables_json"):
-        source["variables"] = json.loads(claim["variables_json"])
-    return source
-
-
-def _claim_mapping(claim_input: ClaimRowInput | dict[str, Any]) -> dict[str, Any]:
-    return coerce_claim_row(claim_input).to_dict()
-
-
-def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
+def _recomputed_conflicts(world, claims: list[ActiveClaim]) -> list[dict]:
     from propstore.conflict_detector import detect_conflicts
     from propstore.loaded import LoadedEntry
 
@@ -138,7 +110,7 @@ def _recomputed_conflicts(world, claims: list[dict]) -> list[dict]:
     synthetic = LoadedEntry(
         filename="<render>",
         source_path=None,
-        data={"claims": [_claim_row_to_source_claim(claim) for claim in claims]},
+        data={"claims": [claim.to_source_claim_payload() for claim in claims]},
     )
     concept_registry = _concept_registry_for_store(world)
     context_hierarchy = (
@@ -274,10 +246,10 @@ class BoundWorld(BeliefSpace):
             policy=policy,
         )
 
-    def is_active(self, claim: ClaimRowInput | dict[str, Any]) -> bool:
+    def is_active(self, claim: ActiveClaimInput) -> bool:
         """Check if a claim is active under the current bindings and context."""
-        claim = _claim_mapping(claim)
-        claim_id = claim.get("id")
+        active_claim = coerce_active_claim(claim)
+        claim_id = str(active_claim.claim_id)
         if claim_id is not None and self._active_claim_id_set is not None:
             if claim_id in self._active_claim_id_set:
                 return True
@@ -289,8 +261,8 @@ class BoundWorld(BeliefSpace):
         except AttributeError:
             solver = None
 
-        return is_claim_mapping_active(
-            claim,
+        return is_active_claim_active(
+            active_claim,
             environment=self._environment,
             solver=solver,
             context_hierarchy=self._context_hierarchy,
@@ -308,28 +280,34 @@ class BoundWorld(BeliefSpace):
         solver = self._store.condition_solver()
         return not solver.are_disjoint(self._binding_conds, conds)
 
-    def active_claims(self, concept_id: str | None = None) -> list[dict]:
-        all_claims = [_claim_mapping(claim) for claim in self._store.claims_for(concept_id)]
+    def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
+        all_claims = [
+            ActiveClaim.from_claim_row(coerce_claim_row(claim))
+            for claim in self._store.claims_for(concept_id)
+        ]
         if self._active_claim_id_set is not None:
             return [
                 claim for claim in all_claims
-                if claim.get("id") in self._active_claim_id_set
+                if str(claim.claim_id) in self._active_claim_id_set
             ]
         return [c for c in all_claims if self.is_active(c)]
 
-    def inactive_claims(self, concept_id: str | None = None) -> list[dict]:
-        all_claims = [_claim_mapping(claim) for claim in self._store.claims_for(concept_id)]
+    def inactive_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
+        all_claims = [
+            ActiveClaim.from_claim_row(coerce_claim_row(claim))
+            for claim in self._store.claims_for(concept_id)
+        ]
         if self._inactive_claim_id_set is not None:
             return [
                 claim for claim in all_claims
-                if claim.get("id") in self._inactive_claim_id_set
+                if str(claim.claim_id) in self._inactive_claim_id_set
             ]
         return [c for c in all_claims if not self.is_active(c)]
 
-    def algorithm_for(self, concept_id: str) -> list[dict]:
+    def algorithm_for(self, concept_id: str) -> list[ActiveClaim]:
         """Return all active algorithm claims relevant to the given concept."""
         active = self.active_claims(concept_id)
-        return [c for c in active if c.get("type") == "algorithm"]
+        return [c for c in active if c.claim_type == "algorithm"]
 
     def _concept_symbol_candidates(self, concept_id: ConceptId | str) -> list[str]:
         candidates: list[str] = []
@@ -388,40 +366,13 @@ class BoundWorld(BeliefSpace):
         """Resolve numeric values for a list of concept IDs."""
         return collect_known_values(variable_concepts, self.value_of)
 
-    def extract_variable_concepts(self, claim: dict) -> list[str]:
+    def extract_variable_concepts(self, claim: ActiveClaim) -> list[str]:
         """Extract concept IDs referenced by an algorithm claim's variables."""
-        variables_json = claim.get("variables_json")
-        if not variables_json:
-            return []
-        variables = json.loads(variables_json)
-        concepts: list[str] = []
-        if isinstance(variables, list):
-            for var in variables:
-                if isinstance(var, dict):
-                    concept = var.get("concept")
-                    if concept:
-                        concepts.append(concept)
-        elif isinstance(variables, dict):
-            concepts.extend(variables.values())
-        return concepts
+        return list(claim.variable_concept_ids())
 
-    def extract_bindings(self, claim: dict) -> dict[str, str]:
+    def extract_bindings(self, claim: ActiveClaim) -> dict[str, str]:
         """Extract variable name -> concept mapping from an algorithm claim."""
-        variables_json = claim.get("variables_json")
-        if not variables_json:
-            return {}
-        variables = json.loads(variables_json)
-        bindings: dict[str, str] = {}
-        if isinstance(variables, list):
-            for var in variables:
-                if isinstance(var, dict):
-                    name = var.get("name") or var.get("symbol")
-                    concept = var.get("concept")
-                    if name and concept:
-                        bindings[name] = concept
-        elif isinstance(variables, dict):
-            bindings = dict(variables)
-        return bindings
+        return claim.variable_bindings()
 
     def value_of(self, concept_id: str) -> ValueResult:
         active = self.active_claims(concept_id)
@@ -429,7 +380,7 @@ class BoundWorld(BeliefSpace):
             supported_ids = self.atms_engine().supported_claim_ids(concept_id)
             active = [
                 claim for claim in active
-                if claim.get("id") in supported_ids
+                if str(claim.claim_id) in supported_ids
             ]
         result = self._resolver.value_of_from_active(active, concept_id)
         if self._reasoning_backend() == "atms":
@@ -611,13 +562,12 @@ class BoundWorld(BeliefSpace):
         self._require_atms_backend()
         normalized_queryables = coerce_queryable_assumptions(queryables)
         return {
-            claim["id"]: self.atms_engine().claim_future_statuses(
-                claim["id"],
+            str(claim.claim_id): self.atms_engine().claim_future_statuses(
+                str(claim.claim_id),
                 normalized_queryables,
                 limit=limit,
             )
-            for claim in sorted(self.active_claims(concept_id), key=lambda row: row["id"])
-            if claim.get("id")
+            for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.claim_id))
         }
 
     def claim_stability(
@@ -845,13 +795,12 @@ class BoundWorld(BeliefSpace):
         )
         supported_ids = self.atms_engine().supported_claim_ids(concept_id)
         claim_reasons = {
-            claim["id"]: self.atms_engine().why_out(
-                f"claim:{claim['id']}",
+            str(claim.claim_id): self.atms_engine().why_out(
+                f"claim:{claim.claim_id}",
                 queryables=normalized_queryables,
                 limit=limit,
             )
-            for claim in sorted(self.active_claims(concept_id), key=lambda row: row["id"])
-            if claim.get("id")
+            for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.claim_id))
         }
         return {
             "concept_id": concept_id,
@@ -885,7 +834,7 @@ class BoundWorld(BeliefSpace):
         """Return the ATMS justification trace and support metadata for a claim."""
         return self.atms_engine().explain_node(self.claim_status(claim_id).node_id)
 
-    def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
+    def claim_support(self, claim: ActiveClaim) -> tuple[Label | None, SupportQuality]:
         """Return exact label support when reconstructible, plus honesty metadata."""
         label = self._claim_support_label(claim)
         if label is not None:
@@ -905,7 +854,7 @@ class BoundWorld(BeliefSpace):
         if resolved_concept_id in self._conflicts_cache:
             return self._conflicts_cache[resolved_concept_id]
         active_claims = self.active_claims(resolved_concept_id)
-        active_ids = {c["id"] for c in active_claims}
+        active_ids = {str(claim.claim_id) for claim in active_claims}
 
         result: list[dict] = []
         all_conflicts = [
@@ -980,9 +929,7 @@ class BoundWorld(BeliefSpace):
         engine = self.atms_engine()
         claim_labels: list[Label] = []
         for claim in result.claims:
-            claim_id = claim.get("id")
-            if not claim_id:
-                return result
+            claim_id = str(claim.claim_id)
             claim_label = engine.claim_label(claim_id)
             if claim_label is None:
                 return result
@@ -1036,7 +983,7 @@ class BoundWorld(BeliefSpace):
             else result.winning_claim_id
         )
         winning_claim = next(
-            (claim for claim in result.claims if claim.get("id") == resolved_winner_id),
+            (claim for claim in result.claims if str(claim.claim_id) == resolved_winner_id),
             None,
         )
         if winning_claim is None:
@@ -1094,24 +1041,19 @@ class BoundWorld(BeliefSpace):
             return derived.label
         return None
 
-    def _claim_support_label(self, claim: dict) -> Label | None:
+    def _claim_support_label(self, claim: ActiveClaim) -> Label | None:
         # Labels are only attached when the active support can be reconstructed
         # exactly from compiled assumptions. Context visibility is enforced
         # separately from CEL activation, so a context-scoped claim is not an
         # unconditional fact even if it has no explicit conditions.
-        if claim.get("context_id") is not None:
+        if claim.context_id is not None:
             return None
 
-        conds_json = claim.get("conditions_cel")
-        if not conds_json:
-            return Label.empty()
-
-        conditions = json.loads(conds_json)
-        if not conditions:
+        if not claim.conditions:
             return Label.empty()
 
         condition_labels: list[Label] = []
-        for condition in conditions:
+        for condition in claim.conditions:
             matches = self._assumptions_by_cel.get(condition)
             if not matches:
                 return None
@@ -1122,19 +1064,12 @@ class BoundWorld(BeliefSpace):
                         for assumption in matches
                     )
                 )
-            )
+        )
         return combine_labels(*condition_labels)
 
-    def _support_quality(self, claim: dict) -> SupportQuality:
-        conds_json = claim.get("conditions_cel")
-        has_conditions = False
-        if conds_json:
-            try:
-                has_conditions = bool(json.loads(conds_json))
-            except (TypeError, json.JSONDecodeError):
-                has_conditions = True
-
-        has_context = claim.get("context_id") is not None
+    def _support_quality(self, claim: ActiveClaim) -> SupportQuality:
+        has_conditions = bool(claim.conditions)
+        has_context = claim.context_id is not None
         if has_context and has_conditions:
             return SupportQuality.MIXED
         if has_context:
