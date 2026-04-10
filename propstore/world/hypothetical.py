@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from collections.abc import Sequence
 from typing import Any, Mapping
 
@@ -30,6 +30,7 @@ from propstore.core.row_types import (
     ClaimRow,
     ClaimRowInput,
     ConflictRow,
+    ParameterizationRow,
     StanceRow,
     coerce_claim_row,
     coerce_concept_row,
@@ -109,9 +110,9 @@ class _ParameterizationCatalogAdapter:
     def stances_between(self, claim_ids: set[str]):
         return list(self.base.stances_between(claim_ids))
 
-    def all_parameterizations(self) -> list[dict[str, Any]]:
+    def all_parameterizations(self) -> list[ParameterizationRow]:
         seen: set[tuple[object, ...]] = set()
-        rows: list[dict[str, Any]] = []
+        rows: list[ParameterizationRow] = []
         for concept_input in self.base.all_concepts():
             concept_id = str(coerce_concept_row(concept_input).concept_id)
             for row_input in self.base.parameterizations_for(concept_id):
@@ -131,7 +132,7 @@ class _ParameterizationCatalogAdapter:
                 if row_key in seen:
                     continue
                 seen.add(row_key)
-                rows.append(row.to_dict())
+                rows.append(row)
         return rows
 
 
@@ -165,18 +166,27 @@ def _synthetic_row(
     *,
     existing_row: ClaimRowInput | None,
 ) -> ClaimRow:
-    row: dict[str, Any] = (
-        coerce_claim_row(existing_row).to_dict()
-        if existing_row is not None
-        else {"id": synthetic.id, "artifact_id": synthetic.id}
+    conditions_cel = json.dumps(synthetic.conditions) if synthetic.conditions else None
+    if existing_row is None:
+        return ClaimRow(
+            claim_id=to_claim_id(synthetic.id),
+            artifact_id=synthetic.id,
+            claim_type=synthetic.type,
+            concept_id=to_concept_id(synthetic.concept_id),
+            value=synthetic.value,
+            conditions_cel=conditions_cel,
+        )
+
+    row = coerce_claim_row(existing_row)
+    return replace(
+        row,
+        claim_id=to_claim_id(synthetic.id),
+        artifact_id=(row.artifact_id or synthetic.id),
+        claim_type=synthetic.type,
+        concept_id=to_concept_id(synthetic.concept_id),
+        value=synthetic.value,
+        conditions_cel=conditions_cel,
     )
-    row["id"] = synthetic.id
-    row["artifact_id"] = row.get("artifact_id") or synthetic.id
-    row["concept_id"] = synthetic.concept_id
-    row["type"] = synthetic.type
-    row["value"] = synthetic.value
-    row["conditions_cel"] = json.dumps(synthetic.conditions) if synthetic.conditions else None
-    return ClaimRow.from_mapping(row)
 
 
 class _GraphOverlayStore:
@@ -499,9 +509,6 @@ class HypotheticalWorld(BeliefSpace):
             policy=base._policy,
             active_graph=self._active_graph,
         )
-
-    def _synthetic_to_dict(self, sc: SyntheticClaim) -> dict:
-        return _synthetic_row(sc, existing_row=self._base._store.get_claim(sc.id)).to_dict()
 
     def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
         return self._overlay.active_claims(concept_id)
