@@ -104,12 +104,11 @@ def run_worldline(
     stance_dependencies: list[str] = []
     if strategy == ResolutionStrategy.ARGUMENTATION:
         try:
-            raw_argumentation_state, stance_dependencies, active_ids = capture_argumentation_state(
+            argumentation_state, stance_dependencies, active_ids = capture_argumentation_state(
                 bound,
                 world,
                 definition,
             )
-            argumentation_state = WorldlineArgumentationState.from_mapping(raw_argumentation_state)
             if argumentation_state is not None:
                 trace.dependency_claims.update(active_ids)
         except Exception as exc:

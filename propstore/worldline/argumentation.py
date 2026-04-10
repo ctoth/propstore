@@ -17,13 +17,14 @@ from propstore.world.types import (
 )
 from propstore.worldline.definition import WorldlineDefinition
 from propstore.worldline.interfaces import HasActiveGraph, WorldlineBoundView, WorldlineStore
+from propstore.worldline.result_types import WorldlineArgumentationState
 
 
 def capture_argumentation_state(
     bound: WorldlineBoundView,
     world: WorldlineStore,
     definition: WorldlineDefinition,
-) -> tuple[dict[str, Any] | None, list[str], set[ClaimId]]:
+) -> tuple[WorldlineArgumentationState | None, list[str], set[ClaimId]]:
     from propstore.world import ReasoningBackend
 
     active = coerce_active_claims(bound.active_claims())
@@ -35,7 +36,7 @@ def capture_argumentation_state(
         definition.policy.semantics,
     )
 
-    argumentation_state: dict[str, Any] | None = None
+    argumentation_state: WorldlineArgumentationState | None = None
     if (
         reasoning_backend == ReasoningBackend.CLAIM_GRAPH
         and world.has_table("relation_edge")
@@ -75,7 +76,7 @@ def capture_argumentation_state(
         )
 
     stance_dependencies: list[str] = []
-    if argumentation_state is not None and argumentation_state.get("backend") != "atms":
+    if argumentation_state is not None and argumentation_state.backend != "atms":
         stance_dependencies = active_stance_dependencies(bound, world, active_ids)
 
     return argumentation_state, stance_dependencies, active_ids
@@ -87,7 +88,7 @@ def _capture_claim_graph(
     active_graph: Any,
     policy: RenderPolicy,
     normalized_semantics: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineArgumentationState | None:
     justified_claims: frozenset[ClaimId] | None = None
     if active_graph is not None:
         from propstore.core.analyzers import (
@@ -125,10 +126,11 @@ def _capture_claim_graph(
     if justified_claims is None:
         return None
     defeated = active_ids - justified_claims
-    return {
-        "justified": sorted(justified_claims),
-        "defeated": sorted(defeated),
-    }
+    return WorldlineArgumentationState(
+        backend="claim_graph",
+        justified=tuple(sorted(str(claim_id) for claim_id in justified_claims)),
+        defeated=tuple(sorted(str(claim_id) for claim_id in defeated)),
+    )
 
 
 def _capture_aspic(
@@ -139,7 +141,7 @@ def _capture_aspic(
     active_graph: Any,
     policy: RenderPolicy,
     normalized_semantics: Any,
-) -> dict[str, Any] | None:
+) -> WorldlineArgumentationState | None:
     from propstore.world import ReasoningBackend
     from propstore.structured_projection import (
         build_structured_projection,
@@ -172,22 +174,24 @@ def _capture_aspic(
         for arg_id in justified_arguments
     }
     defeated = active_ids - justified_claim_ids
-    return {
-        "backend": "aspic",
-        "justified": sorted(justified_claim_ids),
-        "defeated": sorted(defeated),
-    }
+    return WorldlineArgumentationState(
+        backend="aspic",
+        justified=tuple(sorted(str(claim_id) for claim_id in justified_claim_ids)),
+        defeated=tuple(sorted(str(claim_id) for claim_id in defeated)),
+    )
 
 
 def _capture_atms(
     bound: WorldlineBoundView,
     policy: RenderPolicy,
-) -> dict[str, Any] | None:
+) -> WorldlineArgumentationState | None:
     if not isinstance(bound, HasATMSEngine):
         return None
-    return bound.atms_engine().argumentation_state(
-        queryables=coerce_queryable_assumptions(policy.future_queryables),
-        future_limit=policy.future_limit or 8,
+    return WorldlineArgumentationState.from_mapping(
+        bound.atms_engine().argumentation_state(
+            queryables=coerce_queryable_assumptions(policy.future_queryables),
+            future_limit=policy.future_limit or 8,
+        )
     )
 
 
@@ -197,7 +201,7 @@ def _capture_praf(
     active_graph: Any,
     policy: RenderPolicy,
     normalized_semantics: Any,
-) -> dict[str, Any]:
+) -> WorldlineArgumentationState:
     praf_strategy = policy.praf_strategy or "auto"
     praf_mc_epsilon = policy.praf_mc_epsilon or 0.01
     praf_mc_confidence = policy.praf_mc_confidence or 0.95
@@ -253,14 +257,14 @@ def _capture_praf(
         samples = result.samples
         confidence_interval_half = result.confidence_interval_half
 
-    return {
-        "backend": "praf",
-        "acceptance_probs": acceptance_probs,
-        "strategy_used": strategy_used,
-        "samples": samples,
-        "confidence_interval_half": confidence_interval_half,
-        "semantics": normalized_semantics.value,
-    }
+    return WorldlineArgumentationState(
+        backend="praf",
+        acceptance_probs=acceptance_probs,
+        strategy_used=strategy_used,
+        samples=samples,
+        confidence_interval_half=confidence_interval_half,
+        semantics=normalized_semantics.value,
+    )
 
 
 def _stance_dependency_key(row: StanceRow) -> str:
