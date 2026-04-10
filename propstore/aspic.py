@@ -143,6 +143,19 @@ class PremiseArg:
     premise: Literal
     is_axiom: bool  # True if in K_n, False if in K_p
 
+    def __eq__(self, other: object) -> bool:
+        if self is other:
+            return True
+        if not isinstance(other, PremiseArg):
+            return NotImplemented
+        return (
+            self.premise == other.premise
+            and self.is_axiom == other.is_axiom
+        )
+
+    def __hash__(self) -> int:
+        return hash((PremiseArg, self.premise, self.is_axiom))
+
 
 @dataclass(frozen=True)
 class StrictArg:
@@ -150,12 +163,32 @@ class StrictArg:
     sub_args: tuple[Argument, ...]
     rule: Rule  # must have kind == "strict"
 
+    def __eq__(self, other: object) -> bool:
+        if self is other:
+            return True
+        if not isinstance(other, StrictArg):
+            return NotImplemented
+        return self.sub_args == other.sub_args and self.rule == other.rule
+
+    def __hash__(self) -> int:
+        return hash((StrictArg, self.sub_args, self.rule))
+
 
 @dataclass(frozen=True)
 class DefeasibleArg:
     """Argument via defeasible rule. Modgil & Prakken 2018, Def 5 clause 3."""
     sub_args: tuple[Argument, ...]
     rule: Rule  # must have kind == "defeasible"
+
+    def __eq__(self, other: object) -> bool:
+        if self is other:
+            return True
+        if not isinstance(other, DefeasibleArg):
+            return NotImplemented
+        return self.sub_args == other.sub_args and self.rule == other.rule
+
+    def __hash__(self) -> int:
+        return hash((DefeasibleArg, self.sub_args, self.rule))
 
 
 Argument: TypeAlias = Union[PremiseArg, StrictArg, DefeasibleArg]
