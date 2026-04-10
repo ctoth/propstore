@@ -1184,6 +1184,7 @@ class TestSemanticCorePhase7Worldlines:
         assert result.values["target"].value == 10.0
         assert result.argumentation is not None
         assert result.argumentation.to_dict() == {
+            "backend": "claim_graph",
             "justified": ["claim_a"],
             "defeated": ["claim_b"],
         }
