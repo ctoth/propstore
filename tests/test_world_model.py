@@ -15,7 +15,11 @@ import sqlite3
 import pytest
 import yaml
 
-from propstore.core.row_types import coerce_conflict_row, coerce_stance_row
+from propstore.core.row_types import (
+    coerce_concept_row,
+    coerce_conflict_row,
+    coerce_stance_row,
+)
 from propstore.sidecar.build import build_sidecar
 from propstore.identity import compute_claim_version_id, derive_concept_artifact_id
 from tests.conftest import create_world_model_schema, make_claim_identity
@@ -512,7 +516,7 @@ class TestUnboundQueries:
     def test_get_concept(self, world):
         c = world.get_concept("fundamental_frequency")
         assert c is not None
-        assert c["canonical_name"] == "fundamental_frequency"
+        assert coerce_concept_row(c).canonical_name == "fundamental_frequency"
 
     def test_get_concept_missing(self, world):
         assert world.get_concept("nonexistent") is None

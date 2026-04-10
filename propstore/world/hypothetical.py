@@ -192,21 +192,17 @@ class _GraphOverlayStore:
     def __getattr__(self, name: str):
         return getattr(self._base, name)
 
-    def get_concept(self, concept_id: str) -> dict | None:
+    def get_concept(self, concept_id: str):
         getter = getattr(self._base, "get_concept", None)
         if callable(getter):
             concept = getter(concept_id)
-            if concept is None:
-                return None
-            if isinstance(concept, Mapping):
-                return dict(concept)
-            return coerce_concept_row(concept).to_dict()
+            return concept
         if not hasattr(self._base, "all_concepts"):
             return None
         for concept_input in self._base.all_concepts():
             concept = coerce_concept_row(concept_input)
             if str(concept.concept_id) == concept_id or concept.canonical_name == concept_id:
-                return concept.to_dict()
+                return concept
         return None
 
     def get_claim(self, claim_id: str) -> dict | None:

@@ -20,6 +20,7 @@ from propstore.cel_checker import (
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.form_utils import kind_type_from_form_name
 from propstore.core.labels import Label, SupportQuality
+from propstore.core.row_types import ConceptRowInput, coerce_concept_row
 from propstore.world.types import (
     ArgumentationSemantics,
     ArtifactStore,
@@ -207,10 +208,10 @@ def _resolve_sample_size(
     return None, f"tied sample_size ({best_n}): {', '.join(best_claims)}"
 
 
-def _normalized_form_parameters(concept: Mapping[str, object] | None) -> Mapping[str, object]:
+def _normalized_form_parameters(concept: ConceptRowInput | None) -> Mapping[str, object]:
     if concept is None:
         return {}
-    raw = concept.get("form_parameters")
+    raw = coerce_concept_row(concept).form_parameters
     if isinstance(raw, Mapping):
         return raw
     if isinstance(raw, str):
@@ -230,10 +231,12 @@ def _concept_integrity_constraints(
     concept = world.get_concept(concept_id)
     if concept is None:
         return tuple()
+    concept_row = coerce_concept_row(concept)
+    concept_data = concept_row.to_dict()
 
     constraints: list[IntegrityConstraint] = []
-    lower = concept.get("range_min")
-    upper = concept.get("range_max")
+    lower = concept_data.get("range_min")
+    upper = concept_data.get("range_max")
     if lower is not None or upper is not None:
         constraints.append(
             IntegrityConstraint(
@@ -245,7 +248,7 @@ def _concept_integrity_constraints(
         )
 
     form_parameters = _normalized_form_parameters(concept)
-    if concept.get("form") == "category":
+    if concept_row.form == "category":
         values = form_parameters.get("values")
         extensible = form_parameters.get("extensible", True)
         if isinstance(values, list | tuple) and not extensible:
@@ -298,7 +301,7 @@ def _cel_registry_for_concepts(
     concept_ids: Sequence[str],
 ) -> dict[str, ConceptInfo]:
     records = [
-        concept
+        coerce_concept_row(concept).to_dict()
         for concept_id in concept_ids
         if (concept := world.get_concept(concept_id)) is not None
     ]

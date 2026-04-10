@@ -330,7 +330,12 @@ class BoundWorld(BeliefSpace):
         candidates: list[str] = []
         getter = getattr(self._store, "get_concept", None)
         if callable(getter):
-            concept = getter(str(concept_id))
+            concept_input = getter(str(concept_id))
+            concept = (
+                None
+                if concept_input is None
+                else coerce_concept_row(concept_input).to_dict()
+            )
         elif not hasattr(self._store, "all_concepts"):
             concept = None
         else:

@@ -63,7 +63,11 @@ def show(obj: dict, claim_id: str) -> None:
         if concept_id:
             concept = wm.get_concept(concept_id)
             if concept:
-                canonical_unit = concept.get("unit_symbol") or ""
+                from propstore.core.row_types import coerce_concept_row
+
+                canonical_unit = (
+                    str(coerce_concept_row(concept).attributes.get("unit_symbol") or "")
+                )
 
         if value is not None:
             click.echo(f"  value: {value} {unit}".rstrip())

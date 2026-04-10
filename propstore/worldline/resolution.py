@@ -7,6 +7,7 @@ from typing import Any
 
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import ArtifactStore, ParameterizationLookupStore
+from propstore.core.row_types import coerce_concept_row
 from propstore.world.types import DerivedResult, RenderPolicy
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
 from propstore.worldline.trace import ResolutionTrace
@@ -29,7 +30,7 @@ class ResolutionContext:
 
 def concept_name(world: ArtifactStore, concept_id: ConceptId | str) -> str:
     concept = world.get_concept(concept_id)
-    return concept["canonical_name"] if concept else concept_id
+    return coerce_concept_row(concept).canonical_name if concept else str(concept_id)
 
 
 def resolve_concept_name(world: ArtifactStore, name: str) -> ConceptId | None:
