@@ -19,10 +19,8 @@ import yaml
 
 from propstore.document_schema import DocumentSchemaError
 from propstore.core.concepts import LoadedConcept, parse_concept_record
-from propstore.validate import (
-    load_concepts,
-    validate_concepts,
-)
+from propstore.core.concepts import load_concepts
+from propstore.validate import validate_concepts
 from tests.conftest import (
     attach_concept_version_id,
     make_concept_identity,

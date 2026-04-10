@@ -105,11 +105,14 @@ def _bind_world(
 def validate(obj: dict) -> None:
     """Validate all concepts and claims. Runs CEL type-checking."""
     from propstore.compiler.context import build_compilation_context_from_repo
-    from propstore.validate import load_concepts, validate_concepts
-    from propstore.validate_claims import (
-        load_claim_files,
-        validate_claims,
-    )
+    from propstore.core.concepts import load_concepts
+    from propstore.validate import validate_concepts
+    from propstore.claim_documents import load_claim_files
+    from propstore.validate_claims import validate_claims
+
+
+
+
 
     repo: Repository = obj["repo"]
     tree = repo.tree()
@@ -187,8 +190,9 @@ def build(obj: dict, output: str | None, force: bool) -> None:
     from propstore.compiler.context import build_compilation_context_from_paths
     from propstore.compiler.passes import compile_claim_files
     from propstore.sidecar.build import build_sidecar
-    from propstore.validate import load_concepts, validate_concepts
-    from propstore.validate_claims import load_claim_files
+    from propstore.core.concepts import load_concepts
+    from propstore.validate import validate_concepts
+    from propstore.claim_documents import load_claim_files
 
     repo: Repository = obj["repo"]
     git = repo.git
@@ -398,7 +402,7 @@ def export_aliases(obj: dict, fmt: str) -> None:
         click.echo("ERROR: No concepts directory.", err=True)
         sys.exit(1)
 
-    from propstore.validate import load_concepts
+    from propstore.core.concepts import load_concepts
 
     concepts = load_concepts(concepts_root)
     aliases: dict[str, dict[str, str]] = {}
@@ -2144,7 +2148,7 @@ def world_check_consistency(obj: dict, args: tuple[str, ...],
         bindings, _ = _parse_bindings(args)
         if transitive:
             from propstore.conflict_detector import detect_transitive_conflicts
-            from propstore.validate_claims import load_claim_files
+            from propstore.claim_documents import load_claim_files
 
             claim_files = load_claim_files(repo.tree() / "claims")
             concept_registry: dict[str, dict] = {}

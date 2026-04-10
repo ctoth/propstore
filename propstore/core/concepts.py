@@ -7,7 +7,7 @@ from typing import Any
 
 import msgspec
 
-from propstore.document_schema import DocumentStruct
+from propstore.document_schema import DocumentStruct, load_document
 from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
 from propstore.identity import (
     compute_concept_version_id,
@@ -708,3 +708,21 @@ def primary_logical_id(record: ConceptRecord) -> str | None:
 
 def format_loaded_concept_logical_ids(record: ConceptRecord) -> list[dict[str, str]]:
     return [logical_id.to_payload() for logical_id in record.logical_ids]
+
+
+def load_concepts(concepts_root: KnowledgePath | None) -> list[LoadedConcept]:
+    """Load all canonical concept YAML files from a concept subtree."""
+
+    if concepts_root is None or not concepts_root.is_dir():
+        return []
+    knowledge_root = concepts_root.parent if concepts_root.name else concepts_root
+    loaded_documents = [
+        load_document(
+            entry,
+            ConceptDocument,
+            knowledge_root=knowledge_root,
+        )
+        for entry in concepts_root.iterdir()
+        if entry.is_file() and entry.suffix == ".yaml"
+    ]
+    return normalize_loaded_concepts(loaded_documents)

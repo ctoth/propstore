@@ -34,8 +34,10 @@ from propstore.core.concepts import LoadedConcept, parse_concept_record
 from propstore.form_utils import load_form_path
 from propstore.knowledge_path import KnowledgePath
 from propstore.cli.repository import Repository
-from propstore.validate import load_concepts, validate_concepts
-from propstore.validate_claims import load_claim_files, validate_claims
+from propstore.core.concepts import load_concepts
+from propstore.validate import validate_concepts
+from propstore.claim_documents import load_claim_files
+from propstore.validate_claims import validate_claims
 
 RELATIONSHIP_TYPES = (
     "broader", "narrower", "related",

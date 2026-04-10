@@ -24,7 +24,6 @@ from propstore.cel_checker import (
     build_cel_registry_from_concepts,
     check_cel_expression,
 )
-from propstore.document_schema import load_document
 from propstore.form_utils import kind_type_from_form_name, load_form_path
 from propstore.identity import (
     CONCEPT_ARTIFACT_ID_RE,
@@ -37,6 +36,7 @@ from propstore.identity import (
 from propstore.core.concepts import (
     ConceptDocument,
     LoadedConcept,
+    load_concepts,
     normalize_loaded_concepts,
 )
 from propstore.diagnostics import ValidationResult
@@ -66,24 +66,6 @@ def load_yaml_dir(directory: Path) -> list[tuple[str, Path, dict]]:
     return results
 
 
-def load_concepts(concepts_root: KnowledgePath | None) -> list[LoadedConcept]:
-    """Load all canonical concept YAML files from a concept subtree."""
-
-    if concepts_root is None or not concepts_root.is_dir():
-        return []
-    knowledge_root = concepts_root.parent if concepts_root.name else concepts_root
-    loaded_documents = [
-        load_document(
-            entry,
-            ConceptDocument,
-            knowledge_root=knowledge_root,
-        )
-        for entry in concepts_root.iterdir()
-        if entry.is_file() and entry.suffix == ".yaml"
-    ]
-    return normalize_loaded_concepts(loaded_documents)
-
-
 VALID_RELATIONSHIP_TYPES = frozenset([
     "broader", "narrower", "related", "component_of",
     "derived_from", "contested_definition",
@@ -92,7 +74,7 @@ VALID_RELATIONSHIP_TYPES = frozenset([
 
 def _load_all_claim_ids(claims_dir: KnowledgePath | None) -> set[str]:
     """Load all claim IDs from claim YAML files in the given directory."""
-    from propstore.validate_claims import load_claim_files
+    from propstore.claim_documents import load_claim_files
 
     claim_ids: set[str] = set()
     for claim_file in load_claim_files(claims_dir):

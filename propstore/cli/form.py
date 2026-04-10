@@ -11,7 +11,7 @@ from propstore.cli.helpers import EXIT_ERROR
 from propstore.cli.repository import Repository
 from propstore.document_schema import DocumentSchemaError
 from propstore.form_utils import load_all_forms_path, load_form_definition, load_form_path
-from propstore.validate import load_concepts
+from propstore.core.concepts import load_concepts
 
 
 @click.group()

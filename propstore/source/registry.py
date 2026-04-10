@@ -12,7 +12,7 @@ from propstore.source_documents import SourceConceptsDocument
 
 
 def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
-    from propstore.validate import load_concepts
+    from propstore.core.concepts import load_concepts
 
     primary_tip = repo.git.branch_sha(repo.git.primary_branch_name())
     if primary_tip is None:
@@ -44,7 +44,7 @@ def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, 
 
 
 def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
-    from propstore.validate import load_concepts
+    from propstore.core.concepts import load_concepts
 
     primary_tip = repo.git.branch_sha(repo.git.primary_branch_name())
     if primary_tip is None:
