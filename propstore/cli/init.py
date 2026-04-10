@@ -25,9 +25,11 @@ def _seed_form_files() -> dict[str, bytes]:
 def init(obj: dict, directory: str) -> None:
     """Initialize a new propstore project directory.
 
-    Creates the standard directory structure (concepts/, claims/, sidecar/)
-    needed for pks to operate. If no DIRECTORY argument is given, creates
-    a ``knowledge/`` directory in the current working directory.
+    Creates the standard knowledge tree (concepts/, claims/, contexts/,
+    forms/, justifications/, sidecar/, sources/, stances/, worldlines/)
+    as a git-backed repository, and seeds the packaged default forms.
+    If no DIRECTORY argument is given, creates a ``knowledge/`` directory
+    in the current working directory.
     """
     start = (obj or {}).get("start")
     if start is not None:
