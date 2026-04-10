@@ -460,7 +460,13 @@ def similar(obj: dict, claim_id: str, model: str | None, top_k: int, agree: bool
 @click.option("--second-pass-threshold", default=0.75, type=float, help="Distance threshold for second-pass NLI")
 @click.pass_obj
 def relate(obj, claim_id, relate_all_flag, model, embedding_model, top_k, concurrency, second_pass_threshold):
-    """Classify epistemic relationships between similar claims via LLM."""
+    """Classify epistemic relationships between similar claims via LLM.
+
+    Uses embedding similarity to pick top-k candidates per claim, then calls
+    the LLM to label each (support / rebut / refine / etc.) and commits the
+    classifications as stance proposal files to the STANCE_PROPOSAL_BRANCH.
+    The main branch is not mutated; promote proposals into source-of-truth
+    storage with ``pks promote``."""
     from propstore.proposals import STANCE_PROPOSAL_BRANCH, commit_stance_proposals
     from propstore.relate import relate_claim, relate_all as relate_all_fn
     from propstore.embed import _load_vec_extension
