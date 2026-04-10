@@ -17,6 +17,7 @@ from propstore.structured_projection import (
 from propstore.dung import ArgumentationFramework, grounded_extension
 from propstore.world.bound import BoundWorld
 from propstore.core.labels import Label, compile_environment_assumptions
+from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from propstore.world.resolution import resolve
 from propstore.world.types import Environment, ReasoningBackend, ResolutionStrategy
 from propstore.worldline import WorldlineDefinition, run_worldline
@@ -67,7 +68,7 @@ class _ProjectionStore:
             if claim["id"] in claim_ids
         }
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+    def stances_between(self, claim_ids: set[str]) -> list[StanceRowInput]:
         return [
             stance
             for stance in self._stances
@@ -83,13 +84,13 @@ class _ProjectionStore:
     def parameterizations_for(self, concept_id: str) -> list[dict]:
         return []
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self) -> list[ConflictRowInput]:
         return []
 
     def all_concepts(self) -> list[dict]:
         return []
 
-    def explain(self, claim_id: str) -> list[dict]:
+    def explain(self, claim_id: str) -> list[StanceRowInput]:
         return []
 
     def get_claim(self, claim_id: str) -> dict | None:

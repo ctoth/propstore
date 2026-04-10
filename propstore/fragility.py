@@ -1003,8 +1003,8 @@ def _conflict_dimension(
                 framework = shared.argumentation_framework
                 max_score = 0.0
                 for c in conflicts:
-                    a_id = c.get("claim_a_id", "")
-                    b_id = c.get("claim_b_id", "")
+                    a_id = str(c.claim_a_id)
+                    b_id = str(c.claim_b_id)
                     if a_id and b_id:
                         s = score_conflict(framework, a_id, b_id)
                         max_score = max(max_score, s)
@@ -1024,8 +1024,8 @@ def _conflict_dimension(
             "conflict_count": len(conflicts),
             "conflicts": [
                 {
-                    "claim_a": c.get("claim_a_id", ""),
-                    "claim_b": c.get("claim_b_id", ""),
+                    "claim_a": str(c.claim_a_id),
+                    "claim_b": str(c.claim_b_id),
                 }
                 for c in conflicts[:5]  # Limit detail size
             ],

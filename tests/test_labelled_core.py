@@ -13,6 +13,7 @@ from propstore.core.labels import (
     compile_environment_assumptions,
     merge_labels,
 )
+from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from propstore.world.types import DerivedResult, Environment, ValueResult
 from propstore.worldline import WorldlineDefinition, run_worldline
 
@@ -64,13 +65,13 @@ class _StubStore:
     def condition_solver(self) -> _ExactMatchSolver:
         return _ExactMatchSolver()
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self) -> list[ConflictRowInput]:
         return []
 
     def all_concepts(self) -> list[dict]:
         return []
 
-    def explain(self, claim_id: str) -> list[dict]:
+    def explain(self, claim_id: str) -> list[StanceRowInput]:
         return []
 
     def get_claim(self, claim_id: str) -> dict | None:

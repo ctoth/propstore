@@ -6,6 +6,7 @@ from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.justifications import claim_justifications_from_active_graph
 from propstore.core.labels import compile_environment_assumptions
+from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from propstore.world.types import Environment
 
 
@@ -26,7 +27,7 @@ class _JustificationStore:
             return list(self._claims)
         return [claim for claim in self._claims if claim["concept_id"] == concept_id]
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+    def stances_between(self, claim_ids: set[str]) -> list[StanceRowInput]:
         return [
             stance
             for stance in self._stances
@@ -39,7 +40,7 @@ class _JustificationStore:
     def all_relationships(self) -> list[dict]:
         return []
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self) -> list[ConflictRowInput]:
         return []
 
     def all_concepts(self) -> list[dict]:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from propstore.world import BoundWorld, Environment, ReasoningBackend, RenderPolicy
+from propstore.core.row_types import ConflictRowInput, StanceRowInput
 from tests.atms_helpers import _ExactMatchSolver, _LeafHierarchy, _OverlapSolver
 
 
@@ -25,14 +26,14 @@ class _RevisionStore:
     def parameterizations_for(self, concept_id: str) -> list[dict]:
         return []
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self) -> list[ConflictRowInput]:
         return []
 
     def all_concepts(self) -> list[dict]:
         concept_ids = sorted({claim["concept_id"] for claim in self._claims})
         return [{"id": concept_id, "canonical_name": concept_id} for concept_id in concept_ids]
 
-    def explain(self, claim_id: str) -> list[dict]:
+    def explain(self, claim_id: str) -> list[StanceRowInput]:
         return []
 
     def condition_solver(self):

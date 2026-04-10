@@ -4,6 +4,7 @@ import json
 
 from propstore.world import BoundWorld, Environment, HypotheticalWorld, RenderPolicy, ResolutionStrategy, SyntheticClaim
 from propstore.core.labels import compile_environment_assumptions
+from propstore.core.row_types import ConflictRowInput, StanceRowInput
 
 
 class _ExactMatchSolver:
@@ -71,10 +72,10 @@ class _Store:
     def condition_solver(self) -> _ExactMatchSolver:
         return _ExactMatchSolver()
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self) -> list[ConflictRowInput]:
         return []
 
-    def explain(self, claim_id: str) -> list[dict]:
+    def explain(self, claim_id: str) -> list[StanceRowInput]:
         return []
 
 

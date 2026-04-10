@@ -13,6 +13,8 @@ from propstore.core.environment import ArtifactStore, ConceptCatalogStore
 from propstore.core.id_types import ConceptId, to_context_id
 from propstore.core.row_types import (
     ClaimRowInput,
+    ConflictRow,
+    StanceRow,
     coerce_claim_row,
     coerce_concept_row,
     coerce_conflict_row,
@@ -98,7 +100,7 @@ def _concept_registry_for_store(world) -> dict[str, dict]:
     return registry
 
 
-def _recomputed_conflicts(world, claims: list[ActiveClaim]) -> list[dict]:
+def _recomputed_conflicts(world, claims: list[ActiveClaim]) -> list[ConflictRow]:
     from propstore.conflict_detector import detect_conflicts
     from propstore.loaded import LoadedEntry
 
@@ -124,17 +126,19 @@ def _recomputed_conflicts(world, claims: list[ActiveClaim]) -> list[dict]:
         context_hierarchy=context_hierarchy,
     )
     return [
-        {
-            "concept_id": record.concept_id,
-            "claim_a_id": record.claim_a_id,
-            "claim_b_id": record.claim_b_id,
-            "warning_class": record.warning_class.value,
-            "conditions_a": record.conditions_a,
-            "conditions_b": record.conditions_b,
-            "value_a": record.value_a,
-            "value_b": record.value_b,
-            "derivation_chain": record.derivation_chain,
-        }
+        ConflictRow(
+            concept_id=record.concept_id,
+            claim_a_id=record.claim_a_id,
+            claim_b_id=record.claim_b_id,
+            warning_class=record.warning_class.value,
+            attributes={
+                "conditions_a": record.conditions_a,
+                "conditions_b": record.conditions_b,
+                "value_a": record.value_a,
+                "value_b": record.value_b,
+                "derivation_chain": record.derivation_chain,
+            },
+        )
         for record in records
     ]
 
@@ -190,7 +194,7 @@ class BoundWorld(BeliefSpace):
                 self._context_visible.add(ancestor)
         else:
             self._context_visible = None  # no context filtering
-        self._conflicts_cache: dict[str | None, list[dict]] = {}
+        self._conflicts_cache: dict[str | None, list[ConflictRow]] = {}
         self._resolver = ActiveClaimResolver(
             parameterizations_for=lambda concept_id: [
                 coerce_parameterization_row(
@@ -844,7 +848,7 @@ class BoundWorld(BeliefSpace):
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status == "determined"
 
-    def conflicts(self, concept_id: str | None = None) -> list[dict]:
+    def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
         """Return active conflicts, revalidated against the current belief space."""
         resolved_concept_id = (
             self._store.resolve_concept(concept_id) or concept_id
@@ -856,7 +860,7 @@ class BoundWorld(BeliefSpace):
         active_claims = self.active_claims(resolved_concept_id)
         active_ids = {str(claim.claim_id) for claim in active_claims}
 
-        result: list[dict] = []
+        result: list[ConflictRow] = []
         all_conflicts = [
             coerce_conflict_row(conflict)
             for conflict in self._store.conflicts()
@@ -864,18 +868,22 @@ class BoundWorld(BeliefSpace):
         for conflict in all_conflicts:
             if conflict.claim_a_id in active_ids and conflict.claim_b_id in active_ids:
                 if resolved_concept_id is None or conflict.concept_id == resolved_concept_id:
-                    result.append(conflict.to_dict())
-        seen = {(c["claim_a_id"], c["claim_b_id"], c.get("concept_id")) for c in result}
+                    result.append(conflict)
+        seen = {
+            (str(conflict.claim_a_id), str(conflict.claim_b_id), str(conflict.concept_id) if conflict.concept_id is not None else None)
+            for conflict in result
+        }
         for conflict in _recomputed_conflicts(self._store, active_claims):
-            key = (conflict["claim_a_id"], conflict["claim_b_id"], conflict.get("concept_id"))
-            reverse_key = (conflict["claim_b_id"], conflict["claim_a_id"], conflict.get("concept_id"))
+            concept_key = str(conflict.concept_id) if conflict.concept_id is not None else None
+            key = (str(conflict.claim_a_id), str(conflict.claim_b_id), concept_key)
+            reverse_key = (str(conflict.claim_b_id), str(conflict.claim_a_id), concept_key)
             if key not in seen and reverse_key not in seen:
                 result.append(conflict)
                 seen.add(key)
         self._conflicts_cache[resolved_concept_id] = result
         return result
 
-    def explain(self, claim_id: str) -> list[dict]:
+    def explain(self, claim_id: str) -> list[StanceRow]:
         """Stance walk filtered to active claims."""
         resolved_claim_id = (
             self._store.resolve_claim(claim_id) or claim_id
@@ -887,12 +895,12 @@ class BoundWorld(BeliefSpace):
             return []
 
         full_chain = self._store.explain(resolved_claim_id)
-        result = []
+        result: list[StanceRow] = []
         for stance_input in full_chain:
             stance = coerce_stance_row(stance_input)
             target = self._store.get_claim(stance.target_claim_id)
             if target is not None and self.is_active(target):
-                result.append(stance.to_dict())
+                result.append(stance)
         return result
 
     def _attach_value_label(self, result: ValueResult) -> ValueResult:

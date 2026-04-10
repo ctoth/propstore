@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sqlite3
 
+from propstore.core.row_types import ConflictRowInput, StanceRowInput
+
 
 class SQLiteArgumentationStore:
     def __init__(self, conn: sqlite3.Connection) -> None:
@@ -39,7 +41,7 @@ class SQLiteArgumentationStore:
         ).fetchall()
         return {row["id"]: dict(row) for row in rows}
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+    def stances_between(self, claim_ids: set[str]) -> list[StanceRowInput]:
         if not claim_ids:
             return []
         placeholders = ",".join("?" for _ in claim_ids)
@@ -73,7 +75,7 @@ class SQLiteArgumentationStore:
         ).fetchall()
         return [dict(row) for row in rows]
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self) -> list[ConflictRowInput]:
         try:
             rows = self._conn.execute(
                 """
