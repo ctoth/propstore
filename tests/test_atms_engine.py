@@ -5,6 +5,7 @@ import json
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.core.active_claims import ActiveClaim, coerce_active_claim
 from propstore.world import BoundWorld
 from propstore.core.labels import (
     EnvironmentKey,
@@ -87,6 +88,10 @@ class _ATMSStore:
         return {"id": concept_id, "canonical_name": concept_id}
 
 
+def _runtime_claim_id_set(claims) -> set[str]:
+    return {str(claim.claim_id) for claim in claims}
+
+
 def _make_bound(
     store: _ATMSStore,
     *,
@@ -137,28 +142,28 @@ class _GraphOnlyATMSRuntime:
         self._bound = bound
 
     @staticmethod
-    def _claim_node_to_row(claim_node) -> dict:
+    def _claim_node_to_claim(claim_node) -> ActiveClaim:
         row = {
             "id": claim_node.claim_id,
             "concept_id": claim_node.concept_id,
             "type": claim_node.claim_type,
             "value": claim_node.scalar_value,
+            **dict(claim_node.attributes),
         }
-        row.update(dict(claim_node.attributes))
-        return row
+        return coerce_active_claim(row)
 
     def is_parameterization_compatible(self, conditions: tuple[str, ...]) -> bool:
         if not conditions:
             return True
         return self._bound.is_param_compatible(json.dumps(list(conditions)))
 
-    def active_claims(self) -> list[dict]:
+    def active_claims(self) -> list[ActiveClaim]:
         compiled_claims = {
             claim.claim_id: claim
             for claim in self.active_graph.compiled.claims
         }
         return [
-            self._claim_node_to_row(compiled_claims[claim_id])
+            self._claim_node_to_claim(compiled_claims[claim_id])
             for claim_id in self.active_graph.active_claim_ids
             if claim_id in compiled_claims
         ]
@@ -192,7 +197,7 @@ class _GraphOnlyATMSRuntime:
     def is_param_compatible(self, conditions_cel: str | None) -> bool:
         return self._bound.is_param_compatible(conditions_cel)
 
-    def claim_support(self, claim_row: dict) -> tuple[Label | None, SupportQuality]:
+    def claim_support(self, claim_row: ActiveClaim) -> tuple[Label | None, SupportQuality]:
         return self._bound.claim_support(claim_row)
 
     def concept_status(self, concept_id: str) -> str:
@@ -397,7 +402,7 @@ def test_atms_supported_claims_are_subset_of_active_claims_and_ignore_semantic_o
     )
     bound = _make_bound(store, bindings={"x": 1})
 
-    active_ids = {claim["id"] for claim in bound.active_claims("concept1")}
+    active_ids = _runtime_claim_id_set(bound.active_claims("concept1"))
     supported_ids = bound.atms_engine().supported_claim_ids("concept1")
 
     assert supported_ids == {"claim_exact"}
@@ -411,7 +416,7 @@ def test_atms_supported_claims_are_subset_of_active_claims_and_ignore_semantic_o
         reasoning_backend=ReasoningBackend.ATMS,
     )
     assert result.status == "determined"
-    assert [claim["id"] for claim in result.claims] == ["claim_exact"]
+    assert [str(claim.claim_id) for claim in result.claims] == ["claim_exact"]
 
 
 def test_atms_does_not_fabricate_exact_support_from_context_visibility() -> None:
@@ -433,7 +438,7 @@ def test_atms_does_not_fabricate_exact_support_from_context_visibility() -> None
         effective_assumptions=("framework == 'general'",),
     )
 
-    assert {claim["id"] for claim in bound.active_claims("concept1")} == {"claim_ctx"}
+    assert _runtime_claim_id_set(bound.active_claims("concept1")) == {"claim_ctx"}
     assert bound.atms_engine().supported_claim_ids("concept1") == set()
     assert bound.value_of("concept1").status == "no_claims"
     assert bound.value_of("concept1").label is None
@@ -463,7 +468,7 @@ def test_atms_reconstructs_exact_support_for_context_scoped_claim_with_matching_
         if assumption.cel == "framework == 'general'"
     )
 
-    assert {claim["id"] for claim in bound.active_claims("concept1")} == {"claim_ctx_exact"}
+    assert _runtime_claim_id_set(bound.active_claims("concept1")) == {"claim_ctx_exact"}
     assert bound.atms_engine().supported_claim_ids("concept1") == {"claim_ctx_exact"}
     assert bound.atms_engine().claim_label("claim_ctx_exact") == Label(
         (EnvironmentKey((assumption_id,)),)

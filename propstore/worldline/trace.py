@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ClaimId, to_claim_id
 
 
@@ -25,11 +26,9 @@ class ResolutionTrace:
         if claim_id and not claim_id.startswith("__override_"):
             self.dependency_claims.add(to_claim_id(claim_id))
 
-    def record_claim_dependencies(self, claims: list[dict[str, Any]]) -> None:
+    def record_claim_dependencies(self, claims: list[ActiveClaim]) -> None:
         for claim in claims:
-            claim_id = claim.get("id")
-            if isinstance(claim_id, str):
-                self.record_claim_dependency(claim_id)
+            self.record_claim_dependency(str(claim.claim_id))
 
     def seen_concepts(self) -> set[str]:
         return {

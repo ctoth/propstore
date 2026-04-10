@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.environment import StanceStore
 from propstore.dung import (
@@ -53,7 +54,7 @@ class StructuredProjection:
 
 def build_structured_projection(
     store: StanceStore,
-    active_claims: list[dict],
+    active_claims: list[ActiveClaimInput],
     *,
     support_metadata: SupportMetadata | None = None,
     comparison: str = "elitist",
@@ -68,7 +69,7 @@ def build_structured_projection(
 
     return build_aspic_projection(
         store,
-        active_claims,
+        coerce_active_claims(active_claims),
         support_metadata=support_metadata,
         comparison=comparison,
         link=link,

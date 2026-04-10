@@ -1,36 +1,26 @@
 from __future__ import annotations
 
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import AssumptionId, to_claim_id
 from propstore.core.labels import SupportQuality
 
 from propstore.revision.state import BeliefAtom, BeliefBase, RevisionScope
 
 
-def _claim_atom_id(claim: dict) -> str | None:
-    logical_id = claim.get("logical_id") or claim.get("primary_logical_id")
+def _claim_atom_id(claim: ActiveClaim) -> str | None:
+    logical_id = claim.primary_logical_id
     if isinstance(logical_id, str) and logical_id:
         return f"claim:{logical_id.split(':', 1)[1] if ':' in logical_id else logical_id}"
 
-    logical_ids = claim.get("logical_ids")
-    if isinstance(logical_ids, list):
-        for entry in logical_ids:
-            if not isinstance(entry, dict):
-                continue
-            value = entry.get("value")
-            if isinstance(value, str) and value:
-                return f"claim:{value}"
+    for logical_id_entry in claim.logical_ids:
+        if logical_id_entry.value:
+            return f"claim:{logical_id_entry.value}"
 
-    claim_id = claim.get("id")
-    if not claim_id:
-        return None
-    return f"claim:{to_claim_id(claim_id)}"
+    return f"claim:{claim.claim_id}"
 
 
-def _claim_support_lookup_id(claim: dict) -> str | None:
-    claim_id = claim.get("id")
-    if claim_id:
-        return to_claim_id(claim_id)
-    return None
+def _claim_support_lookup_id(claim: ActiveClaim) -> str:
+    return to_claim_id(claim.claim_id)
 
 
 def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBase:
@@ -42,10 +32,8 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
     supporting_assumption_ids: set[AssumptionId] = set()
     support_sets: dict[str, tuple[tuple[AssumptionId, ...], ...]] = {}
     essential_support: dict[str, tuple[AssumptionId, ...]] = {}
-    for claim in sorted(bound.active_claims(None), key=lambda row: str(row.get("id") or "")):
-        claim_id = claim.get("id")
-        if not claim_id:
-            continue
+    for claim in sorted(bound.active_claims(None), key=lambda row: str(row.claim_id)):
+        claim_id = str(claim.claim_id)
         label, quality = bound.claim_support(claim)
         if quality is not SupportQuality.EXACT:
             continue
@@ -74,7 +62,7 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
             BeliefAtom(
                 atom_id=atom_id,
                 kind="claim",
-                payload=dict(claim),
+                payload=claim.to_dict(),
                 label=label,
             )
         )

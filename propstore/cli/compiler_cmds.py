@@ -957,7 +957,7 @@ def _format_status_value(status: object) -> str:
 
 def _support_metadata_for(
     bound: object,
-    active_claims: Sequence[dict[str, Any]],
+    active_claims: Sequence[Any],
 ) -> dict[str, tuple[Label | None, SupportQuality]]:
     from propstore.world.types import ClaimSupportView
 
@@ -966,9 +966,11 @@ def _support_metadata_for(
 
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     for claim in active_claims:
-        claim_id = claim.get("id")
-        if isinstance(claim_id, str) and claim_id:
-            support_metadata[claim_id] = bound.claim_support(claim)
+        claim_id = getattr(claim, "claim_id", None)
+        if claim_id is None and isinstance(claim, Mapping):
+            claim_id = claim.get("id")
+        if claim_id is not None:
+            support_metadata[str(claim_id)] = bound.claim_support(claim)
     return support_metadata
 
 
@@ -1000,16 +1002,16 @@ def world_atms_status(obj: dict, args: tuple[str, ...], context: str | None) -> 
     resolved = None
     if concept_id:
         resolved = _resolve_world_target(wm, concept_id)
-    active_claims = sorted(bound.active_claims(resolved), key=lambda claim: claim["id"])
+    active_claims = sorted(bound.active_claims(resolved), key=lambda claim: str(claim.claim_id))
     if not active_claims:
         click.echo("No active claims for the current ATMS view.")
         wm.close()
         return
 
     for claim in active_claims:
-        inspection = bound.claim_status(claim["id"])
+        inspection = bound.claim_status(str(claim.claim_id))
         click.echo(
-            f"{claim['id']}: status={inspection.status.value} "
+            f"{claim.claim_id}: status={inspection.status.value} "
             f"support_quality={inspection.support_quality.value} "
             f"essential_support={_format_assumption_ids(inspection.essential_support.assumption_ids if inspection.essential_support else ())}"
         )
@@ -1037,7 +1039,7 @@ def world_atms_context(obj: dict, args: tuple[str, ...], context: str | None) ->
     if concept_id:
         resolved = _resolve_world_target(wm, concept_id)
         allowed = {
-            claim["id"]
+            str(claim.claim_id)
             for claim in bound.active_claims(resolved)
         }
         claim_ids = [claim_id for claim_id in claim_ids if claim_id in allowed]
@@ -1579,14 +1581,16 @@ def world_extensions(obj: dict, args: tuple[str, ...],
 
     repo: Repository = obj["repo"]
     with open_world_model(repo) as wm:
+        from propstore.core.active_claims import coerce_active_claims
+
         bindings, _ = _parse_bindings(args)
         bound = _bind_world(wm, bindings, context_id=context)
-        active = bound.active_claims()
+        active = coerce_active_claims(bound.active_claims())
         if not active:
             click.echo("No active claims for given bindings.")
             return
 
-        claim_ids = {c["id"] for c in active}
+        claim_ids = {str(claim.claim_id) for claim in active}
         backend = normalize_reasoning_backend(backend_name)
 
         if backend == ReasoningBackend.ATMS:
@@ -1621,7 +1625,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             click.echo(f"Stances: {summary['total_stances']} total, "
                        f"{summary['included_as_attacks']} included as attacks")
             click.echo("\nAcceptance probabilities:")
-            claim_map = {c["id"]: c for c in active}
+            claim_map = {str(claim.claim_id): claim for claim in active}
             acceptance_probs = praf_result.acceptance_probs or {}
             for cid, prob in sorted(
                 acceptance_probs.items(),
@@ -1630,8 +1634,8 @@ def world_extensions(obj: dict, args: tuple[str, ...],
                 c = claim_map.get(cid)
                 label = cid
                 if c:
-                    value = c.get("value")
-                    concept_id_val = c.get("concept_id")
+                    value = c.value
+                    concept_id_val = None if c.concept_id is None else str(c.concept_id)
                     if concept_id_val:
                         concept = wm.get_concept(concept_id_val)
                         if concept is None:
@@ -1698,16 +1702,16 @@ def world_extensions(obj: dict, args: tuple[str, ...],
         if summary["models"]:
             click.echo(f"Models: {', '.join(summary['models'])}")
 
-        claim_map = {c["id"]: c for c in active}
+        claim_map = {str(claim.claim_id): claim for claim in active}
 
         def _claim_label(cid: str) -> str:
             """Format a claim for display: id (type) concept = value."""
             c = claim_map.get(cid)
             if c is None:
                 return cid
-            ctype = c.get("type", "?")
-            concept_id = c.get("concept_id")
-            value = c.get("value")
+            ctype = c.claim_type or "?"
+            concept_id = None if c.concept_id is None else str(c.concept_id)
+            value = c.value
             cname = None
             if concept_id:
                 concept = wm.get_concept(concept_id)
@@ -1718,10 +1722,10 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             if ctype == "parameter" and value is not None:
                 return f"{cid}: {cname} = {value}"
             if ctype == "equation":
-                expr = c.get("expression", "")
+                expr = c.expression or ""
                 return f"{cid}: {expr}" if expr else f"{cid} ({ctype})"
             if ctype in ("observation", "limitation", "mechanism", "comparison"):
-                stmt = c.get("statement") or c.get("description") or ""
+                stmt = c.statement or c.description or ""
                 if len(stmt) > 60:
                     stmt = stmt[:57] + "..."
                 return f"{cid}: {stmt}" if stmt else f"{cid} ({ctype})"
@@ -1733,7 +1737,7 @@ def world_extensions(obj: dict, args: tuple[str, ...],
             groups: dict[str, list[str]] = {}
             for cid in sorted(cids):
                 c = claim_map.get(cid)
-                ctype = c.get("type", "unknown") if c else "unknown"
+                ctype = c.claim_type if c and c.claim_type else "unknown"
                 groups.setdefault(ctype, []).append(cid)
             return groups
 

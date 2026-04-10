@@ -44,6 +44,7 @@ from propstore.aspic import (
     top_rule,
     transposition_closure,
 )
+from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.justifications import (
     CanonicalJustification,
@@ -66,21 +67,17 @@ _ATTACK_TYPES = ATTACK_TYPES
 _SUPPORT_TYPES = SUPPORT_TYPES
 
 
-def _default_support_metadata(claim: dict) -> tuple[Label | None, SupportQuality]:
+def _claim_attr(claim: ActiveClaim, key: str) -> Any:
+    return getattr(claim, key, claim.attributes.get(key))
+
+
+def _default_support_metadata(claim: ActiveClaim) -> tuple[Label | None, SupportQuality]:
     """Compute default (label, support_quality) for a claim.
 
     Moved from structured_projection.py during Phase 5 cleanup.
     """
-    import json
-
-    has_context = claim.get("context_id") is not None
-    has_conditions = False
-    conds_json = claim.get("conditions_cel")
-    if conds_json:
-        try:
-            has_conditions = bool(json.loads(conds_json))
-        except Exception:
-            has_conditions = True
+    has_context = claim.context_id is not None
+    has_conditions = bool(claim.conditions)
     if has_context and has_conditions:
         return None, SupportQuality.MIXED
     if has_context:
@@ -93,7 +90,7 @@ def _default_support_metadata(claim: dict) -> tuple[Label | None, SupportQuality
 # ── T1: claims -> literals ────────────────────────────────────────
 
 
-def claims_to_literals(active_claims: list[dict]) -> dict[str, Literal]:
+def claims_to_literals(active_claims: list[ActiveClaimInput]) -> dict[str, Literal]:
     """Map each claim to a positive Literal.
 
     T1 (proposals/aspic-bridge-spec.md): Each claim becomes
@@ -109,9 +106,10 @@ def claims_to_literals(active_claims: list[dict]) -> dict[str, Literal]:
     Returns:
         Dict mapping claim_id -> Literal.
     """
+    normalized_claims = coerce_active_claims(active_claims)
     return {
-        claim["id"]: Literal(atom=claim["id"], negated=False)
-        for claim in active_claims
+        str(claim.claim_id): Literal(atom=str(claim.claim_id), negated=False)
+        for claim in normalized_claims
     }
 
 
@@ -269,7 +267,7 @@ def stances_to_contrariness(
 
 
 def claims_to_kb(
-    active_claims: list[dict],
+    active_claims: list[ActiveClaimInput],
     justifications: list[CanonicalJustification],
     literals: dict[str, Literal],
 ) -> KnowledgeBase:
@@ -297,7 +295,8 @@ def claims_to_kb(
         if j.rule_kind == "reported_claim"
     }
 
-    claim_by_id = {c["id"]: c for c in active_claims}
+    normalized_claims = coerce_active_claims(active_claims)
+    claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
     kn: set[Literal] = set()
     kp: set[Literal] = set()
 
@@ -308,7 +307,7 @@ def claims_to_kb(
         if claim is None:
             continue
         lit = literals[cid]
-        if claim.get("premise_kind") == "necessary":
+        if _claim_attr(claim, "premise_kind") == "necessary":
             kn.add(lit)
         else:
             kp.add(lit)
@@ -349,7 +348,7 @@ def _transitive_closure(pairs: set[tuple[Literal, Literal]]) -> frozenset[tuple[
 
 
 def build_preference_config(
-    active_claims: list[dict],
+    active_claims: list[ActiveClaimInput],
     literals: dict[str, Literal],
     defeasible_rules: frozenset[Rule],
     *,
@@ -373,7 +372,8 @@ def build_preference_config(
     Returns:
         PreferenceConfig with premise_order and empty rule_order.
     """
-    claim_by_id = {c["id"]: c for c in active_claims}
+    normalized_claims = coerce_active_claims(active_claims)
+    claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
     premise_order: set[tuple[Literal, Literal]] = set()
 
     claim_ids = list(literals.keys())
@@ -449,7 +449,7 @@ def _build_language(
 
 
 def build_bridge_csaf(
-    active_claims: list[dict],
+    active_claims: list[ActiveClaimInput],
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceRowInput],
     *,
@@ -473,7 +473,8 @@ def build_bridge_csaf(
         A complete CSAF with arguments, attacks, defeats, and Dung AF.
     """
     # T1: claims -> literals
-    lits = claims_to_literals(active_claims)
+    normalized_claims = coerce_active_claims(active_claims)
+    lits = claims_to_literals(normalized_claims)
 
     # T2: justifications -> rules
     strict_rules, defeasible_rules = justifications_to_rules(justifications, lits)
@@ -482,7 +483,7 @@ def build_bridge_csaf(
     contrariness = stances_to_contrariness(stances, lits, defeasible_rules)
 
     # T4: claims -> KB
-    kb = claims_to_kb(active_claims, justifications, lits)
+    kb = claims_to_kb(normalized_claims, justifications, lits)
 
     # Build the language (before transposition, to bootstrap)
     language = _build_language(lits, strict_rules, defeasible_rules, kb)
@@ -494,7 +495,13 @@ def build_bridge_csaf(
     language = _build_language(lits, closed_strict, defeasible_rules, kb)
 
     # T5: preferences
-    pref = build_preference_config(active_claims, lits, defeasible_rules, comparison=comparison, link=link)
+    pref = build_preference_config(
+        normalized_claims,
+        lits,
+        defeasible_rules,
+        comparison=comparison,
+        link=link,
+    )
 
     # Build ArgumentationSystem
     system = ArgumentationSystem(
@@ -552,7 +559,7 @@ def build_bridge_csaf(
 
 def csaf_to_projection(
     csaf: CSAF,
-    active_claims: list[dict],
+    active_claims: list[ActiveClaimInput],
     *,
     support_metadata: SupportMetadata | None = None,
 ) -> StructuredProjection:
@@ -574,8 +581,9 @@ def csaf_to_projection(
         StructuredProjection with arguments, framework, and mappings.
     """
     metadata = support_metadata or {}
-    claim_id_set = {c["id"] for c in active_claims}
-    claim_by_id = {c["id"]: c for c in active_claims}
+    normalized_claims = coerce_active_claims(active_claims)
+    claim_id_set = {str(claim.claim_id) for claim in normalized_claims}
+    claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
 
     projected_args: list[StructuredArgument] = []
     projected_arg_ids: set[str] = set()
@@ -640,7 +648,9 @@ def csaf_to_projection(
         sa = StructuredArgument(
             arg_id=arg_id,
             claim_id=cid,
-            conclusion_concept_id=claim.get("concept_id"),
+            conclusion_concept_id=(
+                None if claim.concept_id is None else str(claim.concept_id)
+            ),
             premise_claim_ids=premise_claim_ids,
             label=label,
             strength=strength,
@@ -693,7 +703,7 @@ def csaf_to_projection(
 
 def _extract_stance_rows(
     store: StanceStore,
-    active_by_id: dict[str, dict],
+    active_by_id: dict[str, ActiveClaim],
     *,
     active_graph: ActiveWorldGraph | None,
 ) -> list[StanceRow]:
@@ -727,7 +737,7 @@ def _extract_stance_rows(
 
 
 def _extract_justifications(
-    active_by_id: dict[str, dict],
+    active_by_id: dict[str, ActiveClaim],
     stance_rows: list[StanceRow],
     *,
     active_graph: ActiveWorldGraph | None,
@@ -767,7 +777,7 @@ def _extract_justifications(
 
 def build_aspic_projection(
     store: StanceStore,
-    active_claims: list[dict],
+    active_claims: list[ActiveClaimInput],
     *,
     support_metadata: SupportMetadata | None = None,
     comparison: str = "elitist",
@@ -791,7 +801,11 @@ def build_aspic_projection(
     Returns:
         StructuredProjection with arguments, framework, and mappings.
     """
-    active_by_id = {c["id"]: c for c in active_claims if c.get("id")}
+    normalized_claims = coerce_active_claims(active_claims)
+    active_by_id = {
+        str(claim.claim_id): claim
+        for claim in normalized_claims
+    }
 
     # Extract stances and justifications (same logic as structured_projection.py)
     stance_rows = _extract_stance_rows(store, active_by_id, active_graph=active_graph)
@@ -800,7 +814,13 @@ def build_aspic_projection(
     )
 
     # T6: build the full CSAF via the bridge
-    csaf = build_bridge_csaf(active_claims, justifications, stance_rows, comparison=comparison, link=link)
+    csaf = build_bridge_csaf(
+        normalized_claims,
+        justifications,
+        stance_rows,
+        comparison=comparison,
+        link=link,
+    )
 
     # T7: project back to StructuredProjection
-    return csaf_to_projection(csaf, active_claims, support_metadata=support_metadata)
+    return csaf_to_projection(csaf, normalized_claims, support_metadata=support_metadata)

@@ -360,6 +360,11 @@ class WorldModel(ArtifactStore):
     # ── Unbound queries ──────────────────────────────────────────────
 
     def _claim_select_sql(self) -> str:
+        branch_sql = (
+            "core.branch"
+            if "branch" in self._table_columns("claim_core")
+            else "NULL AS branch"
+        )
         return f"""
             SELECT
                 core.id,
@@ -410,7 +415,8 @@ class WorldModel(ArtifactStore):
                 num.value_si,
                 num.lower_bound_si,
                 num.upper_bound_si,
-                core.context_id
+                core.context_id,
+                {branch_sql}
             FROM claim_core AS core
             LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
             LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
@@ -1005,7 +1011,7 @@ class WorldModel(ArtifactStore):
                 # Try value_of first
                 vr = bound.value_of(cid)
                 if vr.status == "determined":
-                    value = vr.claims[0].get("value") if vr.claims else None
+                    value = vr.claims[0].value if vr.claims else None
                     if value is not None:
                         resolved_values[cid] = value
                         steps.append(ChainStep(concept_id=cid, value=value, source="claim"))

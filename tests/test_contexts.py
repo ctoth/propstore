@@ -36,6 +36,10 @@ def make_context(id, name, description="", **kwargs):
     return d
 
 
+def _runtime_claim_id_set(claims) -> set[str]:
+    return {str(claim.claim_id) for claim in claims}
+
+
 def insert_claim_row(
     conn: sqlite3.Connection,
     claim_id: str,
@@ -382,8 +386,8 @@ class TestContextProperties:
             context_hierarchy=hierarchy,
         )
 
-        active_a = {claim["id"] for claim in bound_a.active_claims("concept1")}
-        active_b = {claim["id"] for claim in bound_b.active_claims("concept1")}
+        active_a = _runtime_claim_id_set(bound_a.active_claims("concept1"))
+        active_b = _runtime_claim_id_set(bound_b.active_claims("concept1"))
         assert active_a == active_b
 
 
@@ -651,7 +655,7 @@ class TestBoundWorldContext:
         wm = self._make_wm(conn)
         bound = BoundWorld(wm, {}, context_id="ctx_root", context_hierarchy=hierarchy)
         active = bound.active_claims("c1")
-        active_ids = {c["id"] for c in active}
+        active_ids = _runtime_claim_id_set(active)
 
         assert "claim1" in active_ids    # root's own claim
         assert "claim4" in active_ids    # universal
@@ -704,7 +708,7 @@ class TestBoundWorldContext:
         wm = self._make_wm(conn)
         bound = BoundWorld(wm, {}, context_id="ctx_child", context_hierarchy=hierarchy)
         active = bound.active_claims("c1")
-        active_ids = {c["id"] for c in active}
+        active_ids = _runtime_claim_id_set(active)
 
         assert "claim1" in active_ids    # parent's claim — visible via inheritance
         assert "claim2" in active_ids    # child's own
@@ -721,7 +725,7 @@ class TestBoundWorldContext:
         for ctx in ["ctx_root", "ctx_child", "ctx_other"]:
             bound = BoundWorld(wm, {}, context_id=ctx, context_hierarchy=hierarchy)
             active = bound.active_claims("c1")
-            active_ids = {c["id"] for c in active}
+            active_ids = _runtime_claim_id_set(active)
             assert "claim4" in active_ids, f"Universal claim not visible in {ctx}"
         conn.close()
 
@@ -763,7 +767,7 @@ class TestBoundWorldContext:
         wm = WorldModel(_Repo())
         try:
             bound = wm.bind(Environment(context_id="ctx_root"))
-            active_ids = {c["id"] for c in bound.active_claims("c1")}
+            active_ids = _runtime_claim_id_set(bound.active_claims("c1"))
             assert active_ids == {"claim_root", "claim_universal"}
         finally:
             wm.close()
@@ -802,7 +806,7 @@ class TestBoundWorldContext:
                 "framework == 'general'",
                 "variant == 'specific'",
             }
-            active_ids = {c["id"] for c in bound.active_claims("c1")}
+            active_ids = _runtime_claim_id_set(bound.active_claims("c1"))
             assert "claim_general" in active_ids
             assert "claim_specific" in active_ids
             assert "claim_other" not in active_ids
@@ -836,10 +840,10 @@ class TestBoundWorldContext:
         wm = WorldModel(_Repo())
         try:
             bound = wm.bind(Environment(context_id="ctx_child"))
-            assert tuple(sorted(c["id"] for c in bound.active_claims())) == (
+            assert tuple(sorted(str(c.claim_id) for c in bound.active_claims())) == (
                 bound._active_graph.active_claim_ids
             )
-            assert tuple(sorted(c["id"] for c in bound.inactive_claims())) == (
+            assert tuple(sorted(str(c.claim_id) for c in bound.inactive_claims())) == (
                 bound._active_graph.inactive_claim_ids
             )
         finally:

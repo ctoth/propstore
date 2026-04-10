@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
+from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.revision.state import EpistemicState
 from propstore.core.labels import Label, SupportQuality
 
@@ -12,7 +13,7 @@ from propstore.core.labels import Label, SupportQuality
 class RevisionArgumentationView:
     store: Any
     active_claim_ids: frozenset[str]
-    active_claims: tuple[dict[str, Any], ...]
+    active_claims: tuple[ActiveClaim, ...]
     support_metadata: Mapping[str, tuple[Label | None, SupportQuality]]
 
 
@@ -34,33 +35,32 @@ class _TableStore(Protocol):
 class RevisionArgumentationStore:
     """Read-only store overlay exposing the claims active in a revision state."""
 
-    def __init__(self, backing_store: object, active_claims: tuple[dict[str, Any], ...]) -> None:
+    def __init__(self, backing_store: object, active_claims: tuple[ActiveClaimInput, ...]) -> None:
         self._backing_store = backing_store
-        self._active_claims = tuple(dict(claim) for claim in active_claims)
+        self._active_claims = tuple(coerce_active_claim(claim) for claim in active_claims)
         self._claims_by_id = {
-            str(claim["id"]): dict(claim)
+            str(claim.claim_id): claim
             for claim in self._active_claims
-            if claim.get("id")
         }
         self._active_claim_ids = frozenset(self._claims_by_id)
 
-    def get_claim(self, claim_id: str) -> dict | None:
+    def get_claim(self, claim_id: str):
         claim = self._claims_by_id.get(str(claim_id))
-        return dict(claim) if claim is not None else None
+        return None if claim is None else claim.row
 
-    def claims_for(self, concept_id: str | None) -> list[dict]:
+    def claims_for(self, concept_id: str | None):
         if concept_id is None:
-            return [dict(claim) for claim in self._active_claims]
+            return [claim.row for claim in self._active_claims]
         return [
-            dict(claim)
+            claim.row
             for claim in self._active_claims
-            if claim.get("concept_id") == concept_id
+            if claim.concept_id == concept_id
         ]
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
+    def claims_by_ids(self, claim_ids: set[str]):
         requested = {str(claim_id) for claim_id in claim_ids}
         return {
-            claim_id: dict(claim)
+            claim_id: claim.row
             for claim_id, claim in self._claims_by_id.items()
             if claim_id in requested
         }
@@ -103,7 +103,7 @@ def project_epistemic_state_argumentation_view(
 ) -> RevisionArgumentationView:
     """Project an epistemic state into the current argumentation input surfaces."""
     accepted_set = set(state.accepted_atom_ids)
-    active_claims: list[dict[str, Any]] = []
+    active_claims: list[ActiveClaim] = []
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
 
     for atom in state.base.atoms:
@@ -114,11 +114,11 @@ def project_epistemic_state_argumentation_view(
             continue
         claim = dict(atom.payload)
         claim["id"] = claim_id
-        active_claims.append(claim)
+        active_claims.append(coerce_active_claim(claim))
         if atom.label is not None:
             support_metadata[claim_id] = (atom.label, SupportQuality.EXACT)
 
-    active_claims.sort(key=lambda claim: str(claim.get("id") or ""))
+    active_claims.sort(key=lambda claim: str(claim.claim_id))
     overlay = RevisionArgumentationStore(backing_store, tuple(active_claims))
     return RevisionArgumentationView(
         store=overlay,

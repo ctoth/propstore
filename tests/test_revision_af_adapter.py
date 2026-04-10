@@ -27,7 +27,7 @@ def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims(
     assert "legacy" not in view.active_claim_ids
     assert "synthetic" in view.active_claim_ids
     assert any(claim_id != "synthetic" for claim_id in view.active_claim_ids)
-    assert claim_rows["synthetic"]["value"] == 9.0
+    assert claim_rows["synthetic"].value == 9.0
     assert "legacy" not in claim_rows
     assert af.arguments == frozenset(view.active_claim_ids)
 
@@ -58,7 +58,7 @@ def test_project_epistemic_state_builds_structured_inputs_with_exact_support_met
     argument = next(arg for arg in projection.arguments if arg.claim_id == "claim_exact")
 
     assert set(view.active_claim_ids) == {"claim_exact"}
-    assert {claim["id"] for claim in view.active_claims} == {"claim_exact"}
+    assert {str(claim.claim_id) for claim in view.active_claims} == {"claim_exact"}
     assert view.support_metadata["claim_exact"][1] is SupportQuality.EXACT
     assert argument.support_quality is SupportQuality.EXACT
     assert argument.label == view.support_metadata["claim_exact"][0]

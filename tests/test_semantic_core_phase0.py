@@ -90,20 +90,20 @@ def _make_bound(*, bindings: dict[str, object]) -> BoundWorld:
     )
 
 
+def _runtime_claim_ids(claims) -> list[str]:
+    return [str(claim.claim_id) for claim in claims]
+
+
 def test_binding_order_does_not_change_active_or_resolved_semantics() -> None:
     forward = _make_bound(bindings={"x": 1, "y": 2})
     reverse = _make_bound(bindings={"y": 2, "x": 1})
 
-    assert [claim["id"] for claim in forward.active_claims()] == [
-        claim["id"] for claim in reverse.active_claims()
-    ]
+    assert _runtime_claim_ids(forward.active_claims()) == _runtime_claim_ids(reverse.active_claims())
 
     forward_value = forward.value_of("concept1")
     reverse_value = reverse.value_of("concept1")
     assert forward_value.status == reverse_value.status == "conflicted"
-    assert [claim["id"] for claim in forward_value.claims] == [
-        claim["id"] for claim in reverse_value.claims
-    ]
+    assert _runtime_claim_ids(forward_value.claims) == _runtime_claim_ids(reverse_value.claims)
 
     forward_derived = forward.derived_value("concept3")
     reverse_derived = reverse.derived_value("concept3")
@@ -121,9 +121,7 @@ def test_empty_hypothetical_overlay_is_identity_transform() -> None:
     bound = _make_bound(bindings={"x": 1, "y": 2})
     hypothetical = HypotheticalWorld(bound)
 
-    assert [claim["id"] for claim in hypothetical.active_claims()] == [
-        claim["id"] for claim in bound.active_claims()
-    ]
+    assert _runtime_claim_ids(hypothetical.active_claims()) == _runtime_claim_ids(bound.active_claims())
     assert hypothetical.value_of("concept1") == bound.value_of("concept1")
     assert hypothetical.derived_value("concept3") == bound.derived_value("concept3")
     assert hypothetical.resolved_value("concept1") == bound.resolved_value("concept1")
@@ -144,6 +142,6 @@ def test_remove_and_add_inverse_overlay_returns_same_semantic_state() -> None:
         ],
     )
 
-    assert [claim["id"] for claim in inverse.active_claims("concept2")] == ["claim_left"]
+    assert _runtime_claim_ids(inverse.active_claims("concept2")) == ["claim_left"]
     assert inverse.value_of("concept2") == bound.value_of("concept2")
     assert inverse.derived_value("concept3") == bound.derived_value("concept3")

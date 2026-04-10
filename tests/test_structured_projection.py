@@ -124,7 +124,7 @@ def _make_bound(
 
 def _support_metadata(bound: BoundWorld, active_claims: list[dict]) -> dict[str, tuple[Label | None, SupportQuality]]:
     return {
-        claim["id"]: bound.claim_support(claim)
+        str(claim.claim_id): bound.claim_support(claim)
         for claim in active_claims
     }
 

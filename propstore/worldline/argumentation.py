@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ClaimId, to_claim_id
 from propstore.core.labels import Label, SupportQuality
 from propstore.core.row_types import StanceRow, coerce_stance_row
@@ -26,11 +27,7 @@ def capture_argumentation_state(
     from propstore.world import ReasoningBackend
 
     active = bound.active_claims()
-    active_ids = {
-        to_claim_id(claim_id)
-        for claim in active
-        if (claim_id := claim.get("id"))
-    }
+    active_ids = {claim.claim_id for claim in active}
     active_graph = bound._active_graph if isinstance(bound, HasActiveGraph) else None
     reasoning_backend = definition.policy.reasoning_backend
     _, normalized_semantics = validate_backend_semantics(
@@ -137,7 +134,7 @@ def _capture_claim_graph(
 def _capture_aspic(
     bound: WorldlineBoundView,
     world: WorldlineStore,
-    active: list[dict[str, Any]],
+    active: list[ActiveClaim],
     active_ids: set[ClaimId],
     active_graph: Any,
     policy: RenderPolicy,
@@ -152,9 +149,7 @@ def _capture_aspic(
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     if isinstance(bound, ClaimSupportView):
         for claim in active:
-            claim_id = claim.get("id")
-            if claim_id:
-                support_metadata[claim_id] = bound.claim_support(claim)
+            support_metadata[str(claim.claim_id)] = bound.claim_support(claim)
 
     projection = build_structured_projection(
         world,

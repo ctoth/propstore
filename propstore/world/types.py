@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict, runtime_checkable
 
+from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.environment import ArtifactStore, Environment  # noqa: F401
 from propstore.core.id_types import (
     AssumptionId,
@@ -51,8 +52,12 @@ class ValueStatus(StrEnum):
 class ValueResult:
     concept_id: ConceptId
     status: ValueStatus
-    claims: list[dict] = field(default_factory=list)
+    claims: list[ActiveClaim] = field(default_factory=list)
     label: Label | None = None
+
+    def __post_init__(self) -> None:
+        self.concept_id = to_concept_id(self.concept_id)
+        self.claims = coerce_active_claims(self.claims)
 
 
 @dataclass
@@ -541,12 +546,16 @@ class ResolvedResult:
     concept_id: ConceptId
     status: ValueStatus
     value: float | str | None = None
-    claims: list[dict] = field(default_factory=list)
+    claims: list[ActiveClaim] = field(default_factory=list)
     winning_claim_id: ClaimId | None = None
     strategy: str | None = None
     reason: str | None = None
     label: Label | None = None
     acceptance_probs: dict[str, float] | None = None
+
+    def __post_init__(self) -> None:
+        self.concept_id = to_concept_id(self.concept_id)
+        self.claims = coerce_active_claims(self.claims)
 
 
 class IntegrityConstraintKind(StrEnum):
@@ -1002,7 +1011,7 @@ SupportMetadata = Mapping[str, tuple[Label | None, SupportQuality]]
 
 @runtime_checkable
 class ClaimSupportView(Protocol):
-    def claim_support(self, claim: dict[str, Any]) -> tuple[Label | None, SupportQuality]: ...
+    def claim_support(self, claim: ActiveClaim) -> tuple[Label | None, SupportQuality]: ...
 
 
 @runtime_checkable
@@ -1028,8 +1037,8 @@ class HasActiveGraph(Protocol):
 
 @runtime_checkable
 class BeliefSpace(Protocol):
-    def active_claims(self, concept_id: str | None = None) -> list[dict]: ...
-    def inactive_claims(self, concept_id: str | None = None) -> list[dict]: ...
+    def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]: ...
+    def inactive_claims(self, concept_id: str | None = None) -> list[ActiveClaim]: ...
     def value_of(self, concept_id: str) -> ValueResult: ...
     def derived_value(
         self,

@@ -11,6 +11,7 @@ from typing import Any, Callable
 
 from ast_equiv import compare as ast_compare
 
+from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.row_types import ParameterizationRow
 from propstore.propagation import rewrite_parameterization_symbols
@@ -19,22 +20,15 @@ from propstore.world.types import DerivedResult, ValueResult, ValueStatus
 
 @dataclass(frozen=True)
 class _ActiveClaimView:
-    raw: dict[str, object]
+    claim: ActiveClaim
     claim_id: str | None
     claim_type: str | None
     value: float | str | None
     body: str | None
 
 
-def _claim_string(claim: dict[str, object], key: str) -> str | None:
-    value = claim.get(key)
-    if isinstance(value, str) and value:
-        return value
-    return None
-
-
-def _claim_value(claim: dict[str, object]) -> float | str | None:
-    value = claim.get("value")
+def _active_claim_value(claim: ActiveClaim) -> float | str | None:
+    value = claim.value
     if isinstance(value, bool):
         return None
     if isinstance(value, int | float):
@@ -44,13 +38,14 @@ def _claim_value(claim: dict[str, object]) -> float | str | None:
     return None
 
 
-def _active_claim_view(claim: dict[str, object]) -> _ActiveClaimView:
+def _active_claim_view(claim_input: ActiveClaimInput) -> _ActiveClaimView:
+    claim = coerce_active_claim(claim_input)
     return _ActiveClaimView(
-        raw=claim,
-        claim_id=_claim_string(claim, "id"),
-        claim_type=_claim_string(claim, "type"),
-        value=_claim_value(claim),
-        body=_claim_string(claim, "body"),
+        claim=claim,
+        claim_id=str(claim.claim_id),
+        claim_type=claim.claim_type,
+        value=_active_claim_value(claim),
+        body=claim.body,
     )
 
 
@@ -80,7 +75,7 @@ def collect_known_values(
         normalized_cid = to_concept_id(cid)
         vr = value_of(normalized_cid)
         if vr.status == "determined" and vr.claims:
-            val = _claim_value(vr.claims[0])
+            val = _active_claim_value(vr.claims[0])
             if val is not None:
                 try:
                     known[normalized_cid] = float(val)
@@ -98,9 +93,9 @@ class ActiveClaimResolver:
         parameterizations_for: Callable[[ConceptId | str], list[ParameterizationRow]],
         is_param_compatible: Callable[[str | None], bool],
         value_of: Callable[[ConceptId | str], ValueResult],
-        extract_variable_concepts: Callable[[dict], list[str]],
+        extract_variable_concepts: Callable[[ActiveClaim], list[str]],
         collect_known_values: Callable[[Sequence[ConceptId | str]], dict[ConceptId, Any]],
-        extract_bindings: Callable[[dict], dict[str, str]],
+        extract_bindings: Callable[[ActiveClaim], dict[str, str]],
         concept_symbol_candidates: Callable[[ConceptId | str], Sequence[str]] | None = None,
     ) -> None:
         self._parameterizations_for = parameterizations_for
@@ -159,12 +154,17 @@ class ActiveClaimResolver:
             return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.UNDERSPECIFIED)
         return DerivedResult(concept_id=typed_concept_id, status=ValueStatus.UNDERSPECIFIED)
 
-    def value_of_from_active(self, active: list[dict], concept_id: ConceptId | str) -> ValueResult:
+    def value_of_from_active(
+        self,
+        active: Sequence[ActiveClaimInput],
+        concept_id: ConceptId | str,
+    ) -> ValueResult:
         typed_concept_id = to_concept_id(concept_id)
-        if not active:
+        active_claims = [coerce_active_claim(claim) for claim in active]
+        if not active_claims:
             return ValueResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
 
-        active_views = tuple(_active_claim_view(claim) for claim in active)
+        active_views = tuple(_active_claim_view(claim) for claim in active_claims)
         algo_claims = [claim for claim in active_views if claim.claim_type == "algorithm"]
         value_claims = [claim for claim in active_views if claim.claim_type != "algorithm"]
 
@@ -175,10 +175,10 @@ class ActiveClaimResolver:
                 if claim.value is not None
             }
             if not direct_values:
-                status = ValueStatus.NO_CLAIMS if not active else ValueStatus.NO_VALUES
-                return ValueResult(concept_id=typed_concept_id, status=status, claims=active)
+                status = ValueStatus.NO_CLAIMS if not active_claims else ValueStatus.NO_VALUES
+                return ValueResult(concept_id=typed_concept_id, status=status, claims=active_claims)
             if len(direct_values) != 1:
-                return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active)
+                return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active_claims)
 
             direct_value = next(iter(direct_values))
             unevaluable_algorithm_present = False
@@ -191,24 +191,24 @@ class ActiveClaimResolver:
                     unevaluable_algorithm_present = True
                     continue
                 if not matches_direct:
-                    return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active)
+                    return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active_claims)
             if unevaluable_algorithm_present:
-                return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active)
-            return ValueResult(concept_id=typed_concept_id, status=ValueStatus.DETERMINED, claims=active)
+                return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active_claims)
+            return ValueResult(concept_id=typed_concept_id, status=ValueStatus.DETERMINED, claims=active_claims)
 
         if algo_claims and not value_claims:
             if len(algo_claims) == 1:
                 return ValueResult(
                     concept_id=typed_concept_id,
                     status=ValueStatus.DETERMINED,
-                    claims=[claim.raw for claim in algo_claims],
+                    claims=[claim.claim for claim in algo_claims],
                 )
 
             all_var_concepts: set[ConceptId] = set()
             for claim in algo_claims:
                 all_var_concepts.update(
                     to_concept_id(concept_id)
-                    for concept_id in self._extract_variable_concepts(claim.raw)
+                    for concept_id in self._extract_variable_concepts(claim.claim)
                 )
             all_var_concepts.discard(typed_concept_id)
 
@@ -217,21 +217,21 @@ class ActiveClaimResolver:
                 return ValueResult(
                     concept_id=typed_concept_id,
                     status=ValueStatus.DETERMINED,
-                    claims=[claim.raw for claim in algo_claims],
+                    claims=[claim.claim for claim in algo_claims],
                 )
             return ValueResult(
                 concept_id=typed_concept_id,
                 status=ValueStatus.CONFLICTED,
-                claims=[claim.raw for claim in algo_claims],
+                claims=[claim.claim for claim in algo_claims],
             )
 
         values = {claim.value for claim in active_views if claim.value is not None}
         if not values:
-            status = ValueStatus.NO_CLAIMS if not active else ValueStatus.NO_VALUES
-            return ValueResult(concept_id=typed_concept_id, status=status, claims=active)
+            status = ValueStatus.NO_CLAIMS if not active_claims else ValueStatus.NO_VALUES
+            return ValueResult(concept_id=typed_concept_id, status=status, claims=active_claims)
         if len(values) == 1:
-            return ValueResult(concept_id=typed_concept_id, status=ValueStatus.DETERMINED, claims=active)
-        return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active)
+            return ValueResult(concept_id=typed_concept_id, status=ValueStatus.DETERMINED, claims=active_claims)
+        return ValueResult(concept_id=typed_concept_id, status=ValueStatus.CONFLICTED, claims=active_claims)
 
     def _derive_from_parameterization(
         self,
@@ -258,7 +258,7 @@ class ActiveClaimResolver:
 
             value_result = self._value_of(input_id)
             if value_result.status == "determined":
-                value = _claim_value(value_result.claims[0]) if value_result.claims else None
+                value = _active_claim_value(value_result.claims[0]) if value_result.claims else None
                 if value is None:
                     return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
                 input_values[input_id] = float(value)
@@ -409,7 +409,7 @@ class ActiveClaimResolver:
         if not body:
             return None
 
-        bindings = self._extract_bindings(claim.raw)
+        bindings = self._extract_bindings(claim.claim)
         if not bindings:
             return None
 
@@ -442,7 +442,7 @@ class ActiveClaimResolver:
 
     def _all_algorithms_equivalent(
         self,
-        algo_claims: Sequence[_ActiveClaimView | dict[str, object]],
+        algo_claims: Sequence[_ActiveClaimView | ActiveClaimInput],
         known_values: Mapping[ConceptId, Any],
     ) -> bool:
         normalized_claims = [
@@ -455,8 +455,8 @@ class ActiveClaimResolver:
                 body_b = normalized_claims[j].body or ""
                 if not body_a or not body_b:
                     return False
-                bindings_a = self._extract_bindings(normalized_claims[i].raw)
-                bindings_b = self._extract_bindings(normalized_claims[j].raw)
+                bindings_a = self._extract_bindings(normalized_claims[i].claim)
+                bindings_b = self._extract_bindings(normalized_claims[j].claim)
                 try:
                     result = ast_compare(
                         body_a,

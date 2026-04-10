@@ -22,6 +22,7 @@ from itertools import combinations, product
 from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, runtime_checkable
 
 from propstore.core.activation import activate_compiled_world_graph
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.environment import ArtifactStore
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.id_types import (
@@ -46,6 +47,7 @@ from propstore.core.labels import (
     SupportQuality,
 )
 from propstore.core.row_types import (
+    ClaimRow,
     ConflictRowInput,
     ParameterizationRowInput,
     coerce_conflict_row,
@@ -102,7 +104,7 @@ class _ATMSRuntimeLike(Protocol):
     def all_parameterizations(self) -> Callable[[], list[ParameterizationRowInput]]: ...
 
     @property
-    def active_claims(self) -> Callable[[], list[dict[str, Any]]]: ...
+    def active_claims(self) -> Callable[[], list[ActiveClaim]]: ...
 
     @property
     def conflicts(self) -> Callable[[], list[ConflictRowInput]]: ...
@@ -111,7 +113,7 @@ class _ATMSRuntimeLike(Protocol):
     def is_param_compatible(self) -> Callable[[str | None], bool]: ...
 
     @property
-    def claim_support(self) -> Callable[[dict[str, Any]], tuple[Label | None, SupportQuality]]: ...
+    def claim_support(self) -> Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]: ...
 
     @property
     def concept_status(self) -> Callable[[str], str]: ...
@@ -129,7 +131,7 @@ class _ATMSBoundLike(Protocol):
     _policy: Any
 
     def is_param_compatible(self, conditions_cel: str | None) -> bool: ...
-    def claim_support(self, claim: dict[str, Any]) -> tuple[Label | None, SupportQuality]: ...
+    def claim_support(self, claim: ActiveClaim) -> tuple[Label | None, SupportQuality]: ...
     def value_of(self, concept_id: str) -> ValueResult: ...
     def rebind(
         self,
@@ -161,10 +163,10 @@ class _ATMSRuntime:
     environment: Environment
     active_graph: ActiveWorldGraph
     all_parameterizations: Callable[[], list[ParameterizationRowInput]]
-    active_claims: Callable[[], list[dict[str, Any]]]
+    active_claims: Callable[[], list[ActiveClaim]]
     conflicts: Callable[[], list[ConflictRowInput]]
     is_param_compatible: Callable[[str | None], bool]
-    claim_support: Callable[[dict[str, Any]], tuple[Label | None, SupportQuality]]
+    claim_support: Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]
     concept_status: Callable[[str], str]
     replay: Callable[[tuple[QueryableAssumption, ...]], "_ATMSRuntime"]
 
@@ -209,15 +211,16 @@ def _is_runtime_like(candidate: object) -> TypeGuard[_ATMSRuntimeLike]:
     return isinstance(candidate, _ATMSRuntimeLike)
 
 
-def _claim_node_to_row(claim_node: ClaimNode) -> dict[str, Any]:
+def _claim_node_to_active_claim(claim_node: ClaimNode) -> ActiveClaim:
     row = {
         "id": claim_node.claim_id,
+        "artifact_id": claim_node.claim_id,
         "concept_id": claim_node.concept_id,
         "type": claim_node.claim_type,
         "value": claim_node.scalar_value,
     }
     row.update(dict(claim_node.attributes))
-    return row
+    return ActiveClaim.from_claim_row(ClaimRow.from_mapping(row))
 
 
 def _parameterization_edge_to_row(edge: ParameterizationEdge) -> dict[str, Any]:
@@ -295,9 +298,9 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
         for claim in active_graph.compiled.claims
     }
 
-    def _active_claims() -> list[dict[str, Any]]:
+    def _active_claims() -> list[ActiveClaim]:
         return [
-            _claim_node_to_row(compiled_claims[claim_id])
+            _claim_node_to_active_claim(compiled_claims[claim_id])
             for claim_id in active_graph.active_claim_ids
             if claim_id in compiled_claims
         ]
@@ -981,17 +984,17 @@ class ATMSEngine:
         future_limit: int = 8,
     ) -> dict[str, Any]:
         claim_inspections = {
-            claim["id"]: self.claim_status(claim["id"])
+            str(claim.claim_id): self.claim_status(str(claim.claim_id))
             for claim in self._runtime.active_claims()
-            if claim.get("id") in self._claim_node_ids
+            if str(claim.claim_id) in self._claim_node_ids
         }
         result = {
             "backend": "atms",
             "supported": sorted(self.supported_claim_ids()),
             "defeated": sorted(
-                claim["id"]
+                str(claim.claim_id)
                 for claim in self._runtime.active_claims()
-                if claim.get("id") not in self.supported_claim_ids()
+                if str(claim.claim_id) not in self.supported_claim_ids()
             ),
             "nogoods": [
                 list(environment.assumption_ids)
@@ -1108,8 +1111,8 @@ class ATMSEngine:
             self._assumption_node_ids[assumption.assumption_id] = node_id
 
     def _build_claim_nodes_and_justifications(self) -> None:
-        for claim in sorted(self._runtime.active_claims(), key=lambda row: row["id"]):
-            claim_id = claim["id"]
+        for claim in sorted(self._runtime.active_claims(), key=lambda row: str(row.claim_id)):
+            claim_id = str(claim.claim_id)
             node_id = f"claim:{claim_id}"
             self._nodes[node_id] = ATMSNode(
                 node_id=node_id,
@@ -1117,19 +1120,19 @@ class ATMSEngine:
                 payload={
                     "claim_id": claim_id,
                     "concept_id": (
-                        claim.get("concept_id")
-                        or claim.get("concept")
-                        or claim.get("target_concept")
+                        None
+                        if claim.concept_id is None
+                        else str(claim.concept_id)
                     ),
-                    "value": claim.get("value"),
+                    "value": claim.value,
                     "claim": claim,
                 },
             )
             self._claim_node_ids[claim_id] = node_id
 
             for antecedents in self._exact_antecedent_sets(
-                claim.get("conditions_cel"),
-                context_id=claim.get("context_id"),
+                claim.conditions_cel_json,
+                context_id=claim.context_id,
             ):
                 self._add_justification(
                     antecedent_ids=antecedents,

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from collections.abc import Sequence
 from typing import Any, Mapping
 
+from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.environment import (
     ArtifactStore,
     ClaimCatalogStore,
@@ -48,10 +49,6 @@ from propstore.world.types import (
 def _claim_pair(left_id: str, right_id: str) -> tuple[str, str]:
     left, right = sorted((str(left_id), str(right_id)))
     return left, right
-
-
-def _claim_mapping(claim_input: ClaimRowInput | dict[str, Any]) -> dict[str, Any]:
-    return coerce_claim_row(claim_input).to_dict()
 
 
 def _conflict_witness_from_row(row: dict) -> ConflictWitness:
@@ -167,7 +164,7 @@ def _synthetic_row(
     existing_row: ClaimRowInput | None,
 ) -> ClaimRow:
     row: dict[str, Any] = (
-        _claim_mapping(existing_row)
+        coerce_claim_row(existing_row).to_dict()
         if existing_row is not None
         else {"id": synthetic.id, "artifact_id": synthetic.id}
     )
@@ -401,15 +398,16 @@ class HypotheticalWorld(BeliefSpace):
             self._graph_delta = None
             self._compiled_graph = None
 
-        base_claim_rows = [_claim_mapping(claim) for claim in base._store.claims_for(None)]
-        base_claim_rows_by_id = {claim["id"]: dict(claim) for claim in base_claim_rows}
+        base_claim_rows = [coerce_claim_row(claim) for claim in base._store.claims_for(None)]
+        base_claim_rows_by_id = {
+            str(claim.claim_id): claim
+            for claim in base_claim_rows
+        }
         synthetics_by_id = {synthetic.id: synthetic for synthetic in self._synthetics}
 
         overlay_claims: list[ClaimRow] = []
         for claim in base_claim_rows:
-            claim_id = claim.get("id")
-            if not isinstance(claim_id, str):
-                continue
+            claim_id = str(claim.claim_id)
             replacement = synthetics_by_id.get(claim_id)
             if claim_id in self._removed_ids and replacement is None:
                 continue
@@ -418,7 +416,7 @@ class HypotheticalWorld(BeliefSpace):
                     _synthetic_row(replacement, existing_row=claim)
                 )
             else:
-                overlay_claims.append(coerce_claim_row(claim))
+                overlay_claims.append(claim)
 
         existing_ids = {str(claim.claim_id) for claim in overlay_claims}
         for synthetic in self._synthetics:
@@ -459,7 +457,7 @@ class HypotheticalWorld(BeliefSpace):
         }
         for conflict in _recomputed_conflicts(
             base._store,
-            [claim.to_dict() for claim in overlay_claims],
+            [ActiveClaim.from_claim_row(claim) for claim in overlay_claims],
         ):
             pair = _claim_pair(conflict["claim_a_id"], conflict["claim_b_id"])
             if pair in seen_conflict_pairs:
@@ -503,10 +501,10 @@ class HypotheticalWorld(BeliefSpace):
     def _synthetic_to_dict(self, sc: SyntheticClaim) -> dict:
         return _synthetic_row(sc, existing_row=self._base._store.get_claim(sc.id)).to_dict()
 
-    def active_claims(self, concept_id: str | None = None) -> list[dict]:
+    def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
         return self._overlay.active_claims(concept_id)
 
-    def inactive_claims(self, concept_id: str | None = None) -> list[dict]:
+    def inactive_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
         return self._overlay.inactive_claims(concept_id)
 
     def collect_known_values(
@@ -566,4 +564,4 @@ class HypotheticalWorld(BeliefSpace):
 
 
 def _value_set(vr: ValueResult) -> set:
-    return {claim.get("value") for claim in vr.claims if claim.get("value") is not None}
+    return {claim.value for claim in vr.claims if claim.value is not None}
