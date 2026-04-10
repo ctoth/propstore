@@ -18,6 +18,7 @@ from hypothesis import strategies as st
 from propstore.sidecar.build import build_sidecar
 from propstore.world import HypotheticalWorld, WorldModel
 from propstore.worldline import WorldlineDefinition, run_worldline
+from tests.conftest import normalize_claims_payload
 
 
 # ── Fixtures ────────────────────────────────────────────────────────
@@ -107,7 +108,7 @@ def property_kb(tmp_path_factory):
     claims_dir = root / "claims"
     claims_dir.mkdir()
     with open(claims_dir / "test_claims.yaml", "w") as f:
-        yaml.dump({
+        yaml.dump(normalize_claims_payload({
             "source": {"paper": "test"},
             "claims": [
                 # Acceleration: conditional on location
@@ -128,7 +129,7 @@ def property_kb(tmp_path_factory):
                  "value": 100.0, "unit": "m",
                  "provenance": {"paper": "test", "page": 1}},
             ],
-        }, f, default_flow_style=False)
+        }), f, default_flow_style=False)
 
     return root
 
