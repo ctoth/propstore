@@ -71,12 +71,9 @@ def register_form_units(forms_dir: Path) -> None:
     table = _get_symbol_table()
     for form_def in load_all_forms(forms_dir).values():
         for eu in form_def.extra_units:
-            symbol = eu["symbol"]
-            dims = eu.get("dimensions", {})
-            if isinstance(dims, dict):
-                table[symbol] = {k: int(v) for k, v in dims.items() if v != 0}
-            else:
-                table[symbol] = {}
+            table[eu.symbol] = {
+                k: int(v) for k, v in eu.dimensions.items() if v != 0
+            }
 
 
 # ── Public API ───────────────────────────────────────────────────────
