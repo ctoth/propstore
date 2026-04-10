@@ -181,6 +181,79 @@ class TestConflictTopologyScoring:
         assert score_conflict(framework, "X", "Y") == 0.0
 
 
+# ── Phase 2: _conflict_dimension fallback behavior ────────────────────
+
+
+class TestConflictDimensionFallbacks:
+    """_conflict_dimension returns (None, None) for unknown, 0.0 for zero impact."""
+
+    def test_no_active_graph_returns_none(self):
+        """When bound has no _active_graph, return (None, None)."""
+        from unittest.mock import MagicMock
+        from propstore.fragility import _conflict_dimension
+
+        bound = MagicMock()
+        bound._active_graph = None
+        conflict = MagicMock()
+        conflict.claim_a_id = "A"
+        conflict.claim_b_id = "B"
+        bound.conflicts.return_value = [conflict]
+
+        score, detail = _conflict_dimension(bound, "concept-1")
+        assert score is None
+        assert detail is None
+
+    def test_zero_impact_returns_zero(self):
+        """When all conflicts score zero impact, return 0.0."""
+        from unittest.mock import MagicMock, patch
+        from propstore.fragility import _conflict_dimension
+
+        bound = MagicMock()
+        bound._active_graph = MagicMock()  # non-None
+        conflict = MagicMock()
+        conflict.claim_a_id = "A"
+        conflict.claim_b_id = "B"
+        bound.conflicts.return_value = [conflict]
+
+        mock_shared = MagicMock()
+        with patch(
+            "propstore.core.analyzers.shared_analyzer_input_from_active_graph",
+            return_value=mock_shared,
+        ), patch(
+            "propstore.fragility.score_conflict",
+            return_value=0.0,
+        ):
+            score, detail = _conflict_dimension(bound, "concept-1")
+
+        assert score == 0.0
+        assert detail is not None
+        assert detail["conflict_count"] == 1
+
+    def test_exception_during_scoring_returns_none(self):
+        """When framework construction raises, return (None, None)."""
+        import warnings
+        from unittest.mock import MagicMock, patch
+        from propstore.fragility import FragilityWarning, _conflict_dimension
+
+        bound = MagicMock()
+        bound._active_graph = MagicMock()
+        conflict = MagicMock()
+        conflict.claim_a_id = "A"
+        conflict.claim_b_id = "B"
+        bound.conflicts.return_value = [conflict]
+
+        with patch(
+            "propstore.core.analyzers.shared_analyzer_input_from_active_graph",
+            side_effect=RuntimeError("boom"),
+        ), warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            score, detail = _conflict_dimension(bound, "concept-1")
+
+        assert score is None
+        assert detail is None
+        assert any(issubclass(x.category, FragilityWarning) for x in w)
+
+
 # ── Phase 2: Probability-weighted epistemic scores ───────────────────
 
 
@@ -715,8 +788,9 @@ class TestFragilityWarnings:
                 side_effect=RuntimeError("graph exploded"),
             ):
                 score, detail = _conflict_dimension(mock_bound, "c1")
-            # Should still return a result (fallback to 1.0), not crash
-            assert score is not None
+            # Exception during scoring → unknown, not fallback to 1.0
+            assert score is None
+            assert detail is None
             fragility_warnings = [x for x in w if issubclass(x.category, FragilityWarning)]
             assert len(fragility_warnings) >= 1
 

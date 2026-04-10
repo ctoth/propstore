@@ -1008,17 +1008,17 @@ def _conflict_dimension(
                     if a_id and b_id:
                         s = score_conflict(framework, a_id, b_id)
                         max_score = max(max_score, s)
-                score = max_score if max_score > 0.0 else 1.0
+                score = max_score
             except Exception as exc:
                 warnings.warn(
-                    f"Conflict scoring fell back to 1.0: {exc}",
+                    f"Conflict scoring failed, returning unknown: {exc}",
                     FragilityWarning,
                     stacklevel=2,
                 )
-                score = 1.0
+                return None, None
         else:
-            # No active graph available — fall back to placeholder
-            score = 1.0
+            # No active graph — conflict topology unknown
+            return None, None
 
         return score, {
             "conflict_count": len(conflicts),
