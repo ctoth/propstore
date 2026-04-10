@@ -48,7 +48,9 @@ from propstore.core.labels import (
 )
 from propstore.core.row_types import (
     ClaimRow,
+    ConflictRow,
     ConflictRowInput,
+    ParameterizationRow,
     ParameterizationRowInput,
     coerce_conflict_row,
     coerce_parameterization_row,
@@ -142,10 +144,47 @@ class _ATMSBoundLike(Protocol):
 
 
 @dataclass(frozen=True)
+class ATMSAssumptionPayload:
+    assumption: AssumptionRef
+
+    @property
+    def cel(self) -> str:
+        return self.assumption.cel
+
+
+@dataclass(frozen=True)
+class ATMSClaimPayload:
+    claim: ActiveClaim
+
+    @property
+    def claim_id(self) -> str:
+        return str(self.claim.claim_id)
+
+    @property
+    def concept_id(self) -> str | None:
+        return None if self.claim.concept_id is None else str(self.claim.concept_id)
+
+    @property
+    def value(self) -> float | str | None:
+        return self.claim.value
+
+
+@dataclass(frozen=True)
+class ATMSDerivedPayload:
+    concept_id: str
+    value: float | str
+    parameterization_index: int
+    formula: str | None = None
+
+
+ATMSNodePayload = ATMSAssumptionPayload | ATMSClaimPayload | ATMSDerivedPayload
+
+
+@dataclass(frozen=True)
 class ATMSNode:
     node_id: str
     kind: str
-    payload: dict[str, Any]
+    payload: ATMSNodePayload
     label: Label = field(default_factory=Label)
     justification_ids: tuple[str, ...] = field(default_factory=tuple)
 
@@ -212,36 +251,85 @@ def _is_runtime_like(candidate: object) -> TypeGuard[_ATMSRuntimeLike]:
 
 
 def _claim_node_to_active_claim(claim_node: ClaimNode) -> ActiveClaim:
-    row = {
+    row_data: dict[str, object] = {
         "id": claim_node.claim_id,
         "artifact_id": claim_node.claim_id,
         "concept_id": claim_node.concept_id,
         "type": claim_node.claim_type,
         "value": claim_node.scalar_value,
     }
-    row.update(dict(claim_node.attributes))
-    return ActiveClaim.from_claim_row(ClaimRow.from_mapping(row))
+    row_data.update(dict(claim_node.attributes))
+    return ActiveClaim.from_claim_row(ClaimRow.from_mapping(row_data))
 
 
-def _parameterization_edge_to_row(edge: ParameterizationEdge) -> dict[str, Any]:
-    return {
-        "output_concept_id": edge.output_concept_id,
-        "concept_ids": json.dumps(list(edge.input_concept_ids)),
-        "formula": edge.formula,
-        "sympy": edge.sympy,
-        "exactness": edge.exactness,
-        "conditions_cel": (None if not edge.conditions else json.dumps(list(edge.conditions))),
-    }
+def _parameterization_edge_to_row(edge: ParameterizationEdge) -> ParameterizationRow:
+    return ParameterizationRow(
+        output_concept_id=edge.output_concept_id,
+        concept_ids=json.dumps(list(edge.input_concept_ids)),
+        formula=edge.formula,
+        sympy=edge.sympy,
+        exactness=edge.exactness,
+        conditions_cel=(None if not edge.conditions else json.dumps(list(edge.conditions))),
+    )
 
 
-def _conflict_witness_to_row(conflict: ConflictWitness) -> dict[str, Any]:
-    row: dict[str, Any] = {
-        "claim_a_id": conflict.left_claim_id,
-        "claim_b_id": conflict.right_claim_id,
-        "warning_class": conflict.kind,
-    }
-    row.update(dict(conflict.details))
-    return row
+def _conflict_witness_to_row(conflict: ConflictWitness) -> ConflictRow:
+    return ConflictRow(
+        claim_a_id=conflict.left_claim_id,
+        claim_b_id=conflict.right_claim_id,
+        warning_class=conflict.kind,
+        attributes=dict(conflict.details),
+    )
+
+
+def _node_claim_payload(node: ATMSNode) -> ATMSClaimPayload | None:
+    payload = node.payload
+    return payload if isinstance(payload, ATMSClaimPayload) else None
+
+
+def _node_assumption_payload(node: ATMSNode) -> ATMSAssumptionPayload | None:
+    payload = node.payload
+    return payload if isinstance(payload, ATMSAssumptionPayload) else None
+
+
+def _node_derived_payload(node: ATMSNode) -> ATMSDerivedPayload | None:
+    payload = node.payload
+    return payload if isinstance(payload, ATMSDerivedPayload) else None
+
+
+def _node_claim(node: ATMSNode) -> ActiveClaim | None:
+    payload = _node_claim_payload(node)
+    return None if payload is None else payload.claim
+
+
+def _node_claim_id(node: ATMSNode) -> str | None:
+    payload = _node_claim_payload(node)
+    return None if payload is None else payload.claim_id
+
+
+def _node_concept_id(node: ATMSNode) -> str | None:
+    claim_payload = _node_claim_payload(node)
+    if claim_payload is not None:
+        return claim_payload.concept_id
+    derived_payload = _node_derived_payload(node)
+    if derived_payload is not None:
+        return derived_payload.concept_id
+    return None
+
+
+def _node_value(node: ATMSNode) -> float | str | None:
+    claim_payload = _node_claim_payload(node)
+    if claim_payload is not None:
+        return claim_payload.value
+    derived_payload = _node_derived_payload(node)
+    if derived_payload is not None:
+        return derived_payload.value
+    return None
+
+
+def _node_assumption(node: ATMSNode) -> AssumptionRef | None:
+    payload = _node_assumption_payload(node)
+    return None if payload is None else payload.assumption
 
 
 def _extend_environment(
@@ -308,14 +396,14 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
     def _conflicts() -> list[ConflictRowInput]:
         active_ids = set(active_graph.active_claim_ids)
         return [
-            coerce_conflict_row(_conflict_witness_to_row(conflict))
+            _conflict_witness_to_row(conflict)
             for conflict in active_graph.compiled.conflicts
             if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
         ]
 
     def _all_parameterizations() -> list[ParameterizationRowInput]:
         return [
-            coerce_parameterization_row(_parameterization_edge_to_row(edge))
+            _parameterization_edge_to_row(edge)
             for edge in active_graph.compiled.parameterizations
         ]
 
@@ -371,7 +459,7 @@ class ATMSEngine:
         supported: set[str] = set()
         for claim_id, node_id in self._claim_node_ids.items():
             node = self._nodes[node_id]
-            if concept_id is not None and node.payload.get("concept_id") != concept_id:
+            if concept_id is not None and _node_concept_id(node) != concept_id:
                 continue
             if node.label.environments:
                 supported.add(claim_id)
@@ -384,9 +472,9 @@ class ATMSEngine:
         for node in self._nodes.values():
             if node.kind != "derived":
                 continue
-            if node.payload.get("concept_id") != concept_id:
+            if _node_concept_id(node) != concept_id:
                 continue
-            if self._normalize_value(node.payload.get("value")) != self._normalize_value(value):
+            if self._normalize_value(_node_value(node)) != self._normalize_value(value):
                 continue
             if node.label.environments:
                 labels.append(node.label)
@@ -406,7 +494,7 @@ class ATMSEngine:
         out_kind = self._out_kind_for_node(node.node_id, status)
         return ATMSInspection(
             node_id=node_id,
-            claim_id=node.payload.get("claim_id"),
+            claim_id=_node_claim_id(node),
             kind=node.kind,
             status=status,
             support_quality=support_quality,
@@ -1101,10 +1189,7 @@ class ATMSEngine:
             node = ATMSNode(
                 node_id=node_id,
                 kind="assumption",
-                payload={
-                    "assumption": assumption,
-                    "cel": assumption.cel,
-                },
+                payload=ATMSAssumptionPayload(assumption=assumption),
                 label=Label.singleton(assumption),
             )
             self._nodes[node_id] = node
@@ -1117,16 +1202,7 @@ class ATMSEngine:
             self._nodes[node_id] = ATMSNode(
                 node_id=node_id,
                 kind="claim",
-                payload={
-                    "claim_id": claim_id,
-                    "concept_id": (
-                        None
-                        if claim.concept_id is None
-                        else str(claim.concept_id)
-                    ),
-                    "value": claim.value,
-                    "claim": claim,
-                },
+                payload=ATMSClaimPayload(claim=claim),
             )
             self._claim_node_ids[claim_id] = node_id
 
@@ -1208,7 +1284,7 @@ class ATMSEngine:
 
             for provider_combo in product(*input_provider_sets):
                 input_values = {
-                    concept_id: float(self._nodes[node_id].payload["value"])
+                    concept_id: float(_node_value(self._nodes[node_id]))
                     for concept_id, node_id in zip(effective_inputs, provider_combo, strict=True)
                 }
                 derived_value = evaluate_parameterization(sympy_expr, input_values, output_concept_id)
@@ -1220,12 +1296,12 @@ class ATMSEngine:
                     self._nodes[derived_node_id] = ATMSNode(
                         node_id=derived_node_id,
                         kind="derived",
-                        payload={
-                            "concept_id": output_concept_id,
-                            "value": derived_value,
-                            "parameterization_index": index,
-                            "formula": param.formula,
-                        },
+                        payload=ATMSDerivedPayload(
+                            concept_id=output_concept_id,
+                            value=derived_value,
+                            parameterization_index=index,
+                            formula=param.formula,
+                        ),
                     )
 
                 for condition_antecedent_ids in condition_antecedents:
@@ -1283,8 +1359,8 @@ class ATMSEngine:
                 continue
             if not node.label.environments:
                 continue
-            concept_id = node.payload.get("concept_id")
-            value = node.payload.get("value")
+            concept_id = _node_concept_id(node)
+            value = _node_value(node)
             if concept_id is None or value is None:
                 continue
             providers[concept_id].append(node_id)
@@ -1325,8 +1401,8 @@ class ATMSEngine:
                 node_id
                 for node_id, node in self._nodes.items()
                 if node.kind == "assumption"
-                and isinstance(node.payload.get("assumption"), AssumptionRef)
-                and node.payload["assumption"].cel == condition
+                and (assumption := _node_assumption(node)) is not None
+                and assumption.cel == condition
             ]
             if not matches:
                 return []
@@ -1416,7 +1492,7 @@ class ATMSEngine:
         if node.label.environments:
             return SupportQuality.EXACT
 
-        claim = node.payload.get("claim")
+        claim = _node_claim(node)
         if claim is not None:
             _label, quality = self._runtime.claim_support(claim)
             return quality
@@ -1487,8 +1563,8 @@ class ATMSEngine:
     def _expected_label_for_node(self, node_id: str) -> Label:
         node = self._nodes[node_id]
         if node.kind == "assumption":
-            assumption = node.payload.get("assumption")
-            if isinstance(assumption, AssumptionRef):
+            assumption = _node_assumption(node)
+            if assumption is not None:
                 return Label.singleton(assumption)
             return Label(())
 
@@ -1945,7 +2021,7 @@ class ATMSEngine:
         )
         return ATMSInspection(
             node_id=node_id,
-            claim_id=None if fallback is None else fallback.payload.get("claim_id"),
+            claim_id=None if fallback is None else _node_claim_id(fallback),
             kind=None if fallback is None else fallback.kind,
             status=ATMSNodeStatus.OUT,
             support_quality=support_quality,
