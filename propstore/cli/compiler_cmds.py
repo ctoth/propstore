@@ -1,4 +1,11 @@
-"""pks validate / build / query / export-aliases — top-level compiler commands."""
+"""Compiler-facing CLI commands.
+
+Exposes the four top-level commands ``validate``, ``build``, ``query``,
+``export-aliases``, plus the ``world`` subcommand group. ``world`` hosts the
+render/query surface over the compiled knowledge base (status, claim/binding
+inspection, revision, ATMS label interrogation, argumentation extensions,
+hypothetical reasoning, parameter-space derivation, sensitivity/fragility
+analysis, graph export, and multi-hop conflict checking)."""
 from __future__ import annotations
 
 import json
