@@ -785,7 +785,7 @@ def world_revision_base(obj: dict, args: tuple[str, ...]) -> None:
 
         click.echo(f"Revision base ({len(base.atoms)} atoms, {len(base.assumptions)} assumptions)")
         for atom in base.atoms:
-            payload = dict(atom.payload)
+            payload = atom.payload.to_dict()
             details = _format_revision_payload(payload)
             atom_display_id = _revision_atom_display_id(atom.atom_id, payload=payload)
             if details:
