@@ -7,7 +7,7 @@ from propstore.identity import derive_concept_artifact_id
 from propstore.sidecar.build import build_sidecar
 from propstore.sensitivity import SensitivityEntry, SensitivityResult, analyze_sensitivity
 from propstore.world import WorldModel
-from tests.conftest import normalize_claims_payload
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -29,13 +29,20 @@ def concept_dir(tmp_path):
 
     forms_dir = knowledge / "forms"
     forms_dir.mkdir()
+    dimensionless_forms = {"category", "structural", "duration_ratio"}
     for form_name in ("frequency", "category", "structural", "duration_ratio",
                       "pressure", "time"):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name}, default_flow_style=False))
+            yaml.dump(
+                {"name": form_name, "dimensionless": form_name in dimensionless_forms},
+                default_flow_style=False,
+            ))
 
     def write(name, data):
-        (concepts_path / f"{name}.yaml").write_text(yaml.dump(data, default_flow_style=False))
+        normalized = normalize_concept_payloads([data], default_domain="speech")[0]
+        (concepts_path / f"{name}.yaml").write_text(
+            yaml.dump(normalized, default_flow_style=False)
+        )
 
     write("fundamental_frequency", {
         "id": "concept1",
@@ -316,12 +323,19 @@ def nonlinear_world(tmp_path):
 
     forms_dir = knowledge / "forms"
     forms_dir.mkdir()
+    dimensionless_forms = {"category"}
     for form_name in ("quantity", "category"):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name}, default_flow_style=False))
+            yaml.dump(
+                {"name": form_name, "dimensionless": form_name in dimensionless_forms},
+                default_flow_style=False,
+            ))
 
     def write(name, data):
-        (concepts_path / f"{name}.yaml").write_text(yaml.dump(data, default_flow_style=False))
+        normalized = normalize_concept_payloads([data], default_domain="test")[0]
+        (concepts_path / f"{name}.yaml").write_text(
+            yaml.dump(normalized, default_flow_style=False)
+        )
 
     write("input_a", {
         "id": "ca",
@@ -495,19 +509,27 @@ class TestSensitivityNonlinear:
 
     def test_sensitivity_nonlinear(self, nonlinear_world):
         bound = nonlinear_world.bind()
+        input_a_id = nonlinear_world.resolve_concept("test:input_a")
+        input_b_id = nonlinear_world.resolve_concept("test:input_b")
+        output_id = nonlinear_world.resolve_concept("test:output_nl")
+        assert input_a_id is not None
+        assert input_b_id is not None
+        assert output_id is not None
         result = analyze_sensitivity(
-            nonlinear_world, "cout", bound,
-            override_values={"ca": 3.0, "cb": 2.0},
+            nonlinear_world,
+            output_id,
+            bound,
+            override_values={"test:input_a": 3.0, "test:input_b": 2.0},
         )
         assert result is not None
         assert result.output_value == pytest.approx(18.0)  # 3^2 * 2
 
-        by_id = {e.input_concept_id: e for e in result.entries}
-        assert by_id[_concept_artifact("ca")].elasticity == pytest.approx(2.0)
-        assert by_id[_concept_artifact("cb")].elasticity == pytest.approx(1.0)
+        by_id = {str(e.input_concept_id): e for e in result.entries}
+        assert by_id[str(input_a_id)].elasticity == pytest.approx(2.0)
+        assert by_id[str(input_b_id)].elasticity == pytest.approx(1.0)
 
-        # ca should be first (higher elasticity)
-        assert result.entries[0].input_concept_id == _concept_artifact("ca")
+        # input_a should be first (higher elasticity)
+        assert str(result.entries[0].input_concept_id) == str(input_a_id)
 
 
 class TestSensitivityConditionsRespected:

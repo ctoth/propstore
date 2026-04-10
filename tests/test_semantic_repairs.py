@@ -7,7 +7,7 @@ from propstore.claim_graph import compute_claim_graph_justified_claims
 from propstore.sidecar.build import build_sidecar
 from propstore.world import ResolutionStrategy, WorldModel, resolve
 from propstore.world.value_resolver import ActiveClaimResolver
-from tests.conftest import normalize_claims_payload
+from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 
 
 def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> WorldModel:
@@ -24,14 +24,19 @@ def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> Worl
     (counters_dir / "semantic.next").write_text("10")
 
     form_names = {concept["form"] for concept in concepts}
+    dimensionless_forms = {"category", "structural"}
     for form_name in sorted(form_names):
         (forms_dir / f"{form_name}.yaml").write_text(
-            yaml.dump({"name": form_name}, default_flow_style=False)
+            yaml.dump(
+                {"name": form_name, "dimensionless": form_name in dimensionless_forms},
+                default_flow_style=False,
+            )
         )
 
     for concept in concepts:
+        normalized = normalize_concept_payloads([concept], default_domain="semantic")[0]
         (concepts_dir / f"{concept['canonical_name']}.yaml").write_text(
-            yaml.dump(concept, default_flow_style=False)
+            yaml.dump(normalized, default_flow_style=False)
         )
 
     for index, claim_doc in enumerate(claim_docs, start=1):

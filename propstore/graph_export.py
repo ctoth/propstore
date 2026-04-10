@@ -20,13 +20,18 @@ from propstore.core.row_types import (
 from propstore.world import ArtifactStore, BeliefSpace
 
 
+def _coerce_claim_like(claim_input):
+    row_input = getattr(claim_input, "row", claim_input)
+    return coerce_claim_row(row_input)
+
+
 def _claim_concept_id(claim_input) -> Any:
-    claim = coerce_claim_row(claim_input)
+    claim = _coerce_claim_like(claim_input)
     return claim.concept_id or claim.target_concept
 
 
 def _display_claim_id(claim_input) -> str:
-    claim = coerce_claim_row(claim_input)
+    claim = _coerce_claim_like(claim_input)
     logical_value = claim.primary_logical_value
     if isinstance(logical_value, str) and logical_value:
         return logical_value
@@ -171,7 +176,7 @@ def build_knowledge_graph(
     else:
         claims = world.claims_for(None)
 
-    claim_rows = [coerce_claim_row(claim) for claim in claims]
+    claim_rows = [_coerce_claim_like(claim) for claim in claims]
 
     # Filter claims to allowed concepts if group scoping is active
     if allowed_concept_ids is not None:

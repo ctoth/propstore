@@ -100,7 +100,16 @@ def analyze_sensitivity(
         return None
 
     input_ids = json.loads(param.concept_ids)
-    effective_inputs = [to_concept_id(iid) for iid in input_ids if iid != lookup_concept_id]
+    effective_inputs: list[ConceptId] = []
+    for input_id in input_ids:
+        resolved_input_id = (
+            resolver(str(input_id))
+            if callable(resolver)
+            else None
+        )
+        canonical_input_id = to_concept_id(resolved_input_id or str(input_id))
+        if canonical_input_id != lookup_concept_id:
+            effective_inputs.append(canonical_input_id)
 
     if not effective_inputs:
         return None
