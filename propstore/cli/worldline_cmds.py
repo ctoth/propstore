@@ -9,6 +9,7 @@ import click
 import yaml
 
 from propstore.cli.repository import Repository
+from propstore.document_schema import DocumentSchemaError
 from propstore.world.types import (
     ReasoningBackend,
     cli_argumentation_semantics_values,
@@ -47,10 +48,7 @@ def _load_worldline_definition(repo: Repository, name: str):
     path = _worldlines_tree(repo) / f"{name}.yaml"
     if not path.exists():
         raise FileNotFoundError(name)
-    data = yaml.safe_load(path.read_bytes())
-    if not isinstance(data, dict):
-        raise ValueError(f"Worldline file {path.as_posix()} is not a YAML mapping")
-    return WorldlineDefinition.from_dict(data)
+    return WorldlineDefinition.from_file(path)
 
 
 def _dump_worldline_yaml_bytes(worldline) -> bytes:
@@ -583,15 +581,14 @@ def worldline_list(obj: dict) -> None:
 
     for f in files:
         try:
-            data = yaml.safe_load(f.read_bytes())
-            if not isinstance(data, dict):
-                raise ValueError("not a YAML mapping")
-            wl = WorldlineDefinition.from_dict(data)
+            wl = WorldlineDefinition.from_file(f)
             status = "materialized" if wl.results else "pending"
             targets = ", ".join(wl.targets[:3])
             if len(wl.targets) > 3:
                 targets += f" (+{len(wl.targets) - 3})"
             click.echo(f"  {wl.id}: {status} → {targets}")
+        except DocumentSchemaError as e:
+            click.echo(f"  {f.stem}: ERROR — {e}")
         except Exception as e:
             click.echo(f"  {f.stem}: ERROR — {e}")
 
