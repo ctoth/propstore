@@ -10,7 +10,7 @@ import yaml
 from propstore.cli.helpers import EXIT_ERROR
 from propstore.cli.repository import Repository
 from propstore.document_schema import DocumentSchemaError
-from propstore.form_utils import load_all_forms_path, load_form_definition, load_form_path
+from propstore.form_utils import load_all_forms_path, load_form_definition, load_form_path, validate_form_files
 from propstore.core.concepts import load_concepts
 
 
@@ -303,33 +303,14 @@ def validate(obj: dict, name: str | None) -> None:
         click.echo("No forms directory found.")
         return
 
-    errors: list[str] = []
-
     if name is not None:
-        paths = [forms_tree / f"{name}.yaml"]
-        if not paths[0].exists():
+        path = forms_tree / f"{name}.yaml"
+        if not path.exists():
             click.echo(f"ERROR: Form '{name}' not found", err=True)
             sys.exit(EXIT_ERROR)
-    else:
-        paths = sorted(
-            (p for p in forms_tree.iterdir() if p.is_file() and p.suffix == ".yaml"),
-            key=lambda p: p.name,
-        )
 
-    form_names: set[str] = set()
-    for path in paths:
-        try:
-            document = load_form_definition(forms_tree, path.stem)
-        except DocumentSchemaError as exc:
-            errors.append(str(exc))
-            continue
-        if document is None:
-            errors.append(f"{path.name}: form document missing")
-            continue
-        form_name = document.name
-        if form_name != path.stem:
-            errors.append(f"{path.name}: name '{form_name}' does not match filename")
-        form_names.add(form_name)
+    # Run unified form validation
+    form_result = validate_form_files(forms_tree)
 
     # Check that concepts reference existing forms
     all_forms = {
@@ -337,15 +318,22 @@ def validate(obj: dict, name: str | None) -> None:
         for p in forms_tree.iterdir()
         if p.is_file() and p.suffix == ".yaml"
     }
-    for concept in load_concepts(repo.tree() / "concepts"):
-        ref = concept.record.form
-        if ref and ref not in all_forms:
-            errors.append(f"concept {concept.filename}: references missing form '{ref}'")
+    concepts_tree = repo.tree() / "concepts"
+    if concepts_tree.exists():
+        for concept in load_concepts(concepts_tree):
+            ref = concept.record.form
+            if ref and ref not in all_forms:
+                form_result.errors.append(
+                    f"concept {concept.filename}: references missing form '{ref}'"
+                )
 
-    if errors:
-        for e in errors:
+    if not form_result.ok:
+        for e in form_result.errors:
             click.echo(f"ERROR: {e}", err=True)
         sys.exit(EXIT_ERROR)
 
-    count = len(paths)
+    count = len([
+        p for p in forms_tree.iterdir()
+        if p.is_file() and p.suffix == ".yaml"
+    ])
     click.echo(f"OK: {count} form(s) valid")
