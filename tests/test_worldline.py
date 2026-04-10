@@ -24,6 +24,7 @@ from propstore.repo import KnowledgeRepo
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldModel
+from tests.conftest import normalize_claims_payload
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -196,7 +197,7 @@ def physics_knowledge(tmp_path_factory):
     claims_dir = root / "claims"
     claims_dir.mkdir()
     with open(claims_dir / "physics_claims.yaml", "w") as f:
-        yaml.dump({
+        yaml.dump(normalize_claims_payload({
             "source": {"paper": "test"},
             "claims": [
                 {
@@ -226,7 +227,7 @@ def physics_knowledge(tmp_path_factory):
                     "provenance": {"paper": "test", "page": 1},
                 },
             ],
-        }, f, default_flow_style=False)
+        }), f, default_flow_style=False)
 
     return root
 
@@ -300,7 +301,7 @@ def chained_physics_knowledge(tmp_path_factory):
     claims_dir = root / "claims"
     claims_dir.mkdir()
     with open(claims_dir / "physics_claims.yaml", "w", encoding="utf-8") as f:
-        yaml.dump({
+        yaml.dump(normalize_claims_payload({
             "source": {"paper": "test"},
             "claims": [
                 {
@@ -312,7 +313,7 @@ def chained_physics_knowledge(tmp_path_factory):
                     "provenance": {"paper": "test", "page": 1},
                 },
             ],
-        }, f, default_flow_style=False)
+        }), f, default_flow_style=False)
 
     return root
 

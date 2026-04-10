@@ -8,6 +8,7 @@ from click.testing import CliRunner
 
 from propstore.cli import cli
 from propstore.cli.repository import Repository
+from tests.conftest import normalize_claims_payload
 
 
 def _make_concept(name: str, cid: str, domain: str, status: str = "accepted",
@@ -41,7 +42,8 @@ def _write_counter(concepts_dir: Path, value: int) -> None:
 def _write_claim_file(claims_dir: Path, filename: str, data: dict) -> Path:
     claims_dir.mkdir(parents=True, exist_ok=True)
     path = claims_dir / filename
-    path.write_text(yaml.dump(data, default_flow_style=False, sort_keys=False))
+    normalized = normalize_claims_payload(data)
+    path.write_text(yaml.dump(normalized, default_flow_style=False, sort_keys=False))
     return path
 
 

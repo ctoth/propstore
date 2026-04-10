@@ -10,6 +10,7 @@ from propstore.sidecar.build import build_sidecar
 from propstore.identity import derive_concept_artifact_id
 from propstore.world import WorldModel
 from tests.conftest import normalize_claims_payload
+from tests.conftest import normalize_claims_payload
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -143,7 +144,7 @@ def graph_build_world(tmp_path):
         ],
     })
     (claims_dir / "claims.yaml").write_text(
-        yaml.dump(claims_payload, default_flow_style=False),
+        yaml.dump(normalize_claims_payload(claims_payload), default_flow_style=False),
         encoding="utf-8",
     )
 

@@ -7,6 +7,7 @@ from propstore.claim_graph import compute_claim_graph_justified_claims
 from propstore.sidecar.build import build_sidecar
 from propstore.world import ResolutionStrategy, WorldModel, resolve
 from propstore.world.value_resolver import ActiveClaimResolver
+from tests.conftest import normalize_claims_payload
 
 
 def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> WorldModel:
@@ -35,7 +36,7 @@ def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> Worl
 
     for index, claim_doc in enumerate(claim_docs, start=1):
         (claims_dir / f"claims_{index}.yaml").write_text(
-            yaml.dump(claim_doc, default_flow_style=False)
+            yaml.dump(normalize_claims_payload(claim_doc), default_flow_style=False)
         )
 
     from propstore.cli.repository import Repository
