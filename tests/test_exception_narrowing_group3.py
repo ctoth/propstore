@@ -242,16 +242,15 @@ class TestRelateLitellmCall:
         claim_a = {"id": "a", "text": "claim a"}
         claim_b = {"id": "b", "text": "claim b"}
 
-        with patch("propstore.relate._require_litellm", return_value=mock_litellm):
-            from propstore.relate import _classify_stance_async
+        with patch("propstore.classify._require_litellm", return_value=mock_litellm):
+            from propstore.classify import classify_stance_async
 
             async def run():
                 sem = asyncio.Semaphore(1)
-                return await _classify_stance_async(
+                return await classify_stance_async(
                     claim_a, claim_b, "model", sem,
                     embedding_model="embed-model",
                     embedding_distance=0.5,
-                    pass_number=1,
                 )
 
             with pytest.raises(RuntimeError, match="boom"):

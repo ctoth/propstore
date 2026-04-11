@@ -35,14 +35,12 @@ class TestRelateFuseEquivalence:
         result = fuse(a, b)
         assert abs(result.b + result.d + result.u - 1.0) < 1e-6
 
-    def test_relate_imports_fuse_not_consensus_pair(self):
-        """relate.py imports fuse, not consensus_pair."""
-        import propstore.relate as relate_module
-        source = open(relate_module.__file__).read()
+    def test_classify_imports_fuse_not_consensus_pair(self):
+        """classify.py imports fuse, not consensus_pair."""
+        import propstore.classify as classify_module
+        source = open(classify_module.__file__).read()
         # Should import fuse
         assert "from propstore.opinion import" in source
-        # After the change, consensus_pair should not be imported
-        # (it may still be used elsewhere — check imports specifically)
         # The key assertion: fuse is used for the fusion call
         assert "fuse(" in source
 

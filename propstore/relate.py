@@ -1,87 +1,27 @@
-"""NLI stance classification via litellm — classify epistemic relationships between claims."""
+"""Pair discovery and batch orchestration for epistemic relationship classification.
+
+Classification logic lives in propstore.classify; this module handles pair selection,
+bulk fetching, deduplication, and async orchestration.
+"""
 from __future__ import annotations
 
 import asyncio
-import importlib
-import json
-import logging
 import sqlite3
 from collections.abc import Callable
 
-from propstore.calibrate import categorical_to_opinion
-from propstore.stances import VALID_STANCE_TYPES
+from propstore.classify import classify_stance_async
 
 
-def _require_litellm():
+def _run_async(coro):
+    """Run coroutine, handling both sync and already-running-loop contexts."""
     try:
-        return importlib.import_module("litellm")
-    except ImportError:
-        raise ImportError(
-            "litellm is required for relate commands. "
-            "Install with: uv pip install 'propstore[embeddings]'"
-        )
-
-
-def _response_content_text(response: object) -> str | None:
-    choices = getattr(response, "choices", None)
-    if not isinstance(choices, list) or not choices:
-        return None
-    message = getattr(choices[0], "message", None)
-    if message is None:
-        return None
-    content = getattr(message, "content", None)
-    return content if isinstance(content, str) else None
-
-
-_CLASSIFICATION_PROMPT = """Given two propositional claims from scientific papers, classify their epistemic relationship.
-
-Claim A (from {source_a}):
-  "{statement_a}"
-
-Claim B (from {source_b}):
-  "{statement_b}"
-
-Classify the relationship from Claim A's perspective toward Claim B.
-Choose exactly ONE of these types, or "none" if they are unrelated:
-
-- rebuts: A directly contradicts B's conclusion
-- undercuts: A attacks B's inference method or reasoning
-- undermines: A weakens B's premise or evidence quality
-- supports: A provides corroborating evidence for B
-- explains: A provides a mechanistic explanation for why B is true
-- supersedes: A replaces B entirely (newer data, better method, corrects error)
-- none: No meaningful epistemic relationship
-
-Respond with ONLY a JSON object (no markdown, no explanation):
-{{"type": "<type or none>", "strength": "<strong|moderate|weak>", "note": "<1 sentence explaining why>", "conditions_differ": "<how conditions differ, or null>"}}"""
-
-
-_SECOND_PASS_PROMPT = """These two claims from scientific papers are HIGHLY SIMILAR by embedding distance ({distance:.4f}) but a first-pass analysis found no epistemic relationship. Re-examine more carefully.
-
-{shared_concepts_text}
-
-Claim A (from {source_a}):
-  "{statement_a}"
-
-Claim B (from {source_b}):
-  "{statement_b}"
-
-Look specifically for subtle relationships:
-- undermines: Does A weaken B's premise or evidence quality?
-- undercuts: Does A attack B's inference method or reasoning?
-- rebuts: Does A contradict B's conclusion?
-- supports/explains: Does A provide evidence or mechanism for B?
-- supersedes: Does A replace B?
-
-Classify from Claim A's perspective toward Claim B.
-Choose exactly ONE type, or "none" if truly unrelated:
-
-Respond with ONLY a JSON object:
-{{"type": "<type or none>", "strength": "<strong|moderate|weak>", "note": "<1 sentence>", "conditions_differ": "<or null>"}}"""
-
-
-# _CONFIDENCE_MAP removed: fabricated lookup table replaced by categorical_to_opinion()
-# Per Guo et al. (2017, p.0): raw neural scores are miscalibrated; fabricated scores are worse
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    # Already in an event loop (Jupyter, async CLI, etc.)
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
 
 
 def _get_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict | None:
@@ -102,194 +42,59 @@ def _get_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict | None:
     return d
 
 
-def _find_shared_concepts(conn: sqlite3.Connection, claim_a_id: str, claim_b_id: str) -> list[str]:
-    """Find concept names referenced by both claims."""
-    a_concept = conn.execute(
-        "SELECT concept_id FROM claim_core WHERE id = ?",
-        (claim_a_id,),
-    ).fetchone()
-    b_concept = conn.execute(
-        "SELECT concept_id FROM claim_core WHERE id = ?",
-        (claim_b_id,),
-    ).fetchone()
-    shared = set()
-    if a_concept and b_concept and a_concept[0] and b_concept[0]:
-        if a_concept[0] == b_concept[0]:
-            shared.add(a_concept[0])
-    # Also check for concept overlap in auto_summary text (rough heuristic)
-    return list(shared)
+def _bulk_get_claim_texts(conn: sqlite3.Connection, claim_ids: list[str]) -> dict[str, dict]:
+    """Fetch claim texts for multiple IDs in a single query."""
+    if not claim_ids:
+        return {}
+    placeholders = ",".join("?" * len(claim_ids))
+    rows = conn.execute(
+        f"""
+        SELECT core.id, txt.auto_summary, txt.statement, txt.expression, core.source_paper
+        FROM claim_core AS core
+        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+        WHERE core.id IN ({placeholders})
+        """,
+        claim_ids,
+    ).fetchall()
+    result: dict[str, dict] = {}
+    for row in rows:
+        d = dict(row)
+        d["text"] = d.get("auto_summary") or d.get("statement") or d.get("expression") or d["id"]
+        result[d["id"]] = d
+    return result
 
 
-async def _classify_stance_async(
-    claim_a: dict,
-    claim_b: dict,
-    model_name: str,
-    semaphore: asyncio.Semaphore,
-    *,
-    embedding_model: str | None = None,
-    embedding_distance: float | None = None,
-    pass_number: int = 1,
-    shared_concepts: list[str] | None = None,
-    reference_distances: list[float] | None = None,
-    calibration_counts: dict[tuple[int, str], tuple[int, int]] | None = None,
-) -> dict:
-    """Classify the epistemic relationship between two claims via async LLM call.
-
-    Always returns a dict — "none" verdicts included with type="none".
-    """
-    litellm = _require_litellm()
-
-    if pass_number == 2 and embedding_distance is not None:
-        shared_concepts_text = ""
-        if shared_concepts:
-            shared_concepts_text = f"Shared concepts: {', '.join(shared_concepts)}"
-        prompt = _SECOND_PASS_PROMPT.format(
-            distance=embedding_distance,
-            shared_concepts_text=shared_concepts_text,
-            source_a=claim_a.get("source_paper", "unknown"),
-            statement_a=claim_a["text"],
-            source_b=claim_b.get("source_paper", "unknown"),
-            statement_b=claim_b["text"],
-        )
-    else:
-        prompt = _CLASSIFICATION_PROMPT.format(
-            source_a=claim_a.get("source_paper", "unknown"),
-            statement_a=claim_a["text"],
-            source_b=claim_b.get("source_paper", "unknown"),
-            statement_b=claim_b["text"],
-        )
-
-    async with semaphore:
-        try:
-            response = await litellm.acompletion(
-                model=model_name,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
-            )
-        except (ConnectionError, TimeoutError, OSError, ValueError) as exc:
-            logging.warning("Stance classification failed for %s vs %s: %s", claim_a["id"], claim_b["id"], exc)
-            return {
-                "target": claim_b["id"],
-                "type": "error",
-                "strength": "weak",
-                "note": "classification failed",
-                "conditions_differ": None,
-                "resolution": {
-                    "method": f"nli_{'first' if pass_number == 1 else 'second'}_pass",
-                    "model": model_name,
-                    "embedding_model": embedding_model,
-                    "embedding_distance": embedding_distance,
-                    "pass_number": pass_number,
-                    "confidence": 0.0,
-                },
-            }
-
-    response_text = _response_content_text(response)
-    if response_text is None:
-        return {
-            "target": claim_b["id"],
-            "type": "error",
-            "strength": "weak",
-            "note": "missing response content",
-            "conditions_differ": None,
-            "resolution": {
-                "method": f"nli_{'first' if pass_number == 1 else 'second'}_pass",
-                "model": model_name,
-                "embedding_model": embedding_model,
-                "embedding_distance": embedding_distance,
-                "pass_number": pass_number,
-                "confidence": 0.0,
-            },
-        }
-    text = response_text.strip()
-    try:
-        result = json.loads(text)
-    except json.JSONDecodeError:
-        return {
-            "target": claim_b["id"],
-            "type": "error",
-            "strength": "weak",
-            "note": "JSON parse failed",
-            "conditions_differ": None,
-            "resolution": {
-                "method": f"nli_{'first' if pass_number == 1 else 'second'}_pass",
-                "model": model_name,
-                "embedding_model": embedding_model,
-                "embedding_distance": embedding_distance,
-                "pass_number": pass_number,
-                "confidence": 0.0,
-            },
-        }
-
-    stance_type = result.get("type", "none")
-    if stance_type not in VALID_STANCE_TYPES:
-        stance_type = "none"
-
-    strength = result.get("strength", "moderate")
-    if stance_type != "none":
-        # 1. Categorical opinion (Jøsang 2001, p.8)
-        # Without calibration data, returns vacuous opinion (honest ignorance)
-        opinion = categorical_to_opinion(strength, pass_number, calibration_counts=calibration_counts)
-
-        # 2. Corpus-distance opinion: fuse via consensus (Jøsang 2001, Theorem 7, p.25)
-        if reference_distances is not None and embedding_distance is not None and len(reference_distances) > 0:
-            from propstore.calibrate import CorpusCalibrator
-            from propstore.opinion import fuse
-            corpus_cal = CorpusCalibrator(reference_distances)
-            corpus_opinion = corpus_cal.to_opinion(embedding_distance)
-            # fuse(method="auto") handles dogmatic inputs via CCF fallback
-            # (Jøsang 2001, Theorem 7 for WBF; CCF for dogmatic edge cases)
-            opinion = fuse(opinion, corpus_opinion)
-
-        # Backward-compatible confidence = probability expectation (Jøsang 2001, p.5, Def 6)
-        confidence = opinion.expectation()  # E(ω) = b + a·u
-    else:
-        confidence = 0.0
-        opinion = None
-
-    resolution = {
-        "method": f"nli_{'first' if pass_number == 1 else 'second'}_pass",
-        "model": model_name,
-        "embedding_model": embedding_model,
-        "embedding_distance": embedding_distance,
-        "pass_number": pass_number,
-        "confidence": confidence,
-        "opinion_belief": opinion.b if opinion else 0.0,
-        "opinion_disbelief": opinion.d if opinion else 0.0,
-        "opinion_uncertainty": opinion.u if opinion else 0.0,
-        "opinion_base_rate": opinion.a if opinion else 0.5,
-    }
-
-    return {
-        "target": claim_b["id"],
-        "type": stance_type,
-        "strength": strength,
-        "note": result.get("note", ""),
-        "conditions_differ": result.get("conditions_differ"),
-        "resolution": resolution,
-    }
+def dedup_pairs(pairs: list[tuple[str, str, float]]) -> list[tuple[str, str, float]]:
+    """Deduplicate (a_id, b_id, distance) pairs by unordered key, keeping shortest distance."""
+    best: dict[frozenset[str], tuple[int, float]] = {}
+    for i, (a, b, dist) in enumerate(pairs):
+        key = frozenset({a, b})
+        if key not in best or dist < best[key][1]:
+            best[key] = (i, dist)
+    return [pairs[idx] for idx, _ in sorted(best.values(), key=lambda x: x[0])]
 
 
-def classify_stance(
-    claim_a: dict,
-    claim_b: dict,
-    model_name: str,
-) -> dict:
-    """Classify the epistemic relationship between two claims via LLM (sync wrapper)."""
-    sem = asyncio.Semaphore(1)
-    return asyncio.run(_classify_stance_async(claim_a, claim_b, model_name, sem))
+def _shared_concept_ids_from_pair(claim_a: dict, claim_b: dict) -> list[str]:
+    """Extract shared concept IDs from claim dicts (concept_id field from find_similar)."""
+    a_cid = claim_a.get("concept_id")
+    b_cid = claim_b.get("concept_id")
+    if a_cid and b_cid and a_cid == b_cid:
+        return [a_cid]
+    return []
 
 
-async def _relate_claim_async(
+async def relate_claim_async(
     conn: sqlite3.Connection,
     claim_id: str,
     model_name: str,
     embedding_model: str | None,
     top_k: int,
     semaphore: asyncio.Semaphore,
-    second_pass_threshold: float = 0.75,
 ) -> list[dict]:
-    """Find similar claims and classify relationships concurrently, with two-pass NLI."""
+    """Find similar claims and classify relationships concurrently.
+
+    Single-pass bidirectional classification — each LLM call returns both A->B and B->A.
+    """
     from propstore.embed import find_similar, get_registered_models, _load_vec_extension
 
     _load_vec_extension(conn)
@@ -306,60 +111,33 @@ async def _relate_claim_async(
 
     candidates = find_similar(conn, claim_id, embedding_model, top_k=top_k)
 
-    # Fetch all candidate texts with distances
     candidate_claims = []
     candidate_distances: dict[str, float] = {}
     for c in candidates:
         claim_b = _get_claim_text(conn, c["id"])
         if claim_b:
+            # Carry concept_id from find_similar result for shared-concept check
+            claim_b["concept_id"] = c.get("concept_id")
             candidate_claims.append(claim_b)
             candidate_distances[c["id"]] = c.get("distance", 1.0)
 
-    # Phase 1: First-pass classify all candidates
     tasks = [
-        _classify_stance_async(
+        classify_stance_async(
             claim_a, claim_b, model_name, semaphore,
             embedding_model=embedding_model,
             embedding_distance=candidate_distances.get(claim_b["id"]),
-            pass_number=1,
+            shared_concept_ids=_shared_concept_ids_from_pair(claim_a, claim_b),
         )
         for claim_b in candidate_claims
     ]
-    first_pass_results = await asyncio.gather(*tasks)
+    results_lists = await asyncio.gather(*tasks)
 
-    # Phase 2: Second pass for "none" verdicts with high similarity
-    second_pass_indices = []
-    for i, result in enumerate(first_pass_results):
-        if result["type"] == "none":
-            target_id = result["target"]
-            dist = candidate_distances.get(target_id, 1.0)
-            if dist < second_pass_threshold:
-                second_pass_indices.append(i)
+    # Flatten: each call returns [forward, reverse]; collect all stances
+    all_stances: list[dict] = []
+    for stance_pair in results_lists:
+        all_stances.extend(stance_pair)
 
-    if second_pass_indices:
-        second_tasks = []
-        for i in second_pass_indices:
-            target_id = first_pass_results[i]["target"]
-            claim_b = next((cb for cb in candidate_claims if cb["id"] == target_id), None)
-            if claim_b is None:
-                continue
-            shared = _find_shared_concepts(conn, claim_id, target_id)
-            second_tasks.append((i, _classify_stance_async(
-                claim_a, claim_b, model_name, semaphore,
-                embedding_model=embedding_model,
-                embedding_distance=candidate_distances.get(target_id),
-                pass_number=2,
-                shared_concepts=shared,
-            )))
-
-        results_list = list(first_pass_results)
-        for idx, task in second_tasks:
-            second_result = await task
-            # Replace first-pass "none" with second-pass result
-            results_list[idx] = second_result
-        first_pass_results = results_list
-
-    return list(first_pass_results)
+    return all_stances
 
 
 def relate_claim(
@@ -368,26 +146,23 @@ def relate_claim(
     model_name: str,
     embedding_model: str | None = None,
     top_k: int = 5,
-    second_pass_threshold: float = 0.75,
 ) -> list[dict]:
     """Find similar claims and classify relationships (sync entry point)."""
     sem = asyncio.Semaphore(10)
-    return asyncio.run(
-        _relate_claim_async(conn, claim_id, model_name, embedding_model, top_k, sem,
-                            second_pass_threshold=second_pass_threshold)
+    return _run_async(
+        relate_claim_async(conn, claim_id, model_name, embedding_model, top_k, sem)
     )
 
 
-async def _relate_all_async(
+async def relate_all_async(
     conn: sqlite3.Connection,
     model_name: str,
     embedding_model: str | None,
     top_k: int,
     concurrency: int,
     on_progress: Callable[[int, int], None] | None,
-    second_pass_threshold: float = 0.75,
 ) -> dict:
-    """Classify relationships for all claims with concurrent LLM calls and two-pass NLI."""
+    """Classify relationships for all claims with concurrent bidirectional LLM calls."""
     from propstore.embed import find_similar, get_registered_models, _load_vec_extension
 
     _load_vec_extension(conn)
@@ -399,32 +174,66 @@ async def _relate_all_async(
         embedding_model = str(models[0]["model_name"])
 
     all_claim_rows = conn.execute("SELECT id FROM claim_core").fetchall()
-    total = len(all_claim_rows)
+    all_claim_ids = [row["id"] for row in all_claim_rows]
+    total = len(all_claim_ids)
 
-    # Phase 1: Gather all (claim_a, candidate_b, distance) pairs from embeddings (fast, no LLM)
+    # Bulk-fetch all claim texts upfront
+    text_cache = _bulk_get_claim_texts(conn, all_claim_ids)
+
+    # Phase 1: Gather pairs from embeddings (fast, no LLM)
     pairs: list[tuple[dict, dict, float]] = []
-    for row in all_claim_rows:
-        claim_id = row["id"]
-        claim_a = _get_claim_text(conn, claim_id)
-        if not claim_a:
+    candidate_ids_needed: set[str] = set()
+    raw_candidates: list[tuple[str, list[dict]]] = []
+    # Track concept_ids from find_similar for shared-concept checks
+    concept_ids: dict[str, str | None] = {}
+
+    for claim_id in all_claim_ids:
+        if claim_id not in text_cache:
             continue
         try:
             candidates = find_similar(conn, claim_id, embedding_model, top_k=top_k)
         except ValueError:
             continue
+        raw_candidates.append((claim_id, candidates))
         for c in candidates:
-            claim_b = _get_claim_text(conn, c["id"])
+            concept_ids[c["id"]] = c.get("concept_id")
+            if c["id"] not in text_cache:
+                candidate_ids_needed.add(c["id"])
+
+    if candidate_ids_needed:
+        text_cache.update(_bulk_get_claim_texts(conn, list(candidate_ids_needed)))
+
+    for claim_id, candidates in raw_candidates:
+        claim_a = text_cache[claim_id]
+        for c in candidates:
+            claim_b = text_cache.get(c["id"])
             if claim_b:
                 pairs.append((claim_a, claim_b, c.get("distance", 1.0)))
 
-    # Phase 2: First-pass classify all pairs concurrently
+    # Deduplicate mirror pairs
+    raw_id_pairs = [(a["id"], b["id"], dist) for a, b, dist in pairs]
+    deduped = dedup_pairs(raw_id_pairs)
+    pairs = [
+        (text_cache[a_id], text_cache[b_id], dist)
+        for a_id, b_id, dist in deduped
+        if a_id in text_cache and b_id in text_cache
+    ]
+
+    # Collect all distances for corpus calibration (Josang 2001, Theorem 7)
+    reference_distances = [dist for _, _, dist in pairs]
+
+    # Phase 2: Classify all pairs (single pass, bidirectional)
     semaphore = asyncio.Semaphore(concurrency)
     tasks = [
-        _classify_stance_async(
+        classify_stance_async(
             a, b, model_name, semaphore,
             embedding_model=embedding_model,
             embedding_distance=dist,
-            pass_number=1,
+            shared_concept_ids=_shared_concept_ids_from_pair(
+                {**a, "concept_id": concept_ids.get(a["id"])},
+                {**b, "concept_id": concept_ids.get(b["id"])},
+            ),
+            reference_distances=reference_distances,
         )
         for a, b, dist in pairs
     ]
@@ -434,56 +243,30 @@ async def _relate_all_async(
     total_none = 0
     done = 0
 
-    # Process in chunks to report progress
     chunk_size = concurrency * 2
-    first_pass_results: list[tuple[dict, dict, float, dict]] = []
-
     for i in range(0, len(tasks), chunk_size):
         chunk = tasks[i:i + chunk_size]
         chunk_pairs = pairs[i:i + chunk_size]
         results = await asyncio.gather(*chunk)
 
-        for (claim_a, claim_b, dist), result in zip(chunk_pairs, results):
-            first_pass_results.append((claim_a, claim_b, dist, result))
+        for (claim_a, claim_b, _dist), stance_pair in zip(chunk_pairs, results):
+            # Each result is [forward_stance, reverse_stance]
+            for stance in stance_pair:
+                # File under the source claim (the one whose perspective this is from)
+                # Forward: A's perspective -> file under A
+                # Reverse: B's perspective -> file under B
+                source_id = claim_a["id"] if stance["target"] == claim_b["id"] else claim_b["id"]
+                if stance["type"] != "none":
+                    all_stances.setdefault(source_id, []).append(stance)
+                    total_stances += 1
+                else:
+                    all_stances.setdefault(source_id, []).append(stance)
+                    total_none += 1
 
         done += len(chunk)
         if on_progress:
             claims_done = min(total, (done * total) // max(len(pairs), 1))
             on_progress(claims_done, total)
-
-    # Phase 3: Second pass for "none" verdicts below threshold
-    second_pass_items = []
-    for idx, (claim_a, claim_b, dist, result) in enumerate(first_pass_results):
-        if result["type"] == "none" and dist < second_pass_threshold:
-            shared = _find_shared_concepts(conn, claim_a["id"], claim_b["id"])
-            second_pass_items.append((idx, claim_a, claim_b, dist, shared))
-
-    if second_pass_items:
-        second_tasks = [
-            _classify_stance_async(
-                claim_a, claim_b, model_name, semaphore,
-                embedding_model=embedding_model,
-                embedding_distance=dist,
-                pass_number=2,
-                shared_concepts=shared,
-            )
-            for _, claim_a, claim_b, dist, shared in second_pass_items
-        ]
-        second_results = await asyncio.gather(*second_tasks)
-
-        for (idx, claim_a, claim_b, dist, _shared), second_result in zip(second_pass_items, second_results):
-            # Replace first-pass result
-            first_pass_results[idx] = (claim_a, claim_b, dist, second_result)
-
-    # Collect final results
-    for claim_a, _claim_b, _dist, result in first_pass_results:
-        cid = claim_a["id"]
-        if result["type"] != "none":
-            all_stances.setdefault(cid, []).append(result)
-            total_stances += 1
-        else:
-            all_stances.setdefault(cid, []).append(result)
-            total_none += 1
 
     if on_progress:
         on_progress(total, total)
@@ -503,10 +286,8 @@ def relate_all(
     top_k: int = 5,
     concurrency: int = 20,
     on_progress: Callable[[int, int], None] | None = None,
-    second_pass_threshold: float = 0.75,
 ) -> dict:
     """Classify relationships for all claims (sync entry point)."""
-    return asyncio.run(
-        _relate_all_async(conn, model_name, embedding_model, top_k, concurrency, on_progress,
-                          second_pass_threshold=second_pass_threshold)
+    return _run_async(
+        relate_all_async(conn, model_name, embedding_model, top_k, concurrency, on_progress)
     )

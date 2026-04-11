@@ -1,12 +1,12 @@
-"""Tests for opinion algebra wiring in relate.py.
+"""Tests for opinion algebra wiring in classify.py.
 
 Verifies that the fabricated _CONFIDENCE_MAP lookup table has been replaced
 by categorical_to_opinion() from calibrate.py, and that opinion fields
 flow through resolution dicts, stance YAML, and sidecar correctly.
 
 Literature grounding:
-- Jøsang 2001 (p.8, Def 9): vacuous opinion (0,0,1,a) = total ignorance
-- Jøsang 2001 (p.5, Def 6): E(ω) = b + a·u
+- Josang 2001 (p.8, Def 9): vacuous opinion (0,0,1,a) = total ignorance
+- Josang 2001 (p.5, Def 6): E(w) = b + a*u
 - Guo et al. 2017 (p.0): raw neural scores are miscalibrated
 """
 
@@ -24,11 +24,25 @@ from propstore.opinion import Opinion
 
 
 # ---------------------------------------------------------------------------
+# Helper: build bidirectional mock response
+# ---------------------------------------------------------------------------
+
+def _bidirectional_response(forward: dict, reverse: dict | None = None) -> MagicMock:
+    """Build a mock litellm response with bidirectional JSON."""
+    if reverse is None:
+        reverse = {"type": "none", "strength": "weak", "note": "reverse", "conditions_differ": None}
+    resp = MagicMock()
+    resp.choices = [MagicMock()]
+    resp.choices[0].message.content = json.dumps({"forward": forward, "reverse": reverse})
+    return resp
+
+
+# ---------------------------------------------------------------------------
 # Test 1: categorical_to_opinion without calibration returns vacuous
 # ---------------------------------------------------------------------------
 
 class TestCategoricalToOpinionNoCalibration:
-    """Per Jøsang (2001, p.8): vacuous opinion is the correct representation
+    """Per Josang (2001, p.8): vacuous opinion is the correct representation
     of total ignorance.  Without calibration data, we have no empirical basis
     for confidence."""
 
@@ -78,48 +92,40 @@ class TestCategoricalToOpinionWithCalibration:
 # ---------------------------------------------------------------------------
 
 class TestResolutionDictHasOpinionFields:
-    """The resolution dict produced by _classify_stance_async() must contain
+    """The resolution dict produced by classify_stance_async() must contain
     both confidence (float) and the four opinion components."""
 
     @pytest.fixture
     def mock_litellm_response(self):
-        """Fake a successful LLM classification."""
-        resp = MagicMock()
-        resp.choices = [MagicMock()]
-        resp.choices[0].message.content = json.dumps({
-            "type": "supports",
-            "strength": "strong",
-            "note": "test note",
-            "conditions_differ": None,
-        })
-        return resp
+        return _bidirectional_response(
+            {"type": "supports", "strength": "strong", "note": "test note", "conditions_differ": None},
+        )
 
     def test_resolution_has_opinion_keys(self, mock_litellm_response):
         import asyncio
-        from propstore.relate import _classify_stance_async
+        from propstore.classify import classify_stance_async
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
         claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.relate._require_litellm") as mock_req:
+            with patch("propstore.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=mock_litellm_response)
                 mock_req.return_value = mock_litellm
-                return await _classify_stance_async(
+                return await classify_stance_async(
                     claim_a, claim_b, "test-model", sem,
-                    pass_number=1,
                 )
 
-        result = asyncio.run(run())
+        results = asyncio.run(run())
+        result = results[0]  # forward stance
         res = result["resolution"]
         assert "confidence" in res
         assert "opinion_belief" in res
         assert "opinion_disbelief" in res
         assert "opinion_uncertainty" in res
         assert "opinion_base_rate" in res
-        # All opinion fields must be floats
         for key in ("opinion_belief", "opinion_disbelief", "opinion_uncertainty", "opinion_base_rate"):
             assert isinstance(res[key], float), f"{key} must be float"
 
@@ -129,7 +135,7 @@ class TestResolutionDictHasOpinionFields:
 # ---------------------------------------------------------------------------
 
 class TestConfidenceEqualsExpectation:
-    """Per Jøsang (2001, p.5, Def 6): E(ω) = b + a·u.
+    """Per Josang (2001, p.5, Def 6): E(w) = b + a*u.
     The resolution confidence must equal the opinion expectation."""
 
     def test_vacuous_opinion_expectation(self):
@@ -147,31 +153,27 @@ class TestConfidenceEqualsExpectation:
     def test_resolution_confidence_matches_expectation(self):
         """The confidence float in the resolution dict must equal Opinion.expectation()."""
         import asyncio
-        from propstore.relate import _classify_stance_async
+        from propstore.classify import classify_stance_async
 
-        resp = MagicMock()
-        resp.choices = [MagicMock()]
-        resp.choices[0].message.content = json.dumps({
-            "type": "rebuts",
-            "strength": "moderate",
-            "note": "test",
-            "conditions_differ": None,
-        })
+        resp = _bidirectional_response(
+            {"type": "rebuts", "strength": "moderate", "note": "test", "conditions_differ": None},
+        )
 
         claim_a = {"id": "a", "text": "A", "source_paper": "p"}
         claim_b = {"id": "b", "text": "B", "source_paper": "p"}
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.relate._require_litellm") as mock_req:
+            with patch("propstore.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
-                return await _classify_stance_async(
-                    claim_a, claim_b, "test-model", sem, pass_number=1,
+                return await classify_stance_async(
+                    claim_a, claim_b, "test-model", sem,
                 )
 
-        result = asyncio.run(run())
+        results = asyncio.run(run())
+        result = results[0]
         res = result["resolution"]
         op = Opinion(
             res["opinion_belief"], res["opinion_disbelief"],
@@ -195,11 +197,10 @@ class TestStanceYamlRoundTrip:
             "note": "test",
             "conditions_differ": None,
             "resolution": {
-                "method": "nli_first_pass",
+                "method": "nli",
                 "model": "test-model",
                 "embedding_model": None,
                 "embedding_distance": None,
-                "pass_number": 1,
                 "confidence": 0.7,
                 "opinion_belief": 0.0,
                 "opinion_disbelief": 0.0,
@@ -288,7 +289,7 @@ class TestSidecarPopulatesOpinionColumns:
                 "strength": "strong",
                 "note": "test",
                 "resolution": {
-                    "method": "nli_first_pass",
+                    "method": "nli",
                     "model": "test",
                     "confidence": 0.7,
                     "opinion_belief": 0.0,
@@ -413,32 +414,28 @@ class TestNoneStanceGetsZeroConfidence:
 
     def test_none_type_zero_confidence(self):
         import asyncio
-        from propstore.relate import _classify_stance_async
+        from propstore.classify import classify_stance_async
 
-        resp = MagicMock()
-        resp.choices = [MagicMock()]
-        resp.choices[0].message.content = json.dumps({
-            "type": "none",
-            "strength": "strong",
-            "note": "unrelated",
-            "conditions_differ": None,
-        })
+        resp = _bidirectional_response(
+            {"type": "none", "strength": "strong", "note": "unrelated", "conditions_differ": None},
+            {"type": "none", "strength": "weak", "note": "unrelated", "conditions_differ": None},
+        )
 
         claim_a = {"id": "a", "text": "A", "source_paper": "p"}
         claim_b = {"id": "b", "text": "B", "source_paper": "p"}
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.relate._require_litellm") as mock_req:
+            with patch("propstore.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
-                return await _classify_stance_async(
-                    claim_a, claim_b, "test-model", sem, pass_number=1,
+                return await classify_stance_async(
+                    claim_a, claim_b, "test-model", sem,
                 )
 
-        result = asyncio.run(run())
-        assert result["resolution"]["confidence"] == 0.0
+        results = asyncio.run(run())
+        assert results[0]["resolution"]["confidence"] == 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -446,39 +443,30 @@ class TestNoneStanceGetsZeroConfidence:
 # ---------------------------------------------------------------------------
 
 class TestApiFailureReturnsErrorType:
-    """Bug F2.4: When the LLM API call raises an exception, relate.py returns
-    type="none" with confidence=0.0. This is indistinguishable from a genuine
-    "no relationship" classification. The type should be "error" (or some
-    distinct indicator) so downstream consumers can tell the difference."""
 
     def test_api_exception_returns_error_not_none(self):
         import asyncio
-        from propstore.relate import _classify_stance_async
+        from propstore.classify import classify_stance_async
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
         claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.relate._require_litellm") as mock_req:
+            with patch("propstore.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(
                     side_effect=ConnectionError("API unreachable")
                 )
                 mock_req.return_value = mock_litellm
-                return await _classify_stance_async(
-                    claim_a, claim_b, "test-model", sem, pass_number=1,
+                return await classify_stance_async(
+                    claim_a, claim_b, "test-model", sem,
                 )
 
-        result = asyncio.run(run())
-        # Must NOT be "none" — errors are not negatives
-        assert result["type"] != "none", (
-            "API failure must not return type='none'; "
-            "errors must be distinguishable from genuine no-relationship"
-        )
-        assert result["type"] == "error", (
-            "API failure should return type='error'"
-        )
+        results = asyncio.run(run())
+        for result in results:
+            assert result["type"] != "none"
+            assert result["type"] == "error"
 
 
 # ---------------------------------------------------------------------------
@@ -486,15 +474,11 @@ class TestApiFailureReturnsErrorType:
 # ---------------------------------------------------------------------------
 
 class TestJsonParseFailureReturnsErrorType:
-    """Bug F2.5: When the LLM returns invalid JSON, relate.py returns
-    type="none" with confidence=0.0. This silently drops the error and
-    makes it look like there's genuinely no relationship."""
 
     def test_json_parse_failure_returns_error_not_none(self):
         import asyncio
-        from propstore.relate import _classify_stance_async
+        from propstore.classify import classify_stance_async
 
-        # LLM returns non-JSON text
         resp = MagicMock()
         resp.choices = [MagicMock()]
         resp.choices[0].message.content = "This is not valid JSON at all"
@@ -504,23 +488,18 @@ class TestJsonParseFailureReturnsErrorType:
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.relate._require_litellm") as mock_req:
+            with patch("propstore.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
-                return await _classify_stance_async(
-                    claim_a, claim_b, "test-model", sem, pass_number=1,
+                return await classify_stance_async(
+                    claim_a, claim_b, "test-model", sem,
                 )
 
-        result = asyncio.run(run())
-        # Must NOT be "none" — parse failures are not negatives
-        assert result["type"] != "none", (
-            "JSON parse failure must not return type='none'; "
-            "errors must be distinguishable from genuine no-relationship"
-        )
-        assert result["type"] == "error", (
-            "JSON parse failure should return type='error'"
-        )
+        results = asyncio.run(run())
+        for result in results:
+            assert result["type"] != "none"
+            assert result["type"] == "error"
 
 
 # ---------------------------------------------------------------------------
@@ -528,39 +507,32 @@ class TestJsonParseFailureReturnsErrorType:
 # ---------------------------------------------------------------------------
 
 class TestGenuineNoneStillWorks:
-    """A real LLM classification of type="none" (no relationship) must
-    pass through unchanged. This test ensures the fix for F2.4/F2.5
-    doesn't break genuine negatives."""
 
     def test_genuine_none_passes_through(self):
         import asyncio
-        from propstore.relate import _classify_stance_async
+        from propstore.classify import classify_stance_async
 
-        resp = MagicMock()
-        resp.choices = [MagicMock()]
-        resp.choices[0].message.content = json.dumps({
-            "type": "none",
-            "strength": "weak",
-            "note": "These claims are about entirely different topics",
-            "conditions_differ": None,
-        })
+        resp = _bidirectional_response(
+            {"type": "none", "strength": "weak", "note": "entirely different topics", "conditions_differ": None},
+            {"type": "none", "strength": "weak", "note": "entirely different topics", "conditions_differ": None},
+        )
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
         claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.relate._require_litellm") as mock_req:
+            with patch("propstore.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
-                return await _classify_stance_async(
-                    claim_a, claim_b, "test-model", sem, pass_number=1,
+                return await classify_stance_async(
+                    claim_a, claim_b, "test-model", sem,
                 )
 
-        result = asyncio.run(run())
-        assert result["type"] == "none", "Genuine none must remain type='none'"
-        assert result["resolution"]["confidence"] == 0.0
+        results = asyncio.run(run())
+        assert results[0]["type"] == "none"
+        assert results[0]["resolution"]["confidence"] == 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -568,8 +540,6 @@ class TestGenuineNoneStillWorks:
 # ---------------------------------------------------------------------------
 
 class TestStanceProposalsUseBranchState:
-    """Bug F17: heuristic stance output must be committed proposal state,
-    not source mutations and not loose disk files."""
 
     def test_stance_proposal_path_and_branch_are_git_native(self):
         from propstore.proposals import STANCE_PROPOSAL_BRANCH, stance_proposal_relpath
@@ -579,39 +549,18 @@ class TestStanceProposalsUseBranchState:
 
 
 # ---------------------------------------------------------------------------
-# Test 13: CorpusCalibrator reduces uncertainty in _classify_stance_async
+# Test 13: CorpusCalibrator reduces uncertainty in classify_stance_async
 # ---------------------------------------------------------------------------
 
 class TestCorpusCalibReducesUncertainty:
-    """Sub-task 1a: CorpusCalibrator should be used in _classify_stance_async
-    to produce a non-vacuous opinion when reference_distances are available.
-
-    Currently fails because CorpusCalibrator is never imported or used in
-    relate.py — the embedding_distance is available but not converted to
-    an opinion via corpus calibration.
-    """
 
     def test_corpus_calibrator_reduces_uncertainty(self):
-        """When _classify_stance_async is called with reference_distances,
-        the resulting opinion should have uncertainty < 1.0 (non-vacuous).
-
-        Per Josang 2001 (p.8): vacuous = total ignorance. With corpus
-        calibration data, we have *some* evidence, so u must decrease.
-
-        EXPECTED TO FAIL: _classify_stance_async does not accept
-        reference_distances and never uses CorpusCalibrator.
-        """
         import asyncio
-        from propstore.relate import _classify_stance_async
+        from propstore.classify import classify_stance_async
 
-        resp = MagicMock()
-        resp.choices = [MagicMock()]
-        resp.choices[0].message.content = json.dumps({
-            "type": "supports",
-            "strength": "strong",
-            "note": "test",
-            "conditions_differ": None,
-        })
+        resp = _bidirectional_response(
+            {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None},
+        )
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
         claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
@@ -619,116 +568,80 @@ class TestCorpusCalibReducesUncertainty:
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.relate._require_litellm") as mock_req:
+            with patch("propstore.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
-                return await _classify_stance_async(
+                return await classify_stance_async(
                     claim_a, claim_b, "test-model", sem,
                     embedding_distance=0.3,
                     reference_distances=reference_distances,
-                    pass_number=1,
                 )
 
-        result = asyncio.run(run())
-        assert result["resolution"]["opinion_uncertainty"] < 1.0, (
-            "With reference_distances, opinion should be non-vacuous (u < 1.0). "
-            "CorpusCalibrator must be used to convert embedding distance to opinion."
-        )
+        results = asyncio.run(run())
+        result = results[0]
+        assert result["resolution"]["opinion_uncertainty"] < 1.0
 
     def test_no_reference_distances_stays_vacuous(self):
-        """When reference_distances is None, behavior is unchanged — opinion
-        is vacuous. Backward compatibility test.
-
-        EXPECTED TO FAIL: _classify_stance_async does not accept
-        reference_distances parameter (TypeError).
-        """
         import asyncio
-        from propstore.relate import _classify_stance_async
+        from propstore.classify import classify_stance_async
 
-        resp = MagicMock()
-        resp.choices = [MagicMock()]
-        resp.choices[0].message.content = json.dumps({
-            "type": "supports",
-            "strength": "strong",
-            "note": "test",
-            "conditions_differ": None,
-        })
+        resp = _bidirectional_response(
+            {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None},
+        )
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
         claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.relate._require_litellm") as mock_req:
+            with patch("propstore.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
-                return await _classify_stance_async(
+                return await classify_stance_async(
                     claim_a, claim_b, "test-model", sem,
                     embedding_distance=0.3,
                     reference_distances=None,
-                    pass_number=1,
                 )
 
-        result = asyncio.run(run())
-        assert result["resolution"]["opinion_uncertainty"] == pytest.approx(1.0), (
-            "Without reference_distances, opinion must remain vacuous (u = 1.0)"
-        )
+        results = asyncio.run(run())
+        result = results[0]
+        assert result["resolution"]["opinion_uncertainty"] == pytest.approx(1.0)
 
     def test_corpus_and_categorical_fused_via_consensus(self):
-        """When both corpus opinion and categorical opinion are available,
-        the result should have lower uncertainty than either alone.
-
-        Per Josang 2001 (p.25, Theorem 7): consensus reduces uncertainty.
-        Assert fused.u <= min(corpus.u, categorical.u).
-
-        EXPECTED TO FAIL: no consensus fusion happens in _classify_stance_async.
-        """
         import asyncio
-        from propstore.relate import _classify_stance_async
+        from propstore.classify import classify_stance_async
 
-        resp = MagicMock()
-        resp.choices = [MagicMock()]
-        resp.choices[0].message.content = json.dumps({
-            "type": "supports",
-            "strength": "strong",
-            "note": "test",
-            "conditions_differ": None,
-        })
+        resp = _bidirectional_response(
+            {"type": "supports", "strength": "strong", "note": "test", "conditions_differ": None},
+        )
 
         claim_a = {"id": "a", "text": "claim a", "source_paper": "paper_a"}
         claim_b = {"id": "b", "text": "claim b", "source_paper": "paper_b"}
 
-        # Provide both reference_distances (for corpus opinion) and
-        # calibration_counts (for categorical opinion)
         reference_distances = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
         calibration_counts = {(1, "strong"): (80, 100)}
 
         async def run():
             sem = asyncio.Semaphore(1)
-            with patch("propstore.relate._require_litellm") as mock_req:
+            with patch("propstore.classify._require_litellm") as mock_req:
                 mock_litellm = MagicMock()
                 mock_litellm.acompletion = AsyncMock(return_value=resp)
                 mock_req.return_value = mock_litellm
-                return await _classify_stance_async(
+                return await classify_stance_async(
                     claim_a, claim_b, "test-model", sem,
                     embedding_distance=0.3,
                     reference_distances=reference_distances,
                     calibration_counts=calibration_counts,
-                    pass_number=1,
                 )
 
-        result = asyncio.run(run())
+        results = asyncio.run(run())
+        result = results[0]
         u = result["resolution"]["opinion_uncertainty"]
 
-        # Compute what the individual opinions would give
         from propstore.calibrate import CorpusCalibrator, categorical_to_opinion
         corpus_op = CorpusCalibrator(reference_distances).to_opinion(0.3)
         cat_op = categorical_to_opinion("strong", 1, calibration_counts=calibration_counts)
 
-        assert u <= min(corpus_op.u, cat_op.u) + 1e-9, (
-            f"Fused uncertainty u={u} should be <= min(corpus.u={corpus_op.u}, "
-            f"categorical.u={cat_op.u}). Consensus must reduce uncertainty "
-            "(Josang 2001, Theorem 7, p.25)."
-        )
+        assert u <= min(corpus_op.u, cat_op.u) + 1e-9
