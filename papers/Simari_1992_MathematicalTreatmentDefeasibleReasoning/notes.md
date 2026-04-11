@@ -217,3 +217,9 @@ This is a foundational paper for argument-based defeasible reasoning. Its formal
 **Defeasible reasoning lineage:**
 - [[Prakken_2012_AppreciationJohnPollock'sWork]] — **Strong.** Prakken's survey of Pollock's contributions contextualizes the same theoretical tradition that Simari & Loui work in. Simari & Loui's critique of Pollock (rejecting specificity) and reformulation of Pollock's warrant theory are directly relevant to Prakken's assessment of Pollock's lasting contributions vs limitations.
 - [[Brewka_2010_AbstractDialecticalFrameworks]] — **Moderate.** Brewka & Woltran cite Simari & Loui for specificity-based preference ordering in defeasible reasoning. ADFs generalize Dung AFs (which Simari & Loui's dialectical trees instantiate) by allowing arbitrary acceptance conditions on nodes, subsuming the attack-only model that Simari & Loui's framework generates.
+
+---
+
+**See also:** [[Garcia_2004_DefeasibleLogicProgramming]] - DeLP extends and supersedes this predecessor by adding LP integration, dialectical trees with formal acceptability conditions, default negation, presumptions, and a concrete Prolog/WAM implementation.
+
+**See also:** [[Goldszmidt_1992_DefeasibleStrictConsistency]] - Complementary 1992 work on defeasible reasoning. While Simari & Loui formalize argument structure and specificity-based defeat, Goldszmidt & Pearl formalize consistency of mixed defeasible/strict databases via probabilistic semantics and provide a polynomial-time decision procedure. Together they cover argument construction and database coherence.
