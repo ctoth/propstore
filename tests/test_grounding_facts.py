@@ -94,7 +94,7 @@ def _build_concept_record(canonical_name: str, relationships):
 
     from propstore.core.concepts import ConceptRecord
     from propstore.core.id_types import to_concept_id
-    from propstore.identity import LogicalId
+    from propstore.core.id_types import LogicalId
 
     artifact_id = to_concept_id(f"ps:concept:{canonical_name}")
     logical_id = LogicalId(namespace="propstore", value=canonical_name)

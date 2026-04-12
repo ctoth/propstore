@@ -8,15 +8,6 @@ import json
 import re
 from typing import Any
 
-# Re-export ``LogicalId`` so external callers can import it from the
-# top-level identity surface alongside the other identity helpers.
-# The dataclass itself lives in ``propstore.core.id_types`` to keep the
-# core types module dependency-free; this re-export is purely a public
-# API convenience.
-from propstore.core.id_types import LogicalId
-
-__all__ = ["LogicalId"]
-
 
 CLAIM_ARTIFACT_ID_RE = re.compile(r"^ps:claim:[A-Za-z0-9][A-Za-z0-9._-]*$")
 CLAIM_VERSION_ID_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
