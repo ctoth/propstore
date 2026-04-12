@@ -1,0 +1,15 @@
+{
+  "title": "Undiscovered Public Knowledge: A Ten-Year Update",
+  "authors": [
+    "D. R. Swanson",
+    "N. R. Smalheiser"
+  ],
+  "year": "1996",
+  "doi": "",
+  "url": "https://www.semanticscholar.org/paper/2f792a5ebf3492beb610f9fe20ca2ad604d936bb",
+  "pdf_url": "https://cdn.aaai.org/KDD/1996/KDD96-051.pdf",
+  "bibtex": "@InProceedings{Swanson1996UndiscoveredPK,\n author = {D. R. Swanson and N. R. Smalheiser},\n title = {Undiscovered Public Knowledge: A Ten-Year Update},\n booktitle = {KDD-96 Proceedings},\n year = {1996},\n pages = {295--298}\n}\n",
+  "venue": "KDD",
+  "venue_type": "conference",
+  "pages": "295-298"
+}
