@@ -25,6 +25,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from propstore.aspic import (
+    GroundAtom,
     Literal,
     ContrarinessFn,
     Rule,
@@ -110,7 +111,7 @@ def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[str, L
     """
     normalized_claims = coerce_active_claims(active_claims)
     return {
-        str(claim.claim_id): Literal(atom=str(claim.claim_id), negated=False)
+        str(claim.claim_id): Literal(atom=GroundAtom(str(claim.claim_id)), negated=False)
         for claim in normalized_claims
     }
 
@@ -255,7 +256,7 @@ def stances_to_contrariness(
 
             for rule in matching_rules:
                 assert rule.name is not None
-                rule_lit = Literal(atom=rule.name, negated=False)
+                rule_lit = Literal(atom=GroundAtom(rule.name), negated=False)
                 if src != rule_lit:
                     contrary_pairs.add((src, rule_lit))
 
@@ -435,7 +436,7 @@ def _build_language(
     # Rule-name literals for defeasible rules and their contraries
     for rule in defeasible_rules:
         if rule.name is not None:
-            name_lit = Literal(atom=rule.name, negated=False)
+            name_lit = Literal(atom=GroundAtom(rule.name), negated=False)
             lang.add(name_lit)
             lang.add(name_lit.contrary)
 
@@ -712,11 +713,11 @@ def csaf_to_projection(
     for arg in csaf.arguments:
         conclusion = conc(arg)
         # Skip transposition artifacts — negated literals or atoms not in claims
-        if conclusion.negated or conclusion.atom not in claim_id_set:
+        if conclusion.negated or conclusion.atom.predicate not in claim_id_set:
             continue
 
         arg_id = csaf.arg_to_id[arg]
-        cid = conclusion.atom
+        cid = conclusion.atom.predicate
         claim = claim_by_id[cid]
 
         # Determine top_rule_kind
@@ -733,7 +734,7 @@ def csaf_to_projection(
 
         # Premise claim IDs (atoms from prem(arg) that are real claims)
         premise_claim_ids = tuple(
-            p.atom for p in prem(arg) if p.atom in claim_id_set
+            p.atom.predicate for p in prem(arg) if p.atom.predicate in claim_id_set
         )
 
         # Sub-argument IDs (excluding self)
@@ -756,7 +757,7 @@ def csaf_to_projection(
             just_id = f"reported:{cid}"
 
         # Dependency claim IDs (all premise atoms)
-        dependency_claim_ids = tuple(p.atom for p in prem(arg))
+        dependency_claim_ids = tuple(p.atom.predicate for p in prem(arg))
 
         # Apply support_metadata if provided, else compute defaults from claim
         if cid in metadata:
