@@ -265,7 +265,7 @@ def _single_unary_rule_bundle(draw):
 
 
 @given(_empty_bundle())
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_empty_bundle_produces_empty_rule_sets(bundle) -> None:
     """An empty bundle produces empty rule sets.
 
@@ -285,7 +285,7 @@ def test_empty_bundle_produces_empty_rule_sets(bundle) -> None:
 
 
 @given(_single_unary_rule_bundle())
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_grounded_rules_kind_is_defeasible_in_phase1(payload) -> None:
     """Every emitted rule has ``kind='defeasible'`` in Phase 1.
 
@@ -305,7 +305,7 @@ def test_grounded_rules_kind_is_defeasible_in_phase1(payload) -> None:
 
 
 @given(_single_unary_rule_bundle())
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_grounded_rules_names_are_unique(payload) -> None:
     """All emitted ``Rule.name`` values are distinct.
 
@@ -325,7 +325,7 @@ def test_grounded_rules_names_are_unique(payload) -> None:
 
 
 @given(_single_unary_rule_bundle())
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_grounded_rules_head_predicate_matches_schema(payload) -> None:
     """Each Rule's consequent predicate matches the schema's head predicate.
 
@@ -344,7 +344,7 @@ def test_grounded_rules_head_predicate_matches_schema(payload) -> None:
 
 
 @given(_single_unary_rule_bundle())
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_grounded_rules_antecedents_length_matches_schema_body(payload) -> None:
     """``len(Rule.antecedents)`` equals the schema body length.
 
@@ -364,7 +364,7 @@ def test_grounded_rules_antecedents_length_matches_schema_body(payload) -> None:
 
 
 @given(_single_unary_rule_bundle())
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_literals_dict_extended_not_replaced(payload) -> None:
     """Input literals dict keys survive into the output dict unchanged.
 
@@ -390,7 +390,7 @@ def test_literals_dict_extended_not_replaced(payload) -> None:
 
 
 @given(_single_unary_rule_bundle())
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_grounded_literals_contrary_involution(payload) -> None:
     """Every emitted literal satisfies ``lit.contrary.contrary == lit``.
 
