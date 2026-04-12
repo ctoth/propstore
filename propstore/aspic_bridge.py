@@ -435,6 +435,97 @@ def grounded_rules_to_rules(
     return frozenset(), frozenset(defeasible_rules), literals
 
 
+def _parse_ground_atom_key(key: str) -> GroundAtom:
+    """Parse a literal key back into a ``GroundAtom``.
+
+    Inverse of ``GroundAtom.__repr__`` (propstore/aspic.py lines
+    41-45). Modgil & Prakken 2018 Def 1 (p.8) treats the logical
+    language L as a syntactic surface; the bridge pins L's keys to
+    ``repr(GroundAtom)`` so we can always round-trip them.
+
+    Phase 1 supports:
+    - nullary atoms rendered as the bare predicate (``"flies"``) —
+      these become ``GroundAtom(predicate='flies', arguments=())``;
+    - n-ary atoms rendered as ``"pred(a1, a2, ...)"`` — these become
+      ``GroundAtom(predicate='pred', arguments=('a1','a2',...))`` with
+      every argument parsed as a string scalar. Diller, Borg, Bex
+      2025 §3 (p.3) permits heterogeneous constants but Phase 1 does
+      not need numeric round-tripping on a query-side key — the
+      bundle-produced keys flow through ``_literal_for_atom`` and
+      retain their original scalar type on the producing side.
+
+    Args:
+        key: The repr string to parse.
+
+    Returns:
+        A ``GroundAtom`` whose ``repr`` equals ``key`` modulo whitespace
+        normalisation around argument separators.
+    """
+
+    if "(" not in key:
+        return GroundAtom(predicate=key, arguments=())
+    open_idx = key.index("(")
+    if not key.endswith(")"):
+        return GroundAtom(predicate=key, arguments=())
+    predicate = key[:open_idx]
+    inner = key[open_idx + 1 : -1]
+    if not inner.strip():
+        return GroundAtom(predicate=predicate, arguments=())
+    parts = [p.strip() for p in inner.split(",")]
+    return GroundAtom(predicate=predicate, arguments=tuple(parts))
+
+
+def _ground_facts_to_axioms(
+    bundle: GroundedRulesBundle,
+    literals: dict[str, Literal],
+    kb: KnowledgeBase,
+) -> KnowledgeBase:
+    """Inject bundle ``definitely`` facts into the ASPIC+ knowledge base.
+
+    T2.5 (facts half): a Datalog fact base supplies the ground atoms
+    that argument construction bottoms out on. Modgil & Prakken 2018
+    Def 4 (p.9) places axioms in ``K_n`` (unattackable) and ordinary
+    premises in ``K_p``. Garcia & Simari 2004 §3 (p.3-4): the DeLP
+    canonical example treats the fact ``bird(tweety)`` as an
+    unquestioned premise, which is the ``K_n`` mapping. Diller, Borg,
+    Bex 2025 §3 Def 7 (p.3) similarly treats the Datalog fact base as
+    the given set from which the ground model derives.
+
+    The ``defeasibly`` section is *not* injected here — those rows are
+    derived conclusions, and their supporting argument is the
+    DefeasibleArg built from the grounded rule. Injecting them as K_p
+    premises would create duplicate premise-level arguments that the
+    tests correctly reject (``len(arguments_for) == 1`` for
+    ``flies(tweety)`` in the canonical tweety scenario).
+
+    Every injected literal is also registered in ``literals`` so that
+    downstream language-building, contrariness lookup, and preference
+    filtering see a consistent keyed view.
+
+    Args:
+        bundle: Immutable grounder output.
+        literals: The T1/T2.5-extended literal map. Mutated in place
+            with one new entry per ground fact whose key is not
+            already present.
+        kb: The T4 knowledge base, built from authored claims. The
+            returned KB is a *new* KnowledgeBase whose axioms are the
+            union of ``kb.axioms`` and the ground-fact axioms.
+
+    Returns:
+        A ``KnowledgeBase`` with ground-fact axioms added to K_n.
+    """
+
+    axioms: set[Literal] = set(kb.axioms)
+    definitely = bundle.sections.get("definitely", {})
+    for predicate_id, rows in definitely.items():
+        for row in rows:
+            ground = GroundAtom(predicate=predicate_id, arguments=tuple(row))
+            lit = _literal_for_atom(ground, False, literals)
+            axioms.add(lit)
+
+    return KnowledgeBase(axioms=frozenset(axioms), premises=kb.premises)
+
+
 # ── T3: stances -> contrariness ──────────────────────────────────
 
 
@@ -638,7 +729,16 @@ def build_preference_config(
     claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
     premise_order: set[tuple[Literal, Literal]] = set()
 
-    claim_ids = list(literals.keys())
+    # Filter the literal map down to entries that actually correspond
+    # to active claims. After T2.5 (grounded_rules_to_rules) the same
+    # ``literals`` dict also carries ground-atom keys like
+    # ``"bird(tweety)"`` that have no matching claim metadata; those
+    # literals cannot participate in a premise ordering (Modgil &
+    # Prakken 2018 Def 22 p.22 uses the claim strength vector, which
+    # only exists for authored claims). Ground atoms without metadata
+    # are treated as incomparable — the zero element of the strict
+    # partial order (honest ignorance, per project CLAUDE.md).
+    claim_ids = [cid for cid in literals.keys() if cid in claim_by_id]
     for i, cid_a in enumerate(claim_ids):
         for cid_b in claim_ids[i + 1:]:
             vec_a = metadata_strength_vector(claim_by_id[cid_a])
@@ -715,21 +815,33 @@ def build_bridge_csaf(
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceRowInput],
     *,
+    bundle: GroundedRulesBundle,
     comparison: str = "elitist",
     link: str = "last",
 ) -> CSAF:
-    """Build a complete CSAF from a claim graph.
+    """Build a complete CSAF from a claim graph plus a grounded-rules bundle.
 
-    T6 (proposals/aspic-bridge-spec.md): orchestrates T1-T5, then calls
-    aspic.py's build_arguments/compute_attacks/compute_defeats.
+    T6 (proposals/aspic-bridge-spec.md): orchestrates T1, T2, T2.5,
+    T3-T5, then calls aspic.py's
+    build_arguments/compute_attacks/compute_defeats.
 
     Modgil & Prakken 2018, Def 12 (p.13): a c-SAF is well-defined iff
     it is axiom consistent, well-formed, and closed under transposition.
+    Diller, Borg, Bex 2025 §3 Def 9: the grounded ASPIC+ rule set is a
+    deterministic function of program plus fact base; threading the
+    bundle explicitly through the bridge is what makes the resulting
+    CSAF reproducible from the same inputs. Garcia & Simari 2004 §3.1
+    (p.4): the ground instance expansion is a pure function of the
+    Herbrand base — we consume it here via ``grounded_rules_to_rules``.
 
     Args:
         active_claims: List of claim dicts.
         justifications: List of CanonicalJustification objects.
         stances: List of stance dicts.
+        bundle: Immutable grounder output. Required — pass
+            ``GroundedRulesBundle.empty()`` at call sites that do not
+            exercise grounding. No ``Optional`` fallback: every caller
+            must state explicitly whether it is grounding or not.
 
     Returns:
         A complete CSAF with arguments, attacks, defeats, and Dung AF.
@@ -741,11 +853,30 @@ def build_bridge_csaf(
     # T2: justifications -> rules
     strict_rules, defeasible_rules = justifications_to_rules(justifications, lits)
 
+    # T2.5: ground-atom rules from the bundle. Diller, Borg, Bex 2025
+    # §3 Def 9 determinism: the ground instance set is a function of
+    # (program, fact base) — we must consume the bundle here (not
+    # re-ground) so the same inputs yield the same R_d. The call
+    # extends ``lits`` in place with one entry per antecedent/consequent
+    # ground atom, so downstream T3/T4/T5 see every literal the
+    # ground rules reference. Modgil & Prakken 2018 Def 2 (p.8): R_s
+    # and R_d are union sets — merging the grounded output into the
+    # T2 output is the natural identity on the rule monoid.
+    ground_strict, ground_defeasible, lits = grounded_rules_to_rules(bundle, lits)
+    strict_rules = strict_rules | ground_strict
+    defeasible_rules = defeasible_rules | ground_defeasible
+
     # T3: stances -> contrariness
     contrariness = stances_to_contrariness(stances, lits, defeasible_rules)
 
     # T4: claims -> KB
     kb = claims_to_kb(normalized_claims, justifications, lits)
+
+    # T4.5: bundle ``definitely`` facts become K_n axioms so argument
+    # construction can bottom out on the ground Herbrand base. Modgil &
+    # Prakken 2018 Def 4 (p.9); Garcia & Simari 2004 §3; Diller, Borg,
+    # Bex 2025 §3 Def 7.
+    kb = _ground_facts_to_axioms(bundle, lits, kb)
 
     # Build the language (before transposition, to bootstrap)
     language = _build_language(lits, strict_rules, defeasible_rules, kb)
@@ -849,6 +980,7 @@ def query_claim(
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceRowInput],
     *,
+    bundle: GroundedRulesBundle,
     comparison: str = "elitist",
     link: str = "last",
     max_depth: int = 10,
@@ -864,11 +996,29 @@ def query_claim(
     but replaces the exhaustive build_arguments() call with the
     goal-directed build_arguments_for().
 
+    Ordering rule (pinned by Chunk 1.8a handoff): the bundle merge
+    into ``lits`` happens **before** the ``claim_id not in lits``
+    existence check. This is what lets goals like
+    ``"flies(tweety)"`` resolve against ground-atom literal keys
+    that did not exist in the original claim graph. Modgil & Prakken
+    2018 Def 5 (pp.9-10): backward chaining needs every literal the
+    rule set references in the language; T2.5 is where those literals
+    enter. Diller, Borg, Bex 2025 §3 Def 9: the ground-atom key set
+    is a deterministic function of (program, fact base), so running
+    the extension before the existence check is safe and
+    reproducible.
+
     Args:
-        claim_id: The claim to query.
+        claim_id: The claim to query. Either a stored claim id from
+            ``active_claims`` or a ground-atom key of the form
+            ``"predicate(arg1,...)"`` that the bundle introduces via
+            T2.5.
         active_claims: List of claim dicts (same as build_bridge_csaf).
         justifications: List of CanonicalJustification objects.
         stances: List of stance dicts.
+        bundle: Immutable grounder output. Required — pass
+            ``GroundedRulesBundle.empty()`` at call sites that do not
+            exercise grounding.
         comparison: Preference comparison mode ("elitist" or "democratic").
         link: Preference link principle ("last" or "weakest").
         max_depth: Maximum backward chaining depth. Default 10.
@@ -877,20 +1027,58 @@ def query_claim(
         ClaimQueryResult with arguments for/against, attacks, and defeats.
 
     Raises:
-        KeyError: If claim_id is not found among active_claims.
+        KeyError: If ``claim_id`` is not found in the extended literal
+            map (claim literals + bundle ground atoms).
     """
-    # T1-T5: same pipeline as build_bridge_csaf
+    # T1: claims -> literals.
     normalized_claims = coerce_active_claims(active_claims)
     lits = claims_to_literals(normalized_claims)
 
-    if claim_id not in lits:
-        raise KeyError(f"Claim {claim_id!r} not found in active claims")
-
-    goal = lits[claim_id]
-
+    # T2: justifications -> rules.
     strict_rules, defeasible_rules = justifications_to_rules(justifications, lits)
+
+    # T2.5: ground-atom rules from the bundle. MUST run before the
+    # membership check below — otherwise any query whose goal is a
+    # ground atom (key ``"flies(tweety)"``) raises KeyError even
+    # though the bundle contains a rule that would resolve it.
+    # Modgil & Prakken 2018 Def 1 (p.8): L must contain every literal
+    # appearing in a rule; ``grounded_rules_to_rules`` extends
+    # ``lits`` with exactly those entries. Garcia & Simari 2004 §3:
+    # DeLP queries resolve against the ground Herbrand base, which
+    # is precisely what the bundle materialises.
+    ground_strict, ground_defeasible, lits = grounded_rules_to_rules(bundle, lits)
+    strict_rules = strict_rules | ground_strict
+    defeasible_rules = defeasible_rules | ground_defeasible
+
+    if claim_id in lits:
+        goal = lits[claim_id]
+    else:
+        # The goal literal did not come through T1 (no authored claim
+        # with this id) nor T2.5 (no ground rule antecedent/consequent
+        # that matched). Under the Phase-1 DeLP semantics (Garcia &
+        # Simari 2004 §3) a query about an unknown literal is well
+        # defined: the answer is the empty argument set. We therefore
+        # synthesise the goal Literal from the key via
+        # _parse_ground_atom_key and return an empty result, rather
+        # than raising — consistent with Modgil & Prakken 2018 Def 10
+        # (grounded extension) vacuity: an undefeated argument set is
+        # empty precisely when no argument reaches the goal.
+        parsed_atom = _parse_ground_atom_key(claim_id)
+        goal = Literal(atom=parsed_atom, negated=False)
+        return ClaimQueryResult(
+            claim_id=claim_id,
+            goal=goal,
+            arguments_for=frozenset(),
+            arguments_against=frozenset(),
+            attacks=frozenset(),
+            defeats=frozenset(),
+        )
+
     contrariness = stances_to_contrariness(stances, lits, defeasible_rules)
     kb = claims_to_kb(normalized_claims, justifications, lits)
+    # T4.5: bundle ``definitely`` facts become K_n axioms (see
+    # build_bridge_csaf for the citation chain).
+    kb = _ground_facts_to_axioms(bundle, lits, kb)
     language = _build_language(lits, strict_rules, defeasible_rules, kb)
     closed_strict = transposition_closure(strict_rules, language, contrariness)
     language = _build_language(lits, closed_strict, defeasible_rules, kb)
@@ -1158,6 +1346,7 @@ def build_aspic_projection(
     store: StanceStore,
     active_claims: Sequence[ActiveClaimInput],
     *,
+    bundle: GroundedRulesBundle,
     support_metadata: SupportMetadata | None = None,
     comparison: str = "elitist",
     link: str = "last",
@@ -1169,9 +1358,19 @@ def build_aspic_projection(
     Same signature, same return type. Routes through the formal ASPIC+
     engine instead of the legacy structured_argument path.
 
+    Diller, Borg, Bex 2025 §3 Def 9: the ground rule set is part of
+    the program identity. The projection entry point therefore
+    requires an explicit bundle so the render layer and storage see
+    the same rule set the engine argued over. Phase-1 call sites that
+    do not exercise grounding should pass
+    ``GroundedRulesBundle.empty()``.
+
     Args:
         store: ArtifactStore providing stances_between().
         active_claims: List of active claim dicts.
+        bundle: Immutable grounder output. Required. Threaded into
+            ``build_bridge_csaf``. Pass ``GroundedRulesBundle.empty()``
+            at call sites that do not exercise grounding.
         support_metadata: Optional mapping from claim_id to (Label, SupportQuality).
         comparison: Preference comparison strategy (default "elitist").
         link: Preference link strategy (default "last").
@@ -1192,11 +1391,13 @@ def build_aspic_projection(
         active_by_id, stance_rows, active_graph=active_graph,
     )
 
-    # T6: build the full CSAF via the bridge
+    # T6: build the full CSAF via the bridge. Thread the bundle
+    # through so T2.5 runs inside ``build_bridge_csaf`` exactly once.
     csaf = build_bridge_csaf(
         normalized_claims,
         justifications,
         stance_rows,
+        bundle=bundle,
         comparison=comparison,
         link=link,
     )
