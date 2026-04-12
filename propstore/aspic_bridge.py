@@ -3,6 +3,7 @@
 Implements translation rules T1-T7 from proposals/aspic-bridge-spec.md:
     T1: claims_to_literals — claims -> Literal map
     T2: justifications_to_rules — justifications -> (strict_rules, defeasible_rules)
+    T2.5: grounded_rules_to_rules — GroundedRulesBundle -> (strict, defeasible, lits)
     T3: stances_to_contrariness — stances -> ContrarinessFn
     T4: claims_to_kb — claims -> KnowledgeBase
     T5: build_preference_config — claims -> PreferenceConfig
@@ -11,6 +12,8 @@ Implements translation rules T1-T7 from proposals/aspic-bridge-spec.md:
 
 References:
     Modgil & Prakken 2018: Defs 1-22, the complete ASPIC+ framework.
+    Garcia & Simari 2004: DeLP syntax, Herbrand grounding (§3).
+    Diller, Borg, Bex 2025: Datalog fact base + ground instances (§3-§4).
     proposals/aspic-bridge-spec.md: translation rules and rationale.
 
 This module owns propstore-to-ASPIC translation. Projection-level callers
@@ -21,8 +24,12 @@ from __future__ import annotations
 
 import statistics
 from dataclasses import dataclass
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import Any
+
+from propstore.aspic import Scalar
+from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.rule_documents import AtomDocument
 
 from propstore.aspic import (
     GroundAtom,
@@ -34,8 +41,6 @@ from propstore.aspic import (
     PreferenceConfig,
     CSAF,
     PremiseArg,
-    StrictArg,
-    DefeasibleArg,
     Argument,
     Attack,
     build_arguments,
@@ -174,6 +179,260 @@ def justifications_to_rules(
             ))
 
     return frozenset(strict), frozenset(defeasible)
+
+
+# ── T2.5: grounded rules -> rules ────────────────────────────────
+
+
+def _try_match(
+    atom: AtomDocument,
+    fact_args: tuple[Scalar, ...],
+    sigma: dict[str, Scalar],
+) -> dict[str, Scalar] | None:
+    """Try to unify ``atom``'s terms against ``fact_args`` under ``sigma``.
+
+    Garcia & Simari 2004 §3 (p.4): the Herbrand grounding step binds a
+    schema atom to a ground atom by simultaneously matching every term
+    position. Variables extend the substitution (with a consistency
+    check if already bound); constants must equal the corresponding
+    fact argument.
+
+    Returns an extended substitution when the match succeeds, or
+    ``None`` when it fails.
+    """
+
+    if len(atom.terms) != len(fact_args):
+        return None
+    extended = dict(sigma)
+    for term, fact_arg in zip(atom.terms, fact_args):
+        if term.kind == "var":
+            name = term.name
+            if name is None:
+                return None
+            if name in extended:
+                if extended[name] != fact_arg:
+                    return None
+            else:
+                extended[name] = fact_arg
+        elif term.kind == "const":
+            if term.value != fact_arg:
+                return None
+        else:
+            return None
+    return extended
+
+
+def _enumerate_substitutions(
+    body_atoms: tuple[AtomDocument, ...],
+    facts: dict[str, set[tuple[Scalar, ...]]],
+) -> Iterator[dict[str, Scalar]]:
+    """Yield every consistent substitution σ grounding all body atoms.
+
+    Classic Datalog body-join (Diller, Borg, Bex 2025 §3 Def 7, p.3;
+    Garcia & Simari 2004 §3.1, p.4). Starts from the empty substitution
+    and, for each body atom in schema order, extends every partial
+    substitution with every fact that matches under it. Empty body
+    yields the single empty substitution — the nullary / propositional
+    base case.
+    """
+
+    partial_subs: list[dict[str, Scalar]] = [{}]
+    for atom in body_atoms:
+        next_subs: list[dict[str, Scalar]] = []
+        for sigma in partial_subs:
+            for fact_args in facts.get(atom.predicate, set()):
+                extended = _try_match(atom, fact_args, sigma)
+                if extended is not None:
+                    next_subs.append(extended)
+        partial_subs = next_subs
+        if not partial_subs:
+            break
+    return iter(partial_subs)
+
+
+def _apply_substitution(
+    atom: AtomDocument,
+    sigma: dict[str, Scalar],
+) -> GroundAtom:
+    """Apply substitution σ to a schema atom to produce a ground atom.
+
+    Garcia & Simari 2004 §3 (p.4): Herbrand grounding is pure term
+    substitution — the predicate symbol is unchanged, variables in σ
+    are replaced by their bound constants, and constants are carried
+    through verbatim. Variables not in σ would indicate an unsafe rule
+    (§3.3, p.8); the authoring CLI rejects those, so in a well-formed
+    bundle every term resolves to a scalar.
+    """
+
+    args: list[Scalar] = []
+    for term in atom.terms:
+        if term.kind == "var":
+            name = term.name
+            if name is None or name not in sigma:
+                raise ValueError(
+                    f"Unsafe rule: variable {name!r} in atom "
+                    f"{atom.predicate!r} not bound by substitution"
+                )
+            args.append(sigma[name])
+        elif term.kind == "const":
+            if term.value is None:
+                raise ValueError(
+                    f"Constant term in atom {atom.predicate!r} has no value"
+                )
+            args.append(term.value)
+        else:
+            raise ValueError(
+                f"Unknown term kind {term.kind!r} in atom {atom.predicate!r}"
+            )
+    return GroundAtom(predicate=atom.predicate, arguments=tuple(args))
+
+
+def _literal_for_atom(
+    ground_atom: GroundAtom,
+    negated: bool,
+    literals: dict[str, Literal],
+) -> Literal:
+    """Fetch or create the canonical Literal for a GroundAtom.
+
+    The canonical dict key is ``repr(ground_atom)`` — nullary atoms
+    collapse to their bare predicate string (which matches the T1
+    claim-id keying at line 114 of this module), structured atoms
+    render as ``predicate(arg1, arg2, ...)``. Modgil & Prakken 2018
+    Def 1 (p.8): the logical language L must contain every literal
+    appearing in any rule, so we extend ``literals`` in place for
+    new atoms.
+    """
+
+    key = repr(ground_atom)
+    if key in literals:
+        return literals[key]
+    lit = Literal(atom=ground_atom, negated=negated)
+    literals[key] = lit
+    return lit
+
+
+def _canonical_substitution_key(sigma: dict[str, Scalar]) -> str:
+    """Render σ as ``k1=v1,k2=v2,...`` with variable names sorted.
+
+    Modgil & Prakken 2018 Def 2 (p.8) requires a unique name n(r) per
+    defeasible rule to drive undercutting (Def 8c, p.11). Every
+    distinct substitution must therefore map to a distinct key; the
+    sorted ``name=value`` form is stable under substitution order and
+    remains human-readable in error messages. Empty substitutions
+    produce the empty string — callers concatenate it after ``#``.
+    """
+
+    return ",".join(f"{name}={sigma[name]}" for name in sorted(sigma))
+
+
+def grounded_rules_to_rules(
+    bundle: GroundedRulesBundle,
+    literals: dict[str, Literal],
+) -> tuple[frozenset[Rule], frozenset[Rule], dict[str, Literal]]:
+    """T2.5: Enumerate ground rule instances and translate to ASPIC+ Rules.
+
+    Walks every ``RuleDocument`` in ``bundle.source_rules``, joins the
+    bundle's positive fact sections (``definitely`` and ``defeasibly``)
+    into a single Datalog-style fact base, enumerates all consistent
+    variable substitutions per rule via the natural body join, and
+    emits one ASPIC+ ``Rule`` per substitution.
+
+    Phase 1 scope:
+    - Only ``kind == "defeasible"`` rules with empty ``negative_body``
+      are translated; strict, defeater, and NAF-bearing rules raise
+      ``NotImplementedError``. The non-commitment discipline requires a
+      loud refusal rather than a silent partial translation.
+    - The strict return frozenset is always empty in Phase 1.
+    - The input ``literals`` dict is extended in place and returned as
+      the third tuple element.
+
+    Canonical ``Rule.name`` form: ``f"{rule_doc.id}#{k1=v1,k2=v2,...}"``
+    with variable names sorted alphabetically. Empty substitutions
+    (nullary rules) become ``f"{rule_doc.id}#"``. Distinct substitutions
+    therefore map to distinct names, satisfying the n(r) uniqueness
+    requirement that undercutting relies on.
+
+    [cite Modgil & Prakken 2018 Def 2 p.8, Def 5 pp.9-10, Def 8c p.11;
+     Garcia & Simari 2004 §3 pp.3-4 (Herbrand grounding), §6.1 pp.29-31
+     (default negation deferral);
+     Diller, Borg, Bex 2025 §3 Def 7 p.3, §4 (ground instances as a
+     deterministic function of program + fact base)]
+
+    Args:
+        bundle: Immutable grounding-pipeline output with source rules
+            and four-valued sections.
+        literals: Existing Literal dict keyed by ``repr(GroundAtom)``
+            — typically the T1 output keyed by claim id. Extended in
+            place with entries for every ground atom that appears as an
+            antecedent or consequent of an emitted rule.
+
+    Returns:
+        ``(strict_rules, defeasible_rules, extended_literals)`` where
+        ``strict_rules`` is always empty in Phase 1 and
+        ``extended_literals is literals`` (same dict, mutated).
+
+    Raises:
+        NotImplementedError: If any rule in the bundle has
+            ``kind == "strict"``, ``kind == "defeater"``, or a
+            non-empty ``negative_body``.
+    """
+
+    # Build the positive fact base: union of definitely and defeasibly
+    # sections. Diller, Borg, Bex 2025 §3 Def 7 (p.3) treats the fact
+    # base as a flat finite set of ground atoms; the per-section split
+    # is gunray's four-valued answer record, not a rule-level concern.
+    facts: dict[str, set[tuple[Scalar, ...]]] = {}
+    for section_name in ("definitely", "defeasibly"):
+        section = bundle.sections.get(section_name, {})
+        for predicate_id, rows in section.items():
+            bucket = facts.setdefault(predicate_id, set())
+            for row in rows:
+                bucket.add(row)
+
+    defeasible_rules: list[Rule] = []
+
+    for rule_file in bundle.source_rules:
+        for rule_doc in rule_file.document.rules:
+            if rule_doc.kind == "strict":
+                raise NotImplementedError(
+                    "Strict rules deferred to Phase 4"
+                )
+            if rule_doc.kind == "defeater":
+                raise NotImplementedError(
+                    "Defeater rules deferred to Phase 4"
+                )
+            if rule_doc.negative_body:
+                raise NotImplementedError(
+                    "Negative body (NAF) deferred to Phase 4"
+                )
+
+            # rule_doc.kind == "defeasible" with empty negative_body.
+            for sigma in _enumerate_substitutions(rule_doc.body, facts):
+                antecedent_literals: list[Literal] = []
+                for body_atom in rule_doc.body:
+                    ground = _apply_substitution(body_atom, sigma)
+                    antecedent_literals.append(
+                        _literal_for_atom(ground, body_atom.negated, literals)
+                    )
+
+                head_ground = _apply_substitution(rule_doc.head, sigma)
+                consequent = _literal_for_atom(
+                    head_ground, rule_doc.head.negated, literals
+                )
+
+                sub_key = _canonical_substitution_key(sigma)
+                rule_name = f"{rule_doc.id}#{sub_key}"
+
+                defeasible_rules.append(
+                    Rule(
+                        antecedents=tuple(antecedent_literals),
+                        consequent=consequent,
+                        kind="defeasible",
+                        name=rule_name,
+                    )
+                )
+
+    return frozenset(), frozenset(defeasible_rules), literals
 
 
 # ── T3: stances -> contrariness ──────────────────────────────────
