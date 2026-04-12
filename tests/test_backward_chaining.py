@@ -17,6 +17,7 @@ from hypothesis import strategies as st
 
 from propstore.aspic import (
     Literal,
+    GroundAtom,
     ContrarinessFn,
     Rule,
     PremiseArg,
@@ -46,10 +47,10 @@ def _make_system(
 ) -> tuple[ArgumentationSystem, frozenset[Literal]]:
     """Build an ArgumentationSystem from atom names and rules."""
     literals = frozenset(
-        Literal(atom=a, negated=n) for a in atoms for n in (False, True)
+        Literal(atom=GroundAtom(a), negated=n) for a in atoms for n in (False, True)
     )
     contradictory_pairs = frozenset(
-        (Literal(atom=a, negated=False), Literal(atom=a, negated=True))
+        (Literal(atom=GroundAtom(a), negated=False), Literal(atom=GroundAtom(a), negated=True))
         for a in atoms
     )
     cfn = ContrarinessFn(
@@ -71,8 +72,8 @@ def _make_system(
 class TestContrariesOf:
     def test_contradictory_pair(self):
         """~p is a contrary of p via contradiction."""
-        p = Literal("p")
-        neg_p = Literal("p", negated=True)
+        p = Literal(GroundAtom("p"))
+        neg_p = Literal(GroundAtom("p"), negated=True)
         lang = frozenset({p, neg_p})
         cfn = ContrarinessFn(contradictories=frozenset({(p, neg_p)}))
         result = _contraries_of(p, cfn, lang)
@@ -80,8 +81,8 @@ class TestContrariesOf:
 
     def test_asymmetric_contrary(self):
         """Directed contraries: a is contrary of b but b is not contrary of a."""
-        a = Literal("a")
-        b = Literal("b")
+        a = Literal(GroundAtom("a"))
+        b = Literal(GroundAtom("b"))
         lang = frozenset({a, b})
         cfn = ContrarinessFn(
             contradictories=frozenset(),
@@ -101,7 +102,7 @@ class TestContrariesOf:
 class TestBasicBackwardChaining:
     def test_premise_only(self):
         """Goal that is a premise should return just PremiseArg."""
-        p = Literal("p")
+        p = Literal(GroundAtom("p"))
         system, _ = _make_system(["p"])
         kb = KnowledgeBase(axioms=frozenset(), premises=frozenset({p}))
 
@@ -112,7 +113,7 @@ class TestBasicBackwardChaining:
 
     def test_axiom_only(self):
         """Goal that is an axiom should return PremiseArg with is_axiom=True."""
-        p = Literal("p")
+        p = Literal(GroundAtom("p"))
         system, _ = _make_system(["p"])
         kb = KnowledgeBase(axioms=frozenset({p}), premises=frozenset())
 
@@ -125,8 +126,8 @@ class TestBasicBackwardChaining:
 
     def test_single_strict_rule(self):
         """p -> q with p as premise, goal=q should produce StrictArg."""
-        p = Literal("p")
-        q = Literal("q")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
         rule = Rule(antecedents=(p,), consequent=q, kind="strict")
         system, _ = _make_system(["p", "q"], strict_rules=[rule])
         kb = KnowledgeBase(axioms=frozenset(), premises=frozenset({p}))
@@ -138,8 +139,8 @@ class TestBasicBackwardChaining:
 
     def test_single_defeasible_rule(self):
         """p => q with p as premise, goal=q should produce DefeasibleArg."""
-        p = Literal("p")
-        q = Literal("q")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
         rule = Rule(
             antecedents=(p,), consequent=q, kind="defeasible", name="r1"
         )
@@ -153,9 +154,9 @@ class TestBasicBackwardChaining:
 
     def test_chain_of_rules(self):
         """p -> q, q -> r with p as premise, goal=r should chain through."""
-        p = Literal("p")
-        q = Literal("q")
-        r = Literal("r")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
+        r = Literal(GroundAtom("r"))
         r1 = Rule(antecedents=(p,), consequent=q, kind="strict")
         r2 = Rule(antecedents=(q,), consequent=r, kind="strict")
         system, _ = _make_system(["p", "q", "r"], strict_rules=[r1, r2])
@@ -168,8 +169,8 @@ class TestBasicBackwardChaining:
 
     def test_unreachable_goal(self):
         """Goal with no rules and not in KB should return empty."""
-        p = Literal("p")
-        q = Literal("q")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
         system, _ = _make_system(["p", "q"])
         kb = KnowledgeBase(axioms=frozenset({p}), premises=frozenset())
 
@@ -183,8 +184,8 @@ class TestBasicBackwardChaining:
 class TestAttackerInclusion:
     def test_contrary_argument_included(self):
         """With include_attackers=True, arguments for ~goal are included."""
-        p = Literal("p")
-        neg_p = Literal("p", negated=True)
+        p = Literal(GroundAtom("p"))
+        neg_p = Literal(GroundAtom("p"), negated=True)
         system, _ = _make_system(["p"])
         kb = KnowledgeBase(
             axioms=frozenset(), premises=frozenset({p, neg_p})
@@ -197,8 +198,8 @@ class TestAttackerInclusion:
 
     def test_attackers_excluded_when_disabled(self):
         """With include_attackers=False, only goal arguments returned."""
-        p = Literal("p")
-        neg_p = Literal("p", negated=True)
+        p = Literal(GroundAtom("p"))
+        neg_p = Literal(GroundAtom("p"), negated=True)
         system, _ = _make_system(["p"])
         kb = KnowledgeBase(
             axioms=frozenset(), premises=frozenset({p, neg_p})
@@ -211,9 +212,9 @@ class TestAttackerInclusion:
 
     def test_rule_based_attacker(self):
         """Attacker via rule: s => ~p should be found when querying p."""
-        p = Literal("p")
-        neg_p = Literal("p", negated=True)
-        s = Literal("s")
+        p = Literal(GroundAtom("p"))
+        neg_p = Literal(GroundAtom("p"), negated=True)
+        s = Literal(GroundAtom("s"))
         rule = Rule(
             antecedents=(s,), consequent=neg_p, kind="defeasible", name="r_attack"
         )
@@ -236,7 +237,7 @@ class TestDepthLimiting:
         # Create chain: a0 -> a1 -> a2 -> ... -> a(N)
         N = 15
         atoms = [f"a{i}" for i in range(N + 1)]
-        lits = [Literal(a) for a in atoms]
+        lits = [Literal(GroundAtom(a)) for a in atoms]
         rules = [
             Rule(antecedents=(lits[i],), consequent=lits[i + 1], kind="strict")
             for i in range(N)
@@ -258,8 +259,8 @@ class TestDepthLimiting:
 
     def test_cyclic_rules_terminate(self):
         """Rules forming a cycle should not cause infinite recursion."""
-        p = Literal("p")
-        q = Literal("q")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
         r1 = Rule(antecedents=(p,), consequent=q, kind="strict")
         r2 = Rule(antecedents=(q,), consequent=p, kind="strict")
         system, _ = _make_system(["p", "q"], strict_rules=[r1, r2])
@@ -296,9 +297,9 @@ class TestCorrectnessProperty:
         )
 
     def test_simple_system(self):
-        p = Literal("p")
-        q = Literal("q")
-        r = Literal("r")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
+        r = Literal(GroundAtom("r"))
         rule1 = Rule(antecedents=(p,), consequent=q, kind="strict")
         rule2 = Rule(antecedents=(q,), consequent=r, kind="defeasible", name="d1")
         system, _ = _make_system(
@@ -312,9 +313,9 @@ class TestCorrectnessProperty:
 
     def test_multi_path_system(self):
         """Multiple rules concluding the same literal."""
-        p = Literal("p")
-        q = Literal("q")
-        r = Literal("r")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
+        r = Literal(GroundAtom("r"))
         rule1 = Rule(antecedents=(p,), consequent=r, kind="strict")
         rule2 = Rule(antecedents=(q,), consequent=r, kind="strict")
         system, _ = _make_system(["p", "q", "r"], strict_rules=[rule1, rule2])
@@ -326,9 +327,9 @@ class TestCorrectnessProperty:
 
     def test_with_attackers_subset(self):
         """With include_attackers=True, result should still be subset of exhaustive."""
-        p = Literal("p")
-        neg_p = Literal("p", negated=True)
-        q = Literal("q")
+        p = Literal(GroundAtom("p"))
+        neg_p = Literal(GroundAtom("p"), negated=True)
+        q = Literal(GroundAtom("q"))
         rule = Rule(
             antecedents=(q,), consequent=neg_p, kind="defeasible", name="r1"
         )
@@ -345,9 +346,9 @@ class TestCorrectnessProperty:
 
     def test_attacks_work_on_goal_directed(self):
         """compute_attacks should work identically on goal-directed results."""
-        p = Literal("p")
-        neg_p = Literal("p", negated=True)
-        q = Literal("q")
+        p = Literal(GroundAtom("p"))
+        neg_p = Literal(GroundAtom("p"), negated=True)
+        q = Literal(GroundAtom("q"))
         rule = Rule(
             antecedents=(q,), consequent=neg_p, kind="defeasible", name="r1"
         )
@@ -372,11 +373,11 @@ def small_aspic_system(draw):
     atoms = draw(
         st.lists(st.sampled_from(pool), min_size=2, max_size=4, unique=True)
     )
-    literals = [Literal(a, n) for a in atoms for n in (False, True)]
+    literals = [Literal(GroundAtom(a), n) for a in atoms for n in (False, True)]
     language = frozenset(literals)
 
     contradictory_pairs = frozenset(
-        (Literal(a, False), Literal(a, True)) for a in atoms
+        (Literal(GroundAtom(a), False), Literal(GroundAtom(a), True)) for a in atoms
     )
     cfn = ContrarinessFn(contradictories=contradictory_pairs)
 

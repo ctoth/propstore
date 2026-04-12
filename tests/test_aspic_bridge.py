@@ -17,6 +17,7 @@ from hypothesis import strategies as st
 
 from propstore.aspic import (
     Literal,
+    GroundAtom,
     ContrarinessFn,
     Rule,
     KnowledgeBase,
@@ -226,7 +227,7 @@ class TestClaimsToLiterals:
         """No two claims share an atom."""
         claims, justifications, stances = graph
         literals = claims_to_literals(claims)
-        atoms = [lit.atom for lit in literals.values()]
+        atoms = [lit.atom.predicate for lit in literals.values()]
         assert len(atoms) == len(set(atoms)), "Duplicate atoms in literals"
 
     @given(claim_graph())
@@ -236,7 +237,7 @@ class TestClaimsToLiterals:
         claims, justifications, stances = graph
         literals = claims_to_literals(claims)
         for claim_id, lit in literals.items():
-            assert lit.atom == claim_id
+            assert lit.atom.predicate == claim_id
             assert lit.negated is False
 
     @given(claim_graph())
@@ -458,8 +459,8 @@ class TestStancesToContrariness:
         )
 
         attacker = literals["attacker"]
-        rule_a = Literal(atom="supports:support_a->target", negated=False)
-        rule_b = Literal(atom="supports:support_b->target", negated=False)
+        rule_a = Literal(atom=GroundAtom("supports:support_a->target"), negated=False)
+        rule_b = Literal(atom=GroundAtom("supports:support_b->target"), negated=False)
 
         assert cfn.is_contrary(attacker, rule_a)
         assert not cfn.is_contrary(attacker, rule_b)
@@ -537,7 +538,7 @@ class TestStancesToContrariness:
         )
 
         attacker = literals["attacker"]
-        rule_a = Literal(atom="supports:support_a->target", negated=False)
+        rule_a = Literal(atom=GroundAtom("supports:support_a->target"), negated=False)
 
         assert cfn.is_contrary(attacker, rule_a)
 
@@ -709,8 +710,8 @@ class TestBuildBridgeCsaf:
         for arg_id in grounded:
             arg = csaf.id_to_arg[arg_id]
             c = conc(arg)
-            if c.atom in reported_claim_ids:
-                justified_claim_ids.add(c.atom)
+            if c.atom.predicate in reported_claim_ids:
+                justified_claim_ids.add(c.atom.predicate)
         assert reported_claim_ids <= justified_claim_ids, (
             f"Claims without attack not all justified: "
             f"missing {reported_claim_ids - justified_claim_ids}"
@@ -922,7 +923,7 @@ class TestBridgeConcrete:
         csaf = build_bridge_csaf(claims, justifications, stances)
         grounded = grounded_extension(csaf.framework)
 
-        justified_atoms = {conc(csaf.id_to_arg[aid]).atom for aid in grounded}
+        justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
         assert "A" in justified_atoms, "Stronger claim A should be justified"
         assert "B" not in justified_atoms, "Weaker claim B should be defeated"
 
@@ -954,7 +955,7 @@ class TestBridgeConcrete:
         csaf = build_bridge_csaf(claims, justifications, stances)
         grounded = grounded_extension(csaf.framework)
 
-        justified_atoms = {conc(csaf.id_to_arg[aid]).atom for aid in grounded}
+        justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
         # derived should survive — strict rules can't be undercut
         assert "derived" in justified_atoms, (
             "Strict inference should not be undercut"
@@ -980,7 +981,7 @@ class TestBridgeConcrete:
         csaf = build_bridge_csaf(claims, justifications, stances)
         grounded = grounded_extension(csaf.framework)
 
-        justified_atoms = {conc(csaf.id_to_arg[aid]).atom for aid in grounded}
+        justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
         assert "axiom" in justified_atoms, (
             "Axiom premise should not be undermined"
         )
@@ -1018,7 +1019,7 @@ class TestBridgeConcrete:
         csaf = build_bridge_csaf(claims, justifications, stances)
         grounded = grounded_extension(csaf.framework)
 
-        justified_atoms = {conc(csaf.id_to_arg[aid]).atom for aid in grounded}
+        justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
         assert "A" in justified_atoms, "A should survive (not attacked)"
         # Under last-link with no rule ordering, the defeasible arg for B
         # and C's premise arg are in mutual defeat — grounded is conservative.
@@ -1045,7 +1046,7 @@ class TestBridgeConcrete:
         csaf = build_bridge_csaf(claims, justifications, [])
         grounded = grounded_extension(csaf.framework)
 
-        justified_atoms = {conc(csaf.id_to_arg[aid]).atom for aid in grounded}
+        justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
         assert justified_atoms >= {"X", "Y", "Z"}, (
             f"All claims should survive, got {justified_atoms}"
         )
