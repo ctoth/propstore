@@ -16,7 +16,11 @@ dependencies = [
     "bridgman @ git+https://github.com/ctoth/bridgman",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
+    "gunray",
 ]
+
+[tool.uv.sources]
+gunray = { path = "../gunray", editable = true }
 
 [project.optional-dependencies]
 embeddings = [
