@@ -19,6 +19,31 @@ from typing import TYPE_CHECKING, TypeAlias, TypeVar, Union
 if TYPE_CHECKING:
     from propstore.dung import ArgumentationFramework
 
+Scalar: TypeAlias = str | int | float | bool
+
+
+@dataclass(frozen=True)
+class GroundAtom:
+    """An atomic formula: a predicate applied to ground arguments.
+
+    Matches standard logic terminology (Riveret 2017 Def 2.1,
+    Diller et al. 2025 Def 7). Nullary atoms (no arguments)
+    represent propositional symbols — existing claim IDs.
+
+    Attributes:
+        predicate: The predicate name (or claim ID for nullary atoms).
+        arguments: Ground terms. Empty tuple for propositional atoms.
+    """
+
+    predicate: str
+    arguments: tuple[Scalar, ...] = ()
+
+    def __repr__(self) -> str:
+        if not self.arguments:
+            return self.predicate
+        args = ", ".join(str(a) for a in self.arguments)
+        return f"{self.predicate}({args})"
+
 
 @dataclass(frozen=True)
 class Literal:
@@ -36,7 +61,7 @@ class Literal:
         negated: Whether this literal is the negation of the atom.
     """
 
-    atom: str
+    atom: GroundAtom
     negated: bool = False
 
     @property
@@ -53,7 +78,7 @@ class Literal:
     def __repr__(self) -> str:
         if self.negated:
             return f"~{self.atom}"
-        return self.atom
+        return repr(self.atom)
 
 
 @dataclass(frozen=True)
@@ -535,7 +560,7 @@ def _attack_target_literal(attack: Attack) -> Literal:
         rule = top_rule(attack.target_sub)
         if rule is None or rule.name is None:
             raise ValueError("Undercutting attack must target a named defeasible rule")
-        return Literal(rule.name, False)
+        return Literal(GroundAtom(rule.name), False)
     raise ValueError(f"Unknown attack kind: {attack.kind}")
 
 
@@ -828,7 +853,7 @@ def build_arguments_for(
             # we need arguments concluding the contrary of Literal(name, False)
             tr = top_rule(s)
             if tr is not None and tr.kind == "defeasible" and tr.name is not None:
-                name_lit = Literal(tr.name, False)
+                name_lit = Literal(GroundAtom(tr.name), False)
                 target_literals.add(name_lit)
 
     # Build attacker arguments for each target literal's contraries
@@ -851,7 +876,7 @@ def build_arguments_for(
             second_pass_targets.add(conc(s))
             tr = top_rule(s)
             if tr is not None and tr.kind == "defeasible" and tr.name is not None:
-                name_lit = Literal(tr.name, False)
+                name_lit = Literal(GroundAtom(tr.name), False)
                 second_pass_targets.add(name_lit)
 
     for lit in second_pass_targets:
@@ -941,7 +966,7 @@ def compute_attacks(
 
             # (c) Undercutting (Def 8c, p.11)
             if tr.name is not None:
-                name_lit = Literal(tr.name, False)
+                name_lit = Literal(GroundAtom(tr.name), False)
                 attack_points.append(("undercutting", b, b_prime, name_lit))
                 target_literals.add(name_lit)
 
