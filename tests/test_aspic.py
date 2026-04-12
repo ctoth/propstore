@@ -26,7 +26,7 @@ from hypothesis import HealthCheck, given, settings, assume
 from hypothesis import strategies as st
 
 from propstore.aspic import (
-    Literal, ContrarinessFn, Rule, transposition_closure,
+    Literal, GroundAtom, ContrarinessFn, Rule, transposition_closure,
     PremiseArg, StrictArg, DefeasibleArg, Argument, Attack,
     KnowledgeBase, ArgumentationSystem, PreferenceConfig,
     build_arguments, compute_attacks, compute_defeats,
@@ -66,11 +66,11 @@ def logical_language(draw, max_atoms=4):
     )
     # Build literals: each atom and its negation
     literals = frozenset(
-        Literal(atom=a, negated=n) for a in atoms for n in (False, True)
+        Literal(atom=GroundAtom(a), negated=n) for a in atoms for n in (False, True)
     )
     # Build contrariness function: each atom and its negation are contradictories
     contradictory_pairs = frozenset(
-        (Literal(atom=a, negated=False), Literal(atom=a, negated=True))
+        (Literal(atom=GroundAtom(a), negated=False), Literal(atom=GroundAtom(a), negated=True))
         for a in atoms
     )
     cfn = ContrarinessFn(contradictories=contradictory_pairs)
@@ -188,10 +188,10 @@ class TestLanguageConcrete:
         Verifies all properties from TestLanguageProperties hold
         on a concrete, known-good instance.
         """
-        p = Literal(atom="p", negated=False)
-        not_p = Literal(atom="p", negated=True)
-        q = Literal(atom="q", negated=False)
-        not_q = Literal(atom="q", negated=True)
+        p = Literal(atom=GroundAtom("p"), negated=False)
+        not_p = Literal(atom=GroundAtom("p"), negated=True)
+        q = Literal(atom=GroundAtom("q"), negated=False)
+        not_q = Literal(atom=GroundAtom("q"), negated=True)
 
         L = frozenset({p, not_p, q, not_q})
 
@@ -229,8 +229,8 @@ class TestLanguageConcrete:
 
     def test_asymmetric_contrary_is_one_way(self):
         """A contrary is directional, while contradictories remain symmetric."""
-        p = Literal("p")
-        q = Literal("q")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
         cfn = ContrarinessFn(
             contradictories=frozenset(),
             contraries=frozenset({(p, q)}),
@@ -242,8 +242,8 @@ class TestLanguageConcrete:
 
     def test_asymmetric_contrary_generates_one_way_attack(self):
         """Only the attacking direction licensed by the contrary should appear."""
-        p = Literal("p")
-        q = Literal("q")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
         system = ArgumentationSystem(
             language=frozenset({p, q}),
             contrariness=ContrarinessFn(
@@ -537,9 +537,9 @@ class TestTranspositionClosure:
 
         Trivial base case: no rules means no transpositions to generate.
         """
-        L = frozenset({Literal("p"), Literal("p", negated=True)})
+        L = frozenset({Literal(GroundAtom("p")), Literal(GroundAtom("p"), negated=True)})
         cfn = ContrarinessFn(
-            contradictories=frozenset({(Literal("p"), Literal("p", negated=True))})
+            contradictories=frozenset({(Literal(GroundAtom("p")), Literal(GroundAtom("p"), negated=True))})
         )
         result = transposition_closure(frozenset(), L, cfn)
         assert result == frozenset(), f"Expected empty set, got {result}"
@@ -559,10 +559,10 @@ class TestRuleConcrete:
         (Replace the single antecedent 'married' with ~(~bachelor) = bachelor,
          and the consequent becomes ~married.)
         """
-        married = Literal("married")
-        not_married = Literal("married", negated=True)
-        bachelor = Literal("bachelor")
-        not_bachelor = Literal("bachelor", negated=True)
+        married = Literal(GroundAtom("married"))
+        not_married = Literal(GroundAtom("married"), negated=True)
+        bachelor = Literal(GroundAtom("bachelor"))
+        not_bachelor = Literal(GroundAtom("bachelor"), negated=True)
 
         L = frozenset({married, not_married, bachelor, not_bachelor})
         cfn = ContrarinessFn(
@@ -997,9 +997,9 @@ class TestArgumentConstructionConcrete:
                         rule=(p, q => r))
         The compound argument's conclusion is r.
         """
-        p = Literal("p")
-        q = Literal("q")
-        r = Literal("r")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
+        r = Literal(GroundAtom("r"))
         not_p = p.contrary
         not_q = q.contrary
         not_r = r.contrary
@@ -1051,11 +1051,11 @@ class TestArgumentConstructionConcrete:
 
     def test_c_inconsistent_argument_is_not_constructed(self):
         """An argument with c-inconsistent premises must be excluded."""
-        p = Literal("p")
+        p = Literal(GroundAtom("p"))
         not_p = p.contrary
-        q = Literal("q")
+        q = Literal(GroundAtom("q"))
         not_q = q.contrary
-        r = Literal("r")
+        r = Literal(GroundAtom("r"))
         not_r = r.contrary
 
         L = frozenset({p, not_p, q, not_q, r, not_r})
@@ -1344,9 +1344,9 @@ class TestAttackConcrete:
         Here: Conc(A) = ~p, phi = p, ~p in bar(p) (contradictories). So A
         undermines B on PremiseArg(p).
         """
-        p = Literal("p")
+        p = Literal(GroundAtom("p"))
         not_p = p.contrary
-        q = Literal("q")
+        q = Literal(GroundAtom("q"))
         not_q = q.contrary
 
         L = frozenset({p, not_p, q, not_q})
@@ -1403,11 +1403,11 @@ class TestAttackConcrete:
         Pollock 1987, Def 2.5 (p.485): undercutting defeats the connection
         between premise and conclusion, not the conclusion itself.
         """
-        p = Literal("p")
+        p = Literal(GroundAtom("p"))
         not_p = p.contrary
-        q = Literal("q")
+        q = Literal(GroundAtom("q"))
         not_q = q.contrary
-        d0 = Literal("d0")
+        d0 = Literal(GroundAtom("d0"))
         not_d0 = d0.contrary
 
         L = frozenset({p, not_p, q, not_q, d0, not_d0})
@@ -1867,9 +1867,9 @@ class TestDefeatConcrete:
         If B prec A (B is weaker), then B's rebutting attack on A fails,
         but A's rebutting attack on B succeeds.
         """
-        p = Literal("p")
+        p = Literal(GroundAtom("p"))
         not_p = p.contrary
-        q = Literal("q")
+        q = Literal(GroundAtom("q"))
         not_q = q.contrary
 
         L = frozenset({p, not_p, q, not_q})
@@ -1933,9 +1933,9 @@ class TestDefeatConcrete:
         A is NOT strictly weaker. If neither is weaker (equal or
         incomparable), both attacks succeed as mutual defeats.
         """
-        p = Literal("p")
+        p = Literal(GroundAtom("p"))
         not_p = p.contrary
-        q = Literal("q")
+        q = Literal(GroundAtom("q"))
         not_q = q.contrary
 
         L = frozenset({p, not_p, q, not_q})
@@ -1991,12 +1991,12 @@ class TestDefeatConcrete:
 
     def test_elitist_last_link_blocks_rebut_when_attacker_is_strictly_weaker(self):
         """A rebut must fail when one attacker rule is below every target rule."""
-        a = Literal("a")
-        b = Literal("b")
-        c = Literal("c")
-        x = Literal("x")
-        y = Literal("y")
-        q = Literal("q")
+        a = Literal(GroundAtom("a"))
+        b = Literal(GroundAtom("b"))
+        c = Literal(GroundAtom("c"))
+        x = Literal(GroundAtom("x"))
+        y = Literal(GroundAtom("y"))
+        q = Literal(GroundAtom("q"))
         not_q = q.contrary
 
         d1 = Rule((a,), x, "defeasible", "d1")
@@ -2029,8 +2029,8 @@ class TestDefeatConcrete:
 
     def test_contrary_undermining_ignores_preference_ordering(self):
         """Contrary undermining is preference-independent and always defeats."""
-        p = Literal("p")
-        q = Literal("q")
+        p = Literal(GroundAtom("p"))
+        q = Literal(GroundAtom("q"))
         system = ArgumentationSystem(
             language=frozenset({p, q}),
             contrariness=ContrarinessFn(
@@ -2064,10 +2064,10 @@ class TestDefeatConcrete:
 
     def test_last_and_weakest_link_can_diverge(self):
         """A weak earlier rule can matter under weakest-link but not last-link."""
-        a = Literal("a")
-        b = Literal("b")
-        x = Literal("x")
-        q = Literal("q")
+        a = Literal(GroundAtom("a"))
+        b = Literal(GroundAtom("b"))
+        x = Literal(GroundAtom("x"))
+        q = Literal(GroundAtom("q"))
         not_q = q.contrary
 
         d_weak = Rule((a,), x, "defeasible", "d_weak")
@@ -2404,10 +2404,10 @@ class TestRationalityPostulatesConcrete:
         consistency: the strict rule generates a counter-argument that
         prevents contradictory conclusions from coexisting in any extension.
         """
-        married = Literal("married")
-        not_married = Literal("married", negated=True)
-        bachelor = Literal("bachelor")
-        not_bachelor = Literal("bachelor", negated=True)
+        married = Literal(GroundAtom("married"))
+        not_married = Literal(GroundAtom("married"), negated=True)
+        bachelor = Literal(GroundAtom("bachelor"))
+        not_bachelor = Literal(GroundAtom("bachelor"), negated=True)
 
         L = frozenset({married, not_married, bachelor, not_bachelor})
         cfn = ContrarinessFn(contradictories=frozenset({
