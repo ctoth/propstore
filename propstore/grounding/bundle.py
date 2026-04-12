@@ -39,9 +39,31 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 
 from propstore.aspic import GroundAtom, Scalar
 from propstore.rule_documents import LoadedRuleFile
+
+
+def _build_empty_sections() -> Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]:
+    """Return a read-only four-valued section map with every bucket empty.
+
+    Garcia & Simari 2004 §4 (p.25): the four-valued answer system
+    ``{YES, NO, UNDECIDED, UNKNOWN}`` has four always-present section
+    names. The non-commitment discipline (project CLAUDE.md) requires
+    that every bundle expose all four, even when vacuous. The zero
+    element of the bundle monoid is therefore a bundle with all four
+    sections present-and-empty, not a bundle with sections omitted.
+    """
+
+    return MappingProxyType(
+        {
+            "definitely": MappingProxyType({}),
+            "defeasibly": MappingProxyType({}),
+            "not_defeasibly": MappingProxyType({}),
+            "undecided": MappingProxyType({}),
+        }
+    )
 
 
 @dataclass(frozen=True)
@@ -74,3 +96,28 @@ class GroundedRulesBundle:
     source_rules: tuple[LoadedRuleFile, ...]
     source_facts: tuple[GroundAtom, ...]
     sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]
+
+    @classmethod
+    def empty(cls) -> "GroundedRulesBundle":
+        """Return the zero-value bundle: no rules, no facts, all four sections empty.
+
+        Used at call sites that do not exercise grounding (legacy
+        claim-graph flows, wrapper delegations, tests that don't care
+        about ground rules). This is **not** a compat shim — it is the
+        identity element for rule-less argumentation and exists so
+        every caller can continue to pass a concrete, typed bundle
+        rather than an ``Optional``.
+
+        The non-commitment discipline (project CLAUDE.md, Garcia &
+        Simari 2004 §4 p.25) requires all four gunray sections to be
+        present even when empty; the returned bundle satisfies that
+        invariant. Diller, Borg, Bex 2025 §3 Def 7 (p.3): the empty
+        fact base is a legal Datalog program — its bundle is well
+        defined.
+        """
+
+        return cls(
+            source_rules=(),
+            source_facts=(),
+            sections=_build_empty_sections(),
+        )

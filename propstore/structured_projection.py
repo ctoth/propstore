@@ -64,12 +64,22 @@ def build_structured_projection(
     """Build real structured arguments from canonical justifications.
 
     Delegates to the ASPIC+ bridge for full recursive argument construction.
+
+    Phase-1 call sites that enter through this wrapper do not exercise
+    the grounded-rules pipeline (T2.5 is empty), so we pass
+    ``GroundedRulesBundle.empty()`` here. Callers that need real
+    grounding should call ``build_aspic_projection`` directly with
+    their own bundle. Diller, Borg, Bex 2025 §3 Def 7 (p.3): the
+    empty fact base is a legal Datalog program and its bundle is
+    well defined — this is the identity element, not a shim.
     """
     from propstore.aspic_bridge import build_aspic_projection
+    from propstore.grounding.bundle import GroundedRulesBundle
 
     return build_aspic_projection(
         store,
         coerce_active_claims(active_claims),
+        bundle=GroundedRulesBundle.empty(),
         support_metadata=support_metadata,
         comparison=comparison,
         link=link,

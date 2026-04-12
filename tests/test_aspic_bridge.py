@@ -63,6 +63,7 @@ from propstore.aspic_bridge import (
     csaf_to_projection,
     build_aspic_projection,
 )
+from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import (
     StructuredArgument,
     StructuredProjection,
@@ -675,7 +676,7 @@ class TestBuildBridgeCsaf:
     def test_every_claim_literal_in_language(self, graph):
         """Every active claim appears as a Literal in the CSAF language."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         literals = claims_to_literals(claims)
         for claim in claims:
             lit = literals[claim["id"]]
@@ -689,7 +690,7 @@ class TestBuildBridgeCsaf:
         """If no attack stances, there should be no defeats."""
         claims, justifications, _stances = graph
         # Pass empty stances
-        csaf = build_bridge_csaf(claims, justifications, [])
+        csaf = build_bridge_csaf(claims, justifications, [], bundle=GroundedRulesBundle.empty())
         assert len(csaf.defeats) == 0, (
             f"Got {len(csaf.defeats)} defeats with no attack stances"
         )
@@ -699,7 +700,7 @@ class TestBuildBridgeCsaf:
     def test_no_attacks_all_claims_justified(self, graph):
         """With no attacks, all claims survive in grounded extension."""
         claims, justifications, _stances = graph
-        csaf = build_bridge_csaf(claims, justifications, [])
+        csaf = build_bridge_csaf(claims, justifications, [], bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
         # Every reported claim should have an argument in the grounded extension
         reported_claim_ids = {
@@ -722,7 +723,7 @@ class TestBuildBridgeCsaf:
     def test_framework_is_valid_dung_af(self, graph):
         """The CSAF's framework is a well-formed Dung AF."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         af = csaf.framework
         # All defeat endpoints are valid arguments
         for attacker, target in af.defeats:
@@ -762,7 +763,7 @@ class TestBridgeRationalityPostulates:
         then A' is also in E.
         """
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         for ext_ids in complete_extensions(csaf.framework):
             for aid in ext_ids:
                 arg = csaf.id_to_arg[aid]
@@ -783,7 +784,7 @@ class TestBridgeRationalityPostulates:
         closure of K_n must not contain contraries/contradictories.
         """
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         # Postulate only holds for axiom-consistent c-SAFs (Def 12)
         assume(is_c_consistent(
             csaf.kb.axioms | csaf.kb.premises,
@@ -809,7 +810,7 @@ class TestBridgeRationalityPostulates:
         Every complete extension is conflict-free w.r.t. attacks.
         """
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         if csaf.framework.attacks is None:
             return  # no attacks to check
         for ext_ids in complete_extensions(csaf.framework):
@@ -822,7 +823,7 @@ class TestBridgeRationalityPostulates:
     def test_undercutting_always_defeats(self, graph):
         """Postulate 6 — Undercutting always defeats (Def 9, p.12)."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         for atk in csaf.attacks:
             if atk.kind == "undercutting":
                 pair = (csaf.arg_to_id[atk.attacker], csaf.arg_to_id[atk.target])
@@ -835,7 +836,7 @@ class TestBridgeRationalityPostulates:
     def test_firm_strict_in_every_complete(self, graph):
         """Postulate 5 — Firm+strict in every complete extension (Def 18)."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         firm_strict_ids = {
             csaf.arg_to_id[a] for a in csaf.arguments
             if is_firm(a) and is_strict(a)
@@ -862,7 +863,7 @@ class TestCsafToProjection:
         claim_id) are excluded from the projection.
         """
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         projection = csaf_to_projection(csaf, claims)
         claim_ids = {c["id"] for c in claims}
         for arg in projection.arguments:
@@ -875,7 +876,7 @@ class TestCsafToProjection:
     def test_justified_claims_subset_of_active(self, graph):
         """Justified claims are a subset of active claims."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         projection = csaf_to_projection(csaf, claims)
         # Use compute_structured_justified_arguments which handles hybrid AFs
         grounded = compute_structured_justified_arguments(projection, semantics="grounded")
@@ -892,7 +893,7 @@ class TestCsafToProjection:
     def test_projection_framework_matches_csaf(self, graph):
         """The projection's Dung AF is derived from the CSAF."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         projection = csaf_to_projection(csaf, claims)
         # The projection framework should be a valid AF
         af = projection.framework
@@ -920,7 +921,7 @@ class TestBridgeConcrete:
         stances = [
             {"claim_id": "A", "target_claim_id": "B", "stance_type": "rebuts"},
         ]
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
 
         justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
@@ -952,7 +953,7 @@ class TestBridgeConcrete:
             # attacker tries to undercut the strict inference
             {"claim_id": "attacker", "target_claim_id": "derived", "stance_type": "undercuts"},
         ]
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
 
         justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
@@ -978,7 +979,7 @@ class TestBridgeConcrete:
         stances = [
             {"claim_id": "attacker", "target_claim_id": "axiom", "stance_type": "undermines"},
         ]
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
 
         justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
@@ -1016,7 +1017,7 @@ class TestBridgeConcrete:
         stances = [
             {"claim_id": "C", "target_claim_id": "B", "stance_type": "rebuts"},
         ]
-        csaf = build_bridge_csaf(claims, justifications, stances)
+        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
 
         justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
@@ -1043,7 +1044,7 @@ class TestBridgeConcrete:
             _make_justification("reported:Y", "Y"),
             _make_justification("reported:Z", "Z"),
         ]
-        csaf = build_bridge_csaf(claims, justifications, [])
+        csaf = build_bridge_csaf(claims, justifications, [], bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
 
         justified_atoms = {conc(csaf.id_to_arg[aid]).atom.predicate for aid in grounded}
@@ -1096,14 +1097,14 @@ class TestBuildAspicProjection:
             _make_claim("B"),
         ]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims)
+        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
         assert isinstance(projection, StructuredProjection)
 
     def test_projection_has_required_fields(self):
         """Projection has .arguments, .framework, .claim_to_argument_ids, .argument_to_claim_id."""
         claims = [_make_claim("X")]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims)
+        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
 
         assert hasattr(projection, "arguments")
         assert hasattr(projection, "framework")
@@ -1118,7 +1119,7 @@ class TestBuildAspicProjection:
         """Every element of .arguments is a StructuredArgument."""
         claims = [_make_claim("P"), _make_claim("Q")]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims)
+        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
 
         for arg in projection.arguments:
             assert isinstance(arg, StructuredArgument)
@@ -1131,7 +1132,7 @@ class TestBuildAspicProjection:
             _make_claim("Z"),
         ]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims)
+        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
         grounded = compute_structured_justified_arguments(projection, semantics="grounded")
 
         justified_claim_ids = {
@@ -1155,7 +1156,7 @@ class TestBuildAspicProjection:
                 {"claim_id": "strong", "target_claim_id": "weak", "stance_type": "rebuts"},
             ],
         )
-        projection = build_aspic_projection(store, claims)
+        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
         grounded = compute_structured_justified_arguments(projection, semantics="grounded")
 
         justified_claim_ids = {
@@ -1170,7 +1171,7 @@ class TestBuildAspicProjection:
         """Every active claim has at least one argument mapped."""
         claims = [_make_claim("A"), _make_claim("B")]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims)
+        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
 
         for claim in claims:
             cid = claim["id"]
@@ -1183,7 +1184,7 @@ class TestBuildAspicProjection:
         """argument_to_claim_id is consistent with claim_to_argument_ids."""
         claims = [_make_claim("A"), _make_claim("B")]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims)
+        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
 
         for cid, arg_ids in projection.claim_to_argument_ids.items():
             for aid in arg_ids:
@@ -1195,7 +1196,7 @@ class TestBuildAspicProjection:
         claims = [_make_claim("A")]
         store = _MiniStore(claims=claims)
         metadata = {"A": (Label.empty(), SupportQuality.EXACT)}
-        projection = build_aspic_projection(store, claims, support_metadata=metadata)
+        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty(), support_metadata=metadata)
 
         assert isinstance(projection, StructuredProjection)
         # The metadata should be applied to the argument
@@ -1208,7 +1209,7 @@ class TestBuildAspicProjection:
         """build_aspic_projection works with active_graph=None."""
         claims = [_make_claim("A")]
         store = _MiniStore(claims=claims)
-        projection = build_aspic_projection(store, claims, active_graph=None)
+        projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty(), active_graph=None)
         assert isinstance(projection, StructuredProjection)
 
 
@@ -1414,6 +1415,7 @@ class TestComparisonLinkThreading:
 
         csaf = build_bridge_csaf(
             claims, justifications, stances,
+            bundle=GroundedRulesBundle.empty(),
             comparison="democratic", link="weakest",
         )
 
