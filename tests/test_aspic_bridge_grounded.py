@@ -18,11 +18,11 @@ Target signature per prompts/gunray-chunk-1-7a-bridge-tests.md::
 
     def grounded_rules_to_rules(
         bundle: GroundedRulesBundle,
-        literals: dict[str, Literal],
+        literals: dict[LiteralKey, Literal],
     ) -> tuple[
-        frozenset[Rule],     # strict rules — empty in Phase 1
-        frozenset[Rule],     # defeasible rules
-        dict[str, Literal],  # extended literals dict
+        frozenset[Rule],            # strict rules — empty in Phase 1
+        frozenset[Rule],            # defeasible rules
+        dict[LiteralKey, Literal],  # extended literals dict
     ]:
         ...
 
@@ -76,6 +76,7 @@ from hypothesis import strategies as st
 
 if TYPE_CHECKING:
     from propstore.aspic import Literal, Rule
+    from propstore.core.literal_keys import LiteralKey
     from propstore.grounding.bundle import GroundedRulesBundle
     from propstore.rule_documents import RuleDocument
 
@@ -379,9 +380,11 @@ def test_literals_dict_extended_not_replaced(payload) -> None:
     from propstore.aspic_bridge import grounded_rules_to_rules
 
     bundle, _constants = payload
-    seed_key = "claim-alpha"
-    seed_lit = Literal(atom=GroundAtom(seed_key), negated=False)
-    literals_in = {seed_key: seed_lit}
+    from propstore.core.literal_keys import claim_key
+
+    seed_key = claim_key("claim-alpha")
+    seed_lit = Literal(atom=GroundAtom("claim-alpha"), negated=False)
+    literals_in: dict[LiteralKey, Literal] = {seed_key: seed_lit}
     _strict, _defeasible, out_literals = grounded_rules_to_rules(
         bundle, literals_in
     )
@@ -602,7 +605,8 @@ def test_output_literals_include_grounded_atoms() -> None:
     """
 
     from propstore.aspic import GroundAtom
-    from propstore.aspic_bridge import _ground_literal_key, grounded_rules_to_rules
+    from propstore.aspic_bridge import grounded_rules_to_rules
+    from propstore.core.literal_keys import ground_key
 
     rule = _rule_doc(
         "rule:birds-fly",
@@ -619,19 +623,17 @@ def test_output_literals_include_grounded_atoms() -> None:
     # Every literal appearing in an emitted rule must be reachable
     # from the returned literals dict by its canonical structured key.
     for rule_obj in defeasible:
-        conseq_key = _ground_literal_key(
-            rule_obj.consequent.atom, rule_obj.consequent.negated
-        )
+        conseq_key = ground_key(rule_obj.consequent.atom, rule_obj.consequent.negated)
         assert conseq_key in out_literals
         assert out_literals[conseq_key].atom == rule_obj.consequent.atom
         for ante in rule_obj.antecedents:
-            ante_key = _ground_literal_key(ante.atom, ante.negated)
+            ante_key = ground_key(ante.atom, ante.negated)
             assert ante_key in out_literals
             assert out_literals[ante_key].atom == ante.atom
     # Sanity: the specific expected atoms are keyed under the canonical
     # structural ground-literal key.
-    assert _ground_literal_key(GroundAtom("flies", ("tweety",)), False) in out_literals
-    assert _ground_literal_key(GroundAtom("bird", ("tweety",)), False) in out_literals
+    assert ground_key(GroundAtom("flies", ("tweety",)), False) in out_literals
+    assert ground_key(GroundAtom("bird", ("tweety",)), False) in out_literals
 
 
 def test_existing_claim_literals_preserved() -> None:
@@ -645,7 +647,8 @@ def test_existing_claim_literals_preserved() -> None:
     """
 
     from propstore.aspic import GroundAtom, Literal
-    from propstore.aspic_bridge import _ground_literal_key, grounded_rules_to_rules
+    from propstore.aspic_bridge import grounded_rules_to_rules
+    from propstore.core.literal_keys import ground_key
 
     rule = _rule_doc(
         "rule:birds-fly",
@@ -658,9 +661,11 @@ def test_existing_claim_literals_preserved() -> None:
         definitely={"bird": frozenset([("tweety",)])},
         defeasibly={},
     )
-    claim_lits = {
-        "claim-1": Literal(atom=GroundAtom("claim-1"), negated=False),
-        "claim-2": Literal(atom=GroundAtom("claim-2"), negated=False),
+    from propstore.core.literal_keys import claim_key
+
+    claim_lits: dict[LiteralKey, Literal] = {
+        claim_key("claim-1"): Literal(atom=GroundAtom("claim-1"), negated=False),
+        claim_key("claim-2"): Literal(atom=GroundAtom("claim-2"), negated=False),
     }
     _strict, _defeasible, out_literals = grounded_rules_to_rules(
         bundle, dict(claim_lits)
@@ -669,8 +674,8 @@ def test_existing_claim_literals_preserved() -> None:
         assert cid in out_literals
         assert out_literals[cid] == lit
     # And the grounded atoms are added alongside, not in place of.
-    assert _ground_literal_key(GroundAtom("flies", ("tweety",)), False) in out_literals
-    assert _ground_literal_key(GroundAtom("bird", ("tweety",)), False) in out_literals
+    assert ground_key(GroundAtom("flies", ("tweety",)), False) in out_literals
+    assert ground_key(GroundAtom("bird", ("tweety",)), False) in out_literals
 
 
 # ---------------------------------------------------------------------------

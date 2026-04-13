@@ -46,6 +46,7 @@ typeCheckingMode = "basic"
 venvPath = "."
 venv = ".venv"
 strict = [
+    "propstore/core/literal_keys.py",
     "propstore/core/labels.py",
     "propstore/core/graph_types.py",
     "propstore/core/results.py",
@@ -53,6 +54,7 @@ strict = [
     "propstore/dung.py",
     "propstore/opinion.py",
     "propstore/aspic.py",
+    "propstore/aspic_bridge.py",
 ]
 
 [tool.pytest.ini_options]

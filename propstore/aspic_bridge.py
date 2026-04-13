@@ -24,12 +24,9 @@ from __future__ import annotations
 
 import json
 import statistics
-from ast import literal_eval
 from dataclasses import dataclass
 from collections.abc import Iterator, Sequence
 from typing import Any
-
-from gunray.parser import split_top_level
 
 from propstore.aspic import Scalar
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -54,7 +51,6 @@ from propstore.aspic import (
     conc,
     prem,
     sub,
-    _contraries_of,
     top_rule,
     transposition_closure,
 )
@@ -63,6 +59,12 @@ from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.justifications import (
     CanonicalJustification,
     claim_justifications_from_active_graph,
+)
+from propstore.core.literal_keys import (
+    ClaimLiteralKey,
+    LiteralKey,
+    claim_key,
+    ground_key,
 )
 from propstore.core.relation_types import ATTACK_TYPES, SUPPORT_TYPES
 from propstore.core.row_types import StanceRow, StanceRowInput, coerce_stance_row
@@ -103,7 +105,7 @@ def _default_support_metadata(claim: ActiveClaim) -> tuple[Label | None, Support
 # ── T1: claims -> literals ────────────────────────────────────────
 
 
-def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[str, Literal]:
+def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[LiteralKey, Literal]:
     """Map each claim to a positive Literal.
 
     T1 (proposals/aspic-bridge-spec.md): Each claim becomes
@@ -117,11 +119,14 @@ def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[str, L
         active_claims: List of claim dicts with at least an "id" key.
 
     Returns:
-        Dict mapping claim_id -> Literal.
+        Dict mapping ``ClaimLiteralKey`` -> Literal.
     """
     normalized_claims = coerce_active_claims(active_claims)
     return {
-        str(claim.claim_id): Literal(atom=GroundAtom(str(claim.claim_id)), negated=False)
+        claim_key(str(claim.claim_id)): Literal(
+            atom=GroundAtom(str(claim.claim_id)),
+            negated=False,
+        )
         for claim in normalized_claims
     }
 
@@ -131,7 +136,7 @@ def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[str, L
 
 def justifications_to_rules(
     justifications: list[CanonicalJustification],
-    literals: dict[str, Literal],
+    literals: dict[LiteralKey, Literal],
 ) -> tuple[frozenset[Rule], frozenset[Rule]]:
     """Translate justifications to ASPIC+ strict and defeasible rules.
 
@@ -161,13 +166,15 @@ def justifications_to_rules(
                 f"empty-premise justification {j.justification_id!r} must be rejected or represented explicitly"
             )
         # Skip if any premise or conclusion not in literals
-        if j.conclusion_claim_id not in literals:
+        conclusion_key = claim_key(j.conclusion_claim_id)
+        premise_keys = tuple(claim_key(pid) for pid in j.premise_claim_ids)
+        if conclusion_key not in literals:
             continue
-        if any(pid not in literals for pid in j.premise_claim_ids):
+        if any(pid not in literals for pid in premise_keys):
             continue
 
-        antecedents = tuple(literals[pid] for pid in j.premise_claim_ids)
-        consequent = literals[j.conclusion_claim_id]
+        antecedents = tuple(literals[pid] for pid in premise_keys)
+        consequent = literals[conclusion_key]
         strength = j.rule_strength
 
         if strength == "strict":
@@ -304,44 +311,10 @@ def _typed_scalar_key(value: Scalar) -> dict[str, Scalar | str]:
     return {"type": "str", "value": value}
 
 
-def _ground_literal_key(ground_atom: GroundAtom, negated: bool) -> str:
-    return json.dumps(
-        {
-            "kind": "ground_literal",
-            "predicate": ground_atom.predicate,
-            "arguments": [_typed_scalar_key(arg) for arg in ground_atom.arguments],
-            "negated": negated,
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-
-
-def _parse_ground_scalar_surface(text: str) -> Scalar:
-    stripped = text.strip()
-    if stripped.startswith('"') and stripped.endswith('"'):
-        parsed = literal_eval(stripped)
-        if not isinstance(parsed, str):
-            raise ValueError(f"Expected quoted string scalar, got {text!r}")
-        return parsed
-    if stripped == "true":
-        return True
-    if stripped == "false":
-        return False
-    try:
-        return int(stripped)
-    except ValueError:
-        pass
-    try:
-        return float(stripped)
-    except ValueError:
-        return stripped
-
-
 def _literal_for_atom(
     ground_atom: GroundAtom,
     negated: bool,
-    literals: dict[str, Literal],
+    literals: dict[LiteralKey, Literal],
 ) -> Literal:
     """Fetch or create the canonical Literal for a GroundAtom.
 
@@ -351,7 +324,7 @@ def _literal_for_atom(
     occurrences of the same atom from aliasing.
     """
 
-    key = _ground_literal_key(ground_atom, negated)
+    key = ground_key(ground_atom, negated)
     if key in literals:
         return literals[key]
     lit = Literal(atom=ground_atom, negated=negated)
@@ -380,8 +353,8 @@ def _canonical_substitution_key(sigma: dict[str, Scalar]) -> str:
 
 def grounded_rules_to_rules(
     bundle: GroundedRulesBundle,
-    literals: dict[str, Literal],
-) -> tuple[frozenset[Rule], frozenset[Rule], dict[str, Literal]]:
+    literals: dict[LiteralKey, Literal],
+) -> tuple[frozenset[Rule], frozenset[Rule], dict[LiteralKey, Literal]]:
     """T2.5: Enumerate ground rule instances and translate to ASPIC+ Rules.
 
     Walks every ``RuleDocument`` in ``bundle.source_rules``, joins the
@@ -415,8 +388,8 @@ def grounded_rules_to_rules(
     Args:
         bundle: Immutable grounding-pipeline output with source rules
             and four-valued sections.
-        literals: Existing Literal dict keyed by ``repr(GroundAtom)``
-            — typically the T1 output keyed by claim id. Extended in
+        literals: Existing typed literal dict — typically the T1 output keyed
+            by ``ClaimLiteralKey``. Extended in
             place with entries for every ground atom that appears as an
             antecedent or consequent of an emitted rule.
 
@@ -489,52 +462,9 @@ def grounded_rules_to_rules(
     return frozenset(), frozenset(defeasible_rules), literals
 
 
-def _parse_ground_atom_key(key: str) -> GroundAtom:
-    """Parse a literal key back into a ``GroundAtom``.
-
-    Inverse of ``GroundAtom.__repr__`` (propstore/aspic.py lines
-    41-45). Modgil & Prakken 2018 Def 1 (p.8) treats the logical
-    language L as a syntactic surface; the bridge pins L's keys to
-    ``repr(GroundAtom)`` so we can always round-trip them.
-
-    Phase 1 supports:
-    - nullary atoms rendered as the bare predicate (``"flies"``) —
-      these become ``GroundAtom(predicate='flies', arguments=())``;
-    - n-ary atoms rendered as ``"pred(a1, a2, ...)"`` — these become
-      ``GroundAtom(predicate='pred', arguments=('a1','a2',...))`` with
-      every argument parsed as a string scalar. Diller, Borg, Bex
-      2025 §3 (p.3) permits heterogeneous constants but Phase 1 does
-      not need numeric round-tripping on a query-side key — the
-      bundle-produced keys flow through ``_literal_for_atom`` and
-      retain their original scalar type on the producing side.
-
-    Args:
-        key: The repr string to parse.
-
-    Returns:
-        A ``GroundAtom`` whose ``repr`` equals ``key`` modulo whitespace
-        normalisation around argument separators.
-    """
-
-    if "(" not in key:
-        return GroundAtom(predicate=key, arguments=())
-    open_idx = key.index("(")
-    if not key.endswith(")"):
-        return GroundAtom(predicate=key, arguments=())
-    predicate = key[:open_idx]
-    inner = key[open_idx + 1 : -1]
-    if not inner.strip():
-        return GroundAtom(predicate=predicate, arguments=())
-    parts = split_top_level(inner)
-    return GroundAtom(
-        predicate=predicate,
-        arguments=tuple(_parse_ground_scalar_surface(part) for part in parts),
-    )
-
-
 def _ground_facts_to_axioms(
     bundle: GroundedRulesBundle,
-    literals: dict[str, Literal],
+    literals: dict[LiteralKey, Literal],
     kb: KnowledgeBase,
 ) -> KnowledgeBase:
     """Inject bundle ``definitely`` facts into the ASPIC+ knowledge base.
@@ -588,7 +518,7 @@ def _ground_facts_to_axioms(
 
 def stances_to_contrariness(
     stances: Sequence[StanceRowInput],
-    literals: dict[str, Literal],
+    literals: dict[LiteralKey, Literal],
     defeasible_rules: frozenset[Rule],
 ) -> ContrarinessFn:
     """Build a ContrarinessFn from attack stances.
@@ -630,11 +560,13 @@ def stances_to_contrariness(
         tgt_id = stance.target_claim_id
         stype = stance.stance_type
 
-        if src_id not in literals or tgt_id not in literals:
+        src_key = claim_key(src_id)
+        tgt_key = claim_key(tgt_id)
+        if src_key not in literals or tgt_key not in literals:
             continue
 
-        src = literals[src_id]
-        tgt = literals[tgt_id]
+        src = literals[src_key]
+        tgt = literals[tgt_key]
 
         # No self-contrariness (Def 2, p.8)
         if src == tgt:
@@ -700,7 +632,7 @@ def stances_to_contrariness(
 def claims_to_kb(
     active_claims: Sequence[ActiveClaimInput],
     justifications: list[CanonicalJustification],
-    literals: dict[str, Literal],
+    literals: dict[LiteralKey, Literal],
 ) -> KnowledgeBase:
     """Build an ASPIC+ knowledge base from claims and justifications.
 
@@ -732,12 +664,13 @@ def claims_to_kb(
     kp: set[Literal] = set()
 
     for cid in reported_claim_ids:
-        if cid not in literals:
+        literal_key = claim_key(cid)
+        if literal_key not in literals:
             continue
         claim = claim_by_id.get(cid)
         if claim is None:
             continue
-        lit = literals[cid]
+        lit = literals[literal_key]
         if _claim_attr(claim, "premise_kind") == "necessary":
             kn.add(lit)
         else:
@@ -780,7 +713,7 @@ def _transitive_closure(pairs: set[tuple[Literal, Literal]]) -> frozenset[tuple[
 
 def build_preference_config(
     active_claims: Sequence[ActiveClaimInput],
-    literals: dict[str, Literal],
+    literals: dict[LiteralKey, Literal],
     defeasible_rules: frozenset[Rule],
     *,
     comparison: str = "elitist",
@@ -816,13 +749,17 @@ def build_preference_config(
     # only exists for authored claims). Ground atoms without metadata
     # are treated as incomparable — the zero element of the strict
     # partial order (honest ignorance, per project CLAUDE.md).
-    claim_ids = [cid for cid in literals.keys() if cid in claim_by_id]
+    claim_ids = [
+        key.claim_id
+        for key in literals.keys()
+        if isinstance(key, ClaimLiteralKey) and key.claim_id in claim_by_id
+    ]
     for i, cid_a in enumerate(claim_ids):
         for cid_b in claim_ids[i + 1:]:
             vec_a = metadata_strength_vector(claim_by_id[cid_a])
             vec_b = metadata_strength_vector(claim_by_id[cid_b])
-            lit_a = literals[cid_a]
-            lit_b = literals[cid_b]
+            lit_a = literals[claim_key(cid_a)]
+            lit_b = literals[claim_key(cid_b)]
 
             if _component_wise_dominates(vec_a, vec_b):
                 # a is weaker than b
@@ -845,7 +782,7 @@ def build_preference_config(
 
 
 def _build_language(
-    literals: dict[str, Literal],
+    literals: dict[LiteralKey, Literal],
     strict_rules: frozenset[Rule],
     defeasible_rules: frozenset[Rule],
     kb: KnowledgeBase,
@@ -1041,7 +978,8 @@ class ClaimQueryResult:
     computation to answer "what is the argumentation status of this claim?"
 
     Attributes:
-        claim_id: The queried claim identifier.
+        claim_id: The queried goal reference. Strings mean authored claim ids;
+            grounded queries should use ``GroundAtom`` or ``LiteralKey``.
         goal: The Literal corresponding to the claim.
         arguments_for: Arguments whose conclusion is the goal literal.
         arguments_against: Arguments whose conclusion is contrary to the goal.
@@ -1049,7 +987,7 @@ class ClaimQueryResult:
         defeats: Defeat pairs after preference filtering.
     """
 
-    claim_id: str
+    claim_id: str | GroundAtom | LiteralKey
     goal: Literal
     arguments_for: frozenset[Argument]
     arguments_against: frozenset[Argument]
@@ -1057,8 +995,43 @@ class ClaimQueryResult:
     defeats: frozenset[tuple[Argument, Argument]]
 
 
+def _query_goal_key(goal_ref: str | GroundAtom | LiteralKey) -> LiteralKey:
+    """Convert a query boundary input to the internal typed key surface.
+
+    Strings are authored claim ids only. Grounded goals must cross the boundary
+    as ``GroundAtom`` values (or prebuilt ``LiteralKey`` objects), so the core
+    bridge never has to guess whether a string is a claim id or an encoded atom.
+    """
+
+    if isinstance(goal_ref, str):
+        return claim_key(goal_ref)
+    if isinstance(goal_ref, GroundAtom):
+        return ground_key(goal_ref, False)
+    return goal_ref
+
+
+def _goal_contraries(
+    literal: Literal,
+    contrariness: ContrarinessFn,
+    language: frozenset[Literal],
+) -> frozenset[Literal]:
+    """Return every language literal that conflicts with ``literal``.
+
+    The query path needs the same notion of "arguments against the goal" as the
+    argument builder: any argument whose conclusion is contradictory to the goal
+    or is a directional contrary of it.
+    """
+
+    return frozenset(
+        other
+        for other in language
+        if contrariness.is_contradictory(other, literal)
+        or contrariness.is_contrary(other, literal)
+    )
+
+
 def query_claim(
-    claim_id: str,
+    claim_id: str | GroundAtom | LiteralKey,
     active_claims: Sequence[ActiveClaimInput],
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceRowInput],
@@ -1080,23 +1053,21 @@ def query_claim(
     goal-directed build_arguments_for().
 
     Ordering rule (pinned by Chunk 1.8a handoff): the bundle merge
-    into ``lits`` happens **before** the ``claim_id not in lits``
-    existence check. This is what lets goals like
-    ``"flies(tweety)"`` resolve against ground-atom literal keys
-    that did not exist in the original claim graph. Modgil & Prakken
-    2018 Def 5 (pp.9-10): backward chaining needs every literal the
-    rule set references in the language; T2.5 is where those literals
+    into ``lits`` happens **before** the goal-key existence check.
+    This is what lets grounded goals like
+    ``GroundAtom("flies", ("tweety",))`` resolve against the typed
+    ground-literal keys that T2.5 introduces. Modgil & Prakken 2018
+    Def 5 (pp.9-10): backward chaining needs every literal the rule
+    set references in the language; T2.5 is where those literals
     enter. Diller, Borg, Bex 2025 §3 Def 9: the ground-atom key set
     is a deterministic function of (program, fact base), so running
-    the extension before the existence check is safe and
-    reproducible.
+    the extension before the existence check is safe and reproducible.
 
     Args:
-        claim_id: The claim to query. Either a stored claim id from
-            ``active_claims`` or a ground-atom key of the form
-            ``"predicate(arg1,...)"`` that the bundle introduces via
-            T2.5. Unknown goals raise ``KeyError`` rather than
-            synthesising an empty answer.
+        claim_id: The goal to query. Strings mean authored claim ids.
+            Grounded goals must be passed as ``GroundAtom`` (or as an
+            already-built ``LiteralKey``). Unknown goals raise
+            ``KeyError`` rather than synthesising an empty answer.
         active_claims: List of claim dicts (same as build_bridge_csaf).
         justifications: List of CanonicalJustification objects.
         stances: List of stance dicts.
@@ -1123,8 +1094,8 @@ def query_claim(
 
     # T2.5: ground-atom rules from the bundle. MUST run before the
     # membership check below — otherwise any query whose goal is a
-    # ground atom (key ``"flies(tweety)"``) raises KeyError even
-    # though the bundle contains a rule that would resolve it.
+    # grounded atom raises KeyError even though the bundle contains a
+    # rule that would resolve it.
     # Modgil & Prakken 2018 Def 1 (p.8): L must contain every literal
     # appearing in a rule; ``grounded_rules_to_rules`` extends
     # ``lits`` with exactly those entries. Garcia & Simari 2004 §3:
@@ -1134,23 +1105,10 @@ def query_claim(
     strict_rules = strict_rules | ground_strict
     defeasible_rules = defeasible_rules | ground_defeasible
 
-    parsed_ground_atom: GroundAtom | None = None
-    try:
-        parsed_ground_atom = _parse_ground_atom_key(claim_id)
-    except Exception:
-        parsed_ground_atom = None
-    ground_claim_key = (
-        None
-        if parsed_ground_atom is None
-        else _ground_literal_key(parsed_ground_atom, False)
-    )
-
-    if claim_id in lits:
-        goal = lits[claim_id]
-    elif ground_claim_key is not None and ground_claim_key in lits:
-        goal = lits[ground_claim_key]
-    else:
+    goal_key = _query_goal_key(claim_id)
+    if goal_key not in lits:
         raise KeyError(claim_id)
+    goal = lits[goal_key]
 
     contrariness = stances_to_contrariness(stances, lits, defeasible_rules)
     kb = claims_to_kb(normalized_claims, justifications, lits)
@@ -1187,7 +1145,7 @@ def query_claim(
 
     # Partition into for/against
     args_for = frozenset(a for a in arguments if conc(a) == goal)
-    against_literals = _contraries_of(goal, system.contrariness, system.language)
+    against_literals = _goal_contraries(goal, system.contrariness, system.language)
     args_against = frozenset(
         a for a in arguments if conc(a) in against_literals
     )

@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.aspic import GroundAtom
+from propstore.aspic import GroundAtom, Literal
 from propstore.aspic import conc
 from propstore.aspic_bridge import (
     _canonical_substitution_key,
     _literal_for_atom,
-    _parse_ground_atom_key,
     build_bridge_csaf,
     claims_to_literals,
     grounded_rules_to_rules,
@@ -16,6 +15,7 @@ from propstore.aspic_bridge import (
     stances_to_contrariness,
 )
 from propstore.core.justifications import CanonicalJustification
+from propstore.core.literal_keys import LiteralKey, claim_key
 from propstore.grounding.bundle import GroundedRulesBundle
 
 
@@ -125,7 +125,7 @@ def _make_grounded_bundle(rules=(), *, definitely=None, defeasibly=None):
 
 
 def test_literal_for_atom_does_not_alias_opposite_polarities() -> None:
-    literals: dict[str, object] = {}
+    literals: dict[LiteralKey, Literal] = {}
 
     positive = _literal_for_atom(GroundAtom("p", (1,)), False, literals)  # type: ignore[arg-type]
     negative = _literal_for_atom(GroundAtom("p", (1,)), True, literals)  # type: ignore[arg-type]
@@ -138,7 +138,7 @@ def test_literal_for_atom_does_not_alias_opposite_polarities() -> None:
 def test_ground_literals_do_not_collide_with_claim_id_namespace() -> None:
     literals = claims_to_literals([_make_claim("bird(tweety)")])
 
-    claim_literal = literals["bird(tweety)"]
+    claim_literal = literals[claim_key("bird(tweety)")]
     ground_literal = _literal_for_atom(
         GroundAtom("bird", ("tweety",)),
         False,
@@ -150,10 +150,32 @@ def test_ground_literals_do_not_collide_with_claim_id_namespace() -> None:
     assert ground_literal.atom.arguments == ("tweety",)
 
 
-def test_parse_ground_atom_key_round_trips_quoted_strings_and_numeric_scalars() -> None:
-    parsed = _parse_ground_atom_key('p("a,b", 1, true, "1")')
+def test_query_claim_accepts_ground_atom_goal_without_string_recovery() -> None:
+    bundle = _make_grounded_bundle(
+        rules=(
+            _make_rule_document(
+                "r1",
+                _make_atom("flies", (_make_var("X"),)),
+                (_make_atom("bird", (_make_var("X"),)),),
+            ),
+        ),
+        definitely={"bird": {("tweety",)}},
+    )
 
-    assert parsed == GroundAtom("p", ("a,b", 1, True, "1"))
+    result = query_claim(
+        GroundAtom("flies", ("tweety",)),
+        active_claims=[],
+        justifications=[],
+        stances=[],
+        bundle=bundle,
+    )
+
+    assert result.goal == _literal_for_atom(
+        GroundAtom("flies", ("tweety",)),
+        False,
+        {},
+    )
+    assert result.arguments_for
 
 
 def test_canonical_substitution_key_distinguishes_delimiter_collisions() -> None:
@@ -204,7 +226,7 @@ def test_query_claim_arguments_against_excludes_counter_attackers() -> None:
     )
 
     against_conclusions = {conc(arg) for arg in result.arguments_against}
-    assert against_conclusions == {claims_to_literals(claims)["q"]}
+    assert against_conclusions == {claims_to_literals(claims)[claim_key("q")]}
 
 
 def test_build_bridge_csaf_populates_framework_attacks() -> None:
@@ -265,10 +287,10 @@ def test_justifications_to_rules_rejects_empty_premise_non_reported_rule() -> No
 
 
 def test_undercut_target_justification_id_matches_grounded_rule_base_id() -> None:
-    literals = {
-        "attacker": _literal_for_atom(GroundAtom("attacker", ()), False, {}),
+    literals: dict[LiteralKey, Literal] = {
+        claim_key("attacker"): _literal_for_atom(GroundAtom("attacker", ()), False, {}),
     }
-    literals["target"] = _literal_for_atom(
+    literals[claim_key("target")] = _literal_for_atom(
         GroundAtom("flies", ("tweety",)),
         False,
         literals,
@@ -304,7 +326,7 @@ def test_undercut_target_justification_id_matches_grounded_rule_base_id() -> Non
         False,
         {},
     )
-    assert cfn.is_contrary(literals["attacker"], grounded_rule_lit)
+    assert cfn.is_contrary(literals[claim_key("attacker")], grounded_rule_lit)
 
 
 def test_query_claim_raises_keyerror_for_unknown_goal() -> None:
