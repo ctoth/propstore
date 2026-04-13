@@ -280,7 +280,7 @@ class ArgumentationSystem:
     defeasible_rules: frozenset[Rule]
 
 
-def _is_degenerate_rule(rule: Rule) -> bool:
+def _is_degenerate_rule(rule: Rule, contrariness: ContrarinessFn) -> bool:
     """Check if a strict rule is degenerate and should be excluded.
 
     A rule is degenerate if it has a contradictory pair among its
@@ -297,10 +297,41 @@ def _is_degenerate_rule(rule: Rule) -> bool:
     needed for the rationality postulates (Thm 14, p.18: direct consistency).
     """
     antes = rule.antecedents
-    for lit in antes:
-        if lit.contrary in antes:
-            return True
+    for i, left in enumerate(antes):
+        for right in antes[i + 1:]:
+            if contrariness.is_contradictory(left, right):
+                return True
     return False
+
+
+def _contradictories_of(
+    literal: Literal,
+    language: frozenset[Literal],
+    contrariness: ContrarinessFn,
+) -> tuple[Literal, ...]:
+    """Return the explicit contradictories of ``literal`` in ``language``.
+
+    Prakken 2010, Def. 5.1 (pp. 141-142) defines transposition with the
+    argumentation system's ``-`` operator. In this implementation, that
+    operator is represented by ``ContrarinessFn.is_contradictory`` rather than
+    by the structural ``Literal.contrary`` accessor alone.
+    """
+    contradictories = tuple(
+        sorted(
+            (
+                other
+                for other in language
+                if other != literal and contrariness.is_contradictory(literal, other)
+            ),
+            key=repr,
+        )
+    )
+    if not contradictories:
+        raise ValueError(
+            "transposition_closure requires every strict-rule literal to have "
+            f"an explicit contradictory in the contrariness relation: {literal!r}"
+        )
+    return contradictories
 
 
 def transposition_closure(
@@ -327,21 +358,30 @@ def transposition_closure(
     violating well-formedness. Similarly, any generated transposition
     whose consequent appears in its own antecedents is excluded.
 
+    Prakken 2010, Defs. 5.1-5.3 (pp. 141-142; local page image
+    ``papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-012.png``)
+    define this as the least fixpoint under adding transpositions. The
+    fixpoint computation therefore belongs here; well-definedness checks that
+    depend on a particular knowledge base belong to the caller.
+
     Args:
         rules: The initial set of strict rules.
         language: The logical language L (set of all valid literals).
-        contrariness: The contrariness function (unused directly — contraries
-            are computed via Literal.contrary — but required for interface
-            completeness since the language and contrariness are coupled).
+        contrariness: The explicit contrariness relation providing the
+            contradictories used as ``-phi`` during transposition.
 
     Returns:
         The smallest frozenset of well-formed Rules closed under
         transposition, containing all well-formed input rules.
+
+    Raises:
+        ValueError: if a strict-rule literal has no contradictory partner in
+            the supplied contrariness relation.
     """
-    # Filter out degenerate seed rules with contradictory antecedent pairs
+    # Filter out degenerate seed rules with contradictory antecedent pairs.
     closed: set[Rule] = {
         r for r in rules
-        if not _is_degenerate_rule(r)
+        if not _is_degenerate_rule(r, contrariness)
     }
     changed = True
     while changed:
@@ -351,46 +391,36 @@ def transposition_closure(
             if r.kind != "strict":
                 continue
             for i, ante_i in enumerate(r.antecedents):
-                # Transposed antecedents: replace a_i with ~C
-                transposed_antes = list(r.antecedents)
-                transposed_antes[i] = r.consequent.contrary
-                # Transposed consequent: ~a_i
-                transposed_consequent = ante_i.contrary
-                # Filter: all literals must be in L
-                if transposed_consequent not in language:
-                    continue
-                if any(a not in language for a in transposed_antes):
-                    continue
-                # Skip degenerate rules: consequent in antecedents
-                if transposed_consequent in transposed_antes:
-                    continue
-                new_rule = Rule(
-                    antecedents=tuple(transposed_antes),
-                    consequent=transposed_consequent,
-                    kind="strict",
-                    name=None,
-                )
-                # Skip rules with contradictory antecedent pairs
-                if _is_degenerate_rule(new_rule):
-                    continue
-                if new_rule not in closed:
-                    new_rules.add(new_rule)
-                    changed = True
+                for contrary_consequent in _contradictories_of(
+                    r.consequent, language, contrariness
+                ):
+                    for contrary_antecedent in _contradictories_of(
+                        ante_i, language, contrariness
+                    ):
+                        # Prakken 2010, Def. 5.1 (p. 141):
+                        # φ1,...,φ(i-1), -ψ, φ(i+1),...,φn -> -φi
+                        transposed_antes = list(r.antecedents)
+                        transposed_antes[i] = contrary_consequent
+                        transposed_consequent = contrary_antecedent
+                        if transposed_consequent not in language:
+                            continue
+                        if any(a not in language for a in transposed_antes):
+                            continue
+                        if transposed_consequent in transposed_antes:
+                            continue
+                        new_rule = Rule(
+                            antecedents=tuple(transposed_antes),
+                            consequent=transposed_consequent,
+                            kind="strict",
+                            name=None,
+                        )
+                        if _is_degenerate_rule(new_rule, contrariness):
+                            continue
+                        if new_rule not in closed:
+                            new_rules.add(new_rule)
+                            changed = True
         closed.update(new_rules)
-
-    # Axiom consistency check (Def 12, p.13): verify that no single
-    # literal's strict closure is self-contradictory. If Cl_Rs({φ})
-    # contains ~φ for any φ in L, the rule set makes ANY knowledge base
-    # containing φ axiom-inconsistent. Such rule sets cannot form
-    # well-defined c-SAFs, so we prune to the empty set.
-    # This catches multi-step contradiction chains (e.g., ~p -> q, q -> p
-    # makes Cl_Rs({~p}) = {~p, q, p} which is inconsistent).
-    result = frozenset(closed)
-    for lit in language:
-        cl = strict_closure(frozenset({lit}), result)
-        if lit.contrary in cl:
-            return frozenset()
-    return result
+    return frozenset(closed)
 
 
 def strict_closure(

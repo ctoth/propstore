@@ -228,6 +228,26 @@ def test_build_bridge_csaf_populates_framework_attacks() -> None:
     assert csaf.framework.attacks is not None
 
 
+def test_stances_to_contrariness_includes_classical_claim_contradictories() -> None:
+    """Claim literals must keep their base contradictory partners in the bridge.
+
+    Prakken 2010, Def. 5.1 (p. 141; local page image
+    ``papers/Prakken_2010_AbstractFrameworkArgumentationStructured/pngs/page-012.png``)
+    defines transposition over the argumentation system's ``-`` operator. For
+    claim literals, the bridge must therefore publish the classical
+    contradictory pairs explicitly instead of leaving ``ContrarinessFn`` empty
+    unless an attack stance happens to mention the claim.
+    """
+
+    claims = [_make_claim("a"), _make_claim("b")]
+    literals = claims_to_literals(claims)
+
+    cfn = stances_to_contrariness([], literals, frozenset())
+
+    for literal in literals.values():
+        assert cfn.is_contradictory(literal, literal.contrary)
+
+
 def test_justifications_to_rules_rejects_empty_premise_non_reported_rule() -> None:
     literals = claims_to_literals([_make_claim("q")])
     justifications = [
