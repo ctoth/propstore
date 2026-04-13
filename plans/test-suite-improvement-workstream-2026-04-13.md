@@ -195,7 +195,7 @@ must end in an explicit terminal state rather than drifting.
 | 4B | git_backend/repo tranche | completed | `logs/test-runs/phase4b-git-backend-20260413-143128.log` | added CLI-vs-report differential coverage and fixed merge-commit materialization so the advertised `claims/merged.yaml` path always exists |
 | 4C | cli/source_cli tranche | completed | `logs/test-runs/phase4c-cli-source-cli-20260413-143732.log` | replaced a survival-style observation proposal smoke test with a full source init/finalize/promote/build/verify flow and hardened source form fixtures for real authored-flow execution |
 | 4D | atms/worldline cli tranche | completed | `logs/test-runs/phase4d-atms-worldline-cli-20260413-144222.log` | added a worldline run/show/list cross-command consistency contract on persisted materializations |
-| 5 | typed builders + fixture refactor | pending | | |
+| 5 | typed builders + fixture refactor | completed | `logs/test-runs/phase5-builders-refactor-20260413-145145.log` | introduced named source semantic builders and rewrote core source relation tests to use them instead of anonymous inline payload dicts |
 | 6 | minimally mocked e2e ratchet | pending | | |
 | 7 | structural guardrails | pending | | |
 
