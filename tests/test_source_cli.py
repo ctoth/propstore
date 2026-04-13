@@ -352,9 +352,15 @@ def _init_source(runner, repo, name="demo"):
 def _seed_forms(repo, form_names):
     """Commit minimal form YAML files to master so form validation passes."""
     adds = {}
+    dimensionless_forms = {"structural", "category", "scalar"}
     for form_name in form_names:
         adds[f"forms/{form_name}.yaml"] = yaml.safe_dump(
-            {"name": form_name}, sort_keys=False, allow_unicode=True,
+            {
+                "name": form_name,
+                "dimensionless": form_name in dimensionless_forms,
+            },
+            sort_keys=False,
+            allow_unicode=True,
         ).encode("utf-8")
     repo.git.commit_batch(
         adds=adds, deletes=[], message="Seed forms", branch="master",

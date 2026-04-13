@@ -193,7 +193,7 @@ must end in an explicit terminal state rather than drifting.
 | 3 | semantic replacement contracts | completed | `logs/test-runs/phase2-cutover-consolidation-rerun-20260413-135057.log` | obsolete projection assumption replaced; worldline tests moved from negative path assertions to kept behavior contracts |
 | 4A | world_model property tranche | completed | `logs/test-runs/phase4a-world-model-20260413-141918.log` | added irrelevant-claim invariance, overlay conflict-order invariance, and stronger sidecar schema hard-failure coverage |
 | 4B | git_backend/repo tranche | completed | `logs/test-runs/phase4b-git-backend-20260413-143128.log` | added CLI-vs-report differential coverage and fixed merge-commit materialization so the advertised `claims/merged.yaml` path always exists |
-| 4C | cli/source_cli tranche | pending | | |
+| 4C | cli/source_cli tranche | completed | `logs/test-runs/phase4c-cli-source-cli-20260413-143732.log` | replaced a survival-style observation proposal smoke test with a full source init/finalize/promote/build/verify flow and hardened source form fixtures for real authored-flow execution |
 | 4D | atms/worldline cli tranche | pending | | |
 | 5 | typed builders + fixture refactor | pending | | |
 | 6 | minimally mocked e2e ratchet | pending | | |
