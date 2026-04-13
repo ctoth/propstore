@@ -156,11 +156,14 @@ class TestEmbedLitellmCall:
 
 
 class TestParamConflictsSympy:
-    """Location 4: param_conflicts.py:147 — SymPy evaluation."""
+    """Location 4: parameterization_conflicts.py — SymPy evaluation."""
 
     def test_runtime_error_propagates_through_param_conflicts(self):
         """RuntimeError from SymPy should propagate through param conflict detection."""
-        from propstore.param_conflicts import _detect_param_conflicts
+        from propstore.conflict_detector.models import ConflictClaim
+        from propstore.conflict_detector.parameterization_conflicts import (
+            _detect_parameterization_conflicts,
+        )
         from propstore.loaded import LoadedEntry
         from pathlib import Path
 
@@ -193,10 +196,13 @@ class TestParamConflictsSympy:
         )
 
         by_concept = {
-            "a": [input_claim_a],
-            "b": [input_claim_b],
-            "derived": [derived_claim],
+            "a": [ConflictClaim.from_payload(input_claim_a)],
+            "b": [ConflictClaim.from_payload(input_claim_b)],
+            "derived": [ConflictClaim.from_payload(derived_claim)],
         }
+        assert by_concept["a"][0] is not None
+        assert by_concept["b"][0] is not None
+        assert by_concept["derived"][0] is not None
 
         # The function iterates concept_registry looking for parameterization_relationships
         # Each rel needs: exactness=exact, inputs list, sympy expression
@@ -221,8 +227,11 @@ class TestParamConflictsSympy:
             side_effect=RuntimeError("boom"),
         ):
             with pytest.raises(RuntimeError, match="boom"):
-                _detect_param_conflicts(
-                    [claim_file], by_concept, concept_registry, [claim_file]
+                _detect_parameterization_conflicts(
+                    [],
+                    by_concept,
+                    concept_registry,
+                    [claim_file],
                 )
 
 

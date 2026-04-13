@@ -4,7 +4,7 @@ Concepts in a knowledge base are not isolated quantities -- they are connected b
 
 The parameterization subsystem spans layers 2 through 5 of the architecture: relationships are defined in the typing layer, derivation and conflict detection operate in the heuristic and argumentation layers, and sensitivity analysis feeds into the render layer via worldlines.
 
-Source: `propstore/propagation.py` (evaluation engine), `propstore/sensitivity.py` (sensitivity analysis), `propstore/parameterization_groups.py` (connected components), `propstore/parameterization_walk.py` (graph traversal), `propstore/param_conflicts.py` (conflict detection), `propstore/world/value_resolver.py` (recursive derivation), `propstore/world/model.py` (chain queries).
+Source: `propstore/propagation.py` (evaluation engine), `propstore/sensitivity.py` (sensitivity analysis), `propstore/parameterization_groups.py` (connected components), `propstore/parameterization_walk.py` (graph traversal), `propstore/conflict_detector/parameterization_conflicts.py` (conflict detection), `propstore/world/value_resolver.py` (recursive derivation), `propstore/world/model.py` (chain queries).
 
 ## Defining Relationships
 
@@ -103,7 +103,7 @@ Results are sorted by `|elasticity|` descending. The `SensitivityResult` include
 
 ### Single-hop (PARAM_CONFLICT)
 
-`_detect_param_conflicts()` in `propstore/param_conflicts.py` (line 100) checks for inconsistencies between derived and directly claimed values. For each concept with exact parameterizations:
+`_detect_parameterization_conflicts()` in `propstore/conflict_detector/parameterization_conflicts.py` checks for inconsistencies between derived and directly claimed values. For each concept with exact parameterizations:
 
 1. Collect scalar claims for all input concepts
 2. Normalize values to SI via form conversions
@@ -113,13 +113,13 @@ Results are sorted by `|elasticity|` descending. The `SensitivityResult` include
 
 ### Multi-hop (transitive)
 
-`detect_transitive_conflicts()` (line 226) extends conflict detection across chains of two or more hops. For groups with three or more concepts:
+`detect_transitive_conflicts()` in `propstore/conflict_detector/parameterization_conflicts.py` extends conflict detection across chains of two or more hops. For groups with three or more concepts:
 
 1. Use `build_groups()` to find connected components
 2. Build directed edges via `parameterization_edges_from_registry()`
 3. Perform iterative forward propagation: seed with direct claim values, derive new values through edges until fixpoint (max `len(group) * 2` iterations)
 4. Compare derived endpoint values against direct claims
-5. Skip single-hop conflicts (already found by `_detect_param_conflicts`)
+5. Skip single-hop conflicts (already found by `_detect_parameterization_conflicts`)
 
 Context merging via `_merge_contexts_for_derivation()` (line 74) rejects incoherent derivation paths -- if two edges along a chain require mutually exclusive conditions, the path is discarded.
 

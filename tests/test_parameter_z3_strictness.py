@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from propstore.cel_checker import ConceptInfo, KindType
-from propstore.conflict_detector.parameters import detect_parameter_conflicts
+from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 from propstore.loaded import LoadedEntry
 from propstore.z3_conditions import Z3ConditionSolver, Z3TranslationError
 

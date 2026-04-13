@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from ast_equiv import compare as ast_compare
-from propstore.claim_documents import LoadedClaimFile
+from propstore.claim_documents import ClaimFileInput
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 
 from .collectors import _collect_algorithm_claims
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 def detect_algorithm_conflicts(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[ClaimFileInput],
     cel_registry: dict[str, ConceptInfo],
     *,
     context_hierarchy: ContextHierarchy | None = None,

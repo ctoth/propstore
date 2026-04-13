@@ -1,11 +1,11 @@
-"""Parameter-claim conflict detection."""
+"""Direct parameter-claim conflict detection."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.claim_documents import LoadedClaimFile
+from propstore.claim_documents import ClaimFileInput
 from propstore.condition_classifier import classify_conditions as _classify_conditions
 from propstore.value_comparison import (
     value_str as _value_str,
@@ -30,7 +30,7 @@ def _build_z3_solver(cel_registry: dict[str, ConceptInfo]):
 
 
 def detect_parameter_conflicts(
-    claim_files: Sequence[LoadedClaimFile],
+    claim_files: Sequence[ClaimFileInput],
     cel_registry: dict[str, ConceptInfo],
     *,
     context_hierarchy: ContextHierarchy | None = None,

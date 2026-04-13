@@ -24,12 +24,12 @@ The orchestrator (`conflict_detector/orchestrator.py:detect_conflicts`) coordina
 1. **Build type registries.** A CEL registry is constructed from the concept registry, and a shared `Z3ConditionSolver` is built for the run.
 
 2. **Run type-specific detectors.** Four detectors run in sequence, each sharing the Z3 solver:
-   - Parameter conflicts (`conflict_detector/parameters.py`)
+   - Parameter claim conflicts (`conflict_detector/parameter_claims.py`)
    - Measurement conflicts (`conflict_detector/measurements.py`)
    - Equation conflicts (`conflict_detector/equations.py`)
    - Algorithm conflicts (`conflict_detector/algorithms.py`)
 
-3. **Run parameterization chain detection.** Single-hop derivation conflicts are checked via `param_conflicts.py`.
+3. **Run parameterization chain detection.** Single-hop and transitive derivation conflicts are checked via `conflict_detector/parameterization_conflicts.py`.
 
 Each type-specific detector follows the same pattern:
 
@@ -138,7 +138,7 @@ Two paths produce regime splits:
 
 ### Single-hop derivation
 
-For each concept with an exact parameterization relationship (`param_conflicts.py`):
+For each concept with an exact parameterization relationship (`conflict_detector/parameterization_conflicts.py`):
 
 1. Collect scalar values for all input concepts
 2. Evaluate the SymPy expression with those inputs (after normalizing to SI units via the concept's form definition)

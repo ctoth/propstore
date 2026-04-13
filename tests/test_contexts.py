@@ -857,7 +857,8 @@ class TestBoundWorldContext:
 # ── Step 5: Context-aware conflict detection ─────────────────────────
 
 
-from propstore.conflict_detector import ConflictClass, _classify_pair_context
+from propstore.conflict_detector import ConflictClass
+from propstore.conflict_detector.context import _classify_pair_context
 
 
 class TestContextAwareConflicts:
