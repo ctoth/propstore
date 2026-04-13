@@ -71,6 +71,8 @@ Theoretical sources:
 
 from __future__ import annotations
 
+import pytest
+
 import inspect
 
 
@@ -517,10 +519,8 @@ def test_tweety_no_rules_produces_no_grounded_arguments() -> None:
         - ``defeasibly`` contains no entry for ``flies``.
 
     Expected query result: ``query_claim('flies(tweety)', ...,
-    bundle=bundle)`` yields an empty ``arguments_for`` set because
-    there is no rule to back-chain from. Modgil & Prakken 2018
-    Def 5 (pp.9-10): argument construction requires a rule whose
-    conclusion matches the goal; no rule, no argument.
+    bundle=bundle)`` raises ``KeyError`` because the goal literal is
+    absent from the extended literal map when no rule introduces it.
 
     Red until 1.8b: the ``bundle`` keyword does not exist on
     ``query_claim`` yet — ``TypeError`` at call time.
@@ -547,18 +547,18 @@ def test_tweety_no_rules_produces_no_grounded_arguments() -> None:
     # row for a predicate that no rule references.
     assert bundle.sections["defeasibly"].get("flies", frozenset()) == frozenset()
 
-    # Querying a literal with no supporting rule yields no
-    # arguments. Garcia & Simari 2004 §3: an empty rule set has no
-    # defeasible derivations.
+    # Querying a literal with no supporting rule now fails loudly:
+    # the goal never enters the extended literal map, so the bridge
+    # raises instead of fabricating an empty answer.
     _unused = GroundAtom  # silence unused-import in red state
-    result = query_claim(
-        "flies(tweety)",
-        active_claims=[],
-        justifications=[],
-        stances=[],
-        bundle=bundle,
-    )
-    assert result.arguments_for == frozenset()
+    with pytest.raises(KeyError, match="flies\\(tweety\\)"):
+        query_claim(
+            "flies(tweety)",
+            active_claims=[],
+            justifications=[],
+            stances=[],
+            bundle=bundle,
+        )
 
 
 def test_tweety_multiple_birds_produces_multiple_arguments() -> None:
