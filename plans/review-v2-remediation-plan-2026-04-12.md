@@ -78,6 +78,12 @@ alone do not count as issue closure.
 Update this ledger as the work proceeds. Each issue should end in exactly one
 terminal state: `kept-fixed`, `rejected-after-proof`, or `deferred-by-user`.
 
+Latest tranche-1 phase-close validation:
+
+- `propstore`: `logs/test-runs/tranche1-phase-close-propstore-rerun2-20260412-223759.log`
+- `gunray`: `gunray/logs/test-runs/tranche1-phase-close-gunray-20260412-223823.log`
+- `datalog-conformance-suite`: `datalog-conformance-suite/logs/test-runs/tranche1-phase-close-dcs-20260412-223849.log`
+
 ### Immediate correctness tranche
 
 | Issue | Summary | Proof added | Fixed | Repo(s) | Commit(s) | Status | Notes |
@@ -88,8 +94,8 @@ terminal state: `kept-fixed`, `rejected-after-proof`, or `deferred-by-user`.
 | 4 | strong negation dropped at boundary | yes | yes | propstore | propstore:`426f151` | kept-fixed | red: `logs/test-runs/issues4-26-proof-red-20260412-223141.log`; green: `logs/test-runs/issues4-26-green-20260412-223200.log`; resolved by loud Phase-1 refusal instead of silent erasure |
 | 5 | grounded literal aliasing by repr | yes | yes | propstore | propstore:`103b613` | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
 | 6 | `_parse_ground_atom_key()` not invertible | yes | yes | propstore | propstore:`103b613` | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
-| 7 | goal-directed attacker incompleteness | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues7-8-proof-red-20260412-223410.log`; green: `logs/test-runs/issues7-8-green-rerun-20260412-223527.log` |
-| 8 | `arguments_against` misclassification | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues7-8-proof-red-20260412-223410.log`; green: `logs/test-runs/issues7-8-green-rerun-20260412-223527.log`; stronger rebuttal-chain proof reproduced the bug |
+| 7 | goal-directed attacker incompleteness | yes | yes | propstore | propstore:`39486b7` | kept-fixed | red: `logs/test-runs/issues7-8-proof-red-20260412-223410.log`; green: `logs/test-runs/issues7-8-green-rerun-20260412-223527.log` |
+| 8 | `arguments_against` misclassification | yes | yes | propstore | propstore:`39486b7` | kept-fixed | red: `logs/test-runs/issues7-8-proof-red-20260412-223410.log`; green: `logs/test-runs/issues7-8-green-rerun-20260412-223527.log`; stronger rebuttal-chain proof reproduced the bug |
 | 9 | CSAF framework drops `attacks` | yes | yes | propstore | propstore:`5e3eedb` | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
 | 10 | preferred backend threading | yes | yes | propstore | propstore:`5e3eedb` | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
 | 11 | empty-premise rules dropped | yes | yes | propstore | propstore:`5e3eedb` | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
@@ -105,8 +111,8 @@ terminal state: `kept-fixed`, `rejected-after-proof`, or `deferred-by-user`.
 
 | Issue | Summary | Proof added | Fixed/Resolved | Repo(s) | Commit(s) | Status | Notes |
 |---|---|---|---|---|---|---|---|
-| 16 | transposition prunes whole strict theory | no | no | propstore |  | pending |  |
-| 17 | transposition ignores contrariness parameter | no | no | propstore |  | pending |  |
+| 16 | transposition prunes whole strict theory | yes | yes | propstore | propstore:`4b6d2a3` | kept-fixed | red: `logs/test-runs/issues16-17-proof-red-20260412-225753.log`; green: `logs/test-runs/issues16-17-green-rerun-20260412-225923.log`; broader: `logs/test-runs/issues16-17-broader-greencheck-rerun-20260412-230051.log`; postsync: `logs/test-runs/issues16-17-postsync-verify-20260412-230240.log`; fixed by computing the Prakken 2010 Def. 5.1-5.3 transposition fixpoint without globally deleting unrelated strict rules |
+| 17 | transposition ignores contrariness parameter | yes | yes | propstore | propstore:`4b6d2a3` | kept-fixed | red: `logs/test-runs/issues16-17-proof-red-20260412-225753.log`; green: `logs/test-runs/issues16-17-green-rerun-20260412-225923.log`; broader: `logs/test-runs/issues16-17-broader-greencheck-rerun-20260412-230051.log`; postsync: `logs/test-runs/issues16-17-postsync-verify-20260412-230240.log`; fixed by driving transposition from explicit contradictories and making the bridge publish base contradictory pairs for claim/rule literals |
 | 18 | exponential closure policies public | no | no | gunray |  | pending | may resolve by contract narrowing |
 | 19 | vacuous antecedent policy disagreement | no | no | gunray |  | pending |  |
 | 20 | closure faithfulness unproven | no | no | gunray/dcs |  | pending |  |
