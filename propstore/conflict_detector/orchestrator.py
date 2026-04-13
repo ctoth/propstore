@@ -22,7 +22,8 @@ from .collectors import _iter_conflict_claims
 from .equations import detect_equation_conflicts
 from .measurements import detect_measurement_conflicts
 from .models import ConflictRecord
-from .parameters import detect_parameter_conflicts
+from .parameter_claims import detect_parameter_conflicts
+from .parameterization_conflicts import _detect_parameterization_conflicts
 
 if TYPE_CHECKING:
     from propstore.context_hierarchy import ContextHierarchy
@@ -104,9 +105,13 @@ def detect_conflicts(
         )
     )
 
-    from propstore.param_conflicts import _detect_param_conflicts
-
-    _detect_param_conflicts(records, by_concept, concept_registry, claim_files)
+    _detect_parameterization_conflicts(
+        records,
+        by_concept,
+        concept_registry,
+        claim_files,
+        context_hierarchy=context_hierarchy,
+    )
     return records
 
 

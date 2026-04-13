@@ -5,22 +5,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from .collectors import (
-    _collect_algorithm_claims,
-    _collect_equation_claims,
-    _collect_measurement_claims,
-    _collect_parameter_claims,
-)
-from .context import (
-    _append_context_classified_record,
-    _claim_context,
-    _classify_pair_context,
-)
 from .models import ConflictClass, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.claim_documents import ClaimFileInput
     from propstore.context_hierarchy import ContextHierarchy
+    from propstore.form_utils import FormDefinition
 
 
 def detect_conflicts(
@@ -42,8 +32,9 @@ def detect_transitive_conflicts(
     concept_registry: dict[str, dict],
     *,
     context_hierarchy: ContextHierarchy | None = None,
+    forms: dict[str, FormDefinition] | None = None,
 ) -> list[ConflictRecord]:
-    from propstore.param_conflicts import (
+    from .parameterization_conflicts import (
         detect_transitive_conflicts as _detect_transitive_conflicts,
     )
 
@@ -51,6 +42,7 @@ def detect_transitive_conflicts(
         claim_files,
         concept_registry,
         context_hierarchy=context_hierarchy,
+        forms=forms,
     )
 
 __all__ = [
@@ -58,11 +50,4 @@ __all__ = [
     "ConflictRecord",
     "detect_conflicts",
     "detect_transitive_conflicts",
-    "_append_context_classified_record",
-    "_claim_context",
-    "_classify_pair_context",
-    "_collect_algorithm_claims",
-    "_collect_equation_claims",
-    "_collect_measurement_claims",
-    "_collect_parameter_claims",
 ]

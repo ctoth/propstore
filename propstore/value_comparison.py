@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 DEFAULT_TOLERANCE = 1e-9
 
 
-def extract_interval(claim: dict) -> tuple[float, float, float] | None:
+def extract_interval(claim: object) -> tuple[float, float, float] | None:
     """Extract (center, lower, upper) from a claim's named value fields."""
     value = _claim_field(claim, "value")
     lower_bound = _claim_field(claim, "lower_bound")
@@ -76,8 +76,8 @@ def values_compatible(
     value_a,
     value_b,
     tolerance: float = DEFAULT_TOLERANCE,
-    claim_a: dict | None = None,
-    claim_b: dict | None = None,
+    claim_a: object | None = None,
+    claim_b: object | None = None,
     forms: dict[str, "FormDefinition"] | None = None,
     concept_form: str | None = None,
 ) -> bool:
@@ -110,7 +110,7 @@ def values_compatible(
     return value_a == value_b
 
 
-def value_str(value, claim: dict | None = None) -> str:
+def value_str(value, claim: object | None = None) -> str:
     """Convert a claim's value to a string representation."""
     if claim is not None:
         interval = extract_interval(claim)

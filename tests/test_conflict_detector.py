@@ -1082,7 +1082,7 @@ class TestParameterZ3FailureHandling:
         """Z3 partition failure should raise; there is no pairwise fallback."""
         from unittest.mock import patch
         from propstore.z3_conditions import Z3TranslationError, Z3ConditionSolver
-        from propstore.conflict_detector.parameters import detect_parameter_conflicts
+        from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 
         cel_registry = {"freq": ConceptInfo(
             id="freq", canonical_name="freq", kind=KindType.QUANTITY,
@@ -1108,7 +1108,7 @@ class TestParameterZ3FailureHandling:
         """RuntimeError in partition should propagate."""
         from unittest.mock import patch
         from propstore.z3_conditions import Z3ConditionSolver
-        from propstore.conflict_detector.parameters import detect_parameter_conflicts
+        from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 
         cel_registry = {"freq": ConceptInfo(
             id="freq", canonical_name="freq", kind=KindType.QUANTITY,
@@ -1133,7 +1133,7 @@ class TestParameterZ3FailureHandling:
         """RuntimeError in are_disjoint should propagate, not be swallowed."""
         from unittest.mock import patch
         from propstore.z3_conditions import Z3ConditionSolver
-        from propstore.conflict_detector.parameters import detect_parameter_conflicts
+        from propstore.conflict_detector.parameter_claims import detect_parameter_conflicts
 
         cel_registry = {"freq": ConceptInfo(
             id="freq", canonical_name="freq", kind=KindType.QUANTITY,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 
 @dataclass(frozen=True)
@@ -63,17 +63,24 @@ class ConflictClaim:
         claim_id = payload.get("id") or payload.get("artifact_id")
         if not isinstance(claim_id, str) or not claim_id:
             return None
-        raw_variables = payload.get("variables")
+        raw_variables: object = payload.get("variables")
         variables = ()
         if isinstance(raw_variables, list):
-            variables = tuple(
-                variable
-                for entry in raw_variables
-                if isinstance(entry, dict)
-                and (variable := ConflictClaimVariable.from_payload(entry)) is not None
+            parsed_variables: list[ConflictClaimVariable] = []
+            for raw_entry in cast(list[object], raw_variables):
+                if not isinstance(raw_entry, dict):
+                    continue
+                variable = ConflictClaimVariable.from_payload(cast(dict[str, Any], raw_entry))
+                if variable is not None:
+                    parsed_variables.append(variable)
+            variables = tuple(parsed_variables)
+        raw_conditions: object = payload.get("conditions") or ()
+        conditions = ()
+        if isinstance(raw_conditions, list | tuple):
+            conditions = tuple(
+                str(item)
+                for item in cast(list[object] | tuple[object, ...], raw_conditions)
             )
-        raw_conditions = payload.get("conditions") or ()
-        conditions = tuple(str(item) for item in raw_conditions) if isinstance(raw_conditions, list | tuple) else ()
         context_id = payload.get("context_id")
         if context_id is None:
             context_id = payload.get("context")
@@ -111,51 +118,6 @@ class ConflictClaim:
         if source_cond in self.conditions:
             return self
         return replace(self, conditions=tuple((*self.conditions, source_cond)))
-
-    def get(self, key: str, default: object = None) -> object:
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    def __getitem__(self, key: str) -> object:
-        if key == "id":
-            return self.claim_id
-        if key == "artifact_id":
-            return self.artifact_id
-        if key == "type":
-            return self.claim_type
-        if key == "concept":
-            return self.concept_id
-        if key == "target_concept":
-            return self.target_concept_id
-        if key == "measure":
-            return self.measure
-        if key == "value":
-            return self.value
-        if key == "lower_bound":
-            return self.lower_bound
-        if key == "upper_bound":
-            return self.upper_bound
-        if key == "unit":
-            return self.unit
-        if key == "expression":
-            return self.expression
-        if key == "sympy":
-            return self.sympy
-        if key == "body":
-            return self.body
-        if key == "listener_population":
-            return self.listener_population
-        if key == "source_paper":
-            return self.source_paper
-        if key == "context_id" or key == "context":
-            return self.context_id
-        if key == "conditions":
-            return list(self.conditions)
-        if key == "variables":
-            return [variable.to_payload() for variable in self.variables]
-        raise KeyError(key)
 
 
 class ConflictClass(Enum):

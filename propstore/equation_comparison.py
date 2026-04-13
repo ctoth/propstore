@@ -26,37 +26,36 @@ def _reject_injection(text: str) -> None:
         raise ValueError(f"equation contains forbidden pattern: {text!r}")
 
 
-def equation_signature(claim: dict) -> tuple[str, tuple[str, ...]] | None:
+def equation_signature(claim: object) -> tuple[str, tuple[str, ...]] | None:
     """Build a canonical signature for an equation claim for grouping.
 
     Returns (dependent_concept, (sorted independent concepts...)) or None
     if the claim doesn't have the expected variable structure.
     """
     variables = _claim_field(claim, "variables")
-    if not isinstance(variables, list):
+    if not isinstance(variables, (list, tuple)):
         return None
 
     dependent_concepts: list[str] = []
     for var in variables:
-        if isinstance(var, dict) and var.get("role") == "dependent":
-            c = var.get("concept")
-            if isinstance(c, str) and c:
-                dependent_concepts.append(c)
+        if _variable_field(var, "role") == "dependent":
+            concept_id = _variable_field(var, "concept")
+            if isinstance(concept_id, str) and concept_id:
+                dependent_concepts.append(concept_id)
     if len(dependent_concepts) != 1:
         return None
 
     dependent_concept = dependent_concepts[0]
     independent_list: list[str] = []
     for var in variables:
-        if isinstance(var, dict):
-            c = var.get("concept")
-            if isinstance(c, str) and c and c != dependent_concept:
-                independent_list.append(c)
+        concept_id = _variable_field(var, "concept")
+        if isinstance(concept_id, str) and concept_id and concept_id != dependent_concept:
+            independent_list.append(concept_id)
     independents = sorted(independent_list)
     return dependent_concept, tuple(independents)
 
 
-def canonicalize_equation(claim: dict) -> str | None:
+def canonicalize_equation(claim: object) -> str | None:
     """Canonicalize an equation claim using SymPy for equivalence checking.
 
     Returns a canonical string representation of the equation (as simplified
@@ -75,15 +74,13 @@ def canonicalize_equation(claim: dict) -> str | None:
         return None
 
     variables = _claim_field(claim, "variables")
-    if not isinstance(variables, list):
+    if not isinstance(variables, (list, tuple)):
         return None
 
     symbol_map = {}
     for var in variables:
-        if not isinstance(var, dict):
-            continue
-        symbol = var.get("symbol")
-        concept_id = var.get("concept")
+        symbol = _variable_field(var, "symbol")
+        concept_id = _variable_field(var, "concept")
         if isinstance(symbol, str) and symbol and isinstance(concept_id, str) and concept_id:
             symbol_map[symbol] = Symbol(concept_id)
     if not symbol_map:
@@ -135,3 +132,12 @@ def _claim_field(claim: object, key: str) -> Any:
     if callable(getter):
         return getter(key)
     return getattr(claim, key, None)
+
+
+def _variable_field(variable: object, key: str) -> Any:
+    getter = getattr(variable, "get", None)
+    if callable(getter):
+        return getter(key)
+    if key == "concept":
+        return getattr(variable, "concept_id", None)
+    return getattr(variable, key, None)

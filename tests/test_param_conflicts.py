@@ -4,9 +4,12 @@ from pathlib import Path
 
 import warnings
 
-from propstore.conflict_detector.models import ConflictClass
+from propstore.conflict_detector.models import ConflictClass, ConflictClaim
 from propstore.form_utils import FormDefinition, UnitConversion
-from propstore.param_conflicts import _detect_param_conflicts, detect_transitive_conflicts
+from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
+from propstore.conflict_detector.parameterization_conflicts import (
+    _detect_parameterization_conflicts,
+)
 from propstore.loaded import LoadedEntry
 from tests.conftest import make_concept_identity
 
@@ -47,6 +50,12 @@ def _concept(local_id: str, *, form: str) -> tuple[str, dict]:
     return data["artifact_id"], data
 
 
+def _claim(payload: dict) -> ConflictClaim:
+    claim = ConflictClaim.from_payload(payload)
+    assert claim is not None
+    return claim
+
+
 def test_detect_param_conflicts_handles_equality_parameterizations_without_warning():
     """Eq(...) parameterizations should produce conflicts, not warnings."""
     records = []
@@ -54,9 +63,9 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
     concept2_id, concept2 = _concept("concept2", form="quantity")
     concept3_id, concept3 = _concept("concept3", form="quantity")
     by_concept = {
-        concept1_id: [{"id": "claim_a", "value": 10.0, "conditions": []}],
-        concept2_id: [{"id": "claim_b", "value": 9.807, "conditions": []}],
-        concept3_id: [{"id": "claim_c", "value": 99.0, "conditions": []}],
+        concept1_id: [_claim({"id": "claim_a", "value": 10.0, "conditions": []})],
+        concept2_id: [_claim({"id": "claim_b", "value": 9.807, "conditions": []})],
+        concept3_id: [_claim({"id": "claim_c", "value": 99.0, "conditions": []})],
     }
     concept_registry = {
         concept1_id: concept1,
@@ -80,7 +89,7 @@ def test_detect_param_conflicts_handles_equality_parameterizations_without_warni
 
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        _detect_param_conflicts(records, by_concept, concept_registry, [claim_file])
+        _detect_parameterization_conflicts(records, by_concept, concept_registry, [claim_file])
 
     param_warnings = [
         warning for warning in caught
@@ -103,10 +112,10 @@ def test_same_value_different_units_no_conflict():
 
     by_concept = {
         freq_input_id: [
-            {"id": "claim_hz", "value": 200.0, "unit": "Hz", "conditions": []},
-            {"id": "claim_khz", "value": 0.2, "unit": "kHz", "conditions": []},
+            _claim({"id": "claim_hz", "value": 200.0, "unit": "Hz", "conditions": []}),
+            _claim({"id": "claim_khz", "value": 0.2, "unit": "kHz", "conditions": []}),
         ],
-        freq_output_id: [{"id": "claim_out", "value": 100.0, "conditions": []}],
+        freq_output_id: [_claim({"id": "claim_out", "value": 100.0, "conditions": []})],
     }
     concept_registry = {
         freq_input_id: freq_input,
@@ -122,7 +131,7 @@ def test_same_value_different_units_no_conflict():
         },
     }
 
-    _detect_param_conflicts(
+    _detect_parameterization_conflicts(
         records, by_concept, concept_registry, [_stub_claim_file()], forms=forms
     )
 
@@ -141,9 +150,9 @@ def test_different_value_different_units_conflict():
 
     by_concept = {
         freq_input_id: [
-            {"id": "claim_khz", "value": 0.5, "unit": "kHz", "conditions": []},
+            _claim({"id": "claim_khz", "value": 0.5, "unit": "kHz", "conditions": []}),
         ],
-        freq_output_id: [{"id": "claim_out", "value": 100.0, "conditions": []}],
+        freq_output_id: [_claim({"id": "claim_out", "value": 100.0, "conditions": []})],
     }
     concept_registry = {
         freq_input_id: freq_input,
@@ -159,7 +168,7 @@ def test_different_value_different_units_conflict():
         },
     }
 
-    _detect_param_conflicts(
+    _detect_parameterization_conflicts(
         records, by_concept, concept_registry, [_stub_claim_file()], forms=forms
     )
 
@@ -232,3 +241,176 @@ def test_transitive_propagation_normalizes_units():
     # Without normalization, 0.1 * 2 = 0.2, 0.2 + 100 = 100.2 ≠ 300 → spurious conflict.
     param_conflicts = [c for c in conflicts if c.warning_class == ConflictClass.PARAM_CONFLICT]
     assert len(param_conflicts) == 0
+
+
+def test_single_hop_conflict_carries_derived_conditions():
+    records = []
+    concept_in_id, concept_in = _concept("concept_in", form="frequency")
+    concept_out_id, concept_out = _concept("concept_out", form="frequency")
+    by_concept = {
+        concept_in_id: [
+            _claim({
+                "id": "claim_in",
+                "value": 10.0,
+                "conditions": ["task == 'speech'"],
+                "context": "ctx_input",
+            }),
+        ],
+        concept_out_id: [
+            _claim({
+                "id": "claim_out",
+                "value": 100.0,
+                "conditions": ["task == 'speech'", "mode == 'normal'"],
+                "context": "ctx_input",
+            }),
+        ],
+    }
+    concept_registry = {
+        concept_in_id: concept_in,
+        concept_out_id: {
+            **concept_out,
+            "parameterization_relationships": [
+                {
+                    "exactness": "exact",
+                    "inputs": [concept_in_id],
+                    "sympy": "Eq(concept_out, concept_in * 2)",
+                    "conditions": ["mode == 'normal'"],
+                }
+            ],
+        },
+    }
+
+    _detect_parameterization_conflicts(
+        records,
+        by_concept,
+        concept_registry,
+        [_stub_claim_file()],
+    )
+
+    assert len(records) == 1
+    assert records[0].warning_class == ConflictClass.PARAM_CONFLICT
+    assert records[0].conditions_b == ["mode == 'normal'", "task == 'speech'"]
+
+
+def test_single_hop_conflict_respects_context_exclusion():
+    from propstore.context_hierarchy import ContextHierarchy
+
+    concept_in_id, concept_in = _concept("concept_in", form="frequency")
+    concept_out_id, concept_out = _concept("concept_out", form="frequency")
+    claim_file = LoadedEntry(
+        filename="test",
+        source_path=Path("test.yaml"),
+        data={
+            "source": {"paper": "test"},
+            "claims": [
+                {
+                    "id": "claim_in",
+                    "type": "parameter",
+                    "concept": concept_in_id,
+                    "value": 10.0,
+                    "conditions": ["task == 'speech'"],
+                    "context": "ctx_input",
+                },
+                {
+                    "id": "claim_out",
+                    "type": "parameter",
+                    "concept": concept_out_id,
+                    "value": 100.0,
+                    "conditions": ["task == 'speech'"],
+                    "context": "ctx_direct",
+                },
+            ],
+        },
+    )
+    concept_registry = {
+        concept_in_id: concept_in,
+        concept_out_id: {
+            **concept_out,
+            "parameterization_relationships": [
+                {
+                    "exactness": "exact",
+                    "inputs": [concept_in_id],
+                    "sympy": "Eq(concept_out, concept_in * 2)",
+                }
+            ],
+        },
+    }
+    hierarchy = ContextHierarchy([
+        LoadedEntry("input", None, {"id": "ctx_input", "name": "Input"}),
+        LoadedEntry(
+            "direct",
+            None,
+            {"id": "ctx_direct", "name": "Direct", "excludes": ["ctx_input"]},
+        ),
+    ])
+
+    records = detect_conflicts(
+        [claim_file],
+        concept_registry,
+        context_hierarchy=hierarchy,
+    )
+
+    assert len(records) == 1
+    assert records[0].warning_class == ConflictClass.CONTEXT_PHI_NODE
+
+
+def test_transitive_conflict_detection_is_order_independent():
+    concept_in_id, concept_in = _concept("concept_in", form="frequency")
+    concept_mid_id, concept_mid = _concept("concept_mid", form="frequency")
+    concept_out_id, concept_out = _concept("concept_out", form="frequency")
+    concept_registry = {
+        concept_in_id: concept_in,
+        concept_mid_id: {
+            **concept_mid,
+            "parameterization_relationships": [
+                {
+                    "exactness": "exact",
+                    "inputs": [concept_in_id],
+                    "sympy": "Eq(concept_mid, concept_in * 2)",
+                }
+            ],
+        },
+        concept_out_id: {
+            **concept_out,
+            "parameterization_relationships": [
+                {
+                    "exactness": "exact",
+                    "inputs": [concept_mid_id],
+                    "sympy": "Eq(concept_out, concept_mid + 5)",
+                }
+            ],
+        },
+    }
+    first_order = LoadedEntry(
+        filename="first",
+        source_path=Path("first.yaml"),
+        data={
+            "source": {"paper": "test"},
+            "claims": [
+                {"id": "in_a", "type": "parameter", "concept": concept_in_id, "value": 10.0},
+                {"id": "in_b", "type": "parameter", "concept": concept_in_id, "value": 20.0},
+                {"id": "out_direct", "type": "parameter", "concept": concept_out_id, "value": 25.0},
+            ],
+        },
+    )
+    second_order = LoadedEntry(
+        filename="second",
+        source_path=Path("second.yaml"),
+        data={
+            "source": {"paper": "test"},
+            "claims": [
+                {"id": "in_b", "type": "parameter", "concept": concept_in_id, "value": 20.0},
+                {"id": "in_a", "type": "parameter", "concept": concept_in_id, "value": 10.0},
+                {"id": "out_direct", "type": "parameter", "concept": concept_out_id, "value": 25.0},
+            ],
+        },
+    )
+
+    first_records = detect_transitive_conflicts([first_order], concept_registry)
+    second_records = detect_transitive_conflicts([second_order], concept_registry)
+
+    assert len(first_records) == 1
+    assert len(second_records) == 1
+    assert first_records[0].warning_class == ConflictClass.PARAM_CONFLICT
+    assert second_records[0].warning_class == ConflictClass.PARAM_CONFLICT
+    assert first_records[0].value_b == second_records[0].value_b == "45.0"
