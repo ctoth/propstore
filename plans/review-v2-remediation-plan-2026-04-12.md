@@ -93,12 +93,12 @@ terminal state: `kept-fixed`, `rejected-after-proof`, or `deferred-by-user`.
 | 9 | CSAF framework drops `attacks` | yes | yes | propstore | propstore:`5e3eedb` | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
 | 10 | preferred backend threading | yes | yes | propstore | propstore:`5e3eedb` | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
 | 11 | empty-premise rules dropped | yes | yes | propstore | propstore:`5e3eedb` | kept-fixed | red: `logs/test-runs/issues8-11-proof-red-20260412-222016.log`; green: `logs/test-runs/issues9-11-green-20260412-222049.log` |
-| 12 | fact extraction ignores arity | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues12-13-proof-red-20260412-222447.log`; green: `logs/test-runs/issues12-13-green-20260412-222511.log` |
-| 13 | incomplete string escaping | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues12-13-proof-red-20260412-222447.log`; green: `logs/test-runs/issues12-13-green-20260412-222511.log` |
-| 14 | grounded-rule naming collision risk | no | no | propstore |  | pending |  |
-| 15 | authored undercut ids mismatch grounded ids | no | no | propstore |  | pending |  |
+| 12 | fact extraction ignores arity | yes | yes | propstore | propstore:`7c13405` | kept-fixed | red: `logs/test-runs/issues12-13-proof-red-20260412-222447.log`; green: `logs/test-runs/issues12-13-green-20260412-222511.log` |
+| 13 | incomplete string escaping | yes | yes | propstore | propstore:`7c13405` | kept-fixed | red: `logs/test-runs/issues12-13-proof-red-20260412-222447.log`; green: `logs/test-runs/issues12-13-green-20260412-222511.log` |
+| 14 | grounded-rule naming collision risk | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues14-15-25-proof-red-20260412-222845.log`; green: `logs/test-runs/issues14-15-25-green-rerun-20260412-222946.log` |
+| 15 | authored undercut ids mismatch grounded ids | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues14-15-25-proof-red-20260412-222845.log`; green: `logs/test-runs/issues14-15-25-green-rerun-20260412-222946.log` |
 | 24 | mixed claim-id and ground-atom namespace | yes | yes | propstore | propstore:`103b613` | kept-fixed | red: `logs/test-runs/issues5-6-24-proof-red-20260412-221526.log`; green: `logs/test-runs/issues5-6-24-green-rerun-20260412-221759.log` |
-| 25 | query API contract mismatch | no | no | propstore |  | pending |  |
+| 25 | query API contract mismatch | yes | yes | propstore | pending | kept-fixed | red: `logs/test-runs/issues14-15-25-proof-red-20260412-222845.log`; green: `logs/test-runs/issues14-15-25-green-rerun-20260412-222946.log` |
 | 26 | inconsistent deferred-feature handling | no | no | propstore/gunray |  | pending |  |
 
 ### Semantic audit tranche

@@ -359,17 +359,22 @@ def _literal_for_atom(
 
 
 def _canonical_substitution_key(sigma: dict[str, Scalar]) -> str:
-    """Render σ as ``k1=v1,k2=v2,...`` with variable names sorted.
+    """Render σ as a stable structured string with variable names sorted.
 
     Modgil & Prakken 2018 Def 2 (p.8) requires a unique name n(r) per
     defeasible rule to drive undercutting (Def 8c, p.11). Every
-    distinct substitution must therefore map to a distinct key; the
-    sorted ``name=value`` form is stable under substitution order and
-    remains human-readable in error messages. Empty substitutions
-    produce the empty string — callers concatenate it after ``#``.
+    distinct substitution must therefore map to a distinct key. Use a
+    JSON object over typed scalar encodings so delimiter characters in
+    string constants cannot create collisions.
     """
-
-    return ",".join(f"{name}={sigma[name]}" for name in sorted(sigma))
+    return json.dumps(
+        {
+            name: _typed_scalar_key(sigma[name])
+            for name in sorted(sigma)
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 def grounded_rules_to_rules(
@@ -393,8 +398,9 @@ def grounded_rules_to_rules(
     - The input ``literals`` dict is extended in place and returned as
       the third tuple element.
 
-    Canonical ``Rule.name`` form: ``f"{rule_doc.id}#{k1=v1,k2=v2,...}"``
-    with variable names sorted alphabetically. Empty substitutions
+    Canonical ``Rule.name`` form: ``f"{rule_doc.id}#{sigma_key}"`` where
+    ``sigma_key`` is a stable JSON encoding of the substitution with
+    variable names sorted alphabetically. Empty substitutions
     (nullary rules) become ``f"{rule_doc.id}#"``. Distinct substitutions
     therefore map to distinct names, satisfying the n(r) uniqueness
     requirement that undercutting relies on.
@@ -636,11 +642,20 @@ def stances_to_contrariness(
                 if rule.consequent == tgt and rule.name is not None
             ]
             if target_justification_id is not None:
-                matching_rules = [
+                exact_matches = [
                     rule
                     for rule in matching_rules
                     if rule.name == target_justification_id
                 ]
+                if exact_matches:
+                    matching_rules = exact_matches
+                else:
+                    matching_rules = [
+                        rule
+                        for rule in matching_rules
+                        if rule.name is not None
+                        and rule.name.partition("#")[0] == target_justification_id
+                    ]
                 if not matching_rules:
                     raise ValueError(
                         "undercut target_justification_id "
@@ -1067,7 +1082,8 @@ def query_claim(
         claim_id: The claim to query. Either a stored claim id from
             ``active_claims`` or a ground-atom key of the form
             ``"predicate(arg1,...)"`` that the bundle introduces via
-            T2.5.
+            T2.5. Unknown goals raise ``KeyError`` rather than
+            synthesising an empty answer.
         active_claims: List of claim dicts (same as build_bridge_csaf).
         justifications: List of CanonicalJustification objects.
         stances: List of stance dicts.
@@ -1121,30 +1137,7 @@ def query_claim(
     elif ground_claim_key is not None and ground_claim_key in lits:
         goal = lits[ground_claim_key]
     else:
-        # The goal literal did not come through T1 (no authored claim
-        # with this id) nor T2.5 (no ground rule antecedent/consequent
-        # that matched). Under the Phase-1 DeLP semantics (Garcia &
-        # Simari 2004 §3) a query about an unknown literal is well
-        # defined: the answer is the empty argument set. We therefore
-        # synthesise the goal Literal from the key via
-        # _parse_ground_atom_key and return an empty result, rather
-        # than raising — consistent with Modgil & Prakken 2018 Def 10
-        # (grounded extension) vacuity: an undefeated argument set is
-        # empty precisely when no argument reaches the goal.
-        parsed_atom = (
-            parsed_ground_atom
-            if parsed_ground_atom is not None
-            else _parse_ground_atom_key(claim_id)
-        )
-        goal = Literal(atom=parsed_atom, negated=False)
-        return ClaimQueryResult(
-            claim_id=claim_id,
-            goal=goal,
-            arguments_for=frozenset(),
-            arguments_against=frozenset(),
-            attacks=frozenset(),
-            defeats=frozenset(),
-        )
+        raise KeyError(claim_id)
 
     contrariness = stances_to_contrariness(stances, lits, defeasible_rules)
     kb = claims_to_kb(normalized_claims, justifications, lits)
