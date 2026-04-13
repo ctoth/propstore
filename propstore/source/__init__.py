@@ -10,8 +10,8 @@ from .alignment import (
 from .claims import (
     commit_source_claim_proposal,
     commit_source_claims_batch,
-    load_primary_branch_claim_index,
-    load_source_claim_index,
+    load_primary_branch_claim_reference_index,
+    load_source_claim_reference_index,
     normalize_source_claims_payload,
 )
 from .common import (
@@ -71,10 +71,10 @@ __all__ = [
     "initial_source_document",
     "load_alignment_artifact",
     "load_finalize_report",
-    "load_primary_branch_claim_index",
+    "load_primary_branch_claim_reference_index",
     "load_primary_branch_concept_docs",
     "load_primary_branch_concepts",
-    "load_source_claim_index",
+    "load_source_claim_reference_index",
     "load_source_document",
     "normalize_source_claims_payload",
     "normalize_source_concepts_document",

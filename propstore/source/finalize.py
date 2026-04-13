@@ -11,9 +11,13 @@ from propstore.artifacts import (
 )
 from propstore.cli.repository import Repository
 from propstore.document_schema import convert_document_value
+from propstore.reference_resolution import ClaimReferenceResolver
 from propstore.source_calibration import derive_source_trust
 
-from .claims import load_primary_branch_claim_index, load_source_claim_index
+from .claims import (
+    load_primary_branch_claim_reference_index,
+    load_source_claim_reference_index,
+)
 from .common import (
     load_source_claims_document,
     load_source_concepts_document,
@@ -40,8 +44,12 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
     stances_doc = load_source_stances_document(repo, source_name)
     concepts_doc = load_source_concepts_document(repo, source_name)
 
-    local_to_artifact, logical_to_artifact, local_artifact_ids = load_source_claim_index(repo, source_name)
-    primary_logical_to_artifact, primary_artifact_ids = load_primary_branch_claim_index(repo)
+    source_claim_index = load_source_claim_reference_index(repo, source_name)
+    primary_claim_index = load_primary_branch_claim_reference_index(repo)
+    resolver = ClaimReferenceResolver(
+        source=source_claim_index,
+        primary=primary_claim_index,
+    )
 
     claim_errors: list[str] = []
     for claim in (() if claims_doc is None else claims_doc.claims):
@@ -51,26 +59,23 @@ def finalize_source_branch(repo: Repository, source_name: str) -> str:
     justification_errors: list[str] = []
     for justification in (() if justifications_doc is None else justifications_doc.justifications):
         conclusion = justification.conclusion
-        if not isinstance(conclusion, str) or conclusion not in local_artifact_ids:
+        if not source_claim_index.has_artifact(conclusion):
             justification_errors.append(str(conclusion))
         for premise in justification.premises:
-            if not isinstance(premise, str) or premise not in local_artifact_ids:
+            if not source_claim_index.has_artifact(premise):
                 justification_errors.append(str(premise))
 
     stance_errors: list[str] = []
     for stance in (() if stances_doc is None else stances_doc.stances):
         source_claim = stance.source_claim
-        if not isinstance(source_claim, str) or source_claim not in local_artifact_ids:
+        if not source_claim_index.has_artifact(source_claim):
             stance_errors.append(str(source_claim))
         target = stance.target
         if not isinstance(target, str) or not target:
             stance_errors.append(str(target))
             continue
-        if target in local_artifact_ids or target in primary_artifact_ids:
-            continue
-        if target in logical_to_artifact or target in primary_logical_to_artifact:
-            continue
-        stance_errors.append(target)
+        if not resolver.target_is_known(target):
+            stance_errors.append(target)
 
     concept_alignment_candidates = sorted(
         {
